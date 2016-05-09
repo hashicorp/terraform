@@ -71,6 +71,39 @@ func TestAccAWSRedshiftCluster_publiclyAccessible(t *testing.T) {
 	})
 }
 
+func TestAccAWSRedshiftCluster_updateNodeCount(t *testing.T) {
+	var v redshift.Cluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	preConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_basic, ri)
+	postConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_updateNodeCount, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "number_of_nodes", "1"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "number_of_nodes", "2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSRedshiftClusterDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_redshift_cluster" {
@@ -272,6 +305,24 @@ func TestResourceAWSRedshiftClusterMasterUsernameValidation(t *testing.T) {
 	}
 }
 
+var testAccAWSRedshiftClusterConfig_updateNodeCount = `
+provider "aws" {
+	region = "us-west-2"
+}
+
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  number_of_nodes = 2
+}
+`
+
 var testAccAWSRedshiftClusterConfig_basic = `
 provider "aws" {
 	region = "us-west-2"
@@ -284,7 +335,7 @@ resource "aws_redshift_cluster" "default" {
   master_username = "foo_test"
   master_password = "Mustbe8characters"
   node_type = "dc1.large"
-  automated_snapshot_retention_period = 7
+  automated_snapshot_retention_period = 0
   allow_version_upgrade = false
 }`
 
@@ -344,7 +395,7 @@ resource "aws_redshift_cluster" "default" {
   master_username = "foo"
   master_password = "Mustbe8characters"
   node_type = "dc1.large"
-  automated_snapshot_retention_period = 7
+  automated_snapshot_retention_period = 0
   allow_version_upgrade = false
   cluster_subnet_group_name = "${aws_redshift_subnet_group.foo.name}"
   publicly_accessible = false
@@ -406,7 +457,7 @@ resource "aws_redshift_cluster" "default" {
   master_username = "foo"
   master_password = "Mustbe8characters"
   node_type = "dc1.large"
-  automated_snapshot_retention_period = 7
+  automated_snapshot_retention_period = 0
   allow_version_upgrade = false
   cluster_subnet_group_name = "${aws_redshift_subnet_group.foo.name}"
   publicly_accessible = true

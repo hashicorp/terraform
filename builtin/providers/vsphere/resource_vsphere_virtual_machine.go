@@ -33,8 +33,10 @@ type networkInterface struct {
 	label            string
 	ipv4Address      string
 	ipv4PrefixLength int
+	ipv4Gateway      string
 	ipv6Address      string
 	ipv6PrefixLength int
+	ipv6Gateway      string
 	adapterType      string // TODO: Make "adapter_type" argument
 }
 
@@ -42,6 +44,7 @@ type hardDisk struct {
 	size     int64
 	iops     int64
 	initType string
+	vmdkPath string
 }
 
 //Additional options Vsphere can use clones of windows machines
@@ -58,6 +61,10 @@ type cdrom struct {
 	path      string
 }
 
+type memoryAllocation struct {
+	reservation int64
+}
+
 type virtualMachine struct {
 	name                  string
 	folder                string
@@ -67,16 +74,18 @@ type virtualMachine struct {
 	datastore             string
 	vcpu                  int
 	memoryMb              int64
+	memoryAllocation      memoryAllocation
 	template              string
 	networkInterfaces     []networkInterface
 	hardDisks             []hardDisk
 	cdroms                []cdrom
-	gateway               string
 	domain                string
 	timeZone              string
 	dnsSuffixes           []string
 	dnsServers            []string
+	bootableVmdk          bool
 	linkedClone           bool
+	skipCustomization     bool
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
 }
@@ -97,6 +106,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereVirtualMachineCreate,
 		Read:   resourceVSphereVirtualMachineRead,
+		Update: resourceVSphereVirtualMachineUpdate,
 		Delete: resourceVSphereVirtualMachineDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -115,12 +125,17 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"vcpu": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"memory": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
+			},
+
+			"memory_reservation": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  0,
 				ForceNew: true,
 			},
 
@@ -149,9 +164,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				ForceNew: true,
 			},
 			"gateway": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use network_interface.ipv4_gateway",
 			},
 
 			"domain": &schema.Schema{
@@ -180,6 +196,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				ForceNew: true,
+			},
+
+			"skip_customization": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
 			},
 
 			"custom_configuration_parameters": &schema.Schema{
@@ -264,16 +287,27 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Computed: true,
 						},
 
-						// TODO: Imprement ipv6 parameters to be optional
+						"ipv4_gateway": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"ipv6_address": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
 							Computed: true,
-							ForceNew: true,
 						},
 
 						"ipv6_prefix_length": &schema.Schema{
 							Type:     schema.TypeInt,
+							Optional: true,
 							Computed: true,
+						},
+
+						"ipv6_gateway": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 							ForceNew: true,
 						},
 
@@ -330,6 +364,21 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+
+						"vmdk": &schema.Schema{
+							// TODO: Add ValidateFunc to confirm path exists
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  "",
+						},
+
+						"bootable": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+							ForceNew: true,
+						},
 					},
 				},
 			},
@@ -364,6 +413,93 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 	}
 }
 
+func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+	// flag if changes have to be applied
+	hasChanges := false
+	// flag if changes have to be done when powered off
+	rebootRequired := false
+
+	// make config spec
+	configSpec := types.VirtualMachineConfigSpec{}
+
+	if d.HasChange("vcpu") {
+		configSpec.NumCPUs = d.Get("vcpu").(int)
+		hasChanges = true
+		rebootRequired = true
+	}
+
+	if d.HasChange("memory") {
+		configSpec.MemoryMB = int64(d.Get("memory").(int))
+		hasChanges = true
+		rebootRequired = true
+	}
+
+	// do nothing if there are no changes
+	if !hasChanges {
+		return nil
+	}
+
+	client := meta.(*govmomi.Client)
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	if err != nil {
+		return err
+	}
+	finder := find.NewFinder(client.Client, true)
+	finder = finder.SetDatacenter(dc)
+
+	vm, err := finder.VirtualMachine(context.TODO(), vmPath(d.Get("folder").(string), d.Get("name").(string)))
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
+
+	if rebootRequired {
+		log.Printf("[INFO] Shutting down virtual machine: %s", d.Id())
+
+		task, err := vm.PowerOff(context.TODO())
+		if err != nil {
+			return err
+		}
+
+		err = task.Wait(context.TODO())
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Printf("[INFO] Reconfiguring virtual machine: %s", d.Id())
+
+	task, err := vm.Reconfigure(context.TODO(), configSpec)
+	if err != nil {
+		log.Printf("[ERROR] %s", err)
+	}
+
+	err = task.Wait(context.TODO())
+	if err != nil {
+		log.Printf("[ERROR] %s", err)
+	}
+
+	if rebootRequired {
+		task, err = vm.PowerOn(context.TODO())
+		if err != nil {
+			return err
+		}
+
+		err = task.Wait(context.TODO())
+		if err != nil {
+			log.Printf("[ERROR] %s", err)
+		}
+	}
+
+	ip, err := vm.WaitForIP(context.TODO())
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] ip address: %v", ip)
+
+	return resourceVSphereVirtualMachineRead(d, meta)
+}
+
 func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
 
@@ -371,6 +507,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		name:     d.Get("name").(string),
 		vcpu:     d.Get("vcpu").(int),
 		memoryMb: int64(d.Get("memory").(int)),
+		memoryAllocation: memoryAllocation{
+			reservation: int64(d.Get("memory_reservation").(int)),
+		},
 	}
 
 	if v, ok := d.GetOk("folder"); ok {
@@ -389,10 +528,6 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		vm.resourcePool = v.(string)
 	}
 
-	if v, ok := d.GetOk("gateway"); ok {
-		vm.gateway = v.(string)
-	}
-
 	if v, ok := d.GetOk("domain"); ok {
 		vm.domain = v.(string)
 	}
@@ -403,6 +538,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("linked_clone"); ok {
 		vm.linkedClone = v.(bool)
+	}
+
+	if v, ok := d.GetOk("skip_customization"); ok {
+		vm.skipCustomization = v.(bool)
 	}
 
 	if raw, ok := d.GetOk("dns_suffixes"); ok {
@@ -440,6 +579,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			if v, ok := network["ip_address"].(string); ok && v != "" {
 				networks[i].ipv4Address = v
 			}
+			if v, ok := d.GetOk("gateway"); ok {
+				networks[i].ipv4Gateway = v.(string)
+			}
 			if v, ok := network["subnet_mask"].(string); ok && v != "" {
 				ip := net.ParseIP(v).To4()
 				if ip != nil {
@@ -455,6 +597,18 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			}
 			if v, ok := network["ipv4_prefix_length"].(int); ok && v != 0 {
 				networks[i].ipv4PrefixLength = v
+			}
+			if v, ok := network["ipv4_gateway"].(string); ok && v != "" {
+				networks[i].ipv4Gateway = v
+			}
+			if v, ok := network["ipv6_address"].(string); ok && v != "" {
+				networks[i].ipv6Address = v
+			}
+			if v, ok := network["ipv6_prefix_length"].(int); ok && v != 0 {
+				networks[i].ipv6PrefixLength = v
+			}
+			if v, ok := network["ipv6_gateway"].(string); ok && v != "" {
+				networks[i].ipv6Gateway = v
 			}
 		}
 		vm.networkInterfaces = networks
@@ -493,8 +647,13 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				} else {
 					if v, ok := disk["size"].(int); ok && v != 0 {
 						disks[i].size = int64(v)
+					} else if v, ok := disk["vmdk"].(string); ok && v != "" {
+						disks[i].vmdkPath = v
+						if v, ok := disk["bootable"].(bool); ok {
+							vm.bootableVmdk = v
+						}
 					} else {
-						return fmt.Errorf("If template argument is not specified, size argument is required.")
+						return fmt.Errorf("template, size, or vmdk argument is required")
 					}
 				}
 				if v, ok := disk["datastore"].(string); ok && v != "" {
@@ -503,8 +662,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			} else {
 				if v, ok := disk["size"].(int); ok && v != 0 {
 					disks[i].size = int64(v)
+				} else if v, ok := disk["vmdk"].(string); ok && v != "" {
+					disks[i].vmdkPath = v
 				} else {
-					return fmt.Errorf("Size argument is required.")
+					return fmt.Errorf("size or vmdk argument is required")
 				}
 
 			}
@@ -672,6 +833,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	d.Set("datacenter", dc)
 	d.Set("memory", mvm.Summary.Config.MemorySizeMB)
+	d.Set("memory_reservation", mvm.Summary.Config.MemoryReservation)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 	d.Set("datastore", rootDatastore)
 
@@ -758,7 +920,7 @@ func waitForNetworkingActive(client *govmomi.Client, datacenter, name string) re
 }
 
 // addHardDisk adds a new Hard Disk to the VirtualMachine.
-func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string) error {
+func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, datastore *object.Datastore, diskPath string) error {
 	devices, err := vm.Device(context.TODO())
 	if err != nil {
 		return err
@@ -771,7 +933,15 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string) e
 	}
 	log.Printf("[DEBUG] disk controller: %#v\n", controller)
 
-	disk := devices.CreateDisk(controller, "")
+	// If diskPath is not specified, pass empty string to CreateDisk()
+	var newDiskPath string
+	if diskPath == "" {
+		newDiskPath = ""
+	} else {
+		// TODO Check if diskPath & datastore exist
+		newDiskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
+	}
+	disk := devices.CreateDisk(controller, newDiskPath)
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
@@ -1104,7 +1274,10 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		NumCPUs:           vm.vcpu,
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
-		DeviceChange:      networkDevices,
+		MemoryAllocation: &types.ResourceAllocationInfo{
+			Reservation: vm.memoryAllocation.reservation,
+		},
+		DeviceChange: networkDevices,
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
@@ -1195,7 +1368,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	for _, hd := range vm.hardDisks {
 		log.Printf("[DEBUG] add hard disk: %v", hd.size)
 		log.Printf("[DEBUG] add hard disk: %v", hd.iops)
-		err = addHardDisk(newVM, hd.size, hd.iops, "thin")
+		err = addHardDisk(newVM, hd.size, hd.iops, "thin", datastore, hd.vmdkPath)
 		if err != nil {
 			return err
 		}
@@ -1204,6 +1377,15 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	// Create the cdroms if needed.
 	if err := createCdroms(newVM, vm.cdroms); err != nil {
 		return err
+	}
+
+	if vm.bootableVmdk {
+		newVM.PowerOn(context.TODO())
+		ip, err := newVM.WaitForIP(context.TODO())
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] ip address: %v", ip)
 	}
 
 	return nil
@@ -1315,12 +1497,9 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		}
 		networkDevices = append(networkDevices, nd)
 
-		// TODO: IPv6 support
 		var ipSetting types.CustomizationIPSettings
 		if network.ipv4Address == "" {
-			ipSetting = types.CustomizationIPSettings{
-				Ip: &types.CustomizationDhcpIpGenerator{},
-			}
+			ipSetting.Ip = &types.CustomizationDhcpIpGenerator{}
 		} else {
 			if network.ipv4PrefixLength == 0 {
 				return fmt.Errorf("Error: ipv4_prefix_length argument is empty.")
@@ -1328,20 +1507,38 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 			m := net.CIDRMask(network.ipv4PrefixLength, 32)
 			sm := net.IPv4(m[0], m[1], m[2], m[3])
 			subnetMask := sm.String()
-			log.Printf("[DEBUG] gateway: %v", vm.gateway)
-			log.Printf("[DEBUG] ipv4 address: %v", network.ipv4Address)
-			log.Printf("[DEBUG] ipv4 prefix length: %v", network.ipv4PrefixLength)
-			log.Printf("[DEBUG] ipv4 subnet mask: %v", subnetMask)
-			ipSetting = types.CustomizationIPSettings{
-				Gateway: []string{
-					vm.gateway,
-				},
-				Ip: &types.CustomizationFixedIp{
-					IpAddress: network.ipv4Address,
-				},
-				SubnetMask: subnetMask,
+			log.Printf("[DEBUG] ipv4 gateway: %v\n", network.ipv4Gateway)
+			log.Printf("[DEBUG] ipv4 address: %v\n", network.ipv4Address)
+			log.Printf("[DEBUG] ipv4 prefix length: %v\n", network.ipv4PrefixLength)
+			log.Printf("[DEBUG] ipv4 subnet mask: %v\n", subnetMask)
+			ipSetting.Gateway = []string{
+				network.ipv4Gateway,
 			}
+			ipSetting.Ip = &types.CustomizationFixedIp{
+				IpAddress: network.ipv4Address,
+			}
+			ipSetting.SubnetMask = subnetMask
 		}
+
+		ipv6Spec := &types.CustomizationIPSettingsIpV6AddressSpec{}
+		if network.ipv6Address == "" {
+			ipv6Spec.Ip = []types.BaseCustomizationIpV6Generator{
+				&types.CustomizationDhcpIpV6Generator{},
+			}
+		} else {
+			log.Printf("[DEBUG] ipv6 gateway: %v\n", network.ipv6Gateway)
+			log.Printf("[DEBUG] ipv6 address: %v\n", network.ipv6Address)
+			log.Printf("[DEBUG] ipv6 prefix length: %v\n", network.ipv6PrefixLength)
+
+			ipv6Spec.Ip = []types.BaseCustomizationIpV6Generator{
+				&types.CustomizationFixedIpV6{
+					IpAddress:  network.ipv6Address,
+					SubnetMask: network.ipv6PrefixLength,
+				},
+			}
+			ipv6Spec.Gateway = []string{network.ipv6Gateway}
+		}
+		ipSetting.IpV6Spec = ipv6Spec
 
 		// network config
 		config := types.CustomizationAdapterMapping{
@@ -1356,6 +1553,9 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		NumCPUs:           vm.vcpu,
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
+		MemoryAllocation: &types.ResourceAllocationInfo{
+			Reservation: vm.memoryAllocation.reservation,
+		},
 	}
 
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
@@ -1515,19 +1715,23 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		return err
 	}
 
-	taskb, err := newVM.Customize(context.TODO(), customSpec)
-	if err != nil {
-		return err
+	if vm.skipCustomization {
+		log.Printf("[DEBUG] VM customization skipped")
+	} else {
+		log.Printf("[DEBUG] VM customization starting")
+		taskb, err := newVM.Customize(context.TODO(), customSpec)
+		if err != nil {
+			return err
+		}
+		_, err = taskb.WaitForResult(context.TODO(), nil)
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] VM customization finished")
 	}
-
-	_, err = taskb.WaitForResult(context.TODO(), nil)
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] VM customization finished")
 
 	for i := 1; i < len(vm.hardDisks); i++ {
-		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType)
+		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, vm.hardDisks[i].vmdkPath)
 		if err != nil {
 			return err
 		}

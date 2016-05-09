@@ -262,6 +262,43 @@ func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, 
 	return parameters, nil
 }
 
+func expandOptionConfiguration(configured []interface{}) ([]*rds.OptionConfiguration, error) {
+	var option []*rds.OptionConfiguration
+
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		o := &rds.OptionConfiguration{
+			OptionName: aws.String(data["option_name"].(string)),
+		}
+
+		if raw, ok := data["port"]; ok {
+			port := raw.(int)
+			if port != 0 {
+				o.Port = aws.Int64(int64(port))
+			}
+		}
+
+		if raw, ok := data["db_security_group_memberships"]; ok {
+			memberships := expandStringList(raw.(*schema.Set).List())
+			if len(memberships) > 0 {
+				o.DBSecurityGroupMemberships = memberships
+			}
+		}
+
+		if raw, ok := data["vpc_security_group_memberships"]; ok {
+			memberships := expandStringList(raw.(*schema.Set).List())
+			if len(memberships) > 0 {
+				o.VpcSecurityGroupMemberships = memberships
+			}
+		}
+
+		option = append(option, o)
+	}
+
+	return option, nil
+}
+
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
 func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.ParameterNameValue, error) {
@@ -504,6 +541,41 @@ func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (str
 
 	n := bytes.Index(byteArray, []byte{0})
 	return string(byteArray[:n]), nil
+}
+
+func flattenOptions(list []*rds.Option) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		if i.OptionName != nil {
+			r := make(map[string]interface{})
+			r["option_name"] = strings.ToLower(*i.OptionName)
+			// Default empty string, guard against nil parameter values
+			r["port"] = ""
+			if i.Port != nil {
+				r["port"] = int(*i.Port)
+			}
+			if i.VpcSecurityGroupMemberships != nil {
+				vpcs := make([]string, 0, len(i.VpcSecurityGroupMemberships))
+				for _, vpc := range i.VpcSecurityGroupMemberships {
+					id := vpc.VpcSecurityGroupId
+					vpcs = append(vpcs, *id)
+				}
+
+				r["vpc_security_group_memberships"] = vpcs
+			}
+			if i.DBSecurityGroupMemberships != nil {
+				dbs := make([]string, 0, len(i.DBSecurityGroupMemberships))
+				for _, db := range i.DBSecurityGroupMemberships {
+					id := db.DBSecurityGroupName
+					dbs = append(dbs, *id)
+				}
+
+				r["db_security_group_memberships"] = dbs
+			}
+			result = append(result, r)
+		}
+	}
+	return result
 }
 
 // Flattens an array of Parameters into a []map[string]interface{}
@@ -948,6 +1020,59 @@ func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key 
 	return operations
 }
 
+func expandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	oldParameters, newParameters := d.GetChange(key)
+	oldParametersMap := make(map[string]interface{})
+	newParametersMap := make(map[string]interface{})
+
+	if err := json.Unmarshal([]byte(oldParameters.(string)), &oldParametersMap); err != nil {
+		err := fmt.Errorf("Error unmarshaling old %s: %s", key, err)
+		return operations, err
+	}
+
+	if err := json.Unmarshal([]byte(newParameters.(string)), &newParametersMap); err != nil {
+		err := fmt.Errorf("Error unmarshaling new %s: %s", key, err)
+		return operations, err
+	}
+
+	for k, _ := range oldParametersMap {
+		operation := apigateway.PatchOperation{
+			Op:   aws.String("remove"),
+			Path: aws.String(fmt.Sprintf("/%s/%s", prefix, k)),
+		}
+
+		for nK, nV := range newParametersMap {
+			if nK == k {
+				operation.Op = aws.String("replace")
+				operation.Value = aws.String(strconv.FormatBool(nV.(bool)))
+			}
+		}
+
+		operations = append(operations, &operation)
+	}
+
+	for nK, nV := range newParametersMap {
+		exists := false
+		for k, _ := range oldParametersMap {
+			if k == nK {
+				exists = true
+			}
+		}
+		if !exists {
+			operation := apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, nK)),
+				Value: aws.String(strconv.FormatBool(nV.(bool))),
+			}
+			operations = append(operations, &operation)
+		}
+	}
+
+	return operations, nil
+}
+
 func expandApiGatewayStageKeyOperations(d *schema.ResourceData) []*apigateway.PatchOperation {
 	operations := make([]*apigateway.PatchOperation, 0)
 
@@ -1096,4 +1221,23 @@ func sortInterfaceSlice(in []interface{}) []interface{} {
 	}
 
 	return b
+}
+
+func flattenApiGatewayThrottleSettings(settings *apigateway.ThrottleSettings) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if settings != nil {
+		r := make(map[string]interface{})
+		if settings.BurstLimit != nil {
+			r["burst_limit"] = *settings.BurstLimit
+		}
+
+		if settings.RateLimit != nil {
+			r["rate_limit"] = *settings.RateLimit
+		}
+
+		result = append(result, r)
+	}
+
+	return result
 }

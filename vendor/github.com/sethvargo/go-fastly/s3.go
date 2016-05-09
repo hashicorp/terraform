@@ -13,6 +13,7 @@ type S3 struct {
 
 	Name              string     `mapstructure:"name"`
 	BucketName        string     `mapstructure:"bucket_name"`
+	Domain            string     `mapstructure:"domain"`
 	AccessKey         string     `mapstructure:"access_key"`
 	SecretKey         string     `mapstructure:"secret_key"`
 	Path              string     `mapstructure:"path"`
@@ -78,6 +79,7 @@ type CreateS3Input struct {
 
 	Name              string `form:"name,omitempty"`
 	BucketName        string `form:"bucket_name,omitempty"`
+	Domain            string `form:"domain,omitempty"`
 	AccessKey         string `form:"access_key,omitempty"`
 	SecretKey         string `form:"secret_key,omitempty"`
 	Path              string `form:"path,omitempty"`
@@ -161,6 +163,7 @@ type UpdateS3Input struct {
 
 	NewName           string `form:"name,omitempty"`
 	BucketName        string `form:"bucket_name,omitempty"`
+	Domain            string `form:"domain,omitempty"`
 	AccessKey         string `form:"access_key,omitempty"`
 	SecretKey         string `form:"secret_key,omitempty"`
 	Path              string `form:"path,omitempty"`

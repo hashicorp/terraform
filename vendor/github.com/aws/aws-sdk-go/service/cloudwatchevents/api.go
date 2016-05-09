@@ -4,6 +4,7 @@
 package cloudwatchevents
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -435,6 +436,22 @@ func (s DeleteRuleInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -465,6 +482,22 @@ func (s DescribeRuleInput) String() string {
 // GoString returns the string representation
 func (s DescribeRuleInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the DescribeRule operation.
@@ -521,6 +554,22 @@ func (s DisableRuleInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DisableRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -551,6 +600,22 @@ func (s EnableRuleInput) String() string {
 // GoString returns the string representation
 func (s EnableRuleInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type EnableRuleOutput struct {
@@ -591,6 +656,28 @@ func (s ListRuleNamesByTargetInput) String() string {
 // GoString returns the string representation
 func (s ListRuleNamesByTargetInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListRuleNamesByTargetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListRuleNamesByTargetInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.TargetArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetArn"))
+	}
+	if s.TargetArn != nil && len(*s.TargetArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TargetArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the ListRuleNamesByTarget operation.
@@ -639,6 +726,25 @@ func (s ListRulesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListRulesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListRulesInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NamePrefix != nil && len(*s.NamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NamePrefix", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of the ListRules operation.
 type ListRulesOutput struct {
 	_ struct{} `type:"structure"`
@@ -685,6 +791,28 @@ func (s ListTargetsByRuleInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTargetsByRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTargetsByRuleInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.Rule == nil {
+		invalidParams.Add(request.NewErrParamRequired("Rule"))
+	}
+	if s.Rule != nil && len(*s.Rule) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Rule", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of the ListTargetsByRule operation.
 type ListTargetsByRuleOutput struct {
 	_ struct{} `type:"structure"`
@@ -724,6 +852,22 @@ func (s PutEventsInput) String() string {
 // GoString returns the string representation
 func (s PutEventsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutEventsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutEventsInput"}
+	if s.Entries == nil {
+		invalidParams.Add(request.NewErrParamRequired("Entries"))
+	}
+	if s.Entries != nil && len(s.Entries) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Entries", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the PutEvents operation.
@@ -841,6 +985,25 @@ func (s PutRuleInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.RoleArn != nil && len(*s.RoleArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of the PutRule operation.
 type PutRuleOutput struct {
 	_ struct{} `type:"structure"`
@@ -878,6 +1041,35 @@ func (s PutTargetsInput) String() string {
 // GoString returns the string representation
 func (s PutTargetsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutTargetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutTargetsInput"}
+	if s.Rule == nil {
+		invalidParams.Add(request.NewErrParamRequired("Rule"))
+	}
+	if s.Rule != nil && len(*s.Rule) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Rule", 1))
+	}
+	if s.Targets == nil {
+		invalidParams.Add(request.NewErrParamRequired("Targets"))
+	}
+	if s.Targets != nil {
+		for i, v := range s.Targets {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Targets", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the PutTargets operation.
@@ -944,6 +1136,28 @@ func (s RemoveTargetsInput) String() string {
 // GoString returns the string representation
 func (s RemoveTargetsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTargetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTargetsInput"}
+	if s.Ids == nil {
+		invalidParams.Add(request.NewErrParamRequired("Ids"))
+	}
+	if s.Ids != nil && len(s.Ids) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Ids", 1))
+	}
+	if s.Rule == nil {
+		invalidParams.Add(request.NewErrParamRequired("Rule"))
+	}
+	if s.Rule != nil && len(*s.Rule) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Rule", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the RemoveTargets operation.
@@ -1071,6 +1285,28 @@ func (s Target) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Target) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Target"}
+	if s.Arn == nil {
+		invalidParams.Add(request.NewErrParamRequired("Arn"))
+	}
+	if s.Arn != nil && len(*s.Arn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Arn", 1))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Container for the parameters to the TestEventPattern operation.
 type TestEventPatternInput struct {
 	_ struct{} `type:"structure"`
@@ -1090,6 +1326,22 @@ func (s TestEventPatternInput) String() string {
 // GoString returns the string representation
 func (s TestEventPatternInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TestEventPatternInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TestEventPatternInput"}
+	if s.Event == nil {
+		invalidParams.Add(request.NewErrParamRequired("Event"))
+	}
+	if s.EventPattern == nil {
+		invalidParams.Add(request.NewErrParamRequired("EventPattern"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the TestEventPattern operation.

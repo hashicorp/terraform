@@ -4,6 +4,8 @@
 package sqs
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/private/protocol"
@@ -47,9 +49,7 @@ func (c *SQS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 //
 //  Some API actions take lists of parameters. These lists are specified using
 // the param.n notation. Values of n are integers starting from 1. For example,
-// a parameter list with two elements looks like this:  &Attribute.1=this
-//
-// &Attribute.2=that
+// a parameter list with two elements looks like this:
 func (c *SQS) AddPermission(input *AddPermissionInput) (*AddPermissionOutput, error) {
 	req, out := c.AddPermissionRequest(input)
 	err := req.Send()
@@ -145,9 +145,7 @@ func (c *SQS) ChangeMessageVisibilityBatchRequest(input *ChangeMessageVisibility
 // returns an HTTP status code of 200. Some API actions take lists of parameters.
 // These lists are specified using the param.n notation. Values of n are integers
 // starting from 1. For example, a parameter list with two elements looks like
-// this:  &Attribute.1=this
-//
-// &Attribute.2=that
+// this:
 func (c *SQS) ChangeMessageVisibilityBatch(input *ChangeMessageVisibilityBatchInput) (*ChangeMessageVisibilityBatchOutput, error) {
 	req, out := c.ChangeMessageVisibilityBatchRequest(input)
 	err := req.Send()
@@ -196,9 +194,7 @@ func (c *SQS) CreateQueueRequest(input *CreateQueueInput) (req *request.Request,
 //
 // Some API actions take lists of parameters. These lists are specified using
 // the param.n notation. Values of n are integers starting from 1. For example,
-// a parameter list with two elements looks like this:  &Attribute.1=this
-//
-// &Attribute.2=that
+// a parameter list with two elements looks like this:
 func (c *SQS) CreateQueue(input *CreateQueueInput) (*CreateQueueOutput, error) {
 	req, out := c.CreateQueueRequest(input)
 	err := req.Send()
@@ -283,9 +279,7 @@ func (c *SQS) DeleteMessageBatchRequest(input *DeleteMessageBatchInput) (req *re
 //
 //  Some API actions take lists of parameters. These lists are specified using
 // the param.n notation. Values of n are integers starting from 1. For example,
-// a parameter list with two elements looks like this:  &Attribute.1=this
-//
-// &Attribute.2=that
+// a parameter list with two elements looks like this:
 func (c *SQS) DeleteMessageBatch(input *DeleteMessageBatchInput) (*DeleteMessageBatchOutput, error) {
 	req, out := c.DeleteMessageBatchRequest(input)
 	err := req.Send()
@@ -358,27 +352,27 @@ func (c *SQS) GetQueueAttributesRequest(input *GetQueueAttributesInput) (req *re
 }
 
 // Gets attributes for the specified queue. The following attributes are supported:
-//   All - returns all values.  ApproximateNumberOfMessages - returns the approximate
+//  All - returns all values. ApproximateNumberOfMessages - returns the approximate
 // number of visible messages in a queue. For more information, see Resources
 // Required to Process Messages (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ApproximateNumber.html)
-// in the Amazon SQS Developer Guide.  ApproximateNumberOfMessagesNotVisible
+// in the Amazon SQS Developer Guide. ApproximateNumberOfMessagesNotVisible
 // - returns the approximate number of messages that are not timed-out and not
 // deleted. For more information, see Resources Required to Process Messages
 // (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ApproximateNumber.html)
-// in the Amazon SQS Developer Guide.  VisibilityTimeout - returns the visibility
+// in the Amazon SQS Developer Guide. VisibilityTimeout - returns the visibility
 // timeout for the queue. For more information about visibility timeout, see
 // Visibility Timeout (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
-// in the Amazon SQS Developer Guide.  CreatedTimestamp - returns the time when
-// the queue was created (epoch time in seconds).  LastModifiedTimestamp - returns
-// the time when the queue was last changed (epoch time in seconds).  Policy
-// - returns the queue's policy.  MaximumMessageSize - returns the limit of
-// how many bytes a message can contain before Amazon SQS rejects it.  MessageRetentionPeriod
-// - returns the number of seconds Amazon SQS retains a message.  QueueArn -
-// returns the queue's Amazon resource name (ARN).  ApproximateNumberOfMessagesDelayed
+// in the Amazon SQS Developer Guide. CreatedTimestamp - returns the time when
+// the queue was created (epoch time in seconds). LastModifiedTimestamp - returns
+// the time when the queue was last changed (epoch time in seconds). Policy
+// - returns the queue's policy. MaximumMessageSize - returns the limit of how
+// many bytes a message can contain before Amazon SQS rejects it. MessageRetentionPeriod
+// - returns the number of seconds Amazon SQS retains a message. QueueArn -
+// returns the queue's Amazon resource name (ARN). ApproximateNumberOfMessagesDelayed
 // - returns the approximate number of messages that are pending to be added
-// to the queue.  DelaySeconds - returns the default delay on the queue in seconds.
-//  ReceiveMessageWaitTimeSeconds - returns the time for which a ReceiveMessage
-// call will wait for a message to arrive.  RedrivePolicy - returns the parameters
+// to the queue. DelaySeconds - returns the default delay on the queue in seconds.
+// ReceiveMessageWaitTimeSeconds - returns the time for which a ReceiveMessage
+// call will wait for a message to arrive. RedrivePolicy - returns the parameters
 // for dead letter queue functionality of the source queue. For more information
 // about RedrivePolicy and dead letter queues, see Using Amazon SQS Dead Letter
 // Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
@@ -389,9 +383,7 @@ func (c *SQS) GetQueueAttributesRequest(input *GetQueueAttributesInput) (req *re
 // handle new attributes gracefully. Some API actions take lists of parameters.
 // These lists are specified using the param.n notation. Values of n are integers
 // starting from 1. For example, a parameter list with two elements looks like
-// this:  &Attribute.1=this
-//
-// &Attribute.2=that
+// this:
 func (c *SQS) GetQueueAttributes(input *GetQueueAttributesInput) (*GetQueueAttributesOutput, error) {
 	req, out := c.GetQueueAttributesRequest(input)
 	err := req.Send()
@@ -708,9 +700,7 @@ func (c *SQS) SendMessageBatchRequest(input *SendMessageBatchInput) (req *reques
 // returns an HTTP status code of 200.  Some API actions take lists of parameters.
 // These lists are specified using the param.n notation. Values of n are integers
 // starting from 1. For example, a parameter list with two elements looks like
-// this:  &Attribute.1=this
-//
-// &Attribute.2=that
+// this:
 func (c *SQS) SendMessageBatch(input *SendMessageBatchInput) (*SendMessageBatchOutput, error) {
 	req, out := c.SendMessageBatchRequest(input)
 	err := req.Send()
@@ -793,6 +783,28 @@ func (s AddPermissionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddPermissionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddPermissionInput"}
+	if s.AWSAccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AWSAccountIds"))
+	}
+	if s.Actions == nil {
+		invalidParams.Add(request.NewErrParamRequired("Actions"))
+	}
+	if s.Label == nil {
+		invalidParams.Add(request.NewErrParamRequired("Label"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AddPermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -856,6 +868,32 @@ func (s ChangeMessageVisibilityBatchInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeMessageVisibilityBatchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeMessageVisibilityBatchInput"}
+	if s.Entries == nil {
+		invalidParams.Add(request.NewErrParamRequired("Entries"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.Entries != nil {
+		for i, v := range s.Entries {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Entries", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // For each message in the batch, the response contains a ChangeMessageVisibilityBatchResultEntry
 // tag if the message succeeds or a BatchResultErrorEntry tag if the message
 // fails.
@@ -886,11 +924,9 @@ func (s ChangeMessageVisibilityBatchOutput) GoString() string {
 // starting with 1. For example, a parameter list for this action might look
 // like this:
 //
-//  &ChangeMessageVisibilityBatchRequestEntry.1.Id=change_visibility_msg_2
 //
-// &ChangeMessageVisibilityBatchRequestEntry.1.ReceiptHandle=Your_Receipt_Handle
 //
-// &ChangeMessageVisibilityBatchRequestEntry.1.VisibilityTimeout=45
+// Your_Receipt_Handle]]>
 type ChangeMessageVisibilityBatchRequestEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -914,6 +950,22 @@ func (s ChangeMessageVisibilityBatchRequestEntry) String() string {
 // GoString returns the string representation
 func (s ChangeMessageVisibilityBatchRequestEntry) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeMessageVisibilityBatchRequestEntry) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeMessageVisibilityBatchRequestEntry"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.ReceiptHandle == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReceiptHandle"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Encloses the id of an entry in ChangeMessageVisibilityBatch.
@@ -959,6 +1011,25 @@ func (s ChangeMessageVisibilityInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeMessageVisibilityInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeMessageVisibilityInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.ReceiptHandle == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReceiptHandle"))
+	}
+	if s.VisibilityTimeout == nil {
+		invalidParams.Add(request.NewErrParamRequired("VisibilityTimeout"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ChangeMessageVisibilityOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -981,19 +1052,19 @@ type CreateQueueInput struct {
 	// The following lists the names, descriptions, and values of the special request
 	// parameters the CreateQueue action uses:
 	//
-	//    DelaySeconds - The time in seconds that the delivery of all messages
-	// in the queue will be delayed. An integer from 0 to 900 (15 minutes). The
-	// default for this attribute is 0 (zero).  MaximumMessageSize - The limit of
-	// how many bytes a message can contain before Amazon SQS rejects it. An integer
-	// from 1024 bytes (1 KiB) up to 262144 bytes (256 KiB). The default for this
-	// attribute is 262144 (256 KiB).  MessageRetentionPeriod - The number of seconds
-	// Amazon SQS retains a message. Integer representing seconds, from 60 (1 minute)
-	// to 1209600 (14 days). The default for this attribute is 345600 (4 days).
-	//  Policy - The queue's policy. A valid AWS policy. For more information about
-	// policy structure, see Overview of AWS IAM Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PoliciesOverview.html)
-	// in the Amazon IAM User Guide.  ReceiveMessageWaitTimeSeconds - The time for
+	//   DelaySeconds - The time in seconds that the delivery of all messages in
+	// the queue will be delayed. An integer from 0 to 900 (15 minutes). The default
+	// for this attribute is 0 (zero). MaximumMessageSize - The limit of how many
+	// bytes a message can contain before Amazon SQS rejects it. An integer from
+	// 1024 bytes (1 KiB) up to 262144 bytes (256 KiB). The default for this attribute
+	// is 262144 (256 KiB). MessageRetentionPeriod - The number of seconds Amazon
+	// SQS retains a message. Integer representing seconds, from 60 (1 minute) to
+	// 1209600 (14 days). The default for this attribute is 345600 (4 days). Policy
+	// - The queue's policy. A valid AWS policy. For more information about policy
+	// structure, see Overview of AWS IAM Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PoliciesOverview.html)
+	// in the Amazon IAM User Guide. ReceiveMessageWaitTimeSeconds - The time for
 	// which a ReceiveMessage call will wait for a message to arrive. An integer
-	// from 0 to 20 (seconds). The default for this attribute is 0.   VisibilityTimeout
+	// from 0 to 20 (seconds). The default for this attribute is 0.  VisibilityTimeout
 	// - The visibility timeout for the queue. An integer from 0 to 43200 (12 hours).
 	// The default for this attribute is 30. For more information about visibility
 	// timeout, see Visibility Timeout (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
@@ -1012,6 +1083,19 @@ func (s CreateQueueInput) String() string {
 // GoString returns the string representation
 func (s CreateQueueInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateQueueInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateQueueInput"}
+	if s.QueueName == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Returns the QueueUrl element of the created queue.
@@ -1050,6 +1134,32 @@ func (s DeleteMessageBatchInput) String() string {
 // GoString returns the string representation
 func (s DeleteMessageBatchInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMessageBatchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMessageBatchInput"}
+	if s.Entries == nil {
+		invalidParams.Add(request.NewErrParamRequired("Entries"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.Entries != nil {
+		for i, v := range s.Entries {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Entries", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // For each message in the batch, the response contains a DeleteMessageBatchResultEntry
@@ -1098,6 +1208,22 @@ func (s DeleteMessageBatchRequestEntry) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMessageBatchRequestEntry) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMessageBatchRequestEntry"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.ReceiptHandle == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReceiptHandle"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Encloses the id an entry in DeleteMessageBatch.
 type DeleteMessageBatchResultEntry struct {
 	_ struct{} `type:"structure"`
@@ -1136,6 +1262,22 @@ func (s DeleteMessageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMessageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMessageInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.ReceiptHandle == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReceiptHandle"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteMessageOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1165,6 +1307,19 @@ func (s DeleteQueueInput) String() string {
 // GoString returns the string representation
 func (s DeleteQueueInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteQueueInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteQueueInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteQueueOutput struct {
@@ -1199,6 +1354,19 @@ func (s GetQueueAttributesInput) String() string {
 // GoString returns the string representation
 func (s GetQueueAttributesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetQueueAttributesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetQueueAttributesInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A list of returned queue attributes.
@@ -1240,6 +1408,19 @@ func (s GetQueueUrlInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetQueueUrlInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetQueueUrlInput"}
+	if s.QueueName == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // For more information, see Responses (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/UnderstandingResponses.html)
 // in the Amazon SQS Developer Guide.
 type GetQueueUrlOutput struct {
@@ -1274,6 +1455,19 @@ func (s ListDeadLetterSourceQueuesInput) String() string {
 // GoString returns the string representation
 func (s ListDeadLetterSourceQueuesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListDeadLetterSourceQueuesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListDeadLetterSourceQueuesInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A list of your dead letter source queues.
@@ -1420,6 +1614,19 @@ func (s MessageAttributeValue) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MessageAttributeValue) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MessageAttributeValue"}
+	if s.DataType == nil {
+		invalidParams.Add(request.NewErrParamRequired("DataType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PurgeQueueInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1436,6 +1643,19 @@ func (s PurgeQueueInput) String() string {
 // GoString returns the string representation
 func (s PurgeQueueInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PurgeQueueInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PurgeQueueInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PurgeQueueOutput struct {
@@ -1460,13 +1680,13 @@ type ReceiveMessageInput struct {
 	//  The following lists the names and descriptions of the attributes that can
 	// be returned:
 	//
-	//   All - returns all values.  ApproximateFirstReceiveTimestamp - returns
-	// the time when the message was first received from the queue (epoch time in
-	// milliseconds).  ApproximateReceiveCount - returns the number of times a message
-	// has been received from the queue but not deleted.  SenderId - returns the
-	// AWS account number (or the IP address, if anonymous access is allowed) of
-	// the sender.  SentTimestamp - returns the time when the message was sent to
-	// the queue (epoch time in milliseconds).
+	//  All - returns all values. ApproximateFirstReceiveTimestamp - returns the
+	// time when the message was first received from the queue (epoch time in milliseconds).
+	// ApproximateReceiveCount - returns the number of times a message has been
+	// received from the queue but not deleted. SenderId - returns the AWS account
+	// number (or the IP address, if anonymous access is allowed) of the sender.
+	// SentTimestamp - returns the time when the message was sent to the queue (epoch
+	// time in milliseconds).
 	AttributeNames []*string `locationNameList:"AttributeName" type:"list" flattened:"true"`
 
 	// The maximum number of messages to return. Amazon SQS never returns more messages
@@ -1514,6 +1734,19 @@ func (s ReceiveMessageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReceiveMessageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReceiveMessageInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A list of received messages.
 type ReceiveMessageOutput struct {
 	_ struct{} `type:"structure"`
@@ -1553,6 +1786,22 @@ func (s RemovePermissionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemovePermissionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemovePermissionInput"}
+	if s.Label == nil {
+		invalidParams.Add(request.NewErrParamRequired("Label"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RemovePermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1585,6 +1834,32 @@ func (s SendMessageBatchInput) String() string {
 // GoString returns the string representation
 func (s SendMessageBatchInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SendMessageBatchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SendMessageBatchInput"}
+	if s.Entries == nil {
+		invalidParams.Add(request.NewErrParamRequired("Entries"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.Entries != nil {
+		for i, v := range s.Entries {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Entries", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // For each message in the batch, the response contains a SendMessageBatchResultEntry
@@ -1639,6 +1914,32 @@ func (s SendMessageBatchRequestEntry) String() string {
 // GoString returns the string representation
 func (s SendMessageBatchRequestEntry) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SendMessageBatchRequestEntry) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SendMessageBatchRequestEntry"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.MessageBody == nil {
+		invalidParams.Add(request.NewErrParamRequired("MessageBody"))
+	}
+	if s.MessageAttributes != nil {
+		for i, v := range s.MessageAttributes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "MessageAttributes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Encloses a message ID for successfully enqueued message of a SendMessageBatch.
@@ -1705,6 +2006,32 @@ func (s SendMessageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SendMessageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SendMessageInput"}
+	if s.MessageBody == nil {
+		invalidParams.Add(request.NewErrParamRequired("MessageBody"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.MessageAttributes != nil {
+		for i, v := range s.MessageAttributes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "MessageAttributes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The MD5OfMessageBody and MessageId elements.
 type SendMessageOutput struct {
 	_ struct{} `type:"structure"`
@@ -1745,22 +2072,22 @@ type SetQueueAttributesInput struct {
 	// The following lists the names, descriptions, and values of the special request
 	// parameters the SetQueueAttributes action uses:
 	//
-	//    DelaySeconds - The time in seconds that the delivery of all messages
-	// in the queue will be delayed. An integer from 0 to 900 (15 minutes). The
-	// default for this attribute is 0 (zero).  MaximumMessageSize - The limit of
-	// how many bytes a message can contain before Amazon SQS rejects it. An integer
-	// from 1024 bytes (1 KiB) up to 262144 bytes (256 KiB). The default for this
-	// attribute is 262144 (256 KiB).  MessageRetentionPeriod - The number of seconds
-	// Amazon SQS retains a message. Integer representing seconds, from 60 (1 minute)
-	// to 1209600 (14 days). The default for this attribute is 345600 (4 days).
-	//  Policy - The queue's policy. A valid AWS policy. For more information about
-	// policy structure, see Overview of AWS IAM Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PoliciesOverview.html)
-	// in the Amazon IAM User Guide.  ReceiveMessageWaitTimeSeconds - The time for
+	//   DelaySeconds - The time in seconds that the delivery of all messages in
+	// the queue will be delayed. An integer from 0 to 900 (15 minutes). The default
+	// for this attribute is 0 (zero). MaximumMessageSize - The limit of how many
+	// bytes a message can contain before Amazon SQS rejects it. An integer from
+	// 1024 bytes (1 KiB) up to 262144 bytes (256 KiB). The default for this attribute
+	// is 262144 (256 KiB). MessageRetentionPeriod - The number of seconds Amazon
+	// SQS retains a message. Integer representing seconds, from 60 (1 minute) to
+	// 1209600 (14 days). The default for this attribute is 345600 (4 days). Policy
+	// - The queue's policy. A valid AWS policy. For more information about policy
+	// structure, see Overview of AWS IAM Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PoliciesOverview.html)
+	// in the Amazon IAM User Guide. ReceiveMessageWaitTimeSeconds - The time for
 	// which a ReceiveMessage call will wait for a message to arrive. An integer
-	// from 0 to 20 (seconds). The default for this attribute is 0.   VisibilityTimeout
+	// from 0 to 20 (seconds). The default for this attribute is 0.  VisibilityTimeout
 	// - The visibility timeout for the queue. An integer from 0 to 43200 (12 hours).
 	// The default for this attribute is 30. For more information about visibility
-	// timeout, see Visibility Timeout in the Amazon SQS Developer Guide.  RedrivePolicy
+	// timeout, see Visibility Timeout in the Amazon SQS Developer Guide. RedrivePolicy
 	// - The parameters for dead letter queue functionality of the source queue.
 	// For more information about RedrivePolicy and dead letter queues, see Using
 	// Amazon SQS Dead Letter Queues in the Amazon SQS Developer Guide.
@@ -1778,6 +2105,22 @@ func (s SetQueueAttributesInput) String() string {
 // GoString returns the string representation
 func (s SetQueueAttributesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetQueueAttributesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetQueueAttributesInput"}
+	if s.Attributes == nil {
+		invalidParams.Add(request.NewErrParamRequired("Attributes"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetQueueAttributesOutput struct {

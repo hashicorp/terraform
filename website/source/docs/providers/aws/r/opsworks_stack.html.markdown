@@ -37,6 +37,7 @@ The following arguments are supported:
 * `service_role_arn` - (Required) The ARN of an IAM role that the OpsWorks service will act as.
 * `default_instance_profile_arn` - (Required) The ARN of an IAM Instance Profile that created instances
   will have by default.
+* `agent_version` - (Optional) If set to `"LATEST"`, OpsWorks will automatically install the latest version.
 * `berkshelf_version` - (Optional) If `manage_berkshelf` is enabled, the version of Berkshelf to use.
 * `color` - (Optional) Color to paint next to the stack's resources in the OpsWorks console.
 * `default_availability_zone` - (Optional) Name of the availability zone where instances will be created

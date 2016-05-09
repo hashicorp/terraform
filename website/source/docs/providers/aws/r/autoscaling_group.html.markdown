@@ -71,7 +71,7 @@ The following arguments are supported:
 * `tag` (Optional) A list of tag blocks. Tags documented below.
 * `placement_group` (Optional) The name of the placement group into which you'll launch your instances, if any.
 * `metrics_granularity` - (Optional) The granularity to associate with the metrics to collect. The only valid value is `1Minute`. Default is `1Minute`.
-* `enabled_metrics` - (Required) A list of metrics to collect. The allowed values are `GroupMinSize`, `GroupMaxSize`, `GroupDesiredCapacity`, `GroupInServiceInstances`, `GroupPendingInstances`, `GroupStandbyInstances`, `GroupTerminatingInstances`, `GroupTotalInstances`.
+* `enabled_metrics` - (Optional) A list of metrics to collect. The allowed values are `GroupMinSize`, `GroupMaxSize`, `GroupDesiredCapacity`, `GroupInServiceInstances`, `GroupPendingInstances`, `GroupStandbyInstances`, `GroupTerminatingInstances`, `GroupTotalInstances`.
 * `wait_for_capacity_timeout` (Default: "10m") A maximum
   [duration](https://golang.org/pkg/time/#ParseDuration) that Terraform should
   wait for ASG instances to be healthy before timing out.  (See also [Waiting
@@ -114,7 +114,6 @@ The following attributes are exported:
 
 ~> **NOTE:** When using `ELB` as the health_check_type, `health_check_grace_period` is required.
 
-<a id="waiting-for-capacity"></a>
 ## Waiting for Capacity
 
 A newly-created ASG is initially empty and begins to scale to `min_size` (or

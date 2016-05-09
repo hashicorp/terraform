@@ -67,8 +67,8 @@ type CreateGzipInput struct {
 	Version string
 
 	Name           string `form:"name,omitempty"`
-	ContentTypes   string `form:"content_types,omitempty"`
-	Extensions     string `form:"extensions,omitempty"`
+	ContentTypes   string `form:"content_types"`
+	Extensions     string `form:"extensions"`
 	CacheCondition string `form:"cache_condition,omitempty"`
 }
 

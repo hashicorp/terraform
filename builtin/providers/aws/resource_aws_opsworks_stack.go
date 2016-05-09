@@ -22,6 +22,12 @@ func resourceAwsOpsworksStack() *schema.Resource {
 		Delete: resourceAwsOpsworksStackDelete,
 
 		Schema: map[string]*schema.Schema{
+			"agent_version": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -265,6 +271,7 @@ func resourceAwsOpsworksStackRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	stack := resp.Stacks[0]
+	d.Set("agent_version", stack.AgentVersion)
 	d.Set("name", stack.Name)
 	d.Set("region", stack.Region)
 	d.Set("default_instance_profile_arn", stack.DefaultInstanceProfileArn)
@@ -396,6 +403,9 @@ func resourceAwsOpsworksStackUpdate(d *schema.ResourceData, meta interface{}) er
 		UseOpsworksSecurityGroups: aws.Bool(d.Get("use_opsworks_security_groups").(bool)),
 		Attributes:                make(map[string]*string),
 		CustomCookbooksSource:     resourceAwsOpsworksStackCustomCookbooksSource(d),
+	}
+	if v, ok := d.GetOk("agent_version"); ok {
+		req.AgentVersion = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("default_os"); ok {
 		req.DefaultOs = aws.String(v.(string))

@@ -31,6 +31,31 @@ func validateRdsId(v interface{}, k string) (ws []string, errors []error) {
 	return
 }
 
+func validateElastiCacheClusterId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if (len(value) < 1) || (len(value) > 20) {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain from 1 to 20 alphanumeric characters or hyphens", k))
+	}
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if regexp.MustCompile(`-$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot end with a hyphen", k))
+	}
+	return
+}
+
 func validateASGScheduleTimestamp(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	_, err := time.Parse(awsAutoscalingScheduleTimeLayout, value)
@@ -163,6 +188,21 @@ func validateMaxLength(length int) schema.SchemaValidateFunc {
 		if len(value) > length {
 			errors = append(errors, fmt.Errorf(
 				"%q cannot be longer than %d characters: %q", k, length, value))
+		}
+		return
+	}
+}
+
+func validateIntegerInRange(min, max int) schema.SchemaValidateFunc {
+	return func(v interface{}, k string) (ws []string, errors []error) {
+		value := v.(int)
+		if value < min {
+			errors = append(errors, fmt.Errorf(
+				"%q cannot be lower than %d: %d", k, min, value))
+		}
+		if value > max {
+			errors = append(errors, fmt.Errorf(
+				"%q cannot be higher than %d: %d", k, max, value))
 		}
 		return
 	}
@@ -395,6 +435,19 @@ func validateS3BucketLifecycleRuleId(v interface{}, k string) (ws []string, erro
 	if len(value) > 255 {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot exceed 255 characters", k))
+	}
+	return
+}
+
+func validateDbEventSubscriptionName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters", k))
 	}
 	return
 }

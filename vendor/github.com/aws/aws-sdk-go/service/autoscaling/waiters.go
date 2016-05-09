@@ -14,15 +14,15 @@ func (c *AutoScaling) WaitUntilGroupExists(input *DescribeAutoScalingGroupsInput
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
-				Matcher:  "pathAll",
-				Argument: "length(AutoScalingGroups)",
-				Expected: 1,
+				Matcher:  "path",
+				Argument: "length(AutoScalingGroups) > `0`",
+				Expected: true,
 			},
 			{
 				State:    "retry",
-				Matcher:  "pathAll",
-				Argument: "length(AutoScalingGroups)",
-				Expected: 0,
+				Matcher:  "path",
+				Argument: "length(AutoScalingGroups) > `0`",
+				Expected: false,
 			},
 		},
 	}
@@ -43,13 +43,13 @@ func (c *AutoScaling) WaitUntilGroupInService(input *DescribeAutoScalingGroupsIn
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
-				Matcher:  "pathAll",
+				Matcher:  "path",
 				Argument: "contains(AutoScalingGroups[].[length(Instances[?LifecycleState=='InService']) >= MinSize][], `false`)",
 				Expected: false,
 			},
 			{
 				State:    "retry",
-				Matcher:  "pathAll",
+				Matcher:  "path",
 				Argument: "contains(AutoScalingGroups[].[length(Instances[?LifecycleState=='InService']) >= MinSize][], `false`)",
 				Expected: true,
 			},
@@ -72,15 +72,15 @@ func (c *AutoScaling) WaitUntilGroupNotExists(input *DescribeAutoScalingGroupsIn
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
-				Matcher:  "pathAll",
-				Argument: "length(AutoScalingGroups)",
-				Expected: 0,
+				Matcher:  "path",
+				Argument: "length(AutoScalingGroups) > `0`",
+				Expected: false,
 			},
 			{
 				State:    "retry",
-				Matcher:  "pathAll",
-				Argument: "length(AutoScalingGroups)",
-				Expected: 1,
+				Matcher:  "path",
+				Argument: "length(AutoScalingGroups) > `0`",
+				Expected: true,
 			},
 		},
 	}

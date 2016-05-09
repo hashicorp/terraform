@@ -1682,6 +1682,25 @@ func (s AbortMultipartUploadInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AbortMultipartUploadInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AbortMultipartUploadInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AbortMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1720,6 +1739,22 @@ func (s AbortVaultLockInput) String() string {
 // GoString returns the string representation
 func (s AbortVaultLockInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AbortVaultLockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AbortVaultLockInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AbortVaultLockOutput struct {
@@ -1763,6 +1798,22 @@ func (s AddTagsToVaultInput) String() string {
 // GoString returns the string representation
 func (s AddTagsToVaultInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsToVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsToVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AddTagsToVaultOutput struct {
@@ -1849,6 +1900,25 @@ func (s CompleteMultipartUploadInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CompleteMultipartUploadInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CompleteMultipartUploadInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The input values for CompleteVaultLock.
 type CompleteVaultLockInput struct {
 	_ struct{} `type:"structure"`
@@ -1876,6 +1946,25 @@ func (s CompleteVaultLockInput) String() string {
 // GoString returns the string representation
 func (s CompleteVaultLockInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CompleteVaultLockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CompleteVaultLockInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.LockId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LockId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CompleteVaultLockOutput struct {
@@ -1916,6 +2005,22 @@ func (s CreateVaultInput) String() string {
 // GoString returns the string representation
 func (s CreateVaultInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2010,6 +2115,25 @@ func (s DeleteArchiveInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteArchiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteArchiveInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.ArchiveId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ArchiveId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteArchiveOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2047,6 +2171,22 @@ func (s DeleteVaultAccessPolicyInput) String() string {
 // GoString returns the string representation
 func (s DeleteVaultAccessPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteVaultAccessPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteVaultAccessPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteVaultAccessPolicyOutput struct {
@@ -2088,6 +2228,22 @@ func (s DeleteVaultInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Provides options for deleting a vault notification configuration from an
 // Amazon Glacier vault.
 type DeleteVaultNotificationsInput struct {
@@ -2112,6 +2268,22 @@ func (s DeleteVaultNotificationsInput) String() string {
 // GoString returns the string representation
 func (s DeleteVaultNotificationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteVaultNotificationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteVaultNotificationsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteVaultNotificationsOutput struct {
@@ -2170,6 +2342,25 @@ func (s DescribeJobInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeJobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeJobInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Provides options for retrieving metadata for a specific vault in Amazon Glacier.
 type DescribeVaultInput struct {
 	_ struct{} `type:"structure"`
@@ -2193,6 +2384,22 @@ func (s DescribeVaultInput) String() string {
 // GoString returns the string representation
 func (s DescribeVaultInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2257,6 +2464,19 @@ func (s GetDataRetrievalPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDataRetrievalPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDataRetrievalPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the Amazon Glacier response to the GetDataRetrievalPolicy request.
 type GetDataRetrievalPolicyOutput struct {
 	_ struct{} `type:"structure"`
@@ -2306,6 +2526,25 @@ func (s GetJobOutputInput) String() string {
 // GoString returns the string representation
 func (s GetJobOutputInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetJobOutputInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetJobOutputInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2386,6 +2625,22 @@ func (s GetVaultAccessPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetVaultAccessPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetVaultAccessPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Output for GetVaultAccessPolicy.
 type GetVaultAccessPolicyOutput struct {
 	_ struct{} `type:"structure" payload:"Policy"`
@@ -2427,6 +2682,22 @@ func (s GetVaultLockInput) String() string {
 // GoString returns the string representation
 func (s GetVaultLockInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetVaultLockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetVaultLockInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2484,6 +2755,22 @@ func (s GetVaultNotificationsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetVaultNotificationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetVaultNotificationsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the Amazon Glacier response to your request.
 type GetVaultNotificationsOutput struct {
 	_ struct{} `type:"structure" payload:"VaultNotificationConfig"`
@@ -2528,6 +2815,22 @@ func (s InitiateJobInput) String() string {
 // GoString returns the string representation
 func (s InitiateJobInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InitiateJobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InitiateJobInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2588,6 +2891,22 @@ func (s InitiateMultipartUploadInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InitiateMultipartUploadInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InitiateMultipartUploadInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The Amazon Glacier response to your request.
 type InitiateMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
@@ -2637,6 +2956,22 @@ func (s InitiateVaultLockInput) String() string {
 // GoString returns the string representation
 func (s InitiateVaultLockInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InitiateVaultLockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InitiateVaultLockInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2924,6 +3259,22 @@ func (s ListJobsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListJobsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListJobsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the Amazon Glacier response to your request.
 type ListJobsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2982,6 +3333,22 @@ func (s ListMultipartUploadsInput) String() string {
 // GoString returns the string representation
 func (s ListMultipartUploadsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListMultipartUploadsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListMultipartUploadsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -3045,6 +3412,25 @@ func (s ListPartsInput) String() string {
 // GoString returns the string representation
 func (s ListPartsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListPartsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListPartsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -3112,6 +3498,22 @@ func (s ListTagsForVaultInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the Amazon Glacier response to your request.
 type ListTagsForVaultOutput struct {
 	_ struct{} `type:"structure"`
@@ -3160,6 +3562,19 @@ func (s ListVaultsInput) String() string {
 // GoString returns the string representation
 func (s ListVaultsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListVaultsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListVaultsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -3234,6 +3649,22 @@ func (s RemoveTagsFromVaultInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsFromVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsFromVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RemoveTagsFromVaultOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3272,6 +3703,19 @@ func (s SetDataRetrievalPolicyInput) String() string {
 // GoString returns the string representation
 func (s SetDataRetrievalPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetDataRetrievalPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetDataRetrievalPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetDataRetrievalPolicyOutput struct {
@@ -3316,6 +3760,22 @@ func (s SetVaultAccessPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetVaultAccessPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetVaultAccessPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SetVaultAccessPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3357,6 +3817,22 @@ func (s SetVaultNotificationsInput) String() string {
 // GoString returns the string representation
 func (s SetVaultNotificationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetVaultNotificationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetVaultNotificationsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetVaultNotificationsOutput struct {
@@ -3405,6 +3881,22 @@ func (s UploadArchiveInput) String() string {
 // GoString returns the string representation
 func (s UploadArchiveInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UploadArchiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UploadArchiveInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A list of in-progress multipart uploads for a vault.
@@ -3478,6 +3970,25 @@ func (s UploadMultipartPartInput) String() string {
 // GoString returns the string representation
 func (s UploadMultipartPartInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UploadMultipartPartInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UploadMultipartPartInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
