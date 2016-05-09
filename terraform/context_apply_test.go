@@ -2495,6 +2495,94 @@ module.child.subchild.subsubchild:
 	}
 }
 
+// https://github.com/hashicorp/terraform/issues/5440
+func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
+	m := testModule(t, "apply-destroy-module-with-attrs")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	var state *State
+	var err error
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Variables: map[string]string{
+				"key_name": "foobarkey",
+			},
+		})
+
+		// First plan and apply a create operation
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	h := new(HookRecordApplyOrder)
+	h.Active = true
+
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Destroy: true,
+			Module:  m,
+			State:   state,
+			Hooks:   []Hook{h},
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Variables: map[string]string{
+				"key_name": "foobarkey",
+			},
+		})
+
+		// First plan and apply a create operation
+		plan, err := ctx.Plan()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		var buf bytes.Buffer
+		if err := WritePlan(plan, &buf); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		planFromFile, err := ReadPlan(&buf)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ctx = planFromFile.Context(&ContextOpts{
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	//Test that things were destroyed
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+<no state>
+module.child:
+  <no state>
+		`)
+	if actual != expected {
+		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
+	}
+}
+
 func TestContext2Apply_destroyOutputs(t *testing.T) {
 	m := testModule(t, "apply-destroy-outputs")
 	h := new(HookRecordApplyOrder)
