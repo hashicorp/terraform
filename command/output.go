@@ -81,7 +81,7 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if name == "" {
-		c.Ui.Output(outputsAsString(state))
+		c.Ui.Output(outputsAsString(state, nil, false))
 		return 0
 	}
 

@@ -251,7 +251,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if !c.Destroy {
-		if outputs := outputsAsString(state, ctx.Module().Config().Outputs); outputs != "" {
+		if outputs := outputsAsString(state, ctx.Module().Config().Outputs, true); outputs != "" {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
@@ -377,7 +377,7 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *terraform.State, schema []*config.Output) string {
+func outputsAsString(state *terraform.State, schema []*config.Output, includeHeader bool) string {
 	if state == nil {
 		return ""
 	}
@@ -386,11 +386,15 @@ func outputsAsString(state *terraform.State, schema []*config.Output) string {
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
 		schemaMap := make(map[string]*config.Output)
-		for _, s := range schema {
-			schemaMap[s.Name] = s
+		if schema != nil {
+			for _, s := range schema {
+				schemaMap[s.Name] = s
+			}
 		}
 
-		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
+		if includeHeader {
+			outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
+		}
 
 		// Output the outputs in alphabetical order
 		keyLen := 0
@@ -404,7 +408,8 @@ func outputsAsString(state *terraform.State, schema []*config.Output) string {
 		sort.Strings(ks)
 
 		for _, k := range ks {
-			if schemaMap[k].Sensitive {
+			schema, ok := schemaMap[k]
+			if ok && schema.Sensitive {
 				outputBuf.WriteString(fmt.Sprintf("%s = <sensitive>\n", k))
 				continue
 			}

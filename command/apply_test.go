@@ -887,6 +887,15 @@ func TestApply_stateNoExist(t *testing.T) {
 }
 
 func TestApply_sensitiveOutput(t *testing.T) {
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
 	statePath := testTempFile(t)
 
 	args := []string{
@@ -902,7 +911,7 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	if !strings.Contains(output, "notsensitive = Hello world") {
 		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", output)
 	}
-	if !strings.Contains(output, "sensitive    = <sensitive>") {
+	if !strings.Contains(output, "sensitive = <sensitive>") {
 		t.Fatalf("bad: output should contain 'sensitive' output\n%s", output)
 	}
 }
