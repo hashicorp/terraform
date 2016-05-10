@@ -1,6 +1,7 @@
 package ultradns
 
 import (
+	"github.com/Ensighten/udnssdk"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -24,9 +25,10 @@ func Provider() terraform.ResourceProvider {
 			},
 			"baseurl": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ULTRADNS_BASEURL", nil),
-				Description: "UltraDNS Base Url(defaults to testing)",
+				Default:     udnssdk.DefaultLiveBaseURL,
+				Description: "UltraDNS Base URL",
 			},
 		},
 
