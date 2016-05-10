@@ -93,6 +93,23 @@ func Merge(c1, c2 *Config) (*Config, error) {
 		}
 	}
 
+	// Data Sources
+	m1 = make([]merger, 0, len(c1.DataSources))
+	m2 = make([]merger, 0, len(c2.DataSources))
+	for _, v := range c1.DataSources {
+		m1 = append(m1, v)
+	}
+	for _, v := range c2.DataSources {
+		m2 = append(m2, v)
+	}
+	mresult = mergeSlice(m1, m2)
+	if len(mresult) > 0 {
+		c.DataSources = make([]*DataSource, len(mresult))
+		for i, v := range mresult {
+			c.DataSources[i] = v.(*DataSource)
+		}
+	}
+
 	// Resources
 	m1 = make([]merger, 0, len(c1.Resources))
 	m2 = make([]merger, 0, len(c2.Resources))

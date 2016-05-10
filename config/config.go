@@ -30,6 +30,7 @@ type Config struct {
 	Atlas           *AtlasConfig
 	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
+	DataSources     []*DataSource
 	Resources       []*Resource
 	Variables       []*Variable
 	Outputs         []*Output
@@ -64,6 +65,18 @@ type ProviderConfig struct {
 	Name      string
 	Alias     string
 	RawConfig *RawConfig
+}
+
+// DataSource is the configuration for a data source.
+// A data source represents retrieving some data from an external source for
+// use elsewhere in a Terraform configuration, or computing some data
+// internally within a logical provider.
+type DataSource struct {
+	Name      string
+	Type      string
+	RawConfig *RawConfig
+	Provider  string
+	DependsOn []string
 }
 
 // A resource represents a single Terraform resource in the configuration.
@@ -799,6 +812,21 @@ func (c *ProviderConfig) mergerMerge(m merger) merger {
 	result := *c
 	result.Name = c2.Name
 	result.RawConfig = result.RawConfig.merge(c2.RawConfig)
+
+	return &result
+}
+
+func (r *DataSource) mergerName() string {
+	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+}
+
+func (r *DataSource) mergerMerge(m merger) merger {
+	r2 := m.(*DataSource)
+
+	result := *r
+	result.Name = r2.Name
+	result.Type = r2.Type
+	result.RawConfig = result.RawConfig.merge(r2.RawConfig)
 
 	return &result
 }
