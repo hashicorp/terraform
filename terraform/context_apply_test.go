@@ -2598,11 +2598,14 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ctx = planFromFile.Context(&ContextOpts{
+		ctx, err = planFromFile.Context(&ContextOpts{
 			Providers: map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		})
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
 
 		state, err = ctx.Apply()
 		if err != nil {
