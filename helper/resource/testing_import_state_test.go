@@ -177,3 +177,134 @@ func TestTest_importStateDetectId(t *testing.T) {
 		t.Fatal("didn't call check")
 	}
 }
+
+func TestTest_importStateVerify(t *testing.T) {
+	mp := testProvider()
+	mp.DiffReturn = nil
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+				Attributes: map[string]string{
+					"foo": "bar",
+				},
+			}, nil
+		}
+
+		return nil, nil
+	}
+
+	mp.RefreshFn = func(
+		i *terraform.InstanceInfo,
+		s *terraform.InstanceState) (*terraform.InstanceState, error) {
+		if len(s.Attributes) == 0 {
+			s.Attributes = map[string]string{
+				"id":  s.ID,
+				"foo": "bar",
+			}
+		}
+
+		return s, nil
+	}
+
+	mp.ImportStateFn = func(
+		info *terraform.InstanceInfo, id string) ([]*terraform.InstanceState, error) {
+		if id != "foo" {
+			return nil, fmt.Errorf("bad import ID: %s", id)
+		}
+
+		return []*terraform.InstanceState{
+			&terraform.InstanceState{
+				ID:        "foo",
+				Ephemeral: terraform.EphemeralState{Type: "test_instance"},
+			},
+		}, nil
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+
+		Steps: []TestStep{
+			TestStep{
+				Config: testConfigStr,
+			},
+			TestStep{
+				ResourceName:      "test_instance.foo",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+
+	if mt.failed() {
+		t.Fatalf("test failed: %s", mt.failMessage())
+	}
+}
+
+func TestTest_importStateVerifyFail(t *testing.T) {
+	mp := testProvider()
+	mp.DiffReturn = nil
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+				Attributes: map[string]string{
+					"foo": "bar",
+				},
+			}, nil
+		}
+
+		return nil, nil
+	}
+
+	mp.RefreshFn = func(
+		i *terraform.InstanceInfo,
+		s *terraform.InstanceState) (*terraform.InstanceState, error) {
+		return s, nil
+	}
+
+	mp.ImportStateFn = func(
+		info *terraform.InstanceInfo, id string) ([]*terraform.InstanceState, error) {
+		if id != "foo" {
+			return nil, fmt.Errorf("bad import ID: %s", id)
+		}
+
+		return []*terraform.InstanceState{
+			&terraform.InstanceState{
+				ID:        "foo",
+				Ephemeral: terraform.EphemeralState{Type: "test_instance"},
+			},
+		}, nil
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+
+		Steps: []TestStep{
+			TestStep{
+				Config: testConfigStr,
+			},
+			TestStep{
+				ResourceName:      "test_instance.foo",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatalf("test should fail")
+	}
+}

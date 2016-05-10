@@ -149,6 +149,11 @@ type TestStep struct {
 	// used to verify that the resulting value of ImportState has the
 	// proper resources, IDs, and attributes.
 	ImportStateCheck ImportStateCheckFunc
+
+	// ImportStateVerify, if true, will also check that the state values
+	// that are finally put into the state after import match for all the
+	// IDs returned by the Import.
+	ImportStateVerify bool
 }
 
 // Test performs an acceptance test on a resource.
