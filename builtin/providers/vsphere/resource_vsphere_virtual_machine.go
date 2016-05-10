@@ -799,7 +799,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		for _, v := range mvm.Guest.IpStack {
 			if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
 				for _, route := range v.IpRouteConfig.IpRoute {
-					if route.Network == "0.0.0.0" && route.Gateway.Device != nil {
+					if route.Network == "0.0.0.0" && route.Gateway.Device != "" {
 						deviceID, err := strconv.Atoi(route.Gateway.Device)
 						if err != nil {
 							log.Printf("[WARN] error at processing device id %#v: %#v", route.Gateway.Device, err)
