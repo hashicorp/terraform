@@ -1,8 +1,11 @@
 package resource
 
 import (
+	"fmt"
 	"log"
+	"reflect"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -36,11 +39,11 @@ func testStepImportState(
 		return state, err
 	}
 
-	// TODO: ImportOpts needs a flag to read a config module so it
-	// can load our provider config without env vars.
-
 	// Do the import!
 	newState, err := ctx.Import(&terraform.ImportOpts{
+		// Set the module so that any provider config is loaded
+		Module: mod,
+
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
 				Addr: step.ResourceName,
@@ -63,6 +66,47 @@ func testStepImportState(
 		}
 		if err := step.ImportStateCheck(states); err != nil {
 			return state, err
+		}
+	}
+
+	// Verify that all the states match
+	if step.ImportStateVerify {
+		new := newState.RootModule().Resources
+		old := state.RootModule().Resources
+		for _, r := range new {
+			// Find the existing resource
+			var oldR *terraform.ResourceState
+			for _, r2 := range old {
+				if r2.Primary != nil && r2.Primary.ID == r.Primary.ID {
+					oldR = r2
+					break
+				}
+			}
+			if oldR == nil {
+				return state, fmt.Errorf(
+					"Failed state verification, resource with ID %s not found",
+					r.Primary.ID)
+			}
+
+			// Compare their attributes
+			actual := r.Primary.Attributes
+			expected := oldR.Primary.Attributes
+			if !reflect.DeepEqual(actual, expected) {
+				// Determine only the different attributes
+				for k, v := range expected {
+					if av, ok := actual[k]; ok && v == av {
+						delete(expected, k)
+						delete(actual, k)
+					}
+				}
+
+				spewConf := spew.NewDefaultConfig()
+				spewConf.SortKeys = true
+				return state, fmt.Errorf(
+					"Attributes not equivalent. Difference is shown below. Top is actual, bottom is expected."+
+						"\n\n%s\n\n%s",
+					spewConf.Sdump(actual), spewConf.Sdump(expected))
+			}
 		}
 	}
 
