@@ -2549,19 +2549,16 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 			Providers: map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
-			Variables: map[string]string{
-				"key_name": "foobarkey",
-			},
 		})
 
 		// First plan and apply a create operation
 		if _, err := ctx.Plan(); err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("plan err: %s", err)
 		}
 
 		state, err = ctx.Apply()
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("apply err: %s", err)
 		}
 	}
 
@@ -2585,17 +2582,17 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 		// First plan and apply a create operation
 		plan, err := ctx.Plan()
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("destroy plan err: %s", err)
 		}
 
 		var buf bytes.Buffer
 		if err := WritePlan(plan, &buf); err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("plan write err: %s", err)
 		}
 
 		planFromFile, err := ReadPlan(&buf)
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("plan read err: %s", err)
 		}
 
 		ctx, err = planFromFile.Context(&ContextOpts{
@@ -2609,7 +2606,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 
 		state, err = ctx.Apply()
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("destroy apply err: %s", err)
 		}
 	}
 

@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
@@ -79,12 +80,24 @@ func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
 
 // GraphNodeNoopPrunable
 func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
+	log.Printf("[DEBUG] Checking variable noop: %s", n.Name())
 	// If we have no diff, always keep this in the graph. We have to do
 	// this primarily for validation: we want to validate that variable
 	// interpolations are valid even if there are no resources that
 	// depend on them.
 	if opts.Diff == nil || opts.Diff.Empty() {
+		log.Printf("[DEBUG] No diff, not a noop")
 		return false
+	}
+
+	// We have to find our our module diff since we do funky things with
+	// the flat node's implementation of Path() below.
+	modDiff := opts.Diff.ModuleByPath(n.ModulePath)
+
+	// If we're destroying, we have no need of variables.
+	if modDiff != nil && modDiff.Destroy {
+		log.Printf("[DEBUG] Destroy diff, treating variable as a noop")
+		return true
 	}
 
 	for _, v := range opts.Graph.UpEdges(opts.Vertex).List() {
@@ -93,9 +106,11 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 			continue
 		}
 
+		log.Printf("[DEBUG] Found up edge to %s, var is not noop", dag.VertexName(v))
 		return false
 	}
 
+	log.Printf("[DEBUG] No up edges, treating variable as a noop")
 	return true
 }
 
