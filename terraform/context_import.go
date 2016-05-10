@@ -1,8 +1,18 @@
 package terraform
 
+import (
+	"github.com/hashicorp/terraform/config/module"
+)
+
 // ImportOpts are used as the configuration for Import.
 type ImportOpts struct {
+	// Targets are the targets to import
 	Targets []*ImportTarget
+
+	// Module is optional, and specifies a config module that is loaded
+	// into the graph and evaluated. The use case for this is to provide
+	// provider configuration.
+	Module *module.Tree
 }
 
 // ImportTarget is a single resource to import.
@@ -42,6 +52,7 @@ func (c *Context) Import(opts *ImportOpts) (*State, error) {
 	// Initialize our graph builder
 	builder := &ImportGraphBuilder{
 		ImportTargets: opts.Targets,
+		Module:        opts.Module,
 		Providers:     providers,
 	}
 
