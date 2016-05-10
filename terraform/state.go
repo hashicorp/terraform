@@ -12,12 +12,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 )
 
 const (
 	// StateVersion is the current version for our state file
-	StateVersion = 1
+	StateVersion = 2
 )
 
 // rootModulePath is the path of the root module
@@ -29,6 +30,9 @@ var rootModulePath = []string{"root"}
 type State struct {
 	// Version is the protocol version. Currently only "1".
 	Version int `json:"version"`
+
+	// TFVersion is the version of Terraform that wrote this state.
+	TFVersion string `json:"terraform_version,omitempty"`
 
 	// Serial is incremented on any operation that modifies
 	// the State file. It is used to detect potentially conflicting
@@ -198,6 +202,122 @@ func (s *State) IsRemote() bool {
 	return true
 }
 
+// Remove removes the item in the state at the given address, returning
+// any errors that may have occurred.
+//
+// If the address references a module state or resource, it will delete
+// all children as well. To check what will be deleted, use a StateFilter
+// first.
+func (s *State) Remove(addr ...string) error {
+	// Filter out what we need to delete
+	filter := &StateFilter{State: s}
+	results, err := filter.Filter(addr...)
+	if err != nil {
+		return err
+	}
+
+	// If we have no results, just exit early, we're not going to do anything.
+	// While what happens below is fairly fast, this is an important early
+	// exit since the prune below might modify the state more and we don't
+	// want to modify the state if we don't have to.
+	if len(results) == 0 {
+		return nil
+	}
+
+	// Go through each result and grab what we need
+	removed := make(map[interface{}]struct{})
+	for _, r := range results {
+		// Convert the path to our own type
+		path := append([]string{"root"}, r.Path...)
+
+		// If we removed this already, then ignore
+		if _, ok := removed[r.Value]; ok {
+			continue
+		}
+
+		// If we removed the parent already, then ignore
+		if r.Parent != nil {
+			if _, ok := removed[r.Parent.Value]; ok {
+				continue
+			}
+		}
+
+		// Add this to the removed list
+		removed[r.Value] = struct{}{}
+
+		switch v := r.Value.(type) {
+		case *ModuleState:
+			s.removeModule(path, v)
+		case *ResourceState:
+			s.removeResource(path, v)
+		case *InstanceState:
+			s.removeInstance(path, r.Parent.Value.(*ResourceState), v)
+		default:
+			return fmt.Errorf("unknown type to delete: %T", r.Value)
+		}
+	}
+
+	// Prune since the removal functions often do the bare minimum to
+	// remove a thing and may leave around dangling empty modules, resources,
+	// etc. Prune will clean that all up.
+	s.prune()
+
+	return nil
+}
+
+func (s *State) removeModule(path []string, v *ModuleState) {
+	for i, m := range s.Modules {
+		if m == v {
+			s.Modules, s.Modules[len(s.Modules)-1] = append(s.Modules[:i], s.Modules[i+1:]...), nil
+			return
+		}
+	}
+}
+
+func (s *State) removeResource(path []string, v *ResourceState) {
+	// Get the module this resource lives in. If it doesn't exist, we're done.
+	mod := s.ModuleByPath(path)
+	if mod == nil {
+		return
+	}
+
+	// Find this resource. This is a O(N) lookup when if we had the key
+	// it could be O(1) but even with thousands of resources this shouldn't
+	// matter right now. We can easily up performance here when the time comes.
+	for k, r := range mod.Resources {
+		if r == v {
+			// Found it
+			delete(mod.Resources, k)
+			return
+		}
+	}
+}
+
+func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState) {
+	// Go through the resource and find the instance that matches this
+	// (if any) and remove it.
+
+	// Check primary
+	if r.Primary == v {
+		r.Primary = nil
+		return
+	}
+
+	// Check lists
+	lists := [][]*InstanceState{r.Tainted, r.Deposed}
+	for _, is := range lists {
+		for i, instance := range is {
+			if instance == v {
+				// Found it, remove it
+				is, is[len(is)-1] = append(is[:i], is[i+1:]...), nil
+
+				// Done
+				return
+			}
+		}
+	}
+}
+
 // RootModule returns the ModuleState for the root module
 func (s *State) RootModule() *ModuleState {
 	root := s.ModuleByPath(rootModulePath)
@@ -246,9 +366,10 @@ func (s *State) DeepCopy() *State {
 		return nil
 	}
 	n := &State{
-		Version: s.Version,
-		Serial:  s.Serial,
-		Modules: make([]*ModuleState, 0, len(s.Modules)),
+		Version:   s.Version,
+		TFVersion: s.TFVersion,
+		Serial:    s.Serial,
+		Modules:   make([]*ModuleState, 0, len(s.Modules)),
 	}
 	for _, mod := range s.Modules {
 		n.Modules = append(n.Modules, mod.deepcopy())
@@ -271,13 +392,25 @@ func (s *State) IncrementSerialMaybe(other *State) {
 	if s.Serial > other.Serial {
 		return
 	}
-	if !s.Equal(other) {
+	if other.TFVersion != s.TFVersion || !s.Equal(other) {
 		if other.Serial > s.Serial {
 			s.Serial = other.Serial
 		}
 
 		s.Serial++
 	}
+}
+
+// FromFutureTerraform checks if this state was written by a Terraform
+// version from the future.
+func (s *State) FromFutureTerraform() bool {
+	// No TF version means it is certainly from the past
+	if s.TFVersion == "" {
+		return false
+	}
+
+	v := version.Must(version.NewVersion(s.TFVersion))
+	return SemVersion.LessThan(v)
 }
 
 func (s *State) init() {
@@ -407,7 +540,7 @@ type ModuleState struct {
 	// Outputs declared by the module and maintained for each module
 	// even though only the root module technically needs to be kept.
 	// This allows operators to inspect values at the boundaries.
-	Outputs map[string]string `json:"outputs"`
+	Outputs map[string]interface{} `json:"outputs"`
 
 	// Resources is a mapping of the logically named resource to
 	// the state of the resource. Each resource may actually have
@@ -442,7 +575,7 @@ func (m *ModuleState) Equal(other *ModuleState) bool {
 		return false
 	}
 	for k, v := range m.Outputs {
-		if other.Outputs[k] != v {
+		if !reflect.DeepEqual(other.Outputs[k], v) {
 			return false
 		}
 	}
@@ -532,7 +665,7 @@ func (m *ModuleState) View(id string) *ModuleState {
 
 func (m *ModuleState) init() {
 	if m.Outputs == nil {
-		m.Outputs = make(map[string]string)
+		m.Outputs = make(map[string]interface{})
 	}
 	if m.Resources == nil {
 		m.Resources = make(map[string]*ResourceState)
@@ -545,7 +678,7 @@ func (m *ModuleState) deepcopy() *ModuleState {
 	}
 	n := &ModuleState{
 		Path:      make([]string, len(m.Path)),
-		Outputs:   make(map[string]string, len(m.Outputs)),
+		Outputs:   make(map[string]interface{}, len(m.Outputs)),
 		Resources: make(map[string]*ResourceState, len(m.Resources)),
 	}
 	copy(n.Path, m.Path)
@@ -670,7 +803,27 @@ func (m *ModuleState) String() string {
 
 		for _, k := range ks {
 			v := m.Outputs[k]
-			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
+			switch vTyped := v.(type) {
+			case string:
+				buf.WriteString(fmt.Sprintf("%s = %s\n", k, vTyped))
+			case []interface{}:
+				buf.WriteString(fmt.Sprintf("%s = %s\n", k, vTyped))
+			case map[string]interface{}:
+				var mapKeys []string
+				for key, _ := range vTyped {
+					mapKeys = append(mapKeys, key)
+				}
+				sort.Strings(mapKeys)
+
+				var mapBuf bytes.Buffer
+				mapBuf.WriteString("{")
+				for _, key := range mapKeys {
+					mapBuf.WriteString(fmt.Sprintf("%s:%s ", key, vTyped[key]))
+				}
+				mapBuf.WriteString("}")
+
+				buf.WriteString(fmt.Sprintf("%s = %s\n", k, mapBuf.String()))
+			}
 		}
 	}
 
@@ -1191,21 +1344,22 @@ func (e *EphemeralState) deepcopy() *EphemeralState {
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
 
-	// Check if this is a V1 format
+	// Check if this is a V0 format
 	start, err := buf.Peek(len(stateFormatMagic))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to check for magic bytes: %v", err)
 	}
 	if string(start) == stateFormatMagic {
 		// Read the old state
-		old, err := ReadStateV1(buf)
+		old, err := ReadStateV0(buf)
 		if err != nil {
 			return nil, err
 		}
-		return upgradeV1State(old)
+		return upgradeV0State(old)
 	}
 
-	// Otherwise, must be V2
+	// Otherwise, must be V2 or V3 - V2 reads as V3 however so we need take
+	// no special action here - new state will be written as V3.
 	dec := json.NewDecoder(buf)
 	state := &State{}
 	if err := dec.Decode(state); err != nil {
@@ -1217,6 +1371,19 @@ func ReadState(src io.Reader) (*State, error) {
 	if state.Version > StateVersion {
 		return nil, fmt.Errorf("State version %d not supported, please update.",
 			state.Version)
+	}
+
+	// Make sure the version is semantic
+	if state.TFVersion != "" {
+		if _, err := version.NewVersion(state.TFVersion); err != nil {
+			return nil, fmt.Errorf(
+				"State contains invalid version: %s\n\n"+
+					"Terraform validates the version format prior to writing it. This\n"+
+					"means that this is invalid of the state becoming corrupted through\n"+
+					"some external means. Please manually modify the Terraform version\n"+
+					"field to be a proper semantic version.",
+				state.TFVersion)
+		}
 	}
 
 	// Sort it
@@ -1232,6 +1399,19 @@ func WriteState(d *State, dst io.Writer) error {
 
 	// Ensure the version is set
 	d.Version = StateVersion
+
+	// If the TFVersion is set, verify it. We used to just set the version
+	// here, but this isn't safe since it changes the MD5 sum on some remote
+	// state storage backends such as Atlas. We now leave it be if needed.
+	if d.TFVersion != "" {
+		if _, err := version.NewVersion(d.TFVersion); err != nil {
+			return fmt.Errorf(
+				"Error writing state, invalid version: %s\n\n"+
+					"The Terraform version when writing the state must be a semantic\n"+
+					"version.",
+				d.TFVersion)
+		}
+	}
 
 	// Encode the data in a human-friendly way
 	data, err := json.MarshalIndent(d, "", "    ")
@@ -1250,9 +1430,9 @@ func WriteState(d *State, dst io.Writer) error {
 	return nil
 }
 
-// upgradeV1State is used to upgrade a V1 state representation
+// upgradeV0State is used to upgrade a V0 state representation
 // into a proper State representation.
-func upgradeV1State(old *StateV1) (*State, error) {
+func upgradeV0State(old *StateV0) (*State, error) {
 	s := &State{}
 	s.init()
 
@@ -1260,8 +1440,12 @@ func upgradeV1State(old *StateV1) (*State, error) {
 	// directly into the root module.
 	root := s.RootModule()
 
-	// Copy the outputs
-	root.Outputs = old.Outputs
+	// Copy the outputs, first converting them to map[string]interface{}
+	oldOutputs := make(map[string]interface{}, len(old.Outputs))
+	for key, value := range old.Outputs {
+		oldOutputs[key] = value
+	}
+	root.Outputs = oldOutputs
 
 	// Upgrade the resources
 	for id, rs := range old.Resources {

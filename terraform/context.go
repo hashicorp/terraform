@@ -35,16 +35,17 @@ const (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
-	Destroy      bool
-	Diff         *Diff
-	Hooks        []Hook
-	Module       *module.Tree
-	Parallelism  int
-	State        *State
-	Providers    map[string]ResourceProviderFactory
-	Provisioners map[string]ResourceProvisionerFactory
-	Targets      []string
-	Variables    map[string]string
+	Destroy            bool
+	Diff               *Diff
+	Hooks              []Hook
+	Module             *module.Tree
+	Parallelism        int
+	State              *State
+	StateFutureAllowed bool
+	Providers          map[string]ResourceProviderFactory
+	Provisioners       map[string]ResourceProvisionerFactory
+	Targets            []string
+	Variables          map[string]string
 
 	UIInput UIInput
 }
@@ -78,7 +79,7 @@ type Context struct {
 // Once a Context is creator, the pointer values within ContextOpts
 // should not be mutated in any way, since the pointers are copied, not
 // the values themselves.
-func NewContext(opts *ContextOpts) *Context {
+func NewContext(opts *ContextOpts) (*Context, error) {
 	// Copy all the hooks and add our stop hook. We don't append directly
 	// to the Config so that we're not modifying that in-place.
 	sh := new(stopHook)
@@ -91,6 +92,22 @@ func NewContext(opts *ContextOpts) *Context {
 		state = new(State)
 		state.init()
 	}
+
+	// If our state is from the future, then error. Callers can avoid
+	// this error by explicitly setting `StateFutureAllowed`.
+	if !opts.StateFutureAllowed && state.FromFutureTerraform() {
+		return nil, fmt.Errorf(
+			"Terraform doesn't allow running any operations against a state\n"+
+				"that was written by a future Terraform version. The state is\n"+
+				"reporting it is written by Terraform '%s'.\n\n"+
+				"Please run at least that version of Terraform to continue.",
+			state.TFVersion)
+	}
+
+	// Explicitly reset our state version to our current version so that
+	// any operations we do will write out that our latest version
+	// has run.
+	state.TFVersion = Version
 
 	// Determine parallelism, default to 10. We do this both to limit
 	// CPU pressure but also to have an extra guard against rate throttling
@@ -135,7 +152,7 @@ func NewContext(opts *ContextOpts) *Context {
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
 		sh:                  sh,
-	}
+	}, nil
 }
 
 type ContextGraphOpts struct {
@@ -207,6 +224,8 @@ func (c *Context) Input(mode InputMode) error {
 			case config.VariableTypeUnknown:
 				continue
 			case config.VariableTypeMap:
+				continue
+			case config.VariableTypeList:
 				continue
 			case config.VariableTypeString:
 				// Good!

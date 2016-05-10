@@ -717,6 +717,10 @@
 			"Rev": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/go-plugin",
+			"Rev": "cccb4a1328abbb89898f3ecf4311a05bddc4de6d"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/go-retryablehttp",
 			"Rev": "5ec125ef739293cb4d57c3456dd92ba9af29ed6e"
 		},
@@ -778,11 +782,11 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hil",
-			"Rev": "0640fefa3817883b16b77bf760c4c3a6f2589545"
+			"Rev": "01dc167cd239b7ccab78a683b866536cd5904719"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hil/ast",
-			"Rev": "0640fefa3817883b16b77bf760c4c3a6f2589545"
+			"Rev": "01dc167cd239b7ccab78a683b866536cd5904719"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/logutils",
@@ -958,7 +962,7 @@
 		},
 		{
 			"ImportPath": "github.com/mitchellh/cli",
-			"Rev": "cb6853d606ea4a12a15ac83cc43503df99fd28fb"
+			"Rev": "83f97d41cf100ee5f33944a8815c167d5e4aa272"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/cloudflare-go",
@@ -1228,6 +1232,16 @@
 			"ImportPath": "github.com/rackspace/gophercloud/testhelper/client",
 			"Comment": "v1.0.0-884-gc54bbac",
 			"Rev": "c54bbac81d19eb4df3ad167764dbb6ff2e7194de"
+		},
+		{
+			"ImportPath": "github.com/ryanuber/columnize",
+			"Comment": "v2.0.1-8-g983d3a5",
+			"Rev": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
+		},
+		{
+			"ImportPath": "github.com/ryanuber/columnize",
+			"Comment": "v2.0.1-8-g983d3a5",
+			"Rev": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
