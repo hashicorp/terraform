@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
@@ -79,11 +80,13 @@ func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
 
 // GraphNodeNoopPrunable
 func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
+	log.Printf("[DEBUG] Checking variable noop: %s", n.Name())
 	// If we have no diff, always keep this in the graph. We have to do
 	// this primarily for validation: we want to validate that variable
 	// interpolations are valid even if there are no resources that
 	// depend on them.
 	if opts.Diff == nil || opts.Diff.Empty() {
+		log.Printf("[DEBUG] No diff, not a noop")
 		return false
 	}
 
@@ -93,9 +96,11 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 			continue
 		}
 
+		log.Printf("[DEBUG] Found up edge to %s, var is not noop", dag.VertexName(v))
 		return false
 	}
 
+	log.Printf("[DEBUG] No up edges, treating variable as a noop")
 	return true
 }
 
