@@ -17,6 +17,8 @@ IMPROVEMENTS:
  
 BUG FIXES:
 
+ * core: Correct the previous fix for a bug causing "attribute not found" messages during destroy, as it was insufficient [GH-6599]
+
 ## 0.6.16 (May 9, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
