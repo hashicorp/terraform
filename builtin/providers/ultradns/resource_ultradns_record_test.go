@@ -2,7 +2,6 @@ package ultradns
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/Ensighten/udnssdk"
@@ -12,7 +11,8 @@ import (
 
 func TestAccUltraDNSRecord_Basic(t *testing.T) {
 	var record udnssdk.RRSet
-	domain := os.Getenv("ULTRADNS_DOMAIN")
+	// domain := os.Getenv("ULTRADNS_DOMAIN")
+	domain := "ultradns.phinze.com"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,14 +22,14 @@ func TestAccUltraDNSRecord_Basic(t *testing.T) {
 			resource.TestStep{
 				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigBasic, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_record.foobar", &record),
+					testAccCheckUltraDNSRecordExists("ultradns_record.basic", &record),
 					testAccCheckUltraDNSRecordAttributes(&record),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "name", "terraform"),
+						"ultradns_record.basic", "name", "basic"),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "zone", domain),
+						"ultradns_record.basic", "zone", domain),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "rdata.0", "192.168.0.10"),
+						"ultradns_record.basic", "rdata.0", "192.168.0.10"),
 				),
 			},
 		},
@@ -38,7 +38,7 @@ func TestAccUltraDNSRecord_Basic(t *testing.T) {
 
 func TestAccUltraDNSRecord_Updated(t *testing.T) {
 	var record udnssdk.RRSet
-	domain := os.Getenv("ULTRADNS_DOMAIN")
+	domain := "ultradns.phinze.com"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -48,27 +48,27 @@ func TestAccUltraDNSRecord_Updated(t *testing.T) {
 			resource.TestStep{
 				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigBasic, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_record.foobar", &record),
+					testAccCheckUltraDNSRecordExists("ultradns_record.basic", &record),
 					testAccCheckUltraDNSRecordAttributes(&record),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "name", "terraform"),
+						"ultradns_record.basic", "name", "basic"),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "zone", domain),
+						"ultradns_record.basic", "zone", domain),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "rdata.0", "192.168.0.10"),
+						"ultradns_record.basic", "rdata.0", "192.168.0.10"),
 				),
 			},
 			resource.TestStep{
 				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigNewValue, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_record.foobar", &record),
+					testAccCheckUltraDNSRecordExists("ultradns_record.basic", &record),
 					testAccCheckUltraDNSRecordAttributesUpdated(&record),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "name", "terraform"),
+						"ultradns_record.basic", "name", "basic"),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "zone", domain),
+						"ultradns_record.basic", "zone", domain),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "rdata.0", "192.168.0.11"),
+						"ultradns_record.basic", "rdata.0", "192.168.0.11"),
 				),
 			},
 		},
@@ -157,21 +157,23 @@ func testAccCheckUltraDNSRecordExists(n string, record *udnssdk.RRSet) resource.
 }
 
 const testAccCheckUltraDNSRecordConfigBasic = `
-resource "ultradns_record" "foobar" {
-	zone = "%s"
+resource "ultradns_record" "basic" {
+  zone = "%s"
 
-	name = "terraform"
-	rdata = [ "192.168.0.10" ]
-	type = "A"
-	ttl = 3600
-}`
+  name  = "basic"
+  rdata = ["192.168.0.10"]
+  type  = "A"
+  ttl   = 3600
+}
+`
 
 const testAccCheckUltraDNSRecordConfigNewValue = `
-resource "ultradns_record" "foobar" {
-	zone = "%s"
+resource "ultradns_record" "basic" {
+  zone = "%s"
+  name  = "basic"
 
-	name = "terraform"
-	rdata = [ "192.168.0.11" ]
-	type = "A"
-	ttl = 3600
-}`
+  rdata = ["192.168.0.11"]
+  type  = "A"
+  ttl   = 3600
+}
+`
