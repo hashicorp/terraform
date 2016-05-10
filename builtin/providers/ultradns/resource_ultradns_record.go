@@ -10,17 +10,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-type rRSetResource struct {
-	OwnerName string
-	RRType    string
-	RData     []string
-	TTL       int
-	Profile   *udnssdk.StringProfile
-	Zone      string
-}
-
 func newRRSetResource(d *schema.ResourceData) (rRSetResource, error) {
 	r := rRSetResource{}
+
+	// TODO: return error if required attributes aren't ok
 
 	if attr, ok := d.GetOk("name"); ok {
 		r.OwnerName = attr.(string)
@@ -47,27 +40,6 @@ func newRRSetResource(d *schema.ResourceData) (rRSetResource, error) {
 	}
 
 	return r, nil
-}
-
-func (r rRSetResource) RRSetKey() udnssdk.RRSetKey {
-	return udnssdk.RRSetKey{
-		Zone: r.Zone,
-		Type: r.RRType,
-		Name: r.OwnerName,
-	}
-}
-
-func (r rRSetResource) RRSet() udnssdk.RRSet {
-	return udnssdk.RRSet{
-		OwnerName: r.OwnerName,
-		RRType:    r.RRType,
-		RData:     r.RData,
-		TTL:       r.TTL,
-	}
-}
-
-func (r rRSetResource) ID() string {
-	return fmt.Sprintf("%s.%s", r.OwnerName, r.Zone)
 }
 
 func populateResourceDataFromRRSet(r udnssdk.RRSet, d *schema.ResourceData) error {
@@ -136,6 +108,8 @@ func resourceUltradnsRecord() *schema.Resource {
 	}
 }
 
+// CRUD Operations
+
 func resourceUltraDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*udnssdk.Client)
 
@@ -144,14 +118,14 @@ func resourceUltraDNSRecordCreate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	log.Printf("[INFO] ultradns_record create: %#v", r.RRSet())
+	log.Printf("[INFO] ultradns_record create: %+v", r)
 	_, err = client.RRSets.Create(r.RRSetKey(), r.RRSet())
 	if err != nil {
-		return fmt.Errorf("Failed to create UltraDNS RRSet: %s", err)
+		return fmt.Errorf("ultradns_record create failed: %v", err)
 	}
 
 	d.SetId(r.ID())
-	log.Printf("[INFO] ultradns_record.id: %s", d.Id())
+	log.Printf("[INFO] ultradns_record.id: %v", d.Id())
 
 	return resourceUltraDNSRecordRead(d, meta)
 }
@@ -174,10 +148,10 @@ func resourceUltraDNSRecordRead(d *schema.ResourceData, meta interface{}) error 
 					d.SetId("")
 					return nil
 				}
-				return fmt.Errorf("ultradns_record not found: %s", err)
+				return fmt.Errorf("ultradns_record not found: %v", err)
 			}
 		}
-		return fmt.Errorf("ultradns_record not found: %s", err)
+		return fmt.Errorf("ultradns_record not found: %v", err)
 	}
 	rec := rrsets[0]
 	return populateResourceDataFromRRSet(rec, d)
@@ -191,10 +165,10 @@ func resourceUltraDNSRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	log.Printf("[INFO] ultradns_record update: %#v", r.RRSet())
+	log.Printf("[INFO] ultradns_record update: %+v", r)
 	_, err = client.RRSets.Update(r.RRSetKey(), r.RRSet())
 	if err != nil {
-		return fmt.Errorf("ultradns_record update failed: %s", err)
+		return fmt.Errorf("ultradns_record update failed: %v", err)
 	}
 
 	return resourceUltraDNSRecordRead(d, meta)
@@ -208,11 +182,13 @@ func resourceUltraDNSRecordDelete(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	log.Printf("[INFO] ultradns_record delete: %#v", r.RRSet())
+	log.Printf("[INFO] ultradns_record delete: %+v", r)
 	_, err = client.RRSets.Delete(r.RRSetKey())
 	if err != nil {
-		return fmt.Errorf("ultradns_record delete failed: %s", err)
+		return fmt.Errorf("ultradns_record delete failed: %v", err)
 	}
 
 	return nil
 }
+
+// Conversion helper functions
