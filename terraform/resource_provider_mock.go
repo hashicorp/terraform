@@ -61,7 +61,7 @@ type MockResourceProvider struct {
 	ImportStateID          string
 	ImportStateReturn      []*InstanceState
 	ImportStateReturnError error
-	ImportStateFn          func(*InstanceInfo) ([]*InstanceState, error)
+	ImportStateFn          func(*InstanceInfo, string) ([]*InstanceState, error)
 }
 
 func (p *MockResourceProvider) Close() error {
@@ -191,7 +191,7 @@ func (p *MockResourceProvider) ImportState(info *InstanceInfo, id string) ([]*In
 	p.ImportStateInfo = info
 	p.ImportStateID = id
 	if p.ImportStateFn != nil {
-		return p.ImportStateFn(info)
+		return p.ImportStateFn(info, id)
 	}
 
 	return p.ImportStateReturn, p.ImportStateReturnError
