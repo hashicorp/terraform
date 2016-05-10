@@ -2,12 +2,18 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
+ * Terraform's built-in plugins are now distributed as part of the main Terraform binary, and use the go-plugin framework. Overrides are still available using separate binaries, but will need recompiling against Terraform 0.7.
+ * The `concat()` interpolation function can no longer be used to join strings.
+
 FEATURES:
+
+ * **New command:** `terraform state` to provide access to a variety of state manipulation functions [GH-5811]
+ * core: Lists and maps can now be used as first class types for variables, and may be passed between modules [GH-6322]
 
 IMPROVEMENTS:
 
-* provider/clc: Fix optional server password [GH-6414]
-* provider/clc: Add support for hyperscale and bareMetal server types and package installation
+ * provider/clc: Fix optional server password [GH-6414]
+ * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  
 BUG FIXES:
 
