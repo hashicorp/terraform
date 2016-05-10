@@ -6,6 +6,9 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* provider/clc: Fix optional server password [GH-6414]
+* provider/clc: Add support for hyperscale and bareMetal server types and package installation
+ 
 BUG FIXES:
 
 ## 0.6.16 (May 9, 2016)
