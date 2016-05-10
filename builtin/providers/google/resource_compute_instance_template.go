@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -16,6 +17,38 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 		Delete: resourceComputeInstanceTemplateDelete,
 
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://cloud.google.com/compute/docs/reference/latest/instanceTemplates#resource
+					value := v.(string)
+					if len(value) > 63 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 63 characters", k))
+					}
+					return
+				},
+			},
+
+			"name_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://cloud.google.com/compute/docs/reference/latest/instanceTemplates#resource
+					// uuid is 26 characters, limit the prefix to 37.
+					value := v.(string)
+					if len(value) > 37 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 37 characters, name is limited to 63", k))
+					}
+					return
+				},
+			},
 			"disk": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
@@ -93,12 +126,6 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 			},
 
 			"machine_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -512,10 +539,18 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 
 	instanceProperties.Tags = resourceInstanceTags(d)
 
+	var itName string
+	if v, ok := d.GetOk("name"); ok {
+		itName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		itName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		itName = resource.UniqueId()
+	}
 	instanceTemplate := compute.InstanceTemplate{
 		Description: d.Get("description").(string),
 		Properties:  instanceProperties,
-		Name:        d.Get("name").(string),
+		Name:        itName,
 	}
 
 	op, err := config.clientCompute.InstanceTemplates.Insert(
@@ -567,7 +602,7 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 		d.Set("tags_fingerprint", instanceTemplate.Properties.Tags.Fingerprint)
 	}
 	d.Set("self_link", instanceTemplate.SelfLink)
-
+	d.Set("name", instanceTemplate.Name)
 	return nil
 }
 
