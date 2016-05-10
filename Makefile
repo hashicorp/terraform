@@ -84,4 +84,4 @@ fmt:
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
-.PHONY: bin default generate test updatedeps vet fmt fmtcheck
+.PHONY: bin default generate test vet fmt fmtcheck
