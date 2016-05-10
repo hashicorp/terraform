@@ -75,7 +75,6 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 				return nil, fmt.Errorf("variable %s%s should be type %s, got %T",
 					name, modulePathDescription, declaredType.Printable(), proposedValue)
 			}
-			continue
 		case config.VariableTypeMap:
 			switch proposedValue.(type) {
 			case map[string]interface{}:
