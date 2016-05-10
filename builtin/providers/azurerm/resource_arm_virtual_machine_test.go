@@ -46,7 +46,7 @@ func TestAccAzureRMVirtualMachine_tags(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_machine.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
-						"azurerm_virtual_machine.test", "tags.cost_center", "Ops"),
+						"azurerm_virtual_machine.test", "tags.cost-center", "Ops"),
 				),
 			},
 
