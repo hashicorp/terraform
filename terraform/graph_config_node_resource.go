@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -272,14 +273,17 @@ func (n *GraphNodeConfigResource) DestroyNode(mode GraphNodeDestroyMode) GraphNo
 
 // GraphNodeNoopPrunable
 func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
+	log.Printf("[DEBUG] Checking resource noop: %s", n.Name())
 	// We don't have any noop optimizations for destroy nodes yet
 	if n.DestroyMode != DestroyNone {
+		log.Printf("[DEBUG] Destroy node, not a noop")
 		return false
 	}
 
 	// If there is no diff, then we aren't a noop since something needs to
 	// be done (such as a plan). We only check if we're a noop in a diff.
 	if opts.Diff == nil || opts.Diff.Empty() {
+		log.Printf("[DEBUG] No diff, not a noop")
 		return false
 	}
 
@@ -287,6 +291,7 @@ func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
 	// we need to be sure to evaluate the count so that splat variables work
 	// later (which need to know the full count).
 	if len(n.Resource.RawCount.Interpolations) > 0 {
+		log.Printf("[DEBUG] Count has interpolations, not a noop")
 		return false
 	}
 
@@ -294,12 +299,7 @@ func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
 	// it means there is a diff, and that the module we're in just isn't
 	// in it, meaning we're not doing anything.
 	if opts.ModDiff == nil || opts.ModDiff.Empty() {
-		return true
-	}
-
-	// If the whole module is being destroyed, then the resource nodes in that
-	// module are irrelevant - we only need to keep the destroy nodes.
-	if opts.ModDiff != nil && opts.ModDiff.Destroy == true {
+		log.Printf("[DEBUG] No mod diff, treating resource as a noop")
 		return true
 	}
 
@@ -310,11 +310,13 @@ func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
 	found := false
 	for k, _ := range opts.ModDiff.Resources {
 		if strings.HasPrefix(k, prefix) {
+			log.Printf("[DEBUG] Diff has %s, resource is not a noop", k)
 			found = true
 			break
 		}
 	}
 
+	log.Printf("[DEBUG] Final noop value: %t", !found)
 	return !found
 }
 
