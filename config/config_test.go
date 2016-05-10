@@ -377,7 +377,7 @@ func TestConfigValidate_varDefault(t *testing.T) {
 func TestConfigValidate_varDefaultListType(t *testing.T) {
 	c := testConfig(t, "validate-var-default-list-type")
 	if err := c.Validate(); err != nil {
-		t.Fatal("should be valid: %s", err)
+		t.Fatalf("should be valid: %s", err)
 	}
 }
 
