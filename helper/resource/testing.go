@@ -31,6 +31,9 @@ const UnitTestOverride = "UnitTestOverride"
 // it was created.
 type TestCheckFunc func(*terraform.State) error
 
+// ImportStateCheckFunc is the check function for ImportState tests
+type ImportStateCheckFunc func([]*terraform.InstanceState) error
+
 // TestCase is a single acceptance test case used to test the apply/destroy
 // lifecycle of a resource in a specific configuration.
 //
@@ -81,6 +84,14 @@ type TestCase struct {
 // potentially complex update logic. In general, simply create/destroy
 // tests will only need one step.
 type TestStep struct {
+	// ResourceName should be set to the name of the resource
+	// that is being tested. Example: "aws_instance.foo". Various test
+	// modes use this to auto-detect state information.
+	//
+	// This is only required if the test mode settings below say it is
+	// for the mode you're using.
+	ResourceName string
+
 	// PreConfig is called before the Config is applied to perform any per-step
 	// setup that needs to happen. This is called regardless of "test mode"
 	// below.
@@ -119,6 +130,25 @@ type TestStep struct {
 	// ExpectNonEmptyPlan can be set to true for specific types of tests that are
 	// looking to verify that a diff occurs
 	ExpectNonEmptyPlan bool
+
+	//---------------------------------------------------------------
+	// ImportState testing
+	//---------------------------------------------------------------
+
+	// ImportState, if true, will test the functionality of ImportState
+	// by importing the resource with ResourceName (must be set) and the
+	// ID of that resource.
+	ImportState bool
+
+	// ImportStateId is the ID to perform an ImportState operation with.
+	// This is optional. If it isn't set, then the resource ID is automatically
+	// determined by inspecting the state for ResourceName's ID.
+	ImportStateId string
+
+	// ImportStateCheck checks the results of ImportState. It should be
+	// used to verify that the resulting value of ImportState has the
+	// proper resources, IDs, and attributes.
+	ImportStateCheck ImportStateCheckFunc
 }
 
 // Test performs an acceptance test on a resource.
@@ -180,7 +210,19 @@ func Test(t TestT, c TestCase) {
 	for i, step := range c.Steps {
 		var err error
 		log.Printf("[WARN] Test: Executing step %d", i)
-		state, err = testStep(opts, state, step)
+
+		// Determine the test mode to execute
+		if step.Config != "" {
+			state, err = testStepConfig(opts, state, step)
+		} else if step.ImportState {
+			state, err = testStepImportState(opts, state, step)
+		} else {
+			err = fmt.Errorf(
+				"unknown test mode for step. Please see TestStep docs\n\n%#v",
+				step)
+		}
+
+		// If there was an error, exit
 		if err != nil {
 			errored = true
 			t.Error(fmt.Sprintf(
@@ -215,7 +257,7 @@ func Test(t TestT, c TestCase) {
 				if err := testIDOnlyRefresh(c, opts, step, idRefreshCheck); err != nil {
 					log.Printf("[ERROR] Test: ID-only test failed: %s", err)
 					t.Error(fmt.Sprintf(
-						"ID-Only refresh test failure: %s", err))
+						"[ERROR] Test: ID-only test failed: %s", err))
 					break
 				}
 			}
@@ -367,118 +409,6 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	return nil
 }
 
-func testStep(
-	opts terraform.ContextOpts,
-	state *terraform.State,
-	step TestStep) (*terraform.State, error) {
-	mod, err := testModule(opts, step)
-	if err != nil {
-		return state, err
-	}
-
-	// Build the context
-	opts.Module = mod
-	opts.State = state
-	opts.Destroy = step.Destroy
-	ctx, err := terraform.NewContext(&opts)
-	if err != nil {
-		return state, fmt.Errorf("Error initializing context: %s", err)
-	}
-	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
-		if len(es) > 0 {
-			estrs := make([]string, len(es))
-			for i, e := range es {
-				estrs[i] = e.Error()
-			}
-			return state, fmt.Errorf(
-				"Configuration is invalid.\n\nWarnings: %#v\n\nErrors: %#v",
-				ws, estrs)
-		}
-		log.Printf("[WARN] Config warnings: %#v", ws)
-	}
-
-	// Refresh!
-	state, err = ctx.Refresh()
-	if err != nil {
-		return state, fmt.Errorf(
-			"Error refreshing: %s", err)
-	}
-
-	// Plan!
-	if p, err := ctx.Plan(); err != nil {
-		return state, fmt.Errorf(
-			"Error planning: %s", err)
-	} else {
-		log.Printf("[WARN] Test: Step plan: %s", p)
-	}
-
-	// We need to keep a copy of the state prior to destroying
-	// such that destroy steps can verify their behaviour in the check
-	// function
-	stateBeforeApplication := state.DeepCopy()
-
-	// Apply!
-	state, err = ctx.Apply()
-	if err != nil {
-		return state, fmt.Errorf("Error applying: %s", err)
-	}
-
-	// Check! Excitement!
-	if step.Check != nil {
-		if step.Destroy {
-			if err := step.Check(stateBeforeApplication); err != nil {
-				return state, fmt.Errorf("Check failed: %s", err)
-			}
-		} else {
-			if err := step.Check(state); err != nil {
-				return state, fmt.Errorf("Check failed: %s", err)
-			}
-		}
-	}
-
-	// Now, verify that Plan is now empty and we don't have a perpetual diff issue
-	// We do this with TWO plans. One without a refresh.
-	var p *terraform.Plan
-	if p, err = ctx.Plan(); err != nil {
-		return state, fmt.Errorf("Error on follow-up plan: %s", err)
-	}
-	if p.Diff != nil && !p.Diff.Empty() {
-		if step.ExpectNonEmptyPlan {
-			log.Printf("[INFO] Got non-empty plan, as expected:\n\n%s", p)
-		} else {
-			return state, fmt.Errorf(
-				"After applying this step, the plan was not empty:\n\n%s", p)
-		}
-	}
-
-	// And another after a Refresh.
-	state, err = ctx.Refresh()
-	if err != nil {
-		return state, fmt.Errorf(
-			"Error on follow-up refresh: %s", err)
-	}
-	if p, err = ctx.Plan(); err != nil {
-		return state, fmt.Errorf("Error on second follow-up plan: %s", err)
-	}
-	if p.Diff != nil && !p.Diff.Empty() {
-		if step.ExpectNonEmptyPlan {
-			log.Printf("[INFO] Got non-empty plan, as expected:\n\n%s", p)
-		} else {
-			return state, fmt.Errorf(
-				"After applying this step and refreshing, "+
-					"the plan was not empty:\n\n%s", p)
-		}
-	}
-
-	// Made it here, but expected a non-empty plan, fail!
-	if step.ExpectNonEmptyPlan && (p.Diff == nil || p.Diff.Empty()) {
-		return state, fmt.Errorf("Expected a non-empty plan, but got an empty plan!")
-	}
-
-	// Made it here? Good job test step!
-	return state, nil
-}
-
 func testModule(
 	opts terraform.ContextOpts,
 	step TestStep) (*module.Tree, error) {
@@ -524,6 +454,23 @@ func testModule(
 	}
 
 	return mod, nil
+}
+
+func testResource(c TestStep, state *terraform.State) (*terraform.ResourceState, error) {
+	if c.ResourceName == "" {
+		return nil, fmt.Errorf("ResourceName must be set in TestStep")
+	}
+
+	for _, m := range state.Modules {
+		if len(m.Resources) > 0 {
+			if v, ok := m.Resources[c.ResourceName]; ok {
+				return v, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf(
+		"Resource specified by ResourceName couldn't be found: %s", c.ResourceName)
 }
 
 // ComposeTestCheckFunc lets you compose multiple TestCheckFuncs into
