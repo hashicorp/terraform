@@ -887,8 +887,6 @@ func TestApply_stateNoExist(t *testing.T) {
 }
 
 func TestApply_sensitiveOutput(t *testing.T) {
-	statePath := testTempFile(t)
-
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
@@ -897,6 +895,8 @@ func TestApply_sensitiveOutput(t *testing.T) {
 			Ui:          ui,
 		},
 	}
+
+	statePath := testTempFile(t)
 
 	args := []string{
 		"-state", statePath,
@@ -911,8 +911,72 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	if !strings.Contains(output, "notsensitive = Hello world") {
 		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", output)
 	}
-	if !strings.Contains(output, "sensitive    = <sensitive>") {
+	if !strings.Contains(output, "sensitive = <sensitive>") {
 		t.Fatalf("bad: output should contain 'sensitive' output\n%s", output)
+	}
+}
+
+func TestApply_stateFuture(t *testing.T) {
+	originalState := testState()
+	originalState.TFVersion = "99.99.99"
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("should fail")
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	newState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !newState.Equal(originalState) {
+		t.Fatalf("bad: %#v", newState)
+	}
+	if newState.TFVersion != originalState.TFVersion {
+		t.Fatalf("bad: %#v", newState)
+	}
+}
+
+func TestApply_statePast(t *testing.T) {
+	originalState := testState()
+	originalState.TFVersion = "0.1.0"
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }
 

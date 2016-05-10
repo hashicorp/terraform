@@ -18,9 +18,10 @@ type ResourceAddress struct {
 	// Addresses a specific resource that occurs in a list
 	Index int
 
-	InstanceType InstanceType
-	Name         string
-	Type         string
+	InstanceType    InstanceType
+	InstanceTypeSet bool
+	Name            string
+	Type            string
 }
 
 // Copy returns a copy of this ResourceAddress
@@ -36,6 +37,35 @@ func (r *ResourceAddress) Copy() *ResourceAddress {
 		n.Path = append(n.Path, p)
 	}
 	return n
+}
+
+// String outputs the address that parses into this address.
+func (r *ResourceAddress) String() string {
+	var result []string
+	for _, p := range r.Path {
+		result = append(result, "module", p)
+	}
+
+	if r.Type != "" {
+		result = append(result, r.Type)
+	}
+
+	if r.Name != "" {
+		name := r.Name
+		switch r.InstanceType {
+		case TypeDeposed:
+			name += ".deposed"
+		case TypeTainted:
+			name += ".tainted"
+		}
+
+		if r.Index >= 0 {
+			name += fmt.Sprintf("[%d]", r.Index)
+		}
+		result = append(result, name)
+	}
+
+	return strings.Join(result, ".")
 }
 
 func ParseResourceAddress(s string) (*ResourceAddress, error) {
@@ -54,11 +84,12 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	path := ParseResourcePath(matches["path"])
 
 	return &ResourceAddress{
-		Path:         path,
-		Index:        resourceIndex,
-		InstanceType: instanceType,
-		Name:         matches["name"],
-		Type:         matches["type"],
+		Path:            path,
+		Index:           resourceIndex,
+		InstanceType:    instanceType,
+		InstanceTypeSet: matches["instance_type"] != "",
+		Name:            matches["name"],
+		Type:            matches["type"],
 	}, nil
 }
 

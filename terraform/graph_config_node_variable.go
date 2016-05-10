@@ -114,7 +114,7 @@ func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 	// Otherwise, interpolate the value of this variable and set it
 	// within the variables mapping.
 	var config *ResourceConfig
-	variables := make(map[string]string)
+	variables := make(map[string]interface{})
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalInterpolate{
@@ -123,8 +123,8 @@ func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 			},
 
 			&EvalVariableBlock{
-				Config:    &config,
-				Variables: variables,
+				Config:         &config,
+				VariableValues: variables,
 			},
 
 			&EvalTypeCheckVariable{
