@@ -56,6 +56,22 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+						"option_settings": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"value": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -172,6 +188,15 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
+func optionInList(optionName string, list []*string) bool {
+	for _, opt := range list {
+		if *opt == optionName {
+			return true
+		}
+	}
+	return false
+}
+
 func resourceAwsDbOptionGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 	if d.HasChange("option") {
@@ -190,9 +215,22 @@ func resourceAwsDbOptionGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			return addErr
 		}
 
-		removeOptions, removeErr := flattenOptionConfigurationNames(os.Difference(ns).List())
-		if removeErr != nil {
-			return removeErr
+		addingOptionNames, err := flattenOptionNames(ns.Difference(os).List())
+		if err != nil {
+			return err
+		}
+
+		removeOptions := []*string{}
+		opts, err := flattenOptionNames(os.Difference(ns).List())
+		if err != nil {
+			return err
+		}
+
+		for _, optionName := range opts {
+			if optionInList(*optionName, addingOptionNames) {
+				continue
+			}
+			removeOptions = append(removeOptions, optionName)
 		}
 
 		modifyOpts := &rds.ModifyOptionGroupInput{
@@ -209,7 +247,7 @@ func resourceAwsDbOptionGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		log.Printf("[DEBUG] Modify DB Option Group: %s", modifyOpts)
-		_, err := rdsconn.ModifyOptionGroup(modifyOpts)
+		_, err = rdsconn.ModifyOptionGroup(modifyOpts)
 		if err != nil {
 			return fmt.Errorf("Error modifying DB Option Group: %s", err)
 		}
@@ -244,7 +282,7 @@ func resourceAwsDbOptionGroupDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func flattenOptionConfigurationNames(configured []interface{}) ([]*string, error) {
+func flattenOptionNames(configured []interface{}) ([]*string, error) {
 	var optionNames []*string
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
@@ -262,6 +300,19 @@ func resourceAwsDbOptionHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%d-", m["port"].(int)))
 	}
 
+	for _, oRaw := range m["option_settings"].(*schema.Set).List() {
+		o := oRaw.(map[string]interface{})
+		buf.WriteString(fmt.Sprintf("%s-", o["name"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", o["value"].(string)))
+	}
+
+	for _, vpcRaw := range m["vpc_security_group_memberships"].(*schema.Set).List() {
+		buf.WriteString(fmt.Sprintf("%s-", vpcRaw.(string)))
+	}
+
+	for _, sgRaw := range m["db_security_group_memberships"].(*schema.Set).List() {
+		buf.WriteString(fmt.Sprintf("%s-", sgRaw.(string)))
+	}
 	return hashcode.String(buf.String())
 }
 
