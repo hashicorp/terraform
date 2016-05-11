@@ -35,6 +35,7 @@ func resourceCLCServer() *schema.Resource {
 			"source_server_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"cpu": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -54,6 +55,7 @@ func resourceCLCServer() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "standard",
+				ForceNew: true,
 			},
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -96,10 +98,12 @@ func resourceCLCServer() *schema.Resource {
 			"configuration_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"os_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			// sorta computed
