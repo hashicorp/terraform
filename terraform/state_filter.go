@@ -124,7 +124,7 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 				// Add the instances
 				if r.Primary != nil {
 					addr.InstanceType = TypePrimary
-					addr.InstanceTypeSet = true
+					addr.InstanceTypeSet = false
 					results = append(results, &StateFilterResult{
 						Path:    addr.Path,
 						Address: addr.String(),

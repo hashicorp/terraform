@@ -417,12 +417,8 @@ func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
 	}
-	if len(s.Modules) == 0 {
-		root := &ModuleState{
-			Path: rootModulePath,
-		}
-		root.init()
-		s.Modules = []*ModuleState{root}
+	if s.ModuleByPath(rootModulePath) == nil {
+		s.AddModule(rootModulePath)
 	}
 }
 
@@ -677,11 +673,13 @@ func (m *ModuleState) deepcopy() *ModuleState {
 		return nil
 	}
 	n := &ModuleState{
-		Path:      make([]string, len(m.Path)),
-		Outputs:   make(map[string]interface{}, len(m.Outputs)),
-		Resources: make(map[string]*ResourceState, len(m.Resources)),
+		Path:         make([]string, len(m.Path)),
+		Outputs:      make(map[string]interface{}, len(m.Outputs)),
+		Resources:    make(map[string]*ResourceState, len(m.Resources)),
+		Dependencies: make([]string, len(m.Dependencies)),
 	}
 	copy(n.Path, m.Path)
+	copy(n.Dependencies, m.Dependencies)
 	for k, v := range m.Outputs {
 		n.Outputs[k] = v
 	}
