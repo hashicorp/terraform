@@ -3,11 +3,17 @@ package command
 import (
 	"errors"
 
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 // StateMeta is the meta struct that should be embedded in state subcommands.
 type StateMeta struct{}
+
+// State returns the state for this meta.
+func (m *StateMeta) State(cm *Meta) (state.State, error) {
+	return cm.State()
+}
 
 // filterInstance filters a single instance out of filter results.
 func (c *StateMeta) filterInstance(rs []*terraform.StateFilterResult) (*terraform.StateFilterResult, error) {
