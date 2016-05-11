@@ -12,6 +12,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
  * provider/clc: Fix optional server password [GH-6414]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  
