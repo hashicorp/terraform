@@ -2,6 +2,7 @@ package udnssdk
 
 import (
 	"log"
+	"net/http"
 	"time"
 )
 
@@ -19,6 +20,17 @@ type ProbeAlertDataDTO struct {
 	FailoverOccured bool      `json:"failoverOccured"`
 	OwnerName       string    `json:"ownerName"`
 	Status          string    `json:"status"`
+}
+
+// Equal compares to another ProbeAlertDataDTO, but uses time.Equals to compare semantic equvalance of AlertDate
+func (a ProbeAlertDataDTO) Equal(b ProbeAlertDataDTO) bool {
+	return a.PoolRecord == b.PoolRecord &&
+		a.ProbeType == b.ProbeType &&
+		a.ProbeStatus == b.ProbeStatus &&
+		a.AlertDate.Equal(b.AlertDate) &&
+		a.FailoverOccured == b.FailoverOccured &&
+		a.OwnerName == b.OwnerName &&
+		a.Status == b.Status
 }
 
 // ProbeAlertDataListDTO wraps the response for an index of probe alerts
@@ -42,7 +54,7 @@ func (s *AlertsService) Select(k RRSetKey) ([]ProbeAlertDataDTO, error) {
 	for {
 		reqAlerts, ri, res, err := s.SelectWithOffset(k, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)
@@ -65,7 +77,7 @@ func (s *AlertsService) Select(k RRSetKey) ([]ProbeAlertDataDTO, error) {
 }
 
 // SelectWithOffset returns the probe alerts with a RRSetKey, accepting an offset
-func (s *AlertsService) SelectWithOffset(k RRSetKey, offset int) ([]ProbeAlertDataDTO, ResultInfo, *Response, error) {
+func (s *AlertsService) SelectWithOffset(k RRSetKey, offset int) ([]ProbeAlertDataDTO, ResultInfo, *http.Response, error) {
 	var ald ProbeAlertDataListDTO
 
 	uri := k.AlertsQueryURI(offset)
