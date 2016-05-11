@@ -177,7 +177,7 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 	if attr, ok := d.GetOk("autoscaling_groups"); ok {
 		input.AutoScalingGroups = expandStringList(attr.(*schema.Set).List())
 	}
-	if attr, ok := d.GetOk("on_premises_instance_tag_filters"); ok {
+	if attr, ok := d.GetOk("on_premises_instance_tag_filter"); ok {
 		onPremFilters := buildOnPremTagFilters(attr.(*schema.Set).List())
 		input.OnPremisesInstanceTagFilters = onPremFilters
 	}
@@ -331,9 +331,15 @@ func buildOnPremTagFilters(configured []interface{}) []*codedeploy.TagFilter {
 		var filter codedeploy.TagFilter
 		m := raw.(map[string]interface{})
 
-		filter.Key = aws.String(m["key"].(string))
-		filter.Type = aws.String(m["type"].(string))
-		filter.Value = aws.String(m["value"].(string))
+		if v, ok := m["key"]; ok {
+			filter.Key = aws.String(v.(string))
+		}
+		if v, ok := m["type"]; ok {
+			filter.Type = aws.String(v.(string))
+		}
+		if v, ok := m["value"]; ok {
+			filter.Value = aws.String(v.(string))
+		}
 
 		filters = append(filters, &filter)
 	}
@@ -400,13 +406,13 @@ func onPremisesTagFiltersToMap(list []*codedeploy.TagFilter) []map[string]string
 	result := make([]map[string]string, 0, len(list))
 	for _, tf := range list {
 		l := make(map[string]string)
-		if *tf.Key != "" {
+		if tf.Key != nil && *tf.Key != "" {
 			l["key"] = *tf.Key
 		}
-		if *tf.Value != "" {
+		if tf.Value != nil && *tf.Value != "" {
 			l["value"] = *tf.Value
 		}
-		if *tf.Type != "" {
+		if tf.Type != nil && *tf.Type != "" {
 			l["type"] = *tf.Type
 		}
 		result = append(result, l)

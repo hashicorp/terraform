@@ -69,6 +69,39 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSCodeDeployDeploymentGroup_onPremiseTag(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroupOnPremiseTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "app_name", "foo_app"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "deployment_group_name", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "on_premises_instance_tag_filter.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "on_premises_instance_tag_filter.2916377465.key", "filterkey"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "on_premises_instance_tag_filter.2916377465.type", "KEY_AND_VALUE"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "on_premises_instance_tag_filter.2916377465.value", "filtervalue"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_basic(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
@@ -516,6 +549,71 @@ resource "aws_codedeploy_deployment_group" "foo" {
 		key = "filterkey"
 		type = "KEY_AND_VALUE"
 		value = "anotherfiltervalue"
+	}
+}`
+
+var testAccAWSCodeDeployDeploymentGroupOnPremiseTags = `
+resource "aws_codedeploy_app" "foo_app" {
+	name = "foo_app"
+}
+
+resource "aws_iam_role_policy" "foo_policy" {
+	name = "foo_policy"
+	role = "${aws_iam_role.foo_role.id}"
+	policy = <<EOF
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"autoscaling:CompleteLifecycleAction",
+				"autoscaling:DeleteLifecycleHook",
+				"autoscaling:DescribeAutoScalingGroups",
+				"autoscaling:DescribeLifecycleHooks",
+				"autoscaling:PutLifecycleHook",
+				"autoscaling:RecordLifecycleActionHeartbeat",
+				"ec2:DescribeInstances",
+				"ec2:DescribeInstanceStatus",
+				"tag:GetTags",
+				"tag:GetResources"
+			],
+			"Resource": "*"
+		}
+	]
+}
+EOF
+}
+
+resource "aws_iam_role" "foo_role" {
+	name = "foo_role"
+	assume_role_policy = <<EOF
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "",
+			"Effect": "Allow",
+			"Principal": {
+				"Service": [
+					"codedeploy.amazonaws.com"
+				]
+			},
+			"Action": "sts:AssumeRole"
+		}
+	]
+}
+EOF
+}
+
+resource "aws_codedeploy_deployment_group" "foo" {
+	app_name = "${aws_codedeploy_app.foo_app.name}"
+	deployment_group_name = "foo"
+	service_role_arn = "${aws_iam_role.foo_role.arn}"
+	on_premises_instance_tag_filter {
+		key = "filterkey"
+		type = "KEY_AND_VALUE"
+		value = "filtervalue"
 	}
 }`
 
