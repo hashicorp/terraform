@@ -49,7 +49,7 @@ func TestAccAWSDBOptionGroup_OptionSettings(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_option_group.bar", "option.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_db_option_group.bar", "option.2422743510.option_settings.1350509764.value", "UTC"),
+						"aws_db_option_group.bar", "option.961211605.option_settings.129825347.value", "UTC"),
 				),
 			},
 			resource.TestStep{
