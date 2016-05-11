@@ -2,6 +2,7 @@ package udnssdk
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // AccountsService provides access to account resources
@@ -43,7 +44,7 @@ func AccountsURI() string {
 }
 
 // Select requests all Accounts of user
-func (s *AccountsService) Select() ([]Account, *Response, error) {
+func (s *AccountsService) Select() ([]Account, *http.Response, error) {
 	var ald AccountListDTO
 	res, err := s.client.get(AccountsURI(), &ald)
 
@@ -55,13 +56,13 @@ func (s *AccountsService) Select() ([]Account, *Response, error) {
 }
 
 // Find requests an Account by AccountKey
-func (s *AccountsService) Find(k AccountKey) (Account, *Response, error) {
+func (s *AccountsService) Find(k AccountKey) (Account, *http.Response, error) {
 	var t Account
 	res, err := s.client.get(k.URI(), &t)
 	return t, res, err
 }
 
 // Delete requests deletion of an Account by AccountKey
-func (s *AccountsService) Delete(k AccountKey) (*Response, error) {
+func (s *AccountsService) Delete(k AccountKey) (*http.Response, error) {
 	return s.client.delete(k.URI(), nil)
 }

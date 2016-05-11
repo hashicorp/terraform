@@ -11,8 +11,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"time"
+
+	"golang.org/x/oauth2"
+
+	"github.com/Ensighten/udnssdk/passwordcredentials"
 )
 
 const (
@@ -46,17 +49,10 @@ type ResultInfo struct {
 type Client struct {
 	// This is our client structure.
 	HTTPClient *http.Client
+	Config     *passwordcredentials.Config
 
-	// UltraDNS makes a call to an authorization API using your username and
-	// password, returning an 'Access Token' and a 'Refresh Token'.
-	// Our use case does not require the refresh token, but we should implement
-	// for completeness.
-	AccessToken  string
-	RefreshToken string
-	Username     string
-	Password     string
-	BaseURL      string
-	UserAgent    string
+	BaseURL   string
+	UserAgent string
 
 	// Accounts API
 	Accounts *AccountsService
@@ -78,18 +74,14 @@ type Client struct {
 
 // NewClient returns a new ultradns API client.
 func NewClient(username, password, BaseURL string) (*Client, error) {
-	accesstoken, refreshtoken, err := GetAuthTokens(username, password, BaseURL)
-	if err != nil {
-		return nil, err
-	}
+	ctx := oauth2.NoContext
+	conf := NewConfig(username, password, BaseURL)
+
 	c := &Client{
-		AccessToken:  accesstoken,
-		RefreshToken: refreshtoken,
-		Username:     username,
-		Password:     password,
-		HTTPClient:   &http.Client{},
-		BaseURL:      BaseURL,
-		UserAgent:    userAgent,
+		HTTPClient: conf.Client(ctx),
+		BaseURL:    BaseURL,
+		UserAgent:  userAgent,
+		Config:     conf,
 	}
 	c.Accounts = &AccountsService{client: c}
 	c.Alerts = &AlertsService{client: c}
@@ -103,15 +95,11 @@ func NewClient(username, password, BaseURL string) (*Client, error) {
 }
 
 // newStubClient returns a new ultradns API client.
-func newStubClient(username, password, BaseURL, accesstoken, refreshtoken string) (*Client, error) {
+func newStubClient(username, password, BaseURL, clientID, clientSecret string) (*Client, error) {
 	c := &Client{
-		AccessToken:  accesstoken,
-		RefreshToken: refreshtoken,
-		Username:     username,
-		Password:     password,
-		HTTPClient:   &http.Client{},
-		BaseURL:      BaseURL,
-		UserAgent:    userAgent,
+		HTTPClient: &http.Client{},
+		BaseURL:    BaseURL,
+		UserAgent:  userAgent,
 	}
 	c.Accounts = &AccountsService{client: c}
 	c.Alerts = &AlertsService{client: c}
@@ -122,51 +110,6 @@ func newStubClient(username, password, BaseURL, accesstoken, refreshtoken string
 	c.RRSets = &RRSetsService{client: c}
 	c.Tasks = &TasksService{client: c}
 	return c, nil
-}
-
-// NewAuthRequest creates an Authorization request to get an access and refresh token.
-//
-// {
-//   "tokenType":"Bearer",
-//   "refreshToken":"48472efcdce044c8850ee6a395c74a7872932c7112",
-//    "accessToken":"b91d037c75934fc89a9f43fe4a",
-//    "expiresIn":"3600",
-//    "expires_in":"3600"
-// }
-
-// AuthResponse wraps the response to an auth request
-type AuthResponse struct {
-	TokenType    string `json:"tokenType"`
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresIn    string `json:"expiresIn"`
-}
-
-// GetAuthTokens requests by username, password & base URL, returns the access-token & refresh-token, or a possible error
-func GetAuthTokens(username, password, BaseURL string) (string, string, error) {
-	res, err := http.PostForm(fmt.Sprintf("%s/%s/authorization/token", BaseURL, apiVersion), url.Values{"grant_type": {"password"}, "username": {username}, "password": {password}})
-
-	if err != nil {
-		return "", "", err
-	}
-
-	//response := &Response{Response: res}
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return "", "", err
-	}
-	err = CheckAuthResponse(res, body)
-	if err != nil {
-		return "", "", err
-	}
-
-	var authr AuthResponse
-	err = json.Unmarshal(body, &authr)
-	if err != nil {
-		return string(body), "JSON Decode Error", err
-	}
-	return authr.AccessToken, authr.RefreshToken, err
 }
 
 // NewRequest creates an API request.
@@ -191,25 +134,23 @@ func (c *Client) NewRequest(method, path string, payload interface{}) (*http.Req
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("User-Agent", c.UserAgent)
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
-	req.Header.Add("Token", fmt.Sprintf("Bearer %s", c.AccessToken))
 
 	return req, nil
 }
 
-func (c *Client) get(path string, v interface{}) (*Response, error) {
+func (c *Client) get(path string, v interface{}) (*http.Response, error) {
 	return c.Do("GET", path, nil, v)
 }
 
-func (c *Client) post(path string, payload, v interface{}) (*Response, error) {
+func (c *Client) post(path string, payload, v interface{}) (*http.Response, error) {
 	return c.Do("POST", path, payload, v)
 }
 
-func (c *Client) put(path string, payload, v interface{}) (*Response, error) {
+func (c *Client) put(path string, payload, v interface{}) (*http.Response, error) {
 	return c.Do("PUT", path, payload, v)
 }
 
-func (c *Client) delete(path string, payload interface{}) (*Response, error) {
+func (c *Client) delete(path string, payload interface{}) (*http.Response, error) {
 	return c.Do("DELETE", path, payload, nil)
 }
 
@@ -218,25 +159,23 @@ func (c *Client) delete(path string, payload interface{}) (*Response, error) {
 // or returned as an error if an API error has occurred.
 // If v implements the io.Writer interface, the raw response body will be written to v,
 // without attempting to decode it.
-func (c *Client) Do(method, path string, payload, v interface{}) (*Response, error) {
+func (c *Client) Do(method, path string, payload, v interface{}) (*http.Response, error) {
+	hc := c.HTTPClient
 	req, err := c.NewRequest(method, path, payload)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("[DEBUG] HTTP Request: %+v\n", req)
-	res, err := c.HTTPClient.Do(req)
-	log.Printf("[DEBUG] HTTP Response: %+v\n", res)
+	r, err := hc.Do(req)
+	log.Printf("[DEBUG] HTTP Response: %+v\n", r)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-	origresponse := &Response{Response: res}
+	defer r.Body.Close()
 
-	var nres *http.Response
-	nres = res
-	if res.StatusCode == 202 {
+	if r.StatusCode == 202 {
 		// This is a deferred task.
-		tid := TaskID(res.Header.Get("X-Task-Id"))
+		tid := TaskID(r.Header.Get("X-Task-Id"))
 		log.Printf("[DEBUG] Received Async Task %+v..  will retry...\n", tid)
 		// TODO: Sane Configuration for timeouts / retries
 		timeout := 5
@@ -244,51 +183,45 @@ func (c *Client) Do(method, path string, payload, v interface{}) (*Response, err
 		i := 0
 		breakmeout := false
 		for i < timeout || breakmeout {
-			myt, statusres, err := c.Tasks.Find(tid)
+			t, _, err := c.Tasks.Find(tid)
 			if err != nil {
-				return origresponse, err
+				return nil, err
 			}
-			log.Printf("[DEBUG] Task ID: %+v Retry: %d Status Code: %s\n", tid, i, myt.TaskStatusCode)
-			switch myt.TaskStatusCode {
+			log.Printf("[DEBUG] Task ID: %+v Retry: %d Status Code: %s\n", tid, i, t.TaskStatusCode)
+			switch t.TaskStatusCode {
 			case "COMPLETE":
 				// Yay
-				tres, err := c.Tasks.FindResultByTask(myt)
+				resp, err := c.Tasks.FindResultByTask(t)
 				if err != nil {
-					return origresponse, err
+					return nil, err
 				}
-				nres = tres.Response
+				r = resp
 				breakmeout = true
 			case "PENDING", "IN_PROCESS":
 				i = i + 1
 				time.Sleep(waittime)
 				continue
 			case "ERROR":
-				return statusres, err
-
+				return nil, err
 			}
 		}
 	}
-	response := &Response{Response: nres}
 
-	err = CheckResponse(nres)
+	err = CheckResponse(r)
 	if err != nil {
-		return response, err
+		return r, err
 	}
 
 	if v != nil {
 		if w, ok := v.(io.Writer); ok {
-			io.Copy(w, res.Body)
+			io.Copy(w, r.Body)
 		} else {
-			err = json.NewDecoder(res.Body).Decode(v)
+			err = json.NewDecoder(r.Body).Decode(v)
+			// err = json.Unmarshal(r.Body, v)
 		}
 	}
 
-	return response, err
-}
-
-// A Response represents an API response.
-type Response struct {
-	*http.Response
+	return r, err
 }
 
 // ErrorResponse represents an error caused by an API request.
@@ -319,30 +252,6 @@ func (r ErrorResponseList) Error() string {
 	return fmt.Sprintf("%v %v: %d %d %v",
 		r.Response.Request.Method, r.Response.Request.URL,
 		r.Response.StatusCode, r.Responses[0].ErrorCode, r.Responses[0].ErrorMessage)
-}
-
-// CheckAuthResponse checks the API response for errors, and returns them if so
-func CheckAuthResponse(r *http.Response, body []byte) error {
-	if code := r.StatusCode; 200 <= code && code <= 299 {
-		return nil
-	}
-
-	// Attempt marshaling to ErrorResponse
-	var er ErrorResponse
-	err := json.Unmarshal(body, &er)
-	if err == nil {
-		er.Response = r
-		return er
-	}
-
-	// Attempt marshaling to ErrorResponseList
-	var ers []ErrorResponse
-	err = json.Unmarshal(body, &ers)
-	if err == nil {
-		return &ErrorResponseList{Response: r, Responses: ers}
-	}
-
-	return fmt.Errorf("Response had non-successful status: %d, but could not extract error from body: %+v", r.StatusCode, body)
 }
 
 // CheckResponse checks the API response for errors, and returns them if present.
