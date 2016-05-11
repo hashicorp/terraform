@@ -32,6 +32,42 @@ func TestAccAWSDBOptionGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBOptionGroup_OptionSettings(t *testing.T) {
+	var v rds.OptionGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBOptionGroupOptionSettings,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "name", "option-group-test-terraform"),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "option.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "option.961211605.option_settings.129825347.value", "UTC"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSDBOptionGroupOptionSettings_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "name", "option-group-test-terraform"),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "option.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "option.2422743510.option_settings.1350509764.value", "US/Pacific"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBOptionGroup_sqlServerOptionsUpdate(t *testing.T) {
 	var v rds.OptionGroup
 
@@ -213,6 +249,40 @@ resource "aws_db_option_group" "bar" {
   option_group_description = "Test option group for terraform"
   engine_name              = "mysql"
   major_engine_version     = "5.6"
+}
+`
+
+const testAccAWSDBOptionGroupOptionSettings = `
+resource "aws_db_option_group" "bar" {
+  name                     = "option-group-test-terraform"
+  option_group_description = "Test option group for terraform"
+  engine_name              = "oracle-ee"
+  major_engine_version     = "11.2"
+
+  option {
+    option_name = "Timezone"
+    option_settings {
+      name = "TIME_ZONE"
+      value = "UTC"
+    }
+  }
+}
+`
+
+const testAccAWSDBOptionGroupOptionSettings_update = `
+resource "aws_db_option_group" "bar" {
+  name                     = "option-group-test-terraform"
+  option_group_description = "Test option group for terraform"
+  engine_name              = "oracle-ee"
+  major_engine_version     = "11.2"
+
+  option {
+    option_name = "Timezone"
+    option_settings {
+      name = "TIME_ZONE"
+      value = "US/Pacific"
+    }
+  }
 }
 `
 
