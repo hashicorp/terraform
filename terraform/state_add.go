@@ -147,7 +147,7 @@ func stateAddFunc_Resource_Resource(s *State, fromAddr, addr *ResourceAddress, r
 }
 
 func stateAddFunc_Instance_Instance(s *State, fromAddr, addr *ResourceAddress, raw interface{}) error {
-	src := raw.(*InstanceState).deepcopy()
+	src := raw.(*InstanceState).DeepCopy()
 
 	// Create the instance
 	instanceRaw, _ := stateAddInitAddr(s, addr)
