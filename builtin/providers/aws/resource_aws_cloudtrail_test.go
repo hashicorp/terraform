@@ -617,23 +617,33 @@ POLICY
 `
 
 func testAccAWSCloudTrailConfig_tags(cloudTrailRandInt int) string {
-	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-		`tags {
+	tagsString := `tags {
 		Foo = "moo"
 		Pooh = "hi"
-	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+	}`
+	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+		cloudTrailRandInt,
+		tagsString,
+		cloudTrailRandInt,
+		cloudTrailRandInt,
+		cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt int) string {
-	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-		`tags {
+	tagsString := `tags {
 		Foo = "moo"
 		Pooh = "hi"
 		Moo = "boom"
-	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+	}`
+	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+		cloudTrailRandInt,
+		tagsString,
+		cloudTrailRandInt,
+		cloudTrailRandInt,
+		cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt int) string {
 	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-		"", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+		cloudTrailRandInt, "", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
