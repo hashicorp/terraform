@@ -293,10 +293,31 @@ func expandOptionConfiguration(configured []interface{}) ([]*rds.OptionConfigura
 			}
 		}
 
+		if raw, ok := data["option_settings"]; ok {
+			o.OptionSettings = expandOptionSetting(raw.(*schema.Set).List())
+		}
+
 		option = append(option, o)
 	}
 
 	return option, nil
+}
+
+func expandOptionSetting(list []interface{}) []*rds.OptionSetting {
+	options := make([]*rds.OptionSetting, 0, len(list))
+
+	for _, oRaw := range list {
+		data := oRaw.(map[string]interface{})
+
+		o := &rds.OptionSetting{
+			Name:  aws.String(data["name"].(string)),
+			Value: aws.String(data["value"].(string)),
+		}
+
+		options = append(options, o)
+	}
+
+	return options
 }
 
 // Takes the result of flatmap.Expand for an array of parameters and
@@ -543,6 +564,7 @@ func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (str
 	return string(byteArray[:n]), nil
 }
 
+// Flattens an array of Options into a []map[string]interface{}
 func flattenOptions(list []*rds.Option) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
@@ -571,6 +593,17 @@ func flattenOptions(list []*rds.Option) []map[string]interface{} {
 				}
 
 				r["db_security_group_memberships"] = dbs
+			}
+			if i.OptionSettings != nil {
+				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
+				for _, j := range i.OptionSettings {
+					settings = append(settings, map[string]interface{}{
+						"name":  *j.Name,
+						"value": *j.Value,
+					})
+				}
+
+				r["option_settings"] = settings
 			}
 			result = append(result, r)
 		}
