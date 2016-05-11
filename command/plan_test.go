@@ -108,6 +108,9 @@ func TestPlan_destroy(t *testing.T) {
 }
 
 func TestPlan_noState(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
