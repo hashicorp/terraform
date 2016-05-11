@@ -98,30 +98,35 @@ func testAccCheckAWSCloudwatchLogSubscriptionFilterAttributes(function *lambda.G
 
 const testAccAWSCloudwatchLogSubscriptionFilterConfig = `
 resource "aws_cloudwatch_log_subscription_filter" "test_lambdafunction_logfilter" {
-    name = "test_lambdafunction_logfilter"
-    log_group_name = "example_lambda_name"
-    filter_pattern = "logtype test"
-    destination_arn = "${aws_lambda_function.test_lambdafunction.arn}"
+  name            = "test_lambdafunction_logfilter"
+  log_group_name  = "example_lambda_name"
+  filter_pattern  = "logtype test"
+  destination_arn = "${aws_lambda_function.test_lambdafunction.arn}"
 }
+
 resource "aws_lambda_function" "test_lambdafunction" {
-    filename = "test-fixtures/lambdatest.zip"
-    function_name = "example_lambda_name"
-    role = "${aws_iam_role.iam_for_lambda.arn}"
-    handler = "exports.handler"
+  filename      = "test-fixtures/lambdatest.zip"
+  function_name = "example_lambda_name"
+  role          = "${aws_iam_role.iam_for_lambda.arn}"
+  handler       = "exports.handler"
 }
+
 resource "aws_cloudwatch_log_group" "logs" {
-  name  = "example_lambda_name"
+  name              = "example_lambda_name"
   retention_in_days = 1
 }
+
 resource "aws_lambda_permission" "allow_cloudwatch_logs" {
-    statement_id = "AllowExecutionFromCloudWatchLogs"
-    action = "lambda:*"
-    function_name = "${aws_lambda_function.test_lambdafunction.arn}"
-    principal = "logs.eu-west-1.amazonaws.com"
+  statement_id  = "AllowExecutionFromCloudWatchLogs"
+  action        = "lambda:*"
+  function_name = "${aws_lambda_function.test_lambdafunction.arn}"
+  principal     = "logs.us-west-2.amazonaws.com"
 }
+
 resource "aws_iam_role" "iam_for_lambda" {
-    name = "test_lambdafuntion_iam_role"
-    assume_role_policy = <<EOF
+  name = "test_lambdafuntion_iam_role"
+
+  assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -137,24 +142,26 @@ resource "aws_iam_role" "iam_for_lambda" {
 }
 EOF
 }
+
 resource "aws_iam_role_policy" "test_lambdafunction_iam_policy" {
-    name = "test_lambdafunction_iam_policy"
-    role = "${aws_iam_role.iam_for_lambda.id}"
-    policy = <<EOF
+  name = "test_lambdafunction_iam_policy"
+  role = "${aws_iam_role.iam_for_lambda.id}"
+
+  policy = <<EOF
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "Stmt1441111030000",
-            "Effect": "Allow",
-            "Action": [
-                "dynamodb:*"
-            ],
-            "Resource": [
-                "*"
-            ]
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1441111030000",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:*"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
 }
 EOF
 }
