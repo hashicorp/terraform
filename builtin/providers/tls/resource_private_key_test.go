@@ -29,7 +29,7 @@ func TestPrivateKeyRSA(t *testing.T) {
                     }
                 `,
 				Check: func(s *terraform.State) error {
-					gotPrivateUntyped := s.RootModule().Outputs["private_key_pem"]
+					gotPrivateUntyped := s.RootModule().Outputs["private_key_pem"].Value
 					gotPrivate, ok := gotPrivateUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"private_key_pem\" is not a string")
@@ -42,7 +42,7 @@ func TestPrivateKeyRSA(t *testing.T) {
 						return fmt.Errorf("private key PEM looks too long for a 2048-bit key (got %v characters)", len(gotPrivate))
 					}
 
-					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"]
+					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"].Value
 					gotPublic, ok := gotPublicUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"public_key_pem\" is not a string")
@@ -51,7 +51,7 @@ func TestPrivateKeyRSA(t *testing.T) {
 						return fmt.Errorf("public key is missing public key PEM preamble")
 					}
 
-					gotPublicSSHUntyped := s.RootModule().Outputs["public_key_openssh"]
+					gotPublicSSHUntyped := s.RootModule().Outputs["public_key_openssh"].Value
 					gotPublicSSH, ok := gotPublicSSHUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"public_key_openssh\" is not a string")
@@ -74,7 +74,7 @@ func TestPrivateKeyRSA(t *testing.T) {
                     }
                 `,
 				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem"]
+					gotUntyped := s.RootModule().Outputs["key_pem"].Value
 					got, ok := gotUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"key_pem\" is not a string")
@@ -112,7 +112,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
                     }
                 `,
 				Check: func(s *terraform.State) error {
-					gotPrivateUntyped := s.RootModule().Outputs["private_key_pem"]
+					gotPrivateUntyped := s.RootModule().Outputs["private_key_pem"].Value
 					gotPrivate, ok := gotPrivateUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"private_key_pem\" is not a string")
@@ -122,7 +122,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
 						return fmt.Errorf("Private key is missing EC key PEM preamble")
 					}
 
-					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"]
+					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"].Value
 					gotPublic, ok := gotPublicUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"public_key_pem\" is not a string")
@@ -132,7 +132,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
 						return fmt.Errorf("public key is missing public key PEM preamble")
 					}
 
-					gotPublicSSH := s.RootModule().Outputs["public_key_openssh"]
+					gotPublicSSH := s.RootModule().Outputs["public_key_openssh"].Value.(string)
 					if gotPublicSSH != "" {
 						return fmt.Errorf("P224 EC key should not generate OpenSSH public key")
 					}
@@ -157,7 +157,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
                     }
                 `,
 				Check: func(s *terraform.State) error {
-					gotPrivateUntyped := s.RootModule().Outputs["private_key_pem"]
+					gotPrivateUntyped := s.RootModule().Outputs["private_key_pem"].Value
 					gotPrivate, ok := gotPrivateUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"private_key_pem\" is not a string")
@@ -166,7 +166,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
 						return fmt.Errorf("Private key is missing EC key PEM preamble")
 					}
 
-					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"]
+					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"].Value
 					gotPublic, ok := gotPublicUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"public_key_pem\" is not a string")
@@ -175,7 +175,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
 						return fmt.Errorf("public key is missing public key PEM preamble")
 					}
 
-					gotPublicSSHUntyped := s.RootModule().Outputs["public_key_openssh"]
+					gotPublicSSHUntyped := s.RootModule().Outputs["public_key_openssh"].Value
 					gotPublicSSH, ok := gotPublicSSHUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"public_key_openssh\" is not a string")

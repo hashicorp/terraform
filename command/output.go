@@ -95,7 +95,7 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	switch output := v.(type) {
+	switch output := v.Value.(type) {
 	case string:
 		c.Ui.Output(output)
 		return 0
@@ -137,7 +137,7 @@ func (c *OutputCommand) Run(args []string) int {
 			return 1
 		}
 	default:
-		panic(fmt.Errorf("Unknown output type: %T", output))
+		panic(fmt.Errorf("Unknown output type: %T", v.Value.(string)))
 	}
 
 	return 0

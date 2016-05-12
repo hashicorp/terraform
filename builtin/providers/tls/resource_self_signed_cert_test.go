@@ -60,7 +60,7 @@ EOT
                     }
                 `, testPrivateKey),
 				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem"]
+					gotUntyped := s.RootModule().Outputs["key_pem"].Value
 					got, ok := gotUntyped.(string)
 					if !ok {
 						return fmt.Errorf("output for \"public_key_openssh\" is not a string")

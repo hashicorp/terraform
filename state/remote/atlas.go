@@ -322,6 +322,7 @@ func (c *AtlasClient) handleConflict(msg string, state []byte) error {
 			var buf bytes.Buffer
 			if err := terraform.WriteState(proposedState, &buf); err != nil {
 				return conflictHandlingError(err)
+
 			}
 			return c.Put(buf.Bytes())
 		} else {
