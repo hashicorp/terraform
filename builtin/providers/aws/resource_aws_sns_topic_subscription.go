@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
 )
 
@@ -155,6 +156,12 @@ func resourceAwsSnsTopicSubscriptionRead(d *schema.ResourceData, meta interface{
 		SubscriptionArn: aws.String(d.Id()),
 	})
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFound" {
+			log.Printf("[WARN] SNS Topic Subscription (%s) not found, error code (404)", d.Id())
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
