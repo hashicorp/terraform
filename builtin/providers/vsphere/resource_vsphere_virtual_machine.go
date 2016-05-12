@@ -290,7 +290,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"ipv4_gateway": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"ipv6_address": &schema.Schema{
@@ -308,7 +308,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"ipv6_gateway": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"adapter_type": &schema.Schema{
