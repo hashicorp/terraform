@@ -82,10 +82,6 @@ func TestAccAWSIAMServerCertificate_disappears(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
-			// Follow up plan w/ empty config should be empty, since the Cert is gone
-			resource.TestStep{
-				Config: "",
-			},
 		},
 	})
 }
