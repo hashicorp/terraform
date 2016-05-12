@@ -14,16 +14,6 @@ type RRSetsService struct {
 
 // Here is the big 'Profile' mess that should get refactored to a more managable place
 
-// StringProfile wraps a Profile string
-type StringProfile struct {
-	Profile string `json:"profile,omitempty"`
-}
-
-// Metaprofile is a helper struct for extracting a Context from a StringProfile
-type Metaprofile struct {
-	Context ProfileSchema `json:"@context"`
-}
-
 // ProfileSchema are the schema URIs for RRSet Profiles
 type ProfileSchema string
 
@@ -37,6 +27,112 @@ const (
 	// TCPoolSchema is the schema URI for a Traffic Controller pool profile
 	TCPoolSchema = "http://schemas.ultradns.com/TCPool.jsonschema"
 )
+
+// RawProfile represents the naive interface to an RRSet Profile
+type RawProfile map[string]interface{}
+
+// Context extracts the schema context from a RawProfile
+func (rp RawProfile) Context() ProfileSchema {
+	return ProfileSchema(rp["@context"].(string))
+}
+
+// GetProfileObject extracts the full Profile by its schema type
+func (rp RawProfile) GetProfileObject() (interface{}, error) {
+	c := rp.Context()
+	switch c {
+	case DirPoolSchema:
+		return rp.DirPoolProfile()
+	case RDPoolSchema:
+		return rp.RDPoolProfile()
+	case SBPoolSchema:
+		return rp.SBPoolProfile()
+	case TCPoolSchema:
+		return rp.TCPoolProfile()
+	default:
+		return nil, fmt.Errorf("Fallthrough on GetProfileObject type %s\n", c)
+	}
+}
+
+// remarshalJSON takes a structure and marshals it into another type
+func remarshalJSON(in, result interface{}) error {
+	bs, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bs, &result)
+}
+
+// DirPoolProfile extracts the full Profile as a DirPoolProfile or returns an error
+func (rp RawProfile) DirPoolProfile() (DirPoolProfile, error) {
+	var result DirPoolProfile
+	c := rp.Context()
+	if c != DirPoolSchema {
+		return result, fmt.Errorf("RDPoolProfile has incorrect JSON-LD @context %s\n", c)
+	}
+	err := remarshalJSON(rp, &result)
+	return result, err
+}
+
+// RDPoolProfile extracts the full Profile as a RDPoolProfile or returns an error
+func (rp RawProfile) RDPoolProfile() (RDPoolProfile, error) {
+	var result RDPoolProfile
+	c := rp.Context()
+	if c != RDPoolSchema {
+		return result, fmt.Errorf("RDPoolProfile has incorrect JSON-LD @context %s\n", c)
+	}
+	err := remarshalJSON(rp, &result)
+	return result, err
+}
+
+// SBPoolProfile extracts the full Profile as a SBPoolProfile or returns an error
+func (rp RawProfile) SBPoolProfile() (SBPoolProfile, error) {
+	var result SBPoolProfile
+	c := rp.Context()
+	if c != SBPoolSchema {
+		return result, fmt.Errorf("SBPoolProfile has incorrect JSON-LD @context %s\n", c)
+	}
+	err := remarshalJSON(rp, &result)
+	return result, err
+}
+
+// TCPoolProfile extracts the full Profile as a TCPoolProfile or returns an error
+func (rp RawProfile) TCPoolProfile() (TCPoolProfile, error) {
+	var result TCPoolProfile
+	c := rp.Context()
+	if c != TCPoolSchema {
+		return result, fmt.Errorf("TCPoolProfile has incorrect JSON-LD @context %s\n", c)
+	}
+	err := remarshalJSON(rp, &result)
+	return result, err
+}
+
+// RawProfile converts to a naive RawProfile
+func (p DirPoolProfile) RawProfile() (RawProfile, error) {
+	var rp RawProfile
+	err := remarshalJSON(p, &rp)
+	return rp, err
+}
+
+// RawProfile converts to a naive RawProfile
+func (p RDPoolProfile) RawProfile() (RawProfile, error) {
+	var rp RawProfile
+	err := remarshalJSON(p, &rp)
+	return rp, err
+}
+
+// RawProfile converts to a naive RawProfile
+func (p SBPoolProfile) RawProfile() (RawProfile, error) {
+	var rp RawProfile
+	err := remarshalJSON(p, &rp)
+	return rp, err
+}
+
+// RawProfile converts to a naive RawProfile
+func (p TCPoolProfile) RawProfile() (RawProfile, error) {
+	var rp RawProfile
+	err := remarshalJSON(p, &rp)
+	return rp, err
+}
 
 // DirPoolProfile wraps a Profile for a Directional Pool
 type DirPoolProfile struct {
@@ -79,8 +175,8 @@ type RDPoolProfile struct {
 type SBPoolProfile struct {
 	Context       ProfileSchema  `json:"@context"`
 	Description   string         `json:"description"`
-	RunProbes     bool           `json:"runProbes,omitempty"`
-	ActOnProbes   bool           `json:"actOnProbes,omitempty"`
+	RunProbes     bool           `json:"runProbes"`
+	ActOnProbes   bool           `json:"actOnProbes"`
 	Order         string         `json:"order,omitempty"`
 	MaxActive     int            `json:"maxActive,omitempty"`
 	MaxServed     int            `json:"maxServed,omitempty"`
@@ -91,7 +187,7 @@ type SBPoolProfile struct {
 // SBRDataInfo wraps the rdataInfo object of a SBPoolProfile
 type SBRDataInfo struct {
 	State         string `json:"state"`
-	RunProbes     bool   `json:"runProbes,omitempty"`
+	RunProbes     bool   `json:"runProbes"`
 	Priority      int    `json:"priority"`
 	FailoverDelay int    `json:"failoverDelay,omitempty"`
 	Threshold     int    `json:"threshold"`
@@ -100,7 +196,7 @@ type SBRDataInfo struct {
 
 // BackupRecord wraps the backupRecord objects of an SBPoolProfile response
 type BackupRecord struct {
-	RData         string `json:"rdata"`
+	RData         string `json:"rdata,omitempty"`
 	FailoverDelay int    `json:"failoverDelay,omitempty"`
 }
 
@@ -108,109 +204,20 @@ type BackupRecord struct {
 type TCPoolProfile struct {
 	Context      ProfileSchema `json:"@context"`
 	Description  string        `json:"description"`
-	RunProbes    bool          `json:"runProbes,omitempty"`
-	ActOnProbes  bool          `json:"actOnProbes,omitempty"`
+	RunProbes    bool          `json:"runProbes"`
+	ActOnProbes  bool          `json:"actOnProbes"`
 	MaxToLB      int           `json:"maxToLB,omitempty"`
 	RDataInfo    []SBRDataInfo `json:"rdataInfo"`
-	BackupRecord BackupRecord  `json:"backupRecord"`
-}
-
-// UnmarshalJSON does what it says on the tin
-func (sp *StringProfile) UnmarshalJSON(b []byte) (err error) {
-	sp.Profile = string(b)
-	return nil
-}
-
-// MarshalJSON does what it says on the tin
-func (sp *StringProfile) MarshalJSON() ([]byte, error) {
-	if sp.Profile != "" {
-		return []byte(sp.Profile), nil
-	}
-	return json.Marshal(nil)
-}
-
-// Metaprofile converts a StringProfile to a Metaprofile to extract the context
-func (sp *StringProfile) Metaprofile() (Metaprofile, error) {
-	var mp Metaprofile
-	if sp.Profile == "" {
-		return mp, fmt.Errorf("Empty Profile cannot be converted to a Metaprofile")
-	}
-	err := json.Unmarshal([]byte(sp.Profile), &mp)
-	if err != nil {
-		return mp, fmt.Errorf("Error getting profile type: %+v\n", err)
-	}
-	return mp, nil
-}
-
-// Context extracts the schema context from a StringProfile
-func (sp *StringProfile) Context() ProfileSchema {
-	mp, err := sp.Metaprofile()
-	if err != nil {
-		log.Printf("[ERROR] %+s\n", err)
-		return ""
-	}
-	return mp.Context
-}
-
-// GoString returns the StringProfile's Profile.
-func (sp *StringProfile) GoString() string {
-	return sp.Profile
-}
-
-// String returns the StringProfile's Profile.
-func (sp *StringProfile) String() string {
-	return sp.Profile
-}
-
-// GetProfileObject extracts the full Profile by its schema type
-func (sp *StringProfile) GetProfileObject() interface{} {
-	c := sp.Context()
-	switch c {
-	case DirPoolSchema:
-		var dpp DirPoolProfile
-		err := json.Unmarshal([]byte(sp.Profile), &dpp)
-		if err != nil {
-			log.Printf("Could not Unmarshal the DirPoolProfile.\n")
-			return nil
-		}
-		return dpp
-	case RDPoolSchema:
-		var rdp RDPoolProfile
-		err := json.Unmarshal([]byte(sp.Profile), &rdp)
-		if err != nil {
-			log.Printf("Could not Unmarshal the RDPoolProfile.\n")
-			return nil
-		}
-		return rdp
-	case SBPoolSchema:
-		var sbp SBPoolProfile
-		err := json.Unmarshal([]byte(sp.Profile), &sbp)
-		if err != nil {
-			log.Printf("Could not Unmarshal the SBPoolProfile.\n")
-			return nil
-		}
-		return sbp
-	case TCPoolSchema:
-		var tcp TCPoolProfile
-		err := json.Unmarshal([]byte(sp.Profile), &tcp)
-		if err != nil {
-			log.Printf("Could not Unmarshal the TCPoolProfile.\n")
-			return nil
-		}
-		return tcp
-	default:
-		log.Printf("ERROR - Fall through on GetProfileObject - %s.\n", c)
-		return fmt.Errorf("Fallthrough on GetProfileObject type %s\n", c)
-	}
+	BackupRecord *BackupRecord `json:"backupRecord,omitempty"`
 }
 
 // RRSet wraps an RRSet resource
 type RRSet struct {
-	OwnerName string         `json:"ownerName"`
-	RRType    string         `json:"rrtype"`
-	TTL       int            `json:"ttl"`
-	RData     []string       `json:"rdata"`
-	Profile   *StringProfile `json:"profile,omitempty"`
+	OwnerName string     `json:"ownerName"`
+	RRType    string     `json:"rrtype"`
+	TTL       int        `json:"ttl"`
+	RData     []string   `json:"rdata"`
+	Profile   RawProfile `json:"profile,omitempty"`
 }
 
 // RRSetListDTO wraps a list of RRSet resources
