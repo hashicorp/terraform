@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/mitchellh/copystructure"
 )
 
 const (
@@ -396,6 +397,64 @@ func (r *RemoteState) GoString() string {
 	return fmt.Sprintf("*%#v", *r)
 }
 
+// OutputState is used to track the state relevant to a single output.
+type OutputState struct {
+	// Sensitive describes whether the output is considered sensitive,
+	// which may lead to masking the value on screen in some cases.
+	Sensitive bool `json:"sensitive`
+	// Type describes the structure of Value. Valid values are "string",
+	// "map" and "list"
+	Type string `json:"type"`
+	// Value contains the value of the output, in the structure described
+	// by the Type field.
+	Value interface{} `json:"value"`
+}
+
+// Equal compares two OutputState structures for equality. nil values are
+// considered equal.
+func (s *OutputState) Equal(other *OutputState) bool {
+	if s == nil && other == nil {
+		return true
+	}
+
+	if s == nil || other == nil {
+		return false
+	}
+
+	if s.Type != other.Type {
+		return false
+	}
+
+	if s.Sensitive != other.Sensitive {
+		return false
+	}
+
+	if !reflect.DeepEqual(s.Value, other.Value) {
+		return false
+	}
+
+	return true
+}
+
+func (s *OutputState) deepcopy() *OutputState {
+	if s == nil {
+		return nil
+	}
+
+	valueCopy, err := copystructure.Copy(s.Value)
+	if err != nil {
+		panic(fmt.Errorf("Error copying output value: %s", err))
+	}
+
+	n := &OutputState{
+		Type:      s.Type,
+		Sensitive: s.Sensitive,
+		Value:     valueCopy,
+	}
+
+	return n
+}
+
 // ModuleState is used to track all the state relevant to a single
 // module. Previous to Terraform 0.3, all state belonged to the "root"
 // module.
@@ -407,7 +466,7 @@ type ModuleState struct {
 	// Outputs declared by the module and maintained for each module
 	// even though only the root module technically needs to be kept.
 	// This allows operators to inspect values at the boundaries.
-	Outputs map[string]interface{} `json:"outputs"`
+	Outputs map[string]*OutputState `json:"outputs"`
 
 	// Resources is a mapping of the logically named resource to
 	// the state of the resource. Each resource may actually have
@@ -442,7 +501,7 @@ func (m *ModuleState) Equal(other *ModuleState) bool {
 		return false
 	}
 	for k, v := range m.Outputs {
-		if other.Outputs[k] != v {
+		if !other.Outputs[k].Equal(v) {
 			return false
 		}
 	}
@@ -532,7 +591,7 @@ func (m *ModuleState) View(id string) *ModuleState {
 
 func (m *ModuleState) init() {
 	if m.Outputs == nil {
-		m.Outputs = make(map[string]interface{})
+		m.Outputs = make(map[string]*OutputState)
 	}
 	if m.Resources == nil {
 		m.Resources = make(map[string]*ResourceState)
@@ -545,12 +604,12 @@ func (m *ModuleState) deepcopy() *ModuleState {
 	}
 	n := &ModuleState{
 		Path:      make([]string, len(m.Path)),
-		Outputs:   make(map[string]interface{}, len(m.Outputs)),
+		Outputs:   make(map[string]*OutputState, len(m.Outputs)),
 		Resources: make(map[string]*ResourceState, len(m.Resources)),
 	}
 	copy(n.Path, m.Path)
 	for k, v := range m.Outputs {
-		n.Outputs[k] = v
+		n.Outputs[k] = v.deepcopy()
 	}
 	for k, v := range m.Resources {
 		n.Resources[k] = v.deepcopy()
@@ -569,7 +628,7 @@ func (m *ModuleState) prune() {
 	}
 
 	for k, v := range m.Outputs {
-		if v == config.UnknownVariableValue {
+		if v.Value == config.UnknownVariableValue {
 			delete(m.Outputs, k)
 		}
 	}
@@ -1262,9 +1321,13 @@ func upgradeV0State(old *StateV0) (*State, error) {
 	root := s.RootModule()
 
 	// Copy the outputs, first converting them to map[string]interface{}
-	oldOutputs := make(map[string]interface{}, len(old.Outputs))
+	oldOutputs := make(map[string]*OutputState, len(old.Outputs))
 	for key, value := range old.Outputs {
-		oldOutputs[key] = value
+		oldOutputs[key] = &OutputState{
+			Type:      "string",
+			Sensitive: false,
+			Value:     value,
+		}
 	}
 	root.Outputs = oldOutputs
 

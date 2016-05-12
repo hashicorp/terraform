@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
+	"log"
 )
 
 // EvalDeleteOutput is an EvalNode implementation that deletes an output
@@ -37,15 +38,17 @@ func (n *EvalDeleteOutput) Eval(ctx EvalContext) (interface{}, error) {
 // EvalWriteOutput is an EvalNode implementation that writes the output
 // for the given name to the current state.
 type EvalWriteOutput struct {
-	Name  string
-	Value *config.RawConfig
+	Name      string
+	Sensitive bool
+	Value     *config.RawConfig
 }
 
 // TODO: test
 func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 	cfg, err := ctx.Interpolate(n.Value, nil)
 	if err != nil {
-		// Ignore it
+		// Log error but continue anyway
+		log.Printf("[WARN] Output interpolation %q failed: %s", n.Name, err)
 	}
 
 	state, lock := ctx.State()
@@ -84,8 +87,14 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, fmt.Errorf("output %s is not a string", n.Name)
 	}
 
-	// Write the output
-	mod.Outputs[n.Name] = valueRaw.(string)
+	// Write the output - for 0.6.17 we don't have to actually know the type
+	// since strings are the only valid option. In 0.7 we will need to infer
+	// this from the value.
+	mod.Outputs[n.Name] = &OutputState{
+		Type:      "string",
+		Sensitive: n.Sensitive,
+		Value:     valueRaw.(string),
+	}
 
 	return nil, nil
 }

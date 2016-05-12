@@ -452,8 +452,12 @@ func TestContext2Refresh_output(t *testing.T) {
 						},
 					},
 
-					Outputs: map[string]interface{}{
-						"foo": "foo",
+					Outputs: map[string]*OutputState{
+						"foo": &OutputState{
+							Type:      "string",
+							Sensitive: false,
+							Value:     "foo",
+						},
 					},
 				},
 			},
@@ -738,9 +742,15 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 						},
 					},
 				},
-				Outputs: map[string]interface{}{
-					"id":            "i-bcd234",
-					"grandchild_id": "i-cde345",
+				Outputs: map[string]*OutputState{
+					"id": &OutputState{
+						Value: "i-bcd234",
+						Type:  "string",
+					},
+					"grandchild_id": &OutputState{
+						Value: "i-cde345",
+						Type:  "string",
+					},
 				},
 			},
 			&ModuleState{
@@ -752,8 +762,11 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 						},
 					},
 				},
-				Outputs: map[string]interface{}{
-					"id": "i-cde345",
+				Outputs: map[string]*OutputState{
+					"id": &OutputState{
+						Value: "i-cde345",
+						Type:  "string",
+					},
 				},
 			},
 		},

@@ -67,8 +67,11 @@ func TestInterpolater_moduleVariable(t *testing.T) {
 			},
 			&ModuleState{
 				Path: []string{RootModuleName, "child"},
-				Outputs: map[string]interface{}{
-					"foo": "bar",
+				Outputs: map[string]*OutputState{
+					"foo": &OutputState{
+						Type:  "string",
+						Value: "bar",
+					},
 				},
 			},
 		},

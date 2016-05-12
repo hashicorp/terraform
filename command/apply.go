@@ -416,7 +416,7 @@ func outputsAsString(state *terraform.State, schema []*config.Output) string {
 					"  %s%s = %s\n",
 					k,
 					strings.Repeat(" ", keyLen-len(k)),
-					v))
+					v.Value))
 			}
 		}
 	}

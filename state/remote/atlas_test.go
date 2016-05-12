@@ -111,7 +111,11 @@ func TestAtlasClient_LegitimateConflict(t *testing.T) {
 	}
 
 	// Changing the state but not the serial. Should generate a conflict.
-	state.RootModule().Outputs["drift"] = "happens"
+	state.RootModule().Outputs["drift"] = &terraform.OutputState{
+		Type:      "string",
+		Sensitive: false,
+		Value:     "happens",
+	}
 
 	var stateJson bytes.Buffer
 	if err := terraform.WriteState(state, &stateJson); err != nil {
@@ -255,7 +259,11 @@ var testStateModuleOrderChange = []byte(
                 "grandchild"
             ],
             "outputs": {
-                "foo": "bar2"
+                "foo": {
+		    "sensitive": false,
+		    "type": "string",
+		    "value": "bar2"
+		}
             },
             "resources": null
         },
@@ -266,7 +274,11 @@ var testStateModuleOrderChange = []byte(
                 "grandchild"
             ],
             "outputs": {
-                "foo": "bar1"
+                "foo": {
+		    "sensitive": false,
+		    "type": "string",
+		    "value": "bar1"
+		}
             },
             "resources": null
         }
@@ -284,7 +296,11 @@ var testStateSimple = []byte(
                 "root"
             ],
             "outputs": {
-                "foo": "bar"
+                "foo": {
+		    "sensitive": false,
+		    "type": "string",
+		    "value": "bar"
+		}
             },
             "resources": null
         }

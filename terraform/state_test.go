@@ -81,12 +81,10 @@ func TestStateOutputTypeRoundTrip(t *testing.T) {
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: RootModulePath,
-				Outputs: map[string]interface{}{
-					"string_output": "String Value",
-					"list_output":   []interface{}{"List", "Value"},
-					"map_output": map[string]interface{}{
-						"key1": "Map",
-						"key2": "Value",
+				Outputs: map[string]*OutputState{
+					"string_output": &OutputState{
+						Value: "String Value",
+						Type:  "string",
 					},
 				},
 			},
@@ -1032,7 +1030,7 @@ func TestUpgradeV0State(t *testing.T) {
 	if len(root.Outputs) != 1 {
 		t.Fatalf("bad outputs: %v", root.Outputs)
 	}
-	if root.Outputs["ip"] != "127.0.0.1" {
+	if root.Outputs["ip"].Value != "127.0.0.1" {
 		t.Fatalf("bad outputs: %v", root.Outputs)
 	}
 
