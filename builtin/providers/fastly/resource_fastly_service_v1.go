@@ -1,6 +1,8 @@
 package fastly
 
 import (
+        "crypto/sha1"
+        "encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -483,6 +485,15 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The contents of this VCL configuration",
+                                                        StateFunc: func(v interface{}) string {
+                                                                switch v.(type) {
+                                                                case string:
+                                                                        hash := sha1.Sum([]byte(v.(string)))
+                                                                        return hex.EncodeToString(hash[:])
+                                                                default:
+                                                                        return ""
+                                                                }
+                                                        },
 						},
 						"main": &schema.Schema{
 							Type:        schema.TypeBool,
