@@ -501,6 +501,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		for _, ni := range instance.NetworkInterfaces {
 			if *ni.Attachment.DeviceIndex == 0 {
 				d.Set("subnet_id", ni.SubnetId)
+				d.Set("private_ips", flattenInstancePrivateIpAddresses(ni.PrivateIpAddresses))
 			}
 		}
 	} else {
