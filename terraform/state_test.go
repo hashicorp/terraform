@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -81,12 +82,10 @@ func TestStateOutputTypeRoundTrip(t *testing.T) {
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: RootModulePath,
-				Outputs: map[string]interface{}{
-					"string_output": "String Value",
-					"list_output":   []interface{}{"List", "Value"},
-					"map_output": map[string]interface{}{
-						"key1": "Map",
-						"key2": "Value",
+				Outputs: map[string]*OutputState{
+					"string_output": &OutputState{
+						Value: "String Value",
+						Type:  "string",
 					},
 				},
 			},
@@ -1221,6 +1220,35 @@ func TestReadUpgradeStateV1toV2(t *testing.T) {
 	}
 }
 
+func TestReadUpgradeStateV1toV2_outputs(t *testing.T) {
+	// ReadState should transparently detect the old version but will upgrade
+	// it on Write.
+	actual, err := ReadState(strings.NewReader(testV1StateWithOutputs))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(actual, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual.Version != 2 {
+		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
+	}
+
+	roundTripped, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, roundTripped) {
+		spew.Config.DisableMethods = true
+		t.Fatalf("bad:\n%s\n\nround tripped:\n%s\n", spew.Sdump(actual), spew.Sdump(roundTripped))
+		spew.Config.DisableMethods = false
+	}
+}
+
 func TestReadUpgradeState(t *testing.T) {
 	state := &StateV0{
 		Resources: map[string]*ResourceStateV0{
@@ -1241,7 +1269,7 @@ func TestReadUpgradeState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	upgraded, err := upgradeV0State(state)
+	upgraded, err := state.upgrade()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1329,6 +1357,7 @@ func TestReadStateNewVersion(t *testing.T) {
 
 func TestReadStateTFVersion(t *testing.T) {
 	type tfVersion struct {
+		Version   int    `json:"version"`
 		TFVersion string `json:"terraform_version"`
 	}
 
@@ -1355,7 +1384,10 @@ func TestReadStateTFVersion(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		buf, err := json.Marshal(&tfVersion{tc.Written})
+		buf, err := json.Marshal(&tfVersion{
+			Version:   2,
+			TFVersion: tc.Written,
+		})
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1443,7 +1475,7 @@ func TestUpgradeV0State(t *testing.T) {
 			"bar": struct{}{},
 		},
 	}
-	state, err := upgradeV0State(old)
+	state, err := old.upgrade()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1456,7 +1488,7 @@ func TestUpgradeV0State(t *testing.T) {
 	if len(root.Outputs) != 1 {
 		t.Fatalf("bad outputs: %v", root.Outputs)
 	}
-	if root.Outputs["ip"] != "127.0.0.1" {
+	if root.Outputs["ip"].Value != "127.0.0.1" {
 		t.Fatalf("bad outputs: %v", root.Outputs)
 	}
 
@@ -1573,6 +1605,40 @@ const testV1State = `{
                 "root"
             ],
             "outputs": null,
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    }
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`
+
+const testV1StateWithOutputs = `{
+    "version": 1,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {
+            	"foo": "bar",
+            	"baz": "foo"
+            },
             "resources": {
                 "foo": {
                     "type": "",

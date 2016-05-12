@@ -113,8 +113,12 @@ func TestStateAdd(t *testing.T) {
 			"module.foo",
 			&ModuleState{
 				Path: rootModulePath,
-				Outputs: map[string]interface{}{
-					"foo": "bar",
+				Outputs: map[string]*OutputState{
+					"foo": &OutputState{
+						Type:      "string",
+						Sensitive: false,
+						Value:     "bar",
+					},
 				},
 				Dependencies: []string{"foo"},
 				Resources: map[string]*ResourceState{
@@ -139,8 +143,12 @@ func TestStateAdd(t *testing.T) {
 				Modules: []*ModuleState{
 					&ModuleState{
 						Path: []string{"root", "foo"},
-						Outputs: map[string]interface{}{
-							"foo": "bar",
+						Outputs: map[string]*OutputState{
+							"foo": &OutputState{
+								Type:      "string",
+								Sensitive: false,
+								Value:     "bar",
+							},
 						},
 						Dependencies: []string{"foo"},
 						Resources: map[string]*ResourceState{
