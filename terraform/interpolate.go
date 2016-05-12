@@ -167,7 +167,7 @@ func (i *Interpolater) valueModuleVar(
 	} else {
 		// Get the value from the outputs
 		if value, ok := mod.Outputs[v.Field]; ok {
-			result[n] = interfaceToHILVariable(value)
+			result[n] = interfaceToHILVariable(value.Value)
 		} else {
 			// Same reasons as the comment above.
 			result[n] = unknownVariable()

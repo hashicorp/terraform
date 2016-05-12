@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -886,6 +887,35 @@ func TestReadUpgradeStateV1toV2(t *testing.T) {
 	}
 }
 
+func TestReadUpgradeStateV1toV2_outputs(t *testing.T) {
+	// ReadState should transparently detect the old version but will upgrade
+	// it on Write.
+	actual, err := ReadState(strings.NewReader(testV1StateWithOutputs))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(actual, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual.Version != 2 {
+		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
+	}
+
+	roundTripped, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, roundTripped) {
+		spew.Config.DisableMethods = true
+		t.Fatalf("bad:\n%s\n\nround tripped:\n%s\n", spew.Sdump(actual), spew.Sdump(roundTripped))
+		spew.Config.DisableMethods = false
+	}
+}
+
 func TestReadUpgradeState(t *testing.T) {
 	state := &StateV0{
 		Resources: map[string]*ResourceStateV0{
@@ -906,7 +936,7 @@ func TestReadUpgradeState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	upgraded, err := upgradeV0State(state)
+	upgraded, err := state.upgrade()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1017,7 +1047,7 @@ func TestUpgradeV0State(t *testing.T) {
 			"bar": struct{}{},
 		},
 	}
-	state, err := upgradeV0State(old)
+	state, err := old.upgrade()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1135,6 +1165,40 @@ const testV1State = `{
                 "root"
             ],
             "outputs": null,
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    }
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`
+
+const testV1StateWithOutputs = `{
+    "version": 1,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {
+            	"foo": "bar",
+            	"baz": "foo"
+            },
             "resources": {
                 "foo": {
                     "type": "",
