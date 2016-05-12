@@ -23,6 +23,7 @@ BUG FIXES:
  * provider/aws: `aws_codedeploy_deployment_group` panic when setting `on_premises_instance_tag_filter` [GH-6617]
  * provider/aws: Updating state when `aws_sns_topic_subscription` is missing [GH-6629]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
+ * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
 
 ## 0.6.16 (May 9, 2016)
 
