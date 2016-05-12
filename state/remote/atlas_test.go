@@ -87,6 +87,7 @@ func TestAtlasClient_NoConflict(t *testing.T) {
 	if err := terraform.WriteState(state, &stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
 	if err := client.Put(stateJson.Bytes()); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -260,10 +261,10 @@ var testStateModuleOrderChange = []byte(
             ],
             "outputs": {
                 "foo": {
-		    "sensitive": false,
-		    "type": "string",
-		    "value": "bar2"
-		}
+                    "sensitive": false,
+                    "type": "string",
+                    "value": "bar"
+                }
             },
             "resources": null
         },
@@ -275,10 +276,10 @@ var testStateModuleOrderChange = []byte(
             ],
             "outputs": {
                 "foo": {
-		    "sensitive": false,
-		    "type": "string",
-		    "value": "bar1"
-		}
+                    "sensitive": false,
+                    "type": "string",
+                    "value": "bar"
+                }
             },
             "resources": null
         }
@@ -297,10 +298,10 @@ var testStateSimple = []byte(
             ],
             "outputs": {
                 "foo": {
-		    "sensitive": false,
-		    "type": "string",
-		    "value": "bar"
-		}
+                    "sensitive": false,
+                    "type": "string",
+                    "value": "bar"
+                }
             },
             "resources": null
         }

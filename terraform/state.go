@@ -401,7 +401,7 @@ func (r *RemoteState) GoString() string {
 type OutputState struct {
 	// Sensitive describes whether the output is considered sensitive,
 	// which may lead to masking the value on screen in some cases.
-	Sensitive bool `json:"sensitive`
+	Sensitive bool `json:"sensitive"`
 	// Type describes the structure of Value. Valid values are "string",
 	// "map" and "list"
 	Type string `json:"type"`
