@@ -1,5 +1,13 @@
 # changelog
 
+### 0.6.2 (2016-05-11)
+
+* Get complete file details in Datastore.Stat
+
+* SOAP decoding fixes
+
+* Add VirtualMachine.RemoveAllSnapshot
+
 ### 0.6.1 (2016-04-30)
 
 * Fix mo.Entity interface
