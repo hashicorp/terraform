@@ -10,13 +10,17 @@ description: |-
 
 # Command: remote
 
-The `terraform remote` command is used to configure all aspects of
+The `terraform remote` command is used to manage all aspects of
 remote state storage. When remote state storage is enabled,
 Terraform will automatically fetch the latest state from the remote
 server when necessary and if any updates are made, the newest state
 is persisted back to the remote server.
 In this mode, users do not need to durably store the state using version
 control or shared storage.
+
+Additionally, the `terraform remote output` command allows one to read from
+*any* Terraform remote state, even one that Terraform is not currently
+configured for.
 
 ## Usage
 
@@ -27,6 +31,8 @@ subcommands. The subcommands available are:
 
   * [config](/docs/commands/remote-config.html) - Configure the remote storage,
       including enabling/disabling it.
+  * [output](/docs/commands/remote-output.html) - Reads any remote state,
+      even one not currently configured.
   * [pull](/docs/commands/remote-pull.html) - Sync the remote storage to
       the local storage (download).
   * [push](/docs/commands/remote-push.html) - Sync the local storage to
