@@ -160,7 +160,7 @@ func TestAtlasClient_UnresolvableConflict(t *testing.T) {
 	case <-doneCh:
 		// OK
 	case <-time.After(500 * time.Millisecond):
-		t.Fatalf("Timed out after 50ms, probably because retrying infinitely.")
+		t.Fatalf("Timed out after 500ms, probably because retrying infinitely.")
 	}
 }
 
