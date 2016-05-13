@@ -63,7 +63,7 @@ func testAccPreCheck(t *testing.T) {
 		"CLOUDSDK_CORE_PROJECT",
 	}
 	if v := multiEnvSearch(projs); v == "" {
-		t.Fatalf("One of %s must be set for acceptance tests", strings.Join(creds, ", "))
+		t.Fatalf("One of %s must be set for acceptance tests", strings.Join(projs, ", "))
 	}
 
 	regs := []string{
@@ -71,8 +71,8 @@ func testAccPreCheck(t *testing.T) {
 		"GCLOUD_REGION",
 		"CLOUDSDK_COMPUTE_REGION",
 	}
-	if v := multiEnvSearch(regs); v != "us-central-1" {
-		t.Fatalf("One of %s must be set to us-central-1 for acceptance tests", strings.Join(creds, ", "))
+	if v := multiEnvSearch(regs); v != "us-central1" {
+		t.Fatalf("One of %s must be set to us-central1 for acceptance tests", strings.Join(regs, ", "))
 	}
 }
 
