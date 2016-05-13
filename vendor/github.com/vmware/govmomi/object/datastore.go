@@ -314,8 +314,10 @@ func (d Datastore) Stat(ctx context.Context, file string) (types.BaseFileInfo, e
 
 	spec := types.HostDatastoreBrowserSearchSpec{
 		Details: &types.FileQueryFlags{
-			FileType:  true,
-			FileOwner: types.NewBool(true), // TODO: omitempty is generated, but seems to be required
+			FileType:     true,
+			FileSize:     true,
+			Modification: true,
+			FileOwner:    types.NewBool(true),
 		},
 		MatchPattern: []string{path.Base(file)},
 	}
