@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"math/rand"
@@ -45,6 +46,31 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 						"aws_db_instance.bar", "username", "foo"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_kmsKey(t *testing.T) {
+	var v rds.DBInstance
+	keyRegex := regexp.MustCompile("^arn:aws:kms:")
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	config := fmt.Sprintf(testAccAWSDBInstanceConfigKmsKeyId, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+					resource.TestMatchResourceAttr(
+						"aws_db_instance.bar", "kms_key_id", keyRegex),
 				),
 			},
 		},
@@ -403,6 +429,51 @@ resource "aws_db_instance" "bar" {
 
 	parameter_group_name = "default.mysql5.6"
 }`
+
+var testAccAWSDBInstanceConfigKmsKeyId = `
+resource "aws_kms_key" "foo" {
+    description = "Terraform acc test %s"
+    policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_db_instance" "bar" {
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6.21"
+	instance_class = "db.m3.medium"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+
+
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
+	# validation error).
+	maintenance_window = "Fri:09:00-Fri:09:30"
+
+	backup_retention_period = 0
+	storage_encrypted = true
+	kms_key_id = "${aws_kms_key.foo.arn}"
+
+	parameter_group_name = "default.mysql5.6"
+}
+`
 
 var testAccAWSDBInstanceConfigWithOptionGroup = fmt.Sprintf(`
 
