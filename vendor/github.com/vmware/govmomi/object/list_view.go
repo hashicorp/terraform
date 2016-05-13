@@ -18,17 +18,26 @@ package object
 
 import (
 	"github.com/vmware/govmomi/vim25"
+	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/types"
+	"golang.org/x/net/context"
 )
 
-type StoragePod struct {
-	*Folder
+type ListView struct {
+	Common
 }
 
-func NewStoragePod(c *vim25.Client, ref types.ManagedObjectReference) *StoragePod {
-	return &StoragePod{
-		Folder: &Folder{
-			Common: NewCommon(c, ref),
-		},
+func NewListView(c *vim25.Client, ref types.ManagedObjectReference) *ListView {
+	return &ListView{
+		Common: NewCommon(c, ref),
 	}
+}
+
+func (v ListView) Destroy(ctx context.Context) error {
+	req := types.DestroyView{
+		This: v.Reference(),
+	}
+
+	_, err := methods.DestroyView(ctx, v.c, &req)
+	return err
 }
