@@ -22,6 +22,9 @@ func resourceAwsElb() *schema.Resource {
 		Read:   resourceAwsElbRead,
 		Update: resourceAwsElbUpdate,
 		Delete: resourceAwsElbDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
