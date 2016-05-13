@@ -72,7 +72,7 @@ type virtualMachine struct {
 	cluster               string
 	resourcePool          string
 	datastore             string
-	vcpu                  int
+	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
 	template              string
@@ -423,7 +423,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	configSpec := types.VirtualMachineConfigSpec{}
 
 	if d.HasChange("vcpu") {
-		configSpec.NumCPUs = d.Get("vcpu").(int)
+		configSpec.NumCPUs = int32(d.Get("vcpu").(int))
 		hasChanges = true
 		rebootRequired = true
 	}
@@ -505,7 +505,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	vm := virtualMachine{
 		name:     d.Get("name").(string),
-		vcpu:     d.Get("vcpu").(int),
+		vcpu:     int32(d.Get("vcpu").(int)),
 		memoryMb: int64(d.Get("memory").(int)),
 		memoryAllocation: memoryAllocation{
 			reservation: int64(d.Get("memory_reservation").(int)),
@@ -958,15 +958,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	}
 	log.Printf("[DEBUG] disk controller: %#v\n", controller)
 
-	// If diskPath is not specified, pass empty string to CreateDisk()
-	var newDiskPath string
-	if diskPath == "" {
-		newDiskPath = ""
-	} else {
-		// TODO Check if diskPath & datastore exist
-		newDiskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
-	}
-	disk := devices.CreateDisk(controller, newDiskPath)
+	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
@@ -1071,7 +1063,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 
 // buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
 func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
-	var key int
+	var key int32
 	var moveType string
 	if linkedClone {
 		moveType = "createNewChildDiskBacking"
@@ -1086,7 +1078,7 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 	}
 	for _, d := range devices {
 		if devices.Type(d) == "disk" {
-			key = d.GetVirtualDevice().Key
+			key = int32(d.GetVirtualDevice().Key)
 		}
 	}
 
@@ -1164,9 +1156,9 @@ func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolde
 		return types.StoragePlacementSpec{}
 	}
 
-	var key int
+	var key int32
 	for _, d := range devices.SelectByType((*types.VirtualDisk)(nil)) {
-		key = d.GetVirtualDevice().Key
+		key = int32(d.GetVirtualDevice().Key)
 		log.Printf("[DEBUG] findDatastore: virtual devices: %#v\n", d.GetVirtualDevice())
 	}
 
@@ -1558,7 +1550,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 			ipv6Spec.Ip = []types.BaseCustomizationIpV6Generator{
 				&types.CustomizationFixedIpV6{
 					IpAddress:  network.ipv6Address,
-					SubnetMask: network.ipv6PrefixLength,
+					SubnetMask: int32(network.ipv6PrefixLength),
 				},
 			}
 			ipv6Spec.Gateway = []string{network.ipv6Gateway}
@@ -1620,7 +1612,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		guiUnattended := types.CustomizationGuiUnattended{
 			AutoLogon:      false,
 			AutoLogonCount: 1,
-			TimeZone:       timeZone,
+			TimeZone:       int32(timeZone),
 		}
 
 		customIdentification := types.CustomizationIdentification{}
@@ -1720,7 +1712,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	for _, dvc := range devices {
 		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
 		if devices.Type(dvc) == "ethernet" {
-			err := newVM.RemoveDevice(context.TODO(), dvc)
+			err := newVM.RemoveDevice(context.TODO(), false, dvc)
 			if err != nil {
 				return err
 			}
