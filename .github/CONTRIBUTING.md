@@ -510,6 +510,12 @@ When executing the test, the following steps are taken for each `TestStep`:
    `azurerm_resource_group` is tested independently in its own acceptance
    tests.
 
+ ### vSphere Provider Developer Documentation
+
+ This [document][vsphere] provides information specific to contributing and testing
+   the vSphere provider.
+
 [website]: https://github.com/hashicorp/terraform/tree/master/website
 [acctests]: https://github.com/hashicorp/terraform#acceptance-tests
 [ml]: https://groups.google.com/group/terraform-tool
+[vsphere]: https://github.com/hashicorp/terraform/blob/master/builtin/providers/vsphere/README.md
