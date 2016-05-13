@@ -16,6 +16,7 @@ IMPROVEMENTS:
  * provider/clc: Fix optional server password [GH-6414]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * providers/google: support optional uuid naming for Instance Template [GH-6604]
+ * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
  
 BUG FIXES:
 
