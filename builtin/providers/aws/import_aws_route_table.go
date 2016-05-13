@@ -33,6 +33,11 @@ func resourceAwsRouteTableImportState(
 	// Construct the routes
 	subResource := resourceAwsRoute()
 	for _, route := range table.Routes {
+		// Ignore the local/default route
+		if route.GatewayId != nil && *route.GatewayId == "local" {
+			continue
+		}
+
 		// Minimal data for route
 		d := subResource.Data(nil)
 		d.SetType("aws_route")
