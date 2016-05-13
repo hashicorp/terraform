@@ -28,7 +28,7 @@ func resourceAwsRouteTableImportState(
 
 	// Start building our results
 	results := make([]*schema.ResourceData, 1,
-		1+len(table.Associations)+len(table.Routes))
+		2+len(table.Associations)+len(table.Routes))
 	results[0] = d
 
 	{
@@ -63,6 +63,26 @@ func resourceAwsRouteTableImportState(
 			d := subResource.Data(nil)
 			d.SetType("aws_route_table_association")
 			d.Set("route_table_id", assoc.RouteTableId)
+			d.SetId(*assoc.RouteTableAssociationId)
+			results = append(results, d)
+		}
+	}
+
+	{
+		// Construct the main associations. We could do this above but
+		// I keep this as a separate section since it is a separate resource.
+		subResource := resourceAwsMainRouteTableAssociation()
+		for _, assoc := range table.Associations {
+			if !*assoc.Main {
+				// Ignore
+				continue
+			}
+
+			// Minimal data for route
+			d := subResource.Data(nil)
+			d.SetType("aws_main_route_table_association")
+			d.Set("route_table_id", id)
+			d.Set("vpc_id", table.VpcId)
 			d.SetId(*assoc.RouteTableAssociationId)
 			results = append(results, d)
 		}
