@@ -533,9 +533,20 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
 			return err
 		}
-		if err := d.Set("security_groups", []string{}); err != nil {
-			return err
-		}
+		// This block clears out security_groups if we're using vpc_security_groups.
+		// While it corrects the behvior by only using security groups ids when
+		// appropriate, and not both, it introduced some confusion and backwards
+		// incompatibily for users who are still using security_groups for non
+		// default VPCs.
+		//
+		// TODO:
+		// - re-activate this block of code and add explicit note in the
+		// CHANGELOG about migrating to vpc_security_group_ids
+		// - add warning / validation to code to alert users of this
+		//
+		// if err := d.Set("security_groups", []string{}); err != nil {
+		// 	return err
+		// }
 	} else {
 		for _, sg := range instance.SecurityGroups {
 			sgs = append(sgs, *sg.GroupName)
@@ -544,9 +555,19 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("security_groups", sgs); err != nil {
 			return err
 		}
-		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
-			return err
-		}
+		// This block clears out vpc_security_groups if we're using security_groups.
+		// While it corrects the behvior by only using security group names when
+		// appropriate, and not both, it introduced some confusion and backwards
+		// incompatibily for users
+		//
+		// TODO:
+		// - re-activate this block of code and add explicit note in the
+		// CHANGELOG about migrating to vpc_security_group_ids
+		// - add warning / validation to code to alert users of this
+		//
+		// if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
+		// 	return err
+		// }
 	}
 
 	if err := readBlockDevices(d, instance, conn); err != nil {
