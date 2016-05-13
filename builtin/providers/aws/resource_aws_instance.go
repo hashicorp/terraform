@@ -24,6 +24,9 @@ func resourceAwsInstance() *schema.Resource {
 		Read:   resourceAwsInstanceRead,
 		Update: resourceAwsInstanceUpdate,
 		Delete: resourceAwsInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsInstanceMigrateState,
