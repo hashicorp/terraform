@@ -476,6 +476,21 @@ func (v VirtualMachine) CreateSnapshot(ctx context.Context, name string, descrip
 	return NewTask(v.c, res.Returnval), nil
 }
 
+// RemoveAllSnapshot removes all snapshots of a virtual machine
+func (v VirtualMachine) RemoveAllSnapshot(ctx context.Context, consolidate *bool) (*Task, error) {
+	req := types.RemoveAllSnapshots_Task{
+		This:        v.Reference(),
+		Consolidate: consolidate,
+	}
+
+	res, err := methods.RemoveAllSnapshots_Task(ctx, v.c, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewTask(v.c, res.Returnval), nil
+}
+
 // RevertToSnapshot reverts to a named snapshot
 func (v VirtualMachine) RevertToSnapshot(ctx context.Context, name string, suppressPowerOn bool) (*Task, error) {
 	var o mo.VirtualMachine
