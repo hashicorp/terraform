@@ -1,3 +1,9 @@
+## 0.6.17 (Unreleased)
+
+BUG FIXES:
+
+ * provider/aws: Revert security group / vpc security group deprecation that forced new resources [GH-6664]
+
 ## 0.6.16 (May 9, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
