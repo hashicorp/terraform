@@ -18,6 +18,9 @@ func resourceAwsInternetGateway() *schema.Resource {
 		Read:   resourceAwsInternetGatewayRead,
 		Update: resourceAwsInternetGatewayUpdate,
 		Delete: resourceAwsInternetGatewayDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"vpc_id": &schema.Schema{
