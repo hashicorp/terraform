@@ -230,26 +230,38 @@ func (i *Interpolater) valueResourceVar(
 		return nil
 	}
 
+	var variable *ast.Variable
+	var err error
+
 	if v.Multi && v.Index == -1 {
-		variable, err := i.computeResourceMultiVariable(scope, v)
-		if err != nil {
-			return err
-		}
-		if variable == nil {
-			return fmt.Errorf("no error reported by variable %q is nil", v.Name)
-		}
-		result[n] = *variable
+		variable, err = i.computeResourceMultiVariable(scope, v)
 	} else {
-		variable, err := i.computeResourceVariable(scope, v)
-		if err != nil {
-			return err
-		}
-		if variable == nil {
-			return fmt.Errorf("no error reported by variable %q is nil", v.Name)
-		}
-		result[n] = *variable
+		variable, err = i.computeResourceVariable(scope, v)
 	}
 
+	if err != nil {
+		return err
+	}
+
+	if variable == nil {
+		// During the input walk we tolerate missing variables because
+		// we haven't yet had a chance to refresh state, so dynamic data may
+		// not yet be complete.
+		// If it truly is missing, we'll catch it on a later walk.
+		// This applies only to graph nodes that interpolate during the
+		// config walk, e.g. providers.
+		if i.Operation == walkInput {
+			result[n] = ast.Variable{
+				Value: config.UnknownVariableValue,
+				Type:  ast.TypeString,
+			}
+			return nil
+		}
+
+		return fmt.Errorf("variable %q is nil, but no error was reported", v.Name)
+	}
+
+	result[n] = *variable
 	return nil
 }
 
