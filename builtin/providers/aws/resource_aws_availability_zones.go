@@ -2,12 +2,9 @@ package aws
 
 import (
 	"fmt"
-	"log"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -16,9 +13,14 @@ func resourceAwsAvailabilityZones() *schema.Resource {
 		Create: resourceAwsAZCreate,
 		Read:   resourceAwsAZRead,
 		//Update: resourceAwsAZUpdate,
-		//Delete: resourceAwsAZDelete,
+		Delete: resourceAwsAZDelete,
 
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 			"availability_zones": &schema.Schema{
 				Type:     schema.TypeSet,
 				Computed: true,
@@ -30,6 +32,8 @@ func resourceAwsAvailabilityZones() *schema.Resource {
 }
 
 func resourceAwsAZCreate(d *schema.ResourceData, meta interface{}) error {
+	name := d.Get("name").(string)
+	d.SetId(name)
 	return resourceAwsAZRead(d, meta)
 }
 
@@ -40,13 +44,21 @@ func resourceAwsAZRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error listing availability zones: %s", err)
 	}
-	azl := make([]string, 0, len(azresp.AvailabilityZones))
+
+	raw := schema.NewSet(schema.HashString, nil)
+
 	for _, v := range azresp.AvailabilityZones {
-		azl = append(*v.ZoneName)
+		raw.Add(*v.ZoneName)
 	}
-	azErr := d.Set("availability_zones", azl)
+
+	azErr := d.Set("availability_zones", raw)
+
 	if azErr != nil {
 		return fmt.Errorf("[WARN] Error setting availability zones")
 	}
+	return nil
+}
+
+func resourceAwsAZDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
