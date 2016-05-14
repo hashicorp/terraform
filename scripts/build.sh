@@ -17,6 +17,7 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-linux darwin windows freebsd openbsd solaris}
+GOX_PACKAGES=.
 
 # Delete the old dir
 echo "==> Removing old directory..."
@@ -28,6 +29,7 @@ mkdir -p bin/
 if [ "${TF_DEV}x" != "x" ]; then
     XC_OS=$(go env GOOS)
     XC_ARCH=$(go env GOARCH)
+    GOX_PACKAGES="-tags=core . $(go list ./builtin/...)"
 fi
 
 if ! which gox > /dev/null; then
@@ -47,8 +49,8 @@ gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
     -ldflags "${LD_FLAGS}" \
-    -output "pkg/{{.OS}}_{{.Arch}}/terraform" \
-    .
+    -output "pkg/{{.OS}}_{{.Arch}}/{{.Dir}}" \
+    $GOX_PACKAGES
 
 # Move all the compiled things to the $GOPATH/bin
 GOPATH=${GOPATH:-$(go env GOPATH)}
@@ -67,11 +69,23 @@ if [ ! -d $MAIN_GOPATH/bin ]; then
     mkdir -p $MAIN_GOPATH/bin
 fi
 
+if [ "${TF_DEV}x" == "x" ]; then
+    # Might previously have built in dev mode with separate plugins.
+    # Clean those up so they don't interfere with the internal-plugins
+    # in our release build.
+    echo "==> Removing any existing dev binaries..."
+    rm -f "$MAIN_GOPATH"/bin/terraform "$MAIN_GOPATH"/bin/terraform-*
+fi
+
 # Copy our OS/Arch to the bin/ directory
 DEV_PLATFORM="./pkg/$(go env GOOS)_$(go env GOARCH)"
 for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
-    cp ${F} bin/
-    cp ${F} ${MAIN_GOPATH}/bin/
+    PREFIX="terraform-"
+    if [ "$(basename $F)" == "terraform" ]; then
+        PREFIX=""
+    fi
+    cp ${F} bin/$PREFIX$(basename $F)
+    cp ${F} ${MAIN_GOPATH}/bin/$PREFIX$(basename $F)
 done
 
 if [ "${TF_DEV}x" = "x" ]; then
