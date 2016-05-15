@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
@@ -172,143 +171,6 @@ func TestAccComputeV2Instance_volumeDetachPostCreation(t *testing.T) {
 					testAccCheckBlockStorageV1VolumeDoesNotExist(t, "openstack_blockstorage_volume_v1.myvol", &volume),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumesDetached(&instance),
-				),
-			},
-		},
-	})
-}
-
-func TestAccComputeV2Instance_floatingIPAttachGlobally(t *testing.T) {
-	var instance servers.Server
-	var fip floatingip.FloatingIP
-	var testAccComputeV2Instance_floatingIPAttachGlobally = fmt.Sprintf(`
-		resource "openstack_compute_floatingip_v2" "myip" {
-		}
-
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default"]
-			floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
-
-			network {
-				uuid = "%s"
-			}
-		}`,
-		os.Getenv("OS_NETWORK_ID"))
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeV2Instance_floatingIPAttachGlobally,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip", &fip),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
-					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
-				),
-			},
-		},
-	})
-}
-
-func TestAccComputeV2Instance_floatingIPAttachToNetwork(t *testing.T) {
-	var instance servers.Server
-	var fip floatingip.FloatingIP
-	var testAccComputeV2Instance_floatingIPAttachToNetwork = fmt.Sprintf(`
-		resource "openstack_compute_floatingip_v2" "myip" {
-		}
-
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default"]
-
-			network {
-				uuid = "%s"
-				floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
-				access_network = true
-			}
-		}`,
-		os.Getenv("OS_NETWORK_ID"))
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeV2Instance_floatingIPAttachToNetwork,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip", &fip),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
-					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
-				),
-			},
-		},
-	})
-}
-
-func TestAccComputeV2Instance_floatingIPAttachAndChange(t *testing.T) {
-	var instance servers.Server
-	var fip floatingip.FloatingIP
-	var testAccComputeV2Instance_floatingIPAttachToNetwork_1 = fmt.Sprintf(`
-		resource "openstack_compute_floatingip_v2" "myip_1" {
-		}
-
-		resource "openstack_compute_floatingip_v2" "myip_2" {
-		}
-
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default"]
-
-			network {
-				uuid = "%s"
-				floating_ip = "${openstack_compute_floatingip_v2.myip_1.address}"
-				access_network = true
-			}
-		}`,
-		os.Getenv("OS_NETWORK_ID"))
-
-	var testAccComputeV2Instance_floatingIPAttachToNetwork_2 = fmt.Sprintf(`
-		resource "openstack_compute_floatingip_v2" "myip_1" {
-		}
-
-		resource "openstack_compute_floatingip_v2" "myip_2" {
-		}
-
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default"]
-
-			network {
-				uuid = "%s"
-				floating_ip = "${openstack_compute_floatingip_v2.myip_2.address}"
-				access_network = true
-			}
-		}`,
-		os.Getenv("OS_NETWORK_ID"))
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeV2Instance_floatingIPAttachToNetwork_1,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip_1", &fip),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
-					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
-				),
-			},
-			resource.TestStep{
-				Config: testAccComputeV2Instance_floatingIPAttachToNetwork_2,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip_2", &fip),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
-					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
 				),
 			},
 		},
@@ -506,9 +368,6 @@ func TestAccComputeV2Instance_multiEphemeral(t *testing.T) {
 func TestAccComputeV2Instance_accessIPv4(t *testing.T) {
 	var instance servers.Server
 	var testAccComputeV2Instance_accessIPv4 = fmt.Sprintf(`
-		resource "openstack_compute_floatingip_v2" "myip" {
-		}
-
 		resource "openstack_networking_network_v2" "network_1" {
 			name = "network_1"
 		}
@@ -527,7 +386,6 @@ func TestAccComputeV2Instance_accessIPv4(t *testing.T) {
 
 			name = "instance_1"
 			security_groups = ["default"]
-			floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
 
 			network {
 				uuid = "%s"
@@ -715,17 +573,5 @@ func testAccCheckComputeV2InstanceBootVolumeAttachment(
 		}
 
 		return fmt.Errorf("No attached volume found.")
-	}
-}
-
-func testAccCheckComputeV2InstanceFloatingIPAttach(
-	instance *servers.Server, fip *floatingip.FloatingIP) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if fip.InstanceID == instance.ID {
-			return nil
-		}
-
-		return fmt.Errorf("Floating IP %s was not attached to instance %s", fip.ID, instance.ID)
-
 	}
 }

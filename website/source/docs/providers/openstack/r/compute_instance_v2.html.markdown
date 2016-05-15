@@ -113,10 +113,6 @@ resource "openstack_compute_instance_v2" "boot-from-volume" {
 ### Instance With Multiple Networks
 
 ```
-resource "openstack_compute_floatingip_v2" "myip" {
-  pool = "my_pool"
-}
-
 resource "openstack_compute_instance_v2" "multi-net" {
   name = "multi-net"
   image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
@@ -130,7 +126,6 @@ resource "openstack_compute_instance_v2" "multi-net" {
 
   network {
     name = "my_second_network"
-    floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
     # Terraform will use this network for provisioning
     access_network = true
   }
@@ -218,10 +213,6 @@ The following arguments are supported:
 * `flavor_name` - (Optional; Required if `flavor_id` is empty) The name of the
     desired flavor for the server. Changing this resizes the existing server.
 
-* `floating_ip` - (Optional) A *Compute* Floating IP that will be associated
-    with the Instance. The Floating IP must be provisioned already. See *Notes*
-    for more information about Floating IPs.
-
 * `user_data` - (Optional) The user data to provide when launching the instance.
     Changing this creates a new server.
 
@@ -277,10 +268,6 @@ The `network` block supports:
 
 * `fixed_ip_v4` - (Optional) Specifies a fixed IPv4 address to be used on this
     network.
-
-* `floating_ip` - (Optional) Specifies a floating IP address to be associated
-    with this network. Cannot be combined with a top-level floating IP. See
-    *Notes* for more information about Floating IPs.
 
 * `access_network` - (Optional) Specifies if this network should be used for
     provisioning access. Accepts true or false. Defaults to false.
@@ -354,26 +341,9 @@ The following attributes are exported:
     network.
 * `network/fixed_ip_v6` - The Fixed IPv6 address of the Instance on that
     network.
-* `network/floating_ip` - The Floating IP address of the Instance on that
-    network.
 * `network/mac` - The MAC address of the NIC on that network.
 
 ## Notes
-
-### Floating IPs
-
-Floating IPs can be associated in one of two ways:
-
-* You can specify a Floating IP address by using the top-level `floating_ip`
-attribute. This floating IP will be associated with either the network defined
-in the first `network` block or the default network if no `network` blocks are
-defined.
-
-* You can specify a Floating IP address by using the `floating_ip` attribute
-defined in the `network` block. Each `network` block can have its own floating
-IP address.
-
-Only one of the above methods can be used.
 
 ### Multiple Ephemeral Disks
 

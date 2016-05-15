@@ -15,10 +15,33 @@ but only compute floating IPs can be used with compute instances.
 
 ## Example Usage
 
+### Allocating a Floating IP
+
 ```
 resource "openstack_networking_floatingip_v2" "floatip_1" {
-  region = ""
   pool = "public"
+}
+```
+
+### Attach a Floating IP to a Port or Instance
+
+```
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  network_id = "<network uuid>"
+  admin_state_up = "true"
+}
+
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+
+  network {
+    port = "${openstack_networking_port_v2.port_1.id}"
+  }
+}
+
+resource "openstack_networking_floatingip_v2" "fip_1" {
+  port_id = "${openstack_networking_port_v2.port_1.id}"
 }
 ```
 
@@ -36,13 +59,10 @@ The following arguments are supported:
     IP. Changing this creates a new floating IP.
 
 * `port_id` - ID of an existing port with at least one IP address to associate with
-this floating IP.
+    this floating IP.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `region` - See Argument Reference above.
-* `pool` - See Argument Reference above.
 * `address` - The actual floating IP address itself.
-* `port_id` - ID of associated port.
