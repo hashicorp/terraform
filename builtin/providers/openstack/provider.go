@@ -78,6 +78,16 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_CACERT", ""),
 			},
+			"cert": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_CERT", ""),
+			},
+			"key": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_KEY", ""),
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -125,6 +135,8 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		Insecure:         d.Get("insecure").(bool),
 		EndpointType:     d.Get("endpoint_type").(string),
 		CACertFile:       d.Get("cacert_file").(string),
+		ClientCertFile:   d.Get("cert").(string),
+		ClientKeyFile:    d.Get("key").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
