@@ -82,6 +82,18 @@ func (old *remoteStateV1) upgrade() (*RemoteState, error) {
 	}, nil
 }
 
+func (source *RemoteState) downgradeToV1() (*remoteStateV1, bool, error) {
+	config, err := copystructure.Copy(source.Config)
+	if err != nil {
+		return nil, false, fmt.Errorf("Error upgrading RemoteState V1: %v", err)
+	}
+
+	return &remoteStateV1{
+		Type:   source.Type,
+		Config: config.(map[string]string),
+	}, false, nil
+}
+
 type moduleStateV1 struct {
 	// Path is the import path from the root module. Modules imports are
 	// always disjoint, so the path represents amodule tree
@@ -155,6 +167,59 @@ func (old *moduleStateV1) upgrade() (*ModuleState, error) {
 		Resources:    resources,
 		Dependencies: dependencies.([]string),
 	}, nil
+}
+
+func (source *ModuleState) downgradeToV1() (*moduleStateV1, bool, error) {
+	conversionWasLossy := false
+
+	path, err := copystructure.Copy(source.Path)
+	if err != nil {
+		return nil, false, fmt.Errorf("Error downgrading ModuleState to V1: %v", err)
+	}
+
+	dependencies, err := copystructure.Copy(source.Dependencies)
+	if err != nil {
+		return nil, false, fmt.Errorf("Error downgrading ModuleState to V1: %v", err)
+	}
+
+	resources := make(map[string]*resourceStateV1)
+	for key, oldResource := range source.Resources {
+		downgraded, lossy, err := oldResource.downgradeToV1()
+		if err != nil {
+			return nil, false, fmt.Errorf("Error downgrading ModuleState to V1: %v", err)
+		}
+		if lossy {
+			conversionWasLossy = true
+		}
+		resources[key] = downgraded
+	}
+	if len(resources) == 0 {
+		resources = nil
+	}
+
+	outputs := make(map[string]string)
+	for key, newOutput := range source.Outputs {
+		if newOutput.Type != "string" {
+			conversionWasLossy = true
+			continue
+		}
+		if newOutput.Sensitive {
+			conversionWasLossy = true
+		}
+
+		if targetOutput, ok := newOutput.Value.(string); ok {
+			outputs[key] = targetOutput
+		} else {
+			conversionWasLossy = true
+		}
+	}
+
+	return &moduleStateV1{
+		Path:         path.([]string),
+		Outputs:      outputs,
+		Resources:    resources,
+		Dependencies: dependencies.([]string),
+	}, conversionWasLossy, nil
 }
 
 type resourceStateV1 struct {
@@ -253,6 +318,62 @@ func (old *resourceStateV1) upgrade() (*ResourceState, error) {
 	}, nil
 }
 
+func (source *ResourceState) downgradeToV1() (*resourceStateV1, bool, error) {
+	conversionWasLossy := false
+
+	dependencies, err := copystructure.Copy(source.Dependencies)
+	if err != nil {
+		return nil, false, fmt.Errorf("Error downgrading ResourceState to V1: %v", err)
+	}
+
+	primary, primaryLossy, err := source.Primary.downgradeToV1()
+	if err != nil {
+		return nil, false, fmt.Errorf("Error downgrading ResourceState to V1: %v", err)
+	}
+	if primaryLossy {
+		conversionWasLossy = true
+	}
+
+	tainted := make([]*instanceStateV1, len(source.Tainted))
+	for i, v := range source.Tainted {
+		downgraded, taintedLossy, err := v.downgradeToV1()
+		if err != nil {
+			return nil, false, fmt.Errorf("Error downgrading ResourceState to V1: %v", err)
+		}
+		if taintedLossy {
+			conversionWasLossy = true
+		}
+		tainted[i] = downgraded
+	}
+	if len(tainted) == 0 {
+		tainted = nil
+	}
+
+	deposed := make([]*instanceStateV1, len(source.Deposed))
+	for i, v := range source.Deposed {
+		downgraded, deposedLossy, err := v.downgradeToV1()
+		if err != nil {
+			return nil, false, fmt.Errorf("Error downgrading ResourceState to V1: %v", err)
+		}
+		if deposedLossy {
+			conversionWasLossy = true
+		}
+		deposed[i] = downgraded
+	}
+	if len(deposed) == 0 {
+		deposed = nil
+	}
+
+	return &resourceStateV1{
+		Type:         source.Type,
+		Dependencies: dependencies.([]string),
+		Primary:      primary,
+		Tainted:      tainted,
+		Deposed:      deposed,
+		Provider:     source.Provider,
+	}, conversionWasLossy, nil
+}
+
 type instanceStateV1 struct {
 	// A unique ID for this resource. This is opaque to Terraform
 	// and is only meant as a lookup mechanism for the providers.
@@ -296,6 +417,30 @@ func (old *instanceStateV1) upgrade() (*InstanceState, error) {
 	}, nil
 }
 
+func (source *InstanceState) downgradeToV1() (*instanceStateV1, bool, error) {
+	ephemeral, lossy, err := source.Ephemeral.downgradeToV1()
+	if err != nil {
+		return nil, false, fmt.Errorf("Error downgrading InstanceState to V1: %v", err)
+	}
+
+	attributes, err := copystructure.Copy(source.Attributes)
+	if err != nil {
+		return nil, false, fmt.Errorf("Error downgrading InstanceState to V1: %v", err)
+	}
+
+	meta, err := copystructure.Copy(source.Meta)
+	if err != nil {
+		return nil, false, fmt.Errorf("Error downgrading InstanceState to V1: %v", err)
+	}
+
+	return &instanceStateV1{
+		ID:         source.ID,
+		Attributes: attributes.(map[string]string),
+		Ephemeral:  ephemeral,
+		Meta:       meta.(map[string]string),
+	}, lossy, nil
+}
+
 type ephemeralStateV1 struct {
 	// ConnInfo is used for the providers to export information which is
 	// used to connect to the resource for provisioning. For example,
@@ -311,4 +456,63 @@ func (old *ephemeralStateV1) upgrade() (*EphemeralState, error) {
 	return &EphemeralState{
 		ConnInfo: connInfo.(map[string]string),
 	}, nil
+}
+
+func (source EphemeralState) downgradeToV1() (ephemeralStateV1, bool, error) {
+	connInfo, err := copystructure.Copy(source.ConnInfo)
+	if err != nil {
+		return ephemeralStateV1{}, false, fmt.Errorf("Error downgrading EphemeralState to V1: %v", err)
+	}
+
+	return ephemeralStateV1{
+		ConnInfo: connInfo.(map[string]string),
+	}, false, nil
+
+}
+
+// downgradeToV1 will downgrade a state from the current revision to
+// version 1. It will track loss of information and return true for the
+// second parameter if loss occurred. If it is not possible to downgrade
+// the state, an error will be returned. Losing information however is
+// not considered an error and should be checked explicitly if it is
+// important in a given context.
+func (source *State) downgradeToV1() (*stateV1, bool, error) {
+	downgradeWasLossy := false
+
+	var err error
+	var remote *remoteStateV1
+
+	if source.Remote != nil {
+		var lossy bool
+		remote, lossy, err = source.Remote.downgradeToV1()
+		if err != nil {
+			return nil, false, fmt.Errorf("Error downgrading RemoveState to V1: %v", err)
+		}
+		if lossy {
+			downgradeWasLossy = true
+		}
+	}
+
+	modules := make([]*moduleStateV1, len(source.Modules))
+	for i, mod := range source.Modules {
+		downgraded, lossy, err := mod.downgradeToV1()
+		if err != nil {
+			return nil, false, fmt.Errorf("Error downgrading RemoveState to V1: %v", err)
+		}
+		if lossy {
+			downgradeWasLossy = true
+		}
+		modules[i] = downgraded
+	}
+	if len(modules) == 0 {
+		modules = nil
+	}
+
+	target := &stateV1{
+		Version: 1,
+		Serial:  source.Serial,
+		Remote:  remote,
+		Modules: modules,
+	}
+	return target, downgradeWasLossy, nil
 }
