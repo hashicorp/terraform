@@ -2,10 +2,10 @@ package docker
 
 import (
 	"fmt"
-	"strings"
-
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/schema"
+	"log"
+	"strings"
 )
 
 func resourceDockerImageCreate(d *schema.ResourceData, meta interface{}) error {
@@ -146,7 +146,15 @@ func pullImage(data *Data, client *dc.Client, image string) error {
 		pullOpts.Repository = image
 	}
 
-	if err := client.PullImage(pullOpts, dc.AuthConfiguration{}); err != nil {
+	log.Printf("[DEBUG] Registry: %s", pullOpts.Registry)
+	auth := dc.AuthConfiguration{}
+
+	if pullOpts.Registry != "" {
+		auths, _ := dc.NewAuthConfigurationsFromDockerCfg()
+		auth = auths.Configs["https://"+pullOpts.Registry]
+	}
+
+	if err := client.PullImage(pullOpts, auth); err != nil {
 		return fmt.Errorf("Error pulling image %s: %s\n", image, err)
 	}
 
