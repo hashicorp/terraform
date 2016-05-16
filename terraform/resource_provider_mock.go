@@ -10,51 +10,71 @@ type MockResourceProvider struct {
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
-	CloseCalled                  bool
-	CloseError                   error
-	InputCalled                  bool
-	InputInput                   UIInput
-	InputConfig                  *ResourceConfig
-	InputReturnConfig            *ResourceConfig
-	InputReturnError             error
-	InputFn                      func(UIInput, *ResourceConfig) (*ResourceConfig, error)
-	ApplyCalled                  bool
-	ApplyInfo                    *InstanceInfo
-	ApplyState                   *InstanceState
-	ApplyDiff                    *InstanceDiff
-	ApplyFn                      func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error)
-	ApplyReturn                  *InstanceState
-	ApplyReturnError             error
-	ConfigureCalled              bool
-	ConfigureConfig              *ResourceConfig
-	ConfigureFn                  func(*ResourceConfig) error
-	ConfigureReturnError         error
-	DiffCalled                   bool
-	DiffInfo                     *InstanceInfo
-	DiffState                    *InstanceState
-	DiffDesired                  *ResourceConfig
-	DiffFn                       func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error)
-	DiffReturn                   *InstanceDiff
-	DiffReturnError              error
-	RefreshCalled                bool
-	RefreshInfo                  *InstanceInfo
-	RefreshState                 *InstanceState
-	RefreshFn                    func(*InstanceInfo, *InstanceState) (*InstanceState, error)
-	RefreshReturn                *InstanceState
-	RefreshReturnError           error
-	ResourcesCalled              bool
-	ResourcesReturn              []ResourceType
-	ValidateCalled               bool
-	ValidateConfig               *ResourceConfig
-	ValidateFn                   func(*ResourceConfig) ([]string, []error)
-	ValidateReturnWarns          []string
-	ValidateReturnErrors         []error
-	ValidateResourceFn           func(string, *ResourceConfig) ([]string, []error)
-	ValidateResourceCalled       bool
-	ValidateResourceType         string
-	ValidateResourceConfig       *ResourceConfig
-	ValidateResourceReturnWarns  []string
-	ValidateResourceReturnErrors []error
+	CloseCalled                    bool
+	CloseError                     error
+	InputCalled                    bool
+	InputInput                     UIInput
+	InputConfig                    *ResourceConfig
+	InputReturnConfig              *ResourceConfig
+	InputReturnError               error
+	InputFn                        func(UIInput, *ResourceConfig) (*ResourceConfig, error)
+	ApplyCalled                    bool
+	ApplyInfo                      *InstanceInfo
+	ApplyState                     *InstanceState
+	ApplyDiff                      *InstanceDiff
+	ApplyFn                        func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error)
+	ApplyReturn                    *InstanceState
+	ApplyReturnError               error
+	ConfigureCalled                bool
+	ConfigureConfig                *ResourceConfig
+	ConfigureFn                    func(*ResourceConfig) error
+	ConfigureReturnError           error
+	DiffCalled                     bool
+	DiffInfo                       *InstanceInfo
+	DiffState                      *InstanceState
+	DiffDesired                    *ResourceConfig
+	DiffFn                         func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error)
+	DiffReturn                     *InstanceDiff
+	DiffReturnError                error
+	RefreshCalled                  bool
+	RefreshInfo                    *InstanceInfo
+	RefreshState                   *InstanceState
+	RefreshFn                      func(*InstanceInfo, *InstanceState) (*InstanceState, error)
+	RefreshReturn                  *InstanceState
+	RefreshReturnError             error
+	ResourcesCalled                bool
+	ResourcesReturn                []ResourceType
+	ReadDataApplyCalled            bool
+	ReadDataApplyInfo              *InstanceInfo
+	ReadDataApplyDiff              *InstanceDiff
+	ReadDataApplyFn                func(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
+	ReadDataApplyReturn            *InstanceState
+	ReadDataApplyReturnError       error
+	ReadDataDiffCalled             bool
+	ReadDataDiffInfo               *InstanceInfo
+	ReadDataDiffDesired            *ResourceConfig
+	ReadDataDiffFn                 func(*InstanceInfo, *ResourceConfig) (*InstanceDiff, error)
+	ReadDataDiffReturn             *InstanceDiff
+	ReadDataDiffReturnError        error
+	DataSourcesCalled              bool
+	DataSourcesReturn              []DataSource
+	ValidateCalled                 bool
+	ValidateConfig                 *ResourceConfig
+	ValidateFn                     func(*ResourceConfig) ([]string, []error)
+	ValidateReturnWarns            []string
+	ValidateReturnErrors           []error
+	ValidateResourceFn             func(string, *ResourceConfig) ([]string, []error)
+	ValidateResourceCalled         bool
+	ValidateResourceType           string
+	ValidateResourceConfig         *ResourceConfig
+	ValidateResourceReturnWarns    []string
+	ValidateResourceReturnErrors   []error
+	ValidateDataSourceFn           func(string, *ResourceConfig) ([]string, []error)
+	ValidateDataSourceCalled       bool
+	ValidateDataSourceType         string
+	ValidateDataSourceConfig       *ResourceConfig
+	ValidateDataSourceReturnWarns  []string
+	ValidateDataSourceReturnErrors []error
 
 	ImportStateCalled      bool
 	ImportStateInfo        *InstanceInfo
@@ -195,4 +215,60 @@ func (p *MockResourceProvider) ImportState(info *InstanceInfo, id string) ([]*In
 	}
 
 	return p.ImportStateReturn, p.ImportStateReturnError
+}
+
+func (p *MockResourceProvider) ValidateDataSource(t string, c *ResourceConfig) ([]string, []error) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ValidateDataSourceCalled = true
+	p.ValidateDataSourceType = t
+	p.ValidateDataSourceConfig = c
+
+	if p.ValidateDataSourceFn != nil {
+		return p.ValidateDataSourceFn(t, c)
+	}
+
+	return p.ValidateDataSourceReturnWarns, p.ValidateDataSourceReturnErrors
+}
+
+func (p *MockResourceProvider) ReadDataDiff(
+	info *InstanceInfo,
+	desired *ResourceConfig) (*InstanceDiff, error) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ReadDataDiffCalled = true
+	p.ReadDataDiffInfo = info
+	p.ReadDataDiffDesired = desired
+	if p.ReadDataDiffFn != nil {
+		return p.ReadDataDiffFn(info, desired)
+	}
+
+	return p.ReadDataDiffReturn, p.ReadDataDiffReturnError
+}
+
+func (p *MockResourceProvider) ReadDataApply(
+	info *InstanceInfo,
+	d *InstanceDiff) (*InstanceState, error) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ReadDataApplyCalled = true
+	p.ReadDataApplyInfo = info
+	p.ReadDataApplyDiff = d
+
+	if p.ReadDataApplyFn != nil {
+		return p.ReadDataApplyFn(info, d)
+	}
+
+	return p.ReadDataApplyReturn, p.ReadDataApplyReturnError
+}
+
+func (p *MockResourceProvider) DataSources() []DataSource {
+	p.Lock()
+	defer p.Unlock()
+
+	p.DataSourcesCalled = true
+	return p.DataSourcesReturn
 }

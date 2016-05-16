@@ -219,6 +219,7 @@ func (n *GraphNodeConfigResource) ResourceAddress() *ResourceAddress {
 		InstanceType: TypePrimary,
 		Name:         n.Resource.Name,
 		Type:         n.Resource.Type,
+		Mode:         n.Resource.Mode,
 	}
 }
 

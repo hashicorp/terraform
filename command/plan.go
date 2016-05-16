@@ -219,7 +219,7 @@ The Terraform execution plan has been generated and is shown below.
 Resources are shown in alphabetical order for quick scanning. Green resources
 will be created (or destroyed and then created if an existing resource
 exists), yellow resources are being changed in-place, and red resources
-will be destroyed.
+will be destroyed. Cyan entries are data sources to be read.
 
 Note: You didn't specify an "-out" parameter to save this plan, so when
 "apply" is called, Terraform can't guarantee this is what will execute.
@@ -230,7 +230,7 @@ The Terraform execution plan has been generated and is shown below.
 Resources are shown in alphabetical order for quick scanning. Green resources
 will be created (or destroyed and then created if an existing resource
 exists), yellow resources are being changed in-place, and red resources
-will be destroyed.
+will be destroyed. Cyan entries are data sources to be read.
 
 Your plan was also saved to the path below. Call the "apply" subcommand
 with this plan file and Terraform will exactly execute this execution
