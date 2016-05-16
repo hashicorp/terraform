@@ -4,6 +4,11 @@ import (
 	"fmt"
 
 	"github.com/mitchellh/copystructure"
+	"io"
+	"encoding/json"
+	"bytes"
+	"sort"
+	"strings"
 )
 
 // stateV1 keeps track of a snapshot state-of-the-world that Terraform
@@ -470,4 +475,71 @@ func (source *State) downgradeToV1() (*stateV1, bool, error) {
 		Modules: modules,
 	}
 	return target, downgradeWasLossy, nil
+}
+
+type moduleStateV1Sort []*moduleStateV1
+
+func (s moduleStateV1Sort) Len() int {
+	return len(s)
+}
+
+func (s moduleStateV1Sort) Less(i, j int) bool {
+	a := s[i]
+	b := s[j]
+
+	// If the lengths are different, then the shorter one always wins
+	if len(a.Path) != len(b.Path) {
+		return len(a.Path) < len(b.Path)
+	}
+
+	// Otherwise, compare lexically
+	return strings.Join(a.Path, ".") < strings.Join(b.Path, ".")
+}
+
+func (s moduleStateV1Sort) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s *stateV1) sort() {
+	sort.Sort(moduleStateV1Sort(s.Modules))
+
+	// Allow modules to be sorted
+	for _, m := range s.Modules {
+		m.sort()
+	}
+}
+
+func (r *resourceStateV1) sort() {
+	sort.Strings(r.Dependencies)
+}
+
+func (m *moduleStateV1) sort() {
+	for _, v := range m.Resources {
+		v.sort()
+	}
+}
+
+// WriteState writes a state somewhere in a binary format.
+func (d *stateV1) WriteState(dst io.Writer) error {
+	// Make sure it is sorted
+	d.sort()
+
+	// Ensure the version is set
+	d.Version = 1
+
+	// Encode the data in a human-friendly way
+	data, err := json.MarshalIndent(d, "", "    ")
+	if err != nil {
+		return fmt.Errorf("Failed to encode state: %s", err)
+	}
+
+	// We append a newline to the data because MarshalIndent doesn't
+	data = append(data, '\n')
+
+	// Write the data out to the dst
+	if _, err := io.Copy(dst, bytes.NewReader(data)); err != nil {
+		return fmt.Errorf("Failed to write state: %v", err)
+	}
+
+	return nil
 }
