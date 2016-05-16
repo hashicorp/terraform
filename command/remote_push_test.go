@@ -36,7 +36,7 @@ func TestRemotePush_local(t *testing.T) {
 	conf, srv := testRemoteState(t, s, 200)
 	defer srv.Close()
 
-	s = terraform.NewState()
+	s = s.DeepCopy()
 	s.Serial = 10
 	s.Remote = conf
 

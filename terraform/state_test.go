@@ -1136,6 +1136,64 @@ func TestStateEmpty(t *testing.T) {
 	}
 }
 
+func TestStateHasResources(t *testing.T) {
+	cases := []struct {
+		In     *State
+		Result bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&State{},
+			false,
+		},
+		{
+			&State{
+				Remote: &RemoteState{Type: "foo"},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{
+						Resources: map[string]*ResourceState{
+							"foo.foo": &ResourceState{},
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.In.HasResources() != tc.Result {
+			t.Fatalf("bad %d %#v:\n\n%#v", i, tc.Result, tc.In)
+		}
+	}
+}
+
 func TestStateFromFutureTerraform(t *testing.T) {
 	cases := []struct {
 		In     string
