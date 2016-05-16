@@ -17,6 +17,7 @@ IMPROVEMENTS:
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * providers/google: support optional uuid naming for Instance Template [GH-6604]
  * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
+ * provider/openstack: Add support for client certificate authentication [GH-6279]
  
 BUG FIXES:
 
@@ -25,6 +26,7 @@ BUG FIXES:
  * provider/aws: Updating state when `aws_sns_topic_subscription` is missing [GH-6629]
  * provider/aws: `aws_opsworks_application.app_source` SSH key is write-only [GH-6649]
  * provider/aws: fix Elastic Beanstalk `cname_prefix` continual plans [GH-6653]
+ * provider/openstack: Reassociate Floating IP on network changes [GH-6579]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
 
