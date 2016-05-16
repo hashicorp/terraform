@@ -1352,6 +1352,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
 	}
 
+	// TODO: refactor this code block in to a method - we are doing this twice
 	var datastore *object.Datastore
 	if vm.datastore == "" {
 		if vm.useSDRS {
@@ -1366,10 +1367,13 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		}
 	} else {
 		if vm.useSDRS {
+			// FIXME: this is not returning a datastore ... will this
+			// still work?
 			datastore, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
 		} else {
 			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
 		}
+		// FIXME: how does this work into SDRS??
 		if err != nil {
 			// TODO: datastore cluster support in govmomi finder function
 			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
