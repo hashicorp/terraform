@@ -20,17 +20,19 @@ import (
 func TestAccAWSLambdaFunction_basic(t *testing.T) {
 	var conf lambda.GetFunctionOutput
 
+	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLambdaFunctionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSLambdaConfigBasic,
+				Config: testAccAWSLambdaConfigBasic(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", "example_lambda_name", &conf),
-					testAccCheckAwsLambdaFunctionName(&conf, "example_lambda_name"),
-					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":example_lambda_name"),
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
 				),
 			},
 		},
@@ -39,6 +41,7 @@ func TestAccAWSLambdaFunction_basic(t *testing.T) {
 
 func TestAccAWSLambdaFunction_VPC(t *testing.T) {
 	var conf lambda.GetFunctionOutput
+	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -46,11 +49,11 @@ func TestAccAWSLambdaFunction_VPC(t *testing.T) {
 		CheckDestroy: testAccCheckLambdaFunctionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSLambdaConfigWithVPC,
+				Config: testAccAWSLambdaConfigWithVPC(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", "example_lambda_name", &conf),
-					testAccCheckAwsLambdaFunctionName(&conf, "example_lambda_name"),
-					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":example_lambda_name"),
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
 					testAccCheckAWSLambdaFunctionVersion(&conf, "$LATEST"),
 					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "vpc_config.#", "1"),
 					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "vpc_config.0.subnet_ids.#", "1"),
@@ -64,6 +67,7 @@ func TestAccAWSLambdaFunction_VPC(t *testing.T) {
 
 func TestAccAWSLambdaFunction_s3(t *testing.T) {
 	var conf lambda.GetFunctionOutput
+	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -71,11 +75,11 @@ func TestAccAWSLambdaFunction_s3(t *testing.T) {
 		CheckDestroy: testAccCheckLambdaFunctionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSLambdaConfigS3,
+				Config: testAccAWSLambdaConfigS3(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3test", "example_lambda_name_s3", &conf),
-					testAccCheckAwsLambdaFunctionName(&conf, "example_lambda_name_s3"),
-					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":example_lambda_name_s3"),
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
 					testAccCheckAWSLambdaFunctionVersion(&conf, "$LATEST"),
 				),
 			},
@@ -401,19 +405,22 @@ resource "aws_security_group" "sg_for_lambda" {
 
 `
 
-const testAccAWSLambdaConfigBasic = baseAccAWSLambdaConfig + `
+func testAccAWSLambdaConfigBasic(rName string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig+`
 resource "aws_lambda_function" "lambda_function_test" {
     filename = "test-fixtures/lambdatest.zip"
-    function_name = "example_lambda_name"
+    function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
 }
-`
+`, rName)
+}
 
-const testAccAWSLambdaConfigWithVPC = baseAccAWSLambdaConfig + `
+func testAccAWSLambdaConfigWithVPC(rName string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig+`
 resource "aws_lambda_function" "lambda_function_test" {
     filename = "test-fixtures/lambdatest.zip"
-    function_name = "example_lambda_name"
+    function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
 
@@ -421,10 +428,11 @@ resource "aws_lambda_function" "lambda_function_test" {
         subnet_ids = ["${aws_subnet.subnet_for_lambda.id}"]
         security_group_ids = ["${aws_security_group.sg_for_lambda.id}"]
     }
+}`, rName)
 }
-`
 
-var testAccAWSLambdaConfigS3 = fmt.Sprintf(`
+func testAccAWSLambdaConfigS3(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "lambda_bucket" {
   bucket = "tf-test-bucket-%d"
 }
@@ -457,11 +465,12 @@ EOF
 resource "aws_lambda_function" "lambda_function_s3test" {
     s3_bucket = "${aws_s3_bucket.lambda_bucket.id}"
     s3_key = "${aws_s3_bucket_object.lambda_code.id}"
-    function_name = "example_lambda_name_s3"
+    function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
 }
-`, acctest.RandInt())
+`, acctest.RandInt(), rName)
+}
 
 const testAccAWSLambdaFunctionConfig_local_tpl = `
 resource "aws_iam_role" "iam_for_lambda" {
