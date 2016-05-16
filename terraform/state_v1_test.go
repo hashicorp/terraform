@@ -93,7 +93,7 @@ func TestDowngradeStateV2ToV1_downgradableLossless(t *testing.T) {
 	}
 
 	if !roundtripped.Equal(source) {
-		t.Fatal("Round tripped state is not equivalent: Source:\n%s\n\nRoundTripped:\n%s\n",
+		t.Fatalf("Round tripped state is not equivalent: Source:\n%s\n\nRoundTripped:\n%s\n",
 			spew.Sdump(source), spew.Sdump(downgraded))
 	}
 }
