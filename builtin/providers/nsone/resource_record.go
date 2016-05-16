@@ -191,7 +191,7 @@ func answersToHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%d-", metahash))
 	}
 	hash := hashcode.String(buf.String())
-	log.Println("Generated answersToHash %d from %+v", hash, a)
+	log.Printf("Generated answersToHash %d from %+v\n", hash, a)
 	return hash
 }
 
@@ -207,7 +207,7 @@ func metaToHash(v interface{}) int {
 	}
 
 	hash := hashcode.String(buf.String())
-	log.Println("Generated metaToHash %d from %+v", hash, s)
+	log.Printf("Generated metaToHash %d from %+v\n", hash, s)
 	return hash
 }
 
