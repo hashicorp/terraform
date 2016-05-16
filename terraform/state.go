@@ -855,12 +855,16 @@ func (m *ModuleState) String() string {
 type ResourceStateKey struct {
 	Name  string
 	Type  string
+	Mode  config.ResourceMode
 	Index int
 }
 
 // Equal determines whether two ResourceStateKeys are the same
 func (rsk *ResourceStateKey) Equal(other *ResourceStateKey) bool {
 	if rsk == nil || other == nil {
+		return false
+	}
+	if rsk.Mode != other.Mode {
 		return false
 	}
 	if rsk.Type != other.Type {
@@ -879,10 +883,19 @@ func (rsk *ResourceStateKey) String() string {
 	if rsk == nil {
 		return ""
 	}
-	if rsk.Index == -1 {
-		return fmt.Sprintf("%s.%s", rsk.Type, rsk.Name)
+	var prefix string
+	switch rsk.Mode {
+	case config.ManagedResourceMode:
+		prefix = ""
+	case config.DataResourceMode:
+		prefix = "data."
+	default:
+		panic(fmt.Errorf("unknown resource mode %s", rsk.Mode))
 	}
-	return fmt.Sprintf("%s.%s.%d", rsk.Type, rsk.Name, rsk.Index)
+	if rsk.Index == -1 {
+		return fmt.Sprintf("%s%s.%s", prefix, rsk.Type, rsk.Name)
+	}
+	return fmt.Sprintf("%s%s.%s.%d", prefix, rsk.Type, rsk.Name, rsk.Index)
 }
 
 // ParseResourceStateKey accepts a key in the format used by
@@ -891,10 +904,18 @@ func (rsk *ResourceStateKey) String() string {
 // latter case, the index is returned as -1.
 func ParseResourceStateKey(k string) (*ResourceStateKey, error) {
 	parts := strings.Split(k, ".")
+	mode := config.ManagedResourceMode
+	if len(parts) > 0 && parts[0] == "data" {
+		mode = config.DataResourceMode
+		// Don't need the constant "data" prefix for parsing
+		// now that we've figured out the mode.
+		parts = parts[1:]
+	}
 	if len(parts) < 2 || len(parts) > 3 {
 		return nil, fmt.Errorf("Malformed resource state key: %s", k)
 	}
 	rsk := &ResourceStateKey{
+		Mode:  mode,
 		Type:  parts[0],
 		Name:  parts[1],
 		Index: -1,

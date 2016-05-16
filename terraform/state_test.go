@@ -1501,6 +1501,7 @@ func TestParseResourceStateKey(t *testing.T) {
 		{
 			Input: "aws_instance.foo.3",
 			Expected: &ResourceStateKey{
+				Mode:  config.ManagedResourceMode,
 				Type:  "aws_instance",
 				Name:  "foo",
 				Index: 3,
@@ -1509,6 +1510,7 @@ func TestParseResourceStateKey(t *testing.T) {
 		{
 			Input: "aws_instance.foo.0",
 			Expected: &ResourceStateKey{
+				Mode:  config.ManagedResourceMode,
 				Type:  "aws_instance",
 				Name:  "foo",
 				Index: 0,
@@ -1517,7 +1519,17 @@ func TestParseResourceStateKey(t *testing.T) {
 		{
 			Input: "aws_instance.foo",
 			Expected: &ResourceStateKey{
+				Mode:  config.ManagedResourceMode,
 				Type:  "aws_instance",
+				Name:  "foo",
+				Index: -1,
+			},
+		},
+		{
+			Input: "data.aws_ami.foo",
+			Expected: &ResourceStateKey{
+				Mode:  config.DataResourceMode,
+				Type:  "aws_ami",
 				Name:  "foo",
 				Index: -1,
 			},

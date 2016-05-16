@@ -107,6 +107,7 @@ type EvalValidateResource struct {
 	Config       **ResourceConfig
 	ResourceName string
 	ResourceType string
+	ResourceMode config.ResourceMode
 }
 
 func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
@@ -114,7 +115,17 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 
 	provider := *n.Provider
 	cfg := *n.Config
-	warns, errs := provider.ValidateResource(n.ResourceType, cfg)
+	var warns []string
+	var errs []error
+	// Provider entry point varies depending on resource mode, because
+	// managed resources and data resources are two distinct concepts
+	// in the provider abstraction.
+	switch n.ResourceMode {
+	case config.ManagedResourceMode:
+		warns, errs = provider.ValidateResource(n.ResourceType, cfg)
+	case config.DataResourceMode:
+		warns, errs = provider.ValidateDataSource(n.ResourceType, cfg)
+	}
 
 	// If the resouce name doesn't match the name regular
 	// expression, show a warning.

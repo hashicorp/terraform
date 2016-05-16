@@ -174,6 +174,60 @@ func TestInterpolater_resourceVariable(t *testing.T) {
 	})
 }
 
+func TestInterpolater_resourceVariableMissingDuringInput(t *testing.T) {
+	// During the input walk, computed resource attributes may be entirely
+	// absent since we've not yet produced diffs that tell us what computed
+	// attributes to expect. In that case, interpolator tolerates it and
+	// indicates the value is computed.
+
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path:      rootModulePath,
+				Resources: map[string]*ResourceState{
+				// No resources at all yet, because we're still dealing
+				// with input and so the resources haven't been created.
+				},
+			},
+		},
+	}
+
+	{
+		i := &Interpolater{
+			Operation: walkInput,
+			Module:    testModule(t, "interpolate-resource-variable"),
+			State:     state,
+			StateLock: lock,
+		}
+
+		scope := &InterpolationScope{
+			Path: rootModulePath,
+		}
+
+		testInterpolate(t, i, scope, "aws_instance.web.foo", ast.Variable{
+			Value: config.UnknownVariableValue,
+			Type:  ast.TypeString,
+		})
+	}
+
+	// This doesn't apply during other walks, like plan
+	{
+		i := &Interpolater{
+			Operation: walkPlan,
+			Module:    testModule(t, "interpolate-resource-variable"),
+			State:     state,
+			StateLock: lock,
+		}
+
+		scope := &InterpolationScope{
+			Path: rootModulePath,
+		}
+
+		testInterpolateErr(t, i, scope, "aws_instance.web.foo")
+	}
+}
+
 func TestInterpolater_resourceVariableMulti(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
@@ -471,5 +525,22 @@ func testInterpolate(
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("%q: actual: %#v\nexpected: %#v", n, actual, expected)
+	}
+}
+
+func testInterpolateErr(
+	t *testing.T, i *Interpolater,
+	scope *InterpolationScope,
+	n string) {
+	v, err := config.NewInterpolatedVariable(n)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err = i.Values(scope, map[string]config.InterpolatedVariable{
+		"foo": v,
+	})
+	if err == nil {
+		t.Fatalf("%q: succeeded, but wanted error", n)
 	}
 }

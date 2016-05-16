@@ -245,9 +245,17 @@ func (h *UiHook) PreRefresh(
 	h.once.Do(h.init)
 
 	id := n.HumanId()
+
+	var stateIdSuffix string
+	// Data resources refresh before they have ids, whereas managed
+	// resources are only refreshed when they have ids.
+	if s.ID != "" {
+		stateIdSuffix = fmt.Sprintf(" (ID: %s)", s.ID)
+	}
+
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Refreshing state... (ID: %s)",
-		id, s.ID)))
+		"[reset][bold]%s: Refreshing state...%s",
+		id, stateIdSuffix)))
 	return terraform.HookActionContinue, nil
 }
 
