@@ -103,6 +103,13 @@ func (c *Config) blockStorageV1Client(region string) (*gophercloud.ServiceClient
 	})
 }
 
+func (c *Config) blockStorageV2Client(region string) (*gophercloud.ServiceClient, error) {
+	return openstack.NewBlockStorageV2(c.osClient, gophercloud.EndpointOpts{
+		Region:       region,
+		Availability: c.getEndpointType(),
+	})
+}
+
 func (c *Config) computeV2Client(region string) (*gophercloud.ServiceClient, error) {
 	return openstack.NewComputeV2(c.osClient, gophercloud.EndpointOpts{
 		Region:       region,
