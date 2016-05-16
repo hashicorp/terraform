@@ -52,7 +52,7 @@ func (s *State) PersistState() error {
 	s.state.IncrementSerialMaybe(s.readState)
 
 	var buf bytes.Buffer
-	if err := terraform.WriteState(s.state, &buf); err != nil {
+	if err := s.state.WriteState(&buf); err != nil {
 		return err
 	}
 

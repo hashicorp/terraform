@@ -384,11 +384,6 @@ type instanceStateV1 struct {
 	// ${resourcetype.name.attribute}.
 	Attributes map[string]string `json:"attributes,omitempty"`
 
-	// Ephemeral is used to store any state associated with this instance
-	// that is necessary for the Terraform run to complete, but is not
-	// persisted to a state file.
-	Ephemeral ephemeralStateV1 `json:"-"`
-
 	// Meta is a simple K/V map that is persisted to the State but otherwise
 	// ignored by Terraform core. It's meant to be used for accounting by
 	// external client code.
@@ -400,10 +395,6 @@ func (old *instanceStateV1) upgrade() (*InstanceState, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
 	}
-	ephemeral, err := old.Ephemeral.upgrade()
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
-	}
 	meta, err := copystructure.Copy(old.Meta)
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
@@ -412,17 +403,11 @@ func (old *instanceStateV1) upgrade() (*InstanceState, error) {
 	return &InstanceState{
 		ID:         old.ID,
 		Attributes: attributes.(map[string]string),
-		Ephemeral:  *ephemeral,
 		Meta:       meta.(map[string]string),
 	}, nil
 }
 
 func (source *InstanceState) downgradeToV1() (*instanceStateV1, bool, error) {
-	ephemeral, lossy, err := source.Ephemeral.downgradeToV1()
-	if err != nil {
-		return nil, false, fmt.Errorf("Error downgrading InstanceState to V1: %v", err)
-	}
-
 	attributes, err := copystructure.Copy(source.Attributes)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error downgrading InstanceState to V1: %v", err)
@@ -436,38 +421,8 @@ func (source *InstanceState) downgradeToV1() (*instanceStateV1, bool, error) {
 	return &instanceStateV1{
 		ID:         source.ID,
 		Attributes: attributes.(map[string]string),
-		Ephemeral:  ephemeral,
 		Meta:       meta.(map[string]string),
-	}, lossy, nil
-}
-
-type ephemeralStateV1 struct {
-	// ConnInfo is used for the providers to export information which is
-	// used to connect to the resource for provisioning. For example,
-	// this could contain SSH or WinRM credentials.
-	ConnInfo map[string]string `json:"-"`
-}
-
-func (old *ephemeralStateV1) upgrade() (*EphemeralState, error) {
-	connInfo, err := copystructure.Copy(old.ConnInfo)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading EphemeralState V1: %v", err)
-	}
-	return &EphemeralState{
-		ConnInfo: connInfo.(map[string]string),
-	}, nil
-}
-
-func (source EphemeralState) downgradeToV1() (ephemeralStateV1, bool, error) {
-	connInfo, err := copystructure.Copy(source.ConnInfo)
-	if err != nil {
-		return ephemeralStateV1{}, false, fmt.Errorf("Error downgrading EphemeralState to V1: %v", err)
-	}
-
-	return ephemeralStateV1{
-		ConnInfo: connInfo.(map[string]string),
 	}, false, nil
-
 }
 
 // downgradeToV1 will downgrade a state from the current revision to

@@ -92,7 +92,7 @@ func TestStateOutputTypeRoundTrip(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	if err := WriteState(state, buf); err != nil {
+	if err := state.WriteState(buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -923,7 +923,7 @@ func TestReadWriteState(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	if err := WriteState(state, buf); err != nil {
+	if err := state.WriteState(buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

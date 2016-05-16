@@ -142,7 +142,7 @@ func testStateFile(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := s.WriteState(f); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -158,7 +158,7 @@ func testStateFileDefault(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := s.WriteState(f); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -179,7 +179,7 @@ func testStateFileRemote(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := s.WriteState(f); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

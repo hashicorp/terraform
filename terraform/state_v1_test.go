@@ -18,7 +18,7 @@ func TestReadUpgradeStateV1toV2(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	if err := WriteState(actual, buf); err != nil {
+	if err := actual.WriteState(buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -45,7 +45,7 @@ func TestReadUpgradeStateV1toV2_outputs(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	if err := WriteState(actual, buf); err != nil {
+	if err := actual.WriteState(buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -69,7 +69,7 @@ func TestDowngradeStateV2ToV1_downgradableLossless(t *testing.T) {
 	// Even though this is technically V1 state, the reader will upgrade it to V2.
 	// The fact we have gone V1->V2 implies that it is possible to losslessly go
 	// from V2->V1.
-	source, err := ReadState(strings.NewReader(testV1StateWithOutputs))
+	source, err := ReadState(strings.NewReader(testV1FullStateWithOutputs))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -81,9 +81,52 @@ func TestDowngradeStateV2ToV1_downgradableLossless(t *testing.T) {
 			spew.Sdump(source), spew.Sdump(downgraded))
 	}
 
-
-
-	spew.Config.DisableMethods = true
-	spew.Dump(downgraded)
-	spew.Dump(source)
 }
+
+const testV1FullStateWithOutputs = `{
+    "version": 1,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {
+                "foo": "bar",
+                "baz": "foo"
+            },
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    },
+                    "deposed": [
+                        {
+                            "id": "bar",
+                            "attributes": {
+                                "foo": "bar",
+                                "baz": "boo"
+                            }
+                        }
+                    ],
+                    "tainted": [
+                        {
+                            "id": "boo"
+                        }
+                    ]
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`

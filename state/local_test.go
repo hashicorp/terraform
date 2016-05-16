@@ -4,8 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestLocalState(t *testing.T) {
@@ -53,7 +51,7 @@ func testLocalState(t *testing.T) *LocalState {
 		t.Fatalf("err: %s", err)
 	}
 
-	err = terraform.WriteState(TestStateInitial(), f)
+	err = TestStateInitial().WriteState(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)

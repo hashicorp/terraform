@@ -320,7 +320,7 @@ func (c *AtlasClient) handleConflict(msg string, state []byte) error {
 			log.Printf("[DEBUG] States are equivalent, incrementing serial and retrying.")
 			proposedState.Serial++
 			var buf bytes.Buffer
-			if err := terraform.WriteState(proposedState, &buf); err != nil {
+			if err := proposedState.WriteState(&buf); err != nil {
 				return conflictHandlingError(err)
 
 			}

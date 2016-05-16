@@ -259,7 +259,7 @@ func TestPlan_state(t *testing.T) {
 	defer os.Remove(tf.Name())
 
 	originalState := testState()
-	err = terraform.WriteState(originalState, tf)
+	err = originalState.WriteState(tf)
 	tf.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -305,7 +305,7 @@ func TestPlan_stateDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	err = terraform.WriteState(originalState, f)
+	err = originalState.WriteState(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -528,7 +528,7 @@ func TestPlan_backup(t *testing.T) {
 		},
 	}
 
-	err = terraform.WriteState(originalState, tf)
+	err = originalState.WriteState(tf)
 	tf.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -603,7 +603,7 @@ func TestPlan_disableBackup(t *testing.T) {
 		},
 	}
 
-	err = terraform.WriteState(originalState, tf)
+	err = originalState.WriteState(tf)
 	tf.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)

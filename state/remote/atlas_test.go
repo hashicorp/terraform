@@ -55,7 +55,7 @@ func TestAtlasClient_ReportedConflictEqualStates(t *testing.T) {
 	}
 
 	var stateJson bytes.Buffer
-	if err := terraform.WriteState(state, &stateJson); err != nil {
+	if err := state.WriteState(&stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if err := client.Put(stateJson.Bytes()); err != nil {
@@ -84,7 +84,7 @@ func TestAtlasClient_NoConflict(t *testing.T) {
 	fakeAtlas.NoConflictAllowed(true)
 
 	var stateJson bytes.Buffer
-	if err := terraform.WriteState(state, &stateJson); err != nil {
+	if err := state.WriteState(&stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -119,7 +119,7 @@ func TestAtlasClient_LegitimateConflict(t *testing.T) {
 	}
 
 	var stateJson bytes.Buffer
-	if err := terraform.WriteState(state, &stateJson); err != nil {
+	if err := state.WriteState(&stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if err := client.Put(stateJson.Bytes()); err == nil {
@@ -150,7 +150,7 @@ func TestAtlasClient_UnresolvableConflict(t *testing.T) {
 	}
 
 	var stateJson bytes.Buffer
-	if err := terraform.WriteState(state, &stateJson); err != nil {
+	if err := state.WriteState(&stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	doneCh := make(chan struct{})

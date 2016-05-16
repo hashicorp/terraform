@@ -145,6 +145,6 @@ func TestStateInitial() *terraform.State {
 	}
 
 	var scratch bytes.Buffer
-	terraform.WriteState(initial, &scratch)
+	initial.WriteState(&scratch)
 	return initial
 }

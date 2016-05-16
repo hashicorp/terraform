@@ -325,7 +325,7 @@ func TestOutput_stateDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	err = terraform.WriteState(originalState, f)
+	err = originalState.WriteState(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)

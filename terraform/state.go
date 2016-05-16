@@ -1340,7 +1340,7 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 }
 
 // WriteState writes a state somewhere in a binary format.
-func WriteState(d *State, dst io.Writer) error {
+func (d *State) WriteState(dst io.Writer) error {
 	// Make sure it is sorted
 	d.sort()
 
