@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"bufio"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -1093,6 +1094,87 @@ func TestParseResourceStateKey(t *testing.T) {
 	}
 }
 
+func Test0617StateHandling_ReadWriteStateV1(t *testing.T) {
+	original, err := ReadState(strings.NewReader(testV1State))
+	if err != nil {
+		t.Fatalf("Error reading state: %s", err)
+	}
+
+	if original.Version != 2 {
+		t.Fatalf("Did not upgrade state to v2")
+	}
+	if original.ReadVersion != 1 {
+		t.Fatalf("Did not maintain ReadVersion of state at v1")
+	}
+
+	var written bytes.Buffer
+	writer := bufio.NewWriter(&written)
+	original.WriteState(writer)
+	writer.Flush()
+
+	rewritten, err := ReadState(bytes.NewReader(written.Bytes()))
+	if err != nil {
+		t.Fatalf("Error reading state: %s", err)
+	}
+
+	if rewritten.Version != 2 {
+		t.Fatalf("Did not upgrade rewritten state to v2")
+	}
+	if rewritten.ReadVersion != 1 {
+		t.Fatalf("Did not maintain rewritten ReadVersion of state at v1")
+	}
+
+	if !original.Equal(rewritten) {
+		t.Fatalf("State after roundtripping was not equivalent")
+	}
+}
+
+func Test0617StateHandling_ReadWriteStateV2Lossless(t *testing.T) {
+	original, err := ReadState(strings.NewReader(testV2State))
+	if err != nil {
+		t.Fatalf("Error reading state: %s", err)
+	}
+
+	if original.Version != 2 {
+		t.Fatalf("Did not upgrade state to v2")
+	}
+	if original.ReadVersion != 2 {
+		t.Fatalf("Did not maintain ReadVersion of state at v2")
+	}
+
+	var written bytes.Buffer
+	writer := bufio.NewWriter(&written)
+	original.WriteState(writer)
+	writer.Flush()
+
+	rewritten, err := ReadState(bytes.NewReader(written.Bytes()))
+	if err != nil {
+		t.Fatalf("Error reading state: %s", err)
+	}
+
+	if rewritten.Version != 2 {
+		t.Fatalf("Did not upgrade rewritten state to v2")
+	}
+	if rewritten.ReadVersion != 2 {
+		t.Fatalf("Did not maintain rewritten ReadVersion of state at v2")
+	}
+
+	if !original.Equal(rewritten) {
+		t.Fatalf("State after roundtripping was not equivalent")
+	}
+}
+
+func Test0617StateHandling_ReadWriteStateV2LossyFail(t *testing.T) {
+	_, err := ReadState(strings.NewReader(testV2StateLossy))
+	if err == nil {
+		t.Fatalf("Expected error reading non-lossless V2->V1 state")
+	}
+
+	if !strings.Contains(err.Error(), "Terraform 0.7 is required to work with this state file.") {
+		t.Fatalf("Error is not expected: %s", err)
+	}
+}
+
 const testV1State = `{
     "version": 1,
     "serial": 9,
@@ -1141,6 +1223,80 @@ const testV1StateWithOutputs = `{
             "outputs": {
             	"foo": "bar",
             	"baz": "foo"
+            },
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    }
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`
+
+const testV2State = `{
+    "version": 2,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {
+            	"foo": {
+            	    "type": "string",
+            	    "sensitive": false,
+            	    "value": "bar"
+            	}
+            },
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    }
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`
+
+const testV2StateLossy = `{
+    "version": 2,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {
+            	"foo": {
+            	    "type": "string",
+            	    "sensitive": true,
+            	    "value": "bar"
+            	}
             },
             "resources": {
                 "foo": {

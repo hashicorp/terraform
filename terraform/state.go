@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -26,10 +27,13 @@ var rootModulePath = []string{"root"}
 
 // State keeps track of a snapshot state-of-the-world that Terraform
 // can use to keep track of what real world resources it is actually
-// managing. This is the latest format as of Terraform 0.3
+// managing. This is the latest format as of Terraform 0.6.17.
 type State struct {
-	// Version is the protocol version. Currently only "1".
+	// Version is the protocol version.
 	Version int `json:"version"`
+
+	// ReadVersion is the version of the state that was originall read.
+	ReadVersion int `json:"-"`
 
 	// Serial is incremented on any operation that modifies
 	// the State file. It is used to detect potentially conflicting
@@ -1270,7 +1274,14 @@ func ReadState(src io.Reader) (*State, error) {
 		if err != nil {
 			return nil, err
 		}
-		return old.upgrade()
+		newState, err := old.upgrade()
+		if err != nil {
+			return nil, err
+		}
+
+		// Upgrade to original JSON state format
+		newState.ReadVersion = 1
+		return newState, nil
 	}
 
 	// If we are JSON we buffer the whole thing in memory so we can read it twice.
@@ -1293,12 +1304,30 @@ func ReadState(src io.Reader) (*State, error) {
 		if err != nil {
 			return nil, err
 		}
-		return old.upgrade()
+		newState, err := old.upgrade()
+		if err != nil {
+			return nil, err
+		}
+		newState.ReadVersion = 1
+		return newState, nil
 	case 2:
 		state, err := ReadStateV2(jsonBytes)
 		if err != nil {
 			return nil, err
 		}
+
+		// If downgrading is lossy, we don't want to proceed
+		_, lossy, err := state.downgradeToV1()
+		if err != nil {
+			return nil, err
+		}
+		if lossy {
+			return nil, fmt.Errorf("A V2 state with complex or sensitive outputs may " +
+				"not be used with this version of Terraform. Terraform 0.7 is " +
+				"required to work with this state file.")
+		}
+
+		state.ReadVersion = 2
 		return state, nil
 	default:
 		return nil, fmt.Errorf("State version %d not supported, please update.",
@@ -1346,6 +1375,18 @@ func (d *State) WriteState(dst io.Writer) error {
 
 	// Ensure the version is set
 	d.Version = StateVersion
+
+	// Write V1 state if we read V1 state
+	if d.ReadVersion == 1 {
+		downgraded, lossy, err := d.downgradeToV1()
+		if err != nil {
+			return err
+		}
+		if !lossy {
+			return downgraded.WriteState(dst)
+		}
+		log.Println("[WARN] Downgrading state is lossy - proceeding to write V2 state")
+	}
 
 	// Encode the data in a human-friendly way
 	data, err := json.MarshalIndent(d, "", "    ")

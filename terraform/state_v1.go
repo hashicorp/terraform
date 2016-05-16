@@ -55,7 +55,7 @@ func (old *stateV1) upgrade() (*State, error) {
 	}
 
 	newState := &State{
-		Version: old.Version,
+		Version: 2,
 		Serial:  old.Serial,
 		Remote:  remote,
 		Modules: modules,
