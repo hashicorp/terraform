@@ -69,10 +69,12 @@ fi
 
 # Copy our OS/Arch to the bin/ directory
 DEV_PLATFORM="./pkg/$(go env GOOS)_$(go env GOARCH)"
-for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
-    cp ${F} bin/
-    cp ${F} ${MAIN_GOPATH}/bin/
-done
+if [[ -d "${DEV_PLATFORM}" ]]; then
+    for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
+        cp ${F} bin/
+        cp ${F} ${MAIN_GOPATH}/bin/
+    done
+fi
 
 if [ "${TF_DEV}x" = "x" ]; then
     # Zip and copy to the dist dir
