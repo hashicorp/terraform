@@ -645,10 +645,12 @@ func flattenRedshiftParameters(list []*redshift.Parameter) []map[string]interfac
 func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
-		result = append(result, map[string]interface{}{
-			"name":  strings.ToLower(*i.ParameterName),
-			"value": strings.ToLower(*i.ParameterValue),
-		})
+		if i.ParameterValue != nil {
+			result = append(result, map[string]interface{}{
+				"name":  strings.ToLower(*i.ParameterName),
+				"value": strings.ToLower(*i.ParameterValue),
+			})
+		}
 	}
 	return result
 }
