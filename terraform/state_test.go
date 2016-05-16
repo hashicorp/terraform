@@ -917,9 +917,9 @@ func TestReadUpgradeStateV1toV2_outputs(t *testing.T) {
 }
 
 func TestReadUpgradeState(t *testing.T) {
-	state := &StateV0{
-		Resources: map[string]*ResourceStateV0{
-			"foo": &ResourceStateV0{
+	state := &stateV0{
+		Resources: map[string]*resourceStateV0{
+			"foo": &resourceStateV0{
 				ID: "bar",
 			},
 		},
@@ -1023,19 +1023,19 @@ func TestReadStateNewVersion(t *testing.T) {
 }
 
 func TestUpgradeV0State(t *testing.T) {
-	old := &StateV0{
+	old := &stateV0{
 		Outputs: map[string]string{
 			"ip": "127.0.0.1",
 		},
-		Resources: map[string]*ResourceStateV0{
-			"foo": &ResourceStateV0{
+		Resources: map[string]*resourceStateV0{
+			"foo": &resourceStateV0{
 				Type: "test_resource",
 				ID:   "bar",
 				Attributes: map[string]string{
 					"key": "val",
 				},
 			},
-			"bar": &ResourceStateV0{
+			"bar": &resourceStateV0{
 				Type: "test_resource",
 				ID:   "1234",
 				Attributes: map[string]string{

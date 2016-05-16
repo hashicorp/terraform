@@ -13,9 +13,9 @@ import (
 )
 
 func TestReadWriteStateV0(t *testing.T) {
-	state := &StateV0{
-		Resources: map[string]*ResourceStateV0{
-			"foo": &ResourceStateV0{
+	state := &stateV0{
+		Resources: map[string]*resourceStateV0{
+			"foo": &resourceStateV0{
 				ID: "bar",
 				ConnInfo: map[string]string{
 					"type":     "ssh",
@@ -77,7 +77,7 @@ func (s *sensitiveState) init() {
 
 // testWriteStateV0 writes a state somewhere in a binary format.
 // Only for testing now
-func testWriteStateV0(d *StateV0, dst io.Writer) error {
+func testWriteStateV0(d *stateV0, dst io.Writer) error {
 	// Write the magic bytes so we can determine the file format later
 	n, err := dst.Write([]byte(stateFormatMagic))
 	if err != nil {
