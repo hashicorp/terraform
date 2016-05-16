@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/bobtfish/terraform-provider-nsone/nsone"
+	"github.com/hashicorp/terraform/builtin/providers/nsone"
 	"github.com/hashicorp/terraform/plugin"
 )
 
