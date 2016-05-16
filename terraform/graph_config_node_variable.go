@@ -94,9 +94,19 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 	// the flat node's implementation of Path() below.
 	modDiff := opts.Diff.ModuleByPath(n.ModulePath)
 
-	// If we're destroying, we have no need of variables.
+	// If we're destroying, we have no need of variables unless they are depended
+	// on by the count of a resource.
 	if modDiff != nil && modDiff.Destroy {
-		log.Printf("[DEBUG] Destroy diff, treating variable as a noop")
+		for _, v := range opts.Graph.UpEdges(opts.Vertex).List() {
+			// Here we borrow the implementation of DestroyEdgeInclude, whose logic
+			// and semantics are exactly what we want here.
+			if n.DestroyEdgeInclude(v) {
+				log.Printf("[DEBUG] Variable has destroy edge from %s, not a noop",
+					dag.VertexName(v))
+				return false
+			}
+		}
+		log.Printf("[DEBUG] Variable has no included destroy edges: noop!")
 		return true
 	}
 
