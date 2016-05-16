@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bufio"
 	"bytes"
 	"reflect"
 	"strings"
@@ -81,6 +82,20 @@ func TestDowngradeStateV2ToV1_downgradableLossless(t *testing.T) {
 			spew.Sdump(source), spew.Sdump(downgraded))
 	}
 
+	var stateV1Written bytes.Buffer
+	writer := bufio.NewWriter(&stateV1Written)
+	downgraded.WriteState(writer)
+	writer.Flush()
+
+	roundtripped, err := ReadState(bytes.NewReader(stateV1Written.Bytes()))
+	if err != nil {
+		t.Fatalf("Error reading roundtripped state: %s", err)
+	}
+
+	if !roundtripped.Equal(source) {
+		t.Fatal("Round tripped state is not equivalent: Source:\n%s\n\nRoundTripped:\n%s\n",
+			spew.Sdump(source), spew.Sdump(downgraded))
+	}
 }
 
 const testV1FullStateWithOutputs = `{

@@ -1,14 +1,14 @@
 package terraform
 
 import (
-	"fmt"
-
-	"github.com/mitchellh/copystructure"
-	"io"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
 	"sort"
 	"strings"
+
+	"github.com/mitchellh/copystructure"
 )
 
 // stateV1 keeps track of a snapshot state-of-the-world that Terraform
