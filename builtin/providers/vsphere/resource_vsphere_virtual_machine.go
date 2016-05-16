@@ -58,7 +58,7 @@ type windowsOptConfig struct {
 
 type cdrom struct {
 	datastore string
-	useSDRS	  bool
+	useSDRS   bool
 	path      string
 }
 
@@ -73,7 +73,7 @@ type virtualMachine struct {
 	cluster               string
 	resourcePool          string
 	datastore             string
-	useSDRS		      bool
+	useSDRS               bool
 	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
@@ -359,7 +359,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Type:     schema.TypeBool,
 							Optional: true,
 							ForceNew: true,
-							Default: false,
+							Default:  false,
 						},
 
 						"size": &schema.Schema{
@@ -408,7 +408,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Type:     schema.TypeBool,
 							Optional: true,
 							ForceNew: true,
-							Default: false,
+							Default:  false,
 						},
 
 						"path": &schema.Schema{

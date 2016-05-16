@@ -15,7 +15,7 @@ import (
 type file struct {
 	datacenter      string
 	datastore       string
-	useSDRS	  	bool
+	useSDRS         bool
 	sourceFile      string
 	destinationFile string
 }
