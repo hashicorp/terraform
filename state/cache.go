@@ -52,10 +52,26 @@ func (s *CacheState) RefreshState() error {
 		return err
 	}
 
-	// Handle the matrix of cases that can happen when comparing these
-	// two states.
 	cached := s.Cache.State()
 	durable := s.Durable.State()
+
+	// If the two states are not of the same lineage then that's
+	// a potential conflict, because the serials are not comparable.
+	if cached != nil && durable != nil && !cached.SameLineage(durable) {
+		if cached.HasResources() {
+			s.refreshResult = CacheRefreshConflict
+			return nil
+		}
+
+		// If local is empty then we'll treat it as missing so that
+		// it can be overwritten by an already-existing remote. This
+		// allows the user to activate remote state for the first time
+		// against an already-existing remote state.
+		cached = nil
+	}
+
+	// Handle the matrix of cases that can happen when comparing these
+	// two states.
 	switch {
 	case cached == nil && durable == nil:
 		// Initialized
@@ -207,7 +223,7 @@ func (sc CacheRefreshResult) String() string {
 	case CacheRefreshRemoteNewer:
 		return "Remote state is newer than local state, pull required"
 	case CacheRefreshConflict:
-		return "Local and remote state conflict, manual resolution required"
+		return "Local and remote state conflict; manual resolution required"
 	default:
 		return fmt.Sprintf("Unknown state change type: %d", sc)
 	}

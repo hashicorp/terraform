@@ -41,7 +41,7 @@ func TestRemotePull_local(t *testing.T) {
 	s.Serial = 10
 	conf, srv := testRemoteState(t, s, 200)
 
-	s = terraform.NewState()
+	s = s.DeepCopy()
 	s.Serial = 5
 	s.Remote = conf
 	defer srv.Close()

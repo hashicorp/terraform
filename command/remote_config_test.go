@@ -406,6 +406,128 @@ func TestRemoteConfig_enableRemote(t *testing.T) {
 	testRemoteLocalBackup(t, true)
 }
 
+func TestRemoteConfig_conflictRemote(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	s := terraform.NewState()
+	s.Serial = 5
+	// Conflict is detected only when state has resources
+	s.Modules = []*terraform.ModuleState{
+		{
+			Path: []string{"root"},
+			Resources: map[string]*terraform.ResourceState{
+				"test_instance.foo": {},
+			},
+		},
+	}
+	conf, srv := testRemoteState(t, s, 200)
+	defer srv.Close()
+
+	s = s.DeepCopy()
+	// Different lineage locally means this is a conflict, because remote
+	// already exists but is describing an unrelated state lineage.
+	s.Lineage = "different-lineage"
+	s.Remote = conf
+
+	// Store the local state
+	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	if err := os.MkdirAll(filepath.Dir(statePath), 0755); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = terraform.WriteState(s, f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &RemoteConfigCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+	args := make([]string, 0, 5)
+	args = append(args, "-backend="+conf.Type)
+	for bck, bcv := range conf.Config {
+		args = append(args, "-backend-config", bck+"="+bcv)
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("bad: got success, but want error")
+	}
+}
+
+func TestRemoteConfig_localEmptyRemoteExists(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	s := terraform.NewState()
+	s.Lineage = "remote-lineage"
+	s.Serial = 5
+	// Conflict is detected only when state has resources
+	s.Modules = []*terraform.ModuleState{
+		{
+			Path: []string{"root"},
+			Resources: map[string]*terraform.ResourceState{
+				"test_instance.foo": {},
+			},
+		},
+	}
+	conf, srv := testRemoteState(t, s, 200)
+	defer srv.Close()
+
+	s = terraform.NewState()
+	// Different lineage locally would normally mean conflict, but
+	// we tolerate it in this case because the local state contains
+	// no resources. The user is probably just enabling remote state
+	// against an existing config for the first time.
+	s.Lineage = "local-lineage"
+	s.Modules = []*terraform.ModuleState{
+		{
+			Path:      []string{"root"},
+			Resources: map[string]*terraform.ResourceState{},
+		},
+	}
+
+	// Store the local state
+	// Note that this is is just 'terraform.tfstate', not
+	// '.terraform/terraform.tfstate'; remote state is not enabled yet.
+	statePath := filepath.Join(tmp, DefaultStateFilename)
+	if err := os.MkdirAll(filepath.Dir(statePath), 0755); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = terraform.WriteState(s, f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &RemoteConfigCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+	args := make([]string, 0, 5)
+	args = append(args, "-backend="+conf.Type)
+	for bck, bcv := range conf.Config {
+		args = append(args, "-backend-config", bck+"="+bcv)
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
 func testRemoteLocal(t *testing.T, exists bool) {
 	_, err := os.Stat(DefaultStateFilename)
 	if os.IsNotExist(err) && !exists {
