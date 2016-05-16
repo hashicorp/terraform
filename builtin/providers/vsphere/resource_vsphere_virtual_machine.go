@@ -58,6 +58,7 @@ type windowsOptConfig struct {
 
 type cdrom struct {
 	datastore string
+	useSDRS	  bool
 	path      string
 }
 
@@ -72,6 +73,7 @@ type virtualMachine struct {
 	cluster               string
 	resourcePool          string
 	datastore             string
+	useSDRS		      bool
 	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
@@ -353,6 +355,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"use_sdrs": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default: false,
+						},
+
 						"size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -393,6 +402,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
+						},
+
+						"use_sdrs": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default: false,
 						},
 
 						"path": &schema.Schema{
@@ -659,6 +675,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				if v, ok := disk["datastore"].(string); ok && v != "" {
 					vm.datastore = v
 				}
+				if v, ok := disk["use_sdrs"].(bool); ok {
+					vm.useSDRS = v
+				} else {
+					vm.useSDRS = false
+				}
 			} else {
 				if v, ok := disk["size"].(int); ok && v != 0 {
 					disks[i].size = int64(v)
@@ -688,6 +709,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				cdroms[i].datastore = v
 			} else {
 				return fmt.Errorf("Datastore argument must be specified when attaching a cdrom image.")
+			}
+			if v, ok := c["use_sdrs"].(bool); ok {
+				cdroms[i].useSDRS = v
+			} else {
+				cdroms[i].useSDRS = false
 			}
 			if v, ok := c["path"].(string); ok && v != "" {
 				cdroms[i].path = v
@@ -762,6 +788,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	var mvm mo.VirtualMachine
 
 	collector := property.DefaultCollector(client.Client)
+	// TODO CJL ~ does this work with SDRS
 	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore"}, &mvm); err != nil {
 		return err
 	}
@@ -837,6 +864,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	})
 
 	var rootDatastore string
+	var useSDRS bool = false
 	for _, v := range mvm.Datastore {
 		var md mo.Datastore
 		if err := collector.RetrieveOne(context.TODO(), v, []string{"name", "parent"}, &md); err != nil {
@@ -848,7 +876,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 				return err
 			}
 			rootDatastore = msp.Name
-			log.Printf("[DEBUG] %#v", msp.Name)
+
+			if msp.PodStorageDrsEntry != nil {
+				useSDRS = true
+			}
+			// msp.PodStorageDrsEntry TODO: does this list the info I need?
+			log.Printf("[DEBUG] msp name: %#v", msp.Name)
+			log.Printf("[DEBUG] msp drs: %#v", msp.PodStorageDrsEntry)
 		} else {
 			rootDatastore = md.Name
 			log.Printf("[DEBUG] %#v", md.Name)
@@ -861,6 +895,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("memory_reservation", mvm.Summary.Config.MemoryReservation)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 	d.Set("datastore", rootDatastore)
+	d.Set("use_sdrs", useSDRS)
 
 	return nil
 }
@@ -1193,6 +1228,7 @@ func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.D
 	var datastore *object.Datastore
 	log.Printf("[DEBUG] findDatastore: StoragePlacementSpec: %#v\n", sps)
 
+	// TODO does this word with SDRS
 	srm := object.NewStorageResourceManager(c.Client)
 	rds, err := srm.RecommendDatastores(context.TODO(), sps)
 	if err != nil {
@@ -1318,12 +1354,22 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 
 	var datastore *object.Datastore
 	if vm.datastore == "" {
-		datastore, err = finder.DefaultDatastore(context.TODO())
+		if vm.useSDRS {
+			// TODO this is actually returning a *object.StoragePod
+			datastore, err = finder.DefaultDatastoreCluster(context.TODO())
+		} else {
+			datastore, err = finder.DefaultDatastore(context.TODO())
+		}
 		if err != nil {
+			log.Printf("[DEBUG] unable to find default datastore")
 			return err
 		}
 	} else {
-		datastore, err = finder.Datastore(context.TODO(), vm.datastore)
+		if vm.useSDRS {
+			datastore, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
+		} else {
+			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
+		}
 		if err != nil {
 			// TODO: datastore cluster support in govmomi finder function
 			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
@@ -1466,12 +1512,22 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 
 	var datastore *object.Datastore
 	if vm.datastore == "" {
-		datastore, err = finder.DefaultDatastore(context.TODO())
+		if vm.useSDRS {
+			datastore, err = finder.DefaultDatastoreCluster(context.TODO())
+		} else {
+			datastore, err = finder.DefaultDatastore(context.TODO())
+		}
 		if err != nil {
+			log.Printf("[DEBUG] unable to find default datastore")
 			return err
 		}
 	} else {
-		datastore, err = finder.Datastore(context.TODO(), vm.datastore)
+		// TODO: datastore cluster support in govmomi finder function CJL test
+		if vm.useSDRS {
+			datastore, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
+		} else {
+			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
+		}
 		if err != nil {
 			// TODO: datastore cluster support in govmomi finder function
 			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
