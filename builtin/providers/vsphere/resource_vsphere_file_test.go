@@ -14,6 +14,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+// FIXME test sdrs
+
 // Basic file creation
 func TestAccVSphereFile_basic(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
