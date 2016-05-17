@@ -296,6 +296,7 @@ func deleteFile(client *govmomi.Client, f *file) error {
 	return nil
 }
 
+// TODO support SDRS cluster
 // getDatastore gets datastore object
 func getDatastore(f *find.Finder, ds string) (*object.Datastore, error) {
 

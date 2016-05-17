@@ -12,6 +12,7 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
@@ -56,6 +57,7 @@ type windowsOptConfig struct {
 
 type cdrom struct {
 	datastore string
+	useSDRS   bool
 	path      string
 }
 
@@ -70,6 +72,7 @@ type virtualMachine struct {
 	cluster               string
 	resourcePool          string
 	datastore             string
+	useSDRS               bool
 	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
@@ -351,6 +354,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"use_sdrs": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default:  false,
+						},
+
 						"size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -391,6 +401,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
+						},
+
+						"use_sdrs": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default:  false,
 						},
 
 						"path": &schema.Schema{
@@ -651,6 +668,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				if v, ok := disk["datastore"].(string); ok && v != "" {
 					vm.datastore = v
 				}
+				if v, ok := disk["use_sdrs"].(bool); ok {
+					vm.useSDRS = v
+				} else {
+					vm.useSDRS = false
+				}
 			} else {
 				if v, ok := disk["size"].(int); ok && v != 0 {
 					disks[i].size = int64(v)
@@ -680,6 +702,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				cdroms[i].datastore = v
 			} else {
 				return fmt.Errorf("Datastore argument must be specified when attaching a cdrom image.")
+			}
+			if v, ok := c["use_sdrs"].(bool); ok {
+				cdroms[i].useSDRS = v
+			} else {
+				cdroms[i].useSDRS = false
 			}
 			if v, ok := c["path"].(string); ok && v != "" {
 				cdroms[i].path = v
@@ -734,6 +761,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	}
 
 	collector := property.DefaultCollector(client.Client)
+	// TODO CJL ~ does this work with SDRS
 	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore"}, &mvm); err != nil {
 		return err
 	}
@@ -805,6 +833,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	})
 
 	var rootDatastore string
+	var useSDRS bool = false
 	for _, v := range mvm.Datastore {
 		var md mo.Datastore
 		if err := collector.RetrieveOne(context.TODO(), v, []string{"name", "parent"}, &md); err != nil {
@@ -816,7 +845,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 				return err
 			}
 			rootDatastore = msp.Name
-			log.Printf("[DEBUG] %#v", msp.Name)
+
+			if msp.PodStorageDrsEntry != nil {
+				useSDRS = true
+			}
+			// msp.PodStorageDrsEntry TODO: does this list the info I need?
+			log.Printf("[DEBUG] msp name: %#v", msp.Name)
+			log.Printf("[DEBUG] msp drs: %#v", msp.PodStorageDrsEntry)
 		} else {
 			rootDatastore = md.Name
 			log.Printf("[DEBUG] %#v", md.Name)
@@ -829,6 +864,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("memory_reservation", mvm.Summary.Config.MemoryReservation)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 	d.Set("datastore", rootDatastore)
+	d.Set("use_sdrs", useSDRS)
 
 	return nil
 }
@@ -1053,7 +1089,7 @@ func getDatastoreObject(client *govmomi.Client, f *object.DatacenterFolders, nam
 }
 
 // buildStoragePlacementSpecCreate builds StoragePlacementSpec for create action.
-func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
+func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod *object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
 	spr := storagePod.Reference()
@@ -1072,7 +1108,7 @@ func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.Res
 }
 
 // buildStoragePlacementSpecClone builds StoragePlacementSpec for clone action.
-func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod object.StoragePod) types.StoragePlacementSpec {
+func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod *object.StoragePod) types.StoragePlacementSpec {
 	vmr := vm.Reference()
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
@@ -1218,7 +1254,6 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		}
 		networkDevices = append(networkDevices, nd)
 	}
-
 	// make config spec
 	configSpec := types.VirtualMachineConfigSpec{
 		GuestId:           "otherLinux64Guest",
@@ -1233,7 +1268,6 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
-	// make ExtraConfig
 	log.Printf("[DEBUG] virtual machine Extra Config spec start")
 	if len(vm.customConfigurations) > 0 {
 		var ov []types.BaseOptionValue
@@ -1253,14 +1287,39 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 
 	var datastore *object.Datastore
 	if vm.datastore == "" {
-		datastore, err = finder.DefaultDatastore(context.TODO())
+		// TODO repeated
+		if vm.useSDRS {
+			var pod *object.StoragePod
+			pod, err = finder.DefaultDatastoreCluster(context.TODO())
+			if err == nil {
+				datastore, err = getRecommendDRSDatastore(c.Client, pod, resourcePool, dcFolders.VmFolder, &configSpec)
+				if err != nil {
+					log.Printf("[DEBUG] unable to find default datastore")
+					return err
+				}
+			}
+		} else {
+			datastore, err = finder.DefaultDatastore(context.TODO())
+		}
 		if err != nil {
+			log.Printf("[DEBUG] unable to find default datastore")
 			return err
 		}
 	} else {
-		datastore, err = finder.Datastore(context.TODO(), vm.datastore)
+		// TODO repeated
+		if vm.useSDRS {
+			var pod *object.StoragePod
+			pod, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
+			if err == nil {
+				datastore, err = getRecommendDRSDatastore(c.Client, pod, resourcePool, dcFolders.VmFolder, &configSpec)
+				if err != nil {
+					return fmt.Errorf("Cannot cluster datastore %v", vm.datastore)
+				}
+			}
+		} else {
+			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
+		}
 		if err != nil {
-			// TODO: datastore cluster support in govmomi finder function
 			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
 			if err != nil {
 				return err
@@ -1270,7 +1329,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 				sp := object.StoragePod{
 					Folder: object.NewFolder(c.Client, d),
 				}
-				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
+				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, &sp, configSpec)
 				datastore, err = findDatastore(c, sps)
 				if err != nil {
 					return err
@@ -1399,45 +1458,6 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		}
 	}
 
-	var datastore *object.Datastore
-	if vm.datastore == "" {
-		datastore, err = finder.DefaultDatastore(context.TODO())
-		if err != nil {
-			return err
-		}
-	} else {
-		datastore, err = finder.Datastore(context.TODO(), vm.datastore)
-		if err != nil {
-			// TODO: datastore cluster support in govmomi finder function
-			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
-			if err != nil {
-				return err
-			}
-
-			if d.Type == "StoragePod" {
-				sp := object.StoragePod{
-					Folder: object.NewFolder(c.Client, d),
-				}
-				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
-
-				datastore, err = findDatastore(c, sps)
-				if err != nil {
-					return err
-				}
-			} else {
-				datastore = object.NewDatastore(c.Client, d)
-			}
-		}
-	}
-	log.Printf("[DEBUG] datastore: %#v", datastore)
-
-	relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("[DEBUG] relocate spec: %v", relocateSpec)
-
 	// network
 	networkDevices := []types.BaseVirtualDeviceConfigSpec{}
 	networkConfigs := []types.CustomizationAdapterMapping{}
@@ -1510,11 +1530,77 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		},
 	}
 
+	var datastore *object.Datastore
+	if vm.datastore == "" {
+		// TODO should we refactor ... two code blocks are repeated
+		// TODO Repeated
+		if vm.useSDRS {
+			var pod *object.StoragePod
+			pod, err = finder.DefaultDatastoreCluster(context.TODO())
+			if err == nil {
+				datastore, err = getRecommendDRSDatastore(c.Client, pod, resourcePool, dcFolders.VmFolder, &configSpec)
+				if err != nil {
+					log.Printf("[DEBUG] unable to find default datastore")
+					return err
+				}
+			}
+		} else {
+			datastore, err = finder.DefaultDatastore(context.TODO())
+		}
+		if err != nil {
+			log.Printf("[DEBUG] unable to find default datastore")
+			return err
+		}
+	} else {
+		// TODO Repeated
+		if vm.useSDRS {
+			var pod *object.StoragePod
+			pod, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
+			if err == nil {
+				datastore, err = getRecommendDRSDatastore(c.Client, pod, resourcePool, dcFolders.VmFolder, &configSpec)
+				if err != nil {
+					return fmt.Errorf("Cannot cluster datastore %v", vm.datastore)
+				}
+			}
+		} else {
+			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
+		}
+		if err != nil {
+			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
+			if err != nil {
+				return err
+			}
+
+			if d.Type == "StoragePod" {
+				sp := object.StoragePod{
+					Folder: object.NewFolder(c.Client, d),
+				}
+				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, &sp)
+
+				datastore, err = findDatastore(c, sps)
+				if err != nil {
+					return err
+				}
+			} else {
+				datastore = object.NewDatastore(c.Client, d)
+			}
+		}
+	}
+	log.Printf("[DEBUG] datastore: %#v", datastore)
+
+	relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] relocate spec: %v", relocateSpec)
+
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
 	log.Printf("[DEBUG] starting extra custom config spec: %v", vm.customConfigurations)
 
 	// make ExtraConfig
+	// TODO repeated code block
 	if len(vm.customConfigurations) > 0 {
 		var ov []types.BaseOptionValue
 		for k, v := range vm.customConfigurations {
@@ -1694,4 +1780,21 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	newVM.PowerOn(context.TODO())
 
 	return nil
+}
+
+// Get the recommended DRS Datastore uses the api_helper
+func getRecommendDRSDatastore(client *vim25.Client, storagePod *object.StoragePod,
+	resourcePool *object.ResourcePool, folder *object.Folder, spec *types.VirtualMachineConfigSpec) (*object.Datastore, error) {
+
+	var api api_helper
+	var datastore *object.Datastore
+	var err error
+
+	api.Init(client, storagePod, resourcePool, folder)
+	datastore, err = api.recommendDatastore(context.TODO(), spec)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot find datastore")
+	}
+
+	return datastore, nil
 }
