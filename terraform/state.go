@@ -32,7 +32,7 @@ type State struct {
 	// Version is the protocol version.
 	Version int `json:"version"`
 
-	// ReadVersion is the version of the state that was originall read.
+	// ReadVersion is the version of the state that was originally read.
 	ReadVersion int `json:"-"`
 
 	// Serial is incremented on any operation that modifies
