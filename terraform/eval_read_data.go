@@ -12,12 +12,14 @@ type EvalReadDataDiff struct {
 	OutputState **InstanceState
 	Config      **ResourceConfig
 	Info        *InstanceInfo
+
+	// Set Previous when re-evaluating diff during apply, to ensure that
+	// the "Destroy" flag is preserved.
+	Previous **InstanceDiff
 }
 
 func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// TODO: test
-	provider := *n.Provider
-	config := *n.Config
 
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreDiff(n.Info, nil)
@@ -26,21 +28,32 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, err
 	}
 
-	diff, err := provider.ReadDataDiff(n.Info, config)
-	if err != nil {
-		return nil, err
-	}
-	if diff == nil {
-		diff = new(InstanceDiff)
-	}
+	var diff *InstanceDiff
 
-	// id is always computed, because we're always "creating a new resource"
-	diff.init()
-	diff.Attributes["id"] = &ResourceAttrDiff{
-		Old:         "",
-		NewComputed: true,
-		RequiresNew: true,
-		Type:        DiffAttrOutput,
+	if n.Previous != nil && *n.Previous != nil && (*n.Previous).Destroy {
+		// If we're re-diffing for a diff that was already planning to
+		// destroy, then we'll just continue with that plan.
+		diff = &InstanceDiff{Destroy: true}
+	} else {
+		provider := *n.Provider
+		config := *n.Config
+
+		diff, err := provider.ReadDataDiff(n.Info, config)
+		if err != nil {
+			return nil, err
+		}
+		if diff == nil {
+			diff = new(InstanceDiff)
+		}
+
+		// id is always computed, because we're always "creating a new resource"
+		diff.init()
+		diff.Attributes["id"] = &ResourceAttrDiff{
+			Old:         "",
+			NewComputed: true,
+			RequiresNew: true,
+			Type:        DiffAttrOutput,
+		}
 	}
 
 	err = ctx.Hook(func(h Hook) (HookAction, error) {
@@ -83,7 +96,7 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 	// If the diff is for *destroying* this resource then we'll
 	// just drop its state and move on, since data resources don't
 	// support an actual "destroy" action.
-	if diff.Destroy {
+	if diff != nil && diff.Destroy {
 		if n.Output != nil {
 			*n.Output = nil
 		}

@@ -810,6 +810,7 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 				&EvalReadDataDiff{
 					Info:     info,
 					Config:   &config,
+					Previous: &diff,
 					Provider: &provider,
 					Output:   &diff,
 				},
