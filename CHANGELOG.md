@@ -19,6 +19,7 @@ IMPROVEMENTS:
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * provider/clc: Fix optional server password [GH-6414]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
+ * provider/fastly: Add support for custom VCL configuration [GH-6662]
  * provider/openstack: Add support for client certificate authentication [GH-6279]
  * providers/google: support optional uuid naming for Instance Template [GH-6604]
  * provider/vsphere: fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
