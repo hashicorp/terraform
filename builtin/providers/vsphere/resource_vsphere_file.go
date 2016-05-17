@@ -15,7 +15,6 @@ import (
 type file struct {
 	datacenter      string
 	datastore       string
-	useSDRS         bool
 	sourceFile      string
 	destinationFile string
 }
@@ -36,16 +35,10 @@ func resourceVSphereFile() *schema.Resource {
 
 			"datastore": {
 				Type:     schema.TypeString,
-				Optional: true, // TODO required in code ... huh?
+				Optional: true,
 				ForceNew: true,
 			},
 
-			"use_sdrs": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-				Default:  false,
-			},
 			"source_file": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -67,8 +60,6 @@ func resourceVSphereFileCreate(d *schema.ResourceData, meta interface{}) error {
 
 	f := file{}
 
-	// TODO: refactor ... we are setting these vars a ton
-	// in the same way
 	if v, ok := d.GetOk("datacenter"); ok {
 		f.datacenter = v.(string)
 	}
@@ -77,12 +68,6 @@ func resourceVSphereFileCreate(d *schema.ResourceData, meta interface{}) error {
 		f.datastore = v.(string)
 	} else {
 		return fmt.Errorf("datastore argument is required")
-	}
-
-	if v, ok := d.GetOk("use_sdrs"); ok {
-		f.useSDRS = v.(bool)
-	} else {
-		f.useSDRS = false
 	}
 
 	if v, ok := d.GetOk("source_file"); ok {
@@ -118,7 +103,7 @@ func createFile(client *govmomi.Client, f *file) error {
 	}
 	finder = finder.SetDatacenter(dc)
 
-	ds, err := getDatastore(finder, f)
+	ds, err := getDatastore(finder, f.datastore)
 	if err != nil {
 		return fmt.Errorf("error %s", err)
 	}
@@ -150,11 +135,6 @@ func resourceVSphereFileRead(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		return fmt.Errorf("datastore argument is required")
 	}
-	if v, ok := d.GetOk("use_sdrs"); ok {
-		f.useSDRS = v.(bool)
-	} else {
-		f.useSDRS = false
-	}
 
 	if v, ok := d.GetOk("source_file"); ok {
 		f.sourceFile = v.(string)
@@ -177,7 +157,7 @@ func resourceVSphereFileRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	finder = finder.SetDatacenter(dc)
 
-	ds, err := getDatastore(finder, f)
+	ds, err := getDatastore(finder, f.datastore)
 	if err != nil {
 		return fmt.Errorf("error %s", err)
 	}
@@ -207,11 +187,6 @@ func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 		} else {
 			return fmt.Errorf("datastore argument is required")
 		}
-		if v, ok := d.GetOk("use_sdrs"); ok {
-			f.useSDRS = v.(bool)
-		} else {
-			f.useSDRS = false
-		}
 
 		if v, ok := d.GetOk("source_file"); ok {
 			f.sourceFile = v.(string)
@@ -234,7 +209,7 @@ func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 		finder := find.NewFinder(client.Client, true)
 		finder = finder.SetDatacenter(dc)
 
-		ds, err := getDatastore(finder, f)
+		ds, err := getDatastore(finder, f.datastore)
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
@@ -270,12 +245,6 @@ func resourceVSphereFileDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("datastore argument is required")
 	}
 
-	if v, ok := d.GetOk("use_sdrs"); ok {
-		f.useSDRS = v.(bool)
-	} else {
-		f.useSDRS = false
-	}
-
 	if v, ok := d.GetOk("source_file"); ok {
 		f.sourceFile = v.(string)
 	} else {
@@ -309,7 +278,7 @@ func deleteFile(client *govmomi.Client, f *file) error {
 	finder := find.NewFinder(client.Client, true)
 	finder = finder.SetDatacenter(dc)
 
-	ds, err := getDatastore(finder, f)
+	ds, err := getDatastore(finder, f.datastore)
 	if err != nil {
 		return fmt.Errorf("error %s", err)
 	}
@@ -327,21 +296,15 @@ func deleteFile(client *govmomi.Client, f *file) error {
 	return nil
 }
 
+// TODO support SDRS cluster
 // getDatastore gets datastore object
-func getDatastore(f *find.Finder, file file) (*object.Datastore, error) {
+func getDatastore(f *find.Finder, ds string) (*object.Datastore, error) {
 
-	if file.datastore == "" {
-		if file.useSDRS {
-			return f.DefaultDatastoreCluster(context.TODO())
-		} else {
-
-			return f.DefaultDatastore(context.TODO())
-		}
+	if ds != "" {
+		dso, err := f.Datastore(context.TODO(), ds)
+		return dso, err
 	} else {
-		if file.useSDRS {
-			return f.DatastoreCluster(context.TODO(), file.datastore)
-		} else {
-			return f.Datastore(context.TODO(), file.datastore)
-		}
+		dso, err := f.DefaultDatastore(context.TODO())
+		return dso, err
 	}
 }
