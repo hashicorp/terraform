@@ -86,6 +86,38 @@ resource "aws_s3_bucket" "website" {
 }
 ```
 
+Basic usage with [custom VCL](https://docs.fastly.com/guides/vcl/uploading-custom-vcl) (must be enabled on your Fastly account):
+
+```
+resource "fastly_service_v1" "demo" {
+  name = "demofastly"
+
+  domain {
+    name    = "demo.notexample.com"
+    comment = "demo"
+  }
+
+  backend {
+    address = "127.0.0.1"
+    name    = "localhost"
+    port    = 80
+  }
+
+  force_destroy = true
+
+  vcl {
+    name = "my_custom_main_vcl"
+    content = "${file("${path.module}/my_custom_main.vcl")}"
+    main = true
+  }
+
+  vcl {
+    name = "my_custom_library_vcl"
+    content = "${file("${path.module}/my_custom_library.vcl")}"
+  }
+}
+```
+
 **Note:** For an AWS S3 Bucket, the Backend address is
 `<domain>.s3-website-<region>.amazonaws.com`. The `default_host` attribute
 should be set to `<bucket_name>.s3-website-<region>.amazonaws.com`. See the
@@ -113,6 +145,9 @@ order to destroy the Service, set `force_destroy` to `true`. Default `false`.
 * `request_setting` - (Optional) A set of Request modifiers. Defined below
 * `s3logging` - (Optional) A set of S3 Buckets to send streaming logs too.
 Defined below
+* `vcl` - (Optional) A set of custom VCL configuration blocks. Note that the
+ability to upload custom VCL code is not enabled by default for new Fastly
+accounts (see the [Fastly documentation](https://docs.fastly.com/guides/vcl/uploading-custom-vcl) for details).
 
 
 The `domain` block supports:
@@ -234,6 +269,13 @@ Apache Common Log format (`%h %l %u %t %r %>s`)
 Request Setting should be applied. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals]
 
+The `vcl` block supports:
+
+* `name` - (Required) A unique name for this configuration block
+* `content` - (Required) The custom VCL code to upload.
+* `main` - (Optional) If `true`, use this block as the main configuration. If
+`false`, use this block as an includable library. Only a single VCL block can be
+marked as the main block. Default is `false`.
 
 ## Attributes Reference
 
@@ -246,6 +288,7 @@ The following attributes are exported:
 * `backend` – Set of Backends. See above for details
 * `header` – Set of Headers. See above for details
 * `s3logging` – Set of S3 Logging configurations. See above for details
+* `vcl` – Set of custom VCL configurations. See above for details
 * `default_host` – Default host specified
 * `default_ttl` - Default TTL
 * `force_destroy` - Force the destruction of the Service on delete
