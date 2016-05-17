@@ -1319,7 +1319,6 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		}
 		networkDevices = append(networkDevices, nd)
 	}
-
 	// make config spec
 	configSpec := types.VirtualMachineConfigSpec{
 		GuestId:           "otherLinux64Guest",
@@ -1528,7 +1527,9 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 			var pod *object.StoragePod
 			pod, err = finder.DefaultDatastoreCluster(context.TODO())
 			if err == nil {
+				// TODO do we need a Clone here??
 				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, pod)
+				// TODO: use provider_api_helper here CJL
 				datastore, err = findDatastore(c, sps)
 			}
 		} else {
