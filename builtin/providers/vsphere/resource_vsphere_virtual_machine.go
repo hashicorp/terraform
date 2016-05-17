@@ -6,9 +6,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -403,12 +401,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 					},
 				},
 			},
-
-			"boot_delay": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-			},
 		},
 	}
 }
@@ -711,32 +703,6 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if _, ok := d.GetOk("network_interface.0.ipv4_address"); !ok {
-		if v, ok := d.GetOk("boot_delay"); ok {
-			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"pending"},
-				Target:     []string{"active"},
-				Refresh:    waitForNetworkingActive(client, vm.datacenter, vm.Path()),
-				Timeout:    600 * time.Second,
-				Delay:      time.Duration(v.(int)) * time.Second,
-				MinTimeout: 2 * time.Second,
-			}
-
-			_, err := stateConf.WaitForState()
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	if ip, ok := d.GetOk("network_interface.0.ipv4_address"); ok {
-		d.SetConnInfo(map[string]string{
-			"host": ip.(string),
-		})
-	} else {
-		log.Printf("[DEBUG] Could not get IP address for %s", d.Id())
-	}
-
 	d.SetId(vm.Path())
 	log.Printf("[INFO] Created virtual machine: %s", d.Id())
 
@@ -760,6 +726,12 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	}
 
 	var mvm mo.VirtualMachine
+
+	// wait for interfaces to appear
+	_, err = vm.WaitForNetIP(context.TODO(), true)
+	if err != nil {
+		return err
+	}
 
 	collector := property.DefaultCollector(client.Client)
 	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore"}, &mvm); err != nil {
@@ -826,14 +798,10 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
 	}
 
-	ip, err := vm.WaitForIP(context.TODO())
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] ip address: %v", ip)
+	log.Printf("[DEBUG] ip address: %v", networkInterfaces[0]["ipv4_address"].(string))
 	d.SetConnInfo(map[string]string{
 		"type": "ssh",
-		"host": ip,
+		"host": networkInterfaces[0]["ipv4_address"].(string),
 	})
 
 	var rootDatastore string
@@ -909,39 +877,6 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 
 	d.SetId("")
 	return nil
-}
-
-func waitForNetworkingActive(client *govmomi.Client, datacenter, name string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		dc, err := getDatacenter(client, datacenter)
-		if err != nil {
-			log.Printf("[ERROR] %#v", err)
-			return nil, "", err
-		}
-		finder := find.NewFinder(client.Client, true)
-		finder = finder.SetDatacenter(dc)
-
-		vm, err := finder.VirtualMachine(context.TODO(), name)
-		if err != nil {
-			log.Printf("[ERROR] %#v", err)
-			return nil, "", err
-		}
-
-		var mvm mo.VirtualMachine
-		collector := property.DefaultCollector(client.Client)
-		if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"summary"}, &mvm); err != nil {
-			log.Printf("[ERROR] %#v", err)
-			return nil, "", err
-		}
-
-		if mvm.Summary.Guest.IpAddress != "" {
-			log.Printf("[DEBUG] IP address with DHCP: %v", mvm.Summary.Guest.IpAddress)
-			return mvm.Summary, "active", err
-		} else {
-			log.Printf("[DEBUG] Waiting for IP address")
-			return nil, "pending", err
-		}
-	}
 }
 
 // addHardDisk adds a new Hard Disk to the VirtualMachine.
@@ -1757,12 +1692,6 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
 	newVM.PowerOn(context.TODO())
-
-	ip, err := newVM.WaitForIP(context.TODO())
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] ip address: %v", ip)
 
 	return nil
 }
