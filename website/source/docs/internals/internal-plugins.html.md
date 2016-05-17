@@ -10,7 +10,7 @@ description: |-
 
 Terraform providers and provisioners are provided via plugins. Each plugin provides an implementation for a specific service, such as AWS, or provisioner, such as bash. Plugins are executed as a separate process and communicate with the main Terraform binary over an RPC interface.
 
-# Upgrading From 0.7 and Earlier
+# Upgrading From Versions Earlier Than 0.7
 
 In versions of Terraform prior to 0.7, each plugin shipped as a separate binary. In versions of Terraform >= 0.7, all of the official plugins are shipped as a single binary. This saves a lot of disk space and makes downloads faster for you!
 
