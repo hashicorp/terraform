@@ -1605,8 +1605,8 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 			if err == nil {
 				datastore, err = getRecommendDRSDatastore(c.Client, pod, resourcePool, dcFolders.VmFolder, &configSpec)
 				if err != nil {
-					return err
 					log.Printf("[DEBUG] unable to find default datastore")
+					return err
 				}
 			}
 		} else {
