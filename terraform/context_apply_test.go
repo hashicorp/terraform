@@ -2706,6 +2706,92 @@ module.child:
 	}
 }
 
+func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
+	m := testModule(t, "apply-destroy-mod-var-and-count-nested")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	var state *State
+	var err error
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		// First plan and apply a create operation
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("plan err: %s", err)
+		}
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("apply err: %s", err)
+		}
+	}
+
+	h := new(HookRecordApplyOrder)
+	h.Active = true
+
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Destroy: true,
+			Module:  m,
+			State:   state,
+			Hooks:   []Hook{h},
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		// First plan and apply a create operation
+		plan, err := ctx.Plan()
+		if err != nil {
+			t.Fatalf("destroy plan err: %s", err)
+		}
+
+		var buf bytes.Buffer
+		if err := WritePlan(plan, &buf); err != nil {
+			t.Fatalf("plan write err: %s", err)
+		}
+
+		planFromFile, err := ReadPlan(&buf)
+		if err != nil {
+			t.Fatalf("plan read err: %s", err)
+		}
+
+		ctx, err = planFromFile.Context(&ContextOpts{
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("destroy apply err: %s", err)
+		}
+	}
+
+	//Test that things were destroyed
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+<no state>
+module.child:
+  <no state>
+module.child.child2:
+  <no state>
+		`)
+	if actual != expected {
+		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
+	}
+}
+
 func TestContext2Apply_destroyOutputs(t *testing.T) {
 	m := testModule(t, "apply-destroy-outputs")
 	h := new(HookRecordApplyOrder)
