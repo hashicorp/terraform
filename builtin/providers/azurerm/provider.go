@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 
+	"sync"
+
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/mutexkv"
@@ -14,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
-	"sync"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -152,7 +153,7 @@ func registerProviderWithSubscription(providerName string, client *riviera.Clien
 	}
 
 	if !response.IsSuccessful() {
-		return fmt.Errorf("Credentials for acessing the Azure Resource Manager API are likely " +
+		return fmt.Errorf("Credentials for accessing the Azure Resource Manager API are likely " +
 			"to be incorrect, or\n  the service principal does not have permission to use " +
 			"the Azure Service Management\n  API.")
 	}
