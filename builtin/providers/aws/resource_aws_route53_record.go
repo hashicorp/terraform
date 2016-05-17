@@ -27,13 +27,16 @@ func resourceAwsRoute53Record() *schema.Resource {
 		Update: resourceAwsRoute53RecordUpdate,
 		Delete: resourceAwsRoute53RecordDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsRoute53RecordMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 				StateFunc: func(v interface{}) string {
-					value := v.(string)
+					value := strings.TrimSuffix(v.(string), ".")
 					return strings.ToLower(value)
 				},
 			},
@@ -330,6 +333,7 @@ func findRecord(d *schema.ResourceData, meta interface{}) (*route53.ResourceReco
 		}
 		return nil, err
 	}
+
 	en := expandRecordName(d.Get("name").(string), *zoneRecord.HostedZone.Name)
 	log.Printf("[DEBUG] Expanded record name: %s", en)
 	d.Set("fqdn", en)

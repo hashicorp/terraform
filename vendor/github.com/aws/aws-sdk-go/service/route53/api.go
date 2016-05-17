@@ -4,6 +4,7 @@
 package route53
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -1809,6 +1810,50 @@ func (c *Route53) UpdateTrafficPolicyInstance(input *UpdateTrafficPolicyInstance
 	return out, err
 }
 
+// A complex type that contains information to uniquely identify the CloudWatch
+// alarm that you're associating with a Route 53 health check.
+type AlarmIdentifier struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the CloudWatch alarm.
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// The CloudWatchRegion that the CloudWatch alarm was created in.
+	Region *string `min:"1" type:"string" required:"true" enum:"CloudWatchRegion"`
+}
+
+// String returns the string representation
+func (s AlarmIdentifier) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AlarmIdentifier) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AlarmIdentifier) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AlarmIdentifier"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Region == nil {
+		invalidParams.Add(request.NewErrParamRequired("Region"))
+	}
+	if s.Region != nil && len(*s.Region) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Region", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Alias resource record sets only: Information about the CloudFront distribution,
 // ELB load balancer, Amazon S3 bucket, or Amazon Route 53 resource record set
 // to which you are routing traffic.
@@ -1944,6 +1989,25 @@ func (s AliasTarget) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AliasTarget) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AliasTarget"}
+	if s.DNSName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DNSName"))
+	}
+	if s.EvaluateTargetHealth == nil {
+		invalidParams.Add(request.NewErrParamRequired("EvaluateTargetHealth"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the request to associate a
 // VPC with an hosted zone.
 type AssociateVPCWithHostedZoneInput struct {
@@ -1970,6 +2034,27 @@ func (s AssociateVPCWithHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s AssociateVPCWithHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateVPCWithHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateVPCWithHostedZoneInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.VPC == nil {
+		invalidParams.Add(request.NewErrParamRequired("VPC"))
+	}
+	if s.VPC != nil {
+		if err := s.VPC.Validate(); err != nil {
+			invalidParams.AddNested("VPC", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the request.
@@ -2025,6 +2110,27 @@ func (s Change) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Change) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Change"}
+	if s.Action == nil {
+		invalidParams.Add(request.NewErrParamRequired("Action"))
+	}
+	if s.ResourceRecordSet == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceRecordSet"))
+	}
+	if s.ResourceRecordSet != nil {
+		if err := s.ResourceRecordSet.Validate(); err != nil {
+			invalidParams.AddNested("ResourceRecordSet", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains an optional comment and the changes that you
 // want to make with a change batch request.
 type ChangeBatch struct {
@@ -2046,6 +2152,32 @@ func (s ChangeBatch) String() string {
 // GoString returns the string representation
 func (s ChangeBatch) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeBatch) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeBatch"}
+	if s.Changes == nil {
+		invalidParams.Add(request.NewErrParamRequired("Changes"))
+	}
+	if s.Changes != nil && len(s.Changes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Changes", 1))
+	}
+	if s.Changes != nil {
+		for i, v := range s.Changes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Changes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that lists the changes and information for a ChangeBatch.
@@ -2156,6 +2288,27 @@ func (s ChangeResourceRecordSetsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeResourceRecordSetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeResourceRecordSetsInput"}
+	if s.ChangeBatch == nil {
+		invalidParams.Add(request.NewErrParamRequired("ChangeBatch"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.ChangeBatch != nil {
+		if err := s.ChangeBatch.Validate(); err != nil {
+			invalidParams.AddNested("ChangeBatch", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing the response for the request.
 type ChangeResourceRecordSetsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2211,6 +2364,28 @@ func (s ChangeTagsForResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeTagsForResourceInput"}
+	if s.AddTags != nil && len(s.AddTags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AddTags", 1))
+	}
+	if s.RemoveTagKeys != nil && len(s.RemoveTagKeys) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RemoveTagKeys", 1))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Empty response for the request.
 type ChangeTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
@@ -2223,6 +2398,62 @@ func (s ChangeTagsForResourceOutput) String() string {
 
 // GoString returns the string representation
 func (s ChangeTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// For CLOUDWATCH_METRIC health checks, a complex type that contains information
+// about the CloudWatch alarm that you're associating with the health check.
+type CloudWatchAlarmConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The arithmetic operation to use when comparing the specified Statistic and
+	// Threshold.
+	//
+	// Valid Values are GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold
+	// and LessThanOrEqualToThreshold
+	ComparisonOperator *string `type:"string" required:"true" enum:"ComparisonOperator"`
+
+	// A list of Dimension elements for the CloudWatch metric that is associated
+	// with the CloudWatch alarm. For information about the metrics and dimensions
+	// that CloudWatch supports, see Amazon CloudWatch Namespaces, Dimensions, and
+	// Metrics Reference (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html).
+	Dimensions []*Dimension `locationNameList:"Dimension" type:"list"`
+
+	// The number of periods over which data is compared to the specified threshold.
+	EvaluationPeriods *int64 `min:"1" type:"integer" required:"true"`
+
+	// The name of the CloudWatch metric that is associated with the CloudWatch
+	// alarm.
+	MetricName *string `min:"1" type:"string" required:"true"`
+
+	// The namespace of the CloudWatch metric that is associated with the CloudWatch
+	// alarm.
+	Namespace *string `min:"1" type:"string" required:"true"`
+
+	// An integer that represents the period in seconds over which the statistic
+	// is applied.
+	Period *int64 `min:"60" type:"integer" required:"true"`
+
+	// The statistic to apply to the CloudWatch metric that is associated with the
+	// CloudWatch alarm.
+	//
+	// Valid Values are SampleCount, Average, Sum, Minimum and Maximum
+	Statistic *string `type:"string" required:"true" enum:"Statistic"`
+
+	// The value that the metric is compared with to determine the state of the
+	// alarm. For example, if you want the health check to fail if the average TCP
+	// connection time is greater than 500 milliseconds for more than 60 seconds,
+	// the threshold is 500.
+	Threshold *float64 `type:"double" required:"true"`
+}
+
+// String returns the string representation
+func (s CloudWatchAlarmConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CloudWatchAlarmConfiguration) GoString() string {
 	return s.String()
 }
 
@@ -2253,6 +2484,30 @@ func (s CreateHealthCheckInput) String() string {
 // GoString returns the string representation
 func (s CreateHealthCheckInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHealthCheckInput"}
+	if s.CallerReference == nil {
+		invalidParams.Add(request.NewErrParamRequired("CallerReference"))
+	}
+	if s.CallerReference != nil && len(*s.CallerReference) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CallerReference", 1))
+	}
+	if s.HealthCheckConfig == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckConfig"))
+	}
+	if s.HealthCheckConfig != nil {
+		if err := s.HealthCheckConfig.Validate(); err != nil {
+			invalidParams.AddNested("HealthCheckConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the new health check.
@@ -2325,6 +2580,30 @@ func (s CreateHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHostedZoneInput"}
+	if s.CallerReference == nil {
+		invalidParams.Add(request.NewErrParamRequired("CallerReference"))
+	}
+	if s.CallerReference != nil && len(*s.CallerReference) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CallerReference", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.VPC != nil {
+		if err := s.VPC.Validate(); err != nil {
+			invalidParams.AddNested("VPC", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing the response information for the new hosted zone.
 type CreateHostedZoneOutput struct {
 	_ struct{} `type:"structure"`
@@ -2384,6 +2663,22 @@ func (s CreateReusableDelegationSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateReusableDelegationSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateReusableDelegationSetInput"}
+	if s.CallerReference == nil {
+		invalidParams.Add(request.NewErrParamRequired("CallerReference"))
+	}
+	if s.CallerReference != nil && len(*s.CallerReference) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CallerReference", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateReusableDelegationSetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2429,6 +2724,22 @@ func (s CreateTrafficPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTrafficPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTrafficPolicyInput"}
+	if s.Document == nil {
+		invalidParams.Add(request.NewErrParamRequired("Document"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // you want to create based on a specified traffic policy.
 type CreateTrafficPolicyInstanceInput struct {
@@ -2464,6 +2775,34 @@ func (s CreateTrafficPolicyInstanceInput) String() string {
 // GoString returns the string representation
 func (s CreateTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTrafficPolicyInstanceInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.TTL == nil {
+		invalidParams.Add(request.NewErrParamRequired("TTL"))
+	}
+	if s.TrafficPolicyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyId"))
+	}
+	if s.TrafficPolicyVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyVersion"))
+	}
+	if s.TrafficPolicyVersion != nil && *s.TrafficPolicyVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TrafficPolicyVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the CreateTrafficPolicyInstance
@@ -2536,6 +2875,22 @@ func (s CreateTrafficPolicyVersionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTrafficPolicyVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTrafficPolicyVersionInput"}
+	if s.Document == nil {
+		invalidParams.Add(request.NewErrParamRequired("Document"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the response information for the CreateTrafficPolicyVersion
 // request.
 type CreateTrafficPolicyVersionOutput struct {
@@ -2600,6 +2955,19 @@ func (s DeleteHealthCheckInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHealthCheckInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Empty response for the request.
 type DeleteHealthCheckOutput struct {
 	_ struct{} `type:"structure"`
@@ -2632,6 +3000,19 @@ func (s DeleteHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s DeleteHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHostedZoneInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the request.
@@ -2671,6 +3052,19 @@ func (s DeleteReusableDelegationSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteReusableDelegationSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteReusableDelegationSetInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Empty response for the request.
 type DeleteReusableDelegationSetOutput struct {
 	_ struct{} `type:"structure"`
@@ -2707,6 +3101,25 @@ func (s DeleteTrafficPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTrafficPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTrafficPolicyInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Version == nil {
+		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && *s.Version < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Version", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the traffic policy instance
 // that you want to delete.
 type DeleteTrafficPolicyInstanceInput struct {
@@ -2728,6 +3141,19 @@ func (s DeleteTrafficPolicyInstanceInput) String() string {
 // GoString returns the string representation
 func (s DeleteTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTrafficPolicyInstanceInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // An empty element.
@@ -2760,6 +3186,27 @@ func (s DeleteTrafficPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// The name and value of a dimension for a CloudWatch metric.
+type Dimension struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the dimension.
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// The value of the dimension.
+	Value *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Dimension) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Dimension) GoString() string {
+	return s.String()
+}
+
 // A complex type that contains information about the request to disassociate
 // a VPC from an hosted zone.
 type DisassociateVPCFromHostedZoneInput struct {
@@ -2785,6 +3232,27 @@ func (s DisassociateVPCFromHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s DisassociateVPCFromHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateVPCFromHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateVPCFromHostedZoneInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.VPC == nil {
+		invalidParams.Add(request.NewErrParamRequired("VPC"))
+	}
+	if s.VPC != nil {
+		if err := s.VPC.Validate(); err != nil {
+			invalidParams.AddNested("VPC", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the request.
@@ -2842,6 +3310,25 @@ func (s GeoLocation) String() string {
 // GoString returns the string representation
 func (s GeoLocation) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GeoLocation) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GeoLocation"}
+	if s.ContinentCode != nil && len(*s.ContinentCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("ContinentCode", 2))
+	}
+	if s.CountryCode != nil && len(*s.CountryCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CountryCode", 1))
+	}
+	if s.SubdivisionCode != nil && len(*s.SubdivisionCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SubdivisionCode", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about a GeoLocation.
@@ -2906,6 +3393,19 @@ func (s GetChangeDetailsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetChangeDetailsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetChangeDetailsInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the ChangeBatchRecord element.
 type GetChangeDetailsOutput struct {
 	_ struct{} `deprecated:"true" type:"structure"`
@@ -2944,6 +3444,19 @@ func (s GetChangeInput) String() string {
 // GoString returns the string representation
 func (s GetChangeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetChangeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetChangeInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the ChangeInfo element.
@@ -3038,6 +3551,25 @@ func (s GetGeoLocationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetGeoLocationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetGeoLocationInput"}
+	if s.ContinentCode != nil && len(*s.ContinentCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("ContinentCode", 2))
+	}
+	if s.CountryCode != nil && len(*s.CountryCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CountryCode", 1))
+	}
+	if s.SubdivisionCode != nil && len(*s.SubdivisionCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SubdivisionCode", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing information about the specified geo location.
 type GetGeoLocationOutput struct {
 	_ struct{} `type:"structure"`
@@ -3110,6 +3642,19 @@ func (s GetHealthCheckInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the request to get the most
 // recent failure reason for a health check.
 type GetHealthCheckLastFailureReasonInput struct {
@@ -3128,6 +3673,19 @@ func (s GetHealthCheckLastFailureReasonInput) String() string {
 // GoString returns the string representation
 func (s GetHealthCheckLastFailureReasonInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHealthCheckLastFailureReasonInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckLastFailureReasonInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the most recent failure for
@@ -3241,6 +3799,19 @@ func (s GetHealthCheckStatusInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHealthCheckStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckStatusInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the status of the specified
 // health check.
 type GetHealthCheckStatusOutput struct {
@@ -3315,6 +3886,19 @@ func (s GetHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHostedZoneInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing information about the specified hosted zone.
 type GetHostedZoneOutput struct {
 	_ struct{} `type:"structure"`
@@ -3360,6 +3944,19 @@ func (s GetReusableDelegationSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetReusableDelegationSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetReusableDelegationSetInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing information about the specified reusable delegation
 // set.
 type GetReusableDelegationSetOutput struct {
@@ -3402,6 +3999,25 @@ func (s GetTrafficPolicyInput) String() string {
 // GoString returns the string representation
 func (s GetTrafficPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTrafficPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTrafficPolicyInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Version == nil {
+		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && *s.Version < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Version", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // To retrieve a count of all your traffic policy instances, send a GET request
@@ -3461,6 +4077,19 @@ func (s GetTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTrafficPolicyInstanceInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // Amazon Route 53 created based on a specified traffic policy.
 type GetTrafficPolicyInstanceOutput struct {
@@ -3505,6 +4134,10 @@ type HealthCheck struct {
 	// A unique string that identifies the request to create the health check.
 	CallerReference *string `min:"1" type:"string" required:"true"`
 
+	// For CLOUDWATCH_METRIC health checks, a complex type that contains information
+	// about the CloudWatch alarm that you're associating with the health check.
+	CloudWatchAlarmConfiguration *CloudWatchAlarmConfiguration `type:"structure"`
+
 	// A complex type that contains the health check configuration.
 	HealthCheckConfig *HealthCheckConfig `type:"structure" required:"true"`
 
@@ -3530,6 +4163,10 @@ func (s HealthCheck) GoString() string {
 // A complex type that contains the health check configuration.
 type HealthCheckConfig struct {
 	_ struct{} `type:"structure"`
+
+	// A complex type that contains information to uniquely identify the CloudWatch
+	// alarm that you're associating with a Route 53 health check.
+	AlarmIdentifier *AlarmIdentifier `type:"structure"`
 
 	// For a specified parent health check, a list of HealthCheckId values for the
 	// associated child health checks.
@@ -3562,6 +4199,10 @@ type HealthCheckConfig struct {
 	// IP Address of the instance being checked.
 	IPAddress *string `type:"string"`
 
+	// The status of the health check when CloudWatch has insufficient data about
+	// the state of associated alarm. Valid values are Healthy, Unhealthy and LastKnownStatus.
+	InsufficientDataHealthStatus *string `type:"string" enum:"InsufficientDataHealthStatus"`
+
 	// A boolean value that indicates whether the status of health check should
 	// be inverted. For example, if a health check is healthy but Inverted is True,
 	// then Amazon Route 53 considers the health check to be unhealthy.
@@ -3576,6 +4217,11 @@ type HealthCheckConfig struct {
 	// For HTTP and HTTP_STR_MATCH this defaults to 80 if the port is not specified.
 	// For HTTPS and HTTPS_STR_MATCH this defaults to 443 if the port is not specified.
 	Port *int64 `min:"1" type:"integer"`
+
+	// A list of HealthCheckRegion values that you want Amazon Route 53 to use to
+	// perform health checks for the specified endpoint. You must specify at least
+	// three regions.
+	Regions []*string `locationNameList:"Region" min:"1" type:"list"`
 
 	// The number of seconds between the time that Amazon Route 53 gets a response
 	// from your endpoint and the time that it sends the next health-check request.
@@ -3595,7 +4241,7 @@ type HealthCheckConfig struct {
 	SearchString *string `type:"string"`
 
 	// The type of health check to be performed. Currently supported types are TCP,
-	// HTTP, HTTPS, HTTP_STR_MATCH, and HTTPS_STR_MATCH.
+	// HTTP, HTTPS, HTTP_STR_MATCH, HTTPS_STR_MATCH, CALCULATED and CLOUDWATCH_METRIC.
 	Type *string `type:"string" required:"true" enum:"HealthCheckType"`
 }
 
@@ -3609,14 +4255,48 @@ func (s HealthCheckConfig) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *HealthCheckConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "HealthCheckConfig"}
+	if s.FailureThreshold != nil && *s.FailureThreshold < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("FailureThreshold", 1))
+	}
+	if s.Port != nil && *s.Port < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Port", 1))
+	}
+	if s.Regions != nil && len(s.Regions) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Regions", 1))
+	}
+	if s.RequestInterval != nil && *s.RequestInterval < 10 {
+		invalidParams.Add(request.NewErrParamMinValue("RequestInterval", 10))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.AlarmIdentifier != nil {
+		if err := s.AlarmIdentifier.Validate(); err != nil {
+			invalidParams.AddNested("AlarmIdentifier", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the IP address of a Amazon Route 53 health checker
 // and the reason for the health check status.
 type HealthCheckObservation struct {
 	_ struct{} `type:"structure"`
 
-	// The IP address of the Amazon Route 53 health checker that performed the health
-	// check.
+	// The IP address of the Amazon Route 53 health checker that performed this
+	// health check.
 	IPAddress *string `type:"string"`
+
+	// The HealthCheckRegion of the Amazon Route 53 health checker that performed
+	// this health check.
+	Region *string `min:"1" type:"string" enum:"HealthCheckRegion"`
 
 	// A complex type that contains information about the health check status for
 	// the current observation.
@@ -3725,6 +4405,25 @@ func (s ListChangeBatchesByHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListChangeBatchesByHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListChangeBatchesByHostedZoneInput"}
+	if s.EndDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndDate"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.StartDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartDate"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The input for a ListChangeBatchesByHostedZone request.
 type ListChangeBatchesByHostedZoneOutput struct {
 	_ struct{} `deprecated:"true" type:"structure"`
@@ -3792,6 +4491,34 @@ func (s ListChangeBatchesByRRSetInput) String() string {
 // GoString returns the string representation
 func (s ListChangeBatchesByRRSetInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListChangeBatchesByRRSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListChangeBatchesByRRSetInput"}
+	if s.EndDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndDate"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.SetIdentifier != nil && len(*s.SetIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SetIdentifier", 1))
+	}
+	if s.StartDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartDate"))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The input for a ListChangeBatchesByRRSet request.
@@ -3864,6 +4591,25 @@ func (s ListGeoLocationsInput) String() string {
 // GoString returns the string representation
 func (s ListGeoLocationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListGeoLocationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListGeoLocationsInput"}
+	if s.StartContinentCode != nil && len(*s.StartContinentCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("StartContinentCode", 2))
+	}
+	if s.StartCountryCode != nil && len(*s.StartCountryCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StartCountryCode", 1))
+	}
+	if s.StartSubdivisionCode != nil && len(*s.StartSubdivisionCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StartSubdivisionCode", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the geo locations that are
@@ -4210,6 +4956,22 @@ func (s ListResourceRecordSetsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListResourceRecordSetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListResourceRecordSetsInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.StartRecordIdentifier != nil && len(*s.StartRecordIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StartRecordIdentifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // are returned by the request and information about the response.
 type ListResourceRecordSetsOutput struct {
@@ -4361,6 +5123,22 @@ func (s ListTagsForResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing tags for the specified resource.
 type ListTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
@@ -4404,6 +5182,25 @@ func (s ListTagsForResourcesInput) String() string {
 // GoString returns the string representation
 func (s ListTagsForResourcesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourcesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourcesInput"}
+	if s.ResourceIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceIds"))
+	}
+	if s.ResourceIds != nil && len(s.ResourceIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceIds", 1))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing tags for the specified resources.
@@ -4546,6 +5343,19 @@ func (s ListTrafficPolicyInstancesByHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTrafficPolicyInstancesByHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTrafficPolicyInstancesByHostedZoneInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the response information for the request.
 type ListTrafficPolicyInstancesByHostedZoneOutput struct {
 	_ struct{} `type:"structure"`
@@ -4655,6 +5465,25 @@ func (s ListTrafficPolicyInstancesByPolicyInput) String() string {
 // GoString returns the string representation
 func (s ListTrafficPolicyInstancesByPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTrafficPolicyInstancesByPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTrafficPolicyInstancesByPolicyInput"}
+	if s.TrafficPolicyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyId"))
+	}
+	if s.TrafficPolicyVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyVersion"))
+	}
+	if s.TrafficPolicyVersion != nil && *s.TrafficPolicyVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TrafficPolicyVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the request.
@@ -4850,6 +5679,19 @@ func (s ListTrafficPolicyVersionsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTrafficPolicyVersionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTrafficPolicyVersionsInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the response information for the request.
 type ListTrafficPolicyVersionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4913,6 +5755,19 @@ func (s ResourceRecord) String() string {
 // GoString returns the string representation
 func (s ResourceRecord) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceRecord) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceRecord"}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the current resource record
@@ -5144,6 +5999,51 @@ func (s ResourceRecordSet) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceRecordSet) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceRecordSet"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Region != nil && len(*s.Region) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Region", 1))
+	}
+	if s.ResourceRecords != nil && len(s.ResourceRecords) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceRecords", 1))
+	}
+	if s.SetIdentifier != nil && len(*s.SetIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SetIdentifier", 1))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.AliasTarget != nil {
+		if err := s.AliasTarget.Validate(); err != nil {
+			invalidParams.AddNested("AliasTarget", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.GeoLocation != nil {
+		if err := s.GeoLocation.Validate(); err != nil {
+			invalidParams.AddNested("GeoLocation", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ResourceRecords != nil {
+		for i, v := range s.ResourceRecords {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ResourceRecords", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing a resource and its associated tags.
 type ResourceTagSet struct {
 	_ struct{} `type:"structure"`
@@ -5305,6 +6205,10 @@ func (s TrafficPolicySummary) GoString() string {
 type UpdateHealthCheckInput struct {
 	_ struct{} `locationName:"UpdateHealthCheckRequest" type:"structure" xmlURI:"https://route53.amazonaws.com/doc/2013-04-01/"`
 
+	// A complex type that contains information to uniquely identify the CloudWatch
+	// alarm that you're associating with a Route 53 health check.
+	AlarmIdentifier *AlarmIdentifier `type:"structure"`
+
 	// For a specified parent health check, a list of HealthCheckId values for the
 	// associated child health checks.
 	//
@@ -5357,6 +6261,8 @@ type UpdateHealthCheckInput struct {
 	// Specify this value only if you want to change it.
 	IPAddress *string `type:"string"`
 
+	InsufficientDataHealthStatus *string `type:"string" enum:"InsufficientDataHealthStatus"`
+
 	// A boolean value that indicates whether the status of health check should
 	// be inverted. For example, if a health check is healthy but Inverted is True,
 	// then Amazon Route 53 considers the health check to be unhealthy.
@@ -5369,6 +6275,15 @@ type UpdateHealthCheckInput struct {
 	//
 	// Specify this value only if you want to change it.
 	Port *int64 `min:"1" type:"integer"`
+
+	// A list of HealthCheckRegion values that specify the Amazon EC2 regions that
+	// you want Amazon Route 53 to use to perform health checks. You must specify
+	// at least three regions.
+	//
+	// When you remove a region from the list, Amazon Route 53 will briefly continue
+	// to check your endpoint from that region. Specify this value only if you want
+	// to change it.
+	Regions []*string `locationNameList:"Region" min:"1" type:"list"`
 
 	// The path that you want Amazon Route 53 to request when performing health
 	// checks. The path can be any value for which your endpoint will return an
@@ -5396,6 +6311,36 @@ func (s UpdateHealthCheckInput) String() string {
 // GoString returns the string representation
 func (s UpdateHealthCheckInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateHealthCheckInput"}
+	if s.FailureThreshold != nil && *s.FailureThreshold < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("FailureThreshold", 1))
+	}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+	if s.HealthCheckVersion != nil && *s.HealthCheckVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("HealthCheckVersion", 1))
+	}
+	if s.Port != nil && *s.Port < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Port", 1))
+	}
+	if s.Regions != nil && len(s.Regions) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Regions", 1))
+	}
+	if s.AlarmIdentifier != nil {
+		if err := s.AlarmIdentifier.Validate(); err != nil {
+			invalidParams.AddNested("AlarmIdentifier", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UpdateHealthCheckOutput struct {
@@ -5435,6 +6380,19 @@ func (s UpdateHostedZoneCommentInput) String() string {
 // GoString returns the string representation
 func (s UpdateHostedZoneCommentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateHostedZoneCommentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateHostedZoneCommentInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing information about the specified hosted zone after
@@ -5480,6 +6438,28 @@ func (s UpdateTrafficPolicyCommentInput) String() string {
 // GoString returns the string representation
 func (s UpdateTrafficPolicyCommentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTrafficPolicyCommentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTrafficPolicyCommentInput"}
+	if s.Comment == nil {
+		invalidParams.Add(request.NewErrParamRequired("Comment"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Version == nil {
+		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && *s.Version < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Version", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the traffic policy.
@@ -5531,6 +6511,31 @@ func (s UpdateTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTrafficPolicyInstanceInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.TTL == nil {
+		invalidParams.Add(request.NewErrParamRequired("TTL"))
+	}
+	if s.TrafficPolicyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyId"))
+	}
+	if s.TrafficPolicyVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyVersion"))
+	}
+	if s.TrafficPolicyVersion != nil && *s.TrafficPolicyVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TrafficPolicyVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // Amazon Route 53 created based on a specified traffic policy.
 type UpdateTrafficPolicyInstanceOutput struct {
@@ -5569,6 +6574,19 @@ func (s VPC) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *VPC) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "VPC"}
+	if s.VPCRegion != nil && len(*s.VPCRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VPCRegion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 const (
 	// @enum ChangeAction
 	ChangeActionCreate = "CREATE"
@@ -5586,6 +6604,61 @@ const (
 )
 
 const (
+	// @enum CloudWatchRegion
+	CloudWatchRegionUsEast1 = "us-east-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionUsWest1 = "us-west-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionUsWest2 = "us-west-2"
+	// @enum CloudWatchRegion
+	CloudWatchRegionEuCentral1 = "eu-central-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionEuWest1 = "eu-west-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApSoutheast1 = "ap-southeast-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApSoutheast2 = "ap-southeast-2"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApNortheast1 = "ap-northeast-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApNortheast2 = "ap-northeast-2"
+	// @enum CloudWatchRegion
+	CloudWatchRegionSaEast1 = "sa-east-1"
+)
+
+const (
+	// @enum ComparisonOperator
+	ComparisonOperatorGreaterThanOrEqualToThreshold = "GreaterThanOrEqualToThreshold"
+	// @enum ComparisonOperator
+	ComparisonOperatorGreaterThanThreshold = "GreaterThanThreshold"
+	// @enum ComparisonOperator
+	ComparisonOperatorLessThanThreshold = "LessThanThreshold"
+	// @enum ComparisonOperator
+	ComparisonOperatorLessThanOrEqualToThreshold = "LessThanOrEqualToThreshold"
+)
+
+// An Amazon EC2 region that you want Amazon Route 53 to use to perform health
+// checks.
+const (
+	// @enum HealthCheckRegion
+	HealthCheckRegionUsEast1 = "us-east-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionUsWest1 = "us-west-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionUsWest2 = "us-west-2"
+	// @enum HealthCheckRegion
+	HealthCheckRegionEuWest1 = "eu-west-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionApSoutheast1 = "ap-southeast-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionApSoutheast2 = "ap-southeast-2"
+	// @enum HealthCheckRegion
+	HealthCheckRegionApNortheast1 = "ap-northeast-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionSaEast1 = "sa-east-1"
+)
+
+const (
 	// @enum HealthCheckType
 	HealthCheckTypeHttp = "HTTP"
 	// @enum HealthCheckType
@@ -5598,6 +6671,17 @@ const (
 	HealthCheckTypeTcp = "TCP"
 	// @enum HealthCheckType
 	HealthCheckTypeCalculated = "CALCULATED"
+	// @enum HealthCheckType
+	HealthCheckTypeCloudwatchMetric = "CLOUDWATCH_METRIC"
+)
+
+const (
+	// @enum InsufficientDataHealthStatus
+	InsufficientDataHealthStatusHealthy = "Healthy"
+	// @enum InsufficientDataHealthStatus
+	InsufficientDataHealthStatusUnhealthy = "Unhealthy"
+	// @enum InsufficientDataHealthStatus
+	InsufficientDataHealthStatusLastKnownStatus = "LastKnownStatus"
 )
 
 const (
@@ -5653,6 +6737,19 @@ const (
 	ResourceRecordSetRegionSaEast1 = "sa-east-1"
 	// @enum ResourceRecordSetRegion
 	ResourceRecordSetRegionCnNorth1 = "cn-north-1"
+)
+
+const (
+	// @enum Statistic
+	StatisticAverage = "Average"
+	// @enum Statistic
+	StatisticSum = "Sum"
+	// @enum Statistic
+	StatisticSampleCount = "SampleCount"
+	// @enum Statistic
+	StatisticMaximum = "Maximum"
+	// @enum Statistic
+	StatisticMinimum = "Minimum"
 )
 
 const (

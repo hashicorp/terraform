@@ -145,7 +145,9 @@ func Provider() terraform.ResourceProvider {
 			"aws_codedeploy_deployment_group":              resourceAwsCodeDeployDeploymentGroup(),
 			"aws_codecommit_repository":                    resourceAwsCodeCommitRepository(),
 			"aws_customer_gateway":                         resourceAwsCustomerGateway(),
+			"aws_db_event_subscription":                    resourceAwsDbEventSubscription(),
 			"aws_db_instance":                              resourceAwsDbInstance(),
+			"aws_db_option_group":                          resourceAwsDbOptionGroup(),
 			"aws_db_parameter_group":                       resourceAwsDbParameterGroup(),
 			"aws_db_security_group":                        resourceAwsDbSecurityGroup(),
 			"aws_db_subnet_group":                          resourceAwsDbSubnetGroup(),
@@ -160,6 +162,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_efs_file_system":                          resourceAwsEfsFileSystem(),
 			"aws_efs_mount_target":                         resourceAwsEfsMountTarget(),
 			"aws_eip":                                      resourceAwsEip(),
+			"aws_eip_association":                          resourceAwsEipAssociation(),
 			"aws_elasticache_cluster":                      resourceAwsElasticacheCluster(),
 			"aws_elasticache_parameter_group":              resourceAwsElasticacheParameterGroup(),
 			"aws_elasticache_security_group":               resourceAwsElasticacheSecurityGroup(),
@@ -254,7 +257,6 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpn_connection_route":                     resourceAwsVpnConnectionRoute(),
 			"aws_vpn_gateway":                              resourceAwsVpnGateway(),
 		},
-
 		ConfigureFunc: providerConfigure,
 	}
 }

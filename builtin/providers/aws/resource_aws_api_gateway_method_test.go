@@ -32,6 +32,14 @@ func TestAccAWSAPIGatewayMethod_basic(t *testing.T) {
 						"aws_api_gateway_method.test", "request_models.application/json", "Error"),
 				),
 			},
+
+			resource.TestStep{
+				Config: testAccAWSAPIGatewayMethodConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAPIGatewayMethodExists("aws_api_gateway_method.test", &conf),
+					testAccCheckAWSAPIGatewayMethodAttributesUpdate(&conf),
+				),
+			},
 		},
 	})
 }
@@ -44,6 +52,42 @@ func testAccCheckAWSAPIGatewayMethodAttributes(conf *apigateway.Method) resource
 		if *conf.AuthorizationType != "NONE" {
 			return fmt.Errorf("Wrong Authorization: %q", *conf.AuthorizationType)
 		}
+
+		if val, ok := conf.RequestParameters["method.request.header.Content-Type"]; !ok {
+			return fmt.Errorf("missing Content-Type RequestParameters")
+		} else {
+			if *val != false {
+				return fmt.Errorf("wrong Content-Type RequestParameters value")
+			}
+		}
+		if val, ok := conf.RequestParameters["method.request.querystring.page"]; !ok {
+			return fmt.Errorf("missing page RequestParameters")
+		} else {
+			if *val != true {
+				return fmt.Errorf("wrong query string RequestParameters value")
+			}
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSAPIGatewayMethodAttributesUpdate(conf *apigateway.Method) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *conf.HttpMethod != "GET" {
+			return fmt.Errorf("Wrong HttpMethod: %q", *conf.HttpMethod)
+		}
+		if conf.RequestParameters["method.request.header.Content-Type"] != nil {
+			return fmt.Errorf("Content-Type RequestParameters shouldn't exist")
+		}
+		if val, ok := conf.RequestParameters["method.request.querystring.page"]; !ok {
+			return fmt.Errorf("missing updated page RequestParameters")
+		} else {
+			if *val != false {
+				return fmt.Errorf("wrong query string RequestParameters updated value")
+			}
+		}
+
 		return nil
 	}
 }
@@ -130,5 +174,41 @@ resource "aws_api_gateway_method" "test" {
   request_models = {
     "application/json" = "Error"
   }
+
+  request_parameters_in_json = <<PARAMS
+  {
+    "method.request.header.Content-Type": false,
+	"method.request.querystring.page": true
+  }
+  PARAMS
+}
+`
+
+const testAccAWSAPIGatewayMethodConfigUpdate = `
+resource "aws_api_gateway_rest_api" "test" {
+  name = "test"
+}
+
+resource "aws_api_gateway_resource" "test" {
+  rest_api_id = "${aws_api_gateway_rest_api.test.id}"
+  parent_id = "${aws_api_gateway_rest_api.test.root_resource_id}"
+  path_part = "test"
+}
+
+resource "aws_api_gateway_method" "test" {
+  rest_api_id = "${aws_api_gateway_rest_api.test.id}"
+  resource_id = "${aws_api_gateway_resource.test.id}"
+  http_method = "GET"
+  authorization = "NONE"
+
+  request_models = {
+    "application/json" = "Error"
+  }
+
+  request_parameters_in_json = <<PARAMS
+  {
+	"method.request.querystring.page": false
+  }
+  PARAMS
 }
 `

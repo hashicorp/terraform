@@ -262,6 +262,64 @@ func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, 
 	return parameters, nil
 }
 
+func expandOptionConfiguration(configured []interface{}) ([]*rds.OptionConfiguration, error) {
+	var option []*rds.OptionConfiguration
+
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		o := &rds.OptionConfiguration{
+			OptionName: aws.String(data["option_name"].(string)),
+		}
+
+		if raw, ok := data["port"]; ok {
+			port := raw.(int)
+			if port != 0 {
+				o.Port = aws.Int64(int64(port))
+			}
+		}
+
+		if raw, ok := data["db_security_group_memberships"]; ok {
+			memberships := expandStringList(raw.(*schema.Set).List())
+			if len(memberships) > 0 {
+				o.DBSecurityGroupMemberships = memberships
+			}
+		}
+
+		if raw, ok := data["vpc_security_group_memberships"]; ok {
+			memberships := expandStringList(raw.(*schema.Set).List())
+			if len(memberships) > 0 {
+				o.VpcSecurityGroupMemberships = memberships
+			}
+		}
+
+		if raw, ok := data["option_settings"]; ok {
+			o.OptionSettings = expandOptionSetting(raw.(*schema.Set).List())
+		}
+
+		option = append(option, o)
+	}
+
+	return option, nil
+}
+
+func expandOptionSetting(list []interface{}) []*rds.OptionSetting {
+	options := make([]*rds.OptionSetting, 0, len(list))
+
+	for _, oRaw := range list {
+		data := oRaw.(map[string]interface{})
+
+		o := &rds.OptionSetting{
+			Name:  aws.String(data["name"].(string)),
+			Value: aws.String(data["value"].(string)),
+		}
+
+		options = append(options, o)
+	}
+
+	return options
+}
+
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
 func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.ParameterNameValue, error) {
@@ -506,6 +564,53 @@ func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (str
 	return string(byteArray[:n]), nil
 }
 
+// Flattens an array of Options into a []map[string]interface{}
+func flattenOptions(list []*rds.Option) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		if i.OptionName != nil {
+			r := make(map[string]interface{})
+			r["option_name"] = strings.ToLower(*i.OptionName)
+			// Default empty string, guard against nil parameter values
+			r["port"] = ""
+			if i.Port != nil {
+				r["port"] = int(*i.Port)
+			}
+			if i.VpcSecurityGroupMemberships != nil {
+				vpcs := make([]string, 0, len(i.VpcSecurityGroupMemberships))
+				for _, vpc := range i.VpcSecurityGroupMemberships {
+					id := vpc.VpcSecurityGroupId
+					vpcs = append(vpcs, *id)
+				}
+
+				r["vpc_security_group_memberships"] = vpcs
+			}
+			if i.DBSecurityGroupMemberships != nil {
+				dbs := make([]string, 0, len(i.DBSecurityGroupMemberships))
+				for _, db := range i.DBSecurityGroupMemberships {
+					id := db.DBSecurityGroupName
+					dbs = append(dbs, *id)
+				}
+
+				r["db_security_group_memberships"] = dbs
+			}
+			if i.OptionSettings != nil {
+				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
+				for _, j := range i.OptionSettings {
+					settings = append(settings, map[string]interface{}{
+						"name":  *j.Name,
+						"value": *j.Value,
+					})
+				}
+
+				r["option_settings"] = settings
+			}
+			result = append(result, r)
+		}
+	}
+	return result
+}
+
 // Flattens an array of Parameters into a []map[string]interface{}
 func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
@@ -540,10 +645,12 @@ func flattenRedshiftParameters(list []*redshift.Parameter) []map[string]interfac
 func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
-		result = append(result, map[string]interface{}{
-			"name":  strings.ToLower(*i.ParameterName),
-			"value": strings.ToLower(*i.ParameterValue),
-		})
+		if i.ParameterValue != nil {
+			result = append(result, map[string]interface{}{
+				"name":  strings.ToLower(*i.ParameterName),
+				"value": strings.ToLower(*i.ParameterValue),
+			})
+		}
 	}
 	return result
 }
@@ -948,7 +1055,7 @@ func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key 
 	return operations
 }
 
-func expandApiGatewayMethodResponseParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
+func expandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
 	operations := make([]*apigateway.PatchOperation, 0)
 
 	oldParameters, newParameters := d.GetChange(key)
@@ -956,12 +1063,12 @@ func expandApiGatewayMethodResponseParametersJSONOperations(d *schema.ResourceDa
 	newParametersMap := make(map[string]interface{})
 
 	if err := json.Unmarshal([]byte(oldParameters.(string)), &oldParametersMap); err != nil {
-		err := fmt.Errorf("Error unmarshaling old response_parameters_in_json: %s", err)
+		err := fmt.Errorf("Error unmarshaling old %s: %s", key, err)
 		return operations, err
 	}
 
 	if err := json.Unmarshal([]byte(newParameters.(string)), &newParametersMap); err != nil {
-		err := fmt.Errorf("Error unmarshaling new response_parameters_in_json: %s", err)
+		err := fmt.Errorf("Error unmarshaling new %s: %s", key, err)
 		return operations, err
 	}
 

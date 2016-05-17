@@ -4,6 +4,8 @@
 package sqs
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/private/protocol"
@@ -781,6 +783,28 @@ func (s AddPermissionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddPermissionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddPermissionInput"}
+	if s.AWSAccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AWSAccountIds"))
+	}
+	if s.Actions == nil {
+		invalidParams.Add(request.NewErrParamRequired("Actions"))
+	}
+	if s.Label == nil {
+		invalidParams.Add(request.NewErrParamRequired("Label"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AddPermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -844,6 +868,32 @@ func (s ChangeMessageVisibilityBatchInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeMessageVisibilityBatchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeMessageVisibilityBatchInput"}
+	if s.Entries == nil {
+		invalidParams.Add(request.NewErrParamRequired("Entries"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.Entries != nil {
+		for i, v := range s.Entries {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Entries", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // For each message in the batch, the response contains a ChangeMessageVisibilityBatchResultEntry
 // tag if the message succeeds or a BatchResultErrorEntry tag if the message
 // fails.
@@ -902,6 +952,22 @@ func (s ChangeMessageVisibilityBatchRequestEntry) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeMessageVisibilityBatchRequestEntry) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeMessageVisibilityBatchRequestEntry"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.ReceiptHandle == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReceiptHandle"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Encloses the id of an entry in ChangeMessageVisibilityBatch.
 type ChangeMessageVisibilityBatchResultEntry struct {
 	_ struct{} `type:"structure"`
@@ -943,6 +1009,25 @@ func (s ChangeMessageVisibilityInput) String() string {
 // GoString returns the string representation
 func (s ChangeMessageVisibilityInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeMessageVisibilityInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeMessageVisibilityInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.ReceiptHandle == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReceiptHandle"))
+	}
+	if s.VisibilityTimeout == nil {
+		invalidParams.Add(request.NewErrParamRequired("VisibilityTimeout"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ChangeMessageVisibilityOutput struct {
@@ -1000,6 +1085,19 @@ func (s CreateQueueInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateQueueInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateQueueInput"}
+	if s.QueueName == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Returns the QueueUrl element of the created queue.
 type CreateQueueOutput struct {
 	_ struct{} `type:"structure"`
@@ -1036,6 +1134,32 @@ func (s DeleteMessageBatchInput) String() string {
 // GoString returns the string representation
 func (s DeleteMessageBatchInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMessageBatchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMessageBatchInput"}
+	if s.Entries == nil {
+		invalidParams.Add(request.NewErrParamRequired("Entries"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.Entries != nil {
+		for i, v := range s.Entries {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Entries", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // For each message in the batch, the response contains a DeleteMessageBatchResultEntry
@@ -1084,6 +1208,22 @@ func (s DeleteMessageBatchRequestEntry) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMessageBatchRequestEntry) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMessageBatchRequestEntry"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.ReceiptHandle == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReceiptHandle"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Encloses the id an entry in DeleteMessageBatch.
 type DeleteMessageBatchResultEntry struct {
 	_ struct{} `type:"structure"`
@@ -1122,6 +1262,22 @@ func (s DeleteMessageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMessageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMessageInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.ReceiptHandle == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReceiptHandle"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteMessageOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1151,6 +1307,19 @@ func (s DeleteQueueInput) String() string {
 // GoString returns the string representation
 func (s DeleteQueueInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteQueueInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteQueueInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteQueueOutput struct {
@@ -1185,6 +1354,19 @@ func (s GetQueueAttributesInput) String() string {
 // GoString returns the string representation
 func (s GetQueueAttributesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetQueueAttributesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetQueueAttributesInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A list of returned queue attributes.
@@ -1226,6 +1408,19 @@ func (s GetQueueUrlInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetQueueUrlInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetQueueUrlInput"}
+	if s.QueueName == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // For more information, see Responses (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/UnderstandingResponses.html)
 // in the Amazon SQS Developer Guide.
 type GetQueueUrlOutput struct {
@@ -1260,6 +1455,19 @@ func (s ListDeadLetterSourceQueuesInput) String() string {
 // GoString returns the string representation
 func (s ListDeadLetterSourceQueuesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListDeadLetterSourceQueuesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListDeadLetterSourceQueuesInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A list of your dead letter source queues.
@@ -1406,6 +1614,19 @@ func (s MessageAttributeValue) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MessageAttributeValue) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MessageAttributeValue"}
+	if s.DataType == nil {
+		invalidParams.Add(request.NewErrParamRequired("DataType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PurgeQueueInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1422,6 +1643,19 @@ func (s PurgeQueueInput) String() string {
 // GoString returns the string representation
 func (s PurgeQueueInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PurgeQueueInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PurgeQueueInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PurgeQueueOutput struct {
@@ -1500,6 +1734,19 @@ func (s ReceiveMessageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReceiveMessageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReceiveMessageInput"}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A list of received messages.
 type ReceiveMessageOutput struct {
 	_ struct{} `type:"structure"`
@@ -1539,6 +1786,22 @@ func (s RemovePermissionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemovePermissionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemovePermissionInput"}
+	if s.Label == nil {
+		invalidParams.Add(request.NewErrParamRequired("Label"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RemovePermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1571,6 +1834,32 @@ func (s SendMessageBatchInput) String() string {
 // GoString returns the string representation
 func (s SendMessageBatchInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SendMessageBatchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SendMessageBatchInput"}
+	if s.Entries == nil {
+		invalidParams.Add(request.NewErrParamRequired("Entries"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.Entries != nil {
+		for i, v := range s.Entries {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Entries", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // For each message in the batch, the response contains a SendMessageBatchResultEntry
@@ -1625,6 +1914,32 @@ func (s SendMessageBatchRequestEntry) String() string {
 // GoString returns the string representation
 func (s SendMessageBatchRequestEntry) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SendMessageBatchRequestEntry) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SendMessageBatchRequestEntry"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.MessageBody == nil {
+		invalidParams.Add(request.NewErrParamRequired("MessageBody"))
+	}
+	if s.MessageAttributes != nil {
+		for i, v := range s.MessageAttributes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "MessageAttributes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Encloses a message ID for successfully enqueued message of a SendMessageBatch.
@@ -1689,6 +2004,32 @@ func (s SendMessageInput) String() string {
 // GoString returns the string representation
 func (s SendMessageInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SendMessageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SendMessageInput"}
+	if s.MessageBody == nil {
+		invalidParams.Add(request.NewErrParamRequired("MessageBody"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+	if s.MessageAttributes != nil {
+		for i, v := range s.MessageAttributes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "MessageAttributes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The MD5OfMessageBody and MessageId elements.
@@ -1764,6 +2105,22 @@ func (s SetQueueAttributesInput) String() string {
 // GoString returns the string representation
 func (s SetQueueAttributesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetQueueAttributesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetQueueAttributesInput"}
+	if s.Attributes == nil {
+		invalidParams.Add(request.NewErrParamRequired("Attributes"))
+	}
+	if s.QueueUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("QueueUrl"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetQueueAttributesOutput struct {

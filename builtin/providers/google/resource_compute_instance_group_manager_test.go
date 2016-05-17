@@ -2,6 +2,8 @@ package google
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 
 	"google.golang.org/api/compute/v1"
@@ -79,6 +81,37 @@ func TestAccInstanceGroupManager_update(t *testing.T) {
 	})
 }
 
+func TestAccInstanceGroupManager_updateLifecycle(t *testing.T) {
+	var manager compute.InstanceGroupManager
+
+	tag1 := "tag1"
+	tag2 := "tag2"
+	igm := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceGroupManager_updateLifecycle(tag1, igm),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceGroupManagerExists(
+						"google_compute_instance_group_manager.igm-update", &manager),
+				),
+			},
+			resource.TestStep{
+				Config: testAccInstanceGroupManager_updateLifecycle(tag2, igm),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceGroupManagerExists(
+						"google_compute_instance_group_manager.igm-update", &manager),
+					testAccCheckInstanceGroupManagerTemplateTags(
+						"google_compute_instance_group_manager.igm-update", []string{tag2}),
+				),
+			},
+		},
+	})
+}
 func testAccCheckInstanceGroupManagerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -195,6 +228,40 @@ func testAccCheckInstanceGroupManagerNamedPorts(n string, np map[string]int64, i
 			if !found {
 				return fmt.Errorf("named port incorrect")
 			}
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckInstanceGroupManagerTemplateTags(n string, tags []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		config := testAccProvider.Meta().(*Config)
+
+		manager, err := config.clientCompute.InstanceGroupManagers.Get(
+			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
+		if err != nil {
+			return err
+		}
+
+		// check that the instance template updated
+		instanceTemplate, err := config.clientCompute.InstanceTemplates.Get(
+			config.Project, resourceSplitter(manager.InstanceTemplate)).Do()
+		if err != nil {
+			return fmt.Errorf("Error reading instance template: %s", err)
+		}
+
+		if !reflect.DeepEqual(instanceTemplate.Properties.Tags.Items, tags) {
+			return fmt.Errorf("instance template not updated")
 		}
 
 		return nil
@@ -379,4 +446,50 @@ func testAccInstanceGroupManager_update2(template1, target, template2, igm strin
 			port = 8443
 		}
 	}`, template1, target, template2, igm)
+}
+
+func testAccInstanceGroupManager_updateLifecycle(tag, igm string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_instance_template" "igm-update" {
+		machine_type = "n1-standard-1"
+		can_ip_forward = false
+		tags = ["%s"]
+
+		disk {
+			source_image = "debian-cloud/debian-7-wheezy-v20160301"
+			auto_delete = true
+			boot = true
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		service_account {
+			scopes = ["userinfo-email", "compute-ro", "storage-ro"]
+		}
+
+		lifecycle {
+			create_before_destroy = true
+		}
+	}
+
+	resource "google_compute_instance_group_manager" "igm-update" {
+		description = "Terraform test instance group manager"
+		name = "%s"
+		instance_template = "${google_compute_instance_template.igm-update.self_link}"
+		base_instance_name = "igm-update"
+		zone = "us-central1-c"
+		target_size = 2
+		named_port {
+			name = "customhttp"
+			port = 8080
+		}
+	}`, tag, igm)
+}
+
+func resourceSplitter(resource string) string {
+	splits := strings.Split(resource, "/")
+
+	return splits[len(splits)-1]
 }

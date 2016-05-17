@@ -56,7 +56,7 @@ func TestAccAWSRedshiftSecurityGroup_ingressSecurityGroup(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_redshift_security_group.bar", "ingress.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_redshift_security_group.bar", "ingress.220863.security_group_name", "terraform_redshift_acceptance_test"),
+						"aws_redshift_security_group.bar", "ingress.2230908922.security_group_name", "terraform_redshift_acceptance_test"),
 				),
 			},
 		},

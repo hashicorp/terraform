@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/sts"
 )
 
 func TestAWSGetAccountId_shouldBeValid_fromEC2Role(t *testing.T) {
@@ -28,10 +29,10 @@ func TestAWSGetAccountId_shouldBeValid_fromEC2Role(t *testing.T) {
 	defer awsTs()
 
 	iamEndpoints := []*iamEndpoint{}
-	ts, iamConn := getMockedAwsIamApi(iamEndpoints)
+	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, ec2rolecreds.ProviderName)
+	id, err := GetAccountId(iamConn, stsConn, ec2rolecreds.ProviderName)
 	if err != nil {
 		t.Fatalf("Getting account ID from EC2 metadata API failed: %s", err)
 	}
@@ -55,10 +56,10 @@ func TestAWSGetAccountId_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
 			Response: &iamResponse{200, iamResponse_GetUser_valid, "text/xml"},
 		},
 	}
-	ts, iamConn := getMockedAwsIamApi(iamEndpoints)
+	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, ec2rolecreds.ProviderName)
+	id, err := GetAccountId(iamConn, stsConn, ec2rolecreds.ProviderName)
 	if err != nil {
 		t.Fatalf("Getting account ID from EC2 metadata API failed: %s", err)
 	}
@@ -76,10 +77,36 @@ func TestAWSGetAccountId_shouldBeValid_fromIamUser(t *testing.T) {
 			Response: &iamResponse{200, iamResponse_GetUser_valid, "text/xml"},
 		},
 	}
-	ts, iamConn := getMockedAwsIamApi(iamEndpoints)
+
+	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, "")
+	id, err := GetAccountId(iamConn, stsConn, "")
+	if err != nil {
+		t.Fatalf("Getting account ID via GetUser failed: %s", err)
+	}
+
+	expectedAccountId := "123456789012"
+	if id != expectedAccountId {
+		t.Fatalf("Expected account ID: %s, given: %s", expectedAccountId, id)
+	}
+}
+
+func TestAWSGetAccountId_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
+	iamEndpoints := []*iamEndpoint{
+		&iamEndpoint{
+			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
+			Response: &iamResponse{403, iamResponse_GetUser_unauthorized, "text/xml"},
+		},
+		&iamEndpoint{
+			Request:  &iamRequest{"POST", "/", "Action=GetCallerIdentity&Version=2011-06-15"},
+			Response: &iamResponse{200, stsResponse_GetCallerIdentity_valid, "text/xml"},
+		},
+	}
+	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
+	defer ts()
+
+	id, err := GetAccountId(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via GetUser failed: %s", err)
 	}
@@ -97,14 +124,18 @@ func TestAWSGetAccountId_shouldBeValid_fromIamListRoles(t *testing.T) {
 			Response: &iamResponse{403, iamResponse_GetUser_unauthorized, "text/xml"},
 		},
 		&iamEndpoint{
+			Request:  &iamRequest{"POST", "/", "Action=GetCallerIdentity&Version=2011-06-15"},
+			Response: &iamResponse{403, stsResponse_GetCallerIdentity_unauthorized, "text/xml"},
+		},
+		&iamEndpoint{
 			Request:  &iamRequest{"POST", "/", "Action=ListRoles&MaxItems=1&Version=2010-05-08"},
 			Response: &iamResponse{200, iamResponse_ListRoles_valid, "text/xml"},
 		},
 	}
-	ts, iamConn := getMockedAwsIamApi(iamEndpoints)
+	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, "")
+	id, err := GetAccountId(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via ListRoles failed: %s", err)
 	}
@@ -126,10 +157,10 @@ func TestAWSGetAccountId_shouldBeValid_federatedRole(t *testing.T) {
 			Response: &iamResponse{200, iamResponse_ListRoles_valid, "text/xml"},
 		},
 	}
-	ts, iamConn := getMockedAwsIamApi(iamEndpoints)
+	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, "")
+	id, err := GetAccountId(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via ListRoles failed: %s", err)
 	}
@@ -151,10 +182,10 @@ func TestAWSGetAccountId_shouldError_unauthorizedFromIam(t *testing.T) {
 			Response: &iamResponse{403, iamResponse_ListRoles_unauthorized, "text/xml"},
 		},
 	}
-	ts, iamConn := getMockedAwsIamApi(iamEndpoints)
+	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, "")
+	id, err := GetAccountId(iamConn, stsConn, "")
 	if err == nil {
 		t.Fatal("Expected error when getting account ID")
 	}
@@ -586,15 +617,15 @@ func invalidAwsEnv(t *testing.T) func() {
 	return ts.Close
 }
 
-// getMockedAwsIamApi establishes a httptest server to simulate behaviour
-// of a real AWS' IAM server
-func getMockedAwsIamApi(endpoints []*iamEndpoint) (func(), *iam.IAM) {
+// getMockedAwsIamStsApi establishes a httptest server to simulate behaviour
+// of a real AWS' IAM & STS server
+func getMockedAwsIamStsApi(endpoints []*iamEndpoint) (func(), *iam.IAM, *sts.STS) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(r.Body)
 		requestBody := buf.String()
 
-		log.Printf("[DEBUG] Received IAM API %q request to %q: %s",
+		log.Printf("[DEBUG] Received API %q request to %q: %s",
 			r.Method, r.RequestURI, requestBody)
 
 		for _, e := range endpoints {
@@ -624,8 +655,8 @@ func getMockedAwsIamApi(endpoints []*iamEndpoint) (func(), *iam.IAM) {
 		CredentialsChainVerboseErrors: aws.Bool(true),
 	})
 	iamConn := iam.New(sess)
-
-	return ts.Close, iamConn
+	stsConn := sts.New(sess)
+	return ts.Close, iamConn, stsConn
 }
 
 func getEnv() *currentEnv {
@@ -716,6 +747,26 @@ const iamResponse_GetUser_unauthorized = `<ErrorResponse xmlns="https://iam.amaz
     <Message>User: arn:aws:iam::123456789012:user/Bob is not authorized to perform: iam:GetUser on resource: arn:aws:iam::123456789012:user/Bob</Message>
   </Error>
   <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+</ErrorResponse>`
+
+const stsResponse_GetCallerIdentity_valid = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <GetCallerIdentityResult>
+   <Arn>arn:aws:iam::123456789012:user/Alice</Arn>
+    <UserId>AKIAI44QH8DHBEXAMPLE</UserId>
+    <Account>123456789012</Account>
+  </GetCallerIdentityResult>
+  <ResponseMetadata>
+    <RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
+  </ResponseMetadata>
+</GetCallerIdentityResponse>`
+
+const stsResponse_GetCallerIdentity_unauthorized = `<ErrorResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <Error>
+    <Type>Sender</Type>
+    <Code>AccessDenied</Code>
+    <Message>User: arn:aws:iam::123456789012:user/Bob is not authorized to perform: sts:GetCallerIdentity</Message>
+  </Error>
+  <RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
 </ErrorResponse>`
 
 const iamResponse_GetUser_federatedFailure = `<ErrorResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">

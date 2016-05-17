@@ -6,9 +6,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -72,7 +70,7 @@ type virtualMachine struct {
 	cluster               string
 	resourcePool          string
 	datastore             string
-	vcpu                  int
+	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
 	template              string
@@ -290,25 +288,25 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"ipv4_gateway": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"ipv6_address": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"ipv6_prefix_length": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"ipv6_gateway": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"adapter_type": &schema.Schema{
@@ -403,12 +401,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 					},
 				},
 			},
-
-			"boot_delay": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-			},
 		},
 	}
 }
@@ -423,7 +415,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	configSpec := types.VirtualMachineConfigSpec{}
 
 	if d.HasChange("vcpu") {
-		configSpec.NumCPUs = d.Get("vcpu").(int)
+		configSpec.NumCPUs = int32(d.Get("vcpu").(int))
 		hasChanges = true
 		rebootRequired = true
 	}
@@ -505,7 +497,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	vm := virtualMachine{
 		name:     d.Get("name").(string),
-		vcpu:     d.Get("vcpu").(int),
+		vcpu:     int32(d.Get("vcpu").(int)),
 		memoryMb: int64(d.Get("memory").(int)),
 		memoryAllocation: memoryAllocation{
 			reservation: int64(d.Get("memory_reservation").(int)),
@@ -711,32 +703,6 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if _, ok := d.GetOk("network_interface.0.ipv4_address"); !ok {
-		if v, ok := d.GetOk("boot_delay"); ok {
-			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"pending"},
-				Target:     []string{"active"},
-				Refresh:    waitForNetworkingActive(client, vm.datacenter, vm.Path()),
-				Timeout:    600 * time.Second,
-				Delay:      time.Duration(v.(int)) * time.Second,
-				MinTimeout: 2 * time.Second,
-			}
-
-			_, err := stateConf.WaitForState()
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	if ip, ok := d.GetOk("network_interface.0.ipv4_address"); ok {
-		d.SetConnInfo(map[string]string{
-			"host": ip.(string),
-		})
-	} else {
-		log.Printf("[DEBUG] Could not get IP address for %s", d.Id())
-	}
-
 	d.SetId(vm.Path())
 	log.Printf("[INFO] Created virtual machine: %s", d.Id())
 
@@ -760,6 +726,12 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	}
 
 	var mvm mo.VirtualMachine
+
+	// wait for interfaces to appear
+	_, err = vm.WaitForNetIP(context.TODO(), true)
+	if err != nil {
+		return err
+	}
 
 	collector := property.DefaultCollector(client.Client)
 	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore"}, &mvm); err != nil {
@@ -795,20 +767,41 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			networkInterfaces = append(networkInterfaces, networkInterface)
 		}
 	}
+	if mvm.Guest.IpStack != nil {
+		for _, v := range mvm.Guest.IpStack {
+			if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
+				for _, route := range v.IpRouteConfig.IpRoute {
+					if route.Gateway.Device != "" {
+						gatewaySetting := ""
+						if route.Network == "::" {
+							gatewaySetting = "ipv6_gateway"
+						} else if route.Network == "0.0.0.0" {
+							gatewaySetting = "ipv4_gateway"
+						}
+						if gatewaySetting != "" {
+							deviceID, err := strconv.Atoi(route.Gateway.Device)
+							if err != nil {
+								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
+							} else {
+								log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, deviceID, route.Gateway.IpAddress)
+								networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
 	err = d.Set("network_interface", networkInterfaces)
 	if err != nil {
 		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
 	}
 
-	ip, err := vm.WaitForIP(context.TODO())
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] ip address: %v", ip)
+	log.Printf("[DEBUG] ip address: %v", networkInterfaces[0]["ipv4_address"].(string))
 	d.SetConnInfo(map[string]string{
 		"type": "ssh",
-		"host": ip,
+		"host": networkInterfaces[0]["ipv4_address"].(string),
 	})
 
 	var rootDatastore string
@@ -886,39 +879,6 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func waitForNetworkingActive(client *govmomi.Client, datacenter, name string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		dc, err := getDatacenter(client, datacenter)
-		if err != nil {
-			log.Printf("[ERROR] %#v", err)
-			return nil, "", err
-		}
-		finder := find.NewFinder(client.Client, true)
-		finder = finder.SetDatacenter(dc)
-
-		vm, err := finder.VirtualMachine(context.TODO(), name)
-		if err != nil {
-			log.Printf("[ERROR] %#v", err)
-			return nil, "", err
-		}
-
-		var mvm mo.VirtualMachine
-		collector := property.DefaultCollector(client.Client)
-		if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"summary"}, &mvm); err != nil {
-			log.Printf("[ERROR] %#v", err)
-			return nil, "", err
-		}
-
-		if mvm.Summary.Guest.IpAddress != "" {
-			log.Printf("[DEBUG] IP address with DHCP: %v", mvm.Summary.Guest.IpAddress)
-			return mvm.Summary, "active", err
-		} else {
-			log.Printf("[DEBUG] Waiting for IP address")
-			return nil, "pending", err
-		}
-	}
-}
-
 // addHardDisk adds a new Hard Disk to the VirtualMachine.
 func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, datastore *object.Datastore, diskPath string) error {
 	devices, err := vm.Device(context.TODO())
@@ -933,15 +893,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	}
 	log.Printf("[DEBUG] disk controller: %#v\n", controller)
 
-	// If diskPath is not specified, pass empty string to CreateDisk()
-	var newDiskPath string
-	if diskPath == "" {
-		newDiskPath = ""
-	} else {
-		// TODO Check if diskPath & datastore exist
-		newDiskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
-	}
-	disk := devices.CreateDisk(controller, newDiskPath)
+	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
@@ -1046,7 +998,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 
 // buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
 func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
-	var key int
+	var key int32
 	var moveType string
 	if linkedClone {
 		moveType = "createNewChildDiskBacking"
@@ -1061,7 +1013,7 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 	}
 	for _, d := range devices {
 		if devices.Type(d) == "disk" {
-			key = d.GetVirtualDevice().Key
+			key = int32(d.GetVirtualDevice().Key)
 		}
 	}
 
@@ -1139,9 +1091,9 @@ func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolde
 		return types.StoragePlacementSpec{}
 	}
 
-	var key int
+	var key int32
 	for _, d := range devices.SelectByType((*types.VirtualDisk)(nil)) {
-		key = d.GetVirtualDevice().Key
+		key = int32(d.GetVirtualDevice().Key)
 		log.Printf("[DEBUG] findDatastore: virtual devices: %#v\n", d.GetVirtualDevice())
 	}
 
@@ -1533,7 +1485,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 			ipv6Spec.Ip = []types.BaseCustomizationIpV6Generator{
 				&types.CustomizationFixedIpV6{
 					IpAddress:  network.ipv6Address,
-					SubnetMask: network.ipv6PrefixLength,
+					SubnetMask: int32(network.ipv6PrefixLength),
 				},
 			}
 			ipv6Spec.Gateway = []string{network.ipv6Gateway}
@@ -1553,6 +1505,9 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		NumCPUs:           vm.vcpu,
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
+		MemoryAllocation: &types.ResourceAllocationInfo{
+			Reservation: vm.memoryAllocation.reservation,
+		},
 	}
 
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
@@ -1592,7 +1547,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		guiUnattended := types.CustomizationGuiUnattended{
 			AutoLogon:      false,
 			AutoLogonCount: 1,
-			TimeZone:       timeZone,
+			TimeZone:       int32(timeZone),
 		}
 
 		customIdentification := types.CustomizationIdentification{}
@@ -1692,7 +1647,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	for _, dvc := range devices {
 		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
 		if devices.Type(dvc) == "ethernet" {
-			err := newVM.RemoveDevice(context.TODO(), dvc)
+			err := newVM.RemoveDevice(context.TODO(), false, dvc)
 			if err != nil {
 				return err
 			}
@@ -1737,12 +1692,6 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
 	newVM.PowerOn(context.TODO())
-
-	ip, err := newVM.WaitForIP(context.TODO())
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] ip address: %v", ip)
 
 	return nil
 }

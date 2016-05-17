@@ -50,6 +50,7 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 					gateway,
 					label,
 					ip_address,
+					gateway,
 					datastoreOpt,
 					template,
 				),
@@ -111,6 +112,7 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 					gateway,
 					label,
 					ip_address,
+					gateway,
 					datastoreOpt,
 					template,
 				),
@@ -457,9 +459,7 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 
 func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 	vmdk_path := os.Getenv("VSPHERE_VMDK_PATH")
-	gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL")
-	ip_address := os.Getenv("VSPHERE_IPV4_ADDRESS")
 
 	var vm virtualMachine
 	var locationOpt string
@@ -487,9 +487,7 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 				Config: fmt.Sprintf(
 					testAccCheckVSphereVirtualMachineConfig_withExistingVmdk,
 					locationOpt,
-					gateway,
 					label,
-					ip_address,
 					datastoreOpt,
 					vmdk_path,
 				),
@@ -935,6 +933,7 @@ resource "vsphere_virtual_machine" "foo" {
         label = "%s"
         ipv4_address = "%s"
         ipv4_prefix_length = 24
+        ipv4_gateway = "%s"
     }
     disk {
 %s
@@ -958,6 +957,7 @@ resource "vsphere_virtual_machine" "thin" {
         label = "%s"
         ipv4_address = "%s"
         ipv4_prefix_length = 24
+        ipv4_gateway = "%s"
     }
     disk {
 %s
@@ -1073,11 +1073,8 @@ resource "vsphere_virtual_machine" "with_existing_vmdk" {
 %s
     vcpu = 2
     memory = 4096
-    gateway = "%s"
     network_interface {
         label = "%s"
-        ipv4_address = "%s"
-        ipv4_prefix_length = 24
     }
     disk {
 %s

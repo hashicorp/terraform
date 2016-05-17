@@ -4,6 +4,8 @@
 package cloudwatchlogs
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/private/protocol"
@@ -968,6 +970,22 @@ func (s CancelExportTaskInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CancelExportTaskInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CancelExportTaskInput"}
+	if s.TaskId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TaskId"))
+	}
+	if s.TaskId != nil && len(*s.TaskId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TaskId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CancelExportTaskOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1025,6 +1043,40 @@ func (s CreateExportTaskInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateExportTaskInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateExportTaskInput"}
+	if s.Destination == nil {
+		invalidParams.Add(request.NewErrParamRequired("Destination"))
+	}
+	if s.Destination != nil && len(*s.Destination) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Destination", 1))
+	}
+	if s.From == nil {
+		invalidParams.Add(request.NewErrParamRequired("From"))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.LogStreamNamePrefix != nil && len(*s.LogStreamNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamNamePrefix", 1))
+	}
+	if s.TaskName != nil && len(*s.TaskName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TaskName", 1))
+	}
+	if s.To == nil {
+		invalidParams.Add(request.NewErrParamRequired("To"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateExportTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1057,6 +1109,22 @@ func (s CreateLogGroupInput) String() string {
 // GoString returns the string representation
 func (s CreateLogGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateLogGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateLogGroupInput"}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateLogGroupOutput struct {
@@ -1093,6 +1161,28 @@ func (s CreateLogStreamInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateLogStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateLogStreamInput"}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.LogStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogStreamName"))
+	}
+	if s.LogStreamName != nil && len(*s.LogStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateLogStreamOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1124,6 +1214,22 @@ func (s DeleteDestinationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDestinationInput"}
+	if s.DestinationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationName"))
+	}
+	if s.DestinationName != nil && len(*s.DestinationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DestinationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteDestinationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1153,6 +1259,22 @@ func (s DeleteLogGroupInput) String() string {
 // GoString returns the string representation
 func (s DeleteLogGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteLogGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteLogGroupInput"}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteLogGroupOutput struct {
@@ -1189,6 +1311,28 @@ func (s DeleteLogStreamInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteLogStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteLogStreamInput"}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.LogStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogStreamName"))
+	}
+	if s.LogStreamName != nil && len(*s.LogStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteLogStreamOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1223,6 +1367,28 @@ func (s DeleteMetricFilterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMetricFilterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMetricFilterInput"}
+	if s.FilterName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FilterName"))
+	}
+	if s.FilterName != nil && len(*s.FilterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterName", 1))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteMetricFilterOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1253,6 +1419,22 @@ func (s DeleteRetentionPolicyInput) String() string {
 // GoString returns the string representation
 func (s DeleteRetentionPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRetentionPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRetentionPolicyInput"}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteRetentionPolicyOutput struct {
@@ -1288,6 +1470,28 @@ func (s DeleteSubscriptionFilterInput) String() string {
 // GoString returns the string representation
 func (s DeleteSubscriptionFilterInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteSubscriptionFilterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteSubscriptionFilterInput"}
+	if s.FilterName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FilterName"))
+	}
+	if s.FilterName != nil && len(*s.FilterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterName", 1))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteSubscriptionFilterOutput struct {
@@ -1328,6 +1532,25 @@ func (s DescribeDestinationsInput) String() string {
 // GoString returns the string representation
 func (s DescribeDestinationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeDestinationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeDestinationsInput"}
+	if s.DestinationNamePrefix != nil && len(*s.DestinationNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DestinationNamePrefix", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeDestinationsOutput struct {
@@ -1382,6 +1605,25 @@ func (s DescribeExportTasksInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeExportTasksInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeExportTasksInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.TaskId != nil && len(*s.TaskId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TaskId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeExportTasksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1429,6 +1671,25 @@ func (s DescribeLogGroupsInput) String() string {
 // GoString returns the string representation
 func (s DescribeLogGroupsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeLogGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeLogGroupsInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.LogGroupNamePrefix != nil && len(*s.LogGroupNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupNamePrefix", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeLogGroupsOutput struct {
@@ -1493,6 +1754,31 @@ func (s DescribeLogStreamsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeLogStreamsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeLogStreamsInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.LogStreamNamePrefix != nil && len(*s.LogStreamNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamNamePrefix", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeLogStreamsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1545,6 +1831,31 @@ func (s DescribeMetricFiltersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeMetricFiltersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeMetricFiltersInput"}
+	if s.FilterNamePrefix != nil && len(*s.FilterNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterNamePrefix", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeMetricFiltersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1593,6 +1904,31 @@ func (s DescribeSubscriptionFiltersInput) String() string {
 // GoString returns the string representation
 func (s DescribeSubscriptionFiltersInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeSubscriptionFiltersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeSubscriptionFiltersInput"}
+	if s.FilterNamePrefix != nil && len(*s.FilterNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterNamePrefix", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeSubscriptionFiltersOutput struct {
@@ -1788,6 +2124,31 @@ func (s FilterLogEventsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *FilterLogEventsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "FilterLogEventsInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.LogStreamNames != nil && len(s.LogStreamNames) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamNames", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type FilterLogEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1890,6 +2251,34 @@ func (s GetLogEventsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetLogEventsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetLogEventsInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.LogStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogStreamName"))
+	}
+	if s.LogStreamName != nil && len(*s.LogStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamName", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GetLogEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1938,6 +2327,25 @@ func (s InputLogEvent) String() string {
 // GoString returns the string representation
 func (s InputLogEvent) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InputLogEvent) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InputLogEvent"}
+	if s.Message == nil {
+		invalidParams.Add(request.NewErrParamRequired("Message"))
+	}
+	if s.Message != nil && len(*s.Message) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Message", 1))
+	}
+	if s.Timestamp == nil {
+		invalidParams.Add(request.NewErrParamRequired("Timestamp"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type LogGroup struct {
@@ -2093,6 +2501,25 @@ func (s MetricTransformation) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MetricTransformation) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MetricTransformation"}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.MetricNamespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricNamespace"))
+	}
+	if s.MetricValue == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricValue"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type OutputLogEvent struct {
 	_ struct{} `type:"structure"`
 
@@ -2141,6 +2568,34 @@ func (s PutDestinationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutDestinationInput"}
+	if s.DestinationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationName"))
+	}
+	if s.DestinationName != nil && len(*s.DestinationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DestinationName", 1))
+	}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
+	}
+	if s.RoleArn != nil && len(*s.RoleArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 1))
+	}
+	if s.TargetArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetArn"))
+	}
+	if s.TargetArn != nil && len(*s.TargetArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TargetArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PutDestinationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2177,6 +2632,28 @@ func (s PutDestinationPolicyInput) String() string {
 // GoString returns the string representation
 func (s PutDestinationPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutDestinationPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutDestinationPolicyInput"}
+	if s.AccessPolicy == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccessPolicy"))
+	}
+	if s.AccessPolicy != nil && len(*s.AccessPolicy) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccessPolicy", 1))
+	}
+	if s.DestinationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationName"))
+	}
+	if s.DestinationName != nil && len(*s.DestinationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DestinationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PutDestinationPolicyOutput struct {
@@ -2218,6 +2695,47 @@ func (s PutLogEventsInput) String() string {
 // GoString returns the string representation
 func (s PutLogEventsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutLogEventsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutLogEventsInput"}
+	if s.LogEvents == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogEvents"))
+	}
+	if s.LogEvents != nil && len(s.LogEvents) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogEvents", 1))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.LogStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogStreamName"))
+	}
+	if s.LogStreamName != nil && len(*s.LogStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamName", 1))
+	}
+	if s.SequenceToken != nil && len(*s.SequenceToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SequenceToken", 1))
+	}
+	if s.LogEvents != nil {
+		for i, v := range s.LogEvents {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "LogEvents", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PutLogEventsOutput struct {
@@ -2268,6 +2786,47 @@ func (s PutMetricFilterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutMetricFilterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutMetricFilterInput"}
+	if s.FilterName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FilterName"))
+	}
+	if s.FilterName != nil && len(*s.FilterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterName", 1))
+	}
+	if s.FilterPattern == nil {
+		invalidParams.Add(request.NewErrParamRequired("FilterPattern"))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.MetricTransformations == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricTransformations"))
+	}
+	if s.MetricTransformations != nil && len(s.MetricTransformations) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricTransformations", 1))
+	}
+	if s.MetricTransformations != nil {
+		for i, v := range s.MetricTransformations {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "MetricTransformations", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PutMetricFilterOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2302,6 +2861,25 @@ func (s PutRetentionPolicyInput) String() string {
 // GoString returns the string representation
 func (s PutRetentionPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRetentionPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRetentionPolicyInput"}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.RetentionInDays == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionInDays"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PutRetentionPolicyOutput struct {
@@ -2356,6 +2934,40 @@ func (s PutSubscriptionFilterInput) String() string {
 // GoString returns the string representation
 func (s PutSubscriptionFilterInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutSubscriptionFilterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutSubscriptionFilterInput"}
+	if s.DestinationArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationArn"))
+	}
+	if s.DestinationArn != nil && len(*s.DestinationArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DestinationArn", 1))
+	}
+	if s.FilterName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FilterName"))
+	}
+	if s.FilterName != nil && len(*s.FilterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterName", 1))
+	}
+	if s.FilterPattern == nil {
+		invalidParams.Add(request.NewErrParamRequired("FilterPattern"))
+	}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.RoleArn != nil && len(*s.RoleArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PutSubscriptionFilterOutput struct {
@@ -2469,6 +3081,25 @@ func (s TestMetricFilterInput) String() string {
 // GoString returns the string representation
 func (s TestMetricFilterInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TestMetricFilterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TestMetricFilterInput"}
+	if s.FilterPattern == nil {
+		invalidParams.Add(request.NewErrParamRequired("FilterPattern"))
+	}
+	if s.LogEventMessages == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogEventMessages"))
+	}
+	if s.LogEventMessages != nil && len(s.LogEventMessages) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogEventMessages", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type TestMetricFilterOutput struct {

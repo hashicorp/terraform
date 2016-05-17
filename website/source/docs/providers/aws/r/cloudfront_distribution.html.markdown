@@ -186,7 +186,7 @@ of several sub-resources - these resources are laid out below.
 
 ##### Forwarded Values Arguments
 
-  * `cookies` (Optional) - The [forwarded values cookies](#cookies-arguments)
+  * `cookies` (Required) - The [forwarded values cookies](#cookies-arguments)
     that specifies how CloudFront handles cookies (maximum one).
 
   * `headers` (Optional) - Specifies the Headers, if any, that you want
@@ -200,7 +200,8 @@ of several sub-resources - these resources are laid out below.
 
   * `forward` (Required) - Specifies whether you want CloudFront to forward
     cookies to the origin that is associated with this cache behavior. You can
-    specify `all`, `none` or `whitelist`.
+    specify `all`, `none` or `whitelist`. If `whitelist`, you must include the
+    subsequent `whitelisted_names`
 
   * `whitelisted_names` (Optional) - If you have specified `whitelist` to
     `forward`, the whitelisted cookies that you want CloudFront to forward to
@@ -346,6 +347,10 @@ The following attributes are exported:
 
   * `etag` - The current version of the distribution's information. For example:
     `E2QWRUHAPOMQZL`.
+  
+  * `hosted_zone_id` - The CloudFront Route 53 zone ID that can be used to
+     route an [Alias Resource Record Set][7] to. This attribute is simply an
+     alias for the zone ID `Z2FDTNDATAQYW2`.
 
 
 [1]: http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html
@@ -354,3 +359,4 @@ The following attributes are exported:
 [4]: http://www.iso.org/iso/country_codes/iso_3166_code_lists/country_names_and_code_elements.htm
 [5]: /docs/providers/aws/r/cloudfront_origin_access_identity.html
 [6]: https://aws.amazon.com/certificate-manager/
+[7]: http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html

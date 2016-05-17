@@ -1,5 +1,6 @@
 TEST?=$$(go list ./... | grep -v /vendor/)
 VETARGS?=-all
+GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
 default: test vet
 
@@ -19,11 +20,11 @@ quickdev: generate
 # changes will require a rebuild of everything, in which case the dev
 # target should be used.
 core-dev: generate
-	go install github.com/hashicorp/terraform
+	go install -tags 'core' github.com/hashicorp/terraform
 
 # Shorthand for quickly testing the core of Terraform (i.e. "not providers")
 core-test: generate
-	@echo "Testing core packages..." && go test $(shell go list ./... | grep -v -E 'builtin|vendor')
+	@echo "Testing core packages..." && go test -tags 'core' $(shell go list ./... | grep -v -E 'builtin|vendor')
 
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
@@ -77,11 +78,12 @@ generate:
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
 	go generate $$(go list ./... | grep -v /vendor/)
+	@go fmt command/internal_plugin_list.go > /dev/null
 
 fmt:
-	gofmt -w .
+	gofmt -w $(GOFMT_FILES)
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
-.PHONY: bin default generate test updatedeps vet fmt fmtcheck
+.PHONY: bin default generate test vet fmt fmtcheck

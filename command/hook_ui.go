@@ -245,9 +245,45 @@ func (h *UiHook) PreRefresh(
 	h.once.Do(h.init)
 
 	id := n.HumanId()
+
+	var stateIdSuffix string
+	// Data resources refresh before they have ids, whereas managed
+	// resources are only refreshed when they have ids.
+	if s.ID != "" {
+		stateIdSuffix = fmt.Sprintf(" (ID: %s)", s.ID)
+	}
+
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Refreshing state... (ID: %s)",
-		id, s.ID)))
+		"[reset][bold]%s: Refreshing state...%s",
+		id, stateIdSuffix)))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PreImportState(
+	n *terraform.InstanceInfo,
+	id string) (terraform.HookAction, error) {
+	h.once.Do(h.init)
+
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold]%s: Importing from ID %q...",
+		n.HumanId(), id)))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostImportState(
+	n *terraform.InstanceInfo,
+	s []*terraform.InstanceState) (terraform.HookAction, error) {
+	h.once.Do(h.init)
+
+	id := n.HumanId()
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold][green]%s: Import complete!", id)))
+	for _, s := range s {
+		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+			"[reset][green]  Imported %s (ID: %s)",
+			s.Ephemeral.Type, s.ID)))
+	}
+
 	return terraform.HookActionContinue, nil
 }
 

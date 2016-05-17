@@ -35,6 +35,9 @@ func resourceMachine() *schema.Resource {
 		Read:   resourceMachineRead,
 		Update: resourceMachineUpdate,
 		Delete: resourceMachineDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceMachineImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -567,4 +570,8 @@ func resourceMachineValidateName(value interface{}, name string) (warnings []str
 	}
 
 	return warnings, errors
+}
+
+func resourceMachineImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	return []*schema.ResourceData{d}, nil
 }

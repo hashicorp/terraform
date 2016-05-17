@@ -126,7 +126,8 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 						"variable values, create a new plan file.")
 			}
 
-			return plan.Context(opts), true, nil
+			ctx, err := plan.Context(opts)
+			return ctx, true, err
 		}
 	}
 
@@ -145,9 +146,14 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	}
 
 	// Load the root module
-	mod, err := module.NewTreeModule("", copts.Path)
-	if err != nil {
-		return nil, false, fmt.Errorf("Error loading config: %s", err)
+	var mod *module.Tree
+	if copts.Path != "" {
+		mod, err = module.NewTreeModule("", copts.Path)
+		if err != nil {
+			return nil, false, fmt.Errorf("Error loading config: %s", err)
+		}
+	} else {
+		mod = module.NewEmptyTree()
 	}
 
 	err = mod.Load(m.moduleStorage(m.DataDir()), copts.GetMode)
@@ -158,8 +164,8 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	opts.Module = mod
 	opts.Parallelism = copts.Parallelism
 	opts.State = state.State()
-	ctx := terraform.NewContext(opts)
-	return ctx, false, nil
+	ctx, err := terraform.NewContext(opts)
+	return ctx, false, err
 }
 
 // DataDir returns the directory where local data will be stored.
@@ -325,6 +331,9 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 		}
 	}()
 	f.SetOutput(errW)
+
+	// Set the default Usage to empty
+	f.Usage = func() {}
 
 	return f
 }

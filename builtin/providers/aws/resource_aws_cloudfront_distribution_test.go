@@ -30,6 +30,11 @@ func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.s3_distribution",
 					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution",
+						"hosted_zone_id",
+						"Z2FDTNDATAQYW2",
+					),
 				),
 			},
 		},
@@ -195,7 +200,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 	origin {
 		domain_name = "${aws_s3_bucket.s3_bucket.id}"
 		origin_id = "myS3Origin"
-		s3_origin_config {}
 	}
 	enabled = true
 	default_root_object = "index.html"
@@ -303,7 +307,6 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 	origin {
 		domain_name = "${aws_s3_bucket.s3_bucket.id}"
 		origin_id = "myS3Origin"
-		s3_origin_config {}
 	}
 	origin {
 		domain_name = "www.example.com"

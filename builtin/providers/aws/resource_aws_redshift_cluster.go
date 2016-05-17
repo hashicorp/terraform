@@ -154,6 +154,13 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"kms_key_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"elastic_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -197,15 +204,16 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[INFO] Building Redshift Cluster Options")
 	createOpts := &redshift.CreateClusterInput{
-		ClusterIdentifier:   aws.String(d.Get("cluster_identifier").(string)),
-		Port:                aws.Int64(int64(d.Get("port").(int))),
-		MasterUserPassword:  aws.String(d.Get("master_password").(string)),
-		MasterUsername:      aws.String(d.Get("master_username").(string)),
-		ClusterVersion:      aws.String(d.Get("cluster_version").(string)),
-		NodeType:            aws.String(d.Get("node_type").(string)),
-		DBName:              aws.String(d.Get("database_name").(string)),
-		AllowVersionUpgrade: aws.Bool(d.Get("allow_version_upgrade").(bool)),
-		PubliclyAccessible:  aws.Bool(d.Get("publicly_accessible").(bool)),
+		ClusterIdentifier:                aws.String(d.Get("cluster_identifier").(string)),
+		Port:                             aws.Int64(int64(d.Get("port").(int))),
+		MasterUserPassword:               aws.String(d.Get("master_password").(string)),
+		MasterUsername:                   aws.String(d.Get("master_username").(string)),
+		ClusterVersion:                   aws.String(d.Get("cluster_version").(string)),
+		NodeType:                         aws.String(d.Get("node_type").(string)),
+		DBName:                           aws.String(d.Get("database_name").(string)),
+		AllowVersionUpgrade:              aws.Bool(d.Get("allow_version_upgrade").(bool)),
+		PubliclyAccessible:               aws.Bool(d.Get("publicly_accessible").(bool)),
+		AutomatedSnapshotRetentionPeriod: aws.Int64(int64(d.Get("automated_snapshot_retention_period").(int))),
 	}
 
 	if v := d.Get("number_of_nodes").(int); v > 1 {
@@ -239,12 +247,12 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		createOpts.ClusterParameterGroupName = aws.String(v.(string))
 	}
 
-	if v, ok := d.GetOk("automated_snapshot_retention_period"); ok {
-		createOpts.AutomatedSnapshotRetentionPeriod = aws.Int64(int64(v.(int)))
-	}
-
 	if v, ok := d.GetOk("encrypted"); ok {
 		createOpts.Encrypted = aws.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("kms_key_id"); ok {
+		createOpts.KmsKeyId = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("elastic_ip"); ok {
@@ -314,6 +322,7 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("cluster_subnet_group_name", rsc.ClusterSubnetGroupName)
 	d.Set("availability_zone", rsc.AvailabilityZone)
 	d.Set("encrypted", rsc.Encrypted)
+	d.Set("kms_key_id", rsc.KmsKeyId)
 	d.Set("automated_snapshot_retention_period", rsc.AutomatedSnapshotRetentionPeriod)
 	d.Set("preferred_maintenance_window", rsc.PreferredMaintenanceWindow)
 	if rsc.Endpoint != nil && rsc.Endpoint.Address != nil {

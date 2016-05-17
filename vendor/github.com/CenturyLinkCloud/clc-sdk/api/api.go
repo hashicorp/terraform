@@ -92,6 +92,7 @@ func (c *Client) Do(req *http.Request, ret interface{}) error {
 	}
 
 	req.Header.Add("User-Agent", c.config.UserAgent)
+	req.Header.Add("Api-Client", c.config.UserAgent)
 	req.Header.Add("Accept", "application/json")
 	if req.Body != nil {
 		req.Header.Add("Content-Type", "application/json")

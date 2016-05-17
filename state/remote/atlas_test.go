@@ -159,8 +159,8 @@ func TestAtlasClient_UnresolvableConflict(t *testing.T) {
 	select {
 	case <-doneCh:
 		// OK
-	case <-time.After(50 * time.Millisecond):
-		t.Fatalf("Timed out after 50ms, probably because retrying infinitely.")
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("Timed out after 500ms, probably because retrying infinitely.")
 	}
 }
 
@@ -245,7 +245,7 @@ func (f *fakeAtlas) handler(resp http.ResponseWriter, req *http.Request) {
 // loads the state.
 var testStateModuleOrderChange = []byte(
 	`{
-    "version": 1,
+    "version": 2,
     "serial": 1,
     "modules": [
         {
@@ -276,7 +276,7 @@ var testStateModuleOrderChange = []byte(
 
 var testStateSimple = []byte(
 	`{
-    "version": 1,
+    "version": 2,
     "serial": 1,
     "modules": [
         {

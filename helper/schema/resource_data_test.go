@@ -2930,6 +2930,17 @@ func TestResourceDataSetId_override(t *testing.T) {
 	}
 }
 
+func TestResourceDataSetType(t *testing.T) {
+	d := &ResourceData{}
+	d.SetId("foo")
+	d.SetType("bar")
+
+	actual := d.State()
+	if v := actual.Ephemeral.Type; v != "bar" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func testPtrTo(raw interface{}) interface{} {
 	return &raw
 }

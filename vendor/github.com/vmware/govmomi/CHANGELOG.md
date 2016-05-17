@@ -1,5 +1,54 @@
 # changelog
 
+### 0.6.2 (2016-05-11)
+
+* Get complete file details in Datastore.Stat
+
+* SOAP decoding fixes
+
+* Add VirtualMachine.RemoveAllSnapshot
+
+### 0.6.1 (2016-04-30)
+
+* Fix mo.Entity interface
+
+### 0.6.0 (2016-04-29)
+
+* Add Common.Rename method
+
+* Add mo.Entity interface
+
+* Add OptionManager
+
+* Add Finder.FolderList method
+
+* Add VirtualMachine.WaitForNetIP method
+
+* Add VirtualMachine.RevertToSnapshot method
+
+* Add Datastore.Download method
+
+### 0.5.0 (2016-03-30)
+
+Generated fields using xsd type 'int' change to Go type 'int32'
+
+VirtualDevice.UnitNumber field changed to pointer type
+
+### 0.4.0 (2016-02-26)
+
+* Add method to convert virtual device list to array with virtual device
+  changes that can be used in the VirtualMachineConfigSpec.
+
+* Make datastore cluster traversable in lister
+
+* Add finder.DatastoreCluster methods (also known as storage pods)
+
+* Add Drone CI check
+
+* Add object.Datastore Type and AttachedClusterHosts methods
+
+* Add finder.*OrDefault methods
+
 ### 0.3.0 (2016-01-16)
 
 * Add object.VirtualNicManager wrapper

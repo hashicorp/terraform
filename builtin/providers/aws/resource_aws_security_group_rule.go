@@ -239,27 +239,8 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[DEBUG] Found rule for Security Group Rule (%s): %s", d.Id(), rule)
 
-	d.Set("from_port", rule.FromPort)
-	d.Set("to_port", rule.ToPort)
-	d.Set("protocol", rule.IpProtocol)
 	d.Set("type", ruleType)
-
-	var cb []string
-	for _, c := range p.IpRanges {
-		cb = append(cb, *c.CidrIp)
-	}
-
-	d.Set("cidr_blocks", cb)
-
-	if len(p.UserIdGroupPairs) > 0 {
-		s := p.UserIdGroupPairs[0]
-		if isVPC {
-			d.Set("source_security_group_id", *s.GroupId)
-		} else {
-			d.Set("source_security_group_id", *s.GroupName)
-		}
-	}
-
+	setFromIPPerm(d, sg, rule)
 	return nil
 }
 
@@ -514,4 +495,30 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermiss
 	}
 
 	return &perm, nil
+}
+
+func setFromIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup, rule *ec2.IpPermission) error {
+	isVPC := sg.VpcId != nil && *sg.VpcId != ""
+
+	d.Set("from_port", rule.FromPort)
+	d.Set("to_port", rule.ToPort)
+	d.Set("protocol", rule.IpProtocol)
+
+	var cb []string
+	for _, c := range rule.IpRanges {
+		cb = append(cb, *c.CidrIp)
+	}
+
+	d.Set("cidr_blocks", cb)
+
+	if len(rule.UserIdGroupPairs) > 0 {
+		s := rule.UserIdGroupPairs[0]
+		if isVPC {
+			d.Set("source_security_group_id", *s.GroupId)
+		} else {
+			d.Set("source_security_group_id", *s.GroupName)
+		}
+	}
+
+	return nil
 }

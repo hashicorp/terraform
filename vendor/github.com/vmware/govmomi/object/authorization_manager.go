@@ -38,7 +38,7 @@ func NewAuthorizationManager(c *vim25.Client) *AuthorizationManager {
 
 type AuthorizationRoleList []types.AuthorizationRole
 
-func (l AuthorizationRoleList) ById(id int) *types.AuthorizationRole {
+func (l AuthorizationRoleList) ById(id int32) *types.AuthorizationRole {
 	for _, role := range l {
 		if role.RoleId == id {
 			return &role

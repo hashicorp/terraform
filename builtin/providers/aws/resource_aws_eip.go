@@ -19,6 +19,9 @@ func resourceAwsEip() *schema.Resource {
 		Read:   resourceAwsEipRead,
 		Update: resourceAwsEipUpdate,
 		Delete: resourceAwsEipDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsEipImportState,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"vpc": &schema.Schema{
@@ -61,8 +64,12 @@ func resourceAwsEip() *schema.Resource {
 
 			"private_ip": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
+			},
+
+			"associate_with_private_ip": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
@@ -190,7 +197,7 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 		// more unique ID conditionals
 		if domain == "vpc" {
 			var privateIpAddress *string
-			if v := d.Get("private_ip").(string); v != "" {
+			if v := d.Get("associate_with_private_ip").(string); v != "" {
 				privateIpAddress = aws.String(v)
 			}
 			assocOpts = &ec2.AssociateAddressInput{
@@ -283,6 +290,12 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 
 		return resource.RetryableError(err)
 	})
+}
+
+func resourceAwsEipImportState(
+	d *schema.ResourceData,
+	meta interface{}) ([]*schema.ResourceData, error) {
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceAwsEipDomain(d *schema.ResourceData) string {

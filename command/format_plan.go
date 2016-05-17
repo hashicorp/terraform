@@ -87,6 +87,7 @@ func formatPlanModuleExpand(
 		// resource header.
 		color := "yellow"
 		symbol := "~"
+		oldValues := true
 		switch rdiff.ChangeType() {
 		case terraform.DiffDestroyCreate:
 			color = "green"
@@ -94,6 +95,18 @@ func formatPlanModuleExpand(
 		case terraform.DiffCreate:
 			color = "green"
 			symbol = "+"
+			oldValues = false
+
+			// If we're "creating" a data resource then we'll present it
+			// to the user as a "read" operation, so it's clear that this
+			// operation won't change anything outside of the Terraform state.
+			// Unfortunately by the time we get here we only have the name
+			// to work with, so we need to cheat and exploit knowledge of the
+			// naming scheme for data resources.
+			if strings.HasPrefix(name, "data.") {
+				symbol = "<="
+				color = "cyan"
+			}
 		case terraform.DiffDestroy:
 			color = "red"
 			symbol = "-"
@@ -134,13 +147,22 @@ func formatPlanModuleExpand(
 				newResource = opts.Color.Color(" [red](forces new resource)")
 			}
 
-			buf.WriteString(fmt.Sprintf(
-				"    %s:%s %#v => %#v%s\n",
-				attrK,
-				strings.Repeat(" ", keyLen-len(attrK)),
-				attrDiff.Old,
-				v,
-				newResource))
+			if oldValues {
+				buf.WriteString(fmt.Sprintf(
+					"    %s:%s %#v => %#v%s\n",
+					attrK,
+					strings.Repeat(" ", keyLen-len(attrK)),
+					attrDiff.Old,
+					v,
+					newResource))
+			} else {
+				buf.WriteString(fmt.Sprintf(
+					"    %s:%s %#v%s\n",
+					attrK,
+					strings.Repeat(" ", keyLen-len(attrK)),
+					v,
+					newResource))
+			}
 		}
 
 		// Write the reset color so we don't overload the user's terminal

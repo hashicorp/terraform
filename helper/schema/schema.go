@@ -19,8 +19,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
+	"log"
 )
 
 // Schema is used to describe the structure of a value.
@@ -241,6 +243,20 @@ func (s *Schema) finalizeDiff(
 	d *terraform.ResourceAttrDiff) *terraform.ResourceAttrDiff {
 	if d == nil {
 		return d
+	}
+
+	if s.Type == TypeBool {
+		normalizeBoolString := func(s string) string {
+			switch s {
+			case "0":
+				return "false"
+			case "1":
+				return "true"
+			}
+			return s
+		}
+		d.Old = normalizeBoolString(d.Old)
+		d.New = normalizeBoolString(d.New)
 	}
 
 	if d.NewRemoved {
@@ -537,7 +553,7 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 			switch t := v.Elem.(type) {
 			case *Resource:
-				if err := t.InternalValidate(topSchemaMap); err != nil {
+				if err := t.InternalValidate(topSchemaMap, true); err != nil {
 					return err
 				}
 			case *Schema:
@@ -1106,11 +1122,21 @@ func (m schemaMap) validateMap(
 	// case to []interface{} unless the slice is exactly that type.
 	rawV := reflect.ValueOf(raw)
 	switch rawV.Kind() {
+	case reflect.String:
+		// If raw and reified are equal, this is a string and should
+		// be rejected.
+		reified, reifiedOk := c.Get(k)
+		log.Printf("[jen20] reified: %s", spew.Sdump(reified))
+		log.Printf("[jen20]     raw: %s", spew.Sdump(raw))
+		if reifiedOk && raw == reified && !c.IsComputed(k) {
+			return nil, []error{fmt.Errorf("%s: should be a map", k)}
+		}
+		// Otherwise it's likely raw is an interpolation.
+		return nil, nil
 	case reflect.Map:
 	case reflect.Slice:
 	default:
-		return nil, []error{fmt.Errorf(
-			"%s: should be a map", k)}
+		return nil, []error{fmt.Errorf("%s: should be a map", k)}
 	}
 
 	// If it is not a slice, it is valid

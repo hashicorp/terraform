@@ -108,6 +108,9 @@ func TestPlan_destroy(t *testing.T) {
 }
 
 func TestPlan_noState(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
@@ -342,6 +345,70 @@ func TestPlan_stateDefault(t *testing.T) {
 	expected := strings.TrimSpace(testPlanStateDefaultStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestPlan_stateFuture(t *testing.T) {
+	originalState := testState()
+	originalState.TFVersion = "99.99.99"
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("plan"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("should fail")
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	newState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !newState.Equal(originalState) {
+		t.Fatalf("bad: %#v", newState)
+	}
+	if newState.TFVersion != originalState.TFVersion {
+		t.Fatalf("bad: %#v", newState)
+	}
+}
+
+func TestPlan_statePast(t *testing.T) {
+	originalState := testState()
+	originalState.TFVersion = "0.1.0"
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("plan"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }
 

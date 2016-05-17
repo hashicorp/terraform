@@ -22,6 +22,7 @@ type ResourceData struct {
 	config *terraform.ResourceConfig
 	state  *terraform.InstanceState
 	diff   *terraform.InstanceDiff
+	meta   map[string]string
 
 	// Don't set
 	multiReader *MultiLevelFieldReader
@@ -221,11 +222,19 @@ func (d *ResourceData) SetConnInfo(v map[string]string) {
 	d.newState.Ephemeral.ConnInfo = v
 }
 
+// SetType sets the ephemeral type for the data. This is only required
+// for importing.
+func (d *ResourceData) SetType(t string) {
+	d.once.Do(d.init)
+	d.newState.Ephemeral.Type = t
+}
+
 // State returns the new InstanceState after the diff and any Set
 // calls.
 func (d *ResourceData) State() *terraform.InstanceState {
 	var result terraform.InstanceState
 	result.ID = d.Id()
+	result.Meta = d.meta
 
 	// If we have no ID, then this resource doesn't exist and we just
 	// return nil.
@@ -260,7 +269,9 @@ func (d *ResourceData) State() *terraform.InstanceState {
 	}
 
 	result.Attributes = mapW.Map()
-	result.Ephemeral.ConnInfo = d.ConnInfo()
+	if d.newState != nil {
+		result.Ephemeral = d.newState.Ephemeral
+	}
 
 	// TODO: This is hacky and we can remove this when we have a proper
 	// state writer. We should instead have a proper StateFieldWriter
@@ -286,7 +297,7 @@ func (d *ResourceData) init() {
 	// Initialize the field that will store our new state
 	var copyState terraform.InstanceState
 	if d.state != nil {
-		copyState = *d.state
+		copyState = *d.state.DeepCopy()
 	}
 	d.newState = &copyState
 
