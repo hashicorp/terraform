@@ -110,6 +110,7 @@ below
 * `default_ttl` - (Optional) The default Time-to-live (TTL) for requests
 * `force_destroy` - (Optional) Services that are active cannot be destroyed. In
 order to destroy the Service, set `force_destroy` to `true`. Default `false`.
+* `request_setting` - (Optional) A set of Request modifiers. Defined below
 * `s3logging` - (Optional) A set of S3 Buckets to send streaming logs too.
 Defined below
 
@@ -179,6 +180,32 @@ by the Action
 * `substitution` - (Optional) Value to substitute in place of regular expression. (Only applies to `regex` and `regex_repeat`.)
 * `priority` - (Optional) Lower priorities execute first. (Default: `100`.)
 
+The `request_setting` block allow you to customize Fastly's request handling, by
+defining behavior that should change based on a predefined `condition`:
+
+* `name` - (Required) The domain that this request setting
+* `request_condition` - (Required) The name of the corresponding `condition` to
+determin if this request setting should be applied. The `request_condition` must
+match the name of a defined `condition`
+* `max_stale_age` - (Optional) How old an object is allowed to be to serve
+stale-if-error or stale-while-revalidate, in seconds. Default `60`
+* `force_miss` - (Optional) Force a cache miss for the request. If specfified,
+can be `true` or `false`.
+* `force_ssl` - (Optional) Forces the request use SSL (redirects a non-SSL to SSL)
+* `action` - (Optional) Allows you to terminate request handling and immediately
+perform an action. When set it can be `lookup` or `pass` (ignore the cache completely)
+* `bypass_busy_wait` - (Optional) Disable collapsed forwarding, so you don't wait
+for other objects to origin
+* `hash_keys` - (Optional) Comma separated list of varnish request object fields
+that should be in the hash key
+* `xff` - (Optional) X-Forwarded-For -- should be `clear`, `leave`, `append`,
+`append_all`, or `overwrite`. Default `append`
+* `timer_support` - (Optional) Injects the X-Timer info into the request for
+viewing origin fetch durations
+* `geo_headers` - (Optional) Injects Fastly-Geo-Country, Fastly-Geo-City, and
+Fastly-Geo-Region into the request headers
+* `default_host` - (Optional) Sets the host header
+
 The `s3logging` block supports:
 
 * `name` - (Required) A unique name to identify this S3 Logging Bucket
@@ -203,6 +230,9 @@ compressed. Default `0`
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Default
 Apache Common Log format (`%h %l %u %t %r %>s`)
 * `timestamp_format` - (Optional) `strftime` specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`).
+* `request_condition` - (Optional) The VCL request condition to check if this
+Request Setting should be applied. For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals]
 
 
 ## Attributes Reference
@@ -223,3 +253,4 @@ The following attributes are exported:
 
 [fastly-s3]: https://docs.fastly.com/guides/integrations/amazon-s3
 [fastly-cname]: https://docs.fastly.com/guides/basic-setup/adding-cname-records
+[fastly-conditionals]: https://docs.fastly.com/guides/conditions/using-conditions
