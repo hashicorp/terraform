@@ -98,8 +98,7 @@ func resourceAwsInstance() *schema.Resource {
 				StateFunc: func(v interface{}) string {
 					switch v.(type) {
 					case string:
-						hash := sha1.Sum([]byte(v.(string)))
-						return hex.EncodeToString(hash[:])
+						return userDataHashSum(v.(string))
 					default:
 						return ""
 					}
@@ -582,6 +581,18 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 		d.Set("disable_api_termination", attr.DisableApiTermination.Value)
+	}
+	{
+		attr, err := conn.DescribeInstanceAttribute(&ec2.DescribeInstanceAttributeInput{
+			Attribute:  aws.String(ec2.InstanceAttributeNameUserData),
+			InstanceId: aws.String(d.Id()),
+		})
+		if err != nil {
+			return err
+		}
+		if attr.UserData.Value != nil {
+			d.Set("user_data", userDataHashSum(*attr.UserData.Value))
+		}
 	}
 
 	return nil
@@ -1165,4 +1176,17 @@ func iamInstanceProfileArnToName(ip *ec2.IamInstanceProfile) string {
 	}
 	parts := strings.Split(*ip.Arn, "/")
 	return parts[len(parts)-1]
+}
+
+func userDataHashSum(user_data string) string {
+	// Check whether the user_data is not Base64 encoded.
+	// Always calculate hash of base64 decoded value since we
+	// check against double-encoding when setting it
+	v, base64DecodeError := base64.StdEncoding.DecodeString(user_data)
+	if base64DecodeError != nil {
+		v = []byte(user_data)
+	}
+
+	hash := sha1.Sum(v)
+	return hex.EncodeToString(hash[:])
 }
