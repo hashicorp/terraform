@@ -88,6 +88,10 @@ func (old *remoteStateV1) upgrade() (*RemoteState, error) {
 }
 
 func (source *RemoteState) downgradeToV1() (*remoteStateV1, bool, error) {
+	if source == nil {
+		return nil, false, nil
+	}
+
 	config, err := copystructure.Copy(source.Config)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error upgrading RemoteState V1: %v", err)
@@ -175,6 +179,10 @@ func (old *moduleStateV1) upgrade() (*ModuleState, error) {
 }
 
 func (source *ModuleState) downgradeToV1() (*moduleStateV1, bool, error) {
+	if source == nil {
+		return nil, false, nil
+	}
+
 	conversionWasLossy := false
 
 	path, err := copystructure.Copy(source.Path)
@@ -324,6 +332,10 @@ func (old *resourceStateV1) upgrade() (*ResourceState, error) {
 }
 
 func (source *ResourceState) downgradeToV1() (*resourceStateV1, bool, error) {
+	if source == nil {
+		return nil, false, nil
+	}
+
 	conversionWasLossy := false
 
 	dependencies, err := copystructure.Copy(source.Dependencies)
@@ -413,6 +425,10 @@ func (old *instanceStateV1) upgrade() (*InstanceState, error) {
 }
 
 func (source *InstanceState) downgradeToV1() (*instanceStateV1, bool, error) {
+	if source == nil {
+		return nil, false, nil
+	}
+
 	attributes, err := copystructure.Copy(source.Attributes)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error downgrading InstanceState to V1: %v", err)
@@ -437,6 +453,10 @@ func (source *InstanceState) downgradeToV1() (*instanceStateV1, bool, error) {
 // not considered an error and should be checked explicitly if it is
 // important in a given context.
 func (source *State) downgradeToV1() (*stateV1, bool, error) {
+	if source == nil {
+		return nil, false, nil
+	}
+
 	downgradeWasLossy := false
 
 	var err error

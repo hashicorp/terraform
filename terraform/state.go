@@ -251,9 +251,10 @@ func (s *State) DeepCopy() *State {
 		return nil
 	}
 	n := &State{
-		Version: s.Version,
-		Serial:  s.Serial,
-		Modules: make([]*ModuleState, 0, len(s.Modules)),
+		Version:     s.Version,
+		ReadVersion: s.ReadVersion,
+		Serial:      s.Serial,
+		Modules:     make([]*ModuleState, 0, len(s.Modules)),
 	}
 	for _, mod := range s.Modules {
 		n.Modules = append(n.Modules, mod.deepcopy())
@@ -1279,8 +1280,7 @@ func ReadState(src io.Reader) (*State, error) {
 			return nil, err
 		}
 
-		// Upgrade to original JSON state format
-		newState.ReadVersion = 1
+		newState.ReadVersion = 0
 		return newState, nil
 	}
 

@@ -1,13 +1,14 @@
 package terraform
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
 
-	"bufio"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -79,6 +80,8 @@ func TestStateAddModule(t *testing.T) {
 
 func TestStateOutputTypeRoundTrip(t *testing.T) {
 	state := &State{
+		Version:     2,
+		ReadVersion: 2,
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: RootModulePath,
@@ -886,13 +889,16 @@ func TestReadUpgradeState(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(actual, upgraded) {
-		t.Fatalf("bad: %#v", actual)
+		spew.Config.DisableMethods = true
+		t.Fatalf("bad:\n%s\n\nexpected:\n%s\n", spew.Sdump(upgraded), spew.Sdump(actual))
 	}
 }
 
 func TestReadWriteState(t *testing.T) {
 	state := &State{
-		Serial: 9,
+		Version:     2,
+		ReadVersion: 2,
+		Serial:      9,
 		Remote: &RemoteState{
 			Type: "http",
 			Config: map[string]string{

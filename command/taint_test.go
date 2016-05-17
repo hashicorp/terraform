@@ -10,6 +10,8 @@ import (
 
 func TestTaint(t *testing.T) {
 	state := &terraform.State{
+		Version:     2,
+		ReadVersion: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
 				Path: []string{"root"},
