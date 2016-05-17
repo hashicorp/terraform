@@ -66,7 +66,7 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 	s.state.IncrementSerialMaybe(s.readState)
 	s.readState = s.state
 
-	if err := terraform.WriteState(s.state, f); err != nil {
+	if err := state.WriteState(f); err != nil {
 		return err
 	}
 

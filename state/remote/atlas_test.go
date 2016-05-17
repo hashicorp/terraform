@@ -55,7 +55,7 @@ func TestAtlasClient_ReportedConflictEqualStates(t *testing.T) {
 	}
 
 	var stateJson bytes.Buffer
-	if err := terraform.WriteState(state, &stateJson); err != nil {
+	if err := state.WriteState(&stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if err := client.Put(stateJson.Bytes()); err != nil {
@@ -84,9 +84,10 @@ func TestAtlasClient_NoConflict(t *testing.T) {
 	fakeAtlas.NoConflictAllowed(true)
 
 	var stateJson bytes.Buffer
-	if err := terraform.WriteState(state, &stateJson); err != nil {
+	if err := state.WriteState(&stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
 	if err := client.Put(stateJson.Bytes()); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -111,10 +112,14 @@ func TestAtlasClient_LegitimateConflict(t *testing.T) {
 	}
 
 	// Changing the state but not the serial. Should generate a conflict.
-	state.RootModule().Outputs["drift"] = "happens"
+	state.RootModule().Outputs["drift"] = &terraform.OutputState{
+		Type:      "string",
+		Sensitive: false,
+		Value:     "happens",
+	}
 
 	var stateJson bytes.Buffer
-	if err := terraform.WriteState(state, &stateJson); err != nil {
+	if err := state.WriteState(&stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if err := client.Put(stateJson.Bytes()); err == nil {
@@ -145,7 +150,7 @@ func TestAtlasClient_UnresolvableConflict(t *testing.T) {
 	}
 
 	var stateJson bytes.Buffer
-	if err := terraform.WriteState(state, &stateJson); err != nil {
+	if err := state.WriteState(&stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	doneCh := make(chan struct{})
@@ -245,7 +250,7 @@ func (f *fakeAtlas) handler(resp http.ResponseWriter, req *http.Request) {
 // loads the state.
 var testStateModuleOrderChange = []byte(
 	`{
-    "version": 1,
+    "version": 2,
     "serial": 1,
     "modules": [
         {
@@ -255,7 +260,11 @@ var testStateModuleOrderChange = []byte(
                 "grandchild"
             ],
             "outputs": {
-                "foo": "bar2"
+                "foo": {
+                    "sensitive": false,
+                    "type": "string",
+                    "value": "bar"
+                }
             },
             "resources": null
         },
@@ -266,7 +275,11 @@ var testStateModuleOrderChange = []byte(
                 "grandchild"
             ],
             "outputs": {
-                "foo": "bar1"
+                "foo": {
+                    "sensitive": false,
+                    "type": "string",
+                    "value": "bar"
+                }
             },
             "resources": null
         }
@@ -276,7 +289,7 @@ var testStateModuleOrderChange = []byte(
 
 var testStateSimple = []byte(
 	`{
-    "version": 1,
+    "version": 2,
     "serial": 1,
     "modules": [
         {
@@ -284,7 +297,11 @@ var testStateSimple = []byte(
                 "root"
             ],
             "outputs": {
-                "foo": "bar"
+                "foo": {
+                    "sensitive": false,
+                    "type": "string",
+                    "value": "bar"
+                }
             },
             "resources": null
         }

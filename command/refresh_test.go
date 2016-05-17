@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -147,7 +148,7 @@ func TestRefresh_defaultState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	err = terraform.WriteState(originalState, f)
+	err = originalState.WriteState(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -267,7 +268,8 @@ func TestRefresh_outPath(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(newState, state) {
-		t.Fatalf("bad: %#v", newState)
+		spew.Config.DisableMethods = true
+		t.Fatalf("bad:\n%s\n\nexpected:\n%s\n", spew.Sdump(newState), spew.Sdump(state))
 	}
 
 	f, err = os.Open(outPath)

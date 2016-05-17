@@ -62,7 +62,10 @@ func resourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 
 	var outputs map[string]string
 	if !state.State().Empty() {
-		outputs = state.State().RootModule().Outputs
+		for key, output := range state.State().RootModule().Outputs {
+			//This is ok for 0.6.17 as outputs will have been strings
+			outputs[key] = output.Value.(string)
+		}
 	}
 
 	d.SetId(time.Now().UTC().String())

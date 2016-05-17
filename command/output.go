@@ -83,7 +83,7 @@ func (c *OutputCommand) Run(args []string) int {
 		for _, k := range ks {
 			v := mod.Outputs[k]
 
-			c.Ui.Output(fmt.Sprintf("%s = %s", k, v))
+			c.Ui.Output(fmt.Sprintf("%s = %s", k, v.Value))
 		}
 		return 0
 	}
@@ -98,7 +98,14 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(v)
+	switch v.Type {
+	case "string":
+		c.Ui.Output(v.Value.(string))
+	default:
+		c.Ui.Error(fmt.Sprintf("Unknown output type: %s", v.Type))
+		return 1
+	}
+
 	return 0
 }
 

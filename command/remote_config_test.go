@@ -164,7 +164,7 @@ func TestRemoteConfig_disable_otherState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	err = terraform.WriteState(s, fh)
+	err = s.WriteState(fh)
 	fh.Close()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -208,7 +208,7 @@ func TestRemoteConfig_managedAndNonManaged(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	err = terraform.WriteState(s, fh)
+	err = s.WriteState(fh)
 	fh.Close()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -360,7 +360,7 @@ func TestRemoteConfig_enableRemote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	err = terraform.WriteState(s, fh)
+	err = s.WriteState(fh)
 	fh.Close()
 	if err != nil {
 		t.Fatalf("err: %v", err)

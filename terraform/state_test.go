@@ -1,12 +1,14 @@
 package terraform
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -73,6 +75,38 @@ func TestStateAddModule(t *testing.T) {
 		if !reflect.DeepEqual(actual, tc.Out) {
 			t.Fatalf("In: %#v\n\nOut: %#v", tc.In, actual)
 		}
+	}
+}
+
+func TestStateOutputTypeRoundTrip(t *testing.T) {
+	state := &State{
+		Version:     2,
+		ReadVersion: 2,
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+				Outputs: map[string]*OutputState{
+					"string_output": &OutputState{
+						Value: "String Value",
+						Type:  "string",
+					},
+				},
+			},
+		},
+	}
+
+	buf := new(bytes.Buffer)
+	if err := state.WriteState(buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	roundTripped, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(state, roundTripped) {
+		t.Fatalf("bad: %#v", roundTripped)
 	}
 }
 
@@ -830,15 +864,15 @@ func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
 }
 
 func TestReadUpgradeState(t *testing.T) {
-	state := &StateV1{
-		Resources: map[string]*ResourceStateV1{
-			"foo": &ResourceStateV1{
+	state := &stateV0{
+		Resources: map[string]*resourceStateV0{
+			"foo": &resourceStateV0{
 				ID: "bar",
 			},
 		},
 	}
 	buf := new(bytes.Buffer)
-	if err := testWriteStateV1(state, buf); err != nil {
+	if err := testWriteStateV0(state, buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -849,19 +883,22 @@ func TestReadUpgradeState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	upgraded, err := upgradeV1State(state)
+	upgraded, err := state.upgrade()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if !reflect.DeepEqual(actual, upgraded) {
-		t.Fatalf("bad: %#v", actual)
+		spew.Config.DisableMethods = true
+		t.Fatalf("bad:\n%s\n\nexpected:\n%s\n", spew.Sdump(upgraded), spew.Sdump(actual))
 	}
 }
 
 func TestReadWriteState(t *testing.T) {
 	state := &State{
-		Serial: 9,
+		Version:     2,
+		ReadVersion: 2,
+		Serial:      9,
 		Remote: &RemoteState{
 			Type: "http",
 			Config: map[string]string{
@@ -893,7 +930,7 @@ func TestReadWriteState(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	if err := WriteState(state, buf); err != nil {
+	if err := state.WriteState(buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -935,20 +972,20 @@ func TestReadStateNewVersion(t *testing.T) {
 	}
 }
 
-func TestUpgradeV1State(t *testing.T) {
-	old := &StateV1{
+func TestUpgradeV0State(t *testing.T) {
+	old := &stateV0{
 		Outputs: map[string]string{
 			"ip": "127.0.0.1",
 		},
-		Resources: map[string]*ResourceStateV1{
-			"foo": &ResourceStateV1{
+		Resources: map[string]*resourceStateV0{
+			"foo": &resourceStateV0{
 				Type: "test_resource",
 				ID:   "bar",
 				Attributes: map[string]string{
 					"key": "val",
 				},
 			},
-			"bar": &ResourceStateV1{
+			"bar": &resourceStateV0{
 				Type: "test_resource",
 				ID:   "1234",
 				Attributes: map[string]string{
@@ -960,7 +997,7 @@ func TestUpgradeV1State(t *testing.T) {
 			"bar": struct{}{},
 		},
 	}
-	state, err := upgradeV1State(old)
+	state, err := old.upgrade()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -973,7 +1010,7 @@ func TestUpgradeV1State(t *testing.T) {
 	if len(root.Outputs) != 1 {
 		t.Fatalf("bad outputs: %v", root.Outputs)
 	}
-	if root.Outputs["ip"] != "127.0.0.1" {
+	if root.Outputs["ip"].Value != "127.0.0.1" {
 		t.Fatalf("bad outputs: %v", root.Outputs)
 	}
 
@@ -1062,3 +1099,223 @@ func TestParseResourceStateKey(t *testing.T) {
 		}
 	}
 }
+
+func Test0617StateHandling_ReadWriteStateV1(t *testing.T) {
+	original, err := ReadState(strings.NewReader(testV1State))
+	if err != nil {
+		t.Fatalf("Error reading state: %s", err)
+	}
+
+	if original.Version != 2 {
+		t.Fatalf("Did not upgrade state to v2")
+	}
+	if original.ReadVersion != 1 {
+		t.Fatalf("Did not maintain ReadVersion of state at v1")
+	}
+
+	var written bytes.Buffer
+	writer := bufio.NewWriter(&written)
+	original.WriteState(writer)
+	writer.Flush()
+
+	rewritten, err := ReadState(bytes.NewReader(written.Bytes()))
+	if err != nil {
+		t.Fatalf("Error reading state: %s", err)
+	}
+
+	if rewritten.Version != 2 {
+		t.Fatalf("Did not upgrade rewritten state to v2")
+	}
+	if rewritten.ReadVersion != 1 {
+		t.Fatalf("Did not maintain rewritten ReadVersion of state at v1")
+	}
+
+	if !original.Equal(rewritten) {
+		t.Fatalf("State after roundtripping was not equivalent")
+	}
+}
+
+func Test0617StateHandling_ReadWriteStateV2Lossless(t *testing.T) {
+	original, err := ReadState(strings.NewReader(testV2State))
+	if err != nil {
+		t.Fatalf("Error reading state: %s", err)
+	}
+
+	if original.Version != 2 {
+		t.Fatalf("Did not upgrade state to v2")
+	}
+	if original.ReadVersion != 2 {
+		t.Fatalf("Did not maintain ReadVersion of state at v2")
+	}
+
+	var written bytes.Buffer
+	writer := bufio.NewWriter(&written)
+	original.WriteState(writer)
+	writer.Flush()
+
+	rewritten, err := ReadState(bytes.NewReader(written.Bytes()))
+	if err != nil {
+		t.Fatalf("Error reading state: %s", err)
+	}
+
+	if rewritten.Version != 2 {
+		t.Fatalf("Did not upgrade rewritten state to v2")
+	}
+	if rewritten.ReadVersion != 2 {
+		t.Fatalf("Did not maintain rewritten ReadVersion of state at v2")
+	}
+
+	if !original.Equal(rewritten) {
+		t.Fatalf("State after roundtripping was not equivalent")
+	}
+}
+
+func Test0617StateHandling_ReadWriteStateV2LossyFail(t *testing.T) {
+	_, err := ReadState(strings.NewReader(testV2StateLossy))
+	if err == nil {
+		t.Fatalf("Expected error reading non-lossless V2->V1 state")
+	}
+
+	if !strings.Contains(err.Error(), "Terraform 0.7 is required to work with this state file.") {
+		t.Fatalf("Error is not expected: %s", err)
+	}
+}
+
+const testV1State = `{
+    "version": 1,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": null,
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    }
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`
+
+const testV1StateWithOutputs = `{
+    "version": 1,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {
+            	"foo": "bar",
+            	"baz": "foo"
+            },
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    }
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`
+
+const testV2State = `{
+    "version": 2,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {
+            	"foo": {
+            	    "type": "string",
+            	    "sensitive": false,
+            	    "value": "bar"
+            	}
+            },
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    }
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`
+
+const testV2StateLossy = `{
+    "version": 2,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {
+            	"foo": {
+            	    "type": "string",
+            	    "sensitive": true,
+            	    "value": "bar"
+            	}
+            },
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    }
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`

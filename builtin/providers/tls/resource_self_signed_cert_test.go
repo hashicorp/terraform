@@ -60,7 +60,7 @@ EOT
                     }
                 `, testPrivateKey),
 				Check: func(s *terraform.State) error {
-					got := s.RootModule().Outputs["key_pem"]
+					got := s.RootModule().Outputs["key_pem"].Value.(string)
 					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE----") {
 						return fmt.Errorf("key is missing cert PEM preamble")
 					}

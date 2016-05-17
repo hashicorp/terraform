@@ -42,7 +42,7 @@ func TestShow_noArgs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	err = terraform.WriteState(testState(), f)
+	err = testState().WriteState(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -138,7 +138,7 @@ func TestShow_noArgsRemoteState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	err = terraform.WriteState(testState(), f)
+	err = testState().WriteState(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)

@@ -49,7 +49,7 @@ func TestRemotePush_local(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	err = terraform.WriteState(s, f)
+	err = s.WriteState(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)

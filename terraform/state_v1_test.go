@@ -1,118 +1,147 @@
 package terraform
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/gob"
-	"errors"
-	"io"
 	"reflect"
-	"sync"
+	"strings"
 	"testing"
 
-	"github.com/mitchellh/hashstructure"
+	"github.com/davecgh/go-spew/spew"
 )
 
-func TestReadWriteStateV1(t *testing.T) {
-	state := &StateV1{
-		Resources: map[string]*ResourceStateV1{
-			"foo": &ResourceStateV1{
-				ID: "bar",
-				ConnInfo: map[string]string{
-					"type":     "ssh",
-					"user":     "root",
-					"password": "supersecret",
-				},
-			},
-		},
-	}
-
-	// Checksum before the write
-	chksum, err := hashstructure.Hash(state, nil)
+func TestReadUpgradeStateV1toV2(t *testing.T) {
+	// ReadState should transparently detect the old version but will upgrade
+	// it on Write.
+	actual, err := ReadState(strings.NewReader(testV1State))
 	if err != nil {
-		t.Fatalf("hash: %s", err)
+		t.Fatalf("err: %s", err)
 	}
 
 	buf := new(bytes.Buffer)
-	if err := testWriteStateV1(state, buf); err != nil {
+	if err := actual.WriteState(buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Checksum after the write
-	chksumAfter, err := hashstructure.Hash(state, nil)
-	if err != nil {
-		t.Fatalf("hash: %s", err)
+	if actual.Version != 2 {
+		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
 	}
 
-	if chksumAfter != chksum {
-		t.Fatalf("structure changed during serialization!")
-	}
-
-	actual, err := ReadStateV1(buf)
+	roundTripped, err := ReadState(buf)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	// ReadState should not restore sensitive information!
-	state.Resources["foo"].ConnInfo = nil
-
-	if !reflect.DeepEqual(actual, state) {
+	if !reflect.DeepEqual(actual, roundTripped) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
 
-// sensitiveState is used to store sensitive state information
-// that should not be serialized. This is only used temporarily
-// and is restored into the state.
-type sensitiveState struct {
-	ConnInfo map[string]map[string]string
-
-	once sync.Once
-}
-
-func (s *sensitiveState) init() {
-	s.once.Do(func() {
-		s.ConnInfo = make(map[string]map[string]string)
-	})
-}
-
-// testWriteStateV1 writes a state somewhere in a binary format.
-// Only for testing now
-func testWriteStateV1(d *StateV1, dst io.Writer) error {
-	// Write the magic bytes so we can determine the file format later
-	n, err := dst.Write([]byte(stateFormatMagic))
+func TestReadUpgradeStateV1toV2_outputs(t *testing.T) {
+	// ReadState should transparently detect the old version but will upgrade
+	// it on Write.
+	actual, err := ReadState(strings.NewReader(testV1StateWithOutputs))
 	if err != nil {
-		return err
-	}
-	if n != len(stateFormatMagic) {
-		return errors.New("failed to write state format magic bytes")
+		t.Fatalf("err: %s", err)
 	}
 
-	// Write a version byte so we can iterate on version at some point
-	n, err = dst.Write([]byte{stateFormatVersion})
+	buf := new(bytes.Buffer)
+	if err := actual.WriteState(buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual.Version != 2 {
+		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
+	}
+
+	roundTripped, err := ReadState(buf)
 	if err != nil {
-		return err
-	}
-	if n != 1 {
-		return errors.New("failed to write state version byte")
+		t.Fatalf("err: %s", err)
 	}
 
-	// Prevent sensitive information from being serialized
-	sensitive := &sensitiveState{}
-	sensitive.init()
-	for name, r := range d.Resources {
-		if r.ConnInfo != nil {
-			sensitive.ConnInfo[name] = r.ConnInfo
-			r.ConnInfo = nil
-		}
+	if !reflect.DeepEqual(actual, roundTripped) {
+		spew.Config.DisableMethods = true
+		t.Fatalf("bad:\n%s\n\nround tripped:\n%s\n", spew.Sdump(actual), spew.Sdump(roundTripped))
+		spew.Config.DisableMethods = false
 	}
-
-	// Serialize the state
-	err = gob.NewEncoder(dst).Encode(d)
-
-	// Restore the state
-	for name, info := range sensitive.ConnInfo {
-		d.Resources[name].ConnInfo = info
-	}
-
-	return err
 }
+
+func TestDowngradeStateV2ToV1_downgradableLossless(t *testing.T) {
+	// Even though this is technically V1 state, the reader will upgrade it to V2.
+	// The fact we have gone V1->V2 implies that it is possible to losslessly go
+	// from V2->V1.
+	source, err := ReadState(strings.NewReader(testV1FullStateWithOutputs))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	downgraded, lossy, err := source.downgradeToV1()
+
+	if lossy {
+		t.Fatalf("Conversion which should have been lossless was not:\nOriginal:\n%s\nDowngraded:\n%s\n",
+			spew.Sdump(source), spew.Sdump(downgraded))
+	}
+
+	var stateV1Written bytes.Buffer
+	writer := bufio.NewWriter(&stateV1Written)
+	downgraded.WriteState(writer)
+	writer.Flush()
+
+	roundtripped, err := ReadState(bytes.NewReader(stateV1Written.Bytes()))
+	if err != nil {
+		t.Fatalf("Error reading roundtripped state: %s", err)
+	}
+
+	if !roundtripped.Equal(source) {
+		t.Fatalf("Round tripped state is not equivalent: Source:\n%s\n\nRoundTripped:\n%s\n",
+			spew.Sdump(source), spew.Sdump(downgraded))
+	}
+}
+
+const testV1FullStateWithOutputs = `{
+    "version": 1,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {
+                "foo": "bar",
+                "baz": "foo"
+            },
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    },
+                    "deposed": [
+                        {
+                            "id": "bar",
+                            "attributes": {
+                                "foo": "bar",
+                                "baz": "boo"
+                            }
+                        }
+                    ],
+                    "tainted": [
+                        {
+                            "id": "boo"
+                        }
+                    ]
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`

@@ -116,6 +116,8 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 // testState returns a test State structure that we use for a lot of tests.
 func testState() *terraform.State {
 	return &terraform.State{
+		Version:     2,
+		ReadVersion: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
 				Path: []string{"root"},
@@ -141,7 +143,7 @@ func testStateFile(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := s.WriteState(f); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -157,7 +159,7 @@ func testStateFileDefault(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := s.WriteState(f); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -178,7 +180,7 @@ func testStateFileRemote(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := s.WriteState(f); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
