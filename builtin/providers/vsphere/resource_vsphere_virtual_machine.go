@@ -1153,7 +1153,7 @@ func getDatastoreObject(client *govmomi.Client, f *object.DatacenterFolders, nam
 }
 
 // buildStoragePlacementSpecCreate builds StoragePlacementSpec for create action.
-func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
+func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod *object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
 	spr := storagePod.Reference()
@@ -1172,7 +1172,7 @@ func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.Res
 }
 
 // buildStoragePlacementSpecClone builds StoragePlacementSpec for clone action.
-func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod object.StoragePod) types.StoragePlacementSpec {
+func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod *object.StoragePod) types.StoragePlacementSpec {
 	vmr := vm.Reference()
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
@@ -1357,7 +1357,12 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	if vm.datastore == "" {
 		if vm.useSDRS {
 			// TODO this is actually returning a *object.StoragePod
-			datastore, err = finder.DefaultDatastoreCluster(context.TODO())
+			var pod *object.StoragePod
+			pod, err = finder.DefaultDatastoreCluster(context.TODO())
+			if err == nil {
+				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, pod, configSpec)
+				datastore, err = findDatastore(c, sps)
+			}
 		} else {
 			datastore, err = finder.DefaultDatastore(context.TODO())
 		}
@@ -1367,9 +1372,12 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		}
 	} else {
 		if vm.useSDRS {
-			// FIXME: this is not returning a datastore ... will this
-			// still work?
-			datastore, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
+			var pod *object.StoragePod
+			pod, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
+			if err == nil {
+				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, pod, configSpec)
+				datastore, err = findDatastore(c, sps)
+			}
 		} else {
 			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
 		}
@@ -1385,7 +1393,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 				sp := object.StoragePod{
 					Folder: object.NewFolder(c.Client, d),
 				}
-				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
+				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, &sp, configSpec)
 				datastore, err = findDatastore(c, sps)
 				if err != nil {
 					return err
@@ -1517,7 +1525,12 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	var datastore *object.Datastore
 	if vm.datastore == "" {
 		if vm.useSDRS {
-			datastore, err = finder.DefaultDatastoreCluster(context.TODO())
+			var pod *object.StoragePod
+			pod, err = finder.DefaultDatastoreCluster(context.TODO())
+			if err == nil {
+				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, pod)
+				datastore, err = findDatastore(c, sps)
+			}
 		} else {
 			datastore, err = finder.DefaultDatastore(context.TODO())
 		}
@@ -1528,7 +1541,12 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	} else {
 		// TODO: datastore cluster support in govmomi finder function CJL test
 		if vm.useSDRS {
-			datastore, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
+			var pod *object.StoragePod
+			pod, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
+			if err == nil {
+				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, pod)
+				datastore, err = findDatastore(c, sps)
+			}
 		} else {
 			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
 		}
@@ -1543,7 +1561,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 				sp := object.StoragePod{
 					Folder: object.NewFolder(c.Client, d),
 				}
-				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
+				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, &sp)
 
 				datastore, err = findDatastore(c, sps)
 				if err != nil {
