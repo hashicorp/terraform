@@ -62,13 +62,16 @@ func (n *GraphNodeConfigVariable) VariableName() string {
 func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
 	// Only include this variable in a destroy edge if the source vertex
 	// "v" has a count dependency on this variable.
+	log.Printf("[DEBUG] DestroyEdgeInclude: Checking: %s", dag.VertexName(v))
 	cv, ok := v.(GraphNodeCountDependent)
 	if !ok {
+		log.Printf("[DEBUG] DestroyEdgeInclude: Not GraphNodeCountDependent: %s", dag.VertexName(v))
 		return false
 	}
 
 	for _, d := range cv.CountDependentOn() {
 		for _, d2 := range n.DependableName() {
+			log.Printf("[DEBUG] DestroyEdgeInclude: d = %s : d2 = %s", d, d2)
 			if d == d2 {
 				return true
 			}
@@ -97,14 +100,10 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 	// If we're destroying, we have no need of variables unless they are depended
 	// on by the count of a resource.
 	if modDiff != nil && modDiff.Destroy {
-		for _, v := range opts.Graph.UpEdges(opts.Vertex).List() {
-			// Here we borrow the implementation of DestroyEdgeInclude, whose logic
-			// and semantics are exactly what we want here.
-			if n.DestroyEdgeInclude(v) {
-				log.Printf("[DEBUG] Variable has destroy edge from %s, not a noop",
-					dag.VertexName(v))
-				return false
-			}
+		if n.hasDestroyEdgeInPath(opts, nil) {
+			log.Printf("[DEBUG] Variable has destroy edge from %s, not a noop",
+				dag.VertexName(opts.Vertex))
+			return false
 		}
 		log.Printf("[DEBUG] Variable has no included destroy edges: noop!")
 		return true
@@ -122,6 +121,31 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 
 	log.Printf("[DEBUG] No up edges, treating variable as a noop")
 	return true
+}
+
+// hasDestroyEdgeInPath recursively walks for a destroy edge, ensuring that
+// a variable both has no immediate destroy edges or any in its full module
+// path, ensuring that links do not get severed in the middle.
+func (n *GraphNodeConfigVariable) hasDestroyEdgeInPath(opts *NoopOpts, vertex dag.Vertex) bool {
+	if vertex == nil {
+		vertex = opts.Vertex
+	}
+	log.Printf("[DEBUG] hasDestroyEdgeInPath: Looking for destroy edge: %s - %T", dag.VertexName(vertex), vertex)
+	for _, v := range opts.Graph.UpEdges(vertex).List() {
+		if len(opts.Graph.UpEdges(v).List()) > 1 {
+			if n.hasDestroyEdgeInPath(opts, v) == true {
+				return true
+			}
+		}
+		// Here we borrow the implementation of DestroyEdgeInclude, whose logic
+		// and semantics are exactly what we want here.
+		if cv, ok := vertex.(*GraphNodeConfigVariableFlat); ok {
+			if cv.DestroyEdgeInclude(v) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // GraphNodeProxy impl.
