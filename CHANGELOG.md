@@ -30,7 +30,6 @@ BUG FIXES:
  * provider/aws: Updating state when `aws_sns_topic_subscription` is missing [GH-6629]
  * provider/aws: `aws_opsworks_application.app_source` SSH key is write-only [GH-6649]
  * provider/aws: fix Elastic Beanstalk `cname_prefix` continual plans [GH-6653]
- * provider/aws: Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
  * provider/aws: Trim trailing `.` from `name` in `aws_route53_record` resources to prevent spurious diffs [GH-6592]
  * provider/openstack: Reassociate Floating IP on network changes [GH-6579]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
