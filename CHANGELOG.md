@@ -10,6 +10,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 BUG FIXES:
 
  * provider/aws: Revert security group / vpc security group deprecation that forced new resources [GH-6664]
+ * provider/aws: Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
 
 ## 0.6.16 (May 9, 2016)
 
