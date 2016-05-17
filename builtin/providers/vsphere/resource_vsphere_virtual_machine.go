@@ -14,6 +14,7 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
@@ -1228,7 +1229,6 @@ func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.D
 	var datastore *object.Datastore
 	log.Printf("[DEBUG] findDatastore: StoragePlacementSpec: %#v\n", sps)
 
-	// TODO does this word with SDRS
 	srm := object.NewStorageResourceManager(c.Client)
 	rds, err := srm.RecommendDatastores(context.TODO(), sps)
 	if err != nil {
@@ -1333,7 +1333,6 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
-	// make ExtraConfig
 	log.Printf("[DEBUG] virtual machine Extra Config spec start")
 	if len(vm.customConfigurations) > 0 {
 		var ov []types.BaseOptionValue
@@ -1351,16 +1350,18 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
 	}
 
-	// TODO: refactor this code block in to a method - we are doing this twice
 	var datastore *object.Datastore
 	if vm.datastore == "" {
+		// TODO repeated
 		if vm.useSDRS {
-			// TODO this is actually returning a *object.StoragePod
 			var pod *object.StoragePod
 			pod, err = finder.DefaultDatastoreCluster(context.TODO())
 			if err == nil {
-				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, pod, configSpec)
-				datastore, err = findDatastore(c, sps)
+				datastore, err = getRecommendDRSDatastore(c.Client, pod, resourcePool, dcFolders.VmFolder, &configSpec)
+				if err != nil {
+					log.Printf("[DEBUG] unable to find default datastore")
+					return err
+				}
 			}
 		} else {
 			datastore, err = finder.DefaultDatastore(context.TODO())
@@ -1370,19 +1371,20 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 			return err
 		}
 	} else {
+		// TODO repeated
 		if vm.useSDRS {
 			var pod *object.StoragePod
 			pod, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
 			if err == nil {
-				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, pod, configSpec)
-				datastore, err = findDatastore(c, sps)
+				datastore, err = getRecommendDRSDatastore(c.Client, pod, resourcePool, dcFolders.VmFolder, &configSpec)
+				if err != nil {
+					return fmt.Errorf("Cannot cluster datastore %v", vm.datastore)
+				}
 			}
 		} else {
 			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
 		}
-		// FIXME: how does this work into SDRS??
 		if err != nil {
-			// TODO: datastore cluster support in govmomi finder function
 			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
 			if err != nil {
 				return err
@@ -1521,67 +1523,6 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		}
 	}
 
-	var datastore *object.Datastore
-	if vm.datastore == "" {
-		if vm.useSDRS {
-			var pod *object.StoragePod
-			pod, err = finder.DefaultDatastoreCluster(context.TODO())
-			if err == nil {
-				// TODO do we need a Clone here??
-				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, pod)
-				// TODO: use provider_api_helper here CJL
-				datastore, err = findDatastore(c, sps)
-			}
-		} else {
-			datastore, err = finder.DefaultDatastore(context.TODO())
-		}
-		if err != nil {
-			log.Printf("[DEBUG] unable to find default datastore")
-			return err
-		}
-	} else {
-		// TODO: datastore cluster support in govmomi finder function CJL test
-		if vm.useSDRS {
-			var pod *object.StoragePod
-			pod, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
-			if err == nil {
-				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, pod)
-				datastore, err = findDatastore(c, sps)
-			}
-		} else {
-			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
-		}
-		if err != nil {
-			// TODO: datastore cluster support in govmomi finder function
-			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
-			if err != nil {
-				return err
-			}
-
-			if d.Type == "StoragePod" {
-				sp := object.StoragePod{
-					Folder: object.NewFolder(c.Client, d),
-				}
-				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, &sp)
-
-				datastore, err = findDatastore(c, sps)
-				if err != nil {
-					return err
-				}
-			} else {
-				datastore = object.NewDatastore(c.Client, d)
-			}
-		}
-	}
-	log.Printf("[DEBUG] datastore: %#v", datastore)
-
-	relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("[DEBUG] relocate spec: %v", relocateSpec)
-
 	// network
 	networkDevices := []types.BaseVirtualDeviceConfigSpec{}
 	networkConfigs := []types.CustomizationAdapterMapping{}
@@ -1654,11 +1595,77 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		},
 	}
 
+	var datastore *object.Datastore
+	if vm.datastore == "" {
+		// TODO should we refactor ... two code blocks are repeated
+		// TODO Repeated
+		if vm.useSDRS {
+			var pod *object.StoragePod
+			pod, err = finder.DefaultDatastoreCluster(context.TODO())
+			if err == nil {
+				datastore, err = getRecommendDRSDatastore(c.Client, pod, resourcePool, dcFolders.VmFolder, &configSpec)
+				if err != nil {
+					return err
+					log.Printf("[DEBUG] unable to find default datastore")
+				}
+			}
+		} else {
+			datastore, err = finder.DefaultDatastore(context.TODO())
+		}
+		if err != nil {
+			log.Printf("[DEBUG] unable to find default datastore")
+			return err
+		}
+	} else {
+		// TODO Repeated
+		if vm.useSDRS {
+			var pod *object.StoragePod
+			pod, err = finder.DatastoreCluster(context.TODO(), vm.datastore)
+			if err == nil {
+				datastore, err = getRecommendDRSDatastore(c.Client, pod, resourcePool, dcFolders.VmFolder, &configSpec)
+				if err != nil {
+					return fmt.Errorf("Cannot cluster datastore %v", vm.datastore)
+				}
+			}
+		} else {
+			datastore, err = finder.Datastore(context.TODO(), vm.datastore)
+		}
+		if err != nil {
+			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
+			if err != nil {
+				return err
+			}
+
+			if d.Type == "StoragePod" {
+				sp := object.StoragePod{
+					Folder: object.NewFolder(c.Client, d),
+				}
+				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, &sp)
+
+				datastore, err = findDatastore(c, sps)
+				if err != nil {
+					return err
+				}
+			} else {
+				datastore = object.NewDatastore(c.Client, d)
+			}
+		}
+	}
+	log.Printf("[DEBUG] datastore: %#v", datastore)
+
+	relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] relocate spec: %v", relocateSpec)
+
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
 	log.Printf("[DEBUG] starting extra custom config spec: %v", vm.customConfigurations)
 
 	// make ExtraConfig
+	// TODO repeated code block
 	if len(vm.customConfigurations) > 0 {
 		var ov []types.BaseOptionValue
 		for k, v := range vm.customConfigurations {
@@ -1844,4 +1851,21 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	log.Printf("[DEBUG] ip address: %v", ip)
 
 	return nil
+}
+
+// Get the recommended DRS Datastore uses the api_helper
+func getRecommendDRSDatastore(client *vim25.Client, storagePod *object.StoragePod,
+	resourcePool *object.ResourcePool, folder *object.Folder, spec *types.VirtualMachineConfigSpec) (*object.Datastore, error) {
+
+	var api api_helper
+	var datastore *object.Datastore
+	var err error
+
+	api.Init(client, storagePod, resourcePool, folder)
+	datastore, err = api.recommendDatastore(context.TODO(), spec)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot find datastore")
+	}
+
+	return datastore, nil
 }

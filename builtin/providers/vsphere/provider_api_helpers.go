@@ -15,10 +15,17 @@ type api_helper struct {
 	Client       *vim25.Client
 	StoragePod   *object.StoragePod
 	ResourcePool *object.ResourcePool
-	HostSystem   *object.HostSystem
 	Folder       *object.Folder
 	//Datacenter   *object.Datacenter
 	//Datastore    *object.Datastore
+}
+
+func (api_helper *api_helper) Init(client *vim25.Client, sp *object.StoragePod, rp *object.ResourcePool,
+	fo *object.Folder) {
+	api_helper.Client = client
+	api_helper.StoragePod = sp
+	api_helper.ResourcePool = rp
+	api_helper.Folder = fo
 }
 
 /*
