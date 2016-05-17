@@ -45,6 +45,11 @@ func resourceAwsApiGatewayMethod() *schema.Resource {
 				Required: true,
 			},
 
+			"authorizer_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"api_key_required": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -89,6 +94,7 @@ func resourceAwsApiGatewayMethodCreate(d *schema.ResourceData, meta interface{})
 		// TODO reimplement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
 		RequestParameters: aws.BoolMap(parameters),
 		ApiKeyRequired:    aws.Bool(d.Get("api_key_required").(bool)),
+		AuthorizerId:      aws.String(d.Get("authorizer_id").(string)),
 	})
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Method: %s", err)
