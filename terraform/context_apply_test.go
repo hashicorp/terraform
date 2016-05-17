@@ -2649,14 +2649,11 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 			t.Fatalf("plan read err: %s", err)
 		}
 
-		ctx, err = planFromFile.Context(&ContextOpts{
+		ctx = planFromFile.Context(&ContextOpts{
 			Providers: map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		})
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
 
 		state, err = ctx.Apply()
 		if err != nil {
@@ -2733,14 +2730,11 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 			t.Fatalf("plan read err: %s", err)
 		}
 
-		ctx, err = planFromFile.Context(&ContextOpts{
+		ctx = planFromFile.Context(&ContextOpts{
 			Providers: map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		})
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
 
 		state, err = ctx.Apply()
 		if err != nil {
