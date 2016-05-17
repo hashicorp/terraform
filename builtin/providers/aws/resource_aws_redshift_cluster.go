@@ -154,6 +154,13 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"kms_key_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"elastic_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -244,6 +251,10 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		createOpts.Encrypted = aws.Bool(v.(bool))
 	}
 
+	if v, ok := d.GetOk("kms_key_id"); ok {
+		createOpts.KmsKeyId = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("elastic_ip"); ok {
 		createOpts.ElasticIp = aws.String(v.(string))
 	}
@@ -311,6 +322,7 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("cluster_subnet_group_name", rsc.ClusterSubnetGroupName)
 	d.Set("availability_zone", rsc.AvailabilityZone)
 	d.Set("encrypted", rsc.Encrypted)
+	d.Set("kms_key_id", rsc.KmsKeyId)
 	d.Set("automated_snapshot_retention_period", rsc.AutomatedSnapshotRetentionPeriod)
 	d.Set("preferred_maintenance_window", rsc.PreferredMaintenanceWindow)
 	if rsc.Endpoint != nil && rsc.Endpoint.Address != nil {
