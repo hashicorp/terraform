@@ -102,7 +102,8 @@ func (c *OutputCommand) Run(args []string) int {
 	case "string":
 		c.Ui.Output(v.Value.(string))
 	default:
-		panic(fmt.Errorf("Unknown output type: %T", v.Value.(string)))
+		c.Ui.Error(fmt.Sprintf("Unknown output type: %s", v.Type))
+		return 1
 	}
 
 	return 0
