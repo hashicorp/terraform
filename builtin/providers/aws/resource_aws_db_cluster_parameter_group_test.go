@@ -2,7 +2,9 @@ package aws
 
 import (
 	"fmt"
+	//"math/rand"
 	"testing"
+	//"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -30,21 +32,13 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_cluster_parameter_group.bar", "name", groupName),
 					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "family", "mysql5.6"),
+						"aws_db_cluster_parameter_group.bar", "family", "aurora5.6"),
 					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "description", "Test parameter group for terraform"),
+						"aws_db_cluster_parameter_group.bar", "description", "Test cluster parameter group for terraform"),
 					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.1708034931.name", "character_set_results"),
+						"aws_db_cluster_parameter_group.bar", "parameter.2475346812.name", "character_set_database"),
 					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.1708034931.value", "utf8"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2421266705.name", "character_set_server"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2421266705.value", "utf8"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2478663599.name", "character_set_client"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2478663599.value", "utf8"),
+						"aws_db_cluster_parameter_group.bar", "parameter.2475346812.value", "utf8"),
 					resource.TestCheckResourceAttr(
 						"aws_db_cluster_parameter_group.bar", "tags.#", "1"),
 				),
@@ -57,29 +51,13 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_cluster_parameter_group.bar", "name", groupName),
 					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "family", "mysql5.6"),
+						"aws_db_cluster_parameter_group.bar", "family", "aurora5.6"),
 					resource.TestCheckResourceAttr(
 						"aws_db_cluster_parameter_group.bar", "description", "Test cluster parameter group for terraform"),
 					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.1706463059.name", "collation_connection"),
+						"aws_db_cluster_parameter_group.bar", "parameter.2475346812.name", "character_set_database"),
 					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.1706463059.value", "utf8_unicode_ci"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.1708034931.name", "character_set_results"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.1708034931.value", "utf8"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2421266705.name", "character_set_server"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2421266705.value", "utf8"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2475805061.name", "collation_server"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2475805061.value", "utf8_unicode_ci"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2478663599.name", "character_set_client"),
-					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "parameter.2478663599.value", "utf8"),
+						"aws_db_cluster_parameter_group.bar", "parameter.2475346812.value", "utf8"),
 					resource.TestCheckResourceAttr(
 						"aws_db_cluster_parameter_group.bar", "tags.#", "2"),
 				),
@@ -105,7 +83,7 @@ func TestAccAWSDBClusterParameterGroup_Only(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_cluster_parameter_group.bar", "name", groupName),
 					resource.TestCheckResourceAttr(
-						"aws_db_cluster_parameter_group.bar", "family", "mysql5.6"),
+						"aws_db_cluster_parameter_group.bar", "family", "aurora5.6"),
 					resource.TestCheckResourceAttr(
 						"aws_db_cluster_parameter_group.bar", "description", "Test cluster parameter group for terraform"),
 				),
@@ -146,7 +124,7 @@ func TestResourceAWSDBClusterParameterGroupName_validation(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		_, errors := validateDbParamGroupName(tc.Value, "aws_db_cluster_parameter_group_name")
+		_, errors := validateDbParamGroupName(tc.Value, "aws_db_cluster_parameter_group")
 
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected the DB Cluster Parameter Group Name to trigger a validation error")
@@ -180,7 +158,7 @@ func testAccCheckAWSDBClusterParameterGroupDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		if newerr.Code() != "DBClusterParameterGroupNotFound" {
+		if newerr.Code() != "DBParameterGroupNotFound" {
 			return err
 		}
 	}
@@ -195,11 +173,11 @@ func testAccCheckAWSDBClusterParameterGroupAttributes(v *rds.DBClusterParameterG
 			return fmt.Errorf("Bad Cluster Parameter Group name, expected (%s), got (%s)", name, *v.DBClusterParameterGroupName)
 		}
 
-		if *v.DBParameterGroupFamily != "mysql5.6" {
+		if *v.DBParameterGroupFamily != "aurora5.6" {
 			return fmt.Errorf("bad family: %#v", v.DBParameterGroupFamily)
 		}
 
-		if *v.Description != "Test parameter group for terraform" {
+		if *v.Description != "Test cluster parameter group for terraform" {
 			return fmt.Errorf("bad description: %#v", v.Description)
 		}
 
@@ -241,22 +219,26 @@ func testAccCheckAWSDBClusterParameterGroupExists(n string, v *rds.DBClusterPara
 	}
 }
 
+/*
+func randomString(strlen int) string {
+	rand.Seed(time.Now().UTC().UnixNano())
+	const chars = "abcdefghijklmnopqrstuvwxyz"
+	result := make([]byte, strlen)
+	for i := 0; i < strlen; i++ {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
+}
+*/
+
 func testAccAWSDBClusterParameterGroupConfig(n string) string {
 	return fmt.Sprintf(`
 resource "aws_db_cluster_parameter_group" "bar" {
 	name = "%s"
-	family = "mysql5.6"
-	description = "Test cluser parameter group for terraform"
+	family = "aurora5.6"
+	description = "Test cluster parameter group for terraform"
 	parameter {
-	  name = "character_set_server"
-	  value = "utf8"
-	}
-	parameter {
-	  name = "character_set_client"
-	  value = "utf8"
-	}
-	parameter{
-	  name = "character_set_results"
+	  name = "character_set_database"
 	  value = "utf8"
 	}
 	tags {
@@ -269,27 +251,11 @@ func testAccAWSDBClusterParameterGroupAddParametersConfig(n string) string {
 	return fmt.Sprintf(`
 resource "aws_db_cluster_parameter_group" "bar" {
 	name = "%s"
-	family = "mysql5.6"
+	family = "aurora5.6"
 	description = "Test cluster parameter group for terraform"
 	parameter {
-	  name = "character_set_server"
+	  name = "character_set_database"
 	  value = "utf8"
-	}
-	parameter {
-	  name = "character_set_client"
-	  value = "utf8"
-	}
-	parameter{
-	  name = "character_set_results"
-	  value = "utf8"
-	}
-	parameter {
-	  name = "collation_server"
-	  value = "utf8_unicode_ci"
-	}
-	parameter {
-	  name = "collation_connection"
-	  value = "utf8_unicode_ci"
 	}
 	tags {
 		foo = "bar"
@@ -302,7 +268,7 @@ func testAccAWSDBClusterParameterGroupOnlyConfig(n string) string {
 	return fmt.Sprintf(`
 resource "aws_db_cluster_parameter_group" "bar" {
 	name = "%s"
-	family = "mysql5.6"
+	family = "aurora5.6"
 	description = "Test cluster parameter group for terraform"
 }`, n)
 }
