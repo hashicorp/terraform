@@ -21,6 +21,7 @@ IMPROVEMENTS:
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
  * provider/openstack: Add support for client certificate authentication [GH-6279]
  * providers/google: support optional uuid naming for Instance Template [GH-6604]
+ * provider/vsphere: fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  
 BUG FIXES:
 
