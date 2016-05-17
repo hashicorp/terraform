@@ -1,5 +1,12 @@
 ## 0.6.17 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * core: Schema version 2 is now supported. This is the version used in the 0.7 series of Terraform. 0.6.17
+         will continue to write version 1 state if version 1 state is read, and will not force an upgrade.
+         If a version 2 state is encountered and does not contain features that preclude use with 0.6.17, a
+         version 2 state will be saved. Otherwise, an error will be given.
+
 BUG FIXES:
 
  * provider/aws: Revert security group / vpc security group deprecation that forced new resources [GH-6664]
