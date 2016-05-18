@@ -565,7 +565,7 @@ func TestCheckOutput(name, value string) TestCheckFunc {
 			return fmt.Errorf("Not found: %s", name)
 		}
 
-		if rs != value {
+		if rs.Value != value {
 			return fmt.Errorf(
 				"Output '%s': expected %#v, got %#v",
 				name,

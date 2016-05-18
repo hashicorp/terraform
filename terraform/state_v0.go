@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
+	"log"
 )
 
 // The format byte is prefixed into the state file format so that we have
@@ -310,4 +311,58 @@ func ReadStateV0(src io.Reader) (*StateV0, error) {
 	}
 
 	return result, nil
+}
+
+// upgradeV0State is used to upgrade a V0 state representation
+// into a State (current) representation.
+func (old *StateV0) upgrade() (*State, error) {
+	s := &State{}
+	s.init()
+
+	// Old format had no modules, so we migrate everything
+	// directly into the root module.
+	root := s.RootModule()
+
+	// Copy the outputs, first converting them to map[string]interface{}
+	oldOutputs := make(map[string]*OutputState, len(old.Outputs))
+	for key, value := range old.Outputs {
+		oldOutputs[key] = &OutputState{
+			Type:      "string",
+			Sensitive: false,
+			Value:     value,
+		}
+	}
+	root.Outputs = oldOutputs
+
+	// Upgrade the resources
+	for id, rs := range old.Resources {
+		newRs := &ResourceState{
+			Type: rs.Type,
+		}
+		root.Resources[id] = newRs
+
+		// Migrate to an instance state
+		instance := &InstanceState{
+			ID:         rs.ID,
+			Attributes: rs.Attributes,
+		}
+
+		// Check if this is the primary or tainted instance
+		if _, ok := old.Tainted[id]; ok {
+			newRs.Tainted = append(newRs.Tainted, instance)
+		} else {
+			newRs.Primary = instance
+		}
+
+		// Warn if the resource uses Extra, as there is
+		// no upgrade path for this! Now totally deprecated.
+		if len(rs.Extra) > 0 {
+			log.Printf(
+				"[WARN] Resource %s uses deprecated attribute "+
+					"storage, state file upgrade may be incomplete.",
+				rs.ID,
+			)
+		}
+	}
+	return s, nil
 }

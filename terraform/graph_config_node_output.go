@@ -48,8 +48,9 @@ func (n *GraphNodeConfigOutput) EvalTree() EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalWriteOutput{
-					Name:  n.Output.Name,
-					Value: n.Output.RawConfig,
+					Name:      n.Output.Name,
+					Sensitive: n.Output.Sensitive,
+					Value:     n.Output.RawConfig,
 				},
 			},
 		},
