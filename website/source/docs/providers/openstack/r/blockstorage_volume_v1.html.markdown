@@ -56,6 +56,16 @@ The following arguments are supported:
 * `volume_type` - (Optional) The type of volume to create.
     Changing this creates a new volume.
 
+* `attachment` - (Optional) Attach the volume to an instance. See the description
+    below.
+
+The `attachment` block supports:
+
+* `instance_id` - (Optional - Required if attaching to an Instance) The ID of
+    the instance to attach the volume to.
+
+* `device` - (Optional) The device to attach the volume as (ex: `/dev/vdc`).
+
 ## Attributes Reference
 
 The following attributes are exported:

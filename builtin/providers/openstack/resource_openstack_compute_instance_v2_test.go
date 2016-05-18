@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
@@ -41,137 +40,6 @@ func TestAccComputeV2Instance_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceMetadata(&instance, "foo", "bar"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccComputeV2Instance_volumeAttach(t *testing.T) {
-	var instance servers.Server
-	var volume volumes.Volume
-
-	var testAccComputeV2Instance_volumeAttach = fmt.Sprintf(`
-		resource "openstack_blockstorage_volume_v1" "myvol" {
-			name = "myvol"
-			size = 1
-		}
-
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default"]
-			volume {
-				volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
-			}
-		}`)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeV2Instance_volumeAttach,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.myvol", &volume),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
-					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume),
-				),
-			},
-		},
-	})
-}
-
-func TestAccComputeV2Instance_volumeAttachPostCreation(t *testing.T) {
-	var instance servers.Server
-	var volume volumes.Volume
-
-	var testAccComputeV2Instance_volumeAttachPostCreationInstance = fmt.Sprintf(`
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default"]
-		}`)
-
-	var testAccComputeV2Instance_volumeAttachPostCreationInstanceAndVolume = fmt.Sprintf(`
-		resource "openstack_blockstorage_volume_v1" "myvol" {
-			name = "myvol"
-			size = 1
-		}
-
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default"]
-			volume {
-				volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
-			}
-		}`)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeV2Instance_volumeAttachPostCreationInstance,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
-				),
-			},
-			resource.TestStep{
-				Config: testAccComputeV2Instance_volumeAttachPostCreationInstanceAndVolume,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.myvol", &volume),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
-					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume),
-				),
-			},
-		},
-	})
-}
-
-func TestAccComputeV2Instance_volumeDetachPostCreation(t *testing.T) {
-	var instance servers.Server
-	var volume volumes.Volume
-
-	var testAccComputeV2Instance_volumeDetachPostCreationInstanceAndVolume = fmt.Sprintf(`
-		resource "openstack_blockstorage_volume_v1" "myvol" {
-			name = "myvol"
-			size = 1
-		}
-
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default"]
-			volume {
-				volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
-			}
-		}`)
-
-	var testAccComputeV2Instance_volumeDetachPostCreationInstance = fmt.Sprintf(`
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default"]
-		}`)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeV2Instance_volumeDetachPostCreationInstanceAndVolume,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.myvol", &volume),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
-					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume),
-				),
-			},
-			resource.TestStep{
-				Config: testAccComputeV2Instance_volumeDetachPostCreationInstance,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeDoesNotExist(t, "openstack_blockstorage_volume_v1.myvol", &volume),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
-					testAccCheckComputeV2InstanceVolumesDetached(&instance),
 				),
 			},
 		},
@@ -630,63 +498,6 @@ func testAccCheckComputeV2InstanceMetadata(
 		}
 
 		return fmt.Errorf("Metadata not found: %s", k)
-	}
-}
-
-func testAccCheckComputeV2InstanceVolumeAttachment(
-	instance *servers.Server, volume *volumes.Volume) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		var attachments []volumeattach.VolumeAttachment
-
-		config := testAccProvider.Meta().(*Config)
-		computeClient, err := config.computeV2Client(OS_REGION_NAME)
-		if err != nil {
-			return err
-		}
-		err = volumeattach.List(computeClient, instance.ID).EachPage(func(page pagination.Page) (bool, error) {
-			actual, err := volumeattach.ExtractVolumeAttachments(page)
-			if err != nil {
-				return false, fmt.Errorf("Unable to lookup attachment: %s", err)
-			}
-
-			attachments = actual
-			return true, nil
-		})
-
-		for _, attachment := range attachments {
-			if attachment.VolumeID == volume.ID {
-				return nil
-			}
-		}
-
-		return fmt.Errorf("Volume not found: %s", volume.ID)
-	}
-}
-
-func testAccCheckComputeV2InstanceVolumesDetached(instance *servers.Server) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		var attachments []volumeattach.VolumeAttachment
-
-		config := testAccProvider.Meta().(*Config)
-		computeClient, err := config.computeV2Client(OS_REGION_NAME)
-		if err != nil {
-			return err
-		}
-		err = volumeattach.List(computeClient, instance.ID).EachPage(func(page pagination.Page) (bool, error) {
-			actual, err := volumeattach.ExtractVolumeAttachments(page)
-			if err != nil {
-				return false, fmt.Errorf("Unable to lookup attachment: %s", err)
-			}
-
-			attachments = actual
-			return true, nil
-		})
-
-		if len(attachments) > 0 {
-			return fmt.Errorf("Volumes are still attached.")
-		}
-
-		return nil
 	}
 }
 
