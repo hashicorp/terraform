@@ -21,6 +21,9 @@ func resourceAwsRoute53Zone() *schema.Resource {
 		Read:   resourceAwsRoute53ZoneRead,
 		Update: resourceAwsRoute53ZoneUpdate,
 		Delete: resourceAwsRoute53ZoneDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
