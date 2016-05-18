@@ -128,6 +128,11 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"network_interface_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"public_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -491,10 +496,12 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		for _, ni := range instance.NetworkInterfaces {
 			if *ni.Attachment.DeviceIndex == 0 {
 				d.Set("subnet_id", ni.SubnetId)
+				d.Set("network_interface_id", ni.NetworkInterfaceId)
 			}
 		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
+		d.Set("network_interface_id", "")
 	}
 	d.Set("ebs_optimized", instance.EbsOptimized)
 	if instance.SubnetId != nil && *instance.SubnetId != "" {
