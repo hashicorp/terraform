@@ -314,6 +314,12 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	if attr, ok := d.GetOk("include_tags"); ok {
 		o.IncludeTags = attr.(bool)
 	}
+	if attr, ok := d.GetOk("require_full_window"); ok {
+		o.RequireFullWindow = attr.(bool)
+	}
+	if attr, ok := d.GetOk("locked"); ok {
+		o.Locked = attr.(bool)
+	}
 
 	m.Options = o
 
