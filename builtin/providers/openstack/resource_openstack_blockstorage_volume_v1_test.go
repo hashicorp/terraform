@@ -10,19 +10,31 @@ import (
 
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 )
 
 func TestAccBlockStorageV1Volume_basic(t *testing.T) {
 	var volume volumes.Volume
-
-	var testAccBlockStorageV1Volume_bootable = fmt.Sprintf(`
+	var testAccBlockStorageV1Volume_basic = fmt.Sprintf(`
 		resource "openstack_blockstorage_volume_v1" "volume_1" {
-			region = "%s"
-			name = "tf-test-volume-bootable"
-			size = 5
-			image_id = "%s"
-		}`,
-		os.Getenv("OS_REGION_NAME"), os.Getenv("OS_IMAGE_ID"))
+			name = "volume_1"
+			description = "first test volume"
+			metadata{
+				foo = "bar"
+			}
+			size = 1
+		}`)
+
+	var testAccBlockStorageV1Volume_update = fmt.Sprintf(`
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+			name = "volume_1-updated"
+			description = "first test volume"
+			metadata{
+				foo = "bar"
+			}
+			size = 1
+		}`)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -33,21 +45,181 @@ func TestAccBlockStorageV1Volume_basic(t *testing.T) {
 				Config: testAccBlockStorageV1Volume_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume),
-					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume"),
+					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "volume_1"),
 					testAccCheckBlockStorageV1VolumeMetadata(&volume, "foo", "bar"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccBlockStorageV1Volume_update,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume-updated"),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume),
+					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "volume_1-updated"),
 					testAccCheckBlockStorageV1VolumeMetadata(&volume, "foo", "bar"),
 				),
 			},
+		},
+	})
+}
+
+func TestAccBlockStorageV1Volume_bootable(t *testing.T) {
+	var volume volumes.Volume
+	var testAccBlockStorageV1Volume_bootable = fmt.Sprintf(`
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+			name = "volume_1-bootable"
+			size = 5
+			image_id = "%s"
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBlockStorageV1VolumeDestroy,
+		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccBlockStorageV1Volume_bootable,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume-bootable"),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume),
+					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "volume_1-bootable"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccBlockStorageV1Volume_volumeAttach(t *testing.T) {
+	var instance servers.Server
+	var volume volumes.Volume
+
+	var testAccBlockStorageV1Volume_volumeAttach = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+		}
+
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+			name = "volume_1"
+			size = 1
+			attachment {
+				instance_id = "${openstack_compute_instance_v2.instance_1.id}"
+			}
+		}`)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBlockStorageV1VolumeDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBlockStorageV1Volume_volumeAttach,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance),
+					testAccCheckBlockStorageV1VolumeAttachment(&instance, &volume),
+				),
+			},
+		},
+	})
+}
+
+func TestAccBlockStorageV1Volume_volumeAttachPostCreation(t *testing.T) {
+	var instance servers.Server
+	var volume volumes.Volume
+
+	var testAccBlockStorageV1Volume_volumeAttachPostCreationInstance = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+		}`)
+
+	var testAccBlockStorageV1Volume_volumeAttachPostCreationInstanceAndVolume = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+		}
+
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+			name = "volume_1"
+			size = 1
+
+			attachment {
+				instance_id = "${openstack_compute_instance_v2.instance_1.id}"
+			}
+		}`)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBlockStorageV1VolumeDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBlockStorageV1Volume_volumeAttachPostCreationInstance,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance),
+				),
+			},
+			resource.TestStep{
+				Config: testAccBlockStorageV1Volume_volumeAttachPostCreationInstanceAndVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance),
+					testAccCheckBlockStorageV1VolumeAttachment(&instance, &volume),
+				),
+			},
+		},
+	})
+}
+
+func TestAccBlockStorageV1Volume_volumeDetachPostCreation(t *testing.T) {
+	var instance servers.Server
+	var volume volumes.Volume
+
+	var testAccBlockStorageV1Volume_volumeDetachPostCreation_1 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+		}
+
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+			name = "volume_1"
+			size = 1
+
+			attachment {
+				instance_id = "${openstack_compute_instance_v2.instance_1.id}"
+			}
+		}`)
+
+	var testAccBlockStorageV1Volume_volumeDetachPostCreation_2 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+		}
+
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+			depends_on = ["openstack_compute_instance_v2.instance_1"]
+			name = "volume_1"
+			size = 1
+		}`)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBlockStorageV1VolumeDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBlockStorageV1Volume_volumeDetachPostCreation_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance),
+					testAccCheckBlockStorageV1VolumeAttachment(&instance, &volume),
+				),
+			},
+			resource.TestStep{
+				Config: testAccBlockStorageV1Volume_volumeDetachPostCreation_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance),
+					testAccCheckBlockStorageV1VolumeNotAttached(&instance, &volume),
 				),
 			},
 		},
@@ -154,26 +326,61 @@ func testAccCheckBlockStorageV1VolumeMetadata(
 	}
 }
 
-var testAccBlockStorageV1Volume_basic = fmt.Sprintf(`
-	resource "openstack_blockstorage_volume_v1" "volume_1" {
-		region = "%s"
-		name = "tf-test-volume"
-		description = "first test volume"
-		metadata{
-			foo = "bar"
+func testAccCheckBlockStorageV1VolumeAttachment(
+	instance *servers.Server, volume *volumes.Volume) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		config := testAccProvider.Meta().(*Config)
+		computeClient, err := config.computeV2Client(OS_REGION_NAME)
+		if err != nil {
+			return err
 		}
-		size = 1
-	}`,
-	OS_REGION_NAME)
 
-var testAccBlockStorageV1Volume_update = fmt.Sprintf(`
-	resource "openstack_blockstorage_volume_v1" "volume_1" {
-		region = "%s"
-		name = "tf-test-volume-updated"
-		description = "first test volume"
-		metadata{
-			foo = "bar"
+		allPages, err := volumeattach.List(computeClient, instance.ID).AllPages()
+		if err != nil {
+			return err
 		}
-		size = 1
-	}`,
-	OS_REGION_NAME)
+
+		attachments, err := volumeattach.ExtractVolumeAttachments(allPages)
+		if err != nil {
+			return err
+		}
+
+		for _, attachment := range attachments {
+			if attachment.VolumeID == volume.ID {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("Volume not found: %s", volume.ID)
+	}
+}
+
+func testAccCheckBlockStorageV1VolumeNotAttached(
+	instance *servers.Server, volume *volumes.Volume) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		config := testAccProvider.Meta().(*Config)
+		computeClient, err := config.computeV2Client(OS_REGION_NAME)
+		if err != nil {
+			return err
+		}
+
+		allPages, err := volumeattach.List(computeClient, instance.ID).AllPages()
+		if err != nil {
+			return err
+		}
+
+		attachments, err := volumeattach.ExtractVolumeAttachments(allPages)
+		if err != nil {
+			return err
+		}
+
+		for _, attachment := range attachments {
+			if attachment.VolumeID == volume.ID {
+				return fmt.Errorf("Volume still attached: %s", volume.ID)
+			}
+		}
+
+		return nil
+
+	}
+}

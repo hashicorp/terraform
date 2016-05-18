@@ -35,11 +35,6 @@ resource "openstack_compute_instance_v2" "basic" {
 ### Instance With Attached Volume
 
 ```
-resource "openstack_blockstorage_volume_v1" "myvol" {
-  name = "myvol"
-  size = 1
-}
-
 resource "openstack_compute_instance_v2" "volume-attached" {
   name = "volume-attached"
   image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
@@ -50,9 +45,14 @@ resource "openstack_compute_instance_v2" "volume-attached" {
   network {
     name = "my_network"
   }
+}
 
-  volume {
-    volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
+resource "openstack_blockstorage_volume_v1" "myvol" {
+  name = "myvol"
+  size = 1
+
+  attachment {
+    instance_id = "${openstack_compute_instance_v2.volume-attached.id}"
   }
 }
 ```
@@ -254,9 +254,6 @@ The following arguments are supported:
     You can specify multiple block devices which will create an instance with
     multiple ephemeral (local) disks.
 
-* `volume` - (Optional) Attach an existing volume to the instance. The volume
-    structure is described below.
-
 * `scheduler_hints` - (Optional) Provide the Nova scheduler with hints on how
     the instance should be launched. The available hints are described below.
 
@@ -300,14 +297,6 @@ The `block_device` block supports:
 
 * `destination_type` - (Optional) The type that gets created. Possible values
     are "volume" and "local".
-
-The `volume` block supports:
-
-* `volume_id` - (Required) The UUID of the volume to attach.
-
-* `device` - (Optional) The device that the volume will be attached as. For
-    example:  `/dev/vdc`. Omit this option to allow the volume to be
-    auto-assigned a device.
 
 The `scheduler_hints` block supports:
 
