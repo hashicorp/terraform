@@ -120,9 +120,6 @@ func testAccCheckDataFeedDestroy(s *terraform.State) error {
 	var dataSourceId string
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "nsone_datasource" || rs.Type != "nsone_datafeed" {
-			continue
-		}
 
 		if rs.Type == "nsone_datasource" {
 			dataSourceId = rs.Primary.Attributes["id"]
