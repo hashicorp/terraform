@@ -1,208 +1,179 @@
 package terraform
 
 import (
-	"bytes"
-	"encoding/gob"
-	"errors"
 	"fmt"
-	"io"
-	"sort"
-	"strings"
-	"sync"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/mitchellh/copystructure"
 )
 
-// The format byte is prefixed into the state file format so that we have
-// the ability in the future to change the file format if we want for any
-// reason.
-const (
-	stateFormatMagic        = "tfstate"
-	stateFormatVersion byte = 1
-)
-
-// StateV1 is used to represent the state of Terraform files before
-// 0.3. It is automatically upgraded to a modern State representation
-// on start.
-type StateV1 struct {
-	Outputs   map[string]string
-	Resources map[string]*ResourceStateV1
-	Tainted   map[string]struct{}
-
-	once sync.Once
-}
-
-func (s *StateV1) init() {
-	s.once.Do(func() {
-		if s.Resources == nil {
-			s.Resources = make(map[string]*ResourceStateV1)
-		}
-
-		if s.Tainted == nil {
-			s.Tainted = make(map[string]struct{})
-		}
-	})
-}
-
-func (s *StateV1) deepcopy() *StateV1 {
-	result := new(StateV1)
-	result.init()
-	if s != nil {
-		for k, v := range s.Resources {
-			result.Resources[k] = v
-		}
-		for k, v := range s.Tainted {
-			result.Tainted[k] = v
-		}
-	}
-
-	return result
-}
-
-// prune is a helper that removes any empty IDs from the state
-// and cleans it up in general.
-func (s *StateV1) prune() {
-	for k, v := range s.Resources {
-		if v.ID == "" {
-			delete(s.Resources, k)
-		}
-	}
-}
-
-// Orphans returns a list of keys of resources that are in the State
-// but aren't present in the configuration itself. Hence, these keys
-// represent the state of resources that are orphans.
-func (s *StateV1) Orphans(c *config.Config) []string {
-	keys := make(map[string]struct{})
-	for k, _ := range s.Resources {
-		keys[k] = struct{}{}
-	}
-
-	for _, r := range c.Resources {
-		delete(keys, r.Id())
-
-		for k, _ := range keys {
-			if strings.HasPrefix(k, r.Id()+".") {
-				delete(keys, k)
-			}
-		}
-	}
-
-	result := make([]string, 0, len(keys))
-	for k, _ := range keys {
-		result = append(result, k)
-	}
-
-	return result
-}
-
-func (s *StateV1) String() string {
-	if len(s.Resources) == 0 {
-		return "<no state>"
-	}
-
-	var buf bytes.Buffer
-
-	names := make([]string, 0, len(s.Resources))
-	for name, _ := range s.Resources {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	for _, k := range names {
-		rs := s.Resources[k]
-		id := rs.ID
-		if id == "" {
-			id = "<not created>"
-		}
-
-		taintStr := ""
-		if _, ok := s.Tainted[k]; ok {
-			taintStr = " (tainted)"
-		}
-
-		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
-		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
-
-		attrKeys := make([]string, 0, len(rs.Attributes))
-		for ak, _ := range rs.Attributes {
-			if ak == "id" {
-				continue
-			}
-
-			attrKeys = append(attrKeys, ak)
-		}
-		sort.Strings(attrKeys)
-
-		for _, ak := range attrKeys {
-			av := rs.Attributes[ak]
-			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
-		}
-
-		if len(rs.Dependencies) > 0 {
-			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
-			for _, dep := range rs.Dependencies {
-				buf.WriteString(fmt.Sprintf("    %s\n", dep.ID))
-			}
-		}
-	}
-
-	if len(s.Outputs) > 0 {
-		buf.WriteString("\nOutputs:\n\n")
-
-		ks := make([]string, 0, len(s.Outputs))
-		for k, _ := range s.Outputs {
-			ks = append(ks, k)
-		}
-		sort.Strings(ks)
-
-		for _, k := range ks {
-			v := s.Outputs[k]
-			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
-		}
-	}
-
-	return buf.String()
-}
-
-/// ResourceState holds the state of a resource that is used so that
-// a provider can find and manage an existing resource as well as for
-// storing attributes that are uesd to populate variables of child
-// resources.
+// stateV1 keeps track of a snapshot state-of-the-world that Terraform
+// can use to keep track of what real world resources it is actually
+// managing.
 //
-// Attributes has attributes about the created resource that are
-// queryable in interpolation: "${type.id.attr}"
-//
-// Extra is just extra data that a provider can return that we store
-// for later, but is not exposed in any way to the user.
-type ResourceStateV1 struct {
+// stateV1 is _only used for the purposes of backwards compatibility
+// and is no longer used in Terraform.
+type stateV1 struct {
+	// Version is the protocol version. "1" for a StateV1.
+	Version int `json:"version"`
+
+	// Serial is incremented on any operation that modifies
+	// the State file. It is used to detect potentially conflicting
+	// updates.
+	Serial int64 `json:"serial"`
+
+	// Remote is used to track the metadata required to
+	// pull and push state files from a remote storage endpoint.
+	Remote *remoteStateV1 `json:"remote,omitempty"`
+
+	// Modules contains all the modules in a breadth-first order
+	Modules []*moduleStateV1 `json:"modules"`
+}
+
+// upgrade is used to upgrade a V1 state representation
+// into a State (current) representation.
+func (old *stateV1) upgrade() (*State, error) {
+	if old == nil {
+		return nil, nil
+	}
+
+	remote, err := old.Remote.upgrade()
+	if err != nil {
+		return nil, fmt.Errorf("Error upgrading State V1: %v", err)
+	}
+
+	modules := make([]*ModuleState, len(old.Modules))
+	for i, module := range old.Modules {
+		upgraded, err := module.upgrade()
+		if err != nil {
+			return nil, fmt.Errorf("Error upgrading State V1: %v", err)
+		}
+		modules[i] = upgraded
+	}
+	if len(modules) == 0 {
+		modules = nil
+	}
+
+	newState := &State{
+		Version: old.Version,
+		Serial:  old.Serial,
+		Remote:  remote,
+		Modules: modules,
+	}
+
+	newState.sort()
+
+	return newState, nil
+}
+
+type remoteStateV1 struct {
+	// Type controls the client we use for the remote state
+	Type string `json:"type"`
+
+	// Config is used to store arbitrary configuration that
+	// is type specific
+	Config map[string]string `json:"config"`
+}
+
+func (old *remoteStateV1) upgrade() (*RemoteState, error) {
+	if old == nil {
+		return nil, nil
+	}
+
+	config, err := copystructure.Copy(old.Config)
+	if err != nil {
+		return nil, fmt.Errorf("Error upgrading RemoteState V1: %v", err)
+	}
+
+	return &RemoteState{
+		Type:   old.Type,
+		Config: config.(map[string]string),
+	}, nil
+}
+
+type moduleStateV1 struct {
+	// Path is the import path from the root module. Modules imports are
+	// always disjoint, so the path represents amodule tree
+	Path []string `json:"path"`
+
+	// Outputs declared by the module and maintained for each module
+	// even though only the root module technically needs to be kept.
+	// This allows operators to inspect values at the boundaries.
+	Outputs map[string]string `json:"outputs"`
+
+	// Resources is a mapping of the logically named resource to
+	// the state of the resource. Each resource may actually have
+	// N instances underneath, although a user only needs to think
+	// about the 1:1 case.
+	Resources map[string]*resourceStateV1 `json:"resources"`
+
+	// Dependencies are a list of things that this module relies on
+	// existing to remain intact. For example: an module may depend
+	// on a VPC ID given by an aws_vpc resource.
+	//
+	// Terraform uses this information to build valid destruction
+	// orders and to warn the user if they're destroying a module that
+	// another resource depends on.
+	//
+	// Things can be put into this list that may not be managed by
+	// Terraform. If Terraform doesn't find a matching ID in the
+	// overall state, then it assumes it isn't managed and doesn't
+	// worry about it.
+	Dependencies []string `json:"depends_on,omitempty"`
+}
+
+func (old *moduleStateV1) upgrade() (*ModuleState, error) {
+	if old == nil {
+		return nil, nil
+	}
+
+	path, err := copystructure.Copy(old.Path)
+	if err != nil {
+		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
+	}
+
+	// Outputs needs upgrading to use the new structure
+	outputs := make(map[string]*OutputState)
+	for key, output := range old.Outputs {
+		outputs[key] = &OutputState{
+			Type:      "string",
+			Value:     output,
+			Sensitive: false,
+		}
+	}
+	if len(outputs) == 0 {
+		outputs = nil
+	}
+
+	resources := make(map[string]*ResourceState)
+	for key, oldResource := range old.Resources {
+		upgraded, err := oldResource.upgrade()
+		if err != nil {
+			return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
+		}
+		resources[key] = upgraded
+	}
+	if len(resources) == 0 {
+		resources = nil
+	}
+
+	dependencies, err := copystructure.Copy(old.Dependencies)
+	if err != nil {
+		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
+	}
+
+	return &ModuleState{
+		Path:         path.([]string),
+		Outputs:      outputs,
+		Resources:    resources,
+		Dependencies: dependencies.([]string),
+	}, nil
+}
+
+type resourceStateV1 struct {
 	// This is filled in and managed by Terraform, and is the resource
 	// type itself such as "mycloud_instance". If a resource provider sets
 	// this value, it won't be persisted.
-	Type string
-
-	// The attributes below are all meant to be filled in by the
-	// resource providers themselves. Documentation for each are above
-	// each element.
-
-	// A unique ID for this resource. This is opaque to Terraform
-	// and is only meant as a lookup mechanism for the providers.
-	ID string
-
-	// Attributes are basic information about the resource. Any keys here
-	// are accessible in variable format within Terraform configurations:
-	// ${resourcetype.name.attribute}.
-	Attributes map[string]string
-
-	// ConnInfo is used for the providers to export information which is
-	// used to connect to the resource for provisioning. For example,
-	// this could contain SSH or WinRM credentials.
-	ConnInfo map[string]string
-
-	// Extra information that the provider can store about a resource.
-	// This data is opaque, never shown to the user, and is sent back to
-	// the provider as-is for whatever purpose appropriate.
-	Extra map[string]interface{}
+	Type string `json:"type"`
 
 	// Dependencies are a list of things that this resource relies on
 	// existing to remain intact. For example: an AWS instance might
@@ -217,97 +188,147 @@ type ResourceStateV1 struct {
 	// Terraform. If Terraform doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
-	Dependencies []ResourceDependency
+	Dependencies []string `json:"depends_on,omitempty"`
+
+	// Primary is the current active instance for this resource.
+	// It can be replaced but only after a successful creation.
+	// This is the instances on which providers will act.
+	Primary *instanceStateV1 `json:"primary"`
+
+	// Tainted is used to track any underlying instances that
+	// have been created but are in a bad or unknown state and
+	// need to be cleaned up subsequently.  In the
+	// standard case, there is only at most a single instance.
+	// However, in pathological cases, it is possible for the number
+	// of instances to accumulate.
+	Tainted []*instanceStateV1 `json:"tainted,omitempty"`
+
+	// Deposed is used in the mechanics of CreateBeforeDestroy: the existing
+	// Primary is Deposed to get it out of the way for the replacement Primary to
+	// be created by Apply. If the replacement Primary creates successfully, the
+	// Deposed instance is cleaned up. If there were problems creating the
+	// replacement, the instance remains in the Deposed list so it can be
+	// destroyed in a future run. Functionally, Deposed instances are very
+	// similar to Tainted instances in that Terraform is only tracking them in
+	// order to remember to destroy them.
+	Deposed []*instanceStateV1 `json:"deposed,omitempty"`
+
+	// Provider is used when a resource is connected to a provider with an alias.
+	// If this string is empty, the resource is connected to the default provider,
+	// e.g. "aws_instance" goes with the "aws" provider.
+	// If the resource block contained a "provider" key, that value will be set here.
+	Provider string `json:"provider,omitempty"`
 }
 
-// MergeDiff takes a ResourceDiff and merges the attributes into
-// this resource state in order to generate a new state. This new
-// state can be used to provide updated attribute lookups for
-// variable interpolation.
-//
-// If the diff attribute requires computing the value, and hence
-// won't be available until apply, the value is replaced with the
-// computeID.
-func (s *ResourceStateV1) MergeDiff(d *InstanceDiff) *ResourceStateV1 {
-	var result ResourceStateV1
-	if s != nil {
-		result = *s
+func (old *resourceStateV1) upgrade() (*ResourceState, error) {
+	if old == nil {
+		return nil, nil
 	}
 
-	result.Attributes = make(map[string]string)
-	if s != nil {
-		for k, v := range s.Attributes {
-			result.Attributes[k] = v
-		}
-	}
-	if d != nil {
-		for k, diff := range d.Attributes {
-			if diff.NewRemoved {
-				delete(result.Attributes, k)
-				continue
-			}
-			if diff.NewComputed {
-				result.Attributes[k] = config.UnknownVariableValue
-				continue
-			}
-
-			result.Attributes[k] = diff.New
-		}
-	}
-
-	return &result
-}
-
-func (s *ResourceStateV1) GoString() string {
-	return fmt.Sprintf("*%#v", *s)
-}
-
-// ResourceDependency maps a resource to another resource that it
-// depends on to remain intact and uncorrupted.
-type ResourceDependency struct {
-	// ID of the resource that we depend on. This ID should map
-	// directly to another ResourceState's ID.
-	ID string
-}
-
-// ReadStateV1 reads a state structure out of a reader in the format that
-// was written by WriteState.
-func ReadStateV1(src io.Reader) (*StateV1, error) {
-	var result *StateV1
-	var err error
-	n := 0
-
-	// Verify the magic bytes
-	magic := make([]byte, len(stateFormatMagic))
-	for n < len(magic) {
-		n, err = src.Read(magic[n:])
-		if err != nil {
-			return nil, fmt.Errorf("error while reading magic bytes: %s", err)
-		}
-	}
-	if string(magic) != stateFormatMagic {
-		return nil, fmt.Errorf("not a valid state file")
-	}
-
-	// Verify the version is something we can read
-	var formatByte [1]byte
-	n, err = src.Read(formatByte[:])
+	dependencies, err := copystructure.Copy(old.Dependencies)
 	if err != nil {
-		return nil, err
-	}
-	if n != len(formatByte) {
-		return nil, errors.New("failed to read state version byte")
+		return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
 	}
 
-	if formatByte[0] != stateFormatVersion {
-		return nil, fmt.Errorf("unknown state file version: %d", formatByte[0])
+	primary, err := old.Primary.upgrade()
+	if err != nil {
+		return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
 	}
 
-	// Decode
-	dec := gob.NewDecoder(src)
-	if err := dec.Decode(&result); err != nil {
-		return nil, err
+	tainted := make([]*InstanceState, len(old.Tainted))
+	for i, v := range old.Tainted {
+		upgraded, err := v.upgrade()
+		if err != nil {
+			return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
+		}
+		tainted[i] = upgraded
+	}
+	if len(tainted) == 0 {
+		tainted = nil
 	}
 
-	return result, nil
+	deposed := make([]*InstanceState, len(old.Deposed))
+	for i, v := range old.Deposed {
+		upgraded, err := v.upgrade()
+		if err != nil {
+			return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
+		}
+		deposed[i] = upgraded
+	}
+	if len(deposed) == 0 {
+		deposed = nil
+	}
+
+	return &ResourceState{
+		Type:         old.Type,
+		Dependencies: dependencies.([]string),
+		Primary:      primary,
+		Tainted:      tainted,
+		Deposed:      deposed,
+		Provider:     old.Provider,
+	}, nil
+}
+
+type instanceStateV1 struct {
+	// A unique ID for this resource. This is opaque to Terraform
+	// and is only meant as a lookup mechanism for the providers.
+	ID string `json:"id"`
+
+	// Attributes are basic information about the resource. Any keys here
+	// are accessible in variable format within Terraform configurations:
+	// ${resourcetype.name.attribute}.
+	Attributes map[string]string `json:"attributes,omitempty"`
+
+	// Ephemeral is used to store any state associated with this instance
+	// that is necessary for the Terraform run to complete, but is not
+	// persisted to a state file.
+	Ephemeral ephemeralStateV1 `json:"-"`
+
+	// Meta is a simple K/V map that is persisted to the State but otherwise
+	// ignored by Terraform core. It's meant to be used for accounting by
+	// external client code.
+	Meta map[string]string `json:"meta,omitempty"`
+}
+
+func (old *instanceStateV1) upgrade() (*InstanceState, error) {
+	if old == nil {
+		return nil, nil
+	}
+
+	attributes, err := copystructure.Copy(old.Attributes)
+	if err != nil {
+		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
+	}
+	ephemeral, err := old.Ephemeral.upgrade()
+	if err != nil {
+		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
+	}
+	meta, err := copystructure.Copy(old.Meta)
+	if err != nil {
+		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
+	}
+
+	return &InstanceState{
+		ID:         old.ID,
+		Attributes: attributes.(map[string]string),
+		Ephemeral:  *ephemeral,
+		Meta:       meta.(map[string]string),
+	}, nil
+}
+
+type ephemeralStateV1 struct {
+	// ConnInfo is used for the providers to export information which is
+	// used to connect to the resource for provisioning. For example,
+	// this could contain SSH or WinRM credentials.
+	ConnInfo map[string]string `json:"-"`
+}
+
+func (old *ephemeralStateV1) upgrade() (*EphemeralState, error) {
+	connInfo, err := copystructure.Copy(old.ConnInfo)
+	if err != nil {
+		return nil, fmt.Errorf("Error upgrading EphemeralState V1: %v", err)
+	}
+	return &EphemeralState{
+		ConnInfo: connInfo.(map[string]string),
+	}, nil
 }

@@ -63,6 +63,11 @@ func searchLocalImages(data Data, imageName string) *dc.APIImages {
 
 func removeImage(d *schema.ResourceData, client *dc.Client) error {
 	var data Data
+
+	if keepLocally := d.Get("keep_locally").(bool); keepLocally {
+		return nil
+	}
+
 	if err := fetchLocalImages(&data, client); err != nil {
 		return err
 	}

@@ -64,7 +64,7 @@ provisioner "file" {
 * `timeout` - The timeout to wait for the connection to become available. This defaults
   to 5 minutes. Should be provided as a string like "30s" or "5m".
 
-* `script_path` - The path used to copy scripts to meant for remote execution.
+* `script_path` - The path used to copy scripts meant for remote execution.
 
 **Additional arguments only supported by the "ssh" connection type:**
 

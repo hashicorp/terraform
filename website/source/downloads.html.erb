@@ -25,11 +25,15 @@ description: |-
         <a href="https://releases.hashicorp.com/terraform/<%= latest_version %>/terraform_<%= latest_version %>_SHA256SUMS.sig">
           verify the checksums signature file
         </a>
-        which has been signed using <a href="https://www.hashicorp.com/security.html" target="_TOP">HashiCorp's GPG key</a>.
-        You can also <a href="https://releases.hashicorp.com/terraform/" target="_TOP">download older versions of Terraform</a> from the releases service.
+        which has been signed using <a href="https://www.hashicorp.com/security.html" target="_blank" rel="nofollow noopener noreferrer">HashiCorp's GPG key</a>.
+        You can also <a href="https://releases.hashicorp.com/terraform/" target="_blank" rel="nofollow noopener noreferrer">download older versions of Terraform</a> from the releases service.
       </p>
       <p>
       Checkout the <a href="https://github.com/hashicorp/terraform/blob/v<%= latest_version %>/CHANGELOG.md">v<%= latest_version %> CHANGELOG</a> for information on the latest release.
+      </p>
+      <p>
+        <b>Note:</b> Terraform now ships as a single binary. When upgrading from Terraform &lt; 0.7.0
+        you will need to remove the old <code>terraform-*</code> plugins from your installation path.
       </p>
     </div>
   </div>
@@ -53,7 +57,7 @@ description: |-
 
   <div class="row">
     <div class="col-md-12 poweredby">
-      <a href="https://www.fastly.com?utm_source=hashicorp" target="_TOP">
+      <a href="https://www.fastly.com?utm_source=hashicorp" target="_blank" rel="nofollow noopener noreferrer">
         <%= image_tag "fastly_logo.png" %>
       </a>
     </div>

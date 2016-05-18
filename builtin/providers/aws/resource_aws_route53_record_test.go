@@ -53,9 +53,10 @@ func TestExpandRecordName(t *testing.T) {
 
 func TestAccAWSRoute53Record_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.default",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53RecordConfig,
@@ -67,11 +68,43 @@ func TestAccAWSRoute53Record_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53Record_basic_fqdn(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.default",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordConfig_fqdn,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+				),
+			},
+
+			// Ensure that changing the name to include a trailing "dot" results in
+			// nothing happening, because the name is stripped of trailing dots on
+			// save. Otherwise, an update would occur and due to the
+			// create_before_destroy, the record would actually be destroyed, and a
+			// non-empty plan would appear, and the record will fail to exist in
+			// testAccCheckRoute53RecordExists
+			resource.TestStep{
+				Config: testAccRoute53RecordConfig_fqdn_no_op,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRoute53Record_txtSupport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:        func() { testAccPreCheck(t) },
+		IDRefreshName:   "aws_route53_record.default",
+		IDRefreshIgnore: []string{"zone_id"}, // just for this test
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53RecordConfigTXT,
@@ -85,9 +118,10 @@ func TestAccAWSRoute53Record_txtSupport(t *testing.T) {
 
 func TestAccAWSRoute53Record_spfSupport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.default",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53RecordConfigSPF,
@@ -102,9 +136,10 @@ func TestAccAWSRoute53Record_spfSupport(t *testing.T) {
 }
 func TestAccAWSRoute53Record_generatesSuffix(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.default",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53RecordConfigSuffix,
@@ -118,9 +153,10 @@ func TestAccAWSRoute53Record_generatesSuffix(t *testing.T) {
 
 func TestAccAWSRoute53Record_wildcard(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.wildcard",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53WildCardRecordConfig,
@@ -142,9 +178,10 @@ func TestAccAWSRoute53Record_wildcard(t *testing.T) {
 
 func TestAccAWSRoute53Record_failover(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.www-primary",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53FailoverCNAMERecord,
@@ -159,9 +196,10 @@ func TestAccAWSRoute53Record_failover(t *testing.T) {
 
 func TestAccAWSRoute53Record_weighted_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.www-live",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53WeightedCNAMERecord,
@@ -177,9 +215,10 @@ func TestAccAWSRoute53Record_weighted_basic(t *testing.T) {
 
 func TestAccAWSRoute53Record_alias(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.alias",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53ElbAliasRecord,
@@ -209,9 +248,10 @@ func TestAccAWSRoute53Record_s3_alias(t *testing.T) {
 
 func TestAccAWSRoute53Record_weighted_alias(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.elb_weighted_alias_live",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53WeightedElbAliasRecord,
@@ -236,9 +276,10 @@ func TestAccAWSRoute53Record_weighted_alias(t *testing.T) {
 
 func TestAccAWSRoute53Record_TypeChange(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.sample",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53RecordTypeChangePre,
@@ -403,6 +444,41 @@ resource "aws_route53_record" "default" {
 	type = "A"
 	ttl = "30"
 	records = ["127.0.0.1", "127.0.0.27"]
+}
+`
+const testAccRoute53RecordConfig_fqdn = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name    = "www.NOTexamplE.com"
+  type    = "A"
+  ttl     = "30"
+  records = ["127.0.0.1", "127.0.0.27"]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`
+
+const testAccRoute53RecordConfig_fqdn_no_op = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name    = "www.NOTexamplE.com."
+  type    = "A"
+  ttl     = "30"
+  records = ["127.0.0.1", "127.0.0.27"]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 `
 

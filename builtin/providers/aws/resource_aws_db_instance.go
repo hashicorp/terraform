@@ -283,6 +283,19 @@ func resourceAwsDbInstance() *schema.Resource {
 				Default:  0,
 			},
 
+			"option_group_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"kms_key_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -345,6 +358,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.MonitoringInterval = aws.Int64(int64(attr.(int)))
 		}
 
+		if attr, ok := d.GetOk("option_group_name"); ok {
+			opts.OptionGroupName = aws.String(attr.(string))
+		}
+
 		log.Printf("[DEBUG] DB Instance Replica create configuration: %#v", opts)
 		_, err := conn.CreateDBInstanceReadReplica(&opts)
 		if err != nil {
@@ -386,6 +403,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("option_group_name"); ok {
 			opts.OptionGroupName = aws.String(attr.(string))
+
 		}
 
 		if attr, ok := d.GetOk("port"); ok {
@@ -482,6 +500,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		opts.BackupRetentionPeriod = aws.Int64(int64(attr.(int)))
 		if attr, ok := d.GetOk("multi_az"); ok {
 			opts.MultiAZ = aws.Bool(attr.(bool))
+
 		}
 
 		if attr, ok := d.GetOk("maintenance_window"); ok {
@@ -544,6 +563,14 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("monitoring_interval"); ok {
 			opts.MonitoringInterval = aws.Int64(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("option_group_name"); ok {
+			opts.OptionGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("kms_key_id"); ok {
+			opts.KmsKeyId = aws.String(attr.(string))
 		}
 
 		log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
@@ -618,6 +645,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("maintenance_window", v.PreferredMaintenanceWindow)
 	d.Set("publicly_accessible", v.PubliclyAccessible)
 	d.Set("multi_az", v.MultiAZ)
+	d.Set("kms_key_id", v.KmsKeyId)
 	if v.DBSubnetGroup != nil {
 		d.Set("db_subnet_group_name", v.DBSubnetGroup.DBSubnetGroupName)
 	}
@@ -638,6 +666,9 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("status", v.DBInstanceStatus)
 	d.Set("storage_encrypted", v.StorageEncrypted)
+	if v.OptionGroupMemberships != nil {
+		d.Set("option_group_name", v.OptionGroupMemberships[0].OptionGroupName)
+	}
 
 	if v.MonitoringInterval != nil {
 		d.Set("monitoring_interval", v.MonitoringInterval)
@@ -871,6 +902,12 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 			}
 			req.DBSecurityGroups = s
 		}
+		requestUpdate = true
+	}
+
+	if d.HasChange("option_group_name") {
+		d.SetPartial("option_group_name")
+		req.OptionGroupName = aws.String(d.Get("option_group_name").(string))
 		requestUpdate = true
 	}
 

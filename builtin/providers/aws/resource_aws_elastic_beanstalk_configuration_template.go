@@ -3,10 +3,12 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 )
 
@@ -101,16 +103,15 @@ func resourceAwsElasticBeanstalkConfigurationTemplateRead(d *schema.ResourceData
 	})
 
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "No Configuration Template named") {
+				log.Printf("[WARN] No Configuration Template named (%s) found", d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
-
-	// if len(resp.ConfigurationSettings) > 1 {
-
-	// settings := make(map[string]map[string]string)
-	// for _, setting := range resp.ConfigurationSettings {
-	//   k := fmt.Sprintf("%s.%s", setting.)
-	// }
-	// }
 
 	if len(resp.ConfigurationSettings) != 1 {
 		log.Printf("[DEBUG] Elastic Beanstalk unexpected describe configuration template response: %+v", resp)
@@ -171,10 +172,28 @@ func resourceAwsElasticBeanstalkConfigurationTemplateOptionSettingsUpdate(conn *
 		}
 
 		os := o.(*schema.Set)
-		ns := o.(*schema.Set)
+		ns := n.(*schema.Set)
 
-		remove := extractOptionSettings(os.Difference(ns))
+		rm := extractOptionSettings(os.Difference(ns))
 		add := extractOptionSettings(ns.Difference(os))
+
+		// Additions and removals of options are done in a single API call, so we
+		// can't do our normal "remove these" and then later "add these", re-adding
+		// any updated settings.
+		// Because of this, we need to remove any settings in the "removable"
+		// settings that are also found in the "add" settings, otherwise they
+		// conflict. Here we loop through all the initial removables from the set
+		// difference, and we build up a slice of settings not found in the "add"
+		// set
+		var remove []*elasticbeanstalk.ConfigurationOptionSetting
+		for _, r := range rm {
+			for _, a := range add {
+				if *r.Namespace == *a.Namespace && *r.OptionName == *a.OptionName {
+					continue
+				}
+				remove = append(remove, r)
+			}
+		}
 
 		req := &elasticbeanstalk.UpdateConfigurationTemplateInput{
 			ApplicationName: aws.String(d.Get("application").(string)),
@@ -189,6 +208,7 @@ func resourceAwsElasticBeanstalkConfigurationTemplateOptionSettingsUpdate(conn *
 			})
 		}
 
+		log.Printf("[DEBUG] Update Configuration Template request: %s", req)
 		if _, err := conn.UpdateConfigurationTemplate(req); err != nil {
 			return err
 		}

@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -12,6 +13,11 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// TestAccAWSCloudFrontDistribution_S3Origin runs an
+// aws_cloudfront_distribution acceptance test with a single S3 origin.
+//
+// If you are testing manually and can't wait for deletion, set the
+// TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,12 +30,22 @@ func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.s3_distribution",
 					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution",
+						"hosted_zone_id",
+						"Z2FDTNDATAQYW2",
+					),
 				),
 			},
 		},
 	})
 }
 
+// TestAccAWSCloudFrontDistribution_customOriginruns an
+// aws_cloudfront_distribution acceptance test with a single custom origin.
+//
+// If you are testing manually and can't wait for deletion, set the
+// TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_customOrigin(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -48,6 +64,11 @@ func TestAccAWSCloudFrontDistribution_customOrigin(t *testing.T) {
 	})
 }
 
+// TestAccAWSCloudFrontDistribution_multiOrigin runs an
+// aws_cloudfront_distribution acceptance test with multiple origins.
+//
+// If you are testing manually and can't wait for deletion, set the
+// TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_multiOrigin(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -66,6 +87,11 @@ func TestAccAWSCloudFrontDistribution_multiOrigin(t *testing.T) {
 	})
 }
 
+// TestAccAWSCloudFrontDistribution_noOptionalItemsConfig runs an
+// aws_cloudfront_distribution acceptance test with no optional items set.
+//
+// If you are testing manually and can't wait for deletion, set the
+// TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -84,15 +110,38 @@ func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
 	})
 }
 
+func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCloudFrontDistributionNoCustomErroResponseInfo,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.no_custom_error_responses",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCloudFrontDistributionDestroy(s *terraform.State) error {
 	for k, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_cloudfront_distribution" {
 			continue
 		}
-		dist, _ := testAccAuxCloudFrontGetDistributionConfig(s, k)
-
-		if *dist.DistributionConfig.Enabled != false {
-			return fmt.Errorf("CloudFront distribution should be disabled")
+		dist, err := testAccAuxCloudFrontGetDistributionConfig(s, k)
+		if err == nil {
+			if _, ok := os.LookupEnv("TF_TEST_CLOUDFRONT_RETAIN"); ok {
+				if *dist.DistributionConfig.Enabled != false {
+					return fmt.Errorf("CloudFront distribution should be disabled")
+				}
+				return nil
+			}
+			return fmt.Errorf("CloudFront distribution did not destroy")
 		}
 	}
 	return nil
@@ -130,6 +179,13 @@ func testAccAuxCloudFrontGetDistributionConfig(s *terraform.State, cloudFrontRes
 	return res.Distribution, nil
 }
 
+func testAccAWSCloudFrontDistributionRetainConfig() string {
+	if _, ok := os.LookupEnv("TF_TEST_CLOUDFRONT_RETAIN"); ok {
+		return "retain_on_delete = true"
+	}
+	return ""
+}
+
 var testAccAWSCloudFrontDistributionS3Config = fmt.Sprintf(`
 variable rand_id {
 	default = %d
@@ -144,7 +200,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 	origin {
 		domain_name = "${aws_s3_bucket.s3_bucket.id}"
 		origin_id = "myS3Origin"
-		s3_origin_config {}
 	}
 	enabled = true
 	default_root_object = "index.html"
@@ -179,9 +234,9 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 	viewer_certificate {
 		cloudfront_default_certificate = true
 	}
-	retain_on_delete = true
+	%s
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
 
 var testAccAWSCloudFrontDistributionCustomConfig = fmt.Sprintf(`
 variable rand_id {
@@ -234,9 +289,9 @@ resource "aws_cloudfront_distribution" "custom_distribution" {
 	viewer_certificate {
 		cloudfront_default_certificate = true
 	}
-	retain_on_delete = true
+	%s
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
 
 var testAccAWSCloudFrontDistributionMultiOriginConfig = fmt.Sprintf(`
 variable rand_id {
@@ -252,7 +307,6 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 	origin {
 		domain_name = "${aws_s3_bucket.s3_bucket.id}"
 		origin_id = "myS3Origin"
-		s3_origin_config {}
 	}
 	origin {
 		domain_name = "www.example.com"
@@ -336,9 +390,60 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 	viewer_certificate {
 		cloudfront_default_certificate = true
 	}
-	retain_on_delete = true
+	%s
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
+
+var testAccAWSCloudFrontDistributionNoCustomErroResponseInfo = fmt.Sprintf(`
+variable rand_id {
+	default = %d
+}
+
+resource "aws_cloudfront_distribution" "no_custom_error_responses" {
+	origin {
+		domain_name = "www.example.com"
+		origin_id = "myCustomOrigin"
+		custom_origin_config {
+			http_port = 80
+			https_port = 443
+			origin_protocol_policy = "http-only"
+			origin_ssl_protocols = [ "SSLv3", "TLSv1" ]
+		}
+	}
+	enabled = true
+	comment = "Some comment"
+	default_cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myCustomOrigin"
+		smooth_streaming = false
+		forwarded_values {
+			query_string = false
+			cookies {
+				forward = "all"
+			}
+		}
+		viewer_protocol_policy = "allow-all"
+		min_ttl = 0
+		default_ttl = 3600
+		max_ttl = 86400
+	}
+	custom_error_response {
+		error_code = 404
+		error_caching_min_ttl = 30
+	}
+	restrictions {
+		geo_restriction {
+			restriction_type = "whitelist"
+			locations = [ "US", "CA", "GB", "DE" ]
+		}
+	}
+	viewer_certificate {
+		cloudfront_default_certificate = true
+	}
+	%s
+}
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
 
 var testAccAWSCloudFrontDistributionNoOptionalItemsConfig = fmt.Sprintf(`
 variable rand_id {
@@ -383,6 +488,6 @@ resource "aws_cloudfront_distribution" "no_optional_items" {
 	viewer_certificate {
 		cloudfront_default_certificate = true
 	}
-	retain_on_delete = true
+	%s
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())

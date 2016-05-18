@@ -161,7 +161,12 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	}
 	if ok {
 		// Retrieve the vpc ID
-		vpcid, e := retrieveID(cs, "vpc", vpc.(string))
+		vpcid, e := retrieveID(
+			cs,
+			"vpc",
+			vpc.(string),
+			cloudstack.WithProject(d.Get("project").(string)),
+		)
 		if e != nil {
 			return e.Error()
 		}
@@ -205,7 +210,10 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the virtual machine details
-	n, count, err := cs.Network.GetNetworkByID(d.Id())
+	n, count, err := cs.Network.GetNetworkByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf(

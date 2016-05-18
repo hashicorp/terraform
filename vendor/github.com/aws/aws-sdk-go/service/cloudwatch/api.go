@@ -4,6 +4,7 @@
 package cloudwatch
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -546,6 +547,19 @@ func (s DeleteAlarmsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteAlarmsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteAlarmsInput"}
+	if s.AlarmNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteAlarmsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -591,6 +605,22 @@ func (s DescribeAlarmHistoryInput) String() string {
 // GoString returns the string representation
 func (s DescribeAlarmHistoryInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAlarmHistoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAlarmHistoryInput"}
+	if s.AlarmName != nil && len(*s.AlarmName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AlarmName", 1))
+	}
+	if s.MaxRecords != nil && *s.MaxRecords < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxRecords", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the DescribeAlarmHistory action.
@@ -648,6 +678,41 @@ func (s DescribeAlarmsForMetricInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAlarmsForMetricInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAlarmsForMetricInput"}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.Period != nil && *s.Period < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 60))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for the DescribeAlarmsForMetric action.
 type DescribeAlarmsForMetricOutput struct {
 	_ struct{} `type:"structure"`
@@ -700,6 +765,25 @@ func (s DescribeAlarmsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAlarmsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAlarmsInput"}
+	if s.ActionPrefix != nil && len(*s.ActionPrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ActionPrefix", 1))
+	}
+	if s.AlarmNamePrefix != nil && len(*s.AlarmNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AlarmNamePrefix", 1))
+	}
+	if s.MaxRecords != nil && *s.MaxRecords < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxRecords", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for the DescribeAlarms action.
 type DescribeAlarmsOutput struct {
 	_ struct{} `type:"structure"`
@@ -745,6 +829,28 @@ func (s Dimension) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Dimension) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Dimension"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+	if s.Value != nil && len(*s.Value) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Value", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The DimensionFilter data type is used to filter ListMetrics results.
 type DimensionFilter struct {
 	_ struct{} `type:"structure"`
@@ -769,6 +875,25 @@ func (s DimensionFilter) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DimensionFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DimensionFilter"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Value != nil && len(*s.Value) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Value", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DisableAlarmActionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -784,6 +909,19 @@ func (s DisableAlarmActionsInput) String() string {
 // GoString returns the string representation
 func (s DisableAlarmActionsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableAlarmActionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableAlarmActionsInput"}
+	if s.AlarmNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DisableAlarmActionsOutput struct {
@@ -815,6 +953,19 @@ func (s EnableAlarmActionsInput) String() string {
 // GoString returns the string representation
 func (s EnableAlarmActionsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableAlarmActionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableAlarmActionsInput"}
+	if s.AlarmNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type EnableAlarmActionsOutput struct {
@@ -883,6 +1034,56 @@ func (s GetMetricStatisticsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetMetricStatisticsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetMetricStatisticsInput"}
+	if s.EndTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndTime"))
+	}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.Period == nil {
+		invalidParams.Add(request.NewErrParamRequired("Period"))
+	}
+	if s.Period != nil && *s.Period < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 60))
+	}
+	if s.StartTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartTime"))
+	}
+	if s.Statistics == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statistics"))
+	}
+	if s.Statistics != nil && len(s.Statistics) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Statistics", 1))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for the GetMetricStatistics action.
 type GetMetricStatisticsOutput struct {
 	_ struct{} `type:"structure"`
@@ -929,6 +1130,32 @@ func (s ListMetricsInput) String() string {
 // GoString returns the string representation
 func (s ListMetricsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListMetricsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListMetricsInput"}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the ListMetrics action.
@@ -1115,6 +1342,37 @@ func (s MetricDatum) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MetricDatum) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MetricDatum"}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.StatisticValues != nil {
+		if err := s.StatisticValues.Validate(); err != nil {
+			invalidParams.AddNested("StatisticValues", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PutMetricAlarmInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1228,6 +1486,65 @@ func (s PutMetricAlarmInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutMetricAlarmInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutMetricAlarmInput"}
+	if s.AlarmName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmName"))
+	}
+	if s.AlarmName != nil && len(*s.AlarmName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AlarmName", 1))
+	}
+	if s.ComparisonOperator == nil {
+		invalidParams.Add(request.NewErrParamRequired("ComparisonOperator"))
+	}
+	if s.EvaluationPeriods == nil {
+		invalidParams.Add(request.NewErrParamRequired("EvaluationPeriods"))
+	}
+	if s.EvaluationPeriods != nil && *s.EvaluationPeriods < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("EvaluationPeriods", 1))
+	}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.Period == nil {
+		invalidParams.Add(request.NewErrParamRequired("Period"))
+	}
+	if s.Period != nil && *s.Period < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 60))
+	}
+	if s.Statistic == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statistic"))
+	}
+	if s.Threshold == nil {
+		invalidParams.Add(request.NewErrParamRequired("Threshold"))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PutMetricAlarmOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1264,6 +1581,35 @@ func (s PutMetricDataInput) String() string {
 // GoString returns the string representation
 func (s PutMetricDataInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutMetricDataInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutMetricDataInput"}
+	if s.MetricData == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricData"))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.MetricData != nil {
+		for i, v := range s.MetricData {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "MetricData", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PutMetricDataOutput struct {
@@ -1309,6 +1655,28 @@ func (s SetAlarmStateInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetAlarmStateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetAlarmStateInput"}
+	if s.AlarmName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmName"))
+	}
+	if s.AlarmName != nil && len(*s.AlarmName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AlarmName", 1))
+	}
+	if s.StateReason == nil {
+		invalidParams.Add(request.NewErrParamRequired("StateReason"))
+	}
+	if s.StateValue == nil {
+		invalidParams.Add(request.NewErrParamRequired("StateValue"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SetAlarmStateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1349,6 +1717,28 @@ func (s StatisticSet) String() string {
 // GoString returns the string representation
 func (s StatisticSet) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StatisticSet) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StatisticSet"}
+	if s.Maximum == nil {
+		invalidParams.Add(request.NewErrParamRequired("Maximum"))
+	}
+	if s.Minimum == nil {
+		invalidParams.Add(request.NewErrParamRequired("Minimum"))
+	}
+	if s.SampleCount == nil {
+		invalidParams.Add(request.NewErrParamRequired("SampleCount"))
+	}
+	if s.Sum == nil {
+		invalidParams.Add(request.NewErrParamRequired("Sum"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 const (

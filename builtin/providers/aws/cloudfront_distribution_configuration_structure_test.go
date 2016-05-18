@@ -191,25 +191,40 @@ func customErrorResponsesConfFirst() map[string]interface{} {
 	return customErrorResponsesConf()[0].(map[string]interface{})
 }
 
+func customErrorResponseConfNoResponseCode() map[string]interface{} {
+	er := customErrorResponsesConf()[0].(map[string]interface{})
+	er["response_code"] = 0
+	er["response_page_path"] = ""
+	return er
+}
+
 func viewerCertificateConfSetCloudFrontDefault() map[string]interface{} {
 	return map[string]interface{}{
+		"acm_certificate_arn":            "",
 		"cloudfront_default_certificate": true,
+		"iam_certificate_id":             "",
+		"minimum_protocol_version":       "",
+		"ssl_support_method":             "",
 	}
 }
 
 func viewerCertificateConfSetIAM() map[string]interface{} {
 	return map[string]interface{}{
-		"iam_certificate_id":       "iamcert-01234567",
-		"ssl_support_method":       "vip",
-		"minimum_protocol_version": "TLSv1",
+		"acm_certificate_arn":            "",
+		"cloudfront_default_certificate": false,
+		"iam_certificate_id":             "iamcert-01234567",
+		"ssl_support_method":             "vip",
+		"minimum_protocol_version":       "TLSv1",
 	}
 }
 
 func viewerCertificateConfSetACM() map[string]interface{} {
 	return map[string]interface{}{
-		"acm_certificate_arn":      "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012",
-		"ssl_support_method":       "sni-only",
-		"minimum_protocol_version": "TLSv1",
+		"acm_certificate_arn":            "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012",
+		"cloudfront_default_certificate": false,
+		"iam_certificate_id":             "",
+		"ssl_support_method":             "sni-only",
+		"minimum_protocol_version":       "TLSv1",
 	}
 }
 
@@ -751,6 +766,17 @@ func TestCloudFrontStructure_expandCustomErrorResponse(t *testing.T) {
 	}
 }
 
+func TestCloudFrontStructure_expandCustomErrorResponse_emptyResponseCode(t *testing.T) {
+	data := customErrorResponseConfNoResponseCode()
+	er := expandCustomErrorResponse(data)
+	if *er.ResponseCode != "" {
+		t.Fatalf("Expected ResponseCode to be empty string, got %v", *er.ResponseCode)
+	}
+	if *er.ResponsePagePath != "" {
+		t.Fatalf("Expected ResponsePagePath to be empty string, got %v", *er.ResponsePagePath)
+	}
+}
+
 func TestCloudFrontStructure_flattenCustomErrorResponse(t *testing.T) {
 	in := customErrorResponsesConfFirst()
 	er := expandCustomErrorResponse(in)
@@ -985,5 +1011,35 @@ func TestCloudFrontStructure_falttenViewerCertificate_acm_certificate_arn(t *tes
 
 	if len(diff.List()) > 0 {
 		t.Fatalf("Expected out to be %v, got %v, diff: %v", in, out, diff)
+	}
+}
+
+func TestCloudFrontStructure_viewerCertificateHash_IAM(t *testing.T) {
+	in := viewerCertificateConfSetIAM()
+	out := viewerCertificateHash(in)
+	expected := 1157261784
+
+	if expected != out {
+		t.Fatalf("Expected %v, got %v", expected, out)
+	}
+}
+
+func TestCloudFrontStructure_viewerCertificateHash_ACM(t *testing.T) {
+	in := viewerCertificateConfSetACM()
+	out := viewerCertificateHash(in)
+	expected := 2883600425
+
+	if expected != out {
+		t.Fatalf("Expected %v, got %v", expected, out)
+	}
+}
+
+func TestCloudFrontStructure_viewerCertificateHash_default(t *testing.T) {
+	in := viewerCertificateConfSetCloudFrontDefault()
+	out := viewerCertificateHash(in)
+	expected := 69840937
+
+	if expected != out {
+		t.Fatalf("Expected %v, got %v", expected, out)
 	}
 }

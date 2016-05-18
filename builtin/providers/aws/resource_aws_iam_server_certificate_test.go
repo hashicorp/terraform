@@ -51,6 +51,41 @@ func TestAccAWSIAMServerCertificate_name_prefix(t *testing.T) {
 	})
 }
 
+func TestAccAWSIAMServerCertificate_disappears(t *testing.T) {
+	var cert iam.ServerCertificate
+
+	testDestroyCert := func(*terraform.State) error {
+		// reach out and DELETE the Cert
+		conn := testAccProvider.Meta().(*AWSClient).iamconn
+		_, err := conn.DeleteServerCertificate(&iam.DeleteServerCertificateInput{
+			ServerCertificateName: cert.ServerCertificateMetadata.ServerCertificateName,
+		})
+
+		if err != nil {
+			return fmt.Errorf("Error destorying cert in test: %s", err)
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccIAMServerCertConfig_random,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
+					testAccCheckAWSServerCertAttributes(&cert),
+					testDestroyCert,
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccCheckCertExists(n string, cert *iam.ServerCertificate) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]

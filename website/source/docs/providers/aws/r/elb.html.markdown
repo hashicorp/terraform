@@ -96,7 +96,7 @@ Listeners support the following:
 * `lb_port` - (Required) The port to listen on for the load balancer
 * `lb_protocol` - (Required) The protocol to listen on. Valid values are `HTTP`,
   `HTTPS`, `TCP`, or `SSL`
-* `ssl_certificate_id` - (Optional) The id of an SSL certificate you have
+* `ssl_certificate_id` - (Optional) The ARN of an SSL certificate you have
 uploaded to AWS IAM. **Only valid when `lb_protocol` is either HTTPS or SSL**
 
 Health Check supports the following:

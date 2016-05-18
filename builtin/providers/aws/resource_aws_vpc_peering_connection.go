@@ -147,7 +147,6 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if _, ok := d.GetOk("auto_accept"); ok {
-
 		pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id())()
 
 		if err != nil {
@@ -160,7 +159,6 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 		pc := pcRaw.(*ec2.VpcPeeringConnection)
 
 		if pc.Status != nil && *pc.Status.Code == "pending-acceptance" {
-
 			status, err := resourceVPCPeeringConnectionAccept(conn, d.Id())
 			if err != nil {
 				return err

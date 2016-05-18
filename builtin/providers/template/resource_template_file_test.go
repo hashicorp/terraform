@@ -36,7 +36,7 @@ func TestTemplateRendering(t *testing.T) {
 					Config: testTemplateConfig(tt.template, tt.vars),
 					Check: func(s *terraform.State) error {
 						got := s.RootModule().Outputs["rendered"]
-						if tt.want != got {
+						if tt.want != got.Value {
 							return fmt.Errorf("template:\n%s\nvars:\n%s\ngot:\n%s\nwant:\n%s\n", tt.template, tt.vars, got, tt.want)
 						}
 						return nil
@@ -65,7 +65,7 @@ func TestTemplateVariableChange(t *testing.T) {
 			Check: func(i int, want string) r.TestCheckFunc {
 				return func(s *terraform.State) error {
 					got := s.RootModule().Outputs["rendered"]
-					if want != got {
+					if want != got.Value {
 						return fmt.Errorf("[%d] got:\n%q\nwant:\n%q\n", i, got, want)
 					}
 					return nil

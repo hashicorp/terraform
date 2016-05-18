@@ -65,6 +65,17 @@ func TestLoadFile_resourceArityMistake(t *testing.T) {
 	}
 }
 
+func TestLoadFile_dataSourceArityMistake(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "data-source-arity-mistake.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+	expected := "Error loading test-fixtures/data-source-arity-mistake.tf: position 2:6: 'data' must be followed by exactly two strings: a type and a name"
+	if err.Error() != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
+	}
+}
+
 func TestLoadFileWindowsLineEndings(t *testing.T) {
 	testFile := filepath.Join(fixtureDir, "windows-line-endings.tf")
 
@@ -742,13 +753,13 @@ func TestLoad_jsonAttributes(t *testing.T) {
 }
 
 const jsonAttributeStr = `
-cloudstack_firewall[test] (x1)
+cloudstack_firewall.test (x1)
   ipaddress
   rule
 `
 
 const windowsHeredocResourcesStr = `
-aws_instance[test] (x1)
+aws_instance.test (x1)
   user_data
 `
 
@@ -759,17 +770,17 @@ aws
 `
 
 const heredocResourcesStr = `
-aws_iam_policy[policy] (x1)
+aws_iam_policy.policy (x1)
   description
   name
   path
   policy
-aws_instance[heredocwithnumbers] (x1)
+aws_instance.heredocwithnumbers (x1)
   ami
   provisioners
     local-exec
       command
-aws_instance[test] (x1)
+aws_instance.test (x1)
   ami
   provisioners
     remote-exec
@@ -777,7 +788,7 @@ aws_instance[test] (x1)
 `
 
 const escapedquotesResourcesStr = `
-aws_instance[quotes] (x1)
+aws_instance.quotes (x1)
   ami
   vars
     user: var.ami
@@ -800,7 +811,7 @@ do
 `
 
 const basicResourcesStr = `
-aws_instance[db] (x1)
+aws_instance.db (x1)
   VPC
   security_groups
   provisioners
@@ -811,7 +822,7 @@ aws_instance[db] (x1)
     aws_instance.web
   vars
     resource: aws_security_group.firewall.*.id
-aws_instance[web] (x1)
+aws_instance.web (x1)
   ami
   network_interface
   security_groups
@@ -822,7 +833,12 @@ aws_instance[web] (x1)
   vars
     resource: aws_security_group.firewall.foo
     user: var.foo
-aws_security_group[firewall] (x5)
+aws_security_group.firewall (x5)
+data.do.depends (x1)
+  dependsOn
+    data.do.simple
+data.do.simple (x1)
+  foo
 `
 
 const basicVariablesStr = `
@@ -854,18 +870,23 @@ do
 `
 
 const dirBasicResourcesStr = `
-aws_instance[db] (x1)
+aws_instance.db (x1)
   security_groups
   vars
     resource: aws_security_group.firewall.*.id
-aws_instance[web] (x1)
+aws_instance.web (x1)
   ami
   network_interface
   security_groups
   vars
     resource: aws_security_group.firewall.foo
     user: var.foo
-aws_security_group[firewall] (x5)
+aws_security_group.firewall (x5)
+data.do.depends (x1)
+  dependsOn
+    data.do.simple
+data.do.simple (x1)
+  foo
 `
 
 const dirBasicVariablesStr = `
@@ -891,10 +912,10 @@ do
 `
 
 const dirOverrideResourcesStr = `
-aws_instance[db] (x1)
+aws_instance.db (x1)
   ami
   security_groups
-aws_instance[web] (x1)
+aws_instance.web (x1)
   ami
   foo
   network_interface
@@ -902,7 +923,13 @@ aws_instance[web] (x1)
   vars
     resource: aws_security_group.firewall.foo
     user: var.foo
-aws_security_group[firewall] (x5)
+aws_security_group.firewall (x5)
+data.do.depends (x1)
+  hello
+  dependsOn
+    data.do.simple
+data.do.simple (x1)
+  foo
 `
 
 const dirOverrideVariablesStr = `
@@ -918,8 +945,8 @@ aws
 `
 
 const importResourcesStr = `
-aws_security_group[db] (x1)
-aws_security_group[web] (x1)
+aws_security_group.db (x1)
+aws_security_group.web (x1)
 `
 
 const importVariablesStr = `
@@ -938,7 +965,7 @@ bar
 `
 
 const provisionerResourcesStr = `
-aws_instance[web] (x1)
+aws_instance.web (x1)
   ami
   security_groups
   provisioners
@@ -950,7 +977,7 @@ aws_instance[web] (x1)
 `
 
 const connectionResourcesStr = `
-aws_instance[web] (x1)
+aws_instance.web (x1)
   ami
   security_groups
   provisioners
@@ -976,17 +1003,17 @@ foo (required)
 `
 
 const createBeforeDestroyResourcesStr = `
-aws_instance[bar] (x1)
+aws_instance.bar (x1)
   ami
-aws_instance[web] (x1)
+aws_instance.web (x1)
   ami
 `
 
 const ignoreChangesResourcesStr = `
-aws_instance[bar] (x1)
+aws_instance.bar (x1)
   ami
-aws_instance[baz] (x1)
+aws_instance.baz (x1)
   ami
-aws_instance[web] (x1)
+aws_instance.web (x1)
   ami
 `

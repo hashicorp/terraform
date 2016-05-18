@@ -26,6 +26,11 @@ func resourceDockerImage() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"keep_locally": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 	}
 }

@@ -36,8 +36,12 @@ func TestState(t *testing.T, s interface{}) {
 	if ws, ok := s.(StateWriter); ok {
 		current.Modules = append(current.Modules, &terraform.ModuleState{
 			Path: []string{"root"},
-			Outputs: map[string]string{
-				"bar": "baz",
+			Outputs: map[string]*terraform.OutputState{
+				"bar": &terraform.OutputState{
+					Type:      "string",
+					Sensitive: false,
+					Value:     "baz",
+				},
 			},
 		})
 
@@ -93,8 +97,14 @@ func TestState(t *testing.T, s interface{}) {
 		current = &currentCopy
 		current.Modules = []*terraform.ModuleState{
 			&terraform.ModuleState{
-				Path:    []string{"root", "somewhere"},
-				Outputs: map[string]string{"serialCheck": "true"},
+				Path: []string{"root", "somewhere"},
+				Outputs: map[string]*terraform.OutputState{
+					"serialCheck": &terraform.OutputState{
+						Type:      "string",
+						Sensitive: false,
+						Value:     "true",
+					},
+				},
 			},
 		}
 		if err := writer.WriteState(current); err != nil {
@@ -123,8 +133,12 @@ func TestStateInitial() *terraform.State {
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
 				Path: []string{"root", "child"},
-				Outputs: map[string]string{
-					"foo": "bar",
+				Outputs: map[string]*terraform.OutputState{
+					"foo": &terraform.OutputState{
+						Type:      "string",
+						Sensitive: false,
+						Value:     "bar",
+					},
 				},
 			},
 		},

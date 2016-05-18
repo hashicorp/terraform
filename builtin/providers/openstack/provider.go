@@ -1,9 +1,13 @@
 package openstack
 
 import (
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// This is a global MutexKV for use within this plugin.
+var osMutexKV = mutexkv.NewMutexKV()
 
 // Provider returns a schema.Provider for OpenStack.
 func Provider() terraform.ResourceProvider {
@@ -17,7 +21,7 @@ func Provider() terraform.ResourceProvider {
 			"user_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_USERNAME", nil),
+				DefaultFunc: schema.EnvDefaultFunc("OS_USERNAME", ""),
 			},
 			"user_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -37,12 +41,17 @@ func Provider() terraform.ResourceProvider {
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_PASSWORD", nil),
+				DefaultFunc: schema.EnvDefaultFunc("OS_PASSWORD", ""),
+			},
+			"token": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_TOKEN", ""),
 			},
 			"api_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_TOKEN", ""),
+				DefaultFunc: schema.EnvDefaultFunc("OS_API_KEY", ""),
 			},
 			"domain_id": &schema.Schema{
 				Type:        schema.TypeString,
@@ -69,6 +78,16 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_CACERT", ""),
 			},
+			"cert": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_CERT", ""),
+			},
+			"key": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_KEY", ""),
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -91,6 +110,9 @@ func Provider() terraform.ResourceProvider {
 			"openstack_networking_port_v2":             resourceNetworkingPortV2(),
 			"openstack_networking_router_v2":           resourceNetworkingRouterV2(),
 			"openstack_networking_router_interface_v2": resourceNetworkingRouterInterfaceV2(),
+			"openstack_networking_router_route_v2":     resourceNetworkingRouterRouteV2(),
+			"openstack_networking_secgroup_v2":         resourceNetworkingSecGroupV2(),
+			"openstack_networking_secgroup_rule_v2":    resourceNetworkingSecGroupRuleV2(),
 			"openstack_objectstorage_container_v1":     resourceObjectStorageContainerV1(),
 		},
 
@@ -104,6 +126,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		Username:         d.Get("user_name").(string),
 		UserID:           d.Get("user_id").(string),
 		Password:         d.Get("password").(string),
+		Token:            d.Get("token").(string),
 		APIKey:           d.Get("api_key").(string),
 		TenantID:         d.Get("tenant_id").(string),
 		TenantName:       d.Get("tenant_name").(string),
@@ -112,6 +135,8 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		Insecure:         d.Get("insecure").(bool),
 		EndpointType:     d.Get("endpoint_type").(string),
 		CACertFile:       d.Get("cacert_file").(string),
+		ClientCertFile:   d.Get("cert").(string),
+		ClientKeyFile:    d.Get("key").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {

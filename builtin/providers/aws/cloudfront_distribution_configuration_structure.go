@@ -21,6 +21,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+// cloudFrontRoute53ZoneID defines the route 53 zone ID for CloudFront. This
+// is used to set the zone_id attribute.
+const cloudFrontRoute53ZoneID = "Z2FDTNDATAQYW2"
+
 // Assemble the *cloudfront.DistributionConfig variable. Calls out to various
 // expander functions to convert attributes and sub-attributes to the various
 // complex structures which are necessary to properly build the
@@ -82,42 +86,79 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 // aws_cloudfront_distribution resource.
 //
 // Used by the aws_cloudfront_distribution Read function.
-func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloudfront.DistributionConfig) {
-	d.Set("origins", flattenOrigins(distributionConfig.Origins))
-	d.Set("enabled", *distributionConfig.Enabled)
-	d.Set("default_cache_behavior", flattenDefaultCacheBehavior(distributionConfig.DefaultCacheBehavior))
-	d.Set("viewer_certificate", flattenViewerCertificate(distributionConfig.ViewerCertificate))
-	d.Set("price_class", *distributionConfig.PriceClass)
+func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloudfront.DistributionConfig) error {
+	var err error
+
+	d.Set("enabled", distributionConfig.Enabled)
+	d.Set("price_class", distributionConfig.PriceClass)
+	d.Set("hosted_zone_id", cloudFrontRoute53ZoneID)
+
+	err = d.Set("default_cache_behavior", flattenDefaultCacheBehavior(distributionConfig.DefaultCacheBehavior))
+	if err != nil {
+		return err
+	}
+	err = d.Set("viewer_certificate", flattenViewerCertificate(distributionConfig.ViewerCertificate))
+	if err != nil {
+		return err
+	}
 
 	if distributionConfig.CallerReference != nil {
-		d.Set("caller_reference", *distributionConfig.CallerReference)
+		d.Set("caller_reference", distributionConfig.CallerReference)
 	}
 	if distributionConfig.Comment != nil {
 		if *distributionConfig.Comment != "" {
-			d.Set("comment", *distributionConfig.Comment)
+			d.Set("comment", distributionConfig.Comment)
 		}
 	}
 	if distributionConfig.DefaultRootObject != nil {
-		d.Set("default_root_object", *distributionConfig.DefaultRootObject)
-	}
-	if distributionConfig.CustomErrorResponses != nil {
-		d.Set("custom_error_response", flattenCustomErrorResponses(distributionConfig.CustomErrorResponses))
-	}
-	if distributionConfig.CacheBehaviors != nil {
-		d.Set("cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
-	}
-	if distributionConfig.Logging != nil && *distributionConfig.Logging.Enabled {
-		d.Set("logging_config", flattenLoggingConfig(distributionConfig.Logging))
-	}
-	if distributionConfig.Aliases != nil {
-		d.Set("aliases", flattenAliases(distributionConfig.Aliases))
-	}
-	if distributionConfig.Restrictions != nil {
-		d.Set("restrictions", flattenRestrictions(distributionConfig.Restrictions))
+		d.Set("default_root_object", distributionConfig.DefaultRootObject)
 	}
 	if distributionConfig.WebACLId != nil {
-		d.Set("web_acl_id", *distributionConfig.WebACLId)
+		d.Set("web_acl_id", distributionConfig.WebACLId)
 	}
+
+	if distributionConfig.CustomErrorResponses != nil {
+		err = d.Set("custom_error_response", flattenCustomErrorResponses(distributionConfig.CustomErrorResponses))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.CacheBehaviors != nil {
+		err = d.Set("cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
+		if err != nil {
+			return err
+		}
+	}
+
+	if distributionConfig.Logging != nil && *distributionConfig.Logging.Enabled {
+		err = d.Set("logging_config", flattenLoggingConfig(distributionConfig.Logging))
+	} else {
+		err = d.Set("logging_config", schema.NewSet(loggingConfigHash, []interface{}{}))
+	}
+	if err != nil {
+		return err
+	}
+
+	if distributionConfig.Aliases != nil {
+		err = d.Set("aliases", flattenAliases(distributionConfig.Aliases))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.Restrictions != nil {
+		err = d.Set("restrictions", flattenRestrictions(distributionConfig.Restrictions))
+		if err != nil {
+			return err
+		}
+	}
+	if *distributionConfig.Origins.Quantity > 0 {
+		err = d.Set("origin", flattenOrigins(distributionConfig.Origins))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func expandDefaultCacheBehavior(m map[string]interface{}) *cloudfront.DefaultCacheBehavior {
@@ -322,7 +363,7 @@ func expandForwardedValues(m map[string]interface{}) *cloudfront.ForwardedValues
 	fv := &cloudfront.ForwardedValues{
 		QueryString: aws.Bool(m["query_string"].(bool)),
 	}
-	if v, ok := m["cookies"]; ok {
+	if v, ok := m["cookies"]; ok && v.(*schema.Set).Len() > 0 {
 		fv.Cookies = expandCookiePreference(v.(*schema.Set).List()[0].(map[string]interface{}))
 	}
 	if v, ok := m["headers"]; ok {
@@ -349,7 +390,7 @@ func forwardedValuesHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%t-", m["query_string"].(bool)))
-	if d, ok := m["cookies"]; ok {
+	if d, ok := m["cookies"]; ok && d.(*schema.Set).Len() > 0 {
 		buf.WriteString(fmt.Sprintf("%d-", cookiePreferenceHash(d.(*schema.Set).List()[0].(map[string]interface{}))))
 	}
 	if d, ok := m["headers"]; ok {
@@ -491,6 +532,15 @@ func expandOrigin(m map[string]interface{}) *cloudfront.Origin {
 			origin.S3OriginConfig = expandS3OriginConfig(s[0].(map[string]interface{}))
 		}
 	}
+
+	// if both custom and s3 origin are missing, add an empty s3 origin
+	// One or the other must be specified, but the S3 origin can be "empty"
+	if origin.S3OriginConfig == nil && origin.CustomOriginConfig == nil {
+		origin.S3OriginConfig = &cloudfront.S3OriginConfig{
+			OriginAccessIdentity: aws.String(""),
+		}
+	}
+
 	return origin
 }
 
@@ -508,7 +558,9 @@ func flattenOrigin(or *cloudfront.Origin) map[string]interface{} {
 		m["origin_path"] = *or.OriginPath
 	}
 	if or.S3OriginConfig != nil {
-		m["s3_origin_config"] = schema.NewSet(s3OriginConfigHash, []interface{}{flattenS3OriginConfig(or.S3OriginConfig)})
+		if or.S3OriginConfig.OriginAccessIdentity != nil && *or.S3OriginConfig.OriginAccessIdentity != "" {
+			m["s3_origin_config"] = schema.NewSet(s3OriginConfigHash, []interface{}{flattenS3OriginConfig(or.S3OriginConfig)})
+		}
 	}
 	return m
 }
@@ -687,12 +739,15 @@ func expandCustomErrorResponse(m map[string]interface{}) *cloudfront.CustomError
 	if v, ok := m["error_caching_min_ttl"]; ok {
 		er.ErrorCachingMinTTL = aws.Int64(int64(v.(int)))
 	}
-	if v, ok := m["response_code"]; ok {
+	if v, ok := m["response_code"]; ok && v.(int) != 0 {
 		er.ResponseCode = aws.String(strconv.Itoa(v.(int)))
+	} else {
+		er.ResponseCode = aws.String("")
 	}
 	if v, ok := m["response_page_path"]; ok {
 		er.ResponsePagePath = aws.String(v.(string))
 	}
+
 	return &er
 }
 
@@ -872,10 +927,12 @@ func flattenViewerCertificate(vc *cloudfront.ViewerCertificate) *schema.Set {
 	if vc.IAMCertificateId != nil {
 		m["iam_certificate_id"] = *vc.IAMCertificateId
 		m["ssl_support_method"] = *vc.SSLSupportMethod
-	} else if vc.ACMCertificateArn != nil {
+	}
+	if vc.ACMCertificateArn != nil {
 		m["acm_certificate_arn"] = *vc.ACMCertificateArn
 		m["ssl_support_method"] = *vc.SSLSupportMethod
-	} else {
+	}
+	if vc.CloudFrontDefaultCertificate != nil {
 		m["cloudfront_default_certificate"] = *vc.CloudFrontDefaultCertificate
 	}
 	if vc.MinimumProtocolVersion != nil {
@@ -889,16 +946,16 @@ func flattenViewerCertificate(vc *cloudfront.ViewerCertificate) *schema.Set {
 func viewerCertificateHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	if v, ok := m["iam_certificate_id"]; ok {
+	if v, ok := m["iam_certificate_id"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 		buf.WriteString(fmt.Sprintf("%s-", m["ssl_support_method"].(string)))
-	} else if v, ok := m["acm_certificate_arn"]; ok {
+	} else if v, ok := m["acm_certificate_arn"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 		buf.WriteString(fmt.Sprintf("%s-", m["ssl_support_method"].(string)))
 	} else {
 		buf.WriteString(fmt.Sprintf("%t-", m["cloudfront_default_certificate"].(bool)))
 	}
-	if v, ok := m["minimum_protocol_version"]; ok {
+	if v, ok := m["minimum_protocol_version"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 	return hashcode.String(buf.String())

@@ -329,6 +329,8 @@ resource "aws_opsworks_stack" "tf-acc" {
     type = "git"
     revision = "master"
     url = "https://github.com/aws/opsworks-example-cookbooks.git"
+    username = "example"
+    password = "example"
   }
 resource "aws_iam_role" "opsworks_service" {
     name = "%s_opsworks_service"

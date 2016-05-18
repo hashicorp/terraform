@@ -61,6 +61,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"parameter_group_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"endpoint": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -189,6 +195,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		createOpts.DBSubnetGroupName = aws.String(attr.(string))
 	}
 
+	if attr, ok := d.GetOk("parameter_group_name"); ok {
+		createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
+	}
+
 	if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
 		createOpts.VpcSecurityGroupIds = expandStringList(attr.List())
 	}
@@ -280,6 +290,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
+	d.Set("parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("endpoint", dbc.Endpoint)
 	d.Set("engine", dbc.Engine)
 	d.Set("master_username", dbc.MasterUsername)
@@ -340,6 +351,11 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
 	}
 
+	if d.HasChange("parameter_group_name") {
+		d.SetPartial("parameter_group_name")
+		req.DBClusterParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
+	}
+
 	_, err := conn.ModifyDBCluster(req)
 	if err != nil {
 		return fmt.Errorf("[WARN] Error modifying RDS Cluster (%s): %s", d.Id(), err)
@@ -368,7 +384,7 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 	_, err := conn.DeleteDBCluster(&deleteOpts)
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"deleting", "backing-up", "modifying"},
+		Pending:    []string{"available", "deleting", "backing-up", "modifying"},
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 		Timeout:    5 * time.Minute,

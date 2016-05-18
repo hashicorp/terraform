@@ -50,7 +50,13 @@ EOT
                     }
                 `, testPrivateKey),
 				Check: func(s *terraform.State) error {
-					got := s.RootModule().Outputs["key_pem"]
+					gotUntyped := s.RootModule().Outputs["key_pem"].Value
+
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem\" is not a string")
+					}
+
 					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE REQUEST----") {
 						return fmt.Errorf("key is missing CSR PEM preamble")
 					}
