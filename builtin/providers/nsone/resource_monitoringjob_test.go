@@ -17,7 +17,7 @@ func TestAccMonitoringJob_basic(t *testing.T) {
 		CheckDestroy: testAccCheckMonitoringJobDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccMonitoringJob_basic,
+				Config: testAccMonitoringJobBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMonitoringJobState("name", "terraform test"),
 					testAccCheckMonitoringJobExists("nsone_monitoringjob.foobar", &mj),
@@ -36,7 +36,7 @@ func TestAccMonitoringJob_updated(t *testing.T) {
 		CheckDestroy: testAccCheckMonitoringJobDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccMonitoringJob_basic,
+				Config: testAccMonitoringJobBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMonitoringJobState("name", "terraform test"),
 					testAccCheckMonitoringJobExists("nsone_monitoringjob.foobar", &mj),
@@ -44,7 +44,7 @@ func TestAccMonitoringJob_updated(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccMonitoringJob_updated,
+				Config: testAccMonitoringJobUpdated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMonitoringJobState("name", "terraform test"),
 					testAccCheckMonitoringJobExists("nsone_monitoringjob.foobar", &mj),
@@ -170,7 +170,7 @@ func testAccCheckMonitoringJobAttributesUpdated(mj *nsone.MonitoringJob) resourc
 	}
 }
 
-const testAccMonitoringJob_basic = `
+const testAccMonitoringJobBasic = `
 resource "nsone_monitoringjob" "foobar" {
   name = "terraform test"
   active = true
@@ -186,7 +186,7 @@ resource "nsone_monitoringjob" "foobar" {
   }
 }`
 
-const testAccMonitoringJob_updated = `
+const testAccMonitoringJobUpdated = `
 resource "nsone_monitoringjob" "foobar" {
 	name = "terraform test"
 	active = true

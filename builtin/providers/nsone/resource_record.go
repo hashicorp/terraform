@@ -183,7 +183,7 @@ func answersToHash(v interface{}) int {
 	if a["region"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", a["region"].(string)))
 	}
-	metas := make([]int, 0)
+	var metas []int
 	switch t := a["meta"].(type) {
 	default:
 		panic(fmt.Sprintf("unexpected type %T", t))
@@ -261,24 +261,24 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 	}
 	if len(r.Regions) > 0 {
 		regions := make([]map[string]interface{}, 0, len(r.Regions))
-		for region_name, region := range r.Regions {
-			new_region := make(map[string]interface{})
-			new_region["name"] = region_name
+		for regionName, region := range r.Regions {
+			newRegion := make(map[string]interface{})
+			newRegion["name"] = regionName
 			if len(region.Meta.GeoRegion) > 0 {
-				new_region["georegion"] = region.Meta.GeoRegion[0]
+				newRegion["georegion"] = region.Meta.GeoRegion[0]
 			}
 			if len(region.Meta.Country) > 0 {
-				new_region["country"] = region.Meta.Country[0]
+				newRegion["country"] = region.Meta.Country[0]
 			}
 			if len(region.Meta.USState) > 0 {
-				new_region["us_state"] = region.Meta.USState[0]
+				newRegion["us_state"] = region.Meta.USState[0]
 			}
 			if region.Meta.Up {
-				new_region["up"] = region.Meta.Up
+				newRegion["up"] = region.Meta.Up
 			} else {
-				new_region["up"] = false
+				newRegion["up"] = false
 			}
-			regions = append(regions, new_region)
+			regions = append(regions, newRegion)
 		}
 		log.Printf("Setting regions %+v", regions)
 		err := d.Set("regions", regions)
@@ -309,19 +309,19 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 			case string:
 				meta["value"] = t
 			case []interface{}:
-				var val_array []string
+				var valArray []string
 				for _, pref := range t {
-					val_array = append(val_array, pref.(string))
+					valArray = append(valArray, pref.(string))
 				}
-				sort.Strings(val_array)
-				string_val := strings.Join(val_array, ",")
-				meta["value"] = string_val
+				sort.Strings(valArray)
+				stringVal := strings.Join(valArray, ",")
+				meta["value"] = stringVal
 			case bool:
-				int_val := btoi(t)
-				meta["value"] = strconv.Itoa(int_val)
+				intVal := btoi(t)
+				meta["value"] = strconv.Itoa(intVal)
 			case float64:
-				int_val := int(t)
-				meta["value"] = strconv.Itoa(int_val)
+				intVal := int(t)
+				meta["value"] = strconv.Itoa(intVal)
 			}
 			metas.Add(meta)
 		}
@@ -341,8 +341,8 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 	r.Id = d.Id()
 	if answers := d.Get("answers").(*schema.Set); answers.Len() > 0 {
 		al := make([]nsone.Answer, answers.Len())
-		for i, answer_raw := range answers.List() {
-			answer := answer_raw.(map[string]interface{})
+		for i, answerRaw := range answers.List() {
+			answer := answerRaw.(map[string]interface{})
 			a := nsone.NewAnswer()
 			v := answer["answer"].(string)
 			if d.Get("type") != "TXT" {
@@ -354,17 +354,17 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 				a.Region = v.(string)
 			}
 			if metas := answer["meta"].(*schema.Set); metas.Len() > 0 {
-				for _, meta_raw := range metas.List() {
-					meta := meta_raw.(map[string]interface{})
+				for _, metaRaw := range metas.List() {
+					meta := metaRaw.(map[string]interface{})
 					key := meta["field"].(string)
 					if value, ok := meta["feed"]; ok && value.(string) != "" {
 						a.Meta[key] = nsone.NewMetaFeed(value.(string))
 					}
 					if value, ok := meta["value"]; ok && value.(string) != "" {
-						meta_array := strings.Split(value.(string), ",")
-						if len(meta_array) > 1 {
-							sort.Strings(meta_array)
-							a.Meta[key] = meta_array
+						metaArray := strings.Split(value.(string), ",")
+						if len(metaArray) > 1 {
+							sort.Strings(metaArray)
+							a.Meta[key] = metaArray
 						} else {
 							a.Meta[key] = value.(string)
 						}
@@ -391,8 +391,8 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 
 	if rawFilters := d.Get("filters").([]interface{}); len(rawFilters) > 0 {
 		f := make([]nsone.Filter, len(rawFilters))
-		for i, filter_raw := range rawFilters {
-			fi := filter_raw.(map[string]interface{})
+		for i, filterRaw := range rawFilters {
+			fi := filterRaw.(map[string]interface{})
 			config := make(map[string]interface{})
 			filter := nsone.Filter{
 				Filter: fi["filter"].(string),
@@ -401,8 +401,8 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 			if disabled, ok := fi["disabled"]; ok {
 				filter.Disabled = disabled.(bool)
 			}
-			if raw_config, ok := fi["config"]; ok {
-				for k, v := range raw_config.(map[string]interface{}) {
+			if rawConfig, ok := fi["config"]; ok {
+				for k, v := range rawConfig.(map[string]interface{}) {
 					if i, err := strconv.Atoi(v.(string)); err == nil {
 						filter.Config[k] = i
 					} else {
@@ -416,25 +416,25 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 	}
 	if regions := d.Get("regions").(*schema.Set); regions.Len() > 0 {
 		rm := make(map[string]nsone.Region)
-		for _, region_raw := range regions.List() {
-			region := region_raw.(map[string]interface{})
-			nsone_r := nsone.Region{
+		for _, regionRaw := range regions.List() {
+			region := regionRaw.(map[string]interface{})
+			nsoneR := nsone.Region{
 				Meta: nsone.RegionMeta{},
 			}
 			if g := region["georegion"].(string); g != "" {
-				nsone_r.Meta.GeoRegion = []string{g}
+				nsoneR.Meta.GeoRegion = []string{g}
 			}
 			if g := region["country"].(string); g != "" {
-				nsone_r.Meta.Country = []string{g}
+				nsoneR.Meta.Country = []string{g}
 			}
 			if g := region["us_state"].(string); g != "" {
-				nsone_r.Meta.USState = []string{g}
+				nsoneR.Meta.USState = []string{g}
 			}
 			if g := region["up"].(bool); g {
-				nsone_r.Meta.Up = g
+				nsoneR.Meta.Up = g
 			}
 
-			rm[region["name"].(string)] = nsone_r
+			rm[region["name"].(string)] = nsoneR
 		}
 		r.Regions = rm
 	}
@@ -451,6 +451,7 @@ func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
 	return result
 }
 
+// RecordCreate creates DNS record in ns1
 func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
@@ -463,6 +464,7 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	return recordToResourceData(d, r)
 }
 
+// RecordRead reads the DNS record from ns1
 func RecordRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r, err := client.GetRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
@@ -473,6 +475,7 @@ func RecordRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// RecordDelete deltes the DNS record from ns1
 func RecordDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	err := client.DeleteRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
@@ -480,6 +483,7 @@ func RecordDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
+// RecordUpdate updates the given dns record in ns1
 func RecordUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))

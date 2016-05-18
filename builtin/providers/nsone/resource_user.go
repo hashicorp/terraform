@@ -172,22 +172,23 @@ func resourceDataToUser(u *nsone.User, d *schema.ResourceData) error {
 	u.Username = d.Get("username").(string)
 	u.Email = d.Get("email").(string)
 	if v, ok := d.GetOk("teams"); ok {
-		teams_raw := v.([]interface{})
-		u.Teams = make([]string, len(teams_raw))
-		for i, team := range teams_raw {
+		teamsRaw := v.([]interface{})
+		u.Teams = make([]string, len(teamsRaw))
+		for i, team := range teamsRaw {
 			u.Teams[i] = team.(string)
 		}
 	} else {
 		u.Teams = make([]string, 0)
 	}
 	if v, ok := d.GetOk("notify"); ok {
-		notify_raw := v.(map[string]interface{})
-		u.Notify.Billing = notify_raw["billing"].(bool)
+		notifyRaw := v.(map[string]interface{})
+		u.Notify.Billing = notifyRaw["billing"].(bool)
 	}
 	u.Permissions = resourceDataToPermissions(d)
 	return nil
 }
 
+// UserCreate creates the given user in ns1
 func UserCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj := nsone.User{}
@@ -200,6 +201,7 @@ func UserCreate(d *schema.ResourceData, meta interface{}) error {
 	return userToResourceData(d, &mj)
 }
 
+// UserRead  reads the given users data from ns1
 func UserRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj, err := client.GetUser(d.Id())
@@ -210,6 +212,7 @@ func UserRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// UserDelete deletes the given user from ns1
 func UserDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	err := client.DeleteUser(d.Id())
@@ -217,6 +220,7 @@ func UserDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
+// UserUpdate updates the user with given parameters in ns1
 func UserUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj := nsone.User{

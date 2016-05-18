@@ -40,6 +40,7 @@ func resourceDataToTeam(u *nsone.Team, d *schema.ResourceData) error {
 	return nil
 }
 
+// TeamCreate creates the given team in ns1
 func TeamCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj := nsone.Team{}
@@ -52,6 +53,7 @@ func TeamCreate(d *schema.ResourceData, meta interface{}) error {
 	return teamToResourceData(d, &mj)
 }
 
+// TeamRead reads the team data from ns1
 func TeamRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj, err := client.GetTeam(d.Id())
@@ -62,6 +64,7 @@ func TeamRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// TeamDelete deletes the given team from ns1
 func TeamDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	err := client.DeleteTeam(d.Id())
@@ -69,6 +72,7 @@ func TeamDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
+// TeamUpdate updates the given team in ns1
 func TeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj := nsone.Team{

@@ -17,7 +17,7 @@ func TestAccZone_basic(t *testing.T) {
 		CheckDestroy: testAccCheckZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccZone_basic,
+				Config: testAccZoneBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckZoneState("zone", "terraform.io"),
 					testAccCheckZoneExists("nsone_zone.foobar", &zone),
@@ -36,7 +36,7 @@ func TestAccZone_updated(t *testing.T) {
 		CheckDestroy: testAccCheckZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccZone_basic,
+				Config: testAccZoneBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckZoneState("zone", "terraform.io"),
 					testAccCheckZoneExists("nsone_zone.foobar", &zone),
@@ -44,7 +44,7 @@ func TestAccZone_updated(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccZone_updated,
+				Config: testAccZoneUpdated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckZoneState("zone", "terraform.io"),
 					testAccCheckZoneExists("nsone_zone.foobar", &zone),
@@ -154,7 +154,7 @@ func testAccCheckZoneAttributesUpdated(zone *nsone.Zone) resource.TestCheckFunc 
 	}
 }
 
-const testAccZone_basic = `
+const testAccZoneBasic = `
 resource "nsone_zone" "foobar" {
 	zone = "terraform.io"
 	hostmaster = "hostmaster@nsone.net"
@@ -162,7 +162,7 @@ resource "nsone_zone" "foobar" {
 	nx_ttl = "3600"
 }`
 
-const testAccZone_updated = `
+const testAccZoneUpdated = `
 resource "nsone_zone" "foobar" {
 	zone = "terraform.io"
 	hostmaster = "hostmaster@nsone.net"

@@ -117,6 +117,7 @@ func resourceToZoneData(z *nsone.Zone, d *schema.ResourceData) {
 	}
 }
 
+// ZoneCreate creates the given zone in ns1
 func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	z := nsone.NewZone(d.Get("zone").(string))
@@ -128,6 +129,7 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// ZoneRead reads the given zone data from ns1
 func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	z, err := client.GetZone(d.Get("zone").(string))
@@ -138,6 +140,7 @@ func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// ZoneDelete deteles the given zone from ns1
 func ZoneDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	err := client.DeleteZone(d.Get("zone").(string))
@@ -145,6 +148,7 @@ func ZoneDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
+// ZoneUpdate updates the zone with given params in ns1
 func ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	z := nsone.NewZone(d.Get("zone").(string))

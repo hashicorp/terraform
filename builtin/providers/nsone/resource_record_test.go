@@ -17,7 +17,7 @@ func TestAccRecord_basic(t *testing.T) {
 		CheckDestroy: testAccCheckRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRecord_basic,
+				Config: testAccRecordBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordState("domain", "test.terraform.io"),
 					testAccCheckRecordExists("nsone_record.foobar", &record),
@@ -36,7 +36,7 @@ func TestAccRecord_updated(t *testing.T) {
 		CheckDestroy: testAccCheckRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRecord_basic,
+				Config: testAccRecordBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordState("domain", "test.terraform.io"),
 					testAccCheckRecordExists("nsone_record.foobar", &record),
@@ -44,7 +44,7 @@ func TestAccRecord_updated(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccRecord_updated,
+				Config: testAccRecordUpdated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordState("domain", "test.terraform.io"),
 					testAccCheckRecordExists("nsone_record.foobar", &record),
@@ -193,7 +193,7 @@ func testAccCheckRecordAttributesUpdated(record *nsone.Record) resource.TestChec
 	}
 }
 
-const testAccRecord_basic = `
+const testAccRecordBasic = `
 resource "nsone_record" "foobar" {
     zone = "terraform.io"
 		domain = "test.terraform.io"
@@ -244,7 +244,7 @@ resource "nsone_zone" "test" {
   zone = "terraform.io"
 }`
 
-const testAccRecord_updated = `
+const testAccRecordUpdated = `
 resource "nsone_record" "foobar" {
 	zone = "terraform.io"
 	domain = "test.terraform.io"

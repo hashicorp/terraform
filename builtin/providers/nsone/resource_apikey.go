@@ -56,18 +56,18 @@ func resourceDataToPermissions(d *schema.ResourceData) nsone.PermissionsMap {
 		p.Dns.ZonesAllowByDefault = v.(bool)
 	}
 	if v, ok := d.GetOk("dns_zones_deny"); ok {
-		deny_raw := v.([]interface{})
-		p.Dns.ZonesDeny = make([]string, len(deny_raw))
-		for i, deny := range deny_raw {
+		denyRaw := v.([]interface{})
+		p.Dns.ZonesDeny = make([]string, len(denyRaw))
+		for i, deny := range denyRaw {
 			p.Dns.ZonesDeny[i] = deny.(string)
 		}
 	} else {
 		p.Dns.ZonesDeny = make([]string, 0)
 	}
 	if v, ok := d.GetOk("dns_zones_allow"); ok {
-		allow_raw := v.([]interface{})
-		p.Dns.ZonesAllow = make([]string, len(allow_raw))
-		for i, allow := range allow_raw {
+		allowRaw := v.([]interface{})
+		p.Dns.ZonesAllow = make([]string, len(allowRaw))
+		for i, allow := range allowRaw {
 			p.Dns.ZonesAllow[i] = allow.(string)
 		}
 	} else {
@@ -122,9 +122,9 @@ func resourceDataToApikey(u *nsone.Apikey, d *schema.ResourceData) error {
 	u.Id = d.Id()
 	u.Name = d.Get("name").(string)
 	if v, ok := d.GetOk("teams"); ok {
-		teams_raw := v.([]interface{})
-		u.Teams = make([]string, len(teams_raw))
-		for i, team := range teams_raw {
+		teamsRaw := v.([]interface{})
+		u.Teams = make([]string, len(teamsRaw))
+		for i, team := range teamsRaw {
 			u.Teams[i] = team.(string)
 		}
 	} else {
@@ -134,6 +134,7 @@ func resourceDataToApikey(u *nsone.Apikey, d *schema.ResourceData) error {
 	return nil
 }
 
+// ApikeyCreate creates ns1 API key
 func ApikeyCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj := nsone.Apikey{}
@@ -146,6 +147,7 @@ func ApikeyCreate(d *schema.ResourceData, meta interface{}) error {
 	return apikeyToResourceData(d, &mj)
 }
 
+// ApikeyRead reads API key from ns1
 func ApikeyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj, err := client.GetApikey(d.Id())
@@ -156,6 +158,7 @@ func ApikeyRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+//ApikeyDelete deletes the given ns1 api key
 func ApikeyDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	err := client.DeleteApikey(d.Id())
@@ -163,6 +166,7 @@ func ApikeyDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
+//ApikeyUpdate updates the given api key in ns1
 func ApikeyUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj := nsone.Apikey{

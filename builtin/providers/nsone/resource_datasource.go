@@ -35,6 +35,7 @@ func dataSourceToResourceData(d *schema.ResourceData, ds *nsone.DataSource) {
 	d.Set("sourcetype", ds.SourceType)
 }
 
+// DataSourceCreate creates an ns1 datasource
 func DataSourceCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	ds := nsone.NewDataSource(d.Get("name").(string), d.Get("sourcetype").(string))
@@ -45,6 +46,7 @@ func DataSourceCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// DataSourceRead fetches info for the given datasource from ns1
 func DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	ds, err := client.GetDataSource(d.Id())
@@ -55,6 +57,7 @@ func DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// DataSourceDelete deteltes the given datasource from ns1
 func DataSourceDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	err := client.DeleteDataSource(d.Id())
@@ -62,6 +65,7 @@ func DataSourceDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
+// DataSourceUpdate updates the datasource with given parameters
 func DataSourceUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	ds := nsone.NewDataSource(d.Get("name").(string), d.Get("sourcetype").(string))

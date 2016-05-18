@@ -17,7 +17,7 @@ func TestAccDataSource_basic(t *testing.T) {
 		CheckDestroy: testAccCheckDataSourceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDataSource_basic,
+				Config: testAccDataSourceBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataSourceState("name", "terraform test"),
 					testAccCheckDataSourceExists("nsone_datasource.foobar", &dataSource),
@@ -36,7 +36,7 @@ func TestAccDataSource_updated(t *testing.T) {
 		CheckDestroy: testAccCheckDataSourceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDataSource_basic,
+				Config: testAccDataSourceBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataSourceState("name", "terraform test"),
 					testAccCheckDataSourceExists("nsone_datasource.foobar", &dataSource),
@@ -44,7 +44,7 @@ func TestAccDataSource_updated(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccDataSource_updated,
+				Config: testAccDataSourceUpdated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataSourceState("name", "terraform test"),
 					testAccCheckDataSourceExists("nsone_datasource.foobar", &dataSource),
@@ -148,13 +148,13 @@ func testAccCheckDataSourceAttributesUpdated(dataSource *nsone.DataSource) resou
 	}
 }
 
-const testAccDataSource_basic = `
+const testAccDataSourceBasic = `
 resource "nsone_datasource" "foobar" {
 	name = "terraform test"
 	sourcetype = "nsone_v1"
 }`
 
-const testAccDataSource_updated = `
+const testAccDataSourceUpdated = `
 resource "nsone_datasource" "foobar" {
 	name = "terraform test"
 	sourcetype = "nsone_monitoring"

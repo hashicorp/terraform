@@ -166,17 +166,17 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 	r.Name = d.Get("name").(string)
 	r.JobType = d.Get("job_type").(string)
 	r.Active = d.Get("active").(bool)
-	raw_regions := d.Get("regions").([]interface{})
-	r.Regions = make([]string, len(raw_regions))
-	for i, v := range raw_regions {
+	rawRegions := d.Get("regions").([]interface{})
+	r.Regions = make([]string, len(rawRegions))
+	for i, v := range rawRegions {
 		r.Regions[i] = v.(string)
 	}
 	r.Frequency = d.Get("frequency").(int)
 	r.RapidRecheck = d.Get("rapid_recheck").(bool)
-	var raw_rules []interface{}
-	if raw_rules := d.Get("rules"); raw_rules != nil {
-		r.Rules = make([]nsone.MonitoringJobRule, len(raw_rules.([]interface{})))
-		for i, v := range raw_rules.([]interface{}) {
+	var rawRules []interface{}
+	if rawRules := d.Get("rules"); rawRules != nil {
+		r.Rules = make([]nsone.MonitoringJobRule, len(rawRules.([]interface{})))
+		for i, v := range rawRules.([]interface{}) {
 			rule := v.(map[string]interface{})
 			r.Rules[i] = nsone.MonitoringJobRule{
 				Value:      rule["value"].(string),
@@ -187,7 +187,7 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 	} else {
 		r.Rules = make([]nsone.MonitoringJobRule, 0)
 	}
-	for i, v := range raw_rules {
+	for i, v := range rawRules {
 		rule := v.(map[string]interface{})
 		r.Rules[i] = nsone.MonitoringJobRule{
 			Comparison: rule["comparison"].(string),
@@ -201,8 +201,8 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 		}
 	}
 	config := make(map[string]interface{})
-	if raw_config := d.Get("config"); raw_config != nil {
-		for k, v := range raw_config.(map[string]interface{}) {
+	if rawConfig := d.Get("config"); rawConfig != nil {
+		for k, v := range rawConfig.(map[string]interface{}) {
 			if k == "ssl" {
 				if v.(string) == "1" {
 					config[k] = true
@@ -241,6 +241,7 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 	return nil
 }
 
+// MonitoringJobCreate Creates monitoring job in ns1
 func MonitoringJobCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj := nsone.MonitoringJob{}
@@ -253,6 +254,7 @@ func MonitoringJobCreate(d *schema.ResourceData, meta interface{}) error {
 	return monitoringJobToResourceData(d, &mj)
 }
 
+// MonitoringJobRead reads the given monitoring job from ns1
 func MonitoringJobRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj, err := client.GetMonitoringJob(d.Id())
@@ -263,6 +265,7 @@ func MonitoringJobRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// MonitoringJobDelete deteltes the given monitoring job from ns1
 func MonitoringJobDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	err := client.DeleteMonitoringJob(d.Id())
@@ -270,6 +273,7 @@ func MonitoringJobDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
+// MonitoringJobUpdate updates the given monitoring job
 func MonitoringJobUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	mj := nsone.MonitoringJob{

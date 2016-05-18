@@ -50,6 +50,7 @@ func resourceDataToDataFeed(d *schema.ResourceData) *nsone.DataFeed {
 	return df
 }
 
+// DataFeedCreate creates an ns1 datafeed
 func DataFeedCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	df := resourceDataToDataFeed(d)
@@ -60,6 +61,7 @@ func DataFeedCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// DataFeedRead reads the datafeed for the given ID from ns1
 func DataFeedRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	df, err := client.GetDataFeed(d.Get("source_id").(string), d.Id())
@@ -70,6 +72,7 @@ func DataFeedRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// DataFeedDelete delets the given datafeed from ns1
 func DataFeedDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	err := client.DeleteDataFeed(d.Get("source_id").(string), d.Id())
@@ -77,6 +80,7 @@ func DataFeedDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
+// DataFeedUpdate updates the given datafeed with modified parameters
 func DataFeedUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	df := resourceDataToDataFeed(d)
