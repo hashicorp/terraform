@@ -17,6 +17,7 @@ IMPROVEMENTS:
  * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
  * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
  * provider/aws: Support for Redshift Cluster encryption using a KMS key [GH-6712]
+ * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * provider/clc: Fix optional server password [GH-6414]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
