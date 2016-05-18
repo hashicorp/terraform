@@ -1008,8 +1008,12 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 						},
 					},
 				},
-				Outputs: map[string]interface{}{
-					"a_output": "a",
+				Outputs: map[string]*OutputState{
+					"a_output": &OutputState{
+						Type:      "string",
+						Sensitive: false,
+						Value:     "a",
+					},
 				},
 			},
 		},
@@ -1408,7 +1412,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 
 	actual := state.RootModule().Outputs["output"]
 	expected := "bar0,bar1,bar2"
-	if actual != expected {
+	if actual.Value != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
 
@@ -1436,7 +1440,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 
 		actual := state.RootModule().Outputs["output"]
 		expected := "bar0"
-		if actual != expected {
+		if actual.Value != expected {
 			t.Fatalf("bad: \n%s", actual)
 		}
 	}
@@ -1477,9 +1481,17 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
-				Outputs: map[string]interface{}{
-					"foo": "bar",
-					"bar": "baz",
+				Outputs: map[string]*OutputState{
+					"foo": &OutputState{
+						Type:      "string",
+						Sensitive: false,
+						Value:     "bar",
+					},
+					"bar": &OutputState{
+						Type:      "string",
+						Sensitive: false,
+						Value:     "baz",
+					},
 				},
 			},
 		},
