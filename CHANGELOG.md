@@ -10,6 +10,7 @@ FEATURES:
  * **New command:** `terraform state` to provide access to a variety of state manipulation functions [GH-5811]
  * core: Data Resources are now supported. Values are refreshed, and available during the planning stage [GH-6598]
  * core: Lists and maps can now be used as first class types for variables, and may be passed between modules [GH-6322]
+ * **New Resource:** `aws_rds_cluster_parameter_group` [GH-5269]
 
 IMPROVEMENTS:
 
