@@ -86,14 +86,12 @@ func resourceCloudStackNetwork() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
-				ForceNew:      true,
 				ConflictsWith: []string{"aclid"},
 			},
 
 			"aclid": &schema.Schema{
 				Type:       schema.TypeString,
 				Optional:   true,
-				ForceNew:   true,
 				Deprecated: "Please use the `acl_id` field instead",
 			},
 
@@ -296,6 +294,25 @@ func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return fmt.Errorf(
 			"Error updating network %s: %s", name, err)
+	}
+
+	// Replace the ACL if the ID has changed
+	if d.HasChange("acl_id") || d.HasChange("acl") {
+		aclid, ok := d.GetOk("acl_id")
+		if !ok {
+			aclid, ok = d.GetOk("acl")
+		}
+		if !ok {
+			return fmt.Errorf("Replacing the ACL requires a valid ACL ID")
+		}
+
+		p := cs.NetworkACL.NewReplaceNetworkACLListParams(aclid.(string))
+		p.SetNetworkid(d.Id())
+
+		_, err := cs.NetworkACL.ReplaceNetworkACLList(p)
+		if err != nil {
+			return fmt.Errorf("Error replacing ACL: %s", err)
+		}
 	}
 
 	// Update tags if they have changed
