@@ -21,6 +21,9 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 		Read:   resourceAwsAutoscalingGroupRead,
 		Update: resourceAwsAutoscalingGroupUpdate,
 		Delete: resourceAwsAutoscalingGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
