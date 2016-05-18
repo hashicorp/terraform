@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/terraform"
@@ -91,6 +92,21 @@ func testStepImportState(
 			// Compare their attributes
 			actual := r.Primary.Attributes
 			expected := oldR.Primary.Attributes
+
+			// Remove fields we're ignoring
+			for _, v := range step.ImportStateVerifyIgnore {
+				for k, _ := range actual {
+					if strings.HasPrefix(k, v) {
+						delete(actual, k)
+					}
+				}
+				for k, _ := range expected {
+					if strings.HasPrefix(k, v) {
+						delete(expected, k)
+					}
+				}
+			}
+
 			if !reflect.DeepEqual(actual, expected) {
 				// Determine only the different attributes
 				for k, v := range expected {
@@ -103,7 +119,7 @@ func testStepImportState(
 				spewConf := spew.NewDefaultConfig()
 				spewConf.SortKeys = true
 				return state, fmt.Errorf(
-					"Attributes not equivalent. Difference is shown below. Top is actual, bottom is expected."+
+					"ImportStateVerify attributes not equivalent. Difference is shown below. Top is actual, bottom is expected."+
 						"\n\n%s\n\n%s",
 					spewConf.Sdump(actual), spewConf.Sdump(expected))
 			}

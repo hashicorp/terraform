@@ -43,3 +43,10 @@ type StateFunc func(*ResourceData, interface{}) ([]*ResourceData, error)
 func (r *ResourceImporter) InternalValidate() error {
 	return nil
 }
+
+// ImportStatePassthrough is an implementation of StateFunc that can be
+// used to simply pass the ID directly through. This should be used only
+// in the case that an ID-only refresh is possible.
+func ImportStatePassthrough(d *ResourceData, m interface{}) ([]*ResourceData, error) {
+	return []*ResourceData{d}, nil
+}
