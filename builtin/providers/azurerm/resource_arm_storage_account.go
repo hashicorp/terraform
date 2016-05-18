@@ -90,6 +90,16 @@ func resourceArmStorageAccount() *schema.Resource {
 				Computed: true,
 			},
 
+			"primary_access_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"secondary_access_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -208,6 +218,13 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error reading the state of AzureRM Storage Account %q: %s", name, err)
 	}
 
+	keys, err := client.ListKeys(resGroup, name)
+	if err != nil {
+		return err
+	}
+
+	d.Set("primary_access_key", keys.Key1)
+	d.Set("secondary_access_key", keys.Key2)
 	d.Set("location", resp.Location)
 	d.Set("account_type", resp.Properties.AccountType)
 	d.Set("primary_location", resp.Properties.PrimaryLocation)
