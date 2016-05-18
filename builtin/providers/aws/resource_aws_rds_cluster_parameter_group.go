@@ -111,6 +111,12 @@ func resourceAwsRDSClusterParameterGroupRead(d *schema.ResourceData, meta interf
 
 	describeResp, err := rdsconn.DescribeDBClusterParameterGroups(&describeOpts)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "DBParameterGroupNotFound" {
+			log.Printf("[WARN] DB Cluster Parameter Group (%s) not found, error code (404)", d.Id())
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
