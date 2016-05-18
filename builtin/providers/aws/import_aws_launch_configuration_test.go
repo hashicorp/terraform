@@ -22,7 +22,7 @@ func TestAccAWSLaunchConfiguration_importBasic(t *testing.T) {
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"user_data"},
+				ImportStateVerifyIgnore: []string{"associate_public_ip_address", "user_data"},
 			},
 		},
 	})
