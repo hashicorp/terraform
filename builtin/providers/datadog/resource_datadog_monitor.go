@@ -165,7 +165,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		o.IncludeTags = attr.(bool)
 	}
 	if attr, ok := d.GetOk("require_full_window"); ok {
-		o.RequireFullWindow= attr.(bool)
+		o.RequireFullWindow = attr.(bool)
 	}
 	if attr, ok := d.GetOk("locked"); ok {
 		o.Locked = attr.(bool)

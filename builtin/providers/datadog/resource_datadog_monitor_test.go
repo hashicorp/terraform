@@ -86,9 +86,9 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "include_tags", "true"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "require_full_window", "false"),
+						"datadog_monitor.foo", "require_full_window", "true"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "locked", "false"),
+						"datadog_monitor.foo", "locked", "true"),
 				),
 			},
 			resource.TestStep{
@@ -123,6 +123,10 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 						"datadog_monitor.foo", "include_tags", "false"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "silenced.*", "0"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "require_full_window", "false"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "locked", "false"),
 				),
 			},
 		},
