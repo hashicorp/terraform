@@ -113,8 +113,8 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 			"associate_public_ip_address": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
+				Default:  false,
 			},
 
 			"spot_price": &schema.Schema{
@@ -498,7 +498,6 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("instance_type", lc.InstanceType)
 	d.Set("name", lc.LaunchConfigurationName)
 
-	d.Set("associate_public_ip_address", lc.AssociatePublicIpAddress)
 	d.Set("iam_instance_profile", lc.IamInstanceProfile)
 	d.Set("ebs_optimized", lc.EbsOptimized)
 	d.Set("spot_price", lc.SpotPrice)
