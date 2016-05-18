@@ -137,7 +137,8 @@ func (c *OutputCommand) Run(args []string) int {
 			return 1
 		}
 	default:
-		panic(fmt.Errorf("Unknown output type: %T", v.Value.(string)))
+		c.Ui.Error(fmt.Sprintf("Unknown output type: %T", v.Type))
+		return 1
 	}
 
 	return 0
