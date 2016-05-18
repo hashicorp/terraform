@@ -1181,6 +1181,53 @@ func Test0617StateHandling_ReadWriteStateV2LossyFail(t *testing.T) {
 	}
 }
 
+func Test0617StateHandling_WriteV1StateByDefault(t *testing.T) {
+	state := &State{
+		Serial: 1,
+		Remote: &RemoteState{
+			Type: "http",
+			Config: map[string]string{
+				"url": "http://my-cool-server.com/",
+			},
+		},
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Dependencies: []string{
+					"aws_instance.bar",
+				},
+				Resources: map[string]*ResourceState{
+					"foo": &ResourceState{
+						Primary: &InstanceState{
+							ID: "bar",
+							Ephemeral: EphemeralState{
+								ConnInfo: map[string]string{
+									"type":     "ssh",
+									"user":     "root",
+									"password": "supersecret",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	buf := new(bytes.Buffer)
+	if err := state.WriteState(buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// We compare against the actual JSON here to avoid any issues with the read
+	// masking the actual version of state that was written
+	stateText := buf.String()
+
+	if !strings.Contains(stateText, `"version": 1,`) {
+		t.Fatal("Default state was not written as version 1")
+	}
+}
+
 const testV1State = `{
     "version": 1,
     "serial": 9,

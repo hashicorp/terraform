@@ -1377,7 +1377,7 @@ func (d *State) WriteState(dst io.Writer) error {
 	d.Version = StateVersion
 
 	// Write V1 state if we read V1 state
-	if d.ReadVersion == 1 {
+	if d.ReadVersion == 1 || d.ReadVersion == 0 {
 		downgraded, lossy, err := d.downgradeToV1()
 		if err != nil {
 			return err
