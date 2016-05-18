@@ -68,6 +68,36 @@ func TestAccAWSRoute53Record_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53Record_basic_fqdn(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.default",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordConfig_fqdn,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+				),
+			},
+
+			// Ensure that changing the name to include a trailing "dot" results in
+			// nothing happening, because the name is stripped of trailing dots on
+			// save. Otherwise, an update would occur and due to the
+			// create_before_destroy, the record would actually be destroyed, and a
+			// non-empty plan would appear, and the record will fail to exist in
+			// testAccCheckRoute53RecordExists
+			resource.TestStep{
+				Config: testAccRoute53RecordConfig_fqdn_no_op,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRoute53Record_txtSupport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:        func() { testAccPreCheck(t) },
@@ -414,6 +444,41 @@ resource "aws_route53_record" "default" {
 	type = "A"
 	ttl = "30"
 	records = ["127.0.0.1", "127.0.0.27"]
+}
+`
+const testAccRoute53RecordConfig_fqdn = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name    = "www.NOTexamplE.com"
+  type    = "A"
+  ttl     = "30"
+  records = ["127.0.0.1", "127.0.0.27"]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`
+
+const testAccRoute53RecordConfig_fqdn_no_op = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name    = "www.NOTexamplE.com."
+  type    = "A"
+  ttl     = "30"
+  records = ["127.0.0.1", "127.0.0.27"]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 `
 

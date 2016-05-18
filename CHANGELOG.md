@@ -14,12 +14,15 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
- * provider/clc: Fix optional server password [GH-6414]
- * provider/clc: Add support for hyperscale and bareMetal server types and package installation
- * providers/google: support optional uuid naming for Instance Template [GH-6604]
  * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
  * provider/aws: Support for Redshift Cluster encryption using a KMS key [GH-6712]
+ * provider/clc: Add support for hyperscale and bareMetal server types and package installation
+ * provider/clc: Fix optional server password [GH-6414]
+ * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
+ * provider/fastly: Add support for custom VCL configuration [GH-6662]
  * provider/openstack: Add support for client certificate authentication [GH-6279]
+ * providers/google: support optional uuid naming for Instance Template [GH-6604]
+ * provider/vsphere: fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  
 BUG FIXES:
 
@@ -28,7 +31,7 @@ BUG FIXES:
  * provider/aws: Updating state when `aws_sns_topic_subscription` is missing [GH-6629]
  * provider/aws: `aws_opsworks_application.app_source` SSH key is write-only [GH-6649]
  * provider/aws: fix Elastic Beanstalk `cname_prefix` continual plans [GH-6653]
- * provider/aws? Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
+ * provider/aws: Trim trailing `.` from `name` in `aws_route53_record` resources to prevent spurious diffs [GH-6592]
  * provider/openstack: Reassociate Floating IP on network changes [GH-6579]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]

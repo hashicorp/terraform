@@ -391,8 +391,8 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 	if vL, ok := d.GetOk("block_device"); ok {
 		blockDevices := resourceInstanceBlockDevicesV2(d, vL.([]interface{}))
 		createOpts = &bootfromvolume.CreateOptsExt{
-			createOpts,
-			blockDevices,
+			CreateOptsBuilder: createOpts,
+			BlockDevice:       blockDevices,
 		}
 	}
 
