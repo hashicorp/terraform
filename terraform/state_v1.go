@@ -37,6 +37,10 @@ type stateV1 struct {
 // upgrade is used to upgrade a V1 state representation
 // into a State (current) representation.
 func (old *stateV1) upgrade() (*State, error) {
+	if old == nil {
+		return nil, nil
+	}
+
 	remote, err := old.Remote.upgrade()
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading State V1: %v", err)
@@ -76,6 +80,10 @@ type remoteStateV1 struct {
 }
 
 func (old *remoteStateV1) upgrade() (*RemoteState, error) {
+	if old == nil {
+		return nil, nil
+	}
+
 	config, err := copystructure.Copy(old.Config)
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading RemoteState V1: %v", err)
@@ -135,6 +143,10 @@ type moduleStateV1 struct {
 }
 
 func (old *moduleStateV1) upgrade() (*ModuleState, error) {
+	if old == nil {
+		return nil, nil
+	}
+
 	path, err := copystructure.Copy(old.Path)
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
@@ -287,6 +299,10 @@ type resourceStateV1 struct {
 }
 
 func (old *resourceStateV1) upgrade() (*ResourceState, error) {
+	if old == nil {
+		return nil, nil
+	}
+
 	dependencies, err := copystructure.Copy(old.Dependencies)
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
@@ -408,6 +424,10 @@ type instanceStateV1 struct {
 }
 
 func (old *instanceStateV1) upgrade() (*InstanceState, error) {
+	if old == nil {
+		return nil, nil
+	}
+
 	attributes, err := copystructure.Copy(old.Attributes)
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
