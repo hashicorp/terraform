@@ -23,6 +23,7 @@ IMPROVEMENTS:
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
  * provider/fastly: Add support for custom VCL configuration [GH-6662]
  * provider/openstack: Add support for client certificate authentication [GH-6279]
+ * provider/openstack Increase timeouts for image resize, subnets, and routers [GH-6764]
  * provider/google: support optional uuid naming for Instance Template [GH-6604]
  * provider/vsphere: fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
