@@ -129,6 +129,7 @@ func (i *Interpolater) valueModuleVar(
 	n string,
 	v *config.ModuleVariable,
 	result map[string]ast.Variable) error {
+
 	// If we're computing all dynamic fields, then module vars count
 	// and we mark it as computed.
 	if i.Operation == walkValidate {
