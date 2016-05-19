@@ -193,42 +193,42 @@ func resourceServiceV1() *schema.Resource {
 				Optional: true,
 			},
 
-                        "cache_setting": &schema.Schema{
-                                Type:     schema.TypeSet,
-                                Optional: true,
-                                Elem: &schema.Resource{
-                                        Schema: map[string]*schema.Schema{
-                                                // required fields
-                                                "name": &schema.Schema{
-                                                        Type:        schema.TypeString,
-                                                        Required:    true,
-                                                        Description: "A name to refer to this Cache Setting",
-                                                },
-                                                "cache_condition": &schema.Schema{
-                                                        Type:        schema.TypeString,
-                                                        Required:    true,
-                                                        Description: "Condition to check if this Cache Setting applies",
-                                                },
-                                                "action": &schema.Schema{
-                                                        Type:        schema.TypeString,
-                                                        Optional:    true,
-                                                        Description: "Action to take",
-                                                },
-                                                // optional
-                                                "stale_ttl": &schema.Schema{
-                                                        Type:        schema.TypeInt,
-                                                        Optional:    true,
-                                                        Description: "Max 'Time To Live' for stale (unreachable) objects.",
-                                                        Default:     300,
-                                                },
-                                                "ttl": &schema.Schema{
-                                                        Type:        schema.TypeInt,
-                                                        Optional:    true,
-                                                        Description: "The 'Time To Live' for the object",
-                                                },
-                                        },
-                                },
-                        },
+			"cache_setting": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// required fields
+						"name": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "A name to refer to this Cache Setting",
+						},
+						"cache_condition": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Condition to check if this Cache Setting applies",
+						},
+						"action": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Action to take",
+						},
+						// optional
+						"stale_ttl": &schema.Schema{
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "Max 'Time To Live' for stale (unreachable) objects.",
+							Default:     300,
+						},
+						"ttl": &schema.Schema{
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "The 'Time To Live' for the object",
+						},
+					},
+				},
+			},
 
 			"gzip": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -597,7 +597,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		"s3logging",
 		"condition",
 		"request_setting",
-                "cache_setting",
+		"cache_setting",
 		"vcl",
 	} {
 		if d.HasChange(v) {
@@ -1337,21 +1337,21 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			log.Printf("[WARN] Error setting VCLs for (%s): %s", d.Id(), err)
 		}
 
-                // refresh Cache Settings
-                log.Printf("[DEBUG] Refreshing Cache Settings for (%s)", d.Id())
-                cslList, err := conn.ListCacheSettings(&gofastly.ListCacheSettingsInput{
-                        Service: d.Id(),
-                        Version: s.ActiveVersion.Number,
-                })
-                if err != nil {
-                        return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
-                }
+		// refresh Cache Settings
+		log.Printf("[DEBUG] Refreshing Cache Settings for (%s)", d.Id())
+		cslList, err := conn.ListCacheSettings(&gofastly.ListCacheSettingsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
 
-                csl := flattenCacheSettings(cslList)
+		csl := flattenCacheSettings(cslList)
 
-                if err := d.Set("cache_setting", csl); err != nil {
-                        log.Printf("[WARN] Error setting Cache Settings for (%s): %s", d.Id(), err)
-                }
+		if err := d.Set("cache_setting", csl); err != nil {
+			log.Printf("[WARN] Error setting Cache Settings for (%s): %s", d.Id(), err)
+		}
 
 	} else {
 		log.Printf("[DEBUG] Active Version for Service (%s) is empty, no state to refresh", d.Id())
@@ -1719,28 +1719,28 @@ func buildRequestSetting(requestSettingMap interface{}) (*gofastly.CreateRequest
 }
 
 func flattenCacheSettings(csList []*gofastly.CacheSetting) []map[string]interface{} {
-        var csl []map[string]interface{}
-        for _, cl := range csList {
-                // Convert Cache Settings to a map for saving to state.
-                clMap := map[string]interface{}{
-                        "name":            cl.Name,
-                        "action":          cl.Action,
-                        "cache_condition": cl.CacheCondition,
-                        "stale_ttl":       cl.StaleTTL,
-                        "ttl":             cl.TTL,
-                }
+	var csl []map[string]interface{}
+	for _, cl := range csList {
+		// Convert Cache Settings to a map for saving to state.
+		clMap := map[string]interface{}{
+			"name":            cl.Name,
+			"action":          cl.Action,
+			"cache_condition": cl.CacheCondition,
+			"stale_ttl":       cl.StaleTTL,
+			"ttl":             cl.TTL,
+		}
 
-                // prune any empty values that come from the default string value in structs
-                for k, v := range clMap {
-                        if v == "" {
-                                delete(clMap, k)
-                        }
-                }
+		// prune any empty values that come from the default string value in structs
+		for k, v := range clMap {
+			if v == "" {
+				delete(clMap, k)
+			}
+		}
 
-                csl = append(csl, clMap)
-        }
+		csl = append(csl, clMap)
+	}
 
-        return csl
+	return csl
 }
 
 func flattenVCLs(vclList []*gofastly.VCL) []map[string]interface{} {
