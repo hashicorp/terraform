@@ -1159,31 +1159,16 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 
 			// POST new Cache Settings
 			for _, dRaw := range add {
-				df := dRaw.(map[string]interface{})
-				opts := gofastly.CreateCacheSettingInput{
-					Service:        d.Id(),
-					Version:        latestVersion,
-					Name:           df["name"].(string),
-					StaleTTL:       uint(df["stale_ttl"].(int)),
-					CacheCondition: df["cache_condition"].(string),
+				opts, err := buildCacheSetting(dRaw.(map[string]interface{}))
+				if err != nil {
+					log.Printf("[DEBUG] Error building Cache Setting: %s", err)
+					return err
 				}
-
-				if v, ok := df["ttl"]; ok {
-					opts.TTL = uint(v.(int))
-				}
-
-				act := strings.ToLower(df["action"].(string))
-				switch act {
-				case "cache":
-					opts.Action = gofastly.CacheSettingActionCache
-				case "pass":
-					opts.Action = gofastly.CacheSettingActionPass
-				case "restart":
-					opts.Action = gofastly.CacheSettingActionRestart
-				}
+				opts.Service = d.Id()
+				opts.Version = latestVersion
 
 				log.Printf("[DEBUG] Fastly Cache Settings Addition opts: %#v", opts)
-				_, err := conn.CreateCacheSetting(&opts)
+				_, err = conn.CreateCacheSetting(opts)
 				if err != nil {
 					return err
 				}
@@ -1613,6 +1598,31 @@ func buildHeader(headerMap interface{}) (*gofastly.CreateHeaderInput, error) {
 		opts.Type = gofastly.HeaderTypeCache
 	case "response":
 		opts.Type = gofastly.HeaderTypeResponse
+	}
+
+	return &opts, nil
+}
+
+func buildCacheSetting(cacheMap interface{}) (*gofastly.CreateCacheSettingInput, error) {
+	df := cacheMap.(map[string]interface{})
+	opts := gofastly.CreateCacheSettingInput{
+		Name:           df["name"].(string),
+		StaleTTL:       uint(df["stale_ttl"].(int)),
+		CacheCondition: df["cache_condition"].(string),
+	}
+
+	if v, ok := df["ttl"]; ok {
+		opts.TTL = uint(v.(int))
+	}
+
+	act := strings.ToLower(df["action"].(string))
+	switch act {
+	case "cache":
+		opts.Action = gofastly.CacheSettingActionCache
+	case "pass":
+		opts.Action = gofastly.CacheSettingActionPass
+	case "restart":
+		opts.Action = gofastly.CacheSettingActionRestart
 	}
 
 	return &opts, nil
