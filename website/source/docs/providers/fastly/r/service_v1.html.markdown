@@ -192,9 +192,10 @@ conditions execute. Lower numbers execute first
 The `cache_setting` block supports:
 
 * `name` - (Required) A unique name to label this Cache Setting
-* `action` - (Required) One of `N/A`, `Deliver`, `Pass` or `Restart`, as defined
+* `action` - (Required) One of `cache`, `pass`, or `restart`, as defined
 on Fastly's documenation under ["Caching action descriptions"](https://docs.fastly.com/guides/performance-tuning/controlling-caching#caching-action-descriptions)
-* `cache_condition` - (Required) Name of the condition used to test whether this settings object should be used
+* `cache_condition` - (Required) Name of the condition used to test whether this settings object should be used.
+This Condition must be of type `CACHE`
 * `stale_ttl` - (Optional) Max "Time To Live" for stale (unreachable) objects.
 Default `300`
 * `ttl` - (Optional) The "Time To Live" for the object

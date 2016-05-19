@@ -1058,6 +1058,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 				}
 			}
 		}
+
 		// Find differences in VCLs
 		if d.HasChange("vcl") {
 			// Note: as above with Gzip and S3 logging, we don't utilize the PUT
@@ -1120,6 +1121,71 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 						return err
 					}
 
+				}
+			}
+		}
+
+		// Find differences in Cache Settings
+		if d.HasChange("cache_setting") {
+			oc, nc := d.GetChange("cache_setting")
+			if oc == nil {
+				oc = new(schema.Set)
+			}
+			if nc == nil {
+				nc = new(schema.Set)
+			}
+
+			ocs := oc.(*schema.Set)
+			ncs := nc.(*schema.Set)
+
+			remove := ocs.Difference(ncs).List()
+			add := ncs.Difference(ocs).List()
+
+			// Delete removed Cache Settings
+			for _, dRaw := range remove {
+				df := dRaw.(map[string]interface{})
+				opts := gofastly.DeleteCacheSettingInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    df["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Cache Settings removal opts: %#v", opts)
+				err := conn.DeleteCacheSetting(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new Cache Settings
+			for _, dRaw := range add {
+				df := dRaw.(map[string]interface{})
+				opts := gofastly.CreateCacheSettingInput{
+					Service:        d.Id(),
+					Version:        latestVersion,
+					Name:           df["name"].(string),
+					StaleTTL:       uint(df["stale_ttl"].(int)),
+					CacheCondition: df["cache_condition"].(string),
+				}
+
+				if v, ok := df["ttl"]; ok {
+					opts.TTL = uint(v.(int))
+				}
+
+				act := strings.ToLower(df["action"].(string))
+				switch act {
+				case "cache":
+					opts.Action = gofastly.CacheSettingActionCache
+				case "pass":
+					opts.Action = gofastly.CacheSettingActionPass
+				case "restart":
+					opts.Action = gofastly.CacheSettingActionRestart
+				}
+
+				log.Printf("[DEBUG] Fastly Cache Settings Addition opts: %#v", opts)
+				_, err := conn.CreateCacheSetting(&opts)
+				if err != nil {
+					return err
 				}
 			}
 		}

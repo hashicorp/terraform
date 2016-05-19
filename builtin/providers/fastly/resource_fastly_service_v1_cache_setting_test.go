@@ -109,7 +109,7 @@ resource "fastly_service_v1" "foo" {
 
   condition {
     name      = "serve_alt_backend"
-    type      = "REQUEST"
+    type      = "CACHE"
     priority  = 10
     statement = "req.url ~ \"^/alt/\""
   }
