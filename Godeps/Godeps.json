@@ -1360,7 +1360,7 @@
 		},
 		{
 			"ImportPath": "github.com/zorkian/go-datadog-api",
-			"Rev": "632146c79714fe4232b496087802f922c1daf96f"
+			"Rev": "af9919d4fd020eba6daada1cbba9310f5d7b44a8"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",

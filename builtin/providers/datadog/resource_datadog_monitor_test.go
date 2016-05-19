@@ -30,7 +30,7 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "query", "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "notify_no_data", "false"),
+						"datadog_monitor.foo", "notify_no_data", "true"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "60"),
 					resource.TestCheckResourceAttr(
@@ -39,6 +39,10 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 						"datadog_monitor.foo", "thresholds.warning", "1"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "thresholds.critical", "2"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "require_full_window", "true"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "locked", "false"),
 				),
 			},
 		},
@@ -66,7 +70,7 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "type", "metric alert"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "notify_no_data", "false"),
+						"datadog_monitor.foo", "notify_no_data", "true"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "60"),
 					resource.TestCheckResourceAttr(
@@ -81,6 +85,10 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 						"datadog_monitor.foo", "timeout_h", "60"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "include_tags", "true"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "require_full_window", "true"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "locked", "false"),
 				),
 			},
 			resource.TestStep{
@@ -98,7 +106,7 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "type", "metric alert"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "notify_no_data", "true"),
+						"datadog_monitor.foo", "notify_no_data", "false"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "40"),
 					resource.TestCheckResourceAttr(
@@ -115,6 +123,10 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 						"datadog_monitor.foo", "include_tags", "false"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "silenced.*", "0"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "require_full_window", "false"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "locked", "true"),
 				),
 			},
 		},
@@ -189,12 +201,14 @@ resource "datadog_monitor" "foo" {
 	critical = 2
   }
 
-  notify_no_data = false
+  notify_no_data = true
   renotify_interval = 60
 
   notify_audit = false
   timeout_h = 60
   include_tags = true
+  require_full_window = true
+  locked = false
 }
 `
 
@@ -213,12 +227,14 @@ resource "datadog_monitor" "foo" {
 	critical = 3
   }
 
-  notify_no_data = true
+  notify_no_data = false
   renotify_interval = 40
   escalation_message = "the situation has escalated! @pagerduty"
   notify_audit = true
   timeout_h = 70
   include_tags = false
+  require_full_window = false
+  locked = true
   silenced {
 	"*" = 0
   }
