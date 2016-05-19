@@ -11,7 +11,6 @@ import (
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
-	"github.com/rackspace/gophercloud/pagination"
 )
 
 func resourceNetworkingFloatingIPV2() *schema.Resource {
@@ -28,20 +27,19 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 				ForceNew:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
-			"address": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"pool": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_POOL_NAME", nil),
 			},
+			"address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"port_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 			},
 		},
 	}
@@ -54,17 +52,16 @@ func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
 
-	poolID, err := getNetworkID(d, meta, d.Get("pool").(string))
+	networkID, err := getNetworkID(d, meta, d.Get("pool").(string))
 	if err != nil {
 		return fmt.Errorf("Error retrieving floating IP pool name: %s", err)
 	}
-	if len(poolID) == 0 {
-		return fmt.Errorf("No network found with name: %s", d.Get("pool").(string))
-	}
+
 	createOpts := floatingips.CreateOpts{
-		FloatingNetworkID: poolID,
+		FloatingNetworkID: networkID,
 		PortID:            d.Get("port_id").(string),
 	}
+
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	floatingIP, err := floatingips.Create(networkingClient, createOpts).Extract()
 	if err != nil {
@@ -101,12 +98,6 @@ func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.Set("address", floatingIP.FloatingIP)
-	d.Set("port_id", floatingIP.PortID)
-	poolName, err := getNetworkName(d, meta, floatingIP.FloatingNetworkID)
-	if err != nil {
-		return fmt.Errorf("Error retrieving floating IP pool name: %s", err)
-	}
-	d.Set("pool", poolName)
 
 	return nil
 }
@@ -118,17 +109,19 @@ func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
 
-	var updateOpts floatingips.UpdateOpts
-
 	if d.HasChange("port_id") {
-		updateOpts.PortID = d.Get("port_id").(string)
-	}
+		var updateOpts floatingips.UpdateOpts
+		_, n := d.GetChange("port_id")
+		newPortID := n.(string)
+		updateOpts.PortID = newPortID
 
-	log.Printf("[DEBUG] Update Options: %#v", updateOpts)
+		log.Printf("[DEBUG] Update Options: %#v", updateOpts)
 
-	_, err = floatingips.Update(networkingClient, d.Id(), updateOpts).Extract()
-	if err != nil {
-		return fmt.Errorf("Error updating floating IP: %s", err)
+		_, err = floatingips.Update(networkingClient, d.Id(), updateOpts).Extract()
+		if err != nil {
+			return fmt.Errorf("Error updating floating IP: %s", err)
+		}
+
 	}
 
 	return resourceNetworkFloatingIPV2Read(d, meta)
@@ -139,6 +132,11 @@ func resourceNetworkFloatingIPV2Delete(d *schema.ResourceData, meta interface{})
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
+	}
+
+	err = floatingips.Delete(networkingClient, d.Id()).ExtractErr()
+	if err != nil {
+		return CheckDeleted(d, err, "floating IP")
 	}
 
 	stateConf := &resource.StateChangeConf{
@@ -167,56 +165,24 @@ func getNetworkID(d *schema.ResourceData, meta interface{}, networkName string) 
 	}
 
 	opts := networks.ListOpts{Name: networkName}
-	pager := networks.List(networkingClient, opts)
-	networkID := ""
-
-	err = pager.EachPage(func(page pagination.Page) (bool, error) {
-		networkList, err := networks.ExtractNetworks(page)
-		if err != nil {
-			return false, err
-		}
-
-		for _, n := range networkList {
-			if n.Name == networkName {
-				networkID = n.ID
-				return false, nil
-			}
-		}
-
-		return true, nil
-	})
-
-	return networkID, err
-}
-
-func getNetworkName(d *schema.ResourceData, meta interface{}, networkID string) (string, error) {
-	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	pages, err := networks.List(networkingClient, opts).AllPages()
 	if err != nil {
-		return "", fmt.Errorf("Error creating OpenStack network client: %s", err)
+		return "", err
 	}
 
-	opts := networks.ListOpts{ID: networkID}
-	pager := networks.List(networkingClient, opts)
-	networkName := ""
+	networks, err := networks.ExtractNetworks(pages)
+	if err != nil {
+		return "", err
+	}
 
-	err = pager.EachPage(func(page pagination.Page) (bool, error) {
-		networkList, err := networks.ExtractNetworks(page)
-		if err != nil {
-			return false, err
+	for _, n := range networks {
+		if n.Name == networkName {
+			log.Printf("[DEBUG] Found Network ID for Network %s: %s", networkName, n.ID)
+			return n.ID, nil
 		}
+	}
 
-		for _, n := range networkList {
-			if n.ID == networkID {
-				networkName = n.Name
-				return false, nil
-			}
-		}
-
-		return true, nil
-	})
-
-	return networkName, err
+	return "", fmt.Errorf("Unable to Network ID for Network %s", networkName)
 }
 
 func waitForFloatingIPActive(networkingClient *gophercloud.ServiceClient, fId string) resource.StateRefreshFunc {
@@ -240,18 +206,6 @@ func waitForFloatingIPDelete(networkingClient *gophercloud.ServiceClient, fId st
 		log.Printf("[DEBUG] Attempting to delete OpenStack Floating IP %s.\n", fId)
 
 		f, err := floatingips.Get(networkingClient, fId).Extract()
-		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return f, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
-				log.Printf("[DEBUG] Successfully deleted OpenStack Floating IP %s", fId)
-				return f, "DELETED", nil
-			}
-		}
-
-		err = floatingips.Delete(networkingClient, fId).ExtractErr()
 		if err != nil {
 			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 			if !ok {
