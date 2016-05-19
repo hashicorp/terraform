@@ -7,42 +7,42 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
- * **New command:** `terraform state` to provide access to a variety of state manipulation functions [GH-5811]
+ * **New Command:** `terraform state` to provide access to a variety of state manipulation functions [GH-5811]
+ * **New Resource:** `aws_rds_cluster_parameter_group` [GH-5269]
  * core: Data Resources are now supported. Values are refreshed, and available during the planning stage [GH-6598]
  * core: Lists and maps can now be used as first class types for variables, and may be passed between modules [GH-6322]
- * **New Resource:** `aws_rds_cluster_parameter_group` [GH-5269]
 
 IMPROVEMENTS:
 
  * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
+ * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
  * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
  * provider/aws: Support for Redshift Cluster encryption using a KMS key [GH-6712]
- * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
+ * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * provider/clc: Fix optional server password [GH-6414]
+ * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
  * provider/fastly: Add support for custom VCL configuration [GH-6662]
- * provider/openstack: Add support for client certificate authentication [GH-6279]
- * provider/openstack Increase timeouts for image resize, subnets, and routers [GH-6764]
  * provider/google: support optional uuid naming for Instance Template [GH-6604]
+ * provider/openstack Increase timeouts for image resize, subnets, and routers [GH-6764]
+ * provider/openstack: Add support for client certificate authentication [GH-6279]
  * provider/vsphere: fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
- * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
- * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  
 BUG FIXES:
 
  * core: Correct the previous fix for a bug causing "attribute not found" messages during destroy, as it was insufficient [GH-6599]
- * provider/aws: `aws_codedeploy_deployment_group` panic when setting `on_premises_instance_tag_filter` [GH-6617]
+ * provider/aws: Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
+ * provider/aws: Trim trailing `.` from `name` in `aws_route53_record` resources to prevent spurious diffs [GH-6592]
  * provider/aws: Updating state when `aws_sns_topic_subscription` is missing [GH-6629]
+ * provider/aws: `aws_codedeploy_deployment_group` panic when setting `on_premises_instance_tag_filter` [GH-6617]
  * provider/aws: `aws_opsworks_application.app_source` SSH key is write-only [GH-6649]
  * provider/aws: fix Elastic Beanstalk `cname_prefix` continual plans [GH-6653]
- * provider/aws: Trim trailing `.` from `name` in `aws_route53_record` resources to prevent spurious diffs [GH-6592]
- * provider/aws: Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
+ * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
+ * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
  * provider/openstack: Reassociate Floating IP on network changes [GH-6579]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
- * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
- * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
 
 ## 0.6.16 (May 9, 2016)
 
