@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -54,6 +55,11 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 				Optional: true,
 				Elem:     schema.TypeString,
 			},
+
+			"response_parameters_in_json": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -66,15 +72,26 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 		templates[k] = v.(string)
 	}
 
-	_, err := conn.PutIntegrationResponse(&apigateway.PutIntegrationResponseInput{
+	parameters := make(map[string]string)
+	if v, ok := d.GetOk("response_parameters_in_json"); ok {
+		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
+			return fmt.Errorf("Error unmarshaling response_parameters_in_json: %s", err)
+		}
+	}
+
+	input := apigateway.PutIntegrationResponseInput{
 		HttpMethod:        aws.String(d.Get("http_method").(string)),
 		ResourceId:        aws.String(d.Get("resource_id").(string)),
 		RestApiId:         aws.String(d.Get("rest_api_id").(string)),
 		StatusCode:        aws.String(d.Get("status_code").(string)),
 		ResponseTemplates: aws.StringMap(templates),
-		// TODO implement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
-		ResponseParameters: nil,
-	})
+		// TODO reimplement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
+		ResponseParameters: aws.StringMap(parameters),
+	}
+	if v, ok := d.GetOk("selection_pattern"); ok {
+		input.SelectionPattern = aws.String(v.(string))
+	}
+	_, err := conn.PutIntegrationResponse(&input)
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Integration Response: %s", err)
 	}
@@ -82,7 +99,7 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
 	log.Printf("[DEBUG] API Gateway Integration Response ID: %s", d.Id())
 
-	return nil
+	return resourceAwsApiGatewayIntegrationResponseRead(d, meta)
 }
 
 func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta interface{}) error {
@@ -102,9 +119,13 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 		}
 		return err
 	}
-	log.Printf("[DEBUG] Received API Gateway Integration Response: %s", integrationResponse)
-	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
 
+	log.Printf("[DEBUG] Received API Gateway Integration Response: %s", integrationResponse)
+
+	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
+	d.Set("response_templates", integrationResponse.ResponseTemplates)
+	d.Set("selection_pattern", integrationResponse.SelectionPattern)
+	d.Set("response_parameters_in_json", aws.StringValueMap(integrationResponse.ResponseParameters))
 	return nil
 }
 

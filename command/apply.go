@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -250,7 +251,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if !c.Destroy {
-		if outputs := outputsAsString(state); outputs != "" {
+		if outputs := outputsAsString(state, ctx.Module().Config().Outputs); outputs != "" {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
@@ -276,10 +277,15 @@ func (c *ApplyCommand) Synopsis() string {
 
 func (c *ApplyCommand) helpApply() string {
 	helpText := `
-Usage: terraform apply [options] [DIR]
+Usage: terraform apply [options] [DIR-OR-PLAN]
 
   Builds or changes infrastructure according to Terraform configuration
   files in DIR.
+
+  By default, apply scans the current directory for the configuration
+  and applies the changes appropriately. However, a path to another
+  configuration or an execution plan can be provided. Execution plans can be
+  used to only execute a pre-determined set of actions.
 
   DIR can also be a SOURCE as given to the "init" command. In this case,
   apply behaves as though "init" was called followed by "apply". This only
@@ -371,7 +377,7 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *terraform.State) string {
+func outputsAsString(state *terraform.State, schema []*config.Output) string {
 	if state == nil {
 		return ""
 	}
@@ -379,6 +385,11 @@ func outputsAsString(state *terraform.State) string {
 	outputs := state.RootModule().Outputs
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
+		schemaMap := make(map[string]*config.Output)
+		for _, s := range schema {
+			schemaMap[s.Name] = s
+		}
+
 		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
 
 		// Output the outputs in alphabetical order
@@ -395,11 +406,18 @@ func outputsAsString(state *terraform.State) string {
 		for _, k := range keys {
 			v := outputs[k]
 
-			outputBuf.WriteString(fmt.Sprintf(
-				"  %s%s = %s\n",
-				k,
-				strings.Repeat(" ", keyLen-len(k)),
-				v))
+			if schemaMap[k].Sensitive {
+				outputBuf.WriteString(fmt.Sprintf(
+					"  %s%s = <sensitive>\n",
+					k,
+					strings.Repeat(" ", keyLen-len(k))))
+			} else {
+				outputBuf.WriteString(fmt.Sprintf(
+					"  %s%s = %s\n",
+					k,
+					strings.Repeat(" ", keyLen-len(k)),
+					v))
+			}
 		}
 	}
 

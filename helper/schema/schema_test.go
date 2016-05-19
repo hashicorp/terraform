@@ -491,7 +491,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"port": &terraform.ResourceAttrDiff{
 						Old:         "",
-						New:         "0",
+						New:         "false",
 						RequiresNew: true,
 					},
 				},
@@ -2338,6 +2338,56 @@ func TestSchemaMap_Diff(t *testing.T) {
 						Old:         "",
 						New:         "4444",
 						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		"Bools can be set with 0/1 in config, still get true/false": {
+			Schema: map[string]*Schema{
+				"one": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+				},
+				"two": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+				},
+				"three": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"one":   "false",
+					"two":   "true",
+					"three": "true",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"one": "1",
+				"two": "0",
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"one": &terraform.ResourceAttrDiff{
+						Old: "false",
+						New: "true",
+					},
+					"two": &terraform.ResourceAttrDiff{
+						Old: "true",
+						New: "false",
+					},
+					"three": &terraform.ResourceAttrDiff{
+						Old:        "true",
+						New:        "false",
+						NewRemoved: true,
 					},
 				},
 			},

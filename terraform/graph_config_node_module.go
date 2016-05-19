@@ -57,12 +57,6 @@ func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error
 		return nil, err
 	}
 
-	// Add the parameters node to the module
-	t := &ModuleInputTransformer{Variables: make(map[string]string)}
-	if err := t.Transform(graph); err != nil {
-		return nil, err
-	}
-
 	{
 		// Add the destroy marker to the graph
 		t := &ModuleDestroyTransformer{}
@@ -75,7 +69,7 @@ func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error
 	return &graphNodeModuleExpanded{
 		Original:  n,
 		Graph:     graph,
-		Variables: t.Variables,
+		Variables: make(map[string]string),
 	}, nil
 }
 
@@ -169,11 +163,6 @@ func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 	// flattening. We have to skip some nodes (graphNodeModuleSkippable)
 	// as well as setup the variable values.
 	for _, v := range graph.Vertices() {
-		if sn, ok := v.(graphNodeModuleSkippable); ok && sn.FlattenSkip() {
-			graph.Remove(v)
-			continue
-		}
-
 		// If this is a variable, then look it up in the raw configuration.
 		// If it exists in the raw configuration, set the value of it.
 		if vn, ok := v.(*GraphNodeConfigVariable); ok && input != nil {
@@ -202,12 +191,6 @@ func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 // GraphNodeSubgraph impl.
 func (n *graphNodeModuleExpanded) Subgraph() *Graph {
 	return n.Graph
-}
-
-// This interface can be implemented to be skipped/ignored when
-// flattening the module graph.
-type graphNodeModuleSkippable interface {
-	FlattenSkip() bool
 }
 
 func modulePrefixStr(p []string) string {

@@ -69,7 +69,6 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
   "Instance Store") volumes on the instance. See [Block Devices](#block-devices) below for details.
 
 
-<a id="block-devices"></a>
 ## Block devices
 
 Each of the `*_block_device` attributes controls a portion of the AWS
@@ -108,6 +107,8 @@ Each `ebs_block_device` supports the following:
   on the volume (Default: `false`). Cannot be used with `snapshot_id`.
 
 Modifying any `ebs_block_device` currently requires resource replacement.
+
+~> **NOTE on EBS block devices:** If you use `ebs_block_device` on an `aws_instance`, Terraform will assume management over the full set of non-root EBS block devices for the instance, and treats additional block devices as drift. For this reason, `ebs_block_device` cannot be mixed with external `aws_ebs_volume` + `aws_ebs_volume_attachment` resources for a given instance.
 
 Each `ephemeral_block_device` supports the following:
 

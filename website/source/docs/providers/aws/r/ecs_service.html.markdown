@@ -26,7 +26,7 @@ resource "aws_ecs_service" "mongo" {
   depends_on = ["aws_iam_role_policy.foo"]
 
   load_balancer {
-    elb_name = "${aws_elb.foo.id}"
+    elb_name = "${aws_elb.foo.name}"
     container_name = "mongo"
     container_port = 8080
   }

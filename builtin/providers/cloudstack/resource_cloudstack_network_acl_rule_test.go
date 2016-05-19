@@ -219,11 +219,11 @@ resource "cloudstack_vpc" "foobar" {
 resource "cloudstack_network_acl" "foo" {
   name = "terraform-acl"
   description = "terraform-acl-text"
-  vpc = "${cloudstack_vpc.foobar.id}"
+  vpc_id = "${cloudstack_vpc.foobar.id}"
 }
 
 resource "cloudstack_network_acl_rule" "foo" {
-  aclid = "${cloudstack_network_acl.foo.id}"
+  acl_id = "${cloudstack_network_acl.foo.id}"
 
   rule {
   	action = "allow"
@@ -263,11 +263,11 @@ resource "cloudstack_vpc" "foobar" {
 resource "cloudstack_network_acl" "foo" {
   name = "terraform-acl"
   description = "terraform-acl-text"
-  vpc = "${cloudstack_vpc.foobar.id}"
+  vpc_id = "${cloudstack_vpc.foobar.id}"
 }
 
 resource "cloudstack_network_acl_rule" "foo" {
-  aclid = "${cloudstack_network_acl.foo.id}"
+  acl_id = "${cloudstack_network_acl.foo.id}"
 
   rule {
   	action = "deny"

@@ -11,22 +11,21 @@ import (
 	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
-// Overview This is the AWS CodeDeploy API Reference. This guide provides descriptions
-// of the AWS CodeDeploy APIs. For additional information, see the AWS CodeDeploy
-// User Guide (http://docs.aws.amazon.com/codedeploy/latest/userguide).
+// Overview This reference guide provides descriptions of the AWS CodeDeploy
+// APIs. For more information about AWS CodeDeploy, see the AWS CodeDeploy User
+// Guide (docs.aws.amazon.com/codedeploy/latest/userguide).
 //
-// Using the APIs You can use the AWS CodeDeploy APIs to work with the following
-// items:
+// Using the APIs You can use the AWS CodeDeploy APIs to work with the following:
 //
-//   Applications are unique identifiers that AWS CodeDeploy uses to ensure
-// that the correct combinations of revisions, deployment configurations, and
-// deployment groups are being referenced during deployments.
+//   Applications are unique identifiers used by AWS CodeDeploy to ensure the
+// correct combinations of revisions, deployment configurations, and deployment
+// groups are being referenced during deployments.
 //
 // You can use the AWS CodeDeploy APIs to create, delete, get, list, and update
 // applications.
 //
-//   Deployment configurations are sets of deployment rules and deployment
-// success and failure conditions that AWS CodeDeploy uses during deployments.
+//   Deployment configurations are sets of deployment rules and success and
+// failure conditions used by AWS CodeDeploy during deployments.
 //
 // You can use the AWS CodeDeploy APIs to create, delete, get, and list deployment
 // configurations.
@@ -41,22 +40,22 @@ import (
 // are deployed. Instances are identified by their Amazon EC2 tags or Auto Scaling
 // group names. Instances belong to deployment groups.
 //
-// You can use the AWS CodeDeploy APIs to get and list instances.
+// You can use the AWS CodeDeploy APIs to get and list instance.
 //
 //   Deployments represent the process of deploying revisions to instances.
 //
 // You can use the AWS CodeDeploy APIs to create, get, list, and stop deployments.
 //
-//   Application revisions are archive files that are stored in Amazon S3 buckets
-// or GitHub repositories. These revisions contain source content (such as source
-// code, web pages, executable files, any deployment scripts, and similar) along
-// with an Application Specification file (AppSpec file). (The AppSpec file
-// is unique to AWS CodeDeploy; it defines a series of deployment actions that
-// you want AWS CodeDeploy to execute.) An application revision is uniquely
-// identified by its Amazon S3 object key and its ETag, version, or both (for
-// application revisions that are stored in Amazon S3 buckets) or by its repository
-// name and commit ID (for applications revisions that are stored in GitHub
-// repositories). Application revisions are deployed through deployment groups.
+//   Application revisions are archive files stored in Amazon S3 buckets or
+// GitHub repositories. These revisions contain source content (such as source
+// code, web pages, executable files, and deployment scripts) along with an
+// application specification (AppSpec) file. (The AppSpec file is unique to
+// AWS CodeDeploy; it defines the deployment actions you want AWS CodeDeploy
+// to execute.) Ffor application revisions stored in Amazon S3 buckets, an application
+// revision is uniquely identified by its Amazon S3 object key and its ETag,
+// version, or both. For application revisions stored in GitHub repositories,
+// an application revision is uniquely identified by its repository name and
+// commit ID. Application revisions are deployed through deployment groups.
 //
 // You can use the AWS CodeDeploy APIs to get, list, and register application
 // revisions.

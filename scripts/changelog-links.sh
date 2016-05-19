@@ -10,7 +10,20 @@
 
 set -e
 
-SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+if [[ ! -f CHANGELOG.md ]]; then
+  echo "ERROR: CHANGELOG.md not found in pwd."
+  echo "Please run this from the root of the terraform source repository"
+  exit 1
+fi
 
-cd "$SCRIPT_DIR/.."
-sed -ri 's/\[GH-([0-9]+)\]/\(\[#\1\]\(https:\/\/github.com\/hashicorp\/terraform\/issues\/\1\)\)/' CHANGELOG.md
+if [[ `uname` == "Darwin" ]]; then
+  echo "Using BSD sed"
+  SED="sed -i.bak -E -e"
+else
+  echo "Using GNU sed"
+  SED="sed -i.bak -r -e"
+fi
+
+$SED 's/\[GH-([0-9]+)\]/\(\[#\1\]\(https:\/\/github.com\/hashicorp\/terraform\/issues\/\1\)\)/g' CHANGELOG.md
+
+rm CHANGELOG.md.bak

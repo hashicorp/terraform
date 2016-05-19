@@ -31,6 +31,38 @@ func TestAccAWSKmsAlias_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSKmsAlias_name_prefix(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSKmsAliasDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSKmsSingleAlias,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSKmsAliasExists("aws_kms_alias.name_prefix"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSKmsAlias_no_name(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSKmsAliasDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSKmsSingleAlias,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSKmsAliasExists("aws_kms_alias.nothing"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSKmsAlias_multiple(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -90,6 +122,15 @@ resource "aws_kms_key" "one" {
 resource "aws_kms_key" "two" {
     description = "Terraform acc test Two %s"
     deletion_window_in_days = 7
+}
+
+resource "aws_kms_alias" "name_prefix" {
+	name_prefix = "alias/tf-acc-key-alias"
+	target_key_id = "${aws_kms_key.one.key_id}"
+}
+
+resource "aws_kms_alias" "nothing" {
+	target_key_id = "${aws_kms_key.one.key_id}"
 }
 
 resource "aws_kms_alias" "single" {

@@ -150,6 +150,9 @@ The supported built-in functions are:
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
 
+  * `jsonencode(string)` - Returns a JSON-encoded representation of the given
+    string (including double quotes).
+
   * `length(list)` - Returns a number of members in a given list
       or a number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
@@ -197,6 +200,8 @@ The supported built-in functions are:
   * `trimspace(string)` - Returns a copy of the string with all leading and trailing white spaces removed.
 
   * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
+
+  * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
 ## Templates
 

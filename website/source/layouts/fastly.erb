@@ -1,0 +1,28 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+        <div class="docs-sidebar hidden-print affix-top" role="complementary">
+            <ul class="nav docs-sidenav">
+                <li<%= sidebar_current("docs-home") %>>
+                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+                <li<%= sidebar_current("docs-fastly-index") %>>
+                    <a href="/docs/providers/fastly/index.html">Fastly Provider</a>
+                </li>
+
+                <li<%= sidebar_current(/^docs-fastly-resource/) %>>
+                    <a href="#">Resources</a>
+
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-fastly-resource-service-v1") %>>
+                            <a href="/docs/providers/fastly/r/service_v1.html">service_v1</a>
+                        </li>
+                    </ul>
+
+                </li>
+            </ul>
+        </div>
+    <% end %>
+
+    <%= yield %>
+<% end %>

@@ -17,6 +17,12 @@ func resourceComputeHttpsHealthCheck() *schema.Resource {
 		Update: resourceComputeHttpsHealthCheckUpdate,
 
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
 			"check_interval_sec": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -39,16 +45,16 @@ func resourceComputeHttpsHealthCheck() *schema.Resource {
 				Optional: true,
 			},
 
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"port": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  443,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"request_path": &schema.Schema{
@@ -79,6 +85,11 @@ func resourceComputeHttpsHealthCheck() *schema.Resource {
 
 func resourceComputeHttpsHealthCheckCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	// Build the parameter
 	hchk := &compute.HttpsHealthCheck{
@@ -112,7 +123,7 @@ func resourceComputeHttpsHealthCheckCreate(d *schema.ResourceData, meta interfac
 
 	log.Printf("[DEBUG] HttpsHealthCheck insert request: %#v", hchk)
 	op, err := config.clientCompute.HttpsHealthChecks.Insert(
-		config.Project, hchk).Do()
+		project, hchk).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating HttpsHealthCheck: %s", err)
 	}
@@ -130,6 +141,11 @@ func resourceComputeHttpsHealthCheckCreate(d *schema.ResourceData, meta interfac
 
 func resourceComputeHttpsHealthCheckUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	// Build the parameter
 	hchk := &compute.HttpsHealthCheck{
@@ -163,7 +179,7 @@ func resourceComputeHttpsHealthCheckUpdate(d *schema.ResourceData, meta interfac
 
 	log.Printf("[DEBUG] HttpsHealthCheck patch request: %#v", hchk)
 	op, err := config.clientCompute.HttpsHealthChecks.Patch(
-		config.Project, hchk.Name, hchk).Do()
+		project, hchk.Name, hchk).Do()
 	if err != nil {
 		return fmt.Errorf("Error patching HttpsHealthCheck: %s", err)
 	}
@@ -182,8 +198,13 @@ func resourceComputeHttpsHealthCheckUpdate(d *schema.ResourceData, meta interfac
 func resourceComputeHttpsHealthCheckRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	hchk, err := config.clientCompute.HttpsHealthChecks.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing HTTPS Health Check %q because it's gone", d.Get("name").(string))
@@ -211,9 +232,14 @@ func resourceComputeHttpsHealthCheckRead(d *schema.ResourceData, meta interface{
 func resourceComputeHttpsHealthCheckDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Delete the HttpsHealthCheck
 	op, err := config.clientCompute.HttpsHealthChecks.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting HttpsHealthCheck: %s", err)
 	}

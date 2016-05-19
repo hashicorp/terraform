@@ -437,6 +437,48 @@ func TestInterpolateFuncJoin(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncJSONEncode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"easy": ast.Variable{
+				Value: "test",
+				Type:  ast.TypeString,
+			},
+			"hard": ast.Variable{
+				Value: " foo \\ \n \t \" bar ",
+				Type:  ast.TypeString,
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${jsonencode("test")}`,
+				`"test"`,
+				false,
+			},
+			{
+				`${jsonencode(easy)}`,
+				`"test"`,
+				false,
+			},
+			{
+				`${jsonencode(hard)}`,
+				`" foo \\ \n \t \" bar "`,
+				false,
+			},
+			{
+				`${jsonencode("")}`,
+				`""`,
+				false,
+			},
+			{
+				`${jsonencode()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncReplace(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -953,6 +995,28 @@ func TestInterpolateFuncMd5(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncUUID(t *testing.T) {
+	results := make(map[string]bool)
+
+	for i := 0; i < 100; i++ {
+		ast, err := hil.Parse("${uuid()}")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		result, err := hil.Eval(ast, langEvalConfig(nil))
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if results[result.Value.(string)] {
+			t.Fatalf("Got unexpected duplicate uuid: %s", result.Value)
+		}
+
+		results[result.Value.(string)] = true
+	}
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
@@ -971,15 +1035,14 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
 		}
 
-		out, _, err := hil.Eval(ast, langEvalConfig(config.Vars))
+		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
 		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
 		}
 
-		if !reflect.DeepEqual(out, tc.Result) {
-			t.Fatalf(
-				"%d: bad output for input: %s\n\nOutput: %#v\nExpected: %#v",
-				i, tc.Input, out, tc.Result)
+		if !reflect.DeepEqual(result.Value, tc.Result) {
+			t.Fatalf("%d: bad output for input: %s\n\nOutput: %#v\nExpected: %#v",
+				i, tc.Input, result.Value, tc.Result)
 		}
 	}
 }

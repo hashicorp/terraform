@@ -24,7 +24,7 @@ func resourceLBMemberV1() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -75,7 +75,7 @@ func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 		ProtocolPort: d.Get("port").(int),
 	}
 
-	log.Printf("[DEBUG] Create Options: %#v", createOpts)
+	log.Printf("[DEBUG] OpenStack LB Member Create Options: %#v", createOpts)
 	m, err := members.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LB member: %s", err)
@@ -86,7 +86,7 @@ func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING_CREATE"},
-		Target:     []string{"ACTIVE"},
+		Target:     []string{"ACTIVE", "INACTIVE"},
 		Refresh:    waitForLBMemberActive(networkingClient, m.ID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -99,6 +99,17 @@ func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(m.ID)
+
+	// Due to the way Gophercloud is currently set up, AdminStateUp must be set post-create
+	updateOpts := members.UpdateOpts{
+		AdminStateUp: d.Get("admin_state_up").(bool),
+	}
+
+	log.Printf("[DEBUG] OpenStack LB Member Update Options: %#v", createOpts)
+	m, err = members.Update(networkingClient, m.ID, updateOpts).Extract()
+	if err != nil {
+		return fmt.Errorf("Error updating OpenStack LB member: %s", err)
+	}
 
 	return resourceLBMemberV1Read(d, meta)
 }

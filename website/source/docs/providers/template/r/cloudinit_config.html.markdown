@@ -58,9 +58,9 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `gzip` - (Optional) Specify whether or not to gzip the rendered output.
+* `gzip` - (Optional) Specify whether or not to gzip the rendered output. Default to `true`
 
-* `base64_encode` - (Optional) Base64 encoding of the rendered output.
+* `base64_encode` - (Optional) Base64 encoding of the rendered output. Default to `true`
 
 * `part` - (Required) One may specify this many times, this creates a fragment of the rendered cloud-init config file. The order of the parts is maintained in the configuration is maintained in the rendered template.
 

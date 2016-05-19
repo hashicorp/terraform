@@ -5,6 +5,7 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -24,8 +25,22 @@ func resourceAwsKmsAlias() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(alias\/)[a-zA-Z0-9:/_-]+$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must begin with 'alias/' and be comprised of only [a-zA-Z0-9:/_-]", k))
+					}
+					return
+				},
+			},
+			"name_prefix": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 					value := v.(string)
@@ -46,7 +61,16 @@ func resourceAwsKmsAlias() *schema.Resource {
 
 func resourceAwsKmsAliasCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
-	name := d.Get("name").(string)
+
+	var name string
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		name = resource.PrefixedUniqueId(v.(string))
+	} else {
+		name = resource.PrefixedUniqueId("alias/")
+	}
+
 	targetKeyId := d.Get("target_key_id").(string)
 
 	log.Printf("[DEBUG] KMS alias create name: %s, target_key: %s", name, targetKeyId)
@@ -65,14 +89,13 @@ func resourceAwsKmsAliasCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsKmsAliasRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
-	name := d.Get("name").(string)
 
-	alias, err := findKmsAliasByName(conn, name, nil)
+	alias, err := findKmsAliasByName(conn, d.Id(), nil)
 	if err != nil {
 		return err
 	}
 	if alias == nil {
-		log.Printf("[DEBUG] Removing KMS Alias %q as it's already gone", name)
+		log.Printf("[DEBUG] Removing KMS Alias (%s) as it's already gone", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -114,17 +137,16 @@ func resourceAwsKmsAliasTargetUpdate(conn *kms.KMS, d *schema.ResourceData) erro
 
 func resourceAwsKmsAliasDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
-	name := d.Get("name").(string)
 
 	req := &kms.DeleteAliasInput{
-		AliasName: aws.String(name),
+		AliasName: aws.String(d.Id()),
 	}
 	_, err := conn.DeleteAlias(req)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("[DEBUG] KMS Alias: %s deleted.", name)
+	log.Printf("[DEBUG] KMS Alias: (%s) deleted.", d.Id())
 	d.SetId("")
 	return nil
 }

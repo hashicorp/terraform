@@ -61,6 +61,32 @@ if [ -z "$NO_UPLOAD" ]; then
     --add-header="Cache-Control: max-age=31536000" \
     --add-header="x-amz-meta-surrogate-key: site-$PROJECT" \
     sync "$DIR/build/" "s3://hc-sites/$PROJECT/latest/"
+
+  # The s3cmd guessed mime type for text files is often wrong. This is
+  # problematic for some assets, so force their mime types to be correct.
+  echo "Overriding javascript mime-types..."
+  s3cmd \
+    --mime-type="application/javascript" \
+    --exclude "*" \
+    --include "*.js" \
+    --recursive \
+    modify "s3://hc-sites/$PROJECT/latest/"
+
+  echo "Overriding css mime-types..."
+  s3cmd \
+    --mime-type="text/css" \
+    --exclude "*" \
+    --include "*.css" \
+    --recursive \
+    modify "s3://hc-sites/$PROJECT/latest/"
+
+  echo "Overriding svg mime-types..."
+  s3cmd \
+    --mime-type="image/svg+xml" \
+    --exclude "*" \
+    --include "*.svg" \
+    --recursive \
+    modify "s3://hc-sites/$PROJECT/latest/"
 fi
 
 # Perform a soft-purge of the surrogate key.

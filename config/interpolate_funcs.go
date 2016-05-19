@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -17,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/apparentlymart/go-cidr/cidr"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
 )
@@ -39,9 +41,11 @@ func Funcs() map[string]ast.Function {
 		"formatlist":   interpolationFuncFormatList(),
 		"index":        interpolationFuncIndex(),
 		"join":         interpolationFuncJoin(),
+		"jsonencode":   interpolationFuncJSONEncode(),
 		"length":       interpolationFuncLength(),
 		"lower":        interpolationFuncLower(),
 		"md5":          interpolationFuncMd5(),
+		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
@@ -358,6 +362,23 @@ func interpolationFuncJoin() ast.Function {
 			}
 
 			return strings.Join(list, args[0].(string)), nil
+		},
+	}
+}
+
+// interpolationFuncJSONEncode implements the "jsonencode" function that encodes
+// a string as its JSON representation.
+func interpolationFuncJSONEncode() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			jEnc, err := json.Marshal(s)
+			if err != nil {
+				return "", fmt.Errorf("failed to encode JSON data '%s'", s)
+			}
+			return string(jEnc), nil
 		},
 	}
 }
@@ -679,6 +700,16 @@ func interpolationFuncBase64Sha256() ast.Function {
 			shaSum := h.Sum(nil)
 			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
 			return encoded, nil
+		},
+	}
+}
+
+func interpolationFuncUUID() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return uuid.GenerateUUID()
 		},
 	}
 }

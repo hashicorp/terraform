@@ -71,7 +71,12 @@ func (g *HgGetter) GetFile(dst string, u *url.URL) error {
 	// Get the filename, and strip the filename from the URL so we can
 	// just get the repository directly.
 	filename := filepath.Base(u.Path)
-	u.Path = filepath.Dir(u.Path)
+	u.Path = filepath.ToSlash(filepath.Dir(u.Path))
+
+	// If we're on Windows, we need to set the host to "localhost" for hg
+	if runtime.GOOS == "windows" {
+		u.Host = "localhost"
+	}
 
 	// Get the full repository
 	if err := g.Get(td, u); err != nil {

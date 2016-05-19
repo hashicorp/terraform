@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -333,11 +334,14 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			bd := v.(map[string]interface{})
 			ebs := &autoscaling.Ebs{
 				DeleteOnTermination: aws.Bool(bd["delete_on_termination"].(bool)),
-				Encrypted:           aws.Bool(bd["encrypted"].(bool)),
 			}
 
 			if v, ok := bd["snapshot_id"].(string); ok && v != "" {
 				ebs.SnapshotId = aws.String(v)
+			}
+
+			if v, ok := bd["encrypted"].(bool); ok && v {
+				ebs.Encrypted = aws.Bool(v)
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
@@ -432,7 +436,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Message() == "Invalid IamInstanceProfile" {
+				if strings.Contains(awsErr.Message(), "Invalid IamInstanceProfile") {
 					return resource.RetryableError(err)
 				}
 			}

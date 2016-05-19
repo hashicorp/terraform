@@ -1,0 +1,35 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+				</li>
+
+				<li<%= sidebar_current("docs-github-index") %>>
+				<a href="/docs/providers/github/index.html">GitHub Provider</a>
+				</li>
+
+				<li<%= sidebar_current(/^docs-github-resource/) %>>
+				<a href="#">Resources</a>
+				<ul class="nav nav-visible">
+					<li<%= sidebar_current("docs-github-resource-membership") %>>
+					<a href="/docs/providers/github/r/membership.html">github_membership</a>
+					</li>
+					<li<%= sidebar_current("docs-github-resource-team") %>>
+						<a href="/docs/providers/github/r/team.html">github_team</a>
+					</li>
+					<li<%= sidebar_current("docs-github-resource-team-membership") %>>
+						<a href="/docs/providers/github/r/team_membership.html">github_team_membership</a>
+					</li>
+					<li<%= sidebar_current("docs-github-resource-team-repository") %>>
+						<a href="/docs/providers/github/r/team_repository.html">github_team_repository</a>
+					</li>
+				</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>

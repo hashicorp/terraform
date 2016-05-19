@@ -27,9 +27,10 @@ func TestAccAWSSubnet_basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckSubnetDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_subnet.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckSubnetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccSubnetConfig,

@@ -29,7 +29,7 @@ and some people wanted machine-friendly languages.
 JSON fits a nice balance in this, but is fairly verbose and most
 importantly doesn't support comments. With YAML, we found that beginners
 had a really hard time determining what the actual structure was, and
-ended up guessing more than not whether to use a hyphen, colon, etc.
+ended up guessing more often than not whether to use a hyphen, colon, etc.
 in order to represent some configuration key.
 
 Full programming languages such as Ruby enable complex behavior

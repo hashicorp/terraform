@@ -512,6 +512,19 @@ func (s BatchGetRepositoriesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchGetRepositoriesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchGetRepositoriesInput"}
+	if s.RepositoryNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a batch get repositories operation.
 type BatchGetRepositoriesOutput struct {
 	_ struct{} `type:"structure"`
@@ -614,6 +627,31 @@ func (s CreateBranchInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateBranchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateBranchInput"}
+	if s.BranchName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BranchName"))
+	}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+	if s.CommitId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CommitId"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateBranchOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -661,6 +699,22 @@ func (s CreateRepositoryInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateRepositoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateRepositoryInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a create repository operation.
 type CreateRepositoryOutput struct {
 	_ struct{} `type:"structure"`
@@ -695,6 +749,22 @@ func (s DeleteRepositoryInput) String() string {
 // GoString returns the string representation
 func (s DeleteRepositoryInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRepositoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRepositoryInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a delete repository operation.
@@ -737,6 +807,22 @@ func (s GetBranchInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetBranchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetBranchInput"}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a get branch operation.
 type GetBranchOutput struct {
 	_ struct{} `type:"structure"`
@@ -776,6 +862,25 @@ func (s GetCommitInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetCommitInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetCommitInput"}
+	if s.CommitId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CommitId"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a get commit operation.
 type GetCommitOutput struct {
 	_ struct{} `type:"structure"`
@@ -812,6 +917,22 @@ func (s GetRepositoryInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetRepositoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetRepositoryInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a get repository operation.
 type GetRepositoryOutput struct {
 	_ struct{} `type:"structure"`
@@ -846,6 +967,19 @@ func (s GetRepositoryTriggersInput) String() string {
 // GoString returns the string representation
 func (s GetRepositoryTriggersInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetRepositoryTriggersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetRepositoryTriggersInput"}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a get repository triggers operation.
@@ -888,6 +1022,22 @@ func (s ListBranchesInput) String() string {
 // GoString returns the string representation
 func (s ListBranchesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListBranchesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListBranchesInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a list branches operation.
@@ -981,6 +1131,19 @@ func (s PutRepositoryTriggersInput) String() string {
 // GoString returns the string representation
 func (s PutRepositoryTriggersInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRepositoryTriggersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRepositoryTriggersInput"}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a put repository triggers operation.
@@ -1145,6 +1308,19 @@ func (s TestRepositoryTriggersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TestRepositoryTriggersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TestRepositoryTriggersInput"}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a test repository triggers operation.
 type TestRepositoryTriggersOutput struct {
 	_ struct{} `type:"structure"`
@@ -1189,6 +1365,28 @@ func (s UpdateDefaultBranchInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateDefaultBranchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateDefaultBranchInput"}
+	if s.DefaultBranchName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DefaultBranchName"))
+	}
+	if s.DefaultBranchName != nil && len(*s.DefaultBranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DefaultBranchName", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateDefaultBranchOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1225,6 +1423,22 @@ func (s UpdateRepositoryDescriptionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateRepositoryDescriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateRepositoryDescriptionInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateRepositoryDescriptionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1258,6 +1472,28 @@ func (s UpdateRepositoryNameInput) String() string {
 // GoString returns the string representation
 func (s UpdateRepositoryNameInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateRepositoryNameInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateRepositoryNameInput"}
+	if s.NewName == nil {
+		invalidParams.Add(request.NewErrParamRequired("NewName"))
+	}
+	if s.NewName != nil && len(*s.NewName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NewName", 1))
+	}
+	if s.OldName == nil {
+		invalidParams.Add(request.NewErrParamRequired("OldName"))
+	}
+	if s.OldName != nil && len(*s.OldName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("OldName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UpdateRepositoryNameOutput struct {

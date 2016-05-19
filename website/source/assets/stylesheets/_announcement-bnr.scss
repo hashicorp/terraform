@@ -1,0 +1,142 @@
+//
+// announcement bnr
+// --------------------------------------------------
+
+$enterprise-bnr-font-weight: 300;
+$enterprise-bnr-consul-color: #B52A55;
+$enterprise-color-dark-white: #A9B1B5;
+
+body{
+  // when _announcment-bnr.erb (ie. Consul Enterprise Announcment) is being used in layout we need to push down content to accomodate
+  // add this class to body
+  &.-displaying-bnr{
+    #header{
+      > .container{
+        padding-top: 8px;
+        -webkit-transform: translateY(32px);
+            -ms-transform: translateY(32px);
+                transform: translateY(32px);
+      }
+    }
+
+    #jumbotron {
+      .container{
+        .jumbo-logo-wrap{
+          margin-top: 160px;
+        }
+      }
+    }
+
+    &.page-sub{
+      #header{
+        > .container{
+          padding-bottom: 32px;
+        }
+      }
+    }
+  }
+}
+
+
+#announcement-bnr {
+  height: 40px;
+  flex-shrink: 0;
+  background-color: #000;
+
+  &.-absolute{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+  }
+
+  a,p{
+    font-size: 14px;
+    color: $enterprise-color-dark-white;
+    font-family: $header-font-family;
+    font-weight: $enterprise-bnr-font-weight;
+    font-size: 13px;
+    line-height: 40px;
+    margin-bottom: 0;
+  }
+
+  .link-highlight{
+    display: inline-block;
+    margin-left: 3px;
+    color: lighten($purple, 10%);
+    font-weight: 400;
+    -webkit-transform: translateY(1px);
+        -ms-transform: translateY(1px);
+            transform: translateY(1px);
+  }
+
+  .enterprise-logo{
+    position: relative;
+    top: 4px;
+
+    &:hover{
+      text-decoration: none;
+
+      svg{
+        rect{
+          fill: $enterprise-color-dark-white;
+        }
+      }
+    }
+
+    svg{
+      width: 156px;
+      height: 18px;
+      fill: $white;
+      margin-right: 4px;
+      margin-left: 3px;
+
+      rect{
+        @include transition(all .1s ease-in);
+      }
+    }
+  }
+}
+
+.hcaret{
+  display: inline-block;
+  -moz-transform: translate(0, -1px) rotate(135deg);
+  -webkit-transform: translate(0, -1px) rotate(135deg);
+  transform: translate(0, -1px) rotate(135deg);
+  width: 7px;
+  height: 7px;
+  border-top: 1px solid lighten($purple, 10%);
+  border-left: 1px solid lighten($purple, 10%);
+  @include transition(all .1s ease-in);
+}
+
+@media (max-width: 768px) {
+  #announcement-bnr {
+    .tagline{
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 320px) {
+  #announcement-bnr {
+    a,p{
+      font-size: 12px;
+    }
+
+    .link-highlight{
+      display: inline-block;
+      margin-left: 1px;
+    }
+
+    .enterprise-logo svg{
+      width: 128px;
+      margin-left: 2px;
+    }
+
+    .hcaret{
+      display: none;
+    }
+  }
+}

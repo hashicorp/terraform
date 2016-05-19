@@ -20,7 +20,7 @@ resource "aws_s3_bucket" "bucket" {
 	acl = "private"
 }
 
-esource "aws_iam_role" "firehose_role" {
+resource "aws_iam_role" "firehose_role" {
    name = "firehose_test_role"
    assume_role_policy = <<EOF
 {

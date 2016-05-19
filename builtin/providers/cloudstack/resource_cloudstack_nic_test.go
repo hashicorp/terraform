@@ -53,7 +53,7 @@ func TestAccCloudStackNIC_update(t *testing.T) {
 						"cloudstack_instance.foobar", "cloudstack_nic.foo", &nic),
 					testAccCheckCloudStackNICIPAddress(&nic),
 					resource.TestCheckResourceAttr(
-						"cloudstack_nic.foo", "ipaddress", CLOUDSTACK_2ND_NIC_IPADDRESS),
+						"cloudstack_nic.foo", "ip_address", CLOUDSTACK_2ND_NIC_IPADDRESS),
 				),
 			},
 		},
@@ -103,8 +103,8 @@ func testAccCheckCloudStackNICAttributes(
 	nic *cloudstack.Nic) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if nic.Networkname != CLOUDSTACK_2ND_NIC_NETWORK {
-			return fmt.Errorf("Bad network: %s", nic.Networkname)
+		if nic.Networkid != CLOUDSTACK_2ND_NIC_NETWORK {
+			return fmt.Errorf("Bad network ID: %s", nic.Networkid)
 		}
 
 		return nil
@@ -115,8 +115,8 @@ func testAccCheckCloudStackNICIPAddress(
 	nic *cloudstack.Nic) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if nic.Networkname != CLOUDSTACK_2ND_NIC_NETWORK {
-			return fmt.Errorf("Bad network: %s", nic.Networkname)
+		if nic.Networkid != CLOUDSTACK_2ND_NIC_NETWORK {
+			return fmt.Errorf("Bad network ID: %s", nic.Networkname)
 		}
 
 		if nic.Ipaddress != CLOUDSTACK_2ND_NIC_IPADDRESS {
@@ -154,15 +154,15 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
 }
 
 resource "cloudstack_nic" "foo" {
-  network = "%s"
-  virtual_machine = "${cloudstack_instance.foobar.name}"
+  network_id = "%s"
+  virtual_machine_id = "${cloudstack_instance.foobar.id}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_NETWORK_1,
@@ -175,16 +175,16 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
 }
 
 resource "cloudstack_nic" "foo" {
-  network = "%s"
-  ipaddress = "%s"
-  virtual_machine = "${cloudstack_instance.foobar.name}"
+  network_id = "%s"
+  ip_address = "%s"
+  virtual_machine_id = "${cloudstack_instance.foobar.id}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_NETWORK_1,

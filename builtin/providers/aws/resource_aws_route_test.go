@@ -158,6 +158,24 @@ func TestAccAWSRoute_noopdiff(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute_doesNotCrashWithVPCEndpoint(t *testing.T) {
+	var route ec2.Route
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRouteDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSRouteWithVPCEndpoint,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRouteExists("aws_route.bar", &route),
+				),
+			},
+		},
+	})
+}
+
 // Acceptance test if mixed inline and external routes are implemented
 /*
 func TestAccAWSRoute_mix(t *testing.T) {
@@ -363,5 +381,34 @@ resource "aws_instance" "nat" {
   ami = "ami-9abea4fb"
   instance_type = "t2.nano"
   subnet_id = "${aws_subnet.test.id}"
+}
+`)
+
+var testAccAWSRouteWithVPCEndpoint = fmt.Sprint(`
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_internet_gateway" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route_table" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route" "bar" {
+  route_table_id         = "${aws_route_table.foo.id}"
+  destination_cidr_block = "10.3.0.0/16"
+  gateway_id             = "${aws_internet_gateway.foo.id}"
+
+  # Forcing endpoint to create before route - without this the crash is a race.
+  depends_on = ["aws_vpc_endpoint.baz"]
+}
+
+resource "aws_vpc_endpoint" "baz" {
+  vpc_id          = "${aws_vpc.foo.id}"
+  service_name    = "com.amazonaws.us-west-2.s3"
+  route_table_ids = ["${aws_route_table.foo.id}"]
 }
 `)

@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -42,6 +43,9 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 		Update: resourceAwsElasticBeanstalkEnvironmentUpdate,
 		Delete: resourceAwsElasticBeanstalkEnvironmentDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsElasticBeanstalkEnvironmentMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -60,9 +64,16 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"cname_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+				Optional: true,
+				ForceNew: true,
+			},
 			"tier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "WebServer",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					switch value {
@@ -98,6 +109,54 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Optional:      true,
 				ConflictsWith: []string{"solution_stack_name"},
 			},
+			"wait_for_ready_timeout": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "10m",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					duration, err := time.ParseDuration(value)
+					if err != nil {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be parsed as a duration: %s", k, err))
+					}
+					if duration < 0 {
+						errors = append(errors, fmt.Errorf(
+							"%q must be greater than zero", k))
+					}
+					return
+				},
+			},
+			"autoscaling_groups": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"instances": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"launch_configurations": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"load_balancers": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"queues": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"triggers": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 
 			"tags": tagsSchema(),
 		},
@@ -109,13 +168,17 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	// Get values from config
 	name := d.Get("name").(string)
-	cname := d.Get("cname").(string)
+	cnamePrefix := d.Get("cname_prefix").(string)
 	tier := d.Get("tier").(string)
 	app := d.Get("application").(string)
 	desc := d.Get("description").(string)
 	settings := d.Get("setting").(*schema.Set)
 	solutionStack := d.Get("solution_stack_name").(string)
 	templateName := d.Get("template_name").(string)
+	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+	if err != nil {
+		return err
+	}
 
 	// TODO set tags
 	// Note: at time of writing, you cannot view or edit Tags after creation
@@ -131,8 +194,11 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 		createOpts.Description = aws.String(desc)
 	}
 
-	if cname != "" {
-		createOpts.CNAMEPrefix = aws.String(cname)
+	if cnamePrefix != "" {
+		if tier != "WebServer" {
+			return fmt.Errorf("Cannont set cname_prefix for tier: %s.", tier)
+		}
+		createOpts.CNAMEPrefix = aws.String(cnamePrefix)
 	}
 
 	if tier != "" {
@@ -172,7 +238,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 		Pending:    []string{"Launching", "Updating"},
 		Target:     []string{"Ready"},
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
-		Timeout:    10 * time.Minute,
+		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -190,50 +256,22 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
+	envId := d.Id()
+	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+	if err != nil {
+		return err
+	}
+
+	updateOpts := elasticbeanstalk.UpdateEnvironmentInput{
+		EnvironmentId: aws.String(envId),
+	}
+
 	if d.HasChange("description") {
-		if err := resourceAwsElasticBeanstalkEnvironmentDescriptionUpdate(conn, d); err != nil {
-			return err
-		}
+		updateOpts.Description = aws.String(d.Get("description").(string))
 	}
 
 	if d.HasChange("solution_stack_name") {
-		if err := resourceAwsElasticBeanstalkEnvironmentSolutionStackUpdate(conn, d); err != nil {
-			return err
-		}
-	}
-
-	if d.HasChange("setting") {
-		if err := resourceAwsElasticBeanstalkEnvironmentOptionSettingsUpdate(conn, d); err != nil {
-			return err
-		}
-	}
-
-	return resourceAwsElasticBeanstalkEnvironmentRead(d, meta)
-}
-
-func resourceAwsElasticBeanstalkEnvironmentDescriptionUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
-	name := d.Get("name").(string)
-	desc := d.Get("description").(string)
-	envId := d.Id()
-
-	log.Printf("[DEBUG] Elastic Beanstalk application: %s, update description: %s", name, desc)
-
-	_, err := conn.UpdateEnvironment(&elasticbeanstalk.UpdateEnvironmentInput{
-		EnvironmentId: aws.String(envId),
-		Description:   aws.String(desc),
-	})
-
-	return err
-}
-
-func resourceAwsElasticBeanstalkEnvironmentOptionSettingsUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
-	name := d.Get("name").(string)
-	envId := d.Id()
-
-	log.Printf("[DEBUG] Elastic Beanstalk application: %s, update options", name)
-
-	req := &elasticbeanstalk.UpdateEnvironmentInput{
-		EnvironmentId: aws.String(envId),
+		updateOpts.SolutionStackName = aws.String(d.Get("solution_stack_name").(string))
 	}
 
 	if d.HasChange("setting") {
@@ -248,29 +286,36 @@ func resourceAwsElasticBeanstalkEnvironmentOptionSettingsUpdate(conn *elasticbea
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		req.OptionSettings = extractOptionSettings(ns.Difference(os))
+		updateOpts.OptionSettings = extractOptionSettings(ns.Difference(os))
 	}
 
-	if _, err := conn.UpdateEnvironment(req); err != nil {
+	if d.HasChange("template_name") {
+		updateOpts.TemplateName = aws.String(d.Get("template_name").(string))
+	}
+
+	log.Printf("[DEBUG] Elastic Beanstalk Environment update opts: %s", updateOpts)
+	_, err = conn.UpdateEnvironment(&updateOpts)
+	if err != nil {
 		return err
 	}
 
-	return nil
-}
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"Launching", "Updating"},
+		Target:     []string{"Ready"},
+		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
+		Timeout:    waitForReadyTimeOut,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
 
-func resourceAwsElasticBeanstalkEnvironmentSolutionStackUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
-	name := d.Get("name").(string)
-	solutionStack := d.Get("solution_stack_name").(string)
-	envId := d.Id()
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for Elastic Beanstalk Environment (%s) to become ready: %s",
+			d.Id(), err)
+	}
 
-	log.Printf("[DEBUG] Elastic Beanstalk application: %s, update solution_stack_name: %s", name, solutionStack)
-
-	_, err := conn.UpdateEnvironment(&elasticbeanstalk.UpdateEnvironmentInput{
-		EnvironmentId:     aws.String(envId),
-		SolutionStackName: aws.String(solutionStack),
-	})
-
-	return err
+	return resourceAwsElasticBeanstalkEnvironmentRead(d, meta)
 }
 
 func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
@@ -278,6 +323,7 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 
 	app := d.Get("application").(string)
 	envId := d.Id()
+	tier := d.Get("tier").(string)
 
 	log.Printf("[DEBUG] Elastic Beanstalk environment read %s: id %s", d.Get("name").(string), d.Id())
 
@@ -308,11 +354,55 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		return nil
 	}
 
+	resources, err := conn.DescribeEnvironmentResources(&elasticbeanstalk.DescribeEnvironmentResourcesInput{
+		EnvironmentId: aws.String(envId),
+	})
+
+	if err != nil {
+		return err
+	}
+
 	if err := d.Set("description", env.Description); err != nil {
 		return err
 	}
 
 	if err := d.Set("cname", env.CNAME); err != nil {
+		return err
+	}
+
+	if tier == "WebServer" {
+		beanstalkCnamePrefixRegexp := regexp.MustCompile(`(^[^.]+).\w{2}-\w{4}-\d.elasticbeanstalk.com$`)
+		var cnamePrefix string
+		cnamePrefixMatch := beanstalkCnamePrefixRegexp.FindStringSubmatch(*env.CNAME)
+
+		if cnamePrefixMatch == nil {
+			cnamePrefix = ""
+		} else {
+			cnamePrefix = cnamePrefixMatch[1]
+		}
+
+		if err := d.Set("cname_prefix", cnamePrefix); err != nil {
+			return err
+		}
+	}
+
+	if err := d.Set("autoscaling_groups", flattenBeanstalkAsg(resources.EnvironmentResources.AutoScalingGroups)); err != nil {
+		return err
+	}
+
+	if err := d.Set("instances", flattenBeanstalkInstances(resources.EnvironmentResources.Instances)); err != nil {
+		return err
+	}
+	if err := d.Set("launch_configurations", flattenBeanstalkLc(resources.EnvironmentResources.LaunchConfigurations)); err != nil {
+		return err
+	}
+	if err := d.Set("load_balancers", flattenBeanstalkElb(resources.EnvironmentResources.LoadBalancers)); err != nil {
+		return err
+	}
+	if err := d.Set("queues", flattenBeanstalkSqs(resources.EnvironmentResources.Queues)); err != nil {
+		return err
+	}
+	if err := d.Set("triggers", flattenBeanstalkTrigger(resources.EnvironmentResources.Triggers)); err != nil {
 		return err
 	}
 
@@ -414,13 +504,18 @@ func resourceAwsElasticBeanstalkEnvironmentSettingsRead(d *schema.ResourceData, 
 func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
+	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+	if err != nil {
+		return err
+	}
+
 	opts := elasticbeanstalk.TerminateEnvironmentInput{
 		EnvironmentId:      aws.String(d.Id()),
 		TerminateResources: aws.Bool(true),
 	}
 
 	log.Printf("[DEBUG] Elastic Beanstalk Environment terminate opts: %s", opts)
-	_, err := conn.TerminateEnvironment(&opts)
+	_, err = conn.TerminateEnvironment(&opts)
 
 	if err != nil {
 		return err
@@ -430,7 +525,7 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 		Pending:    []string{"Terminating"},
 		Target:     []string{"Terminated"},
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
-		Timeout:    10 * time.Minute,
+		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
