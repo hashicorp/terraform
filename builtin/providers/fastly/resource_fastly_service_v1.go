@@ -21,6 +21,9 @@ func resourceServiceV1() *schema.Resource {
 		Read:   resourceServiceV1Read,
 		Update: resourceServiceV1Update,
 		Delete: resourceServiceV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
