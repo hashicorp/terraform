@@ -26,6 +26,7 @@ IMPROVEMENTS:
  * provider/google: support optional uuid naming for Instance Template [GH-6604]
  * provider/vsphere: fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
+ * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  
 BUG FIXES:
 
