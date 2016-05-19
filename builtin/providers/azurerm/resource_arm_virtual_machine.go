@@ -923,9 +923,13 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 	}
 
 	linuxKeys := linuxConfig["ssh_keys"].([]interface{})
-	sshPublicKeys := make([]compute.SSHPublicKey, 0, len(linuxKeys))
+	sshPublicKeys := []compute.SSHPublicKey{}
 	for _, key := range linuxKeys {
-		sshKey := key.(map[string]interface{})
+
+		sshKey, ok := key.(map[string]interface{})
+		if !ok {
+			continue
+		}
 		path := sshKey["path"].(string)
 		keyData := sshKey["key_data"].(string)
 
