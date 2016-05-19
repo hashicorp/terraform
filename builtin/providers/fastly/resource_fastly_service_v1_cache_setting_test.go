@@ -23,6 +23,14 @@ func TestAccFastlyServiceV1CacheSetting_basic(t *testing.T) {
 		CacheCondition: "serve_alt_backend",
 	}
 
+	cq2 := gofastly.CacheSetting{
+		Name:           "cache_backend",
+		Action:         "restart",
+		StaleTTL:       uint(1600),
+		CacheCondition: "cache_alt_backend",
+		TTL:            uint(300),
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -39,6 +47,18 @@ func TestAccFastlyServiceV1CacheSetting_basic(t *testing.T) {
 						"fastly_service_v1.foo", "cache_setting.#", "1"),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "condition.#", "1"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccServiceV1CacheSetting_update(name, domainName1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
+					testAccCheckFastlyServiceV1CacheSettingsAttributes(&service, []*gofastly.CacheSetting{&cq1, &cq2}),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "cache_setting.#", "2"),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "condition.#", "2"),
 				),
 			},
 		},
@@ -119,6 +139,63 @@ resource "fastly_service_v1" "foo" {
     stale_ttl       = 3600
     cache_condition = "serve_alt_backend"
     action          = "pass"
+  }
+
+  default_host = "tftesting.tftesting.net.s3-website-us-west-2.amazonaws.com"
+
+  force_destroy = true
+}`, name, domain)
+}
+
+func testAccServiceV1CacheSetting_update(name, domain string) string {
+	return fmt.Sprintf(`
+resource "fastly_service_v1" "foo" {
+  name = "%s"
+
+  domain {
+    name    = "%s"
+    comment = "demo"
+  }
+
+  backend {
+    address = "tftesting.tftesting.net.s3-website-us-west-2.amazonaws.com"
+    name    = "AWS S3 hosting"
+    port    = 80
+  }
+
+  backend {
+    address = "tftestingother.tftesting.net.s3-website-us-west-2.amazonaws.com"
+    name    = "OtherAWSS3hosting"
+    port    = 80
+  }
+
+  condition {
+    name      = "serve_alt_backend"
+    type      = "CACHE"
+    priority  = 10
+    statement = "req.url ~ \"^/alt/\""
+  }
+
+  condition {
+    name      = "cache_alt_backend"
+    type      = "CACHE"
+    priority  = 20
+    statement = "req.url ~ \"^/cache/\""
+  }
+
+  cache_setting {
+    name            = "alt_backend"
+    stale_ttl       = 3600
+    cache_condition = "serve_alt_backend"
+    action          = "pass"
+  }
+
+  cache_setting {
+    name            = "cache_backend"
+    stale_ttl       = 1600
+    cache_condition = "cache_alt_backend"
+    action          = "restart"
+    ttl             = 300
   }
 
   default_host = "tftesting.tftesting.net.s3-website-us-west-2.amazonaws.com"
