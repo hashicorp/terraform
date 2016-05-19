@@ -14,6 +14,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * core: The `jsonencode` interpolation function now supports encoding lists and maps [GH-6749]
  * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
  * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
  * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
