@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSGroupPolicyAttachment_basic(t *testing.T) {
+func resourceAwsIamGroupPolicyAttachment_basic(t *testing.T) {
 	var out iam.ListAttachedGroupPoliciesOutput
 
 	resource.Test(t, resource.TestCase{
@@ -113,9 +113,8 @@ EOF
 }
 
 resource "aws_iam_group_policy_attachment" "test-attach" {
-    name = "test-attachment"
     group = "${aws_iam_group.group.name}"
-    policy_arns = ["${aws_iam_policy.policy.arn}"]
+    policy_arn = "${aws_iam_policy.policy.arn}"
 }
 `
 
@@ -182,11 +181,12 @@ EOF
 }
 
 resource "aws_iam_group_policy_attachment" "test-attach" {
-    name = "test-attachment"
     group = "${aws_iam_group.group.name}"
-    policy_arns = [
-			"${aws_iam_policy.policy2.arn}",
-			"${aws_iam_policy.policy3.arn}"
-		]
+    policy_arn = "${aws_iam_policy.policy2.arn}"
+}
+
+resource "aws_iam_group_policy_attachment" "test-attach2" {
+    group = "${aws_iam_group.group.name}"
+    policy_arn = "${aws_iam_policy.policy3.arn}"
 }
 `

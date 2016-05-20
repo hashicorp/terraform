@@ -22,7 +22,6 @@ resource "aws_iam_policy" "policy" {
 }
 
 resource "aws_iam_user_policy_attachment" "test-attach" {
-    name = "test-attachment"
     user = "${aws_iam_user.user.name}"
     policy_arn = "${aws_iam_policy.policy.arn}"
 }
@@ -32,13 +31,5 @@ resource "aws_iam_user_policy_attachment" "test-attach" {
 
 The following arguments are supported:
 
-* `name` 		(Required) - The name of the policy.
 * `user`		(Required) - The user the policy should be applied to
 * `policy_arn`	(Required) - The ARN of the policy you want to apply
-
-## Attributes Reference
-
-The following attributes are exported:
-
-* `id` - The policy's ID.
-* `name` - The name of the policy.

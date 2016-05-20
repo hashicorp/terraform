@@ -128,9 +128,8 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "test-attach" {
-    name = "test-attachment"
     role = "${aws_iam_role.role.name}"
-    policy_arns = ["${aws_iam_policy.policy.arn}"]
+    policy_arns = "${aws_iam_policy.policy.arn}"
 }
 `
 
@@ -212,11 +211,12 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "test-attach" {
-    name = "test-attachment"
     role = "${aws_iam_role.role.name}"
-    policy_arns = [
-			"${aws_iam_policy.policy2.arn}",
-			"${aws_iam_policy.policy3.arn}"
-		]
+    policy_arns = "${aws_iam_policy.policy2.arn}"
+}
+
+resource "aws_iam_role_policy_attachment" "test-attach2" {
+    role = "${aws_iam_role.role.name}"
+    policy_arns = "${aws_iam_policy.policy3.arn}"
 }
 `
