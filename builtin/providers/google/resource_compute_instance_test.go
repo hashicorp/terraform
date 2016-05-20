@@ -126,7 +126,7 @@ func TestAccComputeInstance_IP(t *testing.T) {
 	})
 }
 
-func TestAccComputeInstance_disks(t *testing.T) {
+func TestAccComputeInstance_disksWithoutAutodelete(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
 	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
@@ -137,12 +137,35 @@ func TestAccComputeInstance_disks(t *testing.T) {
 		CheckDestroy: testAccCheckComputeInstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeInstance_disks(diskName, instanceName),
+				Config: testAccComputeInstance_disks(diskName, instanceName, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
 					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
 					testAccCheckComputeInstanceDisk(&instance, diskName, false, false),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_disksWithAutodelete(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_disks(diskName, instanceName, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName, true, false),
 				),
 			},
 		},
@@ -702,7 +725,7 @@ func testAccComputeInstance_ip(ip, instance string) string {
 	}`, ip, instance)
 }
 
-func testAccComputeInstance_disks(disk, instance string) string {
+func testAccComputeInstance_disks(disk, instance string, autodelete bool) string {
 	return fmt.Sprintf(`
 	resource "google_compute_disk" "foobar" {
 		name = "%s"
@@ -722,7 +745,7 @@ func testAccComputeInstance_disks(disk, instance string) string {
 
 		disk {
 			disk = "${google_compute_disk.foobar.name}"
-			auto_delete = false
+			auto_delete = %v
 		}
 
 		network_interface {
@@ -732,7 +755,7 @@ func testAccComputeInstance_disks(disk, instance string) string {
 		metadata {
 			foo = "bar"
 		}
-	}`, disk, instance)
+	}`, disk, instance, autodelete)
 }
 
 func testAccComputeInstance_local_ssd(instance string) string {
