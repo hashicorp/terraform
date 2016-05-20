@@ -145,6 +145,12 @@ func resourceArmNetworkInterface() *schema.Resource {
 				Computed: true,
 			},
 
+			"enable_ip_forwarding": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -159,9 +165,12 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
+	enableIpForwarding := d.Get("enable_ip_forwarding").(bool)
 	tags := d.Get("tags").(map[string]interface{})
 
-	properties := network.InterfacePropertiesFormat{}
+	properties := network.InterfacePropertiesFormat{
+		EnableIPForwarding: &enableIpForwarding,
+	}
 
 	if v, ok := d.GetOk("network_security_group_id"); ok {
 		nsgId := v.(string)
@@ -328,7 +337,13 @@ func resourceArmNetworkInterfaceIpConfigurationHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["subnet_id"].(string)))
+	if m["private_ip_address"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address"].(string)))
+	}
 	buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address_allocation"].(string)))
+	if m["public_ip_address_id"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["public_ip_address_id"].(string)))
+	}
 
 	return hashcode.String(buf.String())
 }
