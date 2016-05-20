@@ -128,6 +128,10 @@ BUG FIXES:
 
 ## 0.6.15 (April 22, 2016)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * `aws_instance` - if you still use `security_groups` field for SG IDs - i.e. inside VPC, this will generate diffs during `plan` and `apply` will **recreate** the resource. Terraform expects IDs (VPC SGs) inside `security_group_ids`.
+
 FEATURES:
 
  * **New command:** `terraform fmt` to automatically normalize config file style ([#4955](https://github.com/hashicorp/terraform/issues/4955))
