@@ -20,6 +20,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
  * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
  * provider/aws: Support for Redshift Cluster encryption using a KMS key [GH-6712]
+ * provider/aws: Add more explicit support for Skipping Final Snapshot in RDS Cluster [GH-6795]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * provider/clc: Fix optional server password [GH-6414]
