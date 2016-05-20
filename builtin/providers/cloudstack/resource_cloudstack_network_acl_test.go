@@ -22,8 +22,6 @@ func TestAccCloudStackNetworkACL_basic(t *testing.T) {
 					testAccCheckCloudStackNetworkACLExists(
 						"cloudstack_network_acl.foo", &acl),
 					testAccCheckCloudStackNetworkACLBasicAttributes(&acl),
-					resource.TestCheckResourceAttr(
-						"cloudstack_network_acl.foo", "vpc", "terraform-vpc"),
 				),
 			},
 		},
@@ -106,7 +104,7 @@ resource "cloudstack_vpc" "foobar" {
 resource "cloudstack_network_acl" "foo" {
   name = "terraform-acl"
   description = "terraform-acl-text"
-  vpc = "${cloudstack_vpc.foobar.name}"
+  vpc_id = "${cloudstack_vpc.foobar.id}"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,

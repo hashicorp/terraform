@@ -24,6 +24,17 @@ func resourceComputeTargetHttpsProxy() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"ssl_certificates": &schema.Schema{
+				Type:     schema.TypeList,
+				Required: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"url_map": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -40,15 +51,10 @@ func resourceComputeTargetHttpsProxy() *schema.Resource {
 				Computed: true,
 			},
 
-			"url_map": &schema.Schema{
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"ssl_certificates": &schema.Schema{
-				Type:     schema.TypeList,
-				Required: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -56,6 +62,11 @@ func resourceComputeTargetHttpsProxy() *schema.Resource {
 
 func resourceComputeTargetHttpsProxyCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	_sslCertificates := d.Get("ssl_certificates").([]interface{})
 	sslCertificates := make([]string, len(_sslCertificates))
@@ -76,7 +87,7 @@ func resourceComputeTargetHttpsProxyCreate(d *schema.ResourceData, meta interfac
 
 	log.Printf("[DEBUG] TargetHttpsProxy insert request: %#v", proxy)
 	op, err := config.clientCompute.TargetHttpsProxies.Insert(
-		config.Project, proxy).Do()
+		project, proxy).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating TargetHttpsProxy: %s", err)
 	}
@@ -94,13 +105,18 @@ func resourceComputeTargetHttpsProxyCreate(d *schema.ResourceData, meta interfac
 func resourceComputeTargetHttpsProxyUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	d.Partial(true)
 
 	if d.HasChange("url_map") {
 		url_map := d.Get("url_map").(string)
 		url_map_ref := &compute.UrlMapReference{UrlMap: url_map}
 		op, err := config.clientCompute.TargetHttpsProxies.SetUrlMap(
-			config.Project, d.Id(), url_map_ref).Do()
+			project, d.Id(), url_map_ref).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating Target HTTPS proxy URL map: %s", err)
 		}
@@ -115,7 +131,7 @@ func resourceComputeTargetHttpsProxyUpdate(d *schema.ResourceData, meta interfac
 
 	if d.HasChange("ssl_certificates") {
 		proxy, err := config.clientCompute.TargetHttpsProxies.Get(
-			config.Project, d.Id()).Do()
+			project, d.Id()).Do()
 
 		_old, _new := d.GetChange("ssl_certificates")
 		_oldCerts := _old.([]interface{})
@@ -161,7 +177,7 @@ func resourceComputeTargetHttpsProxyUpdate(d *schema.ResourceData, meta interfac
 			SslCertificates: sslCertificates,
 		}
 		op, err := config.clientCompute.TargetHttpsProxies.SetSslCertificates(
-			config.Project, d.Id(), cert_ref).Do()
+			project, d.Id(), cert_ref).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating Target Https Proxy SSL Certificates: %s", err)
 		}
@@ -182,8 +198,13 @@ func resourceComputeTargetHttpsProxyUpdate(d *schema.ResourceData, meta interfac
 func resourceComputeTargetHttpsProxyRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	proxy, err := config.clientCompute.TargetHttpsProxies.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Target HTTPS Proxy %q because it's gone", d.Get("name").(string))
@@ -223,10 +244,15 @@ func resourceComputeTargetHttpsProxyRead(d *schema.ResourceData, meta interface{
 func resourceComputeTargetHttpsProxyDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Delete the TargetHttpsProxy
 	log.Printf("[DEBUG] TargetHttpsProxy delete request")
 	op, err := config.clientCompute.TargetHttpsProxies.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting TargetHttpsProxy: %s", err)
 	}

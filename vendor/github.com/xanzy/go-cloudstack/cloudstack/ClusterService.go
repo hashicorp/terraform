@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,6 +50,15 @@ func (p *AddClusterParams) toURLValues() url.Values {
 	}
 	if v, found := p.p["hypervisor"]; found {
 		u.Set("hypervisor", v.(string))
+	}
+	if v, found := p.p["ovm3cluster"]; found {
+		u.Set("ovm3cluster", v.(string))
+	}
+	if v, found := p.p["ovm3pool"]; found {
+		u.Set("ovm3pool", v.(string))
+	}
+	if v, found := p.p["ovm3vip"]; found {
+		u.Set("ovm3vip", v.(string))
 	}
 	if v, found := p.p["password"]; found {
 		u.Set("password", v.(string))
@@ -129,6 +138,30 @@ func (p *AddClusterParams) SetHypervisor(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["hypervisor"] = v
+	return
+}
+
+func (p *AddClusterParams) SetOvm3cluster(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ovm3cluster"] = v
+	return
+}
+
+func (p *AddClusterParams) SetOvm3pool(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ovm3pool"] = v
+	return
+}
+
+func (p *AddClusterParams) SetOvm3vip(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ovm3vip"] = v
 	return
 }
 
@@ -260,6 +293,7 @@ type AddClusterResponse struct {
 	Managedstate          string `json:"managedstate,omitempty"`
 	Memoryovercommitratio string `json:"memoryovercommitratio,omitempty"`
 	Name                  string `json:"name,omitempty"`
+	Ovm3vip               string `json:"ovm3vip,omitempty"`
 	Podid                 string `json:"podid,omitempty"`
 	Podname               string `json:"podname,omitempty"`
 	Zoneid                string `json:"zoneid,omitempty"`
@@ -439,6 +473,7 @@ type UpdateClusterResponse struct {
 	Managedstate          string `json:"managedstate,omitempty"`
 	Memoryovercommitratio string `json:"memoryovercommitratio,omitempty"`
 	Name                  string `json:"name,omitempty"`
+	Ovm3vip               string `json:"ovm3vip,omitempty"`
 	Podid                 string `json:"podid,omitempty"`
 	Podname               string `json:"podname,omitempty"`
 	Zoneid                string `json:"zoneid,omitempty"`
@@ -601,11 +636,17 @@ func (s *ClusterService) NewListClustersParams() *ListClustersParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ClusterService) GetClusterID(name string) (string, error) {
+func (s *ClusterService) GetClusterID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListClustersParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListClusters(p)
 	if err != nil {
@@ -631,13 +672,13 @@ func (s *ClusterService) GetClusterID(name string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ClusterService) GetClusterByName(name string) (*Cluster, int, error) {
-	id, err := s.GetClusterID(name)
+func (s *ClusterService) GetClusterByName(name string, opts ...OptionFunc) (*Cluster, int, error) {
+	id, err := s.GetClusterID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetClusterByID(id)
+	r, count, err := s.GetClusterByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -645,11 +686,17 @@ func (s *ClusterService) GetClusterByName(name string) (*Cluster, int, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ClusterService) GetClusterByID(id string) (*Cluster, int, error) {
+func (s *ClusterService) GetClusterByID(id string, opts ...OptionFunc) (*Cluster, int, error) {
 	p := &ListClustersParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListClusters(p)
 	if err != nil {
@@ -711,6 +758,7 @@ type Cluster struct {
 	Managedstate          string `json:"managedstate,omitempty"`
 	Memoryovercommitratio string `json:"memoryovercommitratio,omitempty"`
 	Name                  string `json:"name,omitempty"`
+	Ovm3vip               string `json:"ovm3vip,omitempty"`
 	Podid                 string `json:"podid,omitempty"`
 	Podname               string `json:"podname,omitempty"`
 	Zoneid                string `json:"zoneid,omitempty"`

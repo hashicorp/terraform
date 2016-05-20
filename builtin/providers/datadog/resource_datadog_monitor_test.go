@@ -121,6 +121,40 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 	})
 }
 
+func TestAccDatadogMonitor_TrimWhitespace(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatadogMonitorDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDatadogMonitorConfigWhitespace,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "name", "name for monitor foo"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "message", "some message Notify: @hipchat-channel"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "type", "metric alert"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "query", "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "notify_no_data", "false"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "renotify_interval", "60"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.ok", "0"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.warning", "1"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.critical", "2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDatadogMonitorDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*datadog.Client)
 
@@ -188,6 +222,34 @@ resource "datadog_monitor" "foo" {
   silenced {
 	"*" = 0
   }
+}
+`
+
+const testAccCheckDatadogMonitorConfigWhitespace = `
+resource "datadog_monitor" "foo" {
+  name = "name for monitor foo"
+  type = "metric alert"
+  message = <<EOF
+some message Notify: @hipchat-channel
+EOF
+  escalation_message = <<EOF
+the situation has escalated @pagerduty
+EOF
+  query = <<EOF
+avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2
+EOF
+  thresholds {
+	ok = 0
+	warning = 1
+	critical = 2
+  }
+
+  notify_no_data = false
+  renotify_interval = 60
+
+  notify_audit = false
+  timeout_h = 60
+  include_tags = true
 }
 `
 

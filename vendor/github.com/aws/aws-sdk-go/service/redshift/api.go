@@ -34,13 +34,18 @@ func (c *Redshift) AuthorizeClusterSecurityGroupIngressRequest(input *AuthorizeC
 
 // Adds an inbound (ingress) rule to an Amazon Redshift security group. Depending
 // on whether the application accessing your cluster is running on the Internet
-// or an EC2 instance, you can authorize inbound access to either a Classless
-// Interdomain Routing (CIDR) IP address range or an EC2 security group. You
-// can add as many as 20 ingress rules to an Amazon Redshift security group.
+// or an Amazon EC2 instance, you can authorize inbound access to either a Classless
+// Interdomain Routing (CIDR)/Internet Protocol (IP) range or to an Amazon EC2
+// security group. You can add as many as 20 ingress rules to an Amazon Redshift
+// security group.
 //
-//  The EC2 security group must be defined in the AWS region where the cluster
-// resides.  For an overview of CIDR blocks, see the Wikipedia article on Classless
-// Inter-Domain Routing (http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
+// If you authorize access to an Amazon EC2 security group, specify EC2SecurityGroupName
+// and EC2SecurityGroupOwnerId. The Amazon EC2 security group and Amazon Redshift
+// cluster must be in the same AWS region.
+//
+//  If you authorize access to a CIDR/IP address range, specify CIDRIP. For
+// an overview of CIDR blocks, see the Wikipedia article on Classless Inter-Domain
+// Routing (http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
 //
 //  You must also associate the security group with a cluster so that clients
 // running on these IP addresses or the EC2 instance are authorized to connect
@@ -1669,6 +1674,37 @@ func (c *Redshift) DescribeSnapshotCopyGrants(input *DescribeSnapshotCopyGrantsI
 	return out, err
 }
 
+const opDescribeTableRestoreStatus = "DescribeTableRestoreStatus"
+
+// DescribeTableRestoreStatusRequest generates a request for the DescribeTableRestoreStatus operation.
+func (c *Redshift) DescribeTableRestoreStatusRequest(input *DescribeTableRestoreStatusInput) (req *request.Request, output *DescribeTableRestoreStatusOutput) {
+	op := &request.Operation{
+		Name:       opDescribeTableRestoreStatus,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeTableRestoreStatusInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeTableRestoreStatusOutput{}
+	req.Data = output
+	return
+}
+
+// Lists the status of one or more table restore requests made using the RestoreTableFromClusterSnapshot
+// API action. If you don't specify a value for the TableRestoreRequestId parameter,
+// then DescribeTableRestoreStatus returns the status of all table restore requests
+// ordered by the date and time of the request in ascending order. Otherwise
+// DescribeTableRestoreStatus returns the status of the table specified by TableRestoreRequestId.
+func (c *Redshift) DescribeTableRestoreStatus(input *DescribeTableRestoreStatusInput) (*DescribeTableRestoreStatusOutput, error) {
+	req, out := c.DescribeTableRestoreStatusRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeTags = "DescribeTags"
 
 // DescribeTagsRequest generates a request for the DescribeTags operation.
@@ -1863,6 +1899,36 @@ func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request
 // nodes and the node type even if one of the parameters does not change.
 func (c *Redshift) ModifyCluster(input *ModifyClusterInput) (*ModifyClusterOutput, error) {
 	req, out := c.ModifyClusterRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opModifyClusterIamRoles = "ModifyClusterIamRoles"
+
+// ModifyClusterIamRolesRequest generates a request for the ModifyClusterIamRoles operation.
+func (c *Redshift) ModifyClusterIamRolesRequest(input *ModifyClusterIamRolesInput) (req *request.Request, output *ModifyClusterIamRolesOutput) {
+	op := &request.Operation{
+		Name:       opModifyClusterIamRoles,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyClusterIamRolesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ModifyClusterIamRolesOutput{}
+	req.Data = output
+	return
+}
+
+// Modifies the list of AWS Identity and Access Management (IAM) roles that
+// can be used by the cluster to access other AWS services.
+//
+// A cluster can have up to 10 IAM roles associated at any time.
+func (c *Redshift) ModifyClusterIamRoles(input *ModifyClusterIamRolesInput) (*ModifyClusterIamRolesOutput, error) {
+	req, out := c.ModifyClusterIamRolesRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -2121,6 +2187,45 @@ func (c *Redshift) RestoreFromClusterSnapshot(input *RestoreFromClusterSnapshotI
 	return out, err
 }
 
+const opRestoreTableFromClusterSnapshot = "RestoreTableFromClusterSnapshot"
+
+// RestoreTableFromClusterSnapshotRequest generates a request for the RestoreTableFromClusterSnapshot operation.
+func (c *Redshift) RestoreTableFromClusterSnapshotRequest(input *RestoreTableFromClusterSnapshotInput) (req *request.Request, output *RestoreTableFromClusterSnapshotOutput) {
+	op := &request.Operation{
+		Name:       opRestoreTableFromClusterSnapshot,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RestoreTableFromClusterSnapshotInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RestoreTableFromClusterSnapshotOutput{}
+	req.Data = output
+	return
+}
+
+// Creates a new table from a table in an Amazon Redshift cluster snapshot.
+// You must create the new table within the Amazon Redshift cluster that the
+// snapshot was taken from.
+//
+// You cannot use RestoreTableFromClusterSnapshot to restore a table with the
+// same name as an existing table in an Amazon Redshift cluster. That is, you
+// cannot overwrite an existing table in a cluster with a restored table. If
+// you want to replace your original table with a new, restored table, then
+// rename or drop your original table before you call RestoreTableFromClusterSnapshot.
+// When you have renamed your original table, then you can pass the original
+// name of the table as the NewTableName parameter value in the call to RestoreTableFromClusterSnapshot.
+// This way, you can replace the original table with the table created from
+// the snapshot.
+func (c *Redshift) RestoreTableFromClusterSnapshot(input *RestoreTableFromClusterSnapshotInput) (*RestoreTableFromClusterSnapshotOutput, error) {
+	req, out := c.RestoreTableFromClusterSnapshotRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opRevokeClusterSecurityGroupIngress = "RevokeClusterSecurityGroupIngress"
 
 // RevokeClusterSecurityGroupIngressRequest generates a request for the RevokeClusterSecurityGroupIngress operation.
@@ -2230,7 +2335,6 @@ func (s AccountWithRestoreAccess) GoString() string {
 	return s.String()
 }
 
-// ???
 type AuthorizeClusterSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2259,6 +2363,19 @@ func (s AuthorizeClusterSecurityGroupIngressInput) String() string {
 // GoString returns the string representation
 func (s AuthorizeClusterSecurityGroupIngressInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AuthorizeClusterSecurityGroupIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AuthorizeClusterSecurityGroupIngressInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AuthorizeClusterSecurityGroupIngressOutput struct {
@@ -2302,6 +2419,22 @@ func (s AuthorizeSnapshotAccessInput) String() string {
 // GoString returns the string representation
 func (s AuthorizeSnapshotAccessInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AuthorizeSnapshotAccessInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AuthorizeSnapshotAccessInput"}
+	if s.AccountWithRestoreAccess == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountWithRestoreAccess"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AuthorizeSnapshotAccessOutput struct {
@@ -2385,8 +2518,10 @@ type Cluster struct {
 	// cross-region snapshot copy.
 	ClusterSnapshotCopyStatus *ClusterSnapshotCopyStatus `type:"structure"`
 
-	// The current state of this cluster. Possible values include available, creating,
-	// deleting, rebooting, renaming, and resizing.
+	// The current state of the cluster. Possible values are:  available creating
+	// deleting final-snapshot hardware-failure incompatible-hsm incompatible-network
+	// incompatible-parameters incompatible-restore modifying rebooting renaming
+	// resizing rotating-keys storage-full updating-hsm
 	ClusterStatus *string `type:"string"`
 
 	// The name of the subnet group that is associated with the cluster. This parameter
@@ -2401,7 +2536,7 @@ type Cluster struct {
 	// was not specified, a database named "dev" was created by default.
 	DBName *string `type:"string"`
 
-	// Describes the status of the elastic IP (EIP) address.
+	// The status of the elastic IP (EIP) address.
 	ElasticIpStatus *ElasticIpStatus `type:"structure"`
 
 	// If true, data in the cluster is encrypted at rest.
@@ -2415,6 +2550,10 @@ type Cluster struct {
 	//
 	// Values: active, applying
 	HsmStatus *HsmStatus `type:"structure"`
+
+	// A list of AWS Identity and Access Management (IAM) roles that can be used
+	// by the cluster to access other AWS services.
+	IamRoles []*ClusterIamRole `locationNameList:"ClusterIamRole" type:"list"`
 
 	// The AWS Key Management Service (KMS) key ID of the encryption key used to
 	// encrypt data in the cluster.
@@ -2466,6 +2605,34 @@ func (s Cluster) String() string {
 
 // GoString returns the string representation
 func (s Cluster) GoString() string {
+	return s.String()
+}
+
+// An AWS Identity and Access Management (IAM) role that can be used by the
+// associated Amazon Redshift cluster to access other AWS services.
+type ClusterIamRole struct {
+	_ struct{} `type:"structure"`
+
+	// Describes the status of the IAM role's association with an Amazon Redshift
+	// cluster.
+	//
+	// The following are possible statuses and descriptions. in-sync: The role
+	// is available for use by the cluster. adding: The role is in the process of
+	// being associated with the cluster. removing: The role is in the process of
+	// being disassociated with the cluster.
+	ApplyStatus *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) of the IAM role. For example, arn:aws:iam::123456789012:role/RedshiftCopyUnload.
+	IamRoleArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ClusterIamRole) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClusterIamRole) GoString() string {
 	return s.String()
 }
 
@@ -2521,9 +2688,6 @@ func (s ClusterParameterGroup) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the ModifyClusterParameterGroup and ResetClusterParameterGroup
-// actions and indicate the parameter group involved and the status of the operation
-// on the parameter group.
 type ClusterParameterGroupNameMessage struct {
 	_ struct{} `type:"structure"`
 
@@ -2585,14 +2749,14 @@ type ClusterParameterStatus struct {
 	// with the database, waiting for a cluster reboot, or encountered an error
 	// when being applied.
 	//
-	// The following are possible statuses and descriptions.  in-sync: The parameter
-	// value is in sync with the database.  pending-reboot: The parameter value
-	// will be applied after the cluster reboots.  applying: The parameter value
-	// is being applied to the database.  invalid-parameter: Cannot apply the parameter
-	// value because it has an invalid value or syntax.  apply-deferred: The parameter
+	// The following are possible statuses and descriptions. in-sync: The parameter
+	// value is in sync with the database. pending-reboot: The parameter value will
+	// be applied after the cluster reboots. applying: The parameter value is being
+	// applied to the database. invalid-parameter: Cannot apply the parameter value
+	// because it has an invalid value or syntax. apply-deferred: The parameter
 	// contains static property changes. The changes are deferred until the cluster
-	// reboots.  apply-error: Cannot connect to the cluster. The parameter change
-	// will be applied after the cluster reboots.  unknown-error: Cannot apply the
+	// reboots. apply-error: Cannot connect to the cluster. The parameter change
+	// will be applied after the cluster reboots. unknown-error: Cannot apply the
 	// parameter change right now. The change will be applied after the cluster
 	// reboots.
 	ParameterApplyStatus *string `type:"string"`
@@ -2643,7 +2807,7 @@ func (s ClusterSecurityGroup) GoString() string {
 	return s.String()
 }
 
-// Describes a security group.
+// Describes a cluster security group.
 type ClusterSecurityGroupMembership struct {
 	_ struct{} `type:"structure"`
 
@@ -2790,6 +2954,22 @@ func (s CopyClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CopyClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CopyClusterSnapshotInput"}
+	if s.SourceSnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceSnapshotIdentifier"))
+	}
+	if s.TargetSnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetSnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CopyClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2809,6 +2989,9 @@ func (s CopyClusterSnapshotOutput) GoString() string {
 
 type CreateClusterInput struct {
 	_ struct{} `type:"structure"`
+
+	// Reserved.
+	AdditionalInfo *string `type:"string"`
 
 	// If true, major version upgrades can be applied during the maintenance window
 	// to the Amazon Redshift engine that is running on the cluster.
@@ -2878,8 +3061,8 @@ type CreateClusterInput struct {
 	// outside virtual private cloud (VPC).
 	ClusterSubnetGroupName *string `type:"string"`
 
-	// The type of the cluster. When cluster type is specified as   single-node,
-	// the NumberOfNodes parameter is not required.  multi-node, the NumberOfNodes
+	// The type of the cluster. When cluster type is specified as  single-node,
+	// the NumberOfNodes parameter is not required. multi-node, the NumberOfNodes
 	// parameter is required.
 	//
 	//  Valid Values: multi-node | single-node
@@ -2934,6 +3117,14 @@ type CreateClusterInput struct {
 	// Specifies the name of the HSM configuration that contains the information
 	// the Amazon Redshift cluster can use to retrieve and store keys in an HSM.
 	HsmConfigurationIdentifier *string `type:"string"`
+
+	// A list of AWS Identity and Access Management (IAM) roles that can be used
+	// by the cluster to access other AWS services. You must supply the IAM roles
+	// in their Amazon Resource Name (ARN) format. You can supply up to 10 IAM roles
+	// in a single request.
+	//
+	// A cluster can have up to 10 IAM roles associated at any time.
+	IamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
 
 	// The AWS Key Management Service (KMS) key ID of the encryption key that you
 	// want to use to encrypt data in the cluster.
@@ -3034,6 +3225,28 @@ func (s CreateClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.MasterUserPassword == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterUserPassword"))
+	}
+	if s.MasterUsername == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterUsername"))
+	}
+	if s.NodeType == nil {
+		invalidParams.Add(request.NewErrParamRequired("NodeType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3092,6 +3305,25 @@ func (s CreateClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterParameterGroupInput"}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.ParameterGroupFamily == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupFamily"))
+	}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateClusterParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3109,7 +3341,6 @@ func (s CreateClusterParameterGroupOutput) GoString() string {
 	return s.String()
 }
 
-// ???
 type CreateClusterSecurityGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3138,6 +3369,22 @@ func (s CreateClusterSecurityGroupInput) String() string {
 // GoString returns the string representation
 func (s CreateClusterSecurityGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterSecurityGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterSecurityGroupInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateClusterSecurityGroupOutput struct {
@@ -3185,6 +3432,22 @@ func (s CreateClusterSnapshotInput) String() string {
 // GoString returns the string representation
 func (s CreateClusterSnapshotInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterSnapshotInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateClusterSnapshotOutput struct {
@@ -3236,6 +3499,25 @@ func (s CreateClusterSubnetGroupInput) String() string {
 // GoString returns the string representation
 func (s CreateClusterSubnetGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterSubnetGroupInput"}
+	if s.ClusterSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSubnetGroupName"))
+	}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.SubnetIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateClusterSubnetGroupOutput struct {
@@ -3323,9 +3605,26 @@ func (s CreateEventSubscriptionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateEventSubscriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateEventSubscriptionInput"}
+	if s.SnsTopicArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnsTopicArn"))
+	}
+	if s.SubscriptionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubscriptionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
+	// Describes event subscriptions.
 	EventSubscription *EventSubscription `type:"structure"`
 }
 
@@ -3358,6 +3657,19 @@ func (s CreateHsmClientCertificateInput) String() string {
 // GoString returns the string representation
 func (s CreateHsmClientCertificateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHsmClientCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHsmClientCertificateInput"}
+	if s.HsmClientCertificateIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmClientCertificateIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateHsmClientCertificateOutput struct {
@@ -3416,6 +3728,34 @@ func (s CreateHsmConfigurationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHsmConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHsmConfigurationInput"}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.HsmConfigurationIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmConfigurationIdentifier"))
+	}
+	if s.HsmIpAddress == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmIpAddress"))
+	}
+	if s.HsmPartitionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmPartitionName"))
+	}
+	if s.HsmPartitionPassword == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmPartitionPassword"))
+	}
+	if s.HsmServerPublicCertificate == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmServerPublicCertificate"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateHsmConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3468,6 +3808,19 @@ func (s CreateSnapshotCopyGrantInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateSnapshotCopyGrantInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateSnapshotCopyGrantInput"}
+	if s.SnapshotCopyGrantName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotCopyGrantName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateSnapshotCopyGrantOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3515,6 +3868,22 @@ func (s CreateTagsInput) String() string {
 // GoString returns the string representation
 func (s CreateTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTagsInput"}
+	if s.ResourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceName"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateTagsOutput struct {
@@ -3601,6 +3970,19 @@ func (s DeleteClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3640,6 +4022,19 @@ func (s DeleteClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterParameterGroupInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3669,6 +4064,19 @@ func (s DeleteClusterSecurityGroupInput) String() string {
 // GoString returns the string representation
 func (s DeleteClusterSecurityGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterSecurityGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterSecurityGroupInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteClusterSecurityGroupOutput struct {
@@ -3712,6 +4120,19 @@ func (s DeleteClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterSnapshotInput"}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3746,6 +4167,19 @@ func (s DeleteClusterSubnetGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterSubnetGroupInput"}
+	if s.ClusterSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSubnetGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterSubnetGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3775,6 +4209,19 @@ func (s DeleteEventSubscriptionInput) String() string {
 // GoString returns the string representation
 func (s DeleteEventSubscriptionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteEventSubscriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteEventSubscriptionInput"}
+	if s.SubscriptionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubscriptionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteEventSubscriptionOutput struct {
@@ -3808,6 +4255,19 @@ func (s DeleteHsmClientCertificateInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHsmClientCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHsmClientCertificateInput"}
+	if s.HsmClientCertificateIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmClientCertificateIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteHsmClientCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3837,6 +4297,19 @@ func (s DeleteHsmConfigurationInput) String() string {
 // GoString returns the string representation
 func (s DeleteHsmConfigurationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHsmConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHsmConfigurationInput"}
+	if s.HsmConfigurationIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmConfigurationIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteHsmConfigurationOutput struct {
@@ -3869,6 +4342,19 @@ func (s DeleteSnapshotCopyGrantInput) String() string {
 // GoString returns the string representation
 func (s DeleteSnapshotCopyGrantInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteSnapshotCopyGrantInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteSnapshotCopyGrantInput"}
+	if s.SnapshotCopyGrantName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotCopyGrantName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteSnapshotCopyGrantOutput struct {
@@ -3905,6 +4391,22 @@ func (s DeleteTagsInput) String() string {
 // GoString returns the string representation
 func (s DeleteTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTagsInput"}
+	if s.ResourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceName"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteTagsOutput struct {
@@ -4043,6 +4545,19 @@ func (s DescribeClusterParametersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeClusterParametersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeClusterParametersInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the output from the DescribeClusterParameters action.
 type DescribeClusterParametersOutput struct {
 	_ struct{} `type:"structure"`
@@ -4069,7 +4584,6 @@ func (s DescribeClusterParametersOutput) GoString() string {
 	return s.String()
 }
 
-// ???
 type DescribeClusterSecurityGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4128,7 +4642,6 @@ func (s DescribeClusterSecurityGroupsInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeClusterSecurityGroups action.
 type DescribeClusterSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4519,6 +5032,19 @@ func (s DescribeDefaultClusterParametersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeDefaultClusterParametersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeDefaultClusterParametersInput"}
+	if s.ParameterGroupFamily == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupFamily"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeDefaultClusterParametersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4542,7 +5068,7 @@ type DescribeEventCategoriesInput struct {
 	// The source type, such as cluster or parameter group, to which the described
 	// event categories apply.
 	//
-	//  Valid values: cluster, snapshot, parameter group, and security group.
+	//  Valid values: cluster, cluster-snapshot, cluster-parameter-group, and cluster-security-group.
 	SourceType *string `type:"string"`
 }
 
@@ -4711,7 +5237,6 @@ func (s DescribeEventsInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeEvents action.
 type DescribeEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4871,7 +5396,7 @@ func (s DescribeHsmConfigurationsInput) GoString() string {
 type DescribeHsmConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of Amazon Redshift HSM configurations.
+	// A list of HsmConfiguration objects.
 	HsmConfigurations []*HsmConfiguration `locationNameList:"HsmConfiguration" type:"list"`
 
 	// A value that indicates the starting point for the next set of response records
@@ -4895,7 +5420,7 @@ func (s DescribeHsmConfigurationsOutput) GoString() string {
 type DescribeLoggingStatusInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier of the cluster to get the logging status from.
+	// The identifier of the cluster from which to get the logging status.
 	//
 	// Example: examplecluster
 	ClusterIdentifier *string `type:"string" required:"true"`
@@ -4909,6 +5434,19 @@ func (s DescribeLoggingStatusInput) String() string {
 // GoString returns the string representation
 func (s DescribeLoggingStatusInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeLoggingStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeLoggingStatusInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeOrderableClusterOptionsInput struct {
@@ -4967,7 +5505,7 @@ type DescribeOrderableClusterOptionsOutput struct {
 	Marker *string `type:"string"`
 
 	// An OrderableClusterOption structure containing information about orderable
-	// options for the Cluster.
+	// options for the cluster.
 	OrderableClusterOptions []*OrderableClusterOption `locationNameList:"OrderableClusterOption" type:"list"`
 }
 
@@ -5016,7 +5554,6 @@ func (s DescribeReservedNodeOfferingsInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeReservedNodeOfferings action.
 type DescribeReservedNodeOfferingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5027,7 +5564,7 @@ type DescribeReservedNodeOfferingsOutput struct {
 	// records have been retrieved for the request.
 	Marker *string `type:"string"`
 
-	// A list of reserved node offerings.
+	// A list of ReservedNodeOffering objects.
 	ReservedNodeOfferings []*ReservedNodeOffering `locationNameList:"ReservedNodeOffering" type:"list"`
 }
 
@@ -5075,7 +5612,6 @@ func (s DescribeReservedNodesInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeReservedNodes action.
 type DescribeReservedNodesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5086,7 +5622,7 @@ type DescribeReservedNodesOutput struct {
 	// records have been retrieved for the request.
 	Marker *string `type:"string"`
 
-	// The list of reserved nodes.
+	// The list of ReservedNode objects.
 	ReservedNodes []*ReservedNode `locationNameList:"ReservedNode" type:"list"`
 }
 
@@ -5119,6 +5655,19 @@ func (s DescribeResizeInput) String() string {
 // GoString returns the string representation
 func (s DescribeResizeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeResizeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeResizeInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes the result of a cluster resize operation.
@@ -5250,7 +5799,6 @@ func (s DescribeSnapshotCopyGrantsInput) GoString() string {
 	return s.String()
 }
 
-// The result of the snapshot copy grant.
 type DescribeSnapshotCopyGrantsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5265,7 +5813,7 @@ type DescribeSnapshotCopyGrantsOutput struct {
 	// or the Marker parameter, but not both.
 	Marker *string `type:"string"`
 
-	// The list of snapshot copy grants.
+	// The list of SnapshotCopyGrant objects.
 	SnapshotCopyGrants []*SnapshotCopyGrant `locationNameList:"SnapshotCopyGrant" type:"list"`
 }
 
@@ -5279,7 +5827,59 @@ func (s DescribeSnapshotCopyGrantsOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeTags action.
+type DescribeTableRestoreStatusInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Redshift cluster that the table is being restored to.
+	ClusterIdentifier *string `type:"string"`
+
+	// An optional pagination token provided by a previous DescribeTableRestoreStatus
+	// request. If this parameter is specified, the response includes only records
+	// beyond the marker, up to the value specified by the MaxRecords parameter.
+	Marker *string `type:"string"`
+
+	// The maximum number of records to include in the response. If more records
+	// exist than the specified MaxRecords value, a pagination token called a marker
+	// is included in the response so that the remaining results can be retrieved.
+	MaxRecords *int64 `type:"integer"`
+
+	// The identifier of the table restore request to return status for. If you
+	// don't specify a TableRestoreRequestId value, then DescribeTableRestoreStatus
+	// returns the status of all in-progress table restore requests.
+	TableRestoreRequestId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeTableRestoreStatusInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeTableRestoreStatusInput) GoString() string {
+	return s.String()
+}
+
+type DescribeTableRestoreStatusOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A pagination token that can be used in a subsequent DescribeTableRestoreStatus
+	// request.
+	Marker *string `type:"string"`
+
+	// A list of status details for one or more table restore requests.
+	TableRestoreStatusDetails []*TableRestoreStatus `locationNameList:"TableRestoreStatus" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeTableRestoreStatusOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeTableRestoreStatusOutput) GoString() string {
+	return s.String()
+}
+
 type DescribeTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5337,7 +5937,6 @@ func (s DescribeTagsInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeTags action.
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5381,6 +5980,19 @@ func (s DisableLoggingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableLoggingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableLoggingInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DisableSnapshotCopyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5400,6 +6012,19 @@ func (s DisableSnapshotCopyInput) String() string {
 // GoString returns the string representation
 func (s DisableSnapshotCopyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableSnapshotCopyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableSnapshotCopyInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DisableSnapshotCopyOutput struct {
@@ -5454,7 +6079,7 @@ type ElasticIpStatus struct {
 	// The elastic IP (EIP) address for the cluster.
 	ElasticIp *string `type:"string"`
 
-	// Describes the status of the elastic IP (EIP) address.
+	// The status of the elastic IP (EIP) address.
 	Status *string `type:"string"`
 }
 
@@ -5504,6 +6129,22 @@ func (s EnableLoggingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableLoggingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableLoggingInput"}
+	if s.BucketName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BucketName"))
+	}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type EnableSnapshotCopyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5541,6 +6182,22 @@ func (s EnableSnapshotCopyInput) String() string {
 // GoString returns the string representation
 func (s EnableSnapshotCopyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableSnapshotCopyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableSnapshotCopyInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.DestinationRegion == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationRegion"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type EnableSnapshotCopyOutput struct {
@@ -5621,14 +6278,15 @@ func (s Event) GoString() string {
 	return s.String()
 }
 
+// Describes event categories.
 type EventCategoriesMap struct {
 	_ struct{} `type:"structure"`
 
 	// The events in the event category.
 	Events []*EventInfoMap `locationNameList:"EventInfoMap" type:"list"`
 
-	// The Amazon Redshift source type, such as cluster or cluster-snapshot, that
-	// the returned categories belong to.
+	// The source type, such as cluster or cluster-snapshot, that the returned categories
+	// belong to.
 	SourceType *string `type:"string"`
 }
 
@@ -5642,6 +6300,7 @@ func (s EventCategoriesMap) GoString() string {
 	return s.String()
 }
 
+// Describes event information.
 type EventInfoMap struct {
 	_ struct{} `type:"structure"`
 
@@ -5670,6 +6329,7 @@ func (s EventInfoMap) GoString() string {
 	return s.String()
 }
 
+// Describes event subscriptions.
 type EventSubscription struct {
 	_ struct{} `type:"structure"`
 
@@ -5795,6 +6455,7 @@ func (s HsmConfiguration) GoString() string {
 	return s.String()
 }
 
+// Describes the status of changes to HSM settings.
 type HsmStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -5860,7 +6521,7 @@ type LoggingStatus struct {
 	// The last time when logs failed to be delivered.
 	LastFailureTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
-	// The last time when logs were delivered.
+	// The last time that logs were delivered.
 	LastSuccessfulDeliveryTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
 	// true if logging is on, false if logging is off.
@@ -5877,6 +6538,63 @@ func (s LoggingStatus) String() string {
 
 // GoString returns the string representation
 func (s LoggingStatus) GoString() string {
+	return s.String()
+}
+
+type ModifyClusterIamRolesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Zero or more IAM roles (in their ARN format) to associate with the cluster.
+	// You can associate up to 10 IAM roles with a single cluster in a single request.
+	AddIamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
+
+	// The unique identifier of the cluster for which you want to associate or disassociate
+	// IAM roles.
+	ClusterIdentifier *string `type:"string" required:"true"`
+
+	// Zero or more IAM roles (in their ARN format) to disassociate from the cluster.
+	// You can disassociate up to 10 IAM roles from a single cluster in a single
+	// request.
+	RemoveIamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
+}
+
+// String returns the string representation
+func (s ModifyClusterIamRolesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClusterIamRolesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterIamRolesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterIamRolesInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type ModifyClusterIamRolesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes a cluster.
+	Cluster *Cluster `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyClusterIamRolesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClusterIamRolesOutput) GoString() string {
 	return s.String()
 }
 
@@ -5951,6 +6669,14 @@ type ModifyClusterInput struct {
 	//
 	// Example: 1.0
 	ClusterVersion *string `type:"string"`
+
+	// The Elastic IP (EIP) address for the cluster.
+	//
+	// Constraints: The cluster must be provisioned in EC2-VPC and publicly-accessible
+	// through an Internet gateway. For more information about provisioning clusters
+	// in EC2-VPC, go to Supported Platforms to Launch Your Cluster (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#cluster-platforms)
+	// in the Amazon Redshift Cluster Management Guide.
+	ElasticIp *string `type:"string"`
 
 	// Specifies the name of the HSM client certificate the Amazon Redshift cluster
 	// uses to retrieve the data encryption keys stored in an HSM.
@@ -6034,6 +6760,10 @@ type ModifyClusterInput struct {
 	// Constraints: Must be at least 30 minutes.
 	PreferredMaintenanceWindow *string `type:"string"`
 
+	// If true, the cluster can be accessed from a public network. Only clusters
+	// in VPCs can be set to be publicly available.
+	PubliclyAccessible *bool `type:"boolean"`
+
 	// A list of virtual private cloud (VPC) security groups to be associated with
 	// the cluster.
 	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
@@ -6047,6 +6777,19 @@ func (s ModifyClusterInput) String() string {
 // GoString returns the string representation
 func (s ModifyClusterInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifyClusterOutput struct {
@@ -6093,6 +6836,22 @@ func (s ModifyClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterParameterGroupInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+	if s.Parameters == nil {
+		invalidParams.Add(request.NewErrParamRequired("Parameters"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyClusterSubnetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6115,6 +6874,22 @@ func (s ModifyClusterSubnetGroupInput) String() string {
 // GoString returns the string representation
 func (s ModifyClusterSubnetGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterSubnetGroupInput"}
+	if s.ClusterSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSubnetGroupName"))
+	}
+	if s.SubnetIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifyClusterSubnetGroupOutput struct {
@@ -6192,9 +6967,23 @@ func (s ModifyEventSubscriptionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyEventSubscriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyEventSubscriptionInput"}
+	if s.SubscriptionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubscriptionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
+	// Describes event subscriptions.
 	EventSubscription *EventSubscription `type:"structure"`
 }
 
@@ -6238,6 +7027,22 @@ func (s ModifySnapshotCopyRetentionPeriodInput) String() string {
 // GoString returns the string representation
 func (s ModifySnapshotCopyRetentionPeriodInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifySnapshotCopyRetentionPeriodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifySnapshotCopyRetentionPeriodInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.RetentionPeriod == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionPeriod"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifySnapshotCopyRetentionPeriodOutput struct {
@@ -6291,7 +7096,12 @@ type Parameter struct {
 	// The valid range of values for the parameter.
 	AllowedValues *string `type:"string"`
 
-	// Specifies how to apply the parameter. Supported value: static.
+	// Specifies how to apply the WLM configuration parameter. Some properties can
+	// be applied dynamically, while other properties require that any associated
+	// clusters be rebooted for the configuration changes to be applied. For more
+	// information about parameters and parameter groups, go to Amazon Redshift
+	// Parameter Groups (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-parameter-groups.html)
+	// in the Amazon Redshift Cluster Management Guide.
 	ApplyType *string `type:"string" enum:"ParameterApplyType"`
 
 	// The data type of the parameter.
@@ -6352,6 +7162,10 @@ type PendingModifiedValues struct {
 
 	// The pending or in-progress change of the number of nodes in the cluster.
 	NumberOfNodes *int64 `type:"integer"`
+
+	// The pending or in-progress change of the ability to connect to the cluster
+	// from the public network.
+	PubliclyAccessible *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -6367,7 +7181,7 @@ func (s PendingModifiedValues) GoString() string {
 type PurchaseReservedNodeOfferingInput struct {
 	_ struct{} `type:"structure"`
 
-	// The number of reserved nodes you want to purchase.
+	// The number of reserved nodes that you want to purchase.
 	//
 	// Default: 1
 	NodeCount *int64 `type:"integer"`
@@ -6384,6 +7198,19 @@ func (s PurchaseReservedNodeOfferingInput) String() string {
 // GoString returns the string representation
 func (s PurchaseReservedNodeOfferingInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PurchaseReservedNodeOfferingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PurchaseReservedNodeOfferingInput"}
+	if s.ReservedNodeOfferingId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservedNodeOfferingId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PurchaseReservedNodeOfferingOutput struct {
@@ -6419,6 +7246,19 @@ func (s RebootClusterInput) String() string {
 // GoString returns the string representation
 func (s RebootClusterInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RebootClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RebootClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RebootClusterOutput struct {
@@ -6594,8 +7434,24 @@ func (s ResetClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResetClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResetClusterParameterGroupInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RestoreFromClusterSnapshotInput struct {
 	_ struct{} `type:"structure"`
+
+	// Reserved.
+	AdditionalInfo *string `type:"string"`
 
 	// If true, major version upgrades can be applied during the maintenance window
 	// to the Amazon Redshift engine that is running on the cluster.
@@ -6665,6 +7521,14 @@ type RestoreFromClusterSnapshotInput struct {
 	// Specifies the name of the HSM configuration that contains the information
 	// the Amazon Redshift cluster can use to retrieve and store keys in an HSM.
 	HsmConfigurationIdentifier *string `type:"string"`
+
+	// A list of AWS Identity and Access Management (IAM) roles that can be used
+	// by the cluster to access other AWS services. You must supply the IAM roles
+	// in their Amazon Resource Name (ARN) format. You can supply up to 10 IAM roles
+	// in a single request.
+	//
+	// A cluster can have up to 10 IAM roles associated at any time.
+	IamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
 
 	// The AWS Key Management Service (KMS) key ID of the encryption key that you
 	// want to use to encrypt data in the cluster that you restore from a shared
@@ -6743,6 +7607,22 @@ func (s RestoreFromClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RestoreFromClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RestoreFromClusterSnapshotInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RestoreFromClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6798,7 +7678,89 @@ func (s RestoreStatus) GoString() string {
 	return s.String()
 }
 
-// ???
+type RestoreTableFromClusterSnapshotInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Amazon Redshift cluster to restore the table to.
+	ClusterIdentifier *string `type:"string" required:"true"`
+
+	// The name of the table to create as a result of the current request.
+	NewTableName *string `type:"string" required:"true"`
+
+	// The identifier of the snapshot to restore the table from. This snapshot must
+	// have been created from the Amazon Redshift cluster specified by the ClusterIdentifier
+	// parameter.
+	SnapshotIdentifier *string `type:"string" required:"true"`
+
+	// The name of the source database that contains the table to restore from.
+	SourceDatabaseName *string `type:"string" required:"true"`
+
+	// The name of the source schema that contains the table to restore from. If
+	// you do not specify a SourceSchemaName value, the default is public.
+	SourceSchemaName *string `type:"string"`
+
+	// The name of the source table to restore from.
+	SourceTableName *string `type:"string" required:"true"`
+
+	// The name of the database to restore the table to.
+	TargetDatabaseName *string `type:"string"`
+
+	// The name of the schema to restore the table to.
+	TargetSchemaName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s RestoreTableFromClusterSnapshotInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RestoreTableFromClusterSnapshotInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RestoreTableFromClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RestoreTableFromClusterSnapshotInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.NewTableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("NewTableName"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+	if s.SourceDatabaseName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceDatabaseName"))
+	}
+	if s.SourceTableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceTableName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type RestoreTableFromClusterSnapshotOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes the status of a RestoreTableFromClusterSnapshot operation.
+	TableRestoreStatus *TableRestoreStatus `type:"structure"`
+}
+
+// String returns the string representation
+func (s RestoreTableFromClusterSnapshotOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RestoreTableFromClusterSnapshotOutput) GoString() string {
+	return s.String()
+}
+
 type RevokeClusterSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6832,6 +7794,19 @@ func (s RevokeClusterSecurityGroupIngressInput) String() string {
 // GoString returns the string representation
 func (s RevokeClusterSecurityGroupIngressInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RevokeClusterSecurityGroupIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RevokeClusterSecurityGroupIngressInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RevokeClusterSecurityGroupIngressOutput struct {
@@ -6877,6 +7852,22 @@ func (s RevokeSnapshotAccessInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RevokeSnapshotAccessInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RevokeSnapshotAccessInput"}
+	if s.AccountWithRestoreAccess == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountWithRestoreAccess"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RevokeSnapshotAccessOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6912,6 +7903,19 @@ func (s RotateEncryptionKeyInput) String() string {
 // GoString returns the string representation
 func (s RotateEncryptionKeyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RotateEncryptionKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RotateEncryptionKeyInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RotateEncryptionKeyOutput struct {
@@ -7019,9 +8023,9 @@ type Snapshot struct {
 	SourceRegion *string `type:"string"`
 
 	// The snapshot status. The value of the status depends on the API operation
-	// used.   CreateClusterSnapshot and CopyClusterSnapshot returns status as "creating".
-	//   DescribeClusterSnapshots returns status as "creating", "available", "final
-	// snapshot", or "failed".  DeleteClusterSnapshot returns status as "deleted".
+	// used.  CreateClusterSnapshot and CopyClusterSnapshot returns status as "creating".
+	//  DescribeClusterSnapshots returns status as "creating", "available", "final
+	// snapshot", or "failed". DeleteClusterSnapshot returns status as "deleted".
 	Status *string `type:"string"`
 
 	// The list of tags for the cluster snapshot.
@@ -7101,6 +8105,68 @@ func (s Subnet) GoString() string {
 	return s.String()
 }
 
+// Describes the status of a RestoreTableFromClusterSnapshot operation.
+type TableRestoreStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Amazon Redshift cluster that the table is being restored
+	// to.
+	ClusterIdentifier *string `type:"string"`
+
+	// A description of the status of the table restore request. Status values include
+	// SUCCEEDED, FAILED, CANCELED, PENDING, IN_PROGRESS.
+	Message *string `type:"string"`
+
+	// The name of the table to create as a result of the table restore request.
+	NewTableName *string `type:"string"`
+
+	// The amount of data restored to the new table so far, in megabytes (MB).
+	ProgressInMegaBytes *int64 `type:"long"`
+
+	// The time that the table restore request was made, in Universal Coordinated
+	// Time (UTC).
+	RequestTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// The identifier of the snapshot that the table is being restored from.
+	SnapshotIdentifier *string `type:"string"`
+
+	// The name of the source database that contains the table being restored.
+	SourceDatabaseName *string `type:"string"`
+
+	// The name of the source schema that contains the table being restored.
+	SourceSchemaName *string `type:"string"`
+
+	// The name of the source table being restored.
+	SourceTableName *string `type:"string"`
+
+	// A value that describes the current state of the table restore request.
+	//
+	// Valid Values: SUCCEEDED, FAILED, CANCELED, PENDING, IN_PROGRESS
+	Status *string `type:"string" enum:"TableRestoreStatusType"`
+
+	// The unique identifier for the table restore request.
+	TableRestoreRequestId *string `type:"string"`
+
+	// The name of the database to restore the table to.
+	TargetDatabaseName *string `type:"string"`
+
+	// The name of the schema to restore the table to.
+	TargetSchemaName *string `type:"string"`
+
+	// The total amount of data to restore to the new table, in megabytes (MB).
+	TotalDataInMegaBytes *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s TableRestoreStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TableRestoreStatus) GoString() string {
+	return s.String()
+}
+
 // A tag consisting of a name/value pair for a resource.
 type Tag struct {
 	_ struct{} `type:"structure"`
@@ -7157,8 +8223,10 @@ func (s TaggedResource) GoString() string {
 type VpcSecurityGroupMembership struct {
 	_ struct{} `type:"structure"`
 
+	// The status of the VPC security group.
 	Status *string `type:"string"`
 
+	// The identifier of the VPC security group.
 	VpcSecurityGroupId *string `type:"string"`
 }
 
@@ -7188,4 +8256,17 @@ const (
 	SourceTypeClusterSecurityGroup = "cluster-security-group"
 	// @enum SourceType
 	SourceTypeClusterSnapshot = "cluster-snapshot"
+)
+
+const (
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypePending = "PENDING"
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypeInProgress = "IN_PROGRESS"
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypeSucceeded = "SUCCEEDED"
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypeFailed = "FAILED"
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypeCanceled = "CANCELED"
 )

@@ -35,8 +35,14 @@ EOF
 
 The following arguments are supported:
 
-* `rest_api_id` - (Required) API Gateway ID
-* `name` - (Required) Name of the model
-* `description` - (Optional) Model description
-* `content_type` - (Required) Model content type
-* `schema` - (Required) Model schema
+* `rest_api_id` - (Required) The ID of the associated REST API
+* `name` - (Required) The name of the model
+* `description` - (Optional) The description of the model
+* `content_type` - (Required) The content type of the model
+* `schema` - (Required) The schema of the model in a JSON form
+
+## Attributes Reference
+
+The following attributes are exported:
+
+* `id` - The ID of the model

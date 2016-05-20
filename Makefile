@@ -5,7 +5,7 @@ default: test vet
 
 # bin generates the releaseable binaries for Terraform
 bin: fmtcheck generate
-	@sh -c "'$(CURDIR)/scripts/build.sh'"
+	@TF_RELEASE=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing Terraform locally. These are put
 # into ./bin/ as well as $GOPATH/bin
@@ -13,12 +13,12 @@ dev: fmtcheck generate
 	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
 quickdev: generate
-	@TF_QUICKDEV=1 TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # Shorthand for quickly building the core of Terraform. Note that some
 # changes will require a rebuild of everything, in which case the dev
 # target should be used.
-core-dev: fmtcheck generate
+core-dev: generate
 	go install github.com/hashicorp/terraform
 
 # Shorthand for quickly testing the core of Terraform (i.e. "not providers")

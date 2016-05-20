@@ -10,7 +10,7 @@ func (c *CloudFormation) WaitUntilStackCreateComplete(input *DescribeStacksInput
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeStacks",
 		Delay:       30,
-		MaxAttempts: 50,
+		MaxAttempts: 120,
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
@@ -23,6 +23,48 @@ func (c *CloudFormation) WaitUntilStackCreateComplete(input *DescribeStacksInput
 				Matcher:  "pathAny",
 				Argument: "Stacks[].StackStatus",
 				Expected: "CREATE_FAILED",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "DELETE_COMPLETE",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "DELETE_IN_PROGRESS",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "DELETE_FAILED",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "ROLLBACK_COMPLETE",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "ROLLBACK_FAILED",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "ROLLBACK_IN_PROGRESS",
+			},
+			{
+				State:    "failure",
+				Matcher:  "error",
+				Argument: "",
+				Expected: "ValidationError",
 			},
 		},
 	}
@@ -39,7 +81,7 @@ func (c *CloudFormation) WaitUntilStackDeleteComplete(input *DescribeStacksInput
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeStacks",
 		Delay:       30,
-		MaxAttempts: 25,
+		MaxAttempts: 120,
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
@@ -59,6 +101,113 @@ func (c *CloudFormation) WaitUntilStackDeleteComplete(input *DescribeStacksInput
 				Argument: "Stacks[].StackStatus",
 				Expected: "DELETE_FAILED",
 			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "CREATE_COMPLETE",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "CREATE_FAILED",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "CREATE_IN_PROGRESS",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "ROLLBACK_COMPLETE",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "ROLLBACK_FAILED",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "ROLLBACK_IN_PROGRESS",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_COMPLETE",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_IN_PROGRESS",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_ROLLBACK_COMPLETE",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_ROLLBACK_FAILED",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_ROLLBACK_IN_PROGRESS",
+			},
+		},
+	}
+
+	w := waiter.Waiter{
+		Client: c,
+		Input:  input,
+		Config: waiterCfg,
+	}
+	return w.Wait()
+}
+
+func (c *CloudFormation) WaitUntilStackExists(input *DescribeStacksInput) error {
+	waiterCfg := waiter.Config{
+		Operation:   "DescribeStacks",
+		Delay:       5,
+		MaxAttempts: 20,
+		Acceptors: []waiter.WaitAcceptor{
+			{
+				State:    "success",
+				Matcher:  "status",
+				Argument: "",
+				Expected: 200,
+			},
+			{
+				State:    "retry",
+				Matcher:  "error",
+				Argument: "",
+				Expected: "ValidationError",
+			},
 		},
 	}
 
@@ -74,7 +223,7 @@ func (c *CloudFormation) WaitUntilStackUpdateComplete(input *DescribeStacksInput
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeStacks",
 		Delay:       30,
-		MaxAttempts: 5,
+		MaxAttempts: 120,
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
@@ -87,6 +236,36 @@ func (c *CloudFormation) WaitUntilStackUpdateComplete(input *DescribeStacksInput
 				Matcher:  "pathAny",
 				Argument: "Stacks[].StackStatus",
 				Expected: "UPDATE_FAILED",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_ROLLBACK_COMPLETE",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_ROLLBACK_FAILED",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
+			},
+			{
+				State:    "failure",
+				Matcher:  "pathAny",
+				Argument: "Stacks[].StackStatus",
+				Expected: "UPDATE_ROLLBACK_IN_PROGRESS",
+			},
+			{
+				State:    "failure",
+				Matcher:  "error",
+				Argument: "",
+				Expected: "ValidationError",
 			},
 		},
 	}

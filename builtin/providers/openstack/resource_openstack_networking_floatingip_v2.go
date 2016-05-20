@@ -26,7 +26,7 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
@@ -36,7 +36,7 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFunc("OS_POOL_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_POOL_NAME", nil),
 			},
 			"port_id": &schema.Schema{
 				Type:     schema.TypeString,

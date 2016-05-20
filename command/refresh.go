@@ -109,7 +109,7 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
-	if outputs := outputsAsString(newState); outputs != "" {
+	if outputs := outputsAsString(newState, ctx.Module().Config().Outputs); outputs != "" {
 		c.Ui.Output(c.Colorize().Color(outputs))
 	}
 

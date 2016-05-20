@@ -98,6 +98,10 @@ func resourceAwsLambdaFunction() *schema.Resource {
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
+						"vpc_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -226,6 +230,10 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	getFunctionOutput, err := conn.GetFunction(params)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -245,7 +253,11 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("runtime", function.Runtime)
 	d.Set("timeout", function.Timeout)
 	if config := flattenLambdaVpcConfigResponse(function.VpcConfig); len(config) > 0 {
-		d.Set("vpc_config", config)
+		log.Printf("[INFO] Setting Lambda %s VPC config %#v from API", d.Id(), config)
+		err := d.Set("vpc_config", config)
+		if err != nil {
+			return fmt.Errorf("Failed setting vpc_config: %s", err)
+		}
 	}
 	d.Set("source_code_hash", function.CodeSha256)
 

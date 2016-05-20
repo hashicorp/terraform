@@ -15,9 +15,11 @@ import (
 
 func TestAccAWSRoute53DelegationSet_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53ZoneDestroy,
+		PreCheck:        func() { testAccPreCheck(t) },
+		IDRefreshName:   "aws_route53_delegation_set.test",
+		IDRefreshIgnore: []string{"reference_name"},
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckRoute53ZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53DelegationSetConfig,
@@ -33,9 +35,11 @@ func TestAccAWSRoute53DelegationSet_withZones(t *testing.T) {
 	var zone route53.GetHostedZoneOutput
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53ZoneDestroy,
+		PreCheck:        func() { testAccPreCheck(t) },
+		IDRefreshName:   "aws_route53_delegation_set.main",
+		IDRefreshIgnore: []string{"reference_name"},
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckRoute53ZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53DelegationSetWithZonesConfig,

@@ -1063,6 +1063,22 @@ func (s CancelKeyDeletionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CancelKeyDeletionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CancelKeyDeletionInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CancelKeyDeletionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1103,6 +1119,28 @@ func (s CreateAliasInput) String() string {
 // GoString returns the string representation
 func (s CreateAliasInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateAliasInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateAliasInput"}
+	if s.AliasName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AliasName"))
+	}
+	if s.AliasName != nil && len(*s.AliasName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AliasName", 1))
+	}
+	if s.TargetKeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetKeyId"))
+	}
+	if s.TargetKeyId != nil && len(*s.TargetKeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TargetKeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateAliasOutput struct {
@@ -1196,6 +1234,34 @@ func (s CreateGrantInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateGrantInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateGrantInput"}
+	if s.GranteePrincipal == nil {
+		invalidParams.Add(request.NewErrParamRequired("GranteePrincipal"))
+	}
+	if s.GranteePrincipal != nil && len(*s.GranteePrincipal) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GranteePrincipal", 1))
+	}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.RetiringPrincipal != nil && len(*s.RetiringPrincipal) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RetiringPrincipal", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateGrantOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1247,6 +1313,19 @@ func (s CreateKeyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateKeyInput"}
+	if s.Policy != nil && len(*s.Policy) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Policy", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateKeyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1268,6 +1347,8 @@ type DecryptInput struct {
 	_ struct{} `type:"structure"`
 
 	// Ciphertext to be decrypted. The blob includes metadata.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob" required:"true"`
 
 	// The encryption context. If this was specified in the Encrypt function, it
@@ -1292,6 +1373,22 @@ func (s DecryptInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DecryptInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DecryptInput"}
+	if s.CiphertextBlob == nil {
+		invalidParams.Add(request.NewErrParamRequired("CiphertextBlob"))
+	}
+	if s.CiphertextBlob != nil && len(s.CiphertextBlob) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CiphertextBlob", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DecryptOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1301,6 +1398,8 @@ type DecryptOutput struct {
 
 	// Decrypted plaintext data. This value may not be returned if the customer
 	// master key is not available or if you didn't have permission to use it.
+	//
+	// Plaintext is automatically base64 encoded/decoded by the SDK.
 	Plaintext []byte `min:"1" type:"blob"`
 }
 
@@ -1330,6 +1429,22 @@ func (s DeleteAliasInput) String() string {
 // GoString returns the string representation
 func (s DeleteAliasInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteAliasInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteAliasInput"}
+	if s.AliasName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AliasName"))
+	}
+	if s.AliasName != nil && len(*s.AliasName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AliasName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteAliasOutput struct {
@@ -1374,6 +1489,22 @@ func (s DescribeKeyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeKeyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1411,6 +1542,22 @@ func (s DisableKeyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DisableKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1443,6 +1590,22 @@ func (s DisableKeyRotationInput) String() string {
 // GoString returns the string representation
 func (s DisableKeyRotationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableKeyRotationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableKeyRotationInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DisableKeyRotationOutput struct {
@@ -1479,6 +1642,22 @@ func (s EnableKeyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type EnableKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1511,6 +1690,22 @@ func (s EnableKeyRotationInput) String() string {
 // GoString returns the string representation
 func (s EnableKeyRotationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableKeyRotationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableKeyRotationInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type EnableKeyRotationOutput struct {
@@ -1551,6 +1746,8 @@ type EncryptInput struct {
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// Data to be encrypted.
+	//
+	// Plaintext is automatically base64 encoded/decoded by the SDK.
 	Plaintext []byte `min:"1" type:"blob" required:"true"`
 }
 
@@ -1564,11 +1761,35 @@ func (s EncryptInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EncryptInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EncryptInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.Plaintext == nil {
+		invalidParams.Add(request.NewErrParamRequired("Plaintext"))
+	}
+	if s.Plaintext != nil && len(s.Plaintext) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Plaintext", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type EncryptOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The encrypted plaintext. If you are using the CLI, the value is Base64 encoded.
 	// Otherwise, it is not encoded.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob"`
 
 	// The ID of the key used during encryption.
@@ -1627,6 +1848,25 @@ func (s GenerateDataKeyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GenerateDataKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GenerateDataKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.NumberOfBytes != nil && *s.NumberOfBytes < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("NumberOfBytes", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GenerateDataKeyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1638,6 +1878,8 @@ type GenerateDataKeyOutput struct {
 	//
 	// If you are using the CLI, the value is Base64 encoded. Otherwise, it is
 	// not encoded.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob"`
 
 	// System generated unique identifier of the key to be used to decrypt the encrypted
@@ -1646,6 +1888,8 @@ type GenerateDataKeyOutput struct {
 
 	// Plaintext that contains the data key. Use this for encryption and decryption
 	// and then remove it from memory as soon as possible.
+	//
+	// Plaintext is automatically base64 encoded/decoded by the SDK.
 	Plaintext []byte `min:"1" type:"blob"`
 }
 
@@ -1700,6 +1944,25 @@ func (s GenerateDataKeyWithoutPlaintextInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GenerateDataKeyWithoutPlaintextInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GenerateDataKeyWithoutPlaintextInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.NumberOfBytes != nil && *s.NumberOfBytes < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("NumberOfBytes", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GenerateDataKeyWithoutPlaintextOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1708,6 +1971,8 @@ type GenerateDataKeyWithoutPlaintextOutput struct {
 	//
 	// If you are using the CLI, the value is Base64 encoded. Otherwise, it is
 	// not encoded.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob"`
 
 	// System generated unique identifier of the key to be used to decrypt the encrypted
@@ -1743,10 +2008,25 @@ func (s GenerateRandomInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GenerateRandomInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GenerateRandomInput"}
+	if s.NumberOfBytes != nil && *s.NumberOfBytes < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("NumberOfBytes", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GenerateRandomOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Plaintext that contains the unpredictable byte string.
+	//
+	// Plaintext is automatically base64 encoded/decoded by the SDK.
 	Plaintext []byte `min:"1" type:"blob"`
 }
 
@@ -1784,6 +2064,28 @@ func (s GetKeyPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetKeyPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetKeyPolicyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.PolicyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyName"))
+	}
+	if s.PolicyName != nil && len(*s.PolicyName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PolicyName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GetKeyPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1819,6 +2121,22 @@ func (s GetKeyRotationStatusInput) String() string {
 // GoString returns the string representation
 func (s GetKeyRotationStatusInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetKeyRotationStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetKeyRotationStatusInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type GetKeyRotationStatusOutput struct {
@@ -2006,8 +2324,8 @@ type ListAliasesInput struct {
 	Limit *int64 `min:"1" type:"integer"`
 
 	// Use this parameter only when paginating results and only in a subsequent
-	// request after you've received a response with truncated results. Set it to
-	// the value of NextMarker from the response you just received.
+	// request after you receive a response with truncated results. Set it to the
+	// value of NextMarker from the response you just received.
 	Marker *string `min:"1" type:"string"`
 }
 
@@ -2019,6 +2337,22 @@ func (s ListAliasesInput) String() string {
 // GoString returns the string representation
 func (s ListAliasesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListAliasesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListAliasesInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ListAliasesOutput struct {
@@ -2065,8 +2399,8 @@ type ListGrantsInput struct {
 	Limit *int64 `min:"1" type:"integer"`
 
 	// Use this parameter only when paginating results and only in a subsequent
-	// request after you've received a response with truncated results. Set it to
-	// the value of NextMarker from the response you just received.
+	// request after you receive a response with truncated results. Set it to the
+	// value of NextMarker from the response you just received.
 	Marker *string `min:"1" type:"string"`
 }
 
@@ -2078,6 +2412,28 @@ func (s ListGrantsInput) String() string {
 // GoString returns the string representation
 func (s ListGrantsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListGrantsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListGrantsInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ListGrantsResponse struct {
@@ -2128,8 +2484,8 @@ type ListKeyPoliciesInput struct {
 	Limit *int64 `min:"1" type:"integer"`
 
 	// Use this parameter only when paginating results and only in a subsequent
-	// request after you've received a response with truncated results. Set it to
-	// the value of NextMarker from the response you just received.
+	// request after you receive a response with truncated results. Set it to the
+	// value of NextMarker from the response you just received.
 	Marker *string `min:"1" type:"string"`
 }
 
@@ -2141,6 +2497,28 @@ func (s ListKeyPoliciesInput) String() string {
 // GoString returns the string representation
 func (s ListKeyPoliciesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListKeyPoliciesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListKeyPoliciesInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ListKeyPoliciesOutput struct {
@@ -2182,8 +2560,8 @@ type ListKeysInput struct {
 	Limit *int64 `min:"1" type:"integer"`
 
 	// Use this parameter only when paginating results and only in a subsequent
-	// request after you've received a response with truncated results. Set it to
-	// the value of NextMarker from the response you just received.
+	// request after you receive a response with truncated results. Set it to the
+	// value of NextMarker from the response you just received.
 	Marker *string `min:"1" type:"string"`
 }
 
@@ -2195,6 +2573,22 @@ func (s ListKeysInput) String() string {
 // GoString returns the string representation
 func (s ListKeysInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListKeysInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListKeysInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ListKeysOutput struct {
@@ -2235,8 +2629,8 @@ type ListRetirableGrantsInput struct {
 	Limit *int64 `min:"1" type:"integer"`
 
 	// Use this parameter only when paginating results and only in a subsequent
-	// request after you've received a response with truncated results. Set it to
-	// the value of NextMarker from the response you just received.
+	// request after you receive a response with truncated results. Set it to the
+	// value of NextMarker from the response you just received.
 	Marker *string `min:"1" type:"string"`
 
 	// The retiring principal for which to list grants.
@@ -2258,6 +2652,28 @@ func (s ListRetirableGrantsInput) String() string {
 // GoString returns the string representation
 func (s ListRetirableGrantsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListRetirableGrantsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListRetirableGrantsInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+	if s.RetiringPrincipal == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetiringPrincipal"))
+	}
+	if s.RetiringPrincipal != nil && len(*s.RetiringPrincipal) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RetiringPrincipal", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PutKeyPolicyInput struct {
@@ -2289,6 +2705,34 @@ func (s PutKeyPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutKeyPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutKeyPolicyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.Policy == nil {
+		invalidParams.Add(request.NewErrParamRequired("Policy"))
+	}
+	if s.Policy != nil && len(*s.Policy) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Policy", 1))
+	}
+	if s.PolicyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyName"))
+	}
+	if s.PolicyName != nil && len(*s.PolicyName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PolicyName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PutKeyPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2307,6 +2751,8 @@ type ReEncryptInput struct {
 	_ struct{} `type:"structure"`
 
 	// Ciphertext of the data to re-encrypt.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob" required:"true"`
 
 	// Encryption context to be used when the data is re-encrypted.
@@ -2342,11 +2788,35 @@ func (s ReEncryptInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReEncryptInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReEncryptInput"}
+	if s.CiphertextBlob == nil {
+		invalidParams.Add(request.NewErrParamRequired("CiphertextBlob"))
+	}
+	if s.CiphertextBlob != nil && len(s.CiphertextBlob) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CiphertextBlob", 1))
+	}
+	if s.DestinationKeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationKeyId"))
+	}
+	if s.DestinationKeyId != nil && len(*s.DestinationKeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DestinationKeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ReEncryptOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The re-encrypted data. If you are using the CLI, the value is Base64 encoded.
 	// Otherwise, it is not encoded.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob"`
 
 	// Unique identifier of the key used to re-encrypt the data.
@@ -2393,6 +2863,25 @@ func (s RetireGrantInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RetireGrantInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RetireGrantInput"}
+	if s.GrantId != nil && len(*s.GrantId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GrantId", 1))
+	}
+	if s.GrantToken != nil && len(*s.GrantToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GrantToken", 1))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RetireGrantOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2428,6 +2917,28 @@ func (s RevokeGrantInput) String() string {
 // GoString returns the string representation
 func (s RevokeGrantInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RevokeGrantInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RevokeGrantInput"}
+	if s.GrantId == nil {
+		invalidParams.Add(request.NewErrParamRequired("GrantId"))
+	}
+	if s.GrantId != nil && len(*s.GrantId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GrantId", 1))
+	}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RevokeGrantOutput struct {
@@ -2474,6 +2985,25 @@ func (s ScheduleKeyDeletionInput) String() string {
 // GoString returns the string representation
 func (s ScheduleKeyDeletionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ScheduleKeyDeletionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ScheduleKeyDeletionInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.PendingWindowInDays != nil && *s.PendingWindowInDays < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("PendingWindowInDays", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ScheduleKeyDeletionOutput struct {
@@ -2525,6 +3055,28 @@ func (s UpdateAliasInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateAliasInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateAliasInput"}
+	if s.AliasName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AliasName"))
+	}
+	if s.AliasName != nil && len(*s.AliasName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AliasName", 1))
+	}
+	if s.TargetKeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetKeyId"))
+	}
+	if s.TargetKeyId != nil && len(*s.TargetKeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TargetKeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateAliasOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2560,6 +3112,25 @@ func (s UpdateKeyDescriptionInput) String() string {
 // GoString returns the string representation
 func (s UpdateKeyDescriptionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateKeyDescriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateKeyDescriptionInput"}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UpdateKeyDescriptionOutput struct {

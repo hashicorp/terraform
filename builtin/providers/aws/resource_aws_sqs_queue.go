@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -8,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -66,10 +69,24 @@ func resourceAwsSqsQueue() *schema.Resource {
 			"policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				StateFunc: func(v interface{}) string {
+					s, ok := v.(string)
+					if !ok || s == "" {
+						return ""
+					}
+					jsonb := []byte(s)
+					buffer := new(bytes.Buffer)
+					if err := json.Compact(buffer, jsonb); err != nil {
+						log.Printf("[WARN] Error compacting JSON for Policy in SNS Queue")
+						return ""
+					}
+					return buffer.String()
+				},
 			},
 			"redrive_policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: normalizeJson,
 			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -161,6 +178,14 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			log.Printf("ERROR Found %s", awsErr.Code())
+			if "AWS.SimpleQueueService.NonExistentQueue" == awsErr.Code() {
+				d.SetId("")
+				log.Printf("[DEBUG] SQS Queue (%s) not found", d.Get("name").(string))
+				return nil
+			}
+		}
 		return err
 	}
 
@@ -176,7 +201,9 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 						return err
 					}
 					d.Set(iKey, value)
+					log.Printf("[DEBUG] Reading %s => %s -> %d", iKey, oKey, value)
 				} else {
+					log.Printf("[DEBUG] Reading %s => %s -> %s", iKey, oKey, *attrmap[oKey])
 					d.Set(iKey, *attrmap[oKey])
 				}
 			}

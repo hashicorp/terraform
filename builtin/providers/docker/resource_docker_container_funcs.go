@@ -51,10 +51,19 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 
 	if v, ok := d.GetOk("command"); ok {
 		createOpts.Config.Cmd = stringListToStringSlice(v.([]interface{}))
+		for _, v := range createOpts.Config.Cmd {
+			if v == "" {
+				return fmt.Errorf("values for command may not be empty")
+			}
+		}
 	}
 
 	if v, ok := d.GetOk("entrypoint"); ok {
 		createOpts.Config.Entrypoint = stringListToStringSlice(v.([]interface{}))
+	}
+
+	if v, ok := d.GetOk("user"); ok {
+		createOpts.Config.User = v.(string)
 	}
 
 	exposedPorts := map[dc.Port]struct{}{}
@@ -265,6 +274,10 @@ func resourceDockerContainerDelete(d *schema.ResourceData, meta interface{}) err
 func stringListToStringSlice(stringList []interface{}) []string {
 	ret := []string{}
 	for _, v := range stringList {
+		if v == nil {
+			ret = append(ret, "")
+			continue
+		}
 		ret = append(ret, v.(string))
 	}
 	return ret

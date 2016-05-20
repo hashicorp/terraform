@@ -63,6 +63,11 @@ func resourceAwsEip() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"associate_with_private_ip": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -157,6 +162,14 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_ip", address.PrivateIpAddress)
 	d.Set("public_ip", address.PublicIp)
 
+	// On import (domain never set, which it must've been if we created),
+	// set the 'vpc' attribute depending on if we're in a VPC.
+	if _, ok := d.GetOk("domain"); !ok {
+		d.Set("vpc", *address.Domain == "vpc")
+	}
+
+	d.Set("domain", address.Domain)
+
 	return nil
 }
 
@@ -180,10 +193,15 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		// more unique ID conditionals
 		if domain == "vpc" {
+			var privateIpAddress *string
+			if v := d.Get("associate_with_private_ip").(string); v != "" {
+				privateIpAddress = aws.String(v)
+			}
 			assocOpts = &ec2.AssociateAddressInput{
 				NetworkInterfaceId: aws.String(networkInterfaceId),
 				InstanceId:         aws.String(instanceId),
 				AllocationId:       aws.String(d.Id()),
+				PrivateIpAddress:   privateIpAddress,
 			}
 		}
 

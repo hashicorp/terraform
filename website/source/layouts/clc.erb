@@ -1,0 +1,38 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+        <div class="docs-sidebar hidden-print affix-top" role="complementary">
+            <ul class="nav docs-sidenav">
+                <li<%= sidebar_current("docs-home") %>>
+                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+                <li<%= sidebar_current("docs-clc-index") %>>
+                    <a href="/docs/providers/clc/index.html">CenturyLinkCloud Provider</a>
+                </li>
+
+                <li<%= sidebar_current(/^docs-clc-resource/) %>>
+                    <a href="#">Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-clc-resource-server") %>>
+                            <a href="/docs/providers/clc/r/server.html">clc_server</a>
+                        </li>
+                        <li<%= sidebar_current("docs-clc-resource-group") %>>
+                            <a href="/docs/providers/clc/r/group.html">clc_group</a>
+                        </li>
+                        <li<%= sidebar_current("docs-clc-resource-public-ip") %>>
+                            <a href="/docs/providers/clc/r/public_ip.html">clc_public_ip</a>
+                        </li>
+                        <li<%= sidebar_current("docs-clc-resource-load-balancer") %>>
+                            <a href="/docs/providers/clc/r/load_balancer.html">clc_load_balancer</a>
+                        </li>
+                        <li<%= sidebar_current("docs-clc-resource-load-balancer-pool") %>>
+                            <a href="/docs/providers/clc/r/load_balancer_pool.html">clc_load_balancer_pool</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    <% end %>
+
+    <%= yield %>
+<% end %>

@@ -93,6 +93,7 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 }
 
 func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface{}) error {
+	retryTimeout := int64(30)
 	conn := meta.(*AWSClient).cfconn
 
 	input := cloudformation.CreateStackInput{
@@ -129,7 +130,12 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		input.Tags = expandCloudFormationTags(v.(map[string]interface{}))
 	}
 	if v, ok := d.GetOk("timeout_in_minutes"); ok {
-		input.TimeoutInMinutes = aws.Int64(int64(v.(int)))
+		m := int64(v.(int))
+		input.TimeoutInMinutes = aws.Int64(m)
+		if m > retryTimeout {
+			retryTimeout = m + 5
+			log.Printf("[DEBUG] CloudFormation timeout: %d", retryTimeout)
+		}
 	}
 
 	log.Printf("[DEBUG] Creating CloudFormation Stack: %s", input)
@@ -143,7 +149,7 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 	wait := resource.StateChangeConf{
 		Pending:    []string{"CREATE_IN_PROGRESS", "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE"},
 		Target:     []string{"CREATE_COMPLETE"},
-		Timeout:    30 * time.Minute,
+		Timeout:    time.Duration(retryTimeout) * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.DescribeStacks(&cloudformation.DescribeStacksInput{

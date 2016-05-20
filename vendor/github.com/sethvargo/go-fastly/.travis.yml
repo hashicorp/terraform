@@ -1,0 +1,19 @@
+sudo: false
+
+language: go
+
+go:
+  - 1.4.2
+  - 1.5.2
+
+branches:
+  only:
+    - master
+
+script:
+  - make updatedeps
+  - make test
+
+env:
+  # FASTLY_API_KEY
+  - secure: "eiYcogJFF+lK/6coFXaOOm0bDHxaK1qqZ0GinMmPXmQ6nonf56omMVxNyOsV+6jz/fdJCA7gfGv600raTAOVNxD23E/p2j6yxPSI5O6itxp0jxJm7p6MOHwkmsXFZGfLxaqVN2CHs+W3sSc4cwzCkCqlik4XLXihHvzYpjBk1AZK6QUMWqdTcDYDWMfk5CW1O6wUpmYiFwlnENwDopGQlSs1+PyEiDEbEMYu1yVUq+f83IJ176arM4XL8NS2GN1QMBKyALA+6jpT/OrFtW5tkheE+WOQ6+/ZnDCtY0i1RA8BBuyACYuf+WEAkmWfJGGk7+Ou6q2JFzIBsd6ZS3EsM4bs4P1FyhPBwK5zyFty2w7+PwVm6wrZ0NfUh6BKsfCF9MweypsKq+F+4GOcpjdCYPKZKGRjQ4iKOZVVzaVGLRanz1EHiXUcLT+DDr0kFbvrLCLqCPvujBfqeUDqVZMpsUqir9HWqVKutczAnYzFaoeeSVap14J/sd6kcgZo2bNMSRQvMoPCOvicdW8RLIV8Hyx2l0Cv596ZfinWBk2Dcmn6APLkbrBpvhv6/SUtBKHMijjFc5VvoxO3ZP6vUCueDaZVNWkX1xk+VA5PD0T/IcilLy3+nBedz+3lmiW7dnQPuWnlPBFPWvYZvW2KaDOazv5rZK+pKIq32BIyhP/n/AU="

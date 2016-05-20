@@ -64,8 +64,8 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	case *ast.Index:
 		tc := &typeCheckIndex{n}
 		result, err = tc.TypeCheck(v)
-	case *ast.Concat:
-		tc := &typeCheckConcat{n}
+	case *ast.Output:
+		tc := &typeCheckOutput{n}
 		result, err = tc.TypeCheck(v)
 	case *ast.LiteralNode:
 		tc := &typeCheckLiteral{n}
@@ -230,18 +230,30 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	return tc.n, nil
 }
 
-type typeCheckConcat struct {
-	n *ast.Concat
+type typeCheckOutput struct {
+	n *ast.Output
 }
 
-func (tc *typeCheckConcat) TypeCheck(v *TypeCheck) (ast.Node, error) {
+func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	n := tc.n
 	types := make([]ast.Type, len(n.Exprs))
 	for i, _ := range n.Exprs {
 		types[len(n.Exprs)-1-i] = v.StackPop()
 	}
 
-	// All concat args must be strings, so validate that
+	// If there is only one argument and it is a list, we evaluate to a list
+	if len(types) == 1 && types[0] == ast.TypeList {
+		v.StackPush(ast.TypeList)
+		return n, nil
+	}
+
+	// If there is only one argument and it is a map, we evaluate to a map
+	if len(types) == 1 && types[0] == ast.TypeMap {
+		v.StackPush(ast.TypeMap)
+		return n, nil
+	}
+
+	// Otherwise, all concat args must be strings, so validate that
 	for i, t := range types {
 		if t != ast.TypeString {
 			cn := v.ImplicitConversion(t, ast.TypeString, n.Exprs[i])
@@ -251,7 +263,7 @@ func (tc *typeCheckConcat) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			}
 
 			return nil, fmt.Errorf(
-				"output of an HIL expression must be a string (argument %d is %s)", i+1, t)
+				"output of an HIL expression must be a string, or a single list (argument %d is %s)", i+1, t)
 		}
 	}
 
@@ -293,15 +305,6 @@ type typeCheckIndex struct {
 }
 
 func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
-
-	value, err := tc.n.Key.Type(v.Scope)
-	if err != nil {
-		return nil, err
-	}
-	if value != ast.TypeInt {
-		return nil, fmt.Errorf("key of an index must be an int, was %s", value)
-	}
-
 	// Ensure we have a VariableAccess as the target
 	varAccessNode, ok := tc.n.Target.(*ast.VariableAccess)
 	if !ok {
@@ -313,28 +316,40 @@ func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown variable accessed: %s", varAccessNode.Name)
 	}
-	if variable.Type != ast.TypeList {
+
+	keyType, err := tc.n.Key.Type(v.Scope)
+	if err != nil {
+		return nil, err
+	}
+
+	switch variable.Type {
+	case ast.TypeList:
+		if keyType != ast.TypeInt {
+			return nil, fmt.Errorf("key of an index must be an int, was %s", keyType)
+		}
+
+		valType, err := ast.VariableListElementTypesAreHomogenous(varAccessNode.Name, variable.Value.([]ast.Variable))
+		if err != nil {
+			return tc.n, err
+		}
+
+		v.StackPush(valType)
+		return tc.n, nil
+	case ast.TypeMap:
+		if keyType != ast.TypeString {
+			return nil, fmt.Errorf("key of an index must be a string, was %s", keyType)
+		}
+
+		valType, err := ast.VariableMapValueTypesAreHomogenous(varAccessNode.Name, variable.Value.(map[string]ast.Variable))
+		if err != nil {
+			return tc.n, err
+		}
+
+		v.StackPush(valType)
+		return tc.n, nil
+	default:
 		return nil, fmt.Errorf("invalid index operation into non-indexable type: %s", variable.Type)
 	}
-
-	list := variable.Value.([]ast.Variable)
-
-	// Ensure that the types of the list elements are homogenous
-	listTypes := make(map[ast.Type]struct{})
-	for _, v := range list {
-		if _, ok := listTypes[v.Type]; ok {
-			continue
-		}
-		listTypes[v.Type] = struct{}{}
-	}
-
-	if len(listTypes) != 1 {
-		return nil, fmt.Errorf("list %q does not have homogenous types (%s)", varAccessNode.Name)
-	}
-
-	// This is the type since the list is homogenous in type
-	v.StackPush(list[0].Type)
-	return tc.n, nil
 }
 
 func (v *TypeCheck) ImplicitConversion(

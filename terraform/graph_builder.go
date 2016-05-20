@@ -32,7 +32,7 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 
 		log.Printf(
 			"[TRACE] Graph after step %T:\n\n%s",
-			step, g.String())
+			step, g.StringWithNodeTypes())
 	}
 
 	// Validate the graph structure

@@ -15,9 +15,10 @@ func TestAccAWSENI_basic(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfig,
@@ -40,9 +41,10 @@ func TestAccAWSENI_updatedDescription(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfig,
@@ -69,9 +71,10 @@ func TestAccAWSENI_attached(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfigWithAttachment,
@@ -92,9 +95,10 @@ func TestAccAWSENI_ignoreExternalAttachment(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfigExternalAttachment,
@@ -112,9 +116,10 @@ func TestAccAWSENI_sourceDestCheck(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfigWithSourceDestCheck,
@@ -132,9 +137,10 @@ func TestAccAWSENI_computedIPs(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfigWithNoPrivateIPs,

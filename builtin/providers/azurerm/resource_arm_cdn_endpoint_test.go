@@ -145,6 +145,8 @@ resource "azurerm_cdn_endpoint" "test" {
     origin {
 	name = "acceptanceTestCdnOrigin1"
 	host_name = "www.example.com"
+	https_port = 443
+	http_port = 80
     }
 }
 `
@@ -170,6 +172,8 @@ resource "azurerm_cdn_endpoint" "test" {
     origin {
 	name = "acceptanceTestCdnOrigin2"
 	host_name = "www.example.com"
+	https_port = 443
+	http_port = 80
     }
 
     tags {
@@ -200,6 +204,8 @@ resource "azurerm_cdn_endpoint" "test" {
     origin {
 	name = "acceptanceTestCdnOrigin2"
 	host_name = "www.example.com"
+	https_port = 443
+	http_port = 80
     }
 
     tags {

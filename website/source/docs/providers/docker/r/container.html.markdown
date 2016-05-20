@@ -42,6 +42,9 @@ The following arguments are supported:
     container to run as an executable. For example, to run `/usr/bin/myprogram`
     when starting a container, set the entrypoint to be
     `["/usr/bin/myprogram"]`.
+* `user` - (Optional, string) User used for run the first process. Format is
+    `user` or `user:group` which user and group can be passed literraly or
+    by name.
 * `dns` - (Optional, set of strings) Set of DNS servers.
 * `env` - (Optional, set of strings) Environmental variables to set.
 * `labels` - (Optional, map of strings) Key/value pairs to set as labels on the

@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,6 +39,9 @@ func (p *CreateSnapshotParams) toURLValues() url.Values {
 	if v, found := p.p["domainid"]; found {
 		u.Set("domainid", v.(string))
 	}
+	if v, found := p.p["name"]; found {
+		u.Set("name", v.(string))
+	}
 	if v, found := p.p["policyid"]; found {
 		u.Set("policyid", v.(string))
 	}
@@ -65,6 +68,14 @@ func (p *CreateSnapshotParams) SetDomainid(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["domainid"] = v
+	return
+}
+
+func (p *CreateSnapshotParams) SetName(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["name"] = v
 	return
 }
 
@@ -144,6 +155,7 @@ type CreateSnapshotResponse struct {
 	Id           string `json:"id,omitempty"`
 	Intervaltype string `json:"intervaltype,omitempty"`
 	Name         string `json:"name,omitempty"`
+	Physicalsize int64  `json:"physicalsize,omitempty"`
 	Project      string `json:"project,omitempty"`
 	Projectid    string `json:"projectid,omitempty"`
 	Revertable   bool   `json:"revertable,omitempty"`
@@ -362,25 +374,21 @@ func (s *SnapshotService) NewListSnapshotsParams() *ListSnapshotsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *SnapshotService) GetSnapshotID(name string) (string, error) {
+func (s *SnapshotService) GetSnapshotID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListSnapshotsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListSnapshots(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListSnapshots(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -402,13 +410,13 @@ func (s *SnapshotService) GetSnapshotID(name string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *SnapshotService) GetSnapshotByName(name string) (*Snapshot, int, error) {
-	id, err := s.GetSnapshotID(name)
+func (s *SnapshotService) GetSnapshotByName(name string, opts ...OptionFunc) (*Snapshot, int, error) {
+	id, err := s.GetSnapshotID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetSnapshotByID(id)
+	r, count, err := s.GetSnapshotByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -416,11 +424,17 @@ func (s *SnapshotService) GetSnapshotByName(name string) (*Snapshot, int, error)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *SnapshotService) GetSnapshotByID(id string) (*Snapshot, int, error) {
+func (s *SnapshotService) GetSnapshotByID(id string, opts ...OptionFunc) (*Snapshot, int, error) {
 	p := &ListSnapshotsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListSnapshots(p)
 	if err != nil {
@@ -430,21 +444,6 @@ func (s *SnapshotService) GetSnapshotByID(id string) (*Snapshot, int, error) {
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListSnapshots(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -484,6 +483,7 @@ type Snapshot struct {
 	Id           string `json:"id,omitempty"`
 	Intervaltype string `json:"intervaltype,omitempty"`
 	Name         string `json:"name,omitempty"`
+	Physicalsize int64  `json:"physicalsize,omitempty"`
 	Project      string `json:"project,omitempty"`
 	Projectid    string `json:"projectid,omitempty"`
 	Revertable   bool   `json:"revertable,omitempty"`
@@ -942,11 +942,17 @@ func (s *SnapshotService) NewListSnapshotPoliciesParams() *ListSnapshotPoliciesP
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *SnapshotService) GetSnapshotPolicyByID(id string) (*SnapshotPolicy, int, error) {
+func (s *SnapshotService) GetSnapshotPolicyByID(id string, opts ...OptionFunc) (*SnapshotPolicy, int, error) {
 	p := &ListSnapshotPoliciesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListSnapshotPolicies(p)
 	if err != nil {
@@ -1072,6 +1078,7 @@ type RevertSnapshotResponse struct {
 	Id           string `json:"id,omitempty"`
 	Intervaltype string `json:"intervaltype,omitempty"`
 	Name         string `json:"name,omitempty"`
+	Physicalsize int64  `json:"physicalsize,omitempty"`
 	Project      string `json:"project,omitempty"`
 	Projectid    string `json:"projectid,omitempty"`
 	Revertable   bool   `json:"revertable,omitempty"`
@@ -1268,25 +1275,21 @@ func (s *SnapshotService) NewListVMSnapshotParams() *ListVMSnapshotParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *SnapshotService) GetVMSnapshotID(name string) (string, error) {
+func (s *SnapshotService) GetVMSnapshotID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListVMSnapshotParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListVMSnapshot(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListVMSnapshot(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1622,6 +1625,8 @@ type RevertToVMSnapshotResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -1758,6 +1763,8 @@ type RevertToVMSnapshotResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -1778,6 +1785,8 @@ type RevertToVMSnapshotResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`

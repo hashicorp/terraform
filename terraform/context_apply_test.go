@@ -1056,6 +1056,47 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_moduleGrandchildProvider(t *testing.T) {
+	m := testModule(t, "apply-module-grandchild-provider-inherit")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	var callLock sync.Mutex
+	called := false
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if _, ok := c.Get("value"); !ok {
+			return fmt.Errorf("value is not found")
+		}
+		callLock.Lock()
+		called = true
+		callLock.Unlock()
+
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	callLock.Lock()
+	defer callLock.Unlock()
+	if called != true {
+		t.Fatalf("err: configure never called")
+	}
+}
+
 // This tests an issue where all the providers in a module but not
 // in the root weren't being added to the root properly. In this test
 // case: aws is explicitly added to root, but "test" should be added to.
@@ -2451,6 +2492,94 @@ module.child.subchild.subsubchild:
 	`)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+// https://github.com/hashicorp/terraform/issues/5440
+func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
+	m := testModule(t, "apply-destroy-module-with-attrs")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	var state *State
+	var err error
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Variables: map[string]string{
+				"key_name": "foobarkey",
+			},
+		})
+
+		// First plan and apply a create operation
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	h := new(HookRecordApplyOrder)
+	h.Active = true
+
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Destroy: true,
+			Module:  m,
+			State:   state,
+			Hooks:   []Hook{h},
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Variables: map[string]string{
+				"key_name": "foobarkey",
+			},
+		})
+
+		// First plan and apply a create operation
+		plan, err := ctx.Plan()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		var buf bytes.Buffer
+		if err := WritePlan(plan, &buf); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		planFromFile, err := ReadPlan(&buf)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ctx = planFromFile.Context(&ContextOpts{
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	//Test that things were destroyed
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+<no state>
+module.child:
+  <no state>
+		`)
+	if actual != expected {
+		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
 }
 
@@ -4082,5 +4211,48 @@ aws_instance.ifailedprovisioners: (1 tainted)
 		`)
 	if actual != expected {
 		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
+	}
+}
+
+// Higher level test exposing the bug this covers in
+// TestResource_ignoreChangesRequired
+func TestContext2Apply_ignoreChangesCreate(t *testing.T) {
+	m := testModule(t, "apply-ignore-changes-create")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("bad: %s", state)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	// Expect no changes from original state
+	expected := strings.TrimSpace(`
+aws_instance.foo:
+  ID = foo
+  required_field = set
+  type = aws_instance
+`)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
 	}
 }

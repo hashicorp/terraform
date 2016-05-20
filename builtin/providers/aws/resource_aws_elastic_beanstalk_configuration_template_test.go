@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -23,6 +24,46 @@ func TestAccAWSBeanstalkConfigurationTemplate_basic(t *testing.T) {
 				Config: testAccBeanstalkConfigurationTemplateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBeanstalkConfigurationTemplateExists("aws_elastic_beanstalk_configuration_template.tf_template", &config),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSBeanstalkConfigurationTemplate_VPC(t *testing.T) {
+	var config elasticbeanstalk.ConfigurationSettingsDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkConfigurationTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkConfigurationTemplateConfig_VPC(acctest.RandString(5)),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkConfigurationTemplateExists("aws_elastic_beanstalk_configuration_template.tf_template", &config),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSBeanstalkConfigurationTemplate_Setting(t *testing.T) {
+	var config elasticbeanstalk.ConfigurationSettingsDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkConfigurationTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkConfigurationTemplateConfig_Setting(acctest.RandString(5)),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkConfigurationTemplateExists("aws_elastic_beanstalk_configuration_template.tf_template", &config),
+					resource.TestCheckResourceAttr(
+						"aws_elastic_beanstalk_configuration_template.tf_template", "setting.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_elastic_beanstalk_configuration_template.tf_template", "setting.4112217815.value", "m1.small"),
 				),
 			},
 		},
@@ -107,15 +148,77 @@ resource "aws_elastic_beanstalk_application" "tftest" {
   description = "tf-test-desc"
 }
 
-#resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-#  name = "tf-test-name"
-#  application = "${aws_elastic_beanstalk_application.tftest.name}"
-#  solution_stack_name = "64bit Amazon Linux 2015.03 v2.0.3 running Go 1.4"
-#}
-
 resource "aws_elastic_beanstalk_configuration_template" "tf_template" {
   name = "tf-test-template-config"
   application = "${aws_elastic_beanstalk_application.tftest.name}"
-  solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.8 running Go 1.4"
+  solution_stack_name = "64bit Amazon Linux running Python"
 }
 `
+
+func testAccBeanstalkConfigurationTemplateConfig_VPC(name string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "tf_b_test" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "beanstalk_crash"
+  }
+}
+
+resource "aws_subnet" "main" {
+  vpc_id     = "${aws_vpc.tf_b_test.id}"
+  cidr_block = "10.0.0.0/24"
+
+  tags {
+    Name = "subnet-count-test"
+  }
+}
+
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name        = "tf-test-%s"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_configuration_template" "tf_template" {
+  name        = "tf-test-%s"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "VPCId"
+    value     = "${aws_vpc.tf_b_test.id}"
+  }
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "Subnets"
+    value     = "${aws_subnet.main.id}"
+  }
+}
+`, name, name)
+}
+
+func testAccBeanstalkConfigurationTemplateConfig_Setting(name string) string {
+	return fmt.Sprintf(`
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name        = "tf-test-%s"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_configuration_template" "tf_template" {
+  name        = "tf-test-%s"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "InstanceType"
+    value     = "m1.small"
+  }
+
+}
+`, name, name)
+}

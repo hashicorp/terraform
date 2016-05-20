@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -322,6 +322,8 @@ type ListCapabilitiesResponse struct {
 
 type Capability struct {
 	Allowusercreateprojects   bool   `json:"allowusercreateprojects,omitempty"`
+	Allowuserexpungerecovervm bool   `json:"allowuserexpungerecovervm,omitempty"`
+	Allowuserviewdestroyedvm  bool   `json:"allowuserviewdestroyedvm,omitempty"`
 	Apilimitinterval          int    `json:"apilimitinterval,omitempty"`
 	Apilimitmax               int    `json:"apilimitmax,omitempty"`
 	Cloudstackversion         string `json:"cloudstackversion,omitempty"`

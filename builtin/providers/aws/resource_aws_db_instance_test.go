@@ -51,6 +51,27 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_optionGroup(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBInstanceConfigWithOptionGroup,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "option_group_name", "option-group-test-terraform"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBInstanceReplica(t *testing.T) {
 	var s, r rds.DBInstance
 
@@ -100,7 +121,7 @@ func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccNoSnapshotInstanceConfig,
+				Config: testAccNoSnapshotInstanceConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.no_snapshot", &nosnap),
 				),
@@ -160,7 +181,7 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		if newerr.Code() != "InvalidDBInstance.NotFound" {
+		if newerr.Code() != "DBInstanceNotFound" {
 			return err
 		}
 	}
@@ -362,10 +383,8 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 // Database names cannot collide, and deletion takes so long, that making the
 // name a bit random helps so able we can kill a test that's just waiting for a
 // delete and not be blocked on kicking off another one.
-var testAccAWSDBInstanceConfig = fmt.Sprintf(`
+var testAccAWSDBInstanceConfig = `
 resource "aws_db_instance" "bar" {
-	identifier = "foobarbaz-test-terraform-%d"
-
 	allocated_storage = 10
 	engine = "MySQL"
 	engine_version = "5.6.21"
@@ -383,7 +402,32 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
-}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+}`
+
+var testAccAWSDBInstanceConfigWithOptionGroup = fmt.Sprintf(`
+
+resource "aws_db_option_group" "bar" {
+	name = "option-group-test-terraform"
+	option_group_description = "Test option group for terraform"
+	engine_name = "mysql"
+	major_engine_version = "5.6"
+}
+
+resource "aws_db_instance" "bar" {
+	identifier = "foobarbaz-test-terraform-%d"
+
+	allocated_storage = 10
+	engine = "MySQL"
+	instance_class = "db.m1.small"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+
+	backup_retention_period = 0
+
+	parameter_group_name = "default.mysql5.6"
+	option_group_name = "${aws_db_option_group.bar.name}"
+}`, acctest.RandInt())
 
 func testAccReplicaInstanceConfig(val int) string {
 	return fmt.Sprintf(`
@@ -449,12 +493,13 @@ resource "aws_db_instance" "snapshot" {
 }`, acctest.RandInt())
 }
 
-var testAccNoSnapshotInstanceConfig = `
+func testAccNoSnapshotInstanceConfig() string {
+	return fmt.Sprintf(`
 provider "aws" {
   region = "us-east-1"
 }
 resource "aws_db_instance" "no_snapshot" {
-	identifier = "foobarbaz-test-terraform-snapshot-2"
+	identifier = "tf-test-%s"
 
 	allocated_storage = 5
 	engine = "mysql"
@@ -471,13 +516,10 @@ resource "aws_db_instance" "no_snapshot" {
 	skip_final_snapshot = true
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-2"
 }
-`
-
-var testAccSnapshotInstanceConfig_enhancedMonitoring = `
-provider "aws" {
-  region = "us-east-1"
+`, acctest.RandString(5))
 }
 
+var testAccSnapshotInstanceConfig_enhancedMonitoring = `
 resource "aws_iam_role" "enhanced_policy_role" {
     name = "enhanced-monitoring-role"
     assume_role_policy = <<EOF

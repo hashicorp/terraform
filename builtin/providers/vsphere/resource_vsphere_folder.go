@@ -58,7 +58,10 @@ func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error
 		f.datacenter = v.(string)
 	}
 
-	createFolder(client, &f)
+	err := createFolder(client, &f)
+	if err != nil {
+		return err
+	}
 
 	d.Set("existing_path", f.existingPath)
 	d.SetId(fmt.Sprintf("%v/%v", f.datacenter, f.path))
@@ -153,7 +156,10 @@ func resourceVSphereFolderDelete(d *schema.ResourceData, meta interface{}) error
 
 	client := meta.(*govmomi.Client)
 
-	deleteFolder(client, &f)
+	err := deleteFolder(client, &f)
+	if err != nil {
+		return err
+	}
 
 	d.SetId("")
 	return nil

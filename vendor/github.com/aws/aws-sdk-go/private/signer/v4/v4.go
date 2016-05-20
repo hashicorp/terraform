@@ -29,8 +29,8 @@ const (
 var ignoredHeaders = rules{
 	blacklist{
 		mapRule{
-			"Content-Length": struct{}{},
-			"User-Agent":     struct{}{},
+			"Authorization": struct{}{},
+			"User-Agent":    struct{}{},
 		},
 	},
 }
@@ -153,6 +153,7 @@ func Sign(req *request.Request) {
 	}
 
 	req.Error = s.sign()
+	req.Time = s.Time
 	req.SignedHeaderVals = s.signedHeaderVals
 }
 
@@ -162,11 +163,12 @@ func (v4 *signer) sign() error {
 	}
 
 	if v4.isRequestSigned() {
-		if !v4.Credentials.IsExpired() {
+		if !v4.Credentials.IsExpired() && time.Now().Before(v4.Time.Add(10*time.Minute)) {
 			// If the request is already signed, and the credentials have not
-			// expired yet ignore the signing request.
+			// expired, and the request is not too old ignore the signing request.
 			return nil
 		}
+		v4.Time = time.Now()
 
 		// The credentials have expired for this request. The current signing
 		// is invalid, and needs to be request because the request will fail.
@@ -303,13 +305,18 @@ func (v4 *signer) buildCanonicalHeaders(r rule, header http.Header) {
 		if !r.IsValid(canonicalKey) {
 			continue // ignored header
 		}
-
-		lowerCaseKey := strings.ToLower(k)
-		headers = append(headers, lowerCaseKey)
-
 		if v4.signedHeaderVals == nil {
 			v4.signedHeaderVals = make(http.Header)
 		}
+
+		lowerCaseKey := strings.ToLower(k)
+		if _, ok := v4.signedHeaderVals[lowerCaseKey]; ok {
+			// include additional values
+			v4.signedHeaderVals[lowerCaseKey] = append(v4.signedHeaderVals[lowerCaseKey], v...)
+			continue
+		}
+
+		headers = append(headers, lowerCaseKey)
 		v4.signedHeaderVals[lowerCaseKey] = v
 	}
 	sort.Strings(headers)
@@ -326,11 +333,11 @@ func (v4 *signer) buildCanonicalHeaders(r rule, header http.Header) {
 			headerValues[i] = "host:" + v4.Request.URL.Host
 		} else {
 			headerValues[i] = k + ":" +
-				strings.Join(v4.Request.Header[http.CanonicalHeaderKey(k)], ",")
+				strings.Join(v4.signedHeaderVals[k], ",")
 		}
 	}
 
-	v4.canonicalHeaders = strings.Join(headerValues, "\n")
+	v4.canonicalHeaders = strings.Join(stripExcessSpaces(headerValues), "\n")
 }
 
 func (v4 *signer) buildCanonicalString() {
@@ -435,4 +442,24 @@ func makeSha256Reader(reader io.ReadSeeker) []byte {
 
 	io.Copy(hash, reader)
 	return hash.Sum(nil)
+}
+
+func stripExcessSpaces(headerVals []string) []string {
+	vals := make([]string, len(headerVals))
+	for i, str := range headerVals {
+		stripped := ""
+		found := false
+		str = strings.TrimSpace(str)
+		for _, c := range str {
+			if !found && c == ' ' {
+				stripped += string(c)
+				found = true
+			} else if c != ' ' {
+				stripped += string(c)
+				found = false
+			}
+		}
+		vals[i] = stripped
+	}
+	return vals
 }

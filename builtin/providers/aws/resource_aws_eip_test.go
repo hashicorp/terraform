@@ -16,9 +16,10 @@ func TestAccAWSEIP_basic(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEIPDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_eip.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSEIPDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEIPConfig,
@@ -35,9 +36,10 @@ func TestAccAWSEIP_instance(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEIPDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_eip.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSEIPDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEIPInstanceConfig,
@@ -62,9 +64,10 @@ func TestAccAWSEIP_network_interface(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEIPDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_eip.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSEIPDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEIPNetworkInterfaceConfig,
@@ -72,6 +75,62 @@ func TestAccAWSEIP_network_interface(t *testing.T) {
 					testAccCheckAWSEIPExists("aws_eip.bar", &conf),
 					testAccCheckAWSEIPAttributes(&conf),
 					testAccCheckAWSEIPAssociated(&conf),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEIP_twoEIPsOneNetworkInterface(t *testing.T) {
+	var one, two ec2.Address
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_eip.one",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSEIPDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEIPMultiNetworkInterfaceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEIPExists("aws_eip.one", &one),
+					testAccCheckAWSEIPAttributes(&one),
+					testAccCheckAWSEIPAssociated(&one),
+					testAccCheckAWSEIPExists("aws_eip.two", &two),
+					testAccCheckAWSEIPAttributes(&two),
+					testAccCheckAWSEIPAssociated(&two),
+				),
+			},
+		},
+	})
+}
+
+// This test is an expansion of TestAccAWSEIP_instance, by testing the
+// associated Private EIPs of two instances
+func TestAccAWSEIP_associated_user_private_ip(t *testing.T) {
+	var one ec2.Address
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_eip.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSEIPDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEIPInstanceConfig_associated,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEIPExists("aws_eip.bar", &one),
+					testAccCheckAWSEIPAttributes(&one),
+					testAccCheckAWSEIPAssociated(&one),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSEIPInstanceConfig_associated_switch,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEIPExists("aws_eip.bar", &one),
+					testAccCheckAWSEIPAttributes(&one),
+					testAccCheckAWSEIPAssociated(&one),
 				),
 			},
 		},
@@ -136,7 +195,7 @@ func testAccCheckAWSEIPAttributes(conf *ec2.Address) resource.TestCheckFunc {
 
 func testAccCheckAWSEIPAssociated(conf *ec2.Address) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *conf.AssociationId == "" {
+		if conf.AssociationId == nil || *conf.AssociationId == "" {
 			return fmt.Errorf("empty association_id")
 		}
 
@@ -220,6 +279,150 @@ resource "aws_eip" "bar" {
 	instance = "${aws_instance.bar.id}"
 }
 `
+
+const testAccAWSEIPInstanceConfig_associated = `
+resource "aws_vpc" "default" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "default"
+  }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.default.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+
+resource "aws_subnet" "tf_test_subnet" {
+  vpc_id                  = "${aws_vpc.default.id}"
+  cidr_block              = "10.0.0.0/24"
+  map_public_ip_on_launch = true
+
+  depends_on = ["aws_internet_gateway.gw"]
+
+  tags {
+    Name = "tf_test_subnet"
+  }
+}
+
+resource "aws_instance" "foo" {
+  # us-west-2
+  ami           = "ami-5189a661"
+  instance_type = "t2.micro"
+
+  private_ip = "10.0.0.12"
+  subnet_id  = "${aws_subnet.tf_test_subnet.id}"
+
+  tags {
+    Name = "foo instance"
+  }
+}
+
+resource "aws_instance" "bar" {
+  # us-west-2
+
+  ami = "ami-5189a661"
+
+  instance_type = "t2.micro"
+
+  private_ip = "10.0.0.19"
+  subnet_id  = "${aws_subnet.tf_test_subnet.id}"
+
+  tags {
+    Name = "bar instance"
+  }
+}
+
+resource "aws_eip" "bar" {
+  vpc = true
+
+  instance                  = "${aws_instance.bar.id}"
+  associate_with_private_ip = "10.0.0.19"
+}
+`
+const testAccAWSEIPInstanceConfig_associated_switch = `
+resource "aws_vpc" "default" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "default"
+  }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.default.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+
+resource "aws_subnet" "tf_test_subnet" {
+  vpc_id                  = "${aws_vpc.default.id}"
+  cidr_block              = "10.0.0.0/24"
+  map_public_ip_on_launch = true
+
+  depends_on = ["aws_internet_gateway.gw"]
+
+  tags {
+    Name = "tf_test_subnet"
+  }
+}
+
+resource "aws_instance" "foo" {
+  # us-west-2
+  ami           = "ami-5189a661"
+  instance_type = "t2.micro"
+
+  private_ip = "10.0.0.12"
+  subnet_id  = "${aws_subnet.tf_test_subnet.id}"
+
+  tags {
+    Name = "foo instance"
+  }
+}
+
+resource "aws_instance" "bar" {
+  # us-west-2
+
+  ami = "ami-5189a661"
+
+  instance_type = "t2.micro"
+
+  private_ip = "10.0.0.19"
+  subnet_id  = "${aws_subnet.tf_test_subnet.id}"
+
+  tags {
+    Name = "bar instance"
+  }
+}
+
+resource "aws_eip" "bar" {
+  vpc = true
+
+  instance                  = "${aws_instance.foo.id}"
+  associate_with_private_ip = "10.0.0.12"
+}
+`
+
+const testAccAWSEIPInstanceConfig_associated_update = `
+resource "aws_instance" "bar" {
+	# us-west-2
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+}
+
+resource "aws_eip" "bar" {
+	instance = "${aws_instance.bar.id}"
+}
+`
+
 const testAccAWSEIPNetworkInterfaceConfig = `
 resource "aws_vpc" "bar" {
 	cidr_block = "10.0.0.0/24"
@@ -240,5 +443,39 @@ resource "aws_network_interface" "bar" {
 resource "aws_eip" "bar" {
 	vpc = "true"
 	network_interface = "${aws_network_interface.bar.id}"
+}
+`
+
+const testAccAWSEIPMultiNetworkInterfaceConfig = `
+resource "aws_vpc" "bar" {
+  cidr_block = "10.0.0.0/24"
+}
+
+resource "aws_internet_gateway" "bar" {
+  vpc_id = "${aws_vpc.bar.id}"
+}
+
+resource "aws_subnet" "bar" {
+  vpc_id            = "${aws_vpc.bar.id}"
+  availability_zone = "us-west-2a"
+  cidr_block        = "10.0.0.0/24"
+}
+
+resource "aws_network_interface" "bar" {
+  subnet_id       = "${aws_subnet.bar.id}"
+  private_ips     = ["10.0.0.10", "10.0.0.11"]
+  security_groups = ["${aws_vpc.bar.default_security_group_id}"]
+}
+
+resource "aws_eip" "one" {
+  vpc                       = "true"
+  network_interface         = "${aws_network_interface.bar.id}"
+  associate_with_private_ip = "10.0.0.10"
+}
+
+resource "aws_eip" "two" {
+  vpc                       = "true"
+  network_interface         = "${aws_network_interface.bar.id}"
+  associate_with_private_ip = "10.0.0.11"
 }
 `

@@ -2,6 +2,7 @@ package atlas
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-rootcerts"
 )
 
 const (
@@ -23,6 +25,14 @@ const (
 	// atlasEndpointEnvVar is the environment variable that overrrides the
 	// default Atlas address.
 	atlasEndpointEnvVar = "ATLAS_ADDRESS"
+
+	// atlasCAFileEnvVar is the environment variable that causes the client to
+	// load trusted certs from a file
+	atlasCAFileEnvVar = "ATLAS_CAFILE"
+
+	// atlasCAPathEnvVar is the environment variable that causes the client to
+	// load trusted certs from a directory
+	atlasCAPathEnvVar = "ATLAS_CAPATH"
 
 	// atlasTokenHeader is the header key used for authenticating with Atlas
 	atlasTokenHeader = "X-Atlas-Token"
@@ -112,6 +122,17 @@ func NewClient(urlString string) (*Client, error) {
 // init() sets defaults on the client.
 func (c *Client) init() error {
 	c.HTTPClient = cleanhttp.DefaultClient()
+	tlsConfig := &tls.Config{}
+	err := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+		CAFile: os.Getenv(atlasCAFileEnvVar),
+		CAPath: os.Getenv(atlasCAPathEnvVar),
+	})
+	if err != nil {
+		return err
+	}
+	t := cleanhttp.DefaultTransport()
+	t.TLSClientConfig = tlsConfig
+	c.HTTPClient.Transport = t
 	return nil
 }
 

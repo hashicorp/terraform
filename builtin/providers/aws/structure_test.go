@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -526,6 +527,33 @@ func TestexpandElasticacheParameters(t *testing.T) {
 	}
 }
 
+func TestExpandStepAdjustments(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"metric_interval_lower_bound": "1.0",
+			"metric_interval_upper_bound": "2.0",
+			"scaling_adjustment":          1,
+		},
+	}
+	parameters, err := expandStepAdjustments(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := &autoscaling.StepAdjustment{
+		MetricIntervalLowerBound: aws.Float64(1.0),
+		MetricIntervalUpperBound: aws.Float64(2.0),
+		ScalingAdjustment:        aws.Int64(int64(1)),
+	}
+
+	if !reflect.DeepEqual(parameters[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			parameters[0],
+			expected)
+	}
+}
+
 func TestFlattenParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*rds.Parameter
@@ -728,6 +756,30 @@ func TestFlattenAttachment(t *testing.T) {
 	}
 }
 
+func TestflattenStepAdjustments(t *testing.T) {
+	expanded := []*autoscaling.StepAdjustment{
+		&autoscaling.StepAdjustment{
+			MetricIntervalLowerBound: aws.Float64(1.0),
+			MetricIntervalUpperBound: aws.Float64(2.0),
+			ScalingAdjustment:        aws.Int64(int64(1)),
+		},
+	}
+
+	result := flattenStepAdjustments(expanded)[0]
+	if result == nil {
+		t.Fatal("expected result to have value, but got nil")
+	}
+	if result["metric_interval_lower_bound"] != float64(1.0) {
+		t.Fatalf("expected metric_interval_lower_bound to be 1.0, but got %d", result["metric_interval_lower_bound"])
+	}
+	if result["metric_interval_upper_bound"] != float64(2.0) {
+		t.Fatalf("expected metric_interval_upper_bound to be 1.0, but got %d", result["metric_interval_upper_bound"])
+	}
+	if result["scaling_adjustment"] != int64(1) {
+		t.Fatalf("expected scaling_adjustment to be 1, but got %d", result["scaling_adjustment"])
+	}
+}
+
 func TestFlattenResourceRecords(t *testing.T) {
 	expanded := []*route53.ResourceRecord{
 		&route53.ResourceRecord{
@@ -849,5 +901,44 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		if !reflect.DeepEqual(out, c.expected) {
 			t.Fatalf("Error matching output and expected: %#v vs %#v", out, c.expected)
 		}
+	}
+}
+
+func TestFlattenApiGatewayThrottleSettings(t *testing.T) {
+	expectedBurstLimit := int64(140)
+	expectedRateLimit := 120.0
+
+	ts := &apigateway.ThrottleSettings{
+		BurstLimit: aws.Int64(expectedBurstLimit),
+		RateLimit:  aws.Float64(expectedRateLimit),
+	}
+	result := flattenApiGatewayThrottleSettings(ts)
+
+	if len(result) != 1 {
+		t.Fatalf("Expected map to have exactly 1 element, got %d", len(result))
+	}
+
+	burstLimit, ok := result[0]["burst_limit"]
+	if !ok {
+		t.Fatal("Expected 'burst_limit' key in the map")
+	}
+	burstLimitInt, ok := burstLimit.(int64)
+	if !ok {
+		t.Fatal("Expected 'burst_limit' to be int")
+	}
+	if burstLimitInt != expectedBurstLimit {
+		t.Fatalf("Expected 'burst_limit' to equal %d, got %d", expectedBurstLimit, burstLimitInt)
+	}
+
+	rateLimit, ok := result[0]["rate_limit"]
+	if !ok {
+		t.Fatal("Expected 'rate_limit' key in the map")
+	}
+	rateLimitFloat, ok := rateLimit.(float64)
+	if !ok {
+		t.Fatal("Expected 'rate_limit' to be float64")
+	}
+	if rateLimitFloat != expectedRateLimit {
+		t.Fatalf("Expected 'rate_limit' to equal %f, got %f", expectedRateLimit, rateLimitFloat)
 	}
 }

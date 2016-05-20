@@ -123,8 +123,13 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 
 func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	db, err := resourceAwsDbInstanceRetrieve(d, meta)
+	// Errors from this helper are always reportable
 	if err != nil {
-		log.Printf("[WARN] Error on retrieving RDS Cluster Instance (%s): %s", d.Id(), err)
+		return fmt.Errorf("[WARN] Error on retrieving RDS Cluster Instance (%s): %s", d.Id(), err)
+	}
+	// A nil response means "not found"
+	if db == nil {
+		log.Printf("[WARN] RDS Cluster Instance (%s): not found, removing from state.", d.Id())
 		d.SetId("")
 		return nil
 	}

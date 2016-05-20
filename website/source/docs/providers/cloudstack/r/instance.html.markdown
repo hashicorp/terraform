@@ -17,7 +17,7 @@ disk offering, and template.
 resource "cloudstack_instance" "web" {
     name = "server-1"
     service_offering= "small"
-    network = "network-1"
+    network_id = "6eb22f91-7454-4107-89f4-36afcdf33021"
     template = "CentOS 6.5"
     zone = "zone-1"
 }
@@ -27,19 +27,26 @@ resource "cloudstack_instance" "web" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the instance. Changing this forces a new
-    resource to be created.
+* `name` - (Required) The name of the instance.
 
 * `display_name` - (Optional) The display name of the instance.
+
+* `group` - (Optional) The group name of the instance.
 
 * `service_offering` - (Required) The name or ID of the service offering used
     for this instance.
 
-* `network` - (Optional) The name or ID of the network to connect this instance
+* `network_id` - (Optional) The ID of the network to connect this instance
     to. Changing this forces a new resource to be created.
 
-* `ipaddress` - (Optional) The IP address to assign to this instance. Changing
+* `network` - (Optional, Deprecated) The name or ID of the network to connect
+    this instance to. Changing this forces a new resource to be created.
+
+* `ip_address` - (Optional) The IP address to assign to this instance. Changing
     this forces a new resource to be created.
+
+* `ipaddress` - (Optional, Deprecated) The IP address to assign to this instance.
+    Changing this forces a new resource to be created.
 
 * `template` - (Required) The name or ID of the template used for this
     instance. Changing this forces a new resource to be created.
