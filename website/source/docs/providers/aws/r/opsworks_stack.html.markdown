@@ -41,7 +41,7 @@ The following arguments are supported:
 * `berkshelf_version` - (Optional) If `manage_berkshelf` is enabled, the version of Berkshelf to use.
 * `color` - (Optional) Color to paint next to the stack's resources in the OpsWorks console.
 * `default_availability_zone` - (Optional) Name of the availability zone where instances will be created
-  by default. This is required unless you set `vpc_id`.
+  by default. This is not required unless you set `vpc_id`.
 * `configuration_manager_name` - (Optional) Name of the configuration manager to use. Defaults to "Chef".
 * `configuration_manager_version` - (Optional) Version of the configuratino manager to use. Defaults to "11.4".
 * `custom_cookbooks_source` - (Optional) When `use_custom_cookbooks` is set, provide this sub-object as
