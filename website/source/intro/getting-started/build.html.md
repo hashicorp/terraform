@@ -64,8 +64,8 @@ resource "aws_instance" "example" {
 }
 ```
 
-~> **Note**: The above configuation is designed to work on modern EC2 accounts,
-with access to a VPC. For EC2 Classic users, please `t1.micro` for
+~> **Note**: The above configuation is designed to work on most EC2 accounts,
+with access to a default VPC. For EC2 Classic users, please use `t1.micro` for
 `instance_type`, and `ami-408c7f28` for the `ami`.
 
 Replace the `ACCESS_KEY_HERE` and `SECRET_KEY_HERE` with your
