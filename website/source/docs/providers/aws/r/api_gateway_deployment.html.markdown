@@ -50,7 +50,7 @@ resource "aws_api_gateway_deployment" "MyDemoDeployment" {
 The following arguments are supported:
 
 * `rest_api_id` - (Required) The ID of the associated REST API
-* `stage_name` - (Optional) The name of the stage
+* `stage_name` - (Required) The name of the stage
 * `description` - (Optional) The description of the deployment
 * `stage_description` - (Optional) The description of the stage
 * `variables` - (Optional) A map that defines variables for the stage
