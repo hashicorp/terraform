@@ -337,7 +337,13 @@ func resourceArmNetworkInterfaceIpConfigurationHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["subnet_id"].(string)))
+	if m["private_ip_address"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address"].(string)))
+	}
 	buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address_allocation"].(string)))
+	if m["public_ip_address_id"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["public_ip_address_id"].(string)))
+	}
 
 	return hashcode.String(buf.String())
 }
