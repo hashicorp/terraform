@@ -17,7 +17,7 @@ as Terraform sees it.
 
 Usage: `terraform show [options] [path]`
 
-You must may `show` with a path to either a Terraform state file or plan
+You may use `show` with a path to either a Terraform state file or plan
 file. If no path is specified, the current state will be shown.
 
 The command-line flags are all optional. The list of available flags are:

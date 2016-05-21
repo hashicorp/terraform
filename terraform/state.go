@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"io/ioutil"
 	"reflect"
 	"sort"
 	"strconv"
@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
+	"github.com/mitchellh/copystructure"
 )
 
 const (
@@ -547,6 +548,69 @@ func (r *RemoteState) GoString() string {
 	return fmt.Sprintf("*%#v", *r)
 }
 
+// OutputState is used to track the state relevant to a single output.
+type OutputState struct {
+	// Sensitive describes whether the output is considered sensitive,
+	// which may lead to masking the value on screen in some cases.
+	Sensitive bool `json:"sensitive"`
+	// Type describes the structure of Value. Valid values are "string",
+	// "map" and "list"
+	Type string `json:"type"`
+	// Value contains the value of the output, in the structure described
+	// by the Type field.
+	Value interface{} `json:"value"`
+}
+
+func (s *OutputState) String() string {
+	// This is a v0.6.x implementation only
+	return fmt.Sprintf("%s", s.Value.(string))
+}
+
+// Equal compares two OutputState structures for equality. nil values are
+// considered equal.
+func (s *OutputState) Equal(other *OutputState) bool {
+	if s == nil && other == nil {
+		return true
+	}
+
+	if s == nil || other == nil {
+		return false
+	}
+
+	if s.Type != other.Type {
+		return false
+	}
+
+	if s.Sensitive != other.Sensitive {
+		return false
+	}
+
+	if !reflect.DeepEqual(s.Value, other.Value) {
+		return false
+	}
+
+	return true
+}
+
+func (s *OutputState) deepcopy() *OutputState {
+	if s == nil {
+		return nil
+	}
+
+	valueCopy, err := copystructure.Copy(s.Value)
+	if err != nil {
+		panic(fmt.Errorf("Error copying output value: %s", err))
+	}
+
+	n := &OutputState{
+		Type:      s.Type,
+		Sensitive: s.Sensitive,
+		Value:     valueCopy,
+	}
+
+	return n
+}
+
 // ModuleState is used to track all the state relevant to a single
 // module. Previous to Terraform 0.3, all state belonged to the "root"
 // module.
@@ -558,7 +622,7 @@ type ModuleState struct {
 	// Outputs declared by the module and maintained for each module
 	// even though only the root module technically needs to be kept.
 	// This allows operators to inspect values at the boundaries.
-	Outputs map[string]interface{} `json:"outputs"`
+	Outputs map[string]*OutputState `json:"outputs"`
 
 	// Resources is a mapping of the logically named resource to
 	// the state of the resource. Each resource may actually have
@@ -593,7 +657,7 @@ func (m *ModuleState) Equal(other *ModuleState) bool {
 		return false
 	}
 	for k, v := range m.Outputs {
-		if !reflect.DeepEqual(other.Outputs[k], v) {
+		if !other.Outputs[k].Equal(v) {
 			return false
 		}
 	}
@@ -683,7 +747,7 @@ func (m *ModuleState) View(id string) *ModuleState {
 
 func (m *ModuleState) init() {
 	if m.Outputs == nil {
-		m.Outputs = make(map[string]interface{})
+		m.Outputs = make(map[string]*OutputState)
 	}
 	if m.Resources == nil {
 		m.Resources = make(map[string]*ResourceState)
@@ -696,14 +760,14 @@ func (m *ModuleState) deepcopy() *ModuleState {
 	}
 	n := &ModuleState{
 		Path:         make([]string, len(m.Path)),
-		Outputs:      make(map[string]interface{}, len(m.Outputs)),
+		Outputs:      make(map[string]*OutputState, len(m.Outputs)),
 		Resources:    make(map[string]*ResourceState, len(m.Resources)),
 		Dependencies: make([]string, len(m.Dependencies)),
 	}
 	copy(n.Path, m.Path)
 	copy(n.Dependencies, m.Dependencies)
 	for k, v := range m.Outputs {
-		n.Outputs[k] = v
+		n.Outputs[k] = v.deepcopy()
 	}
 	for k, v := range m.Resources {
 		n.Resources[k] = v.deepcopy()
@@ -722,7 +786,7 @@ func (m *ModuleState) prune() {
 	}
 
 	for k, v := range m.Outputs {
-		if v == config.UnknownVariableValue {
+		if v.Value == config.UnknownVariableValue {
 			delete(m.Outputs, k)
 		}
 	}
@@ -823,7 +887,7 @@ func (m *ModuleState) String() string {
 
 		for _, k := range ks {
 			v := m.Outputs[k]
-			switch vTyped := v.(type) {
+			switch vTyped := v.Value.(type) {
 			case string:
 				buf.WriteString(fmt.Sprintf("%s = %s\n", k, vTyped))
 			case []interface{}:
@@ -1386,6 +1450,10 @@ func (e *EphemeralState) DeepCopy() *EphemeralState {
 	return n
 }
 
+type jsonStateVersionIdentifier struct {
+	Version int `json:"version"`
+}
+
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
@@ -1402,14 +1470,59 @@ func ReadState(src io.Reader) (*State, error) {
 		if err != nil {
 			return nil, err
 		}
-		return upgradeV0State(old)
+		return old.upgrade()
 	}
 
-	// Otherwise, must be V2 or V3 - V2 reads as V3 however so we need take
-	// no special action here - new state will be written as V3.
-	dec := json.NewDecoder(buf)
+	// If we are JSON we buffer the whole thing in memory so we can read it twice.
+	// This is suboptimal, but will work for now.
+	jsonBytes, err := ioutil.ReadAll(buf)
+	if err != nil {
+		return nil, fmt.Errorf("Reading state file failed: %v", err)
+	}
+
+	versionIdentifier := &jsonStateVersionIdentifier{}
+	if err := json.Unmarshal(jsonBytes, versionIdentifier); err != nil {
+		return nil, fmt.Errorf("Decoding state file version failed: %v", err)
+	}
+
+	switch versionIdentifier.Version {
+	case 0:
+		return nil, fmt.Errorf("State version 0 is not supported as JSON.")
+	case 1:
+		old, err := ReadStateV1(jsonBytes)
+		if err != nil {
+			return nil, err
+		}
+		return old.upgrade()
+	case 2:
+		state, err := ReadStateV2(jsonBytes)
+		if err != nil {
+			return nil, err
+		}
+		return state, nil
+	default:
+		return nil, fmt.Errorf("State version %d not supported, please update.",
+			versionIdentifier.Version)
+	}
+}
+
+func ReadStateV1(jsonBytes []byte) (*stateV1, error) {
+	state := &stateV1{}
+	if err := json.Unmarshal(jsonBytes, state); err != nil {
+		return nil, fmt.Errorf("Decoding state file failed: %v", err)
+	}
+
+	if state.Version != 1 {
+		return nil, fmt.Errorf("Decoded state version did not match the decoder selection: "+
+			"read %d, expected 1", state.Version)
+	}
+
+	return state, nil
+}
+
+func ReadStateV2(jsonBytes []byte) (*State, error) {
 	state := &State{}
-	if err := dec.Decode(state); err != nil {
+	if err := json.Unmarshal(jsonBytes, state); err != nil {
 		return nil, fmt.Errorf("Decoding state file failed: %v", err)
 	}
 
@@ -1475,56 +1588,6 @@ func WriteState(d *State, dst io.Writer) error {
 	}
 
 	return nil
-}
-
-// upgradeV0State is used to upgrade a V0 state representation
-// into a proper State representation.
-func upgradeV0State(old *StateV0) (*State, error) {
-	s := &State{}
-	s.init()
-
-	// Old format had no modules, so we migrate everything
-	// directly into the root module.
-	root := s.RootModule()
-
-	// Copy the outputs, first converting them to map[string]interface{}
-	oldOutputs := make(map[string]interface{}, len(old.Outputs))
-	for key, value := range old.Outputs {
-		oldOutputs[key] = value
-	}
-	root.Outputs = oldOutputs
-
-	// Upgrade the resources
-	for id, rs := range old.Resources {
-		newRs := &ResourceState{
-			Type: rs.Type,
-		}
-		root.Resources[id] = newRs
-
-		// Migrate to an instance state
-		instance := &InstanceState{
-			ID:         rs.ID,
-			Attributes: rs.Attributes,
-		}
-
-		// Check if this is the primary or tainted instance
-		if _, ok := old.Tainted[id]; ok {
-			newRs.Tainted = append(newRs.Tainted, instance)
-		} else {
-			newRs.Primary = instance
-		}
-
-		// Warn if the resource uses Extra, as there is
-		// no upgrade path for this! Now totally deprecated.
-		if len(rs.Extra) > 0 {
-			log.Printf(
-				"[WARN] Resource %s uses deprecated attribute "+
-					"storage, state file upgrade may be incomplete.",
-				rs.ID,
-			)
-		}
-	}
-	return s, nil
 }
 
 // moduleStateSort implements sort.Interface to sort module states

@@ -92,6 +92,14 @@ func resourceDatadogMonitor() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
+			"require_full_window": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"locked": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			// TODO should actually be map[string]int
 			"silenced": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -155,6 +163,12 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 	}
 	if attr, ok := d.GetOk("include_tags"); ok {
 		o.IncludeTags = attr.(bool)
+	}
+	if attr, ok := d.GetOk("require_full_window"); ok {
+		o.RequireFullWindow = attr.(bool)
+	}
+	if attr, ok := d.GetOk("locked"); ok {
+		o.Locked = attr.(bool)
 	}
 
 	m := datadog.Monitor{
@@ -230,6 +244,8 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("escalation_message", m.Options.EscalationMessage)
 	d.Set("silenced", m.Options.Silenced)
 	d.Set("include_tags", m.Options.IncludeTags)
+	d.Set("require_full_window", m.Options.RequireFullWindow)
+	d.Set("locked", m.Options.Locked)
 
 	return nil
 }
@@ -297,6 +313,12 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 	if attr, ok := d.GetOk("include_tags"); ok {
 		o.IncludeTags = attr.(bool)
+	}
+	if attr, ok := d.GetOk("require_full_window"); ok {
+		o.RequireFullWindow = attr.(bool)
+	}
+	if attr, ok := d.GetOk("locked"); ok {
+		o.Locked = attr.(bool)
 	}
 
 	m.Options = o

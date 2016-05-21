@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
@@ -69,6 +70,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				StateFunc: func(id interface{}) string {
+					return strings.ToLower(id.(string))
+				},
 			},
 
 			"license_type": &schema.Schema{
@@ -480,7 +484,7 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if resp.Properties.AvailabilitySet != nil {
-		d.Set("availability_set_id", resp.Properties.AvailabilitySet.ID)
+		d.Set("availability_set_id", strings.ToLower(*resp.Properties.AvailabilitySet.ID))
 	}
 
 	d.Set("vm_size", resp.Properties.HardwareProfile.VMSize)
@@ -923,9 +927,13 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 	}
 
 	linuxKeys := linuxConfig["ssh_keys"].([]interface{})
-	sshPublicKeys := make([]compute.SSHPublicKey, 0, len(linuxKeys))
+	sshPublicKeys := []compute.SSHPublicKey{}
 	for _, key := range linuxKeys {
-		sshKey := key.(map[string]interface{})
+
+		sshKey, ok := key.(map[string]interface{})
+		if !ok {
+			continue
+		}
 		path := sshKey["path"].(string)
 		keyData := sshKey["key_data"].(string)
 

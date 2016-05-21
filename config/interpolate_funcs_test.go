@@ -419,6 +419,22 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 				Value: " foo \\ \n \t \" bar ",
 				Type:  ast.TypeString,
 			},
+			"list": interfaceToVariableSwallowError([]string{"foo", "bar\tbaz"}),
+			// XXX can't use InterfaceToVariable as it converts empty slice into empty
+			// map.
+			"emptylist": ast.Variable{
+				Value: []ast.Variable{},
+				Type:  ast.TypeList,
+			},
+			"map": interfaceToVariableSwallowError(map[string]string{
+				"foo":     "bar",
+				"ba \n z": "q\\x",
+			}),
+			"emptymap": interfaceToVariableSwallowError(map[string]string{}),
+
+			// Not yet supported (but it would be nice)
+			"nestedlist": interfaceToVariableSwallowError([][]string{{"foo"}}),
+			"nestedmap":  interfaceToVariableSwallowError(map[string][]string{"foo": {"bar"}}),
 		},
 		Cases: []testFunctionCase{
 			{
@@ -443,6 +459,36 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 			},
 			{
 				`${jsonencode()}`,
+				nil,
+				true,
+			},
+			{
+				`${jsonencode(list)}`,
+				`["foo","bar\tbaz"]`,
+				false,
+			},
+			{
+				`${jsonencode(emptylist)}`,
+				`[]`,
+				false,
+			},
+			{
+				`${jsonencode(map)}`,
+				`{"ba \n z":"q\\x","foo":"bar"}`,
+				false,
+			},
+			{
+				`${jsonencode(emptymap)}`,
+				`{}`,
+				false,
+			},
+			{
+				`${jsonencode(nestedlist)}`,
+				nil,
+				true,
+			},
+			{
+				`${jsonencode(nestedmap)}`,
 				nil,
 				true,
 			},

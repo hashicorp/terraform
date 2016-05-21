@@ -83,6 +83,10 @@
 					<a href="/docs/commands/graph.html">graph</a>
 					</li>
 
+					<li<%= sidebar_current("docs-commands-import") %>>
+					<a href="/docs/commands/import.html">import</a>
+					</li>
+
 					<li<%= sidebar_current("docs-commands-init") %>>
 					<a href="/docs/commands/init.html">init</a>
 					</li>
@@ -129,9 +133,26 @@
 				</ul>
 				</li>
 
+				<li<%= sidebar_current(/^docs-import/) %>>
+					<a href="/docs/import/index.html">Import</a>
+					<ul class="nav">
+						<li<%= sidebar_current("docs-import-usage") %>>
+							<a href="/docs/import/usage.html">Usage</a>
+						</li>
+
+						<li<%= sidebar_current("docs-import-importability") %>>
+							<a href="/docs/import/importability.html">Resource Importability</a>
+						</li>
+					</ul>
+				</li>
+
 				<li<%= sidebar_current(/^docs-state/) %>>
 					<a href="/docs/state/index.html">State</a>
 					<ul class="nav">
+						<li<%= sidebar_current("docs-state-import") %>>
+							<a href="/docs/state/import.html">Import Existing Resources</a>
+						</li>
+
 						<li<%= sidebar_current("docs-state-remote") %>>
 							<a href="/docs/state/remote/index.html">Remote State</a>
 						</li>
@@ -215,6 +236,10 @@
 
 					<li<%= sidebar_current("docs-providers-google") %>>
 					<a href="/docs/providers/google/index.html">Google Cloud</a>
+					</li>
+
+					<li<%= sidebar_current("docs-providers-grafana") %>>
+					<a href="/docs/providers/grafana/index.html">Grafana</a>
 					</li>
 
 					<li<%= sidebar_current("docs-providers-heroku") %>>

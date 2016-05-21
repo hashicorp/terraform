@@ -25,6 +25,7 @@ import (
 	fastlyprovider "github.com/hashicorp/terraform/builtin/providers/fastly"
 	githubprovider "github.com/hashicorp/terraform/builtin/providers/github"
 	googleprovider "github.com/hashicorp/terraform/builtin/providers/google"
+	grafanaprovider "github.com/hashicorp/terraform/builtin/providers/grafana"
 	herokuprovider "github.com/hashicorp/terraform/builtin/providers/heroku"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
@@ -75,6 +76,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"fastly":       fastlyprovider.Provider,
 	"github":       githubprovider.Provider,
 	"google":       googleprovider.Provider,
+	"grafana":      grafanaprovider.Provider,
 	"heroku":       herokuprovider.Provider,
 	"influxdb":     influxdbprovider.Provider,
 	"librato":      libratoprovider.Provider,

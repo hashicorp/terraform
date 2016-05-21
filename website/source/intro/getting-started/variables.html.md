@@ -124,8 +124,8 @@ support for the "us-west-2" region as well:
 variable "amis" {
     type = "map"
 	default = {
-		us-east-1 = "ami-b8b061d0"
-		us-west-2 = "ami-ef5e24df"
+		us-east-1 = "ami-13be557e"
+		us-west-2 = "ami-06b94666"
 	}
 }
 ```
@@ -138,7 +138,7 @@ Then, replace the "aws\_instance" with the following:
 ```
 resource "aws_instance" "example" {
 	ami = "${lookup(var.amis, var.region)}"
-	instance_type = "t1.micro"
+	instance_type = "t2.micro"
 }
 ```
 
