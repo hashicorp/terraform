@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -108,7 +109,32 @@ func testStep(
 	if p, err = ctx.Plan(); err != nil {
 		return state, fmt.Errorf("Error on second follow-up plan: %s", err)
 	}
-	if p.Diff != nil && !p.Diff.Empty() {
+	empty := p.Diff == nil || p.Diff.Empty()
+
+	// Data resources are tricky because they legitimately get instantiated
+	// during refresh so that they will be already populated during the
+	// plan walk. Because of this, if we have any data resources in the
+	// config we'll end up wanting to destroy them again here. This is
+	// acceptable and expected, and we'll treat it as "empty" for the
+	// sake of this testing.
+	if step.Destroy {
+		empty = true
+
+		for _, moduleDiff := range p.Diff.Modules {
+			for k, instanceDiff := range moduleDiff.Resources {
+				if !strings.HasPrefix(k, "data.") {
+					empty = false
+					break
+				}
+
+				if !instanceDiff.Destroy {
+					empty = false
+				}
+			}
+		}
+	}
+
+	if !empty {
 		if step.ExpectNonEmptyPlan {
 			log.Printf("[INFO] Got non-empty plan, as expected:\n\n%s", p)
 		} else {
