@@ -125,13 +125,17 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.thin", "memory", "4096"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.thin", "disk.#", "2"),
+						"vsphere_virtual_machine.thin", "disk.#", "3"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.thin", "disk.0.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.thin", "disk.0.type", "thin"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.thin", "disk.1.type", "eager_zeroed"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.1.controller_type", "scsi"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.2.controller_type", "ide"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.thin", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -968,6 +972,11 @@ resource "vsphere_virtual_machine" "thin" {
     disk {
         size = 1
         iops = 500
+		controller_type = "scsi"
+    }
+	disk {
+        size = 1
+		controller_type = "ide"
     }
 }
 `

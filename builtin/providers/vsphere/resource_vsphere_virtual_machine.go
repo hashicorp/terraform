@@ -39,10 +39,11 @@ type networkInterface struct {
 }
 
 type hardDisk struct {
-	size     int64
-	iops     int64
-	initType string
-	vmdkPath string
+	size       int64
+	iops       int64
+	initType   string
+	vmdkPath   string
+	controller string
 }
 
 //Additional options Vsphere can use clones of windows machines
@@ -377,6 +378,21 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Default:  false,
 							ForceNew: true,
 						},
+
+						"controller_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "scsi",
+							ForceNew: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+								if value != "scsi" && value != "ide" {
+									errors = append(errors, fmt.Errorf(
+										"only 'scsi' and 'ide' are supported values for 'controller_type'"))
+								}
+								return
+							},
+						},
 					},
 				},
 			},
@@ -667,6 +683,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			if v, ok := disk["type"].(string); ok && v != "" {
 				disks[i].initType = v
 			}
+			if v, ok := disk["controller_type"].(string); ok && v != "" {
+				disks[i].controller = v
+			}
 		}
 		vm.hardDisks = disks
 		log.Printf("[DEBUG] disk init: %v", disks)
@@ -873,14 +892,14 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 }
 
 // addHardDisk adds a new Hard Disk to the VirtualMachine.
-func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, datastore *object.Datastore, diskPath string) error {
+func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, datastore *object.Datastore, diskPath string, controller_type string) error {
 	devices, err := vm.Device(context.TODO())
 	if err != nil {
 		return err
 	}
 	log.Printf("[DEBUG] vm devices: %#v\n", devices)
 
-	controller, err := devices.FindDiskController("scsi")
+	controller, err := devices.FindDiskController(controller_type)
 	if err != nil {
 		return err
 	}
@@ -1463,7 +1482,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	}
 	for i := firstDisk; i < len(vm.hardDisks); i++ {
 		log.Printf("[DEBUG] disk index: %v", i)
-		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, vm.hardDisks[i].vmdkPath)
+		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, vm.hardDisks[i].vmdkPath, vm.hardDisks[i].controller)
 		if err != nil {
 			return err
 		}
