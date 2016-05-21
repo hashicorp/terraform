@@ -32,6 +32,7 @@ IMPROVEMENTS:
  * provider/openstack Increase timeouts for image resize, subnets, and routers [GH-6764]
  * provider/openstack: Add support for client certificate authentication [GH-6279]
  * provider/vsphere: fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
+ * provider/vsphere: Add support for `controller_type` to `vsphere_virtual_machine` [GH-6785]
  
 BUG FIXES:
 
