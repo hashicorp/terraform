@@ -15,13 +15,9 @@ import (
 	"github.com/sthulb/mime/multipart"
 )
 
-func resourceCloudinitConfig() *schema.Resource {
+func dataSourceCloudinitConfig() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceCloudinitConfigCreate,
-		Delete: resourceCloudinitConfigDelete,
-		Update: resourceCloudinitConfigCreate,
-		Exists: resourceCloudinitConfigExists,
-		Read:   resourceCloudinitConfigRead,
+		Read: dataSourceCloudinitConfigRead,
 
 		Schema: map[string]*schema.Schema{
 			"part": &schema.Schema{
@@ -52,13 +48,11 @@ func resourceCloudinitConfig() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
-				ForceNew: true,
 			},
 			"base64_encode": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
-				ForceNew: true,
 			},
 			"rendered": &schema.Schema{
 				Type:        schema.TypeString,
@@ -69,7 +63,7 @@ func resourceCloudinitConfig() *schema.Resource {
 	}
 }
 
-func resourceCloudinitConfigCreate(d *schema.ResourceData, meta interface{}) error {
+func dataSourceCloudinitConfigRead(d *schema.ResourceData, meta interface{}) error {
 	rendered, err := renderCloudinitConfig(d)
 	if err != nil {
 		return err
@@ -77,24 +71,6 @@ func resourceCloudinitConfigCreate(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("rendered", rendered)
 	d.SetId(strconv.Itoa(hashcode.String(rendered)))
-	return nil
-}
-
-func resourceCloudinitConfigDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
-func resourceCloudinitConfigExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	rendered, err := renderCloudinitConfig(d)
-	if err != nil {
-		return false, err
-	}
-
-	return strconv.Itoa(hashcode.String(rendered)) == d.Id(), nil
-}
-
-func resourceCloudinitConfigRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 

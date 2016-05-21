@@ -1,7 +1,7 @@
 ---
 layout: "template"
 page_title: "Template: cloudinit_multipart"
-sidebar_current: "docs-template-resource-cloudinit-config"
+sidebar_current: "docs-template-datasource-cloudinit-config"
 description: |-
   Renders a multi-part cloud-init config from source files.
 ---
@@ -14,7 +14,7 @@ Renders a multi-part cloud-init config from source files.
 
 ```
 # Render a part using a `template_file`
-resource "template_file" "script" {
+data "template_file" "script" {
   template = "${file("${path.module}/init.tpl")}"
 
   vars {
@@ -24,7 +24,7 @@ resource "template_file" "script" {
 
 # Render a multi-part cloudinit config making use of the part
 # above, and other source files
-resource "template_cloudinit_config" "config" {
+data "template_cloudinit_config" "config" {
   gzip          = true
   base64_encode = true
 
@@ -32,7 +32,7 @@ resource "template_cloudinit_config" "config" {
   part {
     filename     = "init.cfg"
     content_type = "text/part-handler"
-    content      = "${template_file.script.rendered}"
+    content      = "${data.template_file.script.rendered}"
   }
 
   part {
@@ -50,7 +50,7 @@ resource "template_cloudinit_config" "config" {
 resource "aws_instance" "web" {
   ami           = "ami-d05e75b8"
   instance_type = "t2.micro"
-  user_data     = "${template_cloudinit_config.config.rendered}"
+  user_data     = "${data.template_cloudinit_config.config.rendered}"
 }
 ```
 

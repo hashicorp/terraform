@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -15,19 +14,15 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceFile() *schema.Resource {
+func dataSourceFile() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFileCreate,
-		Delete: resourceFileDelete,
-		Exists: resourceFileExists,
-		Read:   resourceFileRead,
+		Read: dataSourceFileRead,
 
 		Schema: map[string]*schema.Schema{
 			"template": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
 				Description:   "Contents of the template",
-				ForceNew:      true,
 				ConflictsWith: []string{"filename"},
 				ValidateFunc:  validateTemplateAttribute,
 			},
@@ -35,7 +30,6 @@ func resourceFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "file to read template from",
-				ForceNew:    true,
 				// Make a "best effort" attempt to relativize the file path.
 				StateFunc: func(v interface{}) string {
 					if v == nil || v.(string) == "" {
@@ -59,7 +53,6 @@ func resourceFile() *schema.Resource {
 				Optional:    true,
 				Default:     make(map[string]interface{}),
 				Description: "variables to substitute",
-				ForceNew:    true,
 			},
 			"rendered": &schema.Schema{
 				Type:        schema.TypeString,
@@ -70,39 +63,13 @@ func resourceFile() *schema.Resource {
 	}
 }
 
-func resourceFileCreate(d *schema.ResourceData, meta interface{}) error {
+func dataSourceFileRead(d *schema.ResourceData, meta interface{}) error {
 	rendered, err := renderFile(d)
 	if err != nil {
 		return err
 	}
 	d.Set("rendered", rendered)
 	d.SetId(hash(rendered))
-	return nil
-}
-
-func resourceFileDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
-func resourceFileExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	rendered, err := renderFile(d)
-	if err != nil {
-		if _, ok := err.(templateRenderError); ok {
-			log.Printf("[DEBUG] Got error while rendering in Exists: %s", err)
-			log.Printf("[DEBUG] Returning false so the template re-renders using latest variables from config.")
-			return false, nil
-		} else {
-			return false, err
-		}
-	}
-	return hash(rendered) == d.Id(), nil
-}
-
-func resourceFileRead(d *schema.ResourceData, meta interface{}) error {
-	// Logic is handled in Exists, which only returns true if the rendered
-	// contents haven't changed. That means if we get here there's nothing to
-	// do.
 	return nil
 }
 

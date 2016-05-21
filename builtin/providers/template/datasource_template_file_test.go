@@ -23,13 +23,13 @@ func TestTemplateRendering(t *testing.T) {
 		want     string
 	}{
 		{`{}`, `ABC`, `ABC`},
-		{`{a="foo"}`, `${a}`, `foo`},
-		{`{a="hello"}`, `${replace(a, "ello", "i")}`, `hi`},
+		{`{a="foo"}`, `$${a}`, `foo`},
+		{`{a="hello"}`, `$${replace(a, "ello", "i")}`, `hi`},
 		{`{}`, `${1+2+3}`, `6`},
 	}
 
 	for _, tt := range cases {
-		r.Test(t, r.TestCase{
+		r.UnitTest(t, r.TestCase{
 			Providers: testProviders,
 			Steps: []r.TestStep{
 				r.TestStep{
@@ -45,39 +45,6 @@ func TestTemplateRendering(t *testing.T) {
 			},
 		})
 	}
-}
-
-// https://github.com/hashicorp/terraform/issues/2344
-func TestTemplateVariableChange(t *testing.T) {
-	steps := []struct {
-		vars     string
-		template string
-		want     string
-	}{
-		{`{a="foo"}`, `${a}`, `foo`},
-		{`{b="bar"}`, `${b}`, `bar`},
-	}
-
-	var testSteps []r.TestStep
-	for i, step := range steps {
-		testSteps = append(testSteps, r.TestStep{
-			Config: testTemplateConfig(step.template, step.vars),
-			Check: func(i int, want string) r.TestCheckFunc {
-				return func(s *terraform.State) error {
-					got := s.RootModule().Outputs["rendered"]
-					if want != got.Value {
-						return fmt.Errorf("[%d] got:\n%q\nwant:\n%q\n", i, got, want)
-					}
-					return nil
-				}
-			}(i, step.want),
-		})
-	}
-
-	r.Test(t, r.TestCase{
-		Providers: testProviders,
-		Steps:     testSteps,
-	})
 }
 
 func TestValidateTemplateAttribute(t *testing.T) {
@@ -129,11 +96,11 @@ func TestTemplateSharedMemoryRace(t *testing.T) {
 
 func testTemplateConfig(template, vars string) string {
 	return fmt.Sprintf(`
-		resource "template_file" "t0" {
+		data "template_file" "t0" {
 			template = "%s"
 			vars = %s
 		}
 		output "rendered" {
-				value = "${template_file.t0.rendered}"
+				value = "${data.template_file.t0.rendered}"
 		}`, template, vars)
 }
