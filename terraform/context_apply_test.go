@@ -340,6 +340,59 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_destroyData(t *testing.T) {
+	m := testModule(t, "apply-destroy-data-resource")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"data.null_data_source.testing": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "-",
+							Attributes: map[string]string{
+								"inputs.#":    "1",
+								"inputs.test": "yes",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	newState, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if got := len(newState.Modules); got != 1 {
+		t.Fatalf("state has %d modules after destroy; want 1", got)
+	}
+
+	if got := len(newState.Modules[0].Resources); got != 0 {
+		t.Fatalf("state has %d resources after destroy; want 0", got)
+	}
+}
+
 // https://github.com/hashicorp/terraform/pull/5096
 func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 	// Config contains CBD resource depending on non-CBD resource, which triggers
