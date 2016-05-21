@@ -864,6 +864,37 @@ func TestContext2Plan_computed(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_computedDataResource(t *testing.T) {
+	m := testModule(t, "plan-computed-data-resource")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if got := len(plan.Diff.Modules); got != 1 {
+		t.Fatalf("got %d modules; want 1", got)
+	}
+
+	moduleDiff := plan.Diff.Modules[0]
+
+	if _, ok := moduleDiff.Resources["aws_instance.foo"]; !ok {
+		t.Fatalf("missing diff for aws_instance.foo")
+	}
+	_, ok := moduleDiff.Resources["data.aws_vpc.bar"]
+	if !ok {
+		t.Fatalf("missing diff for data.aws_vpc.bar")
+	}
+}
+
 func TestContext2Plan_computedList(t *testing.T) {
 	m := testModule(t, "plan-computed-list")
 	p := testProvider("aws")
