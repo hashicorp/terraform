@@ -17,7 +17,7 @@ func TestAccState_basic(t *testing.T) {
 				Config: testAccState_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckStateValue(
-						"terraform_remote_state.foo", "foo", "bar"),
+						"data.terraform_remote_state.foo", "foo", "bar"),
 				),
 			},
 		},
@@ -45,7 +45,7 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 }
 
 const testAccState_basic = `
-resource "terraform_remote_state" "foo" {
+data "terraform_remote_state" "foo" {
 	backend = "_local"
 
 	config {
