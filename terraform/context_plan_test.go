@@ -889,9 +889,25 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 	if _, ok := moduleDiff.Resources["aws_instance.foo"]; !ok {
 		t.Fatalf("missing diff for aws_instance.foo")
 	}
-	_, ok := moduleDiff.Resources["data.aws_vpc.bar"]
+	iDiff, ok := moduleDiff.Resources["data.aws_vpc.bar"]
 	if !ok {
 		t.Fatalf("missing diff for data.aws_vpc.bar")
+	}
+
+	expectedDiff := &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"id": {
+				NewComputed: true,
+				RequiresNew: true,
+				Type:        DiffAttrOutput,
+			},
+		},
+	}
+	if same, _ := expectedDiff.Same(iDiff); !same {
+		t.Fatalf(
+			"incorrect diff for data.aws_vpc.bar\ngot:  %#v\nwant: %#v",
+			iDiff, expectedDiff,
+		)
 	}
 }
 
