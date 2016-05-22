@@ -28,9 +28,11 @@ func resourceAwsIamRole() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
 					value := v.(string)
@@ -43,6 +45,24 @@ func resourceAwsIamRole() *schema.Resource {
 							"%q must match [\\w+=,.@-]", k))
 					}
 					return
+				},
+			},
+			"name_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 32 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 32 characters, name is limited to 64 characters", k))
+					}
+					if !regexp.MustCompile("^[\\w+=,.@-]*$").MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q must match [\\w+=,.@-]", k))
+					}
+					return
+
 				},
 			},
 			"path": &schema.Schema{
@@ -61,11 +81,19 @@ func resourceAwsIamRole() *schema.Resource {
 
 func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
-	name := d.Get("name").(string)
+
+	var roleName string
+	if v, ok := d.GetOk("name"); ok {
+		roleName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		roleName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		roleName = resource.UniqueId()
+	}
 
 	request := &iam.CreateRoleInput{
 		Path:                     aws.String(d.Get("path").(string)),
-		RoleName:                 aws.String(name),
+		RoleName:                 aws.String(roleName),
 		AssumeRolePolicyDocument: aws.String(d.Get("assume_role_policy").(string)),
 	}
 
