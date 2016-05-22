@@ -18,6 +18,14 @@ func tagsSchema() *schema.Schema {
 	}
 }
 
+func tagsSchemaComputed() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeMap,
+		Optional: true,
+		Computed: true,
+	}
+}
+
 func setElbV2Tags(conn *elbv2.ELBV2, d *schema.ResourceData) error {
 	if d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tags")

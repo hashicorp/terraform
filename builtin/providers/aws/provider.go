@@ -153,6 +153,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
 			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),
 			"aws_s3_bucket_object":         dataSourceAwsS3BucketObject(),
+			"aws_subnet":                   dataSourceAwsSubnet(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
