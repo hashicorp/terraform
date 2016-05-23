@@ -204,7 +204,7 @@ of the properties below.
 * `name` - (Required) A unique name to refer to this header attribute
 * `action` - (Required) The Header manipulation action to take; must be one of
 `set`, `append`, `delete`, `regex`, or `regex_repeat`
-* `type` - (Required) The Request type to apply the selected Action on
+* `type` - (Required) The Request type to apply the selected Action on; must be one of `request`, `cache` or `response`
 * `destination` - (Required) The name of the header that is going to be affected 
 by the Action
 * `ignore_if_set` - (Optional) Do not add the header if it is already present. 
