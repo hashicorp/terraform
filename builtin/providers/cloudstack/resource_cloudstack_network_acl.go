@@ -131,7 +131,9 @@ func resourceCloudStackNetworkACLDelete(d *schema.ResourceData, meta interface{}
 	p := cs.NetworkACL.NewDeleteNetworkACLListParams(d.Id())
 
 	// Delete the network ACL list
-	_, err := cs.NetworkACL.DeleteNetworkACLList(p)
+	_, err := Retry(3, func() (interface{}, error) {
+		return cs.NetworkACL.DeleteNetworkACLList(p)
+	})
 	if err != nil {
 		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
