@@ -43,6 +43,9 @@ The following arguments are supported:
     belongs to the same tenant. Changing this creates a new floating IP (which
     may or may not have a different address)
 
+* `fixed_ip` - Fixed IP of the port to associate with this floating IP. Required if
+the port has multiple fixed IPs.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -52,3 +55,4 @@ The following attributes are exported:
 * `address` - The actual floating IP address itself.
 * `port_id` - ID of associated port.
 * `tenant_id` - the ID of the tenant in which to create the floating IP.
+* `fixed_ip` - The fixed IP which the floating IP maps to.
