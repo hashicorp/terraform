@@ -1,6 +1,6 @@
 ---
 layout: "fastly"
-page_title: "Fastly: aws_vpc"
+page_title: "Fastly: service_v1"
 sidebar_current: "docs-fastly-resource-service-v1"
 description: |-
   Provides an Fastly Service
