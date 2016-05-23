@@ -776,3 +776,30 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 		t.Fatal("err:", e)
 	}
 }
+
+// When module vars reference something that is actually computed, this
+// shouldn't cause validation to fail.
+func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
+	input := new(MockUIInput)
+
+	m := testModule(t, "validate-computed-module-var-ref")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		UIInput: input,
+	})
+
+	w, e := ctx.Validate()
+	if w != nil {
+		t.Log("warnings:", w)
+	}
+	if e != nil {
+		t.Fatal("err:", e)
+	}
+}
