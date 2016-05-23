@@ -411,6 +411,26 @@ func WithProject(project string) OptionFunc {
 	}
 }
 
+// VPCIDSetter is an interface that every type that can set a vpc ID must implement
+type VPCIDSetter interface {
+	SetVpcid(string)
+}
+
+// WithVPCID takes a vpc ID and sets the `vpcid` parameter
+func WithVPCID(id string) OptionFunc {
+	return func(cs *CloudStackClient, p interface{}) error {
+		vs, ok := p.(VPCIDSetter)
+
+		if !ok || id == "" {
+			return nil
+		}
+
+		vs.SetVpcid(id)
+
+		return nil
+	}
+}
+
 type APIDiscoveryService struct {
 	cs *CloudStackClient
 }
