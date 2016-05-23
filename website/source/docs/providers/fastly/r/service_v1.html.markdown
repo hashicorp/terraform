@@ -134,6 +134,8 @@ Service. Defined below
 Defined below
 * `condition` - (Optional) A set of conditions to add logic to any basic
 configuration object in this service. Defined below
+* `cache_setting` - (Optional) A set of Cache Settings, allowing you to override
+when an item is not to be cached based on an above `condition`. Defined below
 * `gzip` - (Required) A set of gzip rules to control automatic gzipping of
 content. Defined below
 * `header` - (Optional) A set of Headers to manipulate for each request. Defined
@@ -186,6 +188,17 @@ used in the `request_condition`, `response_condition`, or
 conditions execute. Lower numbers execute first
 * `type` - (Required) Type of the condition, either `REQUEST` (req), `RESPONSE`
 (req, resp), or `CACHE` (req, beresp)
+
+The `cache_setting` block supports:
+
+* `name` - (Required) A unique name to label this Cache Setting
+* `action` - (Required) One of `cache`, `pass`, or `restart`, as defined
+on Fastly's documenation under ["Caching action descriptions"](https://docs.fastly.com/guides/performance-tuning/controlling-caching#caching-action-descriptions)
+* `cache_condition` - (Required) Name of the condition used to test whether this settings object should be used.
+This Condition must be of type `CACHE`
+* `stale_ttl` - (Optional) Max "Time To Live" for stale (unreachable) objects.
+Default `300`
+* `ttl` - (Optional) The "Time To Live" for the object
 
 The `gzip` block supports:
 
