@@ -21,6 +21,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
  * provider/aws: Support for Redshift Cluster encryption using a KMS key [GH-6712]
  * provider/aws: Add more explicit support for Skipping Final Snapshot in RDS Cluster [GH-6795]
+ * provider/aws: Set default description to "Managed by Terraform" [GH-6104]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
