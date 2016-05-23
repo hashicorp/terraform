@@ -199,10 +199,6 @@ func testAccCheckAWSDBParameterGroupAttributes(v *rds.DBParameterGroup, name str
 			return fmt.Errorf("bad family: %#v", v.DBParameterGroupFamily)
 		}
 
-		if *v.Description != "Test parameter group for terraform" {
-			return fmt.Errorf("bad description: %#v", v.Description)
-		}
-
 		return nil
 	}
 }
