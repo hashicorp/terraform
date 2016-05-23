@@ -39,11 +39,13 @@ type networkInterface struct {
 }
 
 type hardDisk struct {
+	name       string
 	size       int64
 	iops       int64
 	initType   string
 	vmdkPath   string
 	controller string
+	bootable   bool
 }
 
 //Additional options Vsphere can use clones of windows machines
@@ -82,7 +84,7 @@ type virtualMachine struct {
 	timeZone              string
 	dnsSuffixes           []string
 	dnsServers            []string
-	bootableVmdk          bool
+	hasBootableVmdk       bool
 	linkedClone           bool
 	skipCustomization     bool
 	windowsOptionalConfig windowsOptConfig
@@ -320,21 +322,28 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			},
 
 			"disk": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"uuid": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"key": &schema.Schema{
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+
 						"template": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 						},
 
 						"type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 							Default:  "eager_zeroed",
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
@@ -349,34 +358,37 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"datastore": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 						},
 
 						"size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: true,
+						},
+
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 
 						"iops": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: true,
 						},
 
 						"vmdk": &schema.Schema{
 							// TODO: Add ValidateFunc to confirm path exists
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
-							Default:  "",
 						},
 
 						"bootable": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
-							Default:  false,
-							ForceNew: true,
+						},
+
+						"keep_on_remove": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
 						},
 
 						"controller_type": &schema.Schema{
@@ -442,11 +454,6 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		rebootRequired = true
 	}
 
-	// do nothing if there are no changes
-	if !hasChanges {
-		return nil
-	}
-
 	client := meta.(*govmomi.Client)
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
@@ -459,6 +466,100 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return err
 	}
+
+	if d.HasChange("disk") {
+		hasChanges = true
+		oldDisks, newDisks := d.GetChange("disk")
+		oldDiskSet := oldDisks.(*schema.Set)
+		newDiskSet := newDisks.(*schema.Set)
+
+		addedDisks := newDiskSet.Difference(oldDiskSet)
+		removedDisks := oldDiskSet.Difference(newDiskSet)
+
+		// Removed disks
+		for _, diskRaw := range removedDisks.List() {
+			if disk, ok := diskRaw.(map[string]interface{}); ok {
+				devices, err := vm.Device(context.TODO())
+				if err != nil {
+					return fmt.Errorf("[ERROR] Update Remove Disk - Could not get virtual device list: %v", err)
+				}
+				virtualDisk := devices.FindByKey(int32(disk["key"].(int)))
+
+				keep := false
+				if v, ok := d.GetOk("keep_on_remove"); ok {
+					keep = v.(bool)
+				}
+
+				err = vm.RemoveDevice(context.TODO(), keep, virtualDisk)
+				if err != nil {
+					return fmt.Errorf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
+				}
+			}
+		}
+		// Added disks
+		for _, diskRaw := range addedDisks.List() {
+			if disk, ok := diskRaw.(map[string]interface{}); ok {
+
+				var datastore *object.Datastore
+				if disk["datastore"] == "" {
+					datastore, err = finder.DefaultDatastore(context.TODO())
+					if err != nil {
+						return fmt.Errorf("[ERROR] Update Remove Disk - Error finding datastore: %v", err)
+					}
+				} else {
+					datastore, err = finder.Datastore(context.TODO(), disk["datastore"].(string))
+					if err != nil {
+						log.Printf("[ERROR] Couldn't find datastore %v.  %s", disk["datastore"].(string), err)
+						return err
+					}
+				}
+
+				var size int64
+				if disk["size"] == 0 {
+					size = 0
+				} else {
+					size = int64(disk["size"].(int))
+				}
+				iops := int64(disk["iops"].(int))
+				controller_type := disk["controller"].(string)
+
+				var mo mo.VirtualMachine
+				vm.Properties(context.TODO(), vm.Reference(), []string{"summary", "config"}, &mo)
+
+				var diskPath string
+				switch {
+				case disk["vmdk"] != "":
+					diskPath = disk["vmdk"].(string)
+				case disk["name"] != "":
+					snapshotFullDir := mo.Config.Files.SnapshotDirectory
+					split := strings.Split(snapshotFullDir, " ")
+					if len(split) != 2 {
+						return fmt.Errorf("[ERROR] createVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
+					}
+					vmWorkingPath := split[1]
+					diskPath = vmWorkingPath + disk["name"].(string)
+				default:
+					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor vmdk name was given")
+				}
+
+				log.Printf("[INFO] Attaching disk: %v", diskPath)
+				err = addHardDisk(vm, size, iops, "thin", datastore, diskPath, controller_type)
+				if err != nil {
+					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
+					return err
+				}
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// do nothing if there are no changes
+	if !hasChanges {
+		return nil
+	}
+
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
 	if rebootRequired {
@@ -646,49 +747,82 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	}
 
 	if vL, ok := d.GetOk("disk"); ok {
-		disks := make([]hardDisk, len(vL.([]interface{})))
-		for i, v := range vL.([]interface{}) {
-			disk := v.(map[string]interface{})
-			if i == 0 {
+		if diskSet, ok := vL.(*schema.Set); ok {
+
+			disks := []hardDisk{}
+			hasBootableDisk := false
+			for _, value := range diskSet.List() {
+				disk := value.(map[string]interface{})
+				newDisk := hardDisk{}
+
 				if v, ok := disk["template"].(string); ok && v != "" {
-					vm.template = v
-				} else {
-					if v, ok := disk["size"].(int); ok && v != 0 {
-						disks[i].size = int64(v)
-					} else if v, ok := disk["vmdk"].(string); ok && v != "" {
-						disks[i].vmdkPath = v
-						if v, ok := disk["bootable"].(bool); ok {
-							vm.bootableVmdk = v
-						}
-					} else {
-						return fmt.Errorf("template, size, or vmdk argument is required")
+					if v, ok := disk["name"].(string); ok && v != "" {
+						return fmt.Errorf("Cannot specify name of a template")
 					}
+					vm.template = v
+					if hasBootableDisk {
+						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
+					}
+					hasBootableDisk = true
 				}
+
+				if v, ok := disk["type"].(string); ok && v != "" {
+					newDisk.initType = v
+				}
+
 				if v, ok := disk["datastore"].(string); ok && v != "" {
 					vm.datastore = v
 				}
-			} else {
+
 				if v, ok := disk["size"].(int); ok && v != 0 {
-					disks[i].size = int64(v)
-				} else if v, ok := disk["vmdk"].(string); ok && v != "" {
-					disks[i].vmdkPath = v
-				} else {
-					return fmt.Errorf("size or vmdk argument is required")
+					if v, ok := disk["template"].(string); ok && v != "" {
+						return fmt.Errorf("Cannot specify size of a template")
+					}
+
+					if v, ok := disk["name"].(string); ok && v != "" {
+						newDisk.name = v
+					} else {
+						return fmt.Errorf("[ERROR] Disk name must be provided when creating a new disk")
+					}
+
+					newDisk.size = int64(v)
 				}
 
+				if v, ok := disk["iops"].(int); ok && v != 0 {
+					newDisk.iops = int64(v)
+				}
+
+				if v, ok := disk["controller_type"].(string); ok && v != "" {
+					newDisk.controller = v
+				}
+
+				if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
+					if v, ok := disk["template"].(string); ok && v != "" {
+						return fmt.Errorf("Cannot specify a vmdk for a template")
+					}
+					if v, ok := disk["size"].(string); ok && v != "" {
+						return fmt.Errorf("Cannot specify size of a vmdk")
+					}
+					if v, ok := disk["name"].(string); ok && v != "" {
+						return fmt.Errorf("Cannot specify name of a vmdk")
+					}
+					if vBootable, ok := disk["bootable"].(bool); ok {
+						hasBootableDisk = true
+						newDisk.bootable = vBootable
+						vm.hasBootableVmdk = vBootable
+					}
+					newDisk.vmdkPath = vVmdk
+				}
+				// Preserves order so bootable disk is first
+				if newDisk.bootable == true || disk["template"] != "" {
+					disks = append([]hardDisk{newDisk}, disks...)
+				} else {
+					disks = append(disks, newDisk)
+				}
 			}
-			if v, ok := disk["iops"].(int); ok && v != 0 {
-				disks[i].iops = int64(v)
-			}
-			if v, ok := disk["type"].(string); ok && v != "" {
-				disks[i].initType = v
-			}
-			if v, ok := disk["controller_type"].(string); ok && v != "" {
-				disks[i].controller = v
-			}
+			vm.hardDisks = disks
+			log.Printf("[DEBUG] disk init: %v", disks)
 		}
-		vm.hardDisks = disks
-		log.Printf("[DEBUG] disk init: %v", disks)
 	}
 
 	if vL, ok := d.GetOk("cdrom"); ok {
@@ -722,7 +856,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] reading virtual machine: %#v", d)
+	log.Printf("[DEBUG] virtual machine resource data: %#v", d)
 	client := meta.(*govmomi.Client)
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
@@ -746,30 +880,90 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	}
 
 	collector := property.DefaultCollector(client.Client)
-	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore"}, &mvm); err != nil {
+	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore", "config"}, &mvm); err != nil {
 		return err
 	}
 
-	log.Printf("[DEBUG] %#v", dc)
-	log.Printf("[DEBUG] %#v", mvm.Summary.Config)
-	log.Printf("[DEBUG] %#v", mvm.Guest.Net)
+	log.Printf("[DEBUG] Datacenter - %#v", dc)
+	log.Printf("[DEBUG] mvm.Summary.Config - %#v", mvm.Summary.Config)
+	log.Printf("[DEBUG] mvm.Summary.Config - %#v", mvm.Config)
+	log.Printf("[DEBUG] mvm.Guest.Net - %#v", mvm.Guest.Net)
+
+	disks := make([]map[string]interface{}, 0)
+	templateDisk := make(map[string]interface{}, 1)
+	for _, device := range mvm.Config.Hardware.Device {
+		if vd, ok := device.(*types.VirtualDisk); ok {
+
+			virtualDevice := vd.GetVirtualDevice()
+
+			diskFullPath := virtualDevice.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName
+			log.Printf("[DEBUG] resourceVSphereVirtualMachineRead - Analyzing disk: %v", diskFullPath)
+
+			// Separate datastore and path
+			diskFullPathSplit := strings.Split(diskFullPath, " ")
+			if len(diskFullPathSplit) != 2 {
+				return fmt.Errorf("[ERROR] Failed trying to parse disk path: %v", diskFullPath)
+			}
+			diskPath := diskFullPathSplit[1]
+			// Isolate filename
+			diskNameSplit := strings.Split(diskPath, "/")
+			diskName := diskNameSplit[len(diskNameSplit)-1]
+			// Remove possible extension
+			diskName = strings.Split(diskName, ".")[0]
+
+			if prevDisks, ok := d.GetOk("disk"); ok {
+				if prevDiskSet, ok := prevDisks.(*schema.Set); ok {
+					for _, v := range prevDiskSet.List() {
+						prevDisk := v.(map[string]interface{})
+
+						// We're guaranteed only one template disk.  Passing value directly through since templates should be immutable
+						if prevDisk["template"] != "" {
+							if len(templateDisk) == 0 {
+								templateDisk = prevDisk
+								disks = append(disks, templateDisk)
+								break
+							}
+						}
+
+						// It is enforced that prevDisk["name"] should only be set in the case
+						// of creating a new disk for the user.
+						// size case:  name was set by user, compare parsed filename from mo.filename (without path or .vmdk extension) with name
+						// vmdk case:  compare prevDisk["vmdk"] and mo.Filename
+						if diskName == prevDisk["name"] || diskPath == prevDisk["vmdk"] {
+
+							prevDisk["key"] = virtualDevice.Key
+							prevDisk["uuid"] = virtualDevice.Backing.(*types.VirtualDiskFlatVer2BackingInfo).Uuid
+
+							disks = append(disks, prevDisk)
+							break
+						}
+					}
+				}
+			}
+			log.Printf("[DEBUG] disks: %#v", disks)
+		}
+	}
+	err = d.Set("disk", disks)
+	if err != nil {
+		return fmt.Errorf("Invalid disks to set: %#v", disks)
+	}
 
 	networkInterfaces := make([]map[string]interface{}, 0)
 	for _, v := range mvm.Guest.Net {
 		if v.DeviceConfigId >= 0 {
-			log.Printf("[DEBUG] %#v", v.Network)
+			log.Printf("[DEBUG] v.Network - %#v", v.Network)
 			networkInterface := make(map[string]interface{})
 			networkInterface["label"] = v.Network
 			for _, ip := range v.IpConfig.IpAddress {
 				p := net.ParseIP(ip.IpAddress)
 				if p.To4() != nil {
-					log.Printf("[DEBUG] %#v", p.String())
-					log.Printf("[DEBUG] %#v", ip.PrefixLength)
+					log.Printf("[DEBUG] p.String - %#v", p.String())
+					log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
 					networkInterface["ipv4_address"] = p.String()
 					networkInterface["ipv4_prefix_length"] = ip.PrefixLength
 				} else if p.To16() != nil {
-					log.Printf("[DEBUG] %#v", p.String())
-					log.Printf("[DEBUG] %#v", ip.PrefixLength)
+					log.Printf("[DEBUG] p.String - %#v", p.String())
+					log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
 					networkInterface["ipv6_address"] = p.String()
 					networkInterface["ipv6_prefix_length"] = ip.PrefixLength
 				}
@@ -905,7 +1099,17 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	}
 	log.Printf("[DEBUG] disk controller: %#v\n", controller)
 
+	// TODO Check if diskPath & datastore exist
+	// If diskPath is not specified, pass empty string to CreateDisk()
+	if diskPath == "" {
+		return fmt.Errorf("[ERROR] addHardDisk - No path proided")
+	} else {
+		// TODO Check if diskPath & datastore exist
+		diskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
+	}
+	log.Printf("[DEBUG] addHardDisk - diskPath: %v", diskPath)
 	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
+
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
@@ -928,7 +1132,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		}
 
 		log.Printf("[DEBUG] addHardDisk: %#v\n", disk)
-		log.Printf("[DEBUG] addHardDisk: %#v\n", disk.CapacityInKB)
+		log.Printf("[DEBUG] addHardDisk capacity: %#v\n", disk.CapacityInKB)
 
 		return vm.AddDevice(context.TODO(), disk)
 	} else {
@@ -1037,7 +1241,7 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 		Pool:         &rpr,
 		DiskMoveType: moveType,
 		Disk: []types.VirtualMachineRelocateSpecDiskLocator{
-			types.VirtualMachineRelocateSpecDiskLocator{
+			{
 				Datastore: dsr,
 				DiskBackingInfo: &types.VirtualDiskFlatVer2BackingInfo{
 					DiskMode:        "persistent",
@@ -1118,7 +1322,7 @@ func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolde
 		CloneSpec: &types.VirtualMachineCloneSpec{
 			Location: types.VirtualMachineRelocateSpec{
 				Disk: []types.VirtualMachineRelocateSpecDiskLocator{
-					types.VirtualMachineRelocateSpecDiskLocator{
+					{
 						Datastore:       ds.Reference(),
 						DiskBackingInfo: &types.VirtualDiskFlatVer2BackingInfo{},
 						DiskId:          key,
@@ -1180,6 +1384,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 	var template *object.VirtualMachine
 	var template_mo mo.VirtualMachine
+	var vm_mo mo.VirtualMachine
 	if vm.template != "" {
 		template, err = finder.VirtualMachine(context.TODO(), vm.template)
 		if err != nil {
@@ -1476,13 +1681,31 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		return err
 	}
 
+	newVM.Properties(context.TODO(), newVM.Reference(), []string{"summary", "config"}, &vm_mo)
 	firstDisk := 0
 	if vm.template != "" {
 		firstDisk++
 	}
 	for i := firstDisk; i < len(vm.hardDisks); i++ {
 		log.Printf("[DEBUG] disk index: %v", i)
-		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, vm.hardDisks[i].vmdkPath, vm.hardDisks[i].controller)
+
+		var diskPath string
+		switch {
+		case vm.hardDisks[i].vmdkPath != "":
+			diskPath = vm.hardDisks[i].vmdkPath
+		case vm.hardDisks[i].name != "":
+			snapshotFullDir := vm_mo.Config.Files.SnapshotDirectory
+			split := strings.Split(snapshotFullDir, " ")
+			if len(split) != 2 {
+				return fmt.Errorf("[ERROR] setupVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
+			}
+			vmWorkingPath := split[1]
+			diskPath = vmWorkingPath + vm.hardDisks[i].name
+		default:
+			return fmt.Errorf("[ERROR] setupVirtualMachine - Neither vmdk path nor vmdk name was given: %#v", vm.hardDisks[i])
+		}
+
+		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
 		if err != nil {
 			return err
 		}
@@ -1574,7 +1797,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] VM customization finished")
 	}
 
-	if vm.bootableVmdk || vm.template != "" {
+	if vm.hasBootableVmdk || vm.template != "" {
 		newVM.PowerOn(context.TODO())
 	}
 	return nil
