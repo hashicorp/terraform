@@ -85,7 +85,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
-				Computed: true,
+				Default:  true,
 			},
 			"dns_nameservers": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -188,7 +188,6 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 	d.Set("tenant_id", s.TenantID)
 	d.Set("allocation_pools", s.AllocationPools)
 	d.Set("gateway_ip", s.GatewayIP)
-	d.Set("enable_dhcp", s.EnableDHCP)
 	d.Set("dns_nameservers", s.DNSNameservers)
 	d.Set("host_routes", s.HostRoutes)
 
