@@ -129,10 +129,6 @@ func testAccCheckAWSElasticacheParameterGroupAttributes(v *elasticache.CachePara
 			return fmt.Errorf("bad family: %#v", v.CacheParameterGroupFamily)
 		}
 
-		if *v.Description != "Test parameter group for terraform" {
-			return fmt.Errorf("bad description: %#v", v.Description)
-		}
-
 		return nil
 	}
 }
