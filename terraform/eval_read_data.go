@@ -38,7 +38,8 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 		provider := *n.Provider
 		config := *n.Config
 
-		diff, err := provider.ReadDataDiff(n.Info, config)
+		var err error
+		diff, err = provider.ReadDataDiff(n.Info, config)
 		if err != nil {
 			return nil, err
 		}
