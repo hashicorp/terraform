@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/hashicorp/terraform/communicator/docker"
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/communicator/ssh"
 	"github.com/hashicorp/terraform/communicator/winrm"
@@ -43,6 +44,8 @@ type Communicator interface {
 func New(s *terraform.InstanceState) (Communicator, error) {
 	connType := s.Ephemeral.ConnInfo["type"]
 	switch connType {
+	case "docker":
+		return docker.New(s)
 	case "ssh", "": // The default connection type is ssh, so if connType is empty use ssh
 		return ssh.New(s)
 	case "winrm":
