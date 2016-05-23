@@ -14,7 +14,7 @@ and Backends.
 
 The Service resource requires a domain name that is correctly set up to direct
 traffic to the Fastly service. See Fastly's guide on [Adding CNAME Records][fastly-cname]
-on their documentation site for guidance. 
+on their documentation site for guidance.
 
 ## Example Usage
 
@@ -190,26 +190,26 @@ conditions execute. Lower numbers execute first
 The `gzip` block supports:
 
 * `name` - (Required) A unique name
-* `content_types` - (Optional) content-type for each type of content you wish to 
+* `content_types` - (Optional) content-type for each type of content you wish to
 have dynamically gzipped. Ex: `["text/html", "text/css"]`
-* `extensions` - (Optional) File extensions for each file type to dynamically 
+* `extensions` - (Optional) File extensions for each file type to dynamically
 gzip. Ex: `["css", "js"]`
 
 
 The `Header` block supports adding, removing, or modifying Request and Response
-headers. See Fastly's documentation on 
-[Adding or modifying headers on HTTP requests and responses](https://docs.fastly.com/guides/basic-configuration/adding-or-modifying-headers-on-http-requests-and-responses#field-description-table) for more detailed information on any 
+headers. See Fastly's documentation on
+[Adding or modifying headers on HTTP requests and responses](https://docs.fastly.com/guides/basic-configuration/adding-or-modifying-headers-on-http-requests-and-responses#field-description-table) for more detailed information on any
 of the properties below.
 
 * `name` - (Required) A unique name to refer to this header attribute
 * `action` - (Required) The Header manipulation action to take; must be one of
 `set`, `append`, `delete`, `regex`, or `regex_repeat`
-* `type` - (Required) The Request type to apply the selected Action on; must be one of `request`, `cache` or `response`
-* `destination` - (Required) The name of the header that is going to be affected 
+* `type` - (Required) The Request type to apply the selected Action on; must be one of `request`, `fetch`, `cache` or `response`
+* `destination` - (Required) The name of the header that is going to be affected
 by the Action
-* `ignore_if_set` - (Optional) Do not add the header if it is already present. 
+* `ignore_if_set` - (Optional) Do not add the header if it is already present.
 (Only applies to `set` action.). Default `false`
-* `source` - (Optional) Variable to be used as a source for the header content 
+* `source` - (Optional) Variable to be used as a source for the header content
 (Does not apply to `delete` action.)
 * `regex` - (Optional) Regular expression to use (Only applies to `regex` and `regex_repeat` actions.)
 * `substitution` - (Optional) Value to substitute in place of regular expression. (Only applies to `regex` and `regex_repeat`.)
