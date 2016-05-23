@@ -125,7 +125,7 @@ func (c *Config) Discover(ui cli.Ui) error {
 		if path, found := c.Providers[name]; found {
 			ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provider.\n"+
 				"  If you did not expect to see this message you will need to remove the old plugin.\n"+
-				"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+				"  See https://www.terraform.io/docs/plugins/index.html", path, name))
 		} else {
 
 			cmd, err := command.BuildPluginCommandString("provider", name)
@@ -139,7 +139,7 @@ func (c *Config) Discover(ui cli.Ui) error {
 		if path, found := c.Provisioners[name]; found {
 			ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provisioner.\n"+
 				"  If you did not expect to see this message you will need to remove the old plugin.\n"+
-				"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+				"  See https://www.terraform.io/docs/plugins/index.html", path, name))
 		} else {
 			cmd, err := command.BuildPluginCommandString("provisioner", name)
 			if err != nil {
