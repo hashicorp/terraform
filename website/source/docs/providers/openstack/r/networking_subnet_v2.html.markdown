@@ -62,7 +62,7 @@ The following arguments are supported:
 
 * `enable_dhcp` - (Optional) The administrative state of the network.
     Acceptable values are "true" and "false". Changing this value enables or
-    disables the DHCP capabilities of the existing subnet.
+    disables the DHCP capabilities of the existing subnet. Defaults to true.
 
 * `dns_nameservers` - (Optional) An array of DNS name server names used by hosts
     in this subnet. Changing this updates the DNS name servers for the existing
