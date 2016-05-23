@@ -15,7 +15,6 @@ Provides an API Gateway API Key.
 ```
 resource "aws_api_gateway_rest_api" "MyDemoAPI" {
   name = "MyDemoAPI"
-  description = "This is my API for demonstration purposes"
 }
 
 resource "aws_api_gateway_api_key" "MyDemoApiKey" {
@@ -38,7 +37,7 @@ resource "aws_api_gateway_deployment" "MyDemoDeployment" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the API key
-* `description` - (Required) The API key description
+* `description` - (Optional) The API key description. Defaults to "Managed by Terraform".
 * `enabled` - (Optional) Specifies whether the API key can be used by callers. Defaults to `true`.
 * `stage_key` - (Optional) A list of stage keys associated with the API key - see below
 

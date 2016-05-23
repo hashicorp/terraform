@@ -22,6 +22,8 @@ func TestAccAWSElasticacheSecurityGroup_basic(t *testing.T) {
 				Config: testAccAWSElasticacheSecurityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_security_group.bar", "description", "Managed by Terraform"),
 				),
 			},
 		},
@@ -78,7 +80,6 @@ provider "aws" {
 }
 resource "aws_security_group" "bar" {
     name = "tf-test-security-group-%03d"
-    description = "tf-test-security-group-descr"
     ingress {
         from_port = -1
         to_port = -1

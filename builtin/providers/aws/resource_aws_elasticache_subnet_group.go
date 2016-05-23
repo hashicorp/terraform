@@ -23,7 +23,8 @@ func resourceAwsElasticacheSubnetGroup() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "Managed by Terraform",
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,

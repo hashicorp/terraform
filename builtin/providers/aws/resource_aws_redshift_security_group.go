@@ -32,8 +32,9 @@ func resourceAwsRedshiftSecurityGroup() *schema.Resource {
 
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Default:  "Managed by Terraform",
 			},
 
 			"ingress": &schema.Schema{
