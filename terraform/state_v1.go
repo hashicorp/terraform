@@ -235,18 +235,6 @@ func (old *resourceStateV1) upgrade() (*ResourceState, error) {
 		return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
 	}
 
-	tainted := make([]*InstanceState, len(old.Tainted))
-	for i, v := range old.Tainted {
-		upgraded, err := v.upgrade()
-		if err != nil {
-			return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
-		}
-		tainted[i] = upgraded
-	}
-	if len(tainted) == 0 {
-		tainted = nil
-	}
-
 	deposed := make([]*InstanceState, len(old.Deposed))
 	for i, v := range old.Deposed {
 		upgraded, err := v.upgrade()
@@ -263,7 +251,6 @@ func (old *resourceStateV1) upgrade() (*ResourceState, error) {
 		Type:         old.Type,
 		Dependencies: dependencies.([]string),
 		Primary:      primary,
-		Tainted:      tainted,
 		Deposed:      deposed,
 		Provider:     old.Provider,
 	}, nil
