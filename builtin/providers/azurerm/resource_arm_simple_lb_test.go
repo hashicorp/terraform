@@ -14,7 +14,7 @@ import (
 func TestAccARMSimpleLB_basic(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureSimpleLB_basic, ri, ri)
+	config := fmt.Sprintf(testAccAzureSimpleLB_basic, ri, ri, ri)
 
 	justBeThere := regexp.MustCompile(".*")
 
@@ -35,11 +35,11 @@ func TestAccARMSimpleLB_basic(t *testing.T) {
 	})
 }
 
-func TestAccARMSimpleLB_updateTage(t *testing.T) {
+func TestAccARMSimpleLB_updateTag(t *testing.T) {
 
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureSimpleLB_tags, ri, ri)
-	postConfig := fmt.Sprintf(testAccAzureSimpleLB_updateTags, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureSimpleLB_tags, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureSimpleLB_updateTags, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -67,6 +67,38 @@ func TestAccARMSimpleLB_updateTage(t *testing.T) {
 						"azurerm_simple_lb.test", "tags.#", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_simple_lb.test", "tags.environment", "staging"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccARMSimpleLB_updateProbe(t *testing.T) {
+
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureSimpleLB_probe, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureSimpleLB_probeUpdate, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckARMSimpleRMLBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckARMSimpleLBExists("azurerm_simple_lb.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_simple_lb.test", "probe.#", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckARMSimpleLBExists("azurerm_simple_lb.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_simple_lb.test", "probe.#", "1"),
 				),
 			},
 		},
@@ -134,7 +166,7 @@ resource "azurerm_resource_group" "test" {
 }
 
 resource "azurerm_public_ip" "test" {
-    name = "simplelbip"
+    name = "simplelbip%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
@@ -173,7 +205,7 @@ resource "azurerm_resource_group" "test" {
 }
 
 resource "azurerm_public_ip" "test" {
-    name = "simplelbip"
+    name = "simplelbip%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
@@ -217,7 +249,7 @@ resource "azurerm_resource_group" "test" {
 }
 
 resource "azurerm_public_ip" "test" {
-    name = "simplelbip"
+    name = "simplelbip%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
@@ -248,8 +280,101 @@ resource "azurerm_simple_lb" "test" {
     }
 
     tags {
-	environment = "Production"
-	cost_center = "MSFT"
+	environment = "staging"
+    }
+}
+`
+
+var testAccAzureSimpleLB_probe = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestlbrg-%d"
+    location = "West US"
+}
+
+resource "azurerm_public_ip" "test" {
+    name = "simplelbip%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    public_ip_address_allocation = "static"
+}
+
+resource "azurerm_simple_lb" "test" {
+    name = "acctestlb%d"
+    location = "West US"
+    type = "Microsoft.Network/loadBalancers"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    frontend_allocation_method = "Dynamic"
+    frontend_public_ip_address = "${azurerm_public_ip.test.id}"
+
+    probe {
+        name = "testProbe1"
+        protocol = "Tcp"
+        port = 22
+        interval = 5
+        number_of_probes = 16
+    }
+    rule {
+	protocol = "Tcp"
+	load_distribution = "Default"
+	frontend_port = 22
+	backend_port = 22
+	name = "rule1"
+	probe_name = "testProbe1"
+    }
+
+    probe {
+        name = "testProbe2"
+        protocol = "Tcp"
+        port = 80
+        interval = 5
+        number_of_probes = 16
+    }
+    rule {
+	protocol = "Tcp"
+	load_distribution = "Default"
+	frontend_port = 80
+	backend_port = 80
+	name = "rule2"
+	probe_name = "testProbe2"
+    }
+}
+`
+
+var testAccAzureSimpleLB_probeUpdate = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestlbrg-%d"
+    location = "West US"
+}
+
+resource "azurerm_public_ip" "test" {
+    name = "simplelbip%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    public_ip_address_allocation = "static"
+}
+
+resource "azurerm_simple_lb" "test" {
+    name = "acctestlb%d"
+    location = "West US"
+    type = "Microsoft.Network/loadBalancers"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    frontend_allocation_method = "Dynamic"
+    frontend_public_ip_address = "${azurerm_public_ip.test.id}"
+
+    probe {
+        name = "testProbe1"
+        protocol = "Tcp"
+        port = 22
+        interval = 5
+        number_of_probes = 16
+    }
+    rule {
+	protocol = "Tcp"
+	load_distribution = "Default"
+	frontend_port = 22
+	backend_port = 22
+	name = "rule1"
+	probe_name = "testProbe1"
     }
 }
 `

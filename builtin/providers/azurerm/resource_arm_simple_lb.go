@@ -43,40 +43,46 @@ func resourceArmSimpleLb() *schema.Resource {
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"resource_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"location": &schema.Schema{
 				Type:      schema.TypeString,
 				Required:  true,
 				StateFunc: azureRMNormalizeLocation,
+				ForceNew:  true,
 			},
 			"frontend_private_ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"frontend_allocation_method": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateAllocationMethod,
+				ForceNew:     true,
 			},
 			"frontend_subnet": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"frontend_public_ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"probe": &schema.Schema{
 				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -115,8 +121,7 @@ func resourceArmSimpleLb() *schema.Resource {
 
 			"rule": &schema.Schema{
 				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -160,13 +165,13 @@ func resourceArmSimpleLb() *schema.Resource {
 
 func resourceARMLoadBalancerRuleHash(v interface{}) int {
 	m := v.(map[string]interface{})
-	rule := fmt.Sprintf("%s-%s-%s%d-%d", m["name"].(string), m["protocol"].(string), m["load_distribution"].(string), m["frontend_port"], m["backend_port"])
+	rule := fmt.Sprintf("%s-%s-%s-%s-%d-%d", m["name"].(string), m["protocol"].(string), m["probe_name"].(string), m["load_distribution"].(string), m["frontend_port"], m["backend_port"])
 	return hashcode.String(rule)
 }
 
 func resourceARMLoadBalancerProbeHash(v interface{}) int {
 	m := v.(map[string]interface{})
-	rule := fmt.Sprintf("%s-%s-%d-%d", m["name"].(string), m["protocol"].(string), m["frontend_port"], m["backend_port"])
+	rule := fmt.Sprintf("%s-%s-%d-%d-%d", m["name"].(string), m["protocol"].(string), m["port"], m["number_of_probes"], m["interval"])
 	if m["request_path"] != nil {
 		rule = rule + "-" + m["request_path"].(string)
 	}
@@ -226,6 +231,16 @@ func validateLoadDistribution(v interface{}, k string) (ws []string, errors []er
 	return
 }
 
+func findRuleByName(ruleArray *[]network.LoadBalancingRule, ruleName string) (int, error) {
+	for i := 0; i < len(*ruleArray); i++ {
+		tmRule := (*ruleArray)[i]
+		if *tmRule.Name == ruleName {
+			return i, nil
+		}
+	}
+	return -1, fmt.Errorf("Error loading the probe named %s", ruleName)
+}
+
 func findProbeConfByName(probeArray *[]network.Probe, probeName string) (int, error) {
 	for i := 0; i < len(*probeArray); i++ {
 		tmpProbe := (*probeArray)[i]
@@ -250,14 +265,17 @@ func pullOutLbRules(d *schema.ResourceData, loadBalancer network.LoadBalancer) (
 	log.Printf("[resourceArmSimpleLb] pullOutLbRules[enter]")
 	defer log.Printf("[resourceArmSimpleLb] pullOutLbRules[exit]")
 
-	backendPoolId := d.Get("backend_pool_id").(string)
-	frontendIpId := d.Get("frontend_id").(string)
-	backendPoolRef := network.SubResource{ID: &backendPoolId}
-	frontendIpRef := network.SubResource{ID: &frontendIpId}
+	backendPoolId := *(*loadBalancer.Properties.BackendAddressPools)[0].ID
+	frontendIpId := *(*loadBalancer.Properties.FrontendIPConfigurations)[0].ID
 
 	// then; the subnets:
 	outRules := []network.LoadBalancingRule{}
-	if rules := d.Get("rule").(*schema.Set); rules.Len() > 0 {
+
+	log.Printf("[resourceArmSimpleLb] pullOutLbRules will use frontend %s and backend %s", frontendIpId, backendPoolId)
+	rules := d.Get("rule").(*schema.Set)
+
+	if rules.Len() > 0 {
+		log.Printf("[resourceArmSimpleLb] pullOutLbRules found %d rules in plan", rules.Len())
 		for _, rule := range rules.List() {
 			rule := rule.(map[string]interface{})
 
@@ -273,7 +291,18 @@ func pullOutLbRules(d *schema.ResourceData, loadBalancer network.LoadBalancer) (
 				return nil, err
 			}
 
+			backendPoolRef := network.SubResource{ID: &backendPoolId}
+			frontendIpRef := network.SubResource{ID: &frontendIpId}
 			probeRef := network.SubResource{ID: (*loadBalancer.Properties.Probes)[i].ID}
+
+			log.Printf("[resourceArmSimpleLb] pullOutLbRules rule %s is using probe %s", ruleName, *(*loadBalancer.Properties.Probes)[i].ID)
+
+			var ruleId *string = nil
+			ruleNdx, err := findRuleByName(loadBalancer.Properties.LoadBalancingRules, ruleName)
+			if err == nil {
+				log.Printf("[resourceArmSimpleLb] pullOutLbRules found the existing rule %s", ruleName)
+				ruleId = (*loadBalancer.Properties.LoadBalancingRules)[ruleNdx].ID
+			}
 
 			props := network.LoadBalancingRulePropertiesFormat{
 				Protocol:                network.TransportProtocol(ruleProtocol),
@@ -287,9 +316,12 @@ func pullOutLbRules(d *schema.ResourceData, loadBalancer network.LoadBalancer) (
 			ruleObj := network.LoadBalancingRule{
 				Name:       &ruleName,
 				Properties: &props,
+				ID:         ruleId,
 			}
 			outRules = append(outRules, ruleObj)
 		}
+	} else {
+		log.Printf("[resourceArmSimpleLb] pullOutLbRules no rules found")
 	}
 
 	return &outRules, nil
@@ -414,18 +446,18 @@ func resourceArmSimpleLbCreate(d *schema.ResourceData, meta interface{}) error {
 	backendPoolConfs := []network.BackendAddressPool{}
 	backendPoolConfs = append(backendPoolConfs, backendpool)
 	loadBalancer.Properties.BackendAddressPools = &backendPoolConfs
+	//loadBalancer.Properties.LoadBalancingRules = &[]network.LoadBalancingRule{}
 
 	resp, err := lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
 	if err != nil {
 		log.Printf("[resourceArmSimpleLb] ERROR LB got status %s", err.Error())
 		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
 	}
-	log.Printf("[resourceArmSimpleLb] Create LB got status %d", resp.StatusCode)
+	log.Printf("[resourceArmSimpleLb] Create LB got status %d.  Provision State %s", resp.StatusCode, *resp.Properties.ProvisioningState)
 
-	d.SetId(*resp.ID)
-	err = iResourceArmSimpleLbRead(d, meta)
-	if err != nil {
-		return err
+	//Possible status values are Updating|Deleting|Failed|Succeeded
+	if *resp.Properties.ProvisioningState != "Succeeded" {
+		return fmt.Errorf("The load balancer was not properly deployed.  The provisioning state %s", *resp.Properties.ProvisioningState)
 	}
 
 	log.Printf("[resourceArmSimpleLb] We have the IDs now updating to set rules")
@@ -433,13 +465,16 @@ func resourceArmSimpleLbCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("[resourceArmSimpleLb] created %d rules", len(*loadBalancer.Properties.LoadBalancingRules))
+
 	resp, err = lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
 	if err != nil {
-		log.Printf("[resourceArmSimpleLb] ERROR LB got status %s", err.Error())
+		log.Printf("[resourceArmSimpleLb] ERROR When trying to set the rules.  LB got status %s", err.Error())
 		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
 	}
+	log.Printf("[resourceArmSimpleLb] Set the rules on the LB.  Provision State %s", *resp.Properties.ProvisioningState)
 
-	return iResourceArmSimpleLbRead(d, meta)
+	return flattenAllOfLb(resp, d, meta)
 }
 
 func flattenAzureRmFrontendIp(frontenIpArray []network.FrontendIPConfiguration, d *schema.ResourceData) error {
@@ -470,8 +505,8 @@ func flattenAzureRmFrontendIp(frontenIpArray []network.FrontendIPConfiguration, 
 }
 
 func flattenAzureRmLoadBalancerRules(loadBalancer network.LoadBalancer, d *schema.ResourceData) error {
-	log.Printf("[resourceArmSimpleLb] flattenAzureRmFrontendIp[enter]")
-	defer log.Printf("[resourceArmSimpleLb] flattenAzureRmFrontendIp[exit]")
+	log.Printf("[resourceArmSimpleLb] flattenAzureRmLoadBalancerRules[enter]")
+	defer log.Printf("[resourceArmSimpleLb] flattenAzureRmLoadBalancerRules[exit]")
 
 	loadBalancingRuleArray := loadBalancer.Properties.LoadBalancingRules
 
@@ -479,9 +514,12 @@ func flattenAzureRmLoadBalancerRules(loadBalancer network.LoadBalancer, d *schem
 		F: resourceARMLoadBalancerProbeHash,
 	}
 
+	log.Printf("[resourceArmSimpleLb] flattenAzureRmLoadBalancerRules found %d rules", len(*loadBalancingRuleArray))
+
 	for _, rule := range *loadBalancingRuleArray {
 		r := map[string]interface{}{}
 
+		log.Printf("[resourceArmSimpleLb] Found LB RULE %s", *rule.Name)
 		r["name"] = *rule.Name
 		r["rule_id"] = *rule.ID
 		if rule.Properties != nil {
@@ -499,7 +537,7 @@ func flattenAzureRmLoadBalancerRules(loadBalancer network.LoadBalancer, d *schem
 		}
 		ruleSet.Add(r)
 	}
-	d.Set("subnet", ruleSet)
+	d.Set("rule", ruleSet)
 
 	return nil
 }
@@ -529,7 +567,7 @@ func flattenAzureRmProbe(probeArray *[]network.Probe, d *schema.ResourceData) er
 
 		probeSet.Add(p)
 	}
-	d.Set("subnet", probeSet)
+	d.Set("probe", probeSet)
 
 	return nil
 }
@@ -538,7 +576,60 @@ func resourceArmSimpleLbUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[resourceArmSimpleLb] resourceArmSimpleLbUpdate[enter]")
 	defer log.Printf("[resourceArmSimpleLb] resourceArmSimpleLbUpdate[exit]")
 
-	return resourceArmSimpleLbCreate(d, meta)
+	lbClient := meta.(*ArmClient).loadBalancerClient
+
+	// first; fetch a bunch of fields:
+	name := d.Get("name").(string)
+	resGrp := d.Get("resource_group_name").(string)
+	tags := d.Get("tags").(map[string]interface{})
+
+	loadBalancer, err := lbClient.Get(resGrp, name, "")
+	if err != nil {
+		return fmt.Errorf("Error could not find the LB %s.  %s", name, err)
+	}
+
+	loadBalancer.Tags = expandTags(tags)
+
+	probes, err := pullOutProbes(d)
+	if err != nil {
+		return err
+	}
+	loadBalancer.Properties.Probes = probes
+
+	new_backend_pool_name := fmt.Sprintf("%sbackendpool", name)
+	backendpool := network.BackendAddressPool{Name: &new_backend_pool_name}
+	backendPoolConfs := []network.BackendAddressPool{}
+	backendPoolConfs = append(backendPoolConfs, backendpool)
+	loadBalancer.Properties.BackendAddressPools = &backendPoolConfs
+	loadBalancer.Properties.LoadBalancingRules = &[]network.LoadBalancingRule{}
+
+	resp, err := lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
+	if err != nil {
+		log.Printf("[resourceArmSimpleLb] ERROR Update LB got status %s", err.Error())
+		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
+	}
+	log.Printf("[resourceArmSimpleLb] Update LB got status %d.  Provision State %s", resp.StatusCode, *resp.Properties.ProvisioningState)
+
+	//Possible status values are Updating|Deleting|Failed|Succeeded
+	if *resp.Properties.ProvisioningState != "Succeeded" {
+		return fmt.Errorf("The load balancer was not properly deployed.  The provisioning state %s", *resp.Properties.ProvisioningState)
+	}
+
+	log.Printf("[resourceArmSimpleLb] We have the IDs now updating to set rules")
+	loadBalancer.Properties.LoadBalancingRules, err = pullOutLbRules(d, resp)
+	if err != nil {
+		return err
+	}
+	log.Printf("[resourceArmSimpleLb] created %d rules", len(*loadBalancer.Properties.LoadBalancingRules))
+
+	resp, err = lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
+	if err != nil {
+		log.Printf("[resourceArmSimpleLb] ERROR When trying to set the rules.  Update LB got status %s", err.Error())
+		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
+	}
+	log.Printf("[resourceArmSimpleLb] Set the rules on the LB.  Provision State %s", *resp.Properties.ProvisioningState)
+
+	return flattenAllOfLb(resp, d, meta)
 }
 
 func resourceArmSimpleLbDelete(d *schema.ResourceData, meta interface{}) error {
@@ -563,9 +654,9 @@ func resourceArmSimpleLbDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 // resourceArmLoadBalancerRead goes ahead and reads the state of the corresponding ARM load balancer.
-func iResourceArmSimpleLbRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[resourceArmSimpleLb] iResourceArmSimpleLbRead[enter]")
-	defer log.Printf("[resourceArmSimpleLb] iResourceArmSimpleLbRead[exit]")
+func resourceArmSimpleLbRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[resourceArmSimpleLb] resourceArmSimpleLbRead[enter]")
+	defer log.Printf("[resourceArmSimpleLb] resourceArmSimpleLbRead[exit]")
 
 	lbClient := meta.(*ArmClient).loadBalancerClient
 
@@ -579,6 +670,14 @@ func iResourceArmSimpleLbRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error reading the state of the load balancer off Azure: %s", err)
 	}
 
+	return flattenAllOfLb(loadBalancer, d, meta)
+}
+
+// resourceArmLoadBalancerRead goes ahead and reads the state of the corresponding ARM load balancer.
+func flattenAllOfLb(loadBalancer network.LoadBalancer, d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[resourceArmSimpleLb] flattenAllOfLb[enter]")
+	defer log.Printf("[resourceArmSimpleLb] flattenAllOfLb[exit]")
+
 	log.Printf("[INFO] Succesfully retrieved details for load balancer '%s'.", *loadBalancer.Name)
 
 	fip := loadBalancer.Properties.FrontendIPConfigurations
@@ -586,7 +685,7 @@ func iResourceArmSimpleLbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("location", loadBalancer.Location)
 	d.Set("type", loadBalancer.Type)
 
-	err = flattenAzureRmFrontendIp(*fip, d)
+	err := flattenAzureRmFrontendIp(*fip, d)
 	if err != nil {
 		return err
 	}
@@ -608,13 +707,7 @@ func iResourceArmSimpleLbRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	flattenAndSetTags(d, loadBalancer.Tags)
 
+	d.SetId(*loadBalancer.ID)
+
 	return nil
-}
-
-// resourceArmLoadBalancerRead goes ahead and reads the state of the corresponding ARM load balancer.
-func resourceArmSimpleLbRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[resourceArmSimpleLb] resourceArmSimpleLbRead[enter]")
-	defer log.Printf("[resourceArmSimpleLb] resourceArmSimpleLbRead[exit]")
-
-	return iResourceArmSimpleLbRead(d, meta)
 }
