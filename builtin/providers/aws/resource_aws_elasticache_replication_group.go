@@ -45,6 +45,38 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
+			"cache_clusters": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"address": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"availability_zone": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"role": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"primary_endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"preferred_cache_cluster_azs": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -264,7 +296,7 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		ReplicationGroupId: aws.String(d.Id()),
 	}
 
-	_, err := conn.DescribeReplicationGroups(req)
+	res, err := conn.DescribeReplicationGroups(req)
 	if err != nil {
 		if eccErr, ok := err.(awserr.Error); ok && eccErr.Code() == "ReplicationGroupNotFound" {
 			log.Printf("[WARN] Elasticache Replication Group (%s) not found", d.Id())
@@ -274,9 +306,70 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 
 		return err
 	}
-	//	if len(res.ReplicationGroups) == 1 {
-	//		rg := res.ReplicationGroups[0]
-	//	}
+
+	if len(res.ReplicationGroups) == 1 {
+		rg := res.ReplicationGroups[0]
+		fmt.Printf("%v\n", rg)
+
+		d.Set("replication_group_id", rg.ReplicationGroupId)
+
+		if *rg.AutomaticFailover == "enabled" {
+			d.Set("automatic_failover_enabled", true)
+		} else {
+			d.Set("automatic_failover_enabled", false)
+		}
+
+		d.Set("number_cache_clusters", len(rg.MemberClusters))
+
+		if len(rg.NodeGroups) == 1 {
+			groupMembers := rg.NodeGroups[0].NodeGroupMembers
+			cacheNodeData := make([]map[string]interface{}, 0, len(groupMembers))
+
+			for _, node := range groupMembers {
+				if node.CacheClusterId == nil || node.ReadEndpoint == nil || node.ReadEndpoint.Address == nil || node.ReadEndpoint.Port == nil || node.PreferredAvailabilityZone == nil || node.CurrentRole == nil {
+					return fmt.Errorf("Unexpected nil pointer in: %s", node)
+				}
+				cacheNodeData = append(cacheNodeData, map[string]interface{}{
+					"id":                *node.CacheClusterId,
+					"address":           *node.ReadEndpoint.Address,
+					"port":              int(*node.ReadEndpoint.Port),
+					"availability_zone": *node.PreferredAvailabilityZone,
+					"role":              *node.CurrentRole,
+				})
+			}
+			d.Set("cache_clusters", cacheNodeData)
+
+			primaryEndpoint := rg.NodeGroups[0].PrimaryEndpoint
+			if primaryEndpoint.Address == nil || primaryEndpoint.Port == nil {
+				return fmt.Errorf("Unexpected nil pointer in: %s", primaryEndpoint)
+			}
+			d.Set("primary_endpoint", fmt.Sprintf("%s:%d", *primaryEndpoint.Address, *primaryEndpoint.Port))
+		}
+
+		/*
+			            // TODO: copied from cache_cluster but returns empty tags
+						// list tags for resource set tags
+						arn, err := buildECARN(d, meta)
+						if err != nil {
+							log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not setting Tags for ReplicationGroup %s", *rg.ReplicationGroupId)
+						} else {
+							resp, err := conn.ListTagsForResource(&elasticache.ListTagsForResourceInput{
+								ResourceName: aws.String(arn),
+							})
+
+							if err != nil {
+								log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
+							}
+
+							var et []*elasticache.Tag
+							if len(resp.TagList) > 0 {
+								et = resp.TagList
+							}
+							d.Set("tags", tagsToMapEC(et))
+						}
+		*/
+	}
+
 	return nil
 }
 
