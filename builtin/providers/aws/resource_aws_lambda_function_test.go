@@ -230,6 +230,60 @@ func TestAccAWSLambdaFunction_s3Update(t *testing.T) {
 	})
 }
 
+func TestAccAWSLambdaFunction_s3Update_unversioned(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+
+	path, zipFile, err := createTempFile("lambda_s3Update")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(path)
+
+	bucketName := fmt.Sprintf("tf-acc-lambda-s3-deployments-%d", randomInteger)
+	key := "lambda-func.zip"
+	key2 := "lambda-func-modified.zip"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				PreConfig: func() {
+					// Upload 1st version
+					testAccCreateZipFromFiles(map[string]string{"test-fixtures/lambda_func.js": "lambda.js"}, zipFile)
+				},
+				Config: genAWSLambdaFunctionConfig_s3_unversioned(bucketName, key, path),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3", "tf_acc_lambda_name_s3", &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, "tf_acc_lambda_name_s3"),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, "tf_acc_lambda_name_s3"),
+					testAccCheckAwsLambdaSourceCodeHash(&conf, "un6qF9S9hKvXbWwJ6m2EYaVCWjcr0PCZWiTV3h4zB0I="),
+				),
+			},
+			resource.TestStep{
+				ExpectNonEmptyPlan: true,
+				PreConfig: func() {
+					// Upload 2nd version
+					testAccCreateZipFromFiles(map[string]string{"test-fixtures/lambda_func_modified.js": "lambda.js"}, zipFile)
+				},
+				Config: genAWSLambdaFunctionConfig_s3_unversioned(bucketName, key2, path),
+			},
+			// Extra step because of missing ComputedWhen
+			// See https://github.com/hashicorp/terraform/pull/4846 & https://github.com/hashicorp/terraform/pull/5330
+			resource.TestStep{
+				Config: genAWSLambdaFunctionConfig_s3_unversioned(bucketName, key2, path),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3", "tf_acc_lambda_name_s3", &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, "tf_acc_lambda_name_s3"),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, "tf_acc_lambda_name_s3"),
+					testAccCheckAwsLambdaSourceCodeHash(&conf, "Y5Jf4Si63UDy1wKNfPs+U56ZL0NxsieKPt9EwRl4GQM="),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckLambdaFunctionDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).lambdaconn
 
@@ -630,5 +684,49 @@ resource "aws_lambda_function" "lambda_function_s3" {
 
 func genAWSLambdaFunctionConfig_s3(bucket, key, path string) string {
 	return fmt.Sprintf(testAccAWSLambdaFunctionConfig_s3_tpl,
+		bucket, key, path, path)
+}
+
+const testAccAWSLambdaFunctionConfig_s3_unversioned_tpl = `
+resource "aws_s3_bucket" "artifacts" {
+	bucket = "%s"
+	acl = "private"
+	force_destroy = true
+}
+resource "aws_s3_bucket_object" "o" {
+	bucket = "${aws_s3_bucket.artifacts.bucket}"
+	key = "%s"
+	source = "%s"
+	etag = "${md5(file("%s"))}"
+}
+resource "aws_iam_role" "iam_for_lambda" {
+    name = "iam_for_lambda"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+resource "aws_lambda_function" "lambda_function_s3" {
+	s3_bucket = "${aws_s3_bucket_object.o.bucket}"
+	s3_key = "${aws_s3_bucket_object.o.key}"
+    function_name = "tf_acc_lambda_name_s3_unversioned"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+}
+`
+
+func genAWSLambdaFunctionConfig_s3_unversioned(bucket, key, path string) string {
+	return fmt.Sprintf(testAccAWSLambdaFunctionConfig_s3_unversioned_tpl,
 		bucket, key, path, path)
 }
