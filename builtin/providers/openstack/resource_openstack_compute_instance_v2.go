@@ -114,26 +114,31 @@ func resourceComputeInstanceV2() *schema.Resource {
 						"uuid": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"port": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"fixed_ip_v4": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"fixed_ip_v6": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"floating_ip": &schema.Schema{
