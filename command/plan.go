@@ -30,7 +30,6 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.IntVar(
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -79,21 +78,15 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if refresh {
-		c.Ui.Output("Refreshing Terraform state prior to plan...\n")
-		state, err := ctx.Refresh()
+		c.Ui.Output("Refreshing Terraform state in-memory prior to plan...")
+		c.Ui.Output("The refreshed state will be used to calculate this plan, but")
+		c.Ui.Output("will not be persisted to local or remote state storage.\n")
+		_, err := ctx.Refresh()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
 		c.Ui.Output("")
-
-		if state != nil {
-			log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-			if err := c.Meta.PersistState(state); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
-				return 1
-			}
-		}
 	}
 
 	plan, err := ctx.Plan()
