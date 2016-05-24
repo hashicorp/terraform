@@ -110,6 +110,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"aws_availability_zones": dataSourceAwsAvailabilityZones(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"aws_ami":                                      resourceAwsAmi(),
 			"aws_ami_copy":                                 resourceAwsAmiCopy(),
