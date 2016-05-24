@@ -719,7 +719,9 @@ func expandPrivateIPAddresses(ips []interface{}) []*ec2.PrivateIpAddressSpecific
 //Flattens network interface attachment into a map[string]interface
 func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{} {
 	att := make(map[string]interface{})
-	att["instance"] = *a.InstanceId
+	if a.InstanceId != nil {
+		att["instance"] = *a.InstanceId
+	}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentId
 	return att
