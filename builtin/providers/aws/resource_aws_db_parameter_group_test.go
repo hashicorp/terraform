@@ -34,7 +34,7 @@ func TestAccAWSDBParameterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "family", "mysql5.6"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "description", "Test parameter group for terraform"),
+						"aws_db_parameter_group.bar", "description", "Managed by Terraform"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.1708034931.name", "character_set_results"),
 					resource.TestCheckResourceAttr(
@@ -108,8 +108,6 @@ func TestAccAWSDBParameterGroup_Only(t *testing.T) {
 						"aws_db_parameter_group.bar", "name", groupName),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "family", "mysql5.6"),
-					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "description", "Test parameter group for terraform"),
 				),
 			},
 		},
@@ -201,10 +199,6 @@ func testAccCheckAWSDBParameterGroupAttributes(v *rds.DBParameterGroup, name str
 			return fmt.Errorf("bad family: %#v", v.DBParameterGroupFamily)
 		}
 
-		if *v.Description != "Test parameter group for terraform" {
-			return fmt.Errorf("bad description: %#v", v.Description)
-		}
-
 		return nil
 	}
 }
@@ -258,7 +252,6 @@ func testAccAWSDBParameterGroupConfig(n string) string {
 resource "aws_db_parameter_group" "bar" {
 	name = "%s"
 	family = "mysql5.6"
-	description = "Test parameter group for terraform"
 	parameter {
 	  name = "character_set_server"
 	  value = "utf8"

@@ -28,7 +28,7 @@ func TestAccAWSAPIGatewayApiKey_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_api_key.test", "name", "foo"),
 					resource.TestCheckResourceAttr(
-						"aws_api_gateway_api_key.test", "description", "bar"),
+						"aws_api_gateway_api_key.test", "description", "Managed by Terraform"),
 				),
 			},
 		},
@@ -165,7 +165,6 @@ resource "aws_api_gateway_deployment" "test" {
 
 resource "aws_api_gateway_api_key" "test" {
   name = "foo"
-  description = "bar"
   enabled = true
 
   stage_key {

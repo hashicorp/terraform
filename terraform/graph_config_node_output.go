@@ -44,7 +44,8 @@ func (n *GraphNodeConfigOutput) DependentOn() []string {
 // GraphNodeEvalable impl.
 func (n *GraphNodeConfigOutput) EvalTree() EvalNode {
 	return &EvalOpFilter{
-		Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkDestroy},
+		Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
+			walkDestroy, walkInput, walkValidate},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalWriteOutput{

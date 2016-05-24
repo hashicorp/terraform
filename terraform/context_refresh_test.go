@@ -570,6 +570,76 @@ func TestContext2Refresh_state(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_dataState(t *testing.T) {
+	p := testProvider("null")
+	m := testModule(t, "refresh-data-resource-basic")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				// Intentionally no resources since data resources are
+				// supposed to refresh themselves even if they didn't
+				// already exist.
+				Resources: map[string]*ResourceState{},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	p.ReadDataDiffFn = nil
+	p.ReadDataDiffReturn = &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"inputs.#": {
+				Old:  "0",
+				New:  "1",
+				Type: DiffAttrInput,
+			},
+			"inputs.test": {
+				Old:  "",
+				New:  "yes",
+				Type: DiffAttrInput,
+			},
+			"outputs.#": {
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+				Type:        DiffAttrOutput,
+			},
+		},
+	}
+
+	p.ReadDataApplyFn = nil
+	p.ReadDataApplyReturn = &InstanceState{
+		ID: "-",
+	}
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !p.ReadDataDiffCalled {
+		t.Fatal("ReadDataDiff should have been called")
+	}
+	if !p.ReadDataApplyCalled {
+		t.Fatal("ReadDataApply should have been called")
+	}
+
+	mod := s.RootModule()
+	if got := mod.Resources["data.null_data_source.testing"].Primary.ID; got != "-" {
+		t.Fatalf("resource id is %q; want %s", got, "-")
+	}
+	if !reflect.DeepEqual(mod.Resources["data.null_data_source.testing"].Primary, p.ReadDataApplyReturn) {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+}
+
 func TestContext2Refresh_tainted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")

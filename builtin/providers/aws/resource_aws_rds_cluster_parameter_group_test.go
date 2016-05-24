@@ -124,7 +124,7 @@ func TestAccAWSDBClusterParameterGroupOnly(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "family", "aurora5.6"),
 					resource.TestCheckResourceAttr(
-						"aws_rds_cluster_parameter_group.bar", "description", "Test cluster parameter group for terraform"),
+						"aws_rds_cluster_parameter_group.bar", "description", "Managed by Terraform"),
 				),
 			},
 		},
@@ -214,10 +214,6 @@ func testAccCheckAWSDBClusterParameterGroupAttributes(v *rds.DBClusterParameterG
 
 		if *v.DBParameterGroupFamily != "aurora5.6" {
 			return fmt.Errorf("bad family: %#v", v.DBParameterGroupFamily)
-		}
-
-		if *v.Description != "Test cluster parameter group for terraform" {
-			return fmt.Errorf("bad description: %#v", v.Description)
 		}
 
 		return nil
@@ -355,6 +351,5 @@ const testAccAWSDBClusterParameterGroupOnlyConfig = `
 resource "aws_rds_cluster_parameter_group" "bar" {
   name        = "cluster-parameter-group-test-terraform"
   family      = "aurora5.6"
-  description = "Test cluster parameter group for terraform"
 }
 `

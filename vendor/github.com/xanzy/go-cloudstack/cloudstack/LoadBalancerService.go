@@ -2008,12 +2008,12 @@ func (s *LoadBalancerService) ListLoadBalancerRuleInstances(p *ListLoadBalancerR
 
 type ListLoadBalancerRuleInstancesResponse struct {
 	Count                     int                         `json:"count"`
-	LoadBalancerRuleInstances []*LoadBalancerRuleInstance `json:"loadbalancerruleinstance"`
+	LoadBalancerRuleInstances []*LoadBalancerRuleInstance `json:"lbrulevmidip"`
 }
 
 type LoadBalancerRuleInstance struct {
-	Lbvmipaddresses          []string `json:"lbvmipaddresses,omitempty"`
-	Loadbalancerruleinstance string   `json:"loadbalancerruleinstance,omitempty"`
+	Lbvmipaddresses          []string        `json:"lbvmipaddresses,omitempty"`
+	Loadbalancerruleinstance *VirtualMachine `json:"loadbalancerruleinstance,omitempty"`
 }
 
 type UpdateLoadBalancerRuleParams struct {

@@ -57,10 +57,9 @@ The following arguments are supported:
     for. Changing this forces a new resource to be created.
 
 * `acl_id` - (Optional) The network ACL ID that should be attached to the network.
-    Changing this forces a new resource to be created.
 
 * `aclid` - (Optional, Deprecated) The ID of a network ACL that should be attached
-    to the network. Changing this forces a new resource to be created.
+    to the network.
 
 * `project` - (Optional) The name or ID of the project to deploy this
     instance to. Changing this forces a new resource to be created.
