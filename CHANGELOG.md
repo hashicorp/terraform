@@ -27,6 +27,7 @@ IMPROVEMENTS:
  * provider/aws: Add more explicit support for Skipping Final Snapshot in RDS Cluster [GH-6795]
  * provider/aws: Set default description to "Managed by Terraform" [GH-6104]
  * provider/aws: SQS use raw policy string if compact fails [GH-6724]
+ * provider/aws: Support tags for AWS redshift cluster [GH-5356]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
