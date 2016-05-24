@@ -120,6 +120,34 @@ func testCheckAzureRMStorageContainerDestroy(s *terraform.State) error {
 	return nil
 }
 
+func TestValidateArmStorageContainerName(t *testing.T) {
+	validNames := []string{
+		"valid-name",
+		"valid02-name",
+	}
+	for _, v := range validNames {
+		_, errors := validateArmStorageContainerName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Storage Container Name: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"InvalidName1",
+		"-invalidname1",
+		"invalid_name",
+		"invalid!",
+		"ww",
+		strings.Repeat("w", 65),
+	}
+	for _, v := range invalidNames {
+		_, errors := validateArmStorageContainerName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Storage Container Name", v)
+		}
+	}
+}
+
 var testAccAzureRMStorageContainer_basic = `
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"

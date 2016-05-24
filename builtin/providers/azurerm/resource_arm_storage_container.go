@@ -5,6 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"regexp"
+
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -18,9 +20,10 @@ func resourceArmStorageContainer() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateArmStorageContainerName,
 			},
 			"resource_group_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -45,6 +48,25 @@ func resourceArmStorageContainer() *schema.Resource {
 			},
 		},
 	}
+}
+
+//Following the naming convention as laid out in the docs
+func validateArmStorageContainerName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q: %q",
+			k, value))
+	}
+	if len(value) < 3 || len(value) > 63 {
+		errors = append(errors, fmt.Errorf(
+			"%q must be between 3 and 63 characters: %q", k, value))
+	}
+	if regexp.MustCompile(`^-`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot begin with a hyphen: %q", k, value))
+	}
+	return
 }
 
 func validateArmStorageContainerAccessType(v interface{}, k string) (ws []string, errors []error) {
