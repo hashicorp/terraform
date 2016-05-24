@@ -45,6 +45,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Correct the previous fix for a bug causing "attribute not found" messages during destroy, as it was insufficient [GH-6599]
+ * core: Fix issue causing syntax errors interpolating count attribute when value passed between modules [GH-6833]
  * provider/aws: Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
  * provider/aws: Trim trailing `.` from `name` in `aws_route53_record` resources to prevent spurious diffs [GH-6592]
  * provider/aws: Updating state when `aws_sns_topic_subscription` is missing [GH-6629]
