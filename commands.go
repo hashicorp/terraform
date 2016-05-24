@@ -26,7 +26,7 @@ func init() {
 		OutputPrefix: OutputPrefix,
 		InfoPrefix:   OutputPrefix,
 		ErrorPrefix:  ErrorPrefix,
-		Ui:           &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr},
+		Ui:           &cli.BasicUi{Writer: os.Stdout},
 	}
 
 	meta := command.Meta{
