@@ -5,7 +5,6 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * Terraform's built-in plugins are now distributed as part of the main Terraform binary, and use the go-plugin framework. Overrides are still available using separate binaries, but will need recompiling against Terraform 0.7.
  * The `concat()` interpolation function can no longer be used to join strings.
  * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
- * Commands now produce their error messages on `stderr` rather than `stdout`.
 
 FEATURES:
 
@@ -19,7 +18,6 @@ FEATURES:
 IMPROVEMENTS:
 
  * core: The `jsonencode` interpolation function now supports encoding lists and maps [GH-6749]
- * core: Errors and warnings are now printed to `stderr` rather than `stdout` for ease of automation [GH-6848]
  * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
  * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
  * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
