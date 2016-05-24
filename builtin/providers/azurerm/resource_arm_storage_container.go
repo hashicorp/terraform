@@ -89,9 +89,12 @@ func resourceArmStorageContainerCreate(d *schema.ResourceData, meta interface{})
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("storage_account_name").(string)
 
-	blobClient, err := armClient.getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName)
+	blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {
 		return err
+	}
+	if !accountExists {
+		return fmt.Errorf("Storage Account %q Not Found", storageAccountName)
 	}
 
 	name := d.Get("name").(string)
@@ -121,9 +124,14 @@ func resourceArmStorageContainerRead(d *schema.ResourceData, meta interface{}) e
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("storage_account_name").(string)
 
-	blobClient, err := armClient.getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName)
+	blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {
 		return err
+	}
+	if !accountExists {
+		log.Printf("[DEBUG] Storage account %q not found, removing container %q from state", storageAccountName, d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	name := d.Get("name").(string)
@@ -164,9 +172,14 @@ func resourceArmStorageContainerExists(d *schema.ResourceData, meta interface{})
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("storage_account_name").(string)
 
-	blobClient, err := armClient.getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName)
+	blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {
 		return false, err
+	}
+	if !accountExists {
+		log.Printf("[DEBUG] Storage account %q not found, removing container %q from state", storageAccountName, d.Id())
+		d.SetId("")
+		return false, nil
 	}
 
 	name := d.Get("name").(string)
@@ -193,9 +206,13 @@ func resourceArmStorageContainerDelete(d *schema.ResourceData, meta interface{})
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("storage_account_name").(string)
 
-	blobClient, err := armClient.getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName)
+	blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {
 		return err
+	}
+	if !accountExists {
+		log.Printf("[INFO]Storage Account %q doesn't exist so the container won't exist", storageAccountName)
+		return nil
 	}
 
 	name := d.Get("name").(string)

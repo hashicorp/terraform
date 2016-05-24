@@ -314,44 +314,55 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	return &client, nil
 }
 
-func (armClient *ArmClient) getKeyForStorageAccount(resourceGroupName, storageAccountName string) (string, error) {
+func (armClient *ArmClient) getKeyForStorageAccount(resourceGroupName, storageAccountName string) (string, bool, error) {
 	keys, err := armClient.storageServiceClient.ListKeys(resourceGroupName, storageAccountName)
+	if keys.StatusCode == http.StatusNotFound {
+		return "", false, nil
+	}
 	if err != nil {
-		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
+		// We assume this is a transient error rather than a 404 (which is caught above),  so assume the
+		// account still exists.
+		return "", true, fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
 	}
 
 	if keys.Key1 == nil {
-		return "", fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
+		return "", false, fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
 	}
 
-	return *keys.Key1, nil
+	return *keys.Key1, true, nil
 }
 
-func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.BlobStorageClient, error) {
-	key, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.BlobStorageClient, bool, error) {
+	key, accountExists, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {
-		return nil, err
+		return nil, accountExists, err
+	}
+	if accountExists == false {
+		return nil, false, nil
 	}
 
 	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
 
 	blobClient := storageClient.GetBlobService()
-	return &blobClient, nil
+	return &blobClient, true, nil
 }
-func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.QueueServiceClient, error) {
-	key, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.QueueServiceClient, bool, error) {
+	key, accountExists, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {
-		return nil, err
+		return nil, accountExists, err
+	}
+	if accountExists == false {
+		return nil, false, nil
 	}
 
 	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
 
 	queueClient := storageClient.GetQueueService()
-	return &queueClient, nil
+	return &queueClient, true, nil
 }
