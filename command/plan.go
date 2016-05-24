@@ -78,7 +78,9 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if refresh {
-		c.Ui.Output("Refreshing Terraform state prior to plan...\n")
+		c.Ui.Output("Refreshing Terraform state in-memory prior to plan...")
+		c.Ui.Output("The refreshed state will be used to calculate this plan, but")
+		c.Ui.Output("will not be persisted to local or remote state storage.\n")
 		_, err := ctx.Refresh()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
