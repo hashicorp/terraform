@@ -10,8 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/config"
 	"log"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // The format byte is prefixed into the state file format so that we have
@@ -342,16 +343,14 @@ func (old *StateV0) upgrade() (*State, error) {
 		root.Resources[id] = newRs
 
 		// Migrate to an instance state
-		instance := &InstanceState{
+		newRs.Primary = &InstanceState{
 			ID:         rs.ID,
 			Attributes: rs.Attributes,
 		}
 
-		// Check if this is the primary or tainted instance
+		// Check if old resource was tainted
 		if _, ok := old.Tainted[id]; ok {
-			newRs.Tainted = append(newRs.Tainted, instance)
-		} else {
-			newRs.Primary = instance
+			newRs.Primary.Tainted = true
 		}
 
 		// Warn if the resource uses Extra, as there is

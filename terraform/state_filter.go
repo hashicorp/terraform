@@ -133,19 +133,6 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 					})
 				}
 
-				for _, instance := range r.Tainted {
-					if f.relevant(a, instance) {
-						addr.InstanceType = TypeTainted
-						addr.InstanceTypeSet = true
-						results = append(results, &StateFilterResult{
-							Path:    addr.Path,
-							Address: addr.String(),
-							Parent:  resourceResult,
-							Value:   instance,
-						})
-					}
-				}
-
 				for _, instance := range r.Deposed {
 					if f.relevant(a, instance) {
 						addr.InstanceType = TypeDeposed
