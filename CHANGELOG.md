@@ -58,6 +58,7 @@ BUG FIXES:
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
  * provider/azurerm: Add support for storage container name validation [GH-6852]
+ * provider/azurerm: Remove storage containers and blobs when storage accounts are not found [GH-6855]
  * provider/google: Fix a bug causing an error attempting to delete an already-deleted `google_compute_disk` [GH-6689]
  * provider/openstack: Reassociate Floating IP on network changes [GH-6579]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
