@@ -43,6 +43,12 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"tenant_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -64,6 +70,7 @@ func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 	createOpts := floatingips.CreateOpts{
 		FloatingNetworkID: poolID,
 		PortID:            d.Get("port_id").(string),
+		TenantID:          d.Get("tenant_id").(string),
 	}
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	floatingIP, err := floatingips.Create(networkingClient, createOpts).Extract()
@@ -107,6 +114,7 @@ func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error retrieving floating IP pool name: %s", err)
 	}
 	d.Set("pool", poolName)
+	d.Set("tenant_id", floatingIP.TenantID)
 
 	return nil
 }
