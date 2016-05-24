@@ -306,20 +306,32 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	codeUpdate := false
-	if d.HasChange("filename") || d.HasChange("source_code_hash") {
-		name := d.Get("filename").(string)
-		file, err := loadFileContent(name)
-		if err != nil {
-			return fmt.Errorf("Unable to load %q: %s", name, err)
+	if v, ok := d.GetOk("filename"); ok {
+		if d.HasChange("source_code_hash") {
+			file, err := loadFileContent(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to load %q: %s", v.(string), err)
+			}
+			codeReq.ZipFile = file
+			codeUpdate = true
 		}
-		codeReq.ZipFile = file
-		codeUpdate = true
-	}
-	if d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
-		codeReq.S3Bucket = aws.String(d.Get("s3_bucket").(string))
-		codeReq.S3Key = aws.String(d.Get("s3_key").(string))
-		codeReq.S3ObjectVersion = aws.String(d.Get("s3_object_version").(string))
-		codeUpdate = true
+	} else {
+		s3Bucket, bucketOk := d.GetOk("s3_bucket")
+		s3Key, keyOk := d.GetOk("s3_key")
+		s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
+
+		if bucketOk && d.HasChange("s3_bucket") {
+			codeReq.S3Bucket = aws.String(s3Bucket.(string))
+			codeUpdate = true
+		}
+		if keyOk && d.HasChange("s3_key") {
+			codeReq.S3Key = aws.String(s3Key.(string))
+			codeUpdate = true
+		}
+		if versionOk && d.HasChange("s3_object_version") {
+			codeReq.S3ObjectVersion = aws.String(s3ObjectVersion.(string))
+			codeUpdate = true
+		}
 	}
 
 	if codeUpdate {
