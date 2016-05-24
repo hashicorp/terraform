@@ -3,11 +3,11 @@ package aws
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -32,15 +32,6 @@ func resourceAwsIamGroupPolicyAttachment() *schema.Resource {
 	}
 }
 
-func getGroupPolicyAttachmentId(group, policyArn string) string {
-	return fmt.Sprintf("%s:%s", group, policyArn)
-}
-
-func getGroupAndPolicyFromAttachment(id string) (string, string) {
-	tokens := strings.Split(id, ":")
-	return tokens[0], tokens[1]
-}
-
 func resourceAwsIamGroupPolicyAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 
@@ -52,13 +43,14 @@ func resourceAwsIamGroupPolicyAttachmentCreate(d *schema.ResourceData, meta inte
 		return fmt.Errorf("[WARN] Error attaching policy %s to IAM group %s: %v", arn, group, err)
 	}
 
-	d.SetId(getGroupPolicyAttachmentId(group, arn))
+	d.SetId(resource.PrefixedUniqueId(fmt.Sprintf("%s-", group)))
 	return resourceAwsIamGroupPolicyAttachmentRead(d, meta)
 }
 
 func resourceAwsIamGroupPolicyAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
-	group, arn := getGroupAndPolicyFromAttachment(d.Id())
+	group := d.Get("group").(string)
+	arn := d.Get("policy_arn").(string)
 
 	_, err := conn.GetGroup(&iam.GetGroupInput{
 		GroupName: aws.String(group),
@@ -90,6 +82,7 @@ func resourceAwsIamGroupPolicyAttachmentRead(d *schema.ResourceData, meta interf
 	}
 
 	if policy == "" {
+		log.Printf("[WARN] No such policy found for Group Policy Attachment (%s)", group)
 		d.SetId("")
 	}
 

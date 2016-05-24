@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func resourceAwsIamGroupPolicyAttachment_basic(t *testing.T) {
+func TestAccAWSIamGroupPolicyAttachment_basic(t *testing.T) {
 	var out iam.ListAttachedGroupPoliciesOutput
 
 	resource.Test(t, resource.TestCase{

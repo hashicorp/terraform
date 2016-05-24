@@ -3,11 +3,11 @@ package aws
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -32,15 +32,6 @@ func resourceAwsIamRolePolicyAttachment() *schema.Resource {
 	}
 }
 
-func getRolePolicyAttachmentId(role, policyArn string) string {
-	return fmt.Sprintf("%s:%s", role, policyArn)
-}
-
-func getRoleAndPolicyFromAttachment(id string) (string, string) {
-	tokens := strings.Split(id, ":")
-	return tokens[0], tokens[1]
-}
-
 func resourceAwsIamRolePolicyAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 
@@ -52,13 +43,14 @@ func resourceAwsIamRolePolicyAttachmentCreate(d *schema.ResourceData, meta inter
 		return fmt.Errorf("[WARN] Error attaching policy %s to IAM Role %s: %v", arn, role, err)
 	}
 
-	d.SetId(getRolePolicyAttachmentId(role, arn))
+	d.SetId(resource.PrefixedUniqueId(fmt.Sprintf("%s-", role)))
 	return resourceAwsIamRolePolicyAttachmentRead(d, meta)
 }
 
 func resourceAwsIamRolePolicyAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
-	role, arn := getRoleAndPolicyFromAttachment(d.Id())
+	role := d.Get("role").(string)
+	arn := d.Get("policy_arn").(string)
 
 	_, err := conn.GetRole(&iam.GetRoleInput{
 		RoleName: aws.String(role),
@@ -90,6 +82,7 @@ func resourceAwsIamRolePolicyAttachmentRead(d *schema.ResourceData, meta interfa
 	}
 
 	if policy == "" {
+		log.Printf("[WARN] No such policy found for Role Policy Attachment (%s)", role)
 		d.SetId("")
 	}
 

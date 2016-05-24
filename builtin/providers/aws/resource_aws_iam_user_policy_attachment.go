@@ -3,11 +3,11 @@ package aws
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -32,15 +32,6 @@ func resourceAwsIamUserPolicyAttachment() *schema.Resource {
 	}
 }
 
-func getUserPolicyAttachmentId(user, policyArn string) string {
-	return fmt.Sprintf("%s:%s", user, policyArn)
-}
-
-func getUserAndPolicyFromAttachment(id string) (string, string) {
-	tokens := strings.Split(id, ":")
-	return tokens[0], tokens[1]
-}
-
 func resourceAwsIamUserPolicyAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 
@@ -52,13 +43,14 @@ func resourceAwsIamUserPolicyAttachmentCreate(d *schema.ResourceData, meta inter
 		return fmt.Errorf("[WARN] Error attaching policy %s to IAM User %s: %v", arn, user, err)
 	}
 
-	d.SetId(getUserPolicyAttachmentId(user, arn))
+	d.SetId(resource.PrefixedUniqueId(fmt.Sprintf("%s-", user)))
 	return resourceAwsIamUserPolicyAttachmentRead(d, meta)
 }
 
 func resourceAwsIamUserPolicyAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
-	user, arn := getUserAndPolicyFromAttachment(d.Id())
+	user := d.Get("user").(string)
+	arn := d.Get("policy_arn").(string)
 
 	_, err := conn.GetUser(&iam.GetUserInput{
 		UserName: aws.String(user),
@@ -90,6 +82,7 @@ func resourceAwsIamUserPolicyAttachmentRead(d *schema.ResourceData, meta interfa
 	}
 
 	if policy == "" {
+		log.Printf("[WARN] No such User found for Policy Attachment (%s)", user)
 		d.SetId("")
 	}
 	return nil
