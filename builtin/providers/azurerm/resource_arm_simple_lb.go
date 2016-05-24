@@ -2,11 +2,12 @@ package azurerm
 
 import (
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"log"
-	"strings"
 )
 
 // resourceArmLoadBalancer returns the *schema.Resource
@@ -166,7 +167,7 @@ func resourceArmSimpleLb() *schema.Resource {
 func resourceARMLoadBalancerRuleHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	rule := fmt.Sprintf("%s-%s-%s-%s-%d-%d", m["name"].(string), m["protocol"].(string), m["probe_name"].(string), m["load_distribution"].(string), m["frontend_port"], m["backend_port"])
-	return hashcode.String(rule)
+	return hashcode.String(strings.ToLower(rule))
 }
 
 func resourceARMLoadBalancerProbeHash(v interface{}) int {
@@ -175,153 +176,119 @@ func resourceARMLoadBalancerProbeHash(v interface{}) int {
 	if m["request_path"] != nil {
 		rule = rule + "-" + m["request_path"].(string)
 	}
-	return hashcode.String(rule)
+	return hashcode.String(strings.ToLower(rule))
 }
 
-func validateAllocationMethod(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	allocations := map[string]bool{
-		"static":  true,
-		"dynamic": true,
-	}
-
-	if !allocations[value] {
+func validateAllocationMethod(allocation interface{}, k string) (ws []string, errors []error) {
+	if !isOneOf([]string{"static", "dynamic"}, allocation) {
 		errors = append(errors, fmt.Errorf("Allocation method can only be Static or Dynamic"))
 	}
 	return
 }
 
-func validateProtocolType(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	allocations := map[string]bool{
-		"tcp": true,
-		"udp": true,
-	}
-
-	if !allocations[value] {
+func validateProtocolType(protocol interface{}, k string) (ws []string, errors []error) {
+	if !isOneOf([]string{"tcp", "udp"}, protocol) {
 		errors = append(errors, fmt.Errorf("Protocol can only be tcp or udp"))
 	}
 	return
 }
 
-func validateProbeProtocolType(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	allocations := map[string]bool{
-		"tcp":  true,
-		"http": true,
-	}
-
-	if !allocations[value] {
-		errors = append(errors, fmt.Errorf("Protocol can only be tcp or udp"))
+func validateProbeProtocolType(protocol interface{}, k string) (ws []string, errors []error) {
+	if !isOneOf([]string{"tcp", "http"}, protocol) {
+		errors = append(errors, fmt.Errorf("Protocol can only be tcp or http"))
 	}
 	return
 }
 
-func validateLoadDistribution(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	allocations := map[string]bool{
-		"default":          true,
-		"sourceip":         true,
-		"sourceipprotocol": true,
-	}
-
-	if !allocations[value] {
+func validateLoadDistribution(distribution interface{}, k string) (ws []string, errors []error) {
+	if !isOneOf([]string{"default", "sourceip", "sourceipprotocol"}, distribution) {
 		errors = append(errors, fmt.Errorf("Load Distribution can only be default, sourceIp, or sourceIpProtocol"))
 	}
 	return
 }
 
-func findRuleByName(ruleArray *[]network.LoadBalancingRule, ruleName string) (int, error) {
-	for i := 0; i < len(*ruleArray); i++ {
-		tmRule := (*ruleArray)[i]
-		if *tmRule.Name == ruleName {
-			return i, nil
+func findRuleByName(ruleArray *[]network.LoadBalancingRule, ruleName string) (network.LoadBalancingRule, error) {
+	for _, rule := range *ruleArray {
+		if *rule.Name == ruleName {
+			log.Printf("[findRuleByName] found rule %v", rule)
+			return rule, nil
 		}
 	}
-	return -1, fmt.Errorf("Error loading the probe named %s", ruleName)
+	return network.LoadBalancingRule{}, fmt.Errorf("Error loading the rule named %s", ruleName)
 }
 
-func findProbeConfByName(probeArray *[]network.Probe, probeName string) (int, error) {
-	for i := 0; i < len(*probeArray); i++ {
-		tmpProbe := (*probeArray)[i]
-		if *tmpProbe.Name == probeName {
-			return i, nil
+func findProbeByName(probeArray *[]network.Probe, probeName string) (network.Probe, error) {
+	for _, probe := range *probeArray {
+		if *probe.Name == probeName {
+			log.Printf("[findProbeByName] found probe %v", probe)
+			return probe, nil
 		}
 	}
-	return -1, fmt.Errorf("Error loading the probe named %s", probeName)
+
+	return network.Probe{}, fmt.Errorf("Error loading the probe named %s", probeName)
 }
 
-func findProbeConfById(probeArray *[]network.Probe, probeId string) (int, error) {
-	for i := 0; i < len(*probeArray); i++ {
-		tmpProbe := (*probeArray)[i]
-		if *tmpProbe.ID == probeId {
-			return i, nil
+func findProbeById(probeArray *[]network.Probe, probeId string) (network.Probe, error) {
+	for _, probe := range *probeArray {
+		if *probe.ID == probeId {
+			log.Printf("[findProbeById] found probe %v", probe)
+			return probe, nil
 		}
 	}
-	return -1, fmt.Errorf("Error finding the probe ID %s", probeId)
+
+	return network.Probe{}, fmt.Errorf("Error finding the probe with ID %s", probeId)
 }
 
 func pullOutLbRules(d *schema.ResourceData, loadBalancer network.LoadBalancer) (*[]network.LoadBalancingRule, error) {
 	log.Printf("[resourceArmSimpleLb] pullOutLbRules[enter]")
 	defer log.Printf("[resourceArmSimpleLb] pullOutLbRules[exit]")
 
-	backendPoolId := *(*loadBalancer.Properties.BackendAddressPools)[0].ID
-	frontendIpId := *(*loadBalancer.Properties.FrontendIPConfigurations)[0].ID
-
-	// then; the subnets:
+	log.Printf("[resourceArmSimpleLb] pullOutLbRules %v", *loadBalancer.Properties.Probes)
 	outRules := []network.LoadBalancingRule{}
 
-	log.Printf("[resourceArmSimpleLb] pullOutLbRules will use frontend %s and backend %s", frontendIpId, backendPoolId)
+	backendPoolID := (*loadBalancer.Properties.BackendAddressPools)[0].ID
+	frontendIpID := (*loadBalancer.Properties.FrontendIPConfigurations)[0].ID
+	log.Printf("[resourceArmSimpleLb] pullOutLbRules will use frontend %s and backend %s", *frontendIpID, *backendPoolID)
+
 	rules := d.Get("rule").(*schema.Set)
-
-	if rules.Len() > 0 {
-		log.Printf("[resourceArmSimpleLb] pullOutLbRules found %d rules in plan", rules.Len())
-		for _, rule := range rules.List() {
-			rule := rule.(map[string]interface{})
-
-			ruleName := rule["name"].(string)
-			ruleProtocol := rule["protocol"].(string)
-			ruleProbeName := rule["probe_name"].(string)
-			loadDistribution := rule["load_distribution"].(string)
-			frontendPort := rule["frontend_port"].(int)
-			backendendPort := rule["backend_port"].(int)
-
-			i, err := findProbeConfByName(loadBalancer.Properties.Probes, ruleProbeName)
-			if err != nil {
-				return nil, err
-			}
-
-			backendPoolRef := network.SubResource{ID: &backendPoolId}
-			frontendIpRef := network.SubResource{ID: &frontendIpId}
-			probeRef := network.SubResource{ID: (*loadBalancer.Properties.Probes)[i].ID}
-
-			log.Printf("[resourceArmSimpleLb] pullOutLbRules rule %s is using probe %s", ruleName, *(*loadBalancer.Properties.Probes)[i].ID)
-
-			var ruleId *string = nil
-			ruleNdx, err := findRuleByName(loadBalancer.Properties.LoadBalancingRules, ruleName)
-			if err == nil {
-				log.Printf("[resourceArmSimpleLb] pullOutLbRules found the existing rule %s", ruleName)
-				ruleId = (*loadBalancer.Properties.LoadBalancingRules)[ruleNdx].ID
-			}
-
-			props := network.LoadBalancingRulePropertiesFormat{
-				Protocol:                network.TransportProtocol(ruleProtocol),
-				LoadDistribution:        network.LoadDistribution(loadDistribution),
-				FrontendPort:            &frontendPort,
-				BackendPort:             &backendendPort,
-				Probe:                   &probeRef,
-				BackendAddressPool:      &backendPoolRef,
-				FrontendIPConfiguration: &frontendIpRef,
-			}
-			ruleObj := network.LoadBalancingRule{
-				Name:       &ruleName,
-				Properties: &props,
-				ID:         ruleId,
-			}
-			outRules = append(outRules, ruleObj)
-		}
-	} else {
+	if rules.Len() == 0 {
 		log.Printf("[resourceArmSimpleLb] pullOutLbRules no rules found")
+		return &outRules, nil
+	}
+
+	log.Printf("[resourceArmSimpleLb] pullOutLbRules found %d rules in plan", rules.Len())
+	for _, rule := range rules.List() {
+		rule := rule.(map[string]interface{})
+		log.Printf("[resourceArmSimpleLb] pullOutLbRules %v", rule)
+
+		ruleName := rule["name"].(string)
+
+		existingRule, err := findRuleByName(loadBalancer.Properties.LoadBalancingRules, ruleName)
+		if err == nil {
+			log.Printf("[resourceArmSimpleLb] pullOutLbRules found the existing rule %s", ruleName)
+		}
+
+		probe, err := findProbeByName(loadBalancer.Properties.Probes, rule["probe_name"].(string))
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("[resourceArmSimpleLb] pullOutLbRules rule %s is using probe %s", ruleName, *probe.ID)
+
+		props := network.LoadBalancingRulePropertiesFormat{
+			Protocol:                network.TransportProtocol(rule["protocol"].(string)),
+			LoadDistribution:        network.LoadDistribution(rule["load_distribution"].(string)),
+			FrontendPort:            Int(rule["frontend_port"]),
+			BackendPort:             Int(rule["backend_port"]),
+			Probe:                   &network.SubResource{ID: probe.ID},
+			BackendAddressPool:      &network.SubResource{ID: backendPoolID},
+			FrontendIPConfiguration: &network.SubResource{ID: frontendIpID},
+		}
+
+		outRules = append(outRules, network.LoadBalancingRule{
+			Name:       &ruleName,
+			Properties: &props,
+			ID:         existingRule.ID,
+		})
 	}
 
 	return &outRules, nil
@@ -331,34 +298,25 @@ func pullOutProbes(d *schema.ResourceData) (*[]network.Probe, error) {
 	log.Printf("[resourceArmSimpleLb] pullOutProbes[enter]")
 	defer log.Printf("[resourceArmSimpleLb] pullOutProbes[exit]")
 
-	// then; the subnets:
 	outProbes := []network.Probe{}
 	if probes := d.Get("probe").(*schema.Set); probes.Len() > 0 {
 		for _, probe := range probes.List() {
 			probe := probe.(map[string]interface{})
 
-			probeName := probe["name"].(string)
-			ruleProtocol := probe["protocol"].(string)
-			requestPath := probe["request_path"].(string)
-			port := probe["port"].(int)
-			interval := probe["interval"].(int)
-			numberOfProbes := probe["number_of_probes"].(int)
-
 			probeProps := network.ProbePropertiesFormat{
-				Protocol:          network.ProbeProtocol(ruleProtocol),
-				Port:              &port,
-				IntervalInSeconds: &interval,
-				NumberOfProbes:    &numberOfProbes,
+				Protocol:          network.ProbeProtocol(probe["protocol"].(string)),
+				Port:              Int(probe["port"]),
+				IntervalInSeconds: Int(probe["interval"]),
+				NumberOfProbes:    Int(probe["number_of_probes"]),
 			}
-			if requestPath != "" {
+			if requestPath := probe["request_path"].(string); requestPath != "" {
 				probeProps.RequestPath = &requestPath
 			}
 
-			probeObj := network.Probe{
-				Name:       &probeName,
+			outProbes = append(outProbes, network.Probe{
+				Name:       String(probe["name"]),
 				Properties: &probeProps,
-			}
-			outProbes = append(outProbes, probeObj)
+			})
 		}
 	}
 
@@ -446,7 +404,7 @@ func resourceArmSimpleLbCreate(d *schema.ResourceData, meta interface{}) error {
 	backendPoolConfs := []network.BackendAddressPool{}
 	backendPoolConfs = append(backendPoolConfs, backendpool)
 	loadBalancer.Properties.BackendAddressPools = &backendPoolConfs
-	//loadBalancer.Properties.LoadBalancingRules = &[]network.LoadBalancingRule{}
+	loadBalancer.Properties.LoadBalancingRules = &[]network.LoadBalancingRule{}
 
 	resp, err := lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
 	if err != nil {
@@ -529,11 +487,11 @@ func flattenAzureRmLoadBalancerRules(loadBalancer network.LoadBalancer, d *schem
 			r["backend_port"] = *rule.Properties.BackendPort
 
 			ruleProbeID := *rule.Properties.Probe.ID
-			i, err := findProbeConfById(loadBalancer.Properties.Probes, ruleProbeID)
+			conf, err := findProbeById(loadBalancer.Properties.Probes, ruleProbeID)
 			if err != nil {
 				return err
 			}
-			r["probe_name"] = *(*loadBalancer.Properties.Probes)[i].Name
+			r["probe_name"] = *conf.Name
 		}
 		ruleSet.Add(r)
 	}
