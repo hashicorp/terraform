@@ -3,6 +3,7 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -64,6 +65,9 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+				StateFunc: func(v interface{}) string {
+					return strings.ToLower(v.(string))
+				},
 			},
 			"security_group_id": &schema.Schema{
 				Type:     schema.TypeString,
