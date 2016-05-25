@@ -10,6 +10,12 @@ description: |-
 
 Provides an Elastic Load Balancer resource.
 
+~> **NOTE on ELB Instances and ELB Attachments:** Terraform currently
+provides both a standalone [ELB Attachment resource](elb_attachment.html)
+(describing an instance attached to an ELB), and an ELB resource with
+`instances` defined in-line. At this time you cannot use an ELB with in-line
+instaces in conjunction with a ELB Attachment resources. Doing so will cause a
+conflict and will overwrite attachments.
 ## Example Usage
 
 ```

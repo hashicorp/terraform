@@ -176,6 +176,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_elastic_beanstalk_environment":            resourceAwsElasticBeanstalkEnvironment(),
 			"aws_elasticsearch_domain":                     resourceAwsElasticSearchDomain(),
 			"aws_elb":                                      resourceAwsElb(),
+			"aws_elb_attachment":                           resourceAwsElbAttachment(),
 			"aws_flow_log":                                 resourceAwsFlowLog(),
 			"aws_glacier_vault":                            resourceAwsGlacierVault(),
 			"aws_iam_access_key":                           resourceAwsIamAccessKey(),
