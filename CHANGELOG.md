@@ -41,6 +41,7 @@ IMPROVEMENTS:
  * provider/openstack: Increase timeouts for image resize, subnets, and routers [GH-6764]
  * provider/openstack: Add support for client certificate authentication [GH-6279]
  * provider/openstack: Enable DHCP By Default [GH-6838]
+ * provider/openstack: Allow Neutron-based Floating IP to target a specific tenant [GH-6454] 
  * provider/vsphere: fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  * provider/vsphere: Add support for `controller_type` to `vsphere_virtual_machine` [GH-6785]
  * provider/vsphere: Virtual machine update disk [GH-6619]
