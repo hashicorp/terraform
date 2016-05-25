@@ -6,6 +6,10 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * The `terraform plan` command no longer persists state. This makes the command much safer to run, since it is now side-effect free. The `refresh` and `apply` commands still persist state to local and remote storage. Any automation that assumes that `terraform plan` persists state will need to be reworked to explicitly call `terraform refresh` to get the equivalent side-effect.
  * The `concat()` interpolation function can no longer be used to join strings.
  * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
+ * `resource_aws_instance`: EC2 Classic users may continue to use
+   `security_groups` to reference Security Groups by their `name`. All VPC users will
+   need to use `vpc_security_group_ids` instead and reference groups by their `id`.
+   Ref https://github.com/hashicorp/terraform/issues/6416#issuecomment-219145065
 
 FEATURES:
 
