@@ -320,17 +320,19 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		s3Key, keyOk := d.GetOk("s3_key")
 		s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
 
-		if bucketOk && d.HasChange("s3_bucket") {
-			codeReq.S3Bucket = aws.String(s3Bucket.(string))
-			codeUpdate = true
-		}
-		if keyOk && d.HasChange("s3_key") {
-			codeReq.S3Key = aws.String(s3Key.(string))
-			codeUpdate = true
-		}
-		if versionOk && d.HasChange("s3_object_version") {
-			codeReq.S3ObjectVersion = aws.String(s3ObjectVersion.(string))
-			codeUpdate = true
+		if bucketOk && keyOk {
+			if d.HasChange("s3_bucket") || d.HasChange("s3_key") {
+				codeReq.S3Bucket = aws.String(s3Bucket.(string))
+				codeReq.S3Key = aws.String(s3Key.(string))
+				codeUpdate = true
+			}
+
+			if versionOk && d.HasChange("s3_object_version") {
+				codeReq.S3Bucket = aws.String(s3Bucket.(string))
+				codeReq.S3Key = aws.String(s3Key.(string))
+				codeReq.S3ObjectVersion = aws.String(s3ObjectVersion.(string))
+				codeUpdate = true
+			}
 		}
 	}
 
