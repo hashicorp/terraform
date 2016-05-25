@@ -57,6 +57,7 @@ BUG FIXES:
  * provider/aws: `aws_codedeploy_deployment_group` panic when setting `on_premises_instance_tag_filter` [GH-6617]
  * provider/aws: `aws_opsworks_application.app_source` SSH key is write-only [GH-6649]
  * provider/aws: fix Elastic Beanstalk `cname_prefix` continual plans [GH-6653]
+ * provider/aws: fix aws_security_group_rule refresh [GH-6730]
  * provider/aws: Make 'stage_name' required in api_gateway_deployment [Gh-6797]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
