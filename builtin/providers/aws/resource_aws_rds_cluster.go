@@ -61,6 +61,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"parameter_group_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"endpoint": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -95,6 +101,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 					}
 					return
 				},
+			},
+
+			"skip_final_snapshot": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
 			},
 
 			"master_username": &schema.Schema{
@@ -189,6 +201,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		createOpts.DBSubnetGroupName = aws.String(attr.(string))
 	}
 
+	if attr, ok := d.GetOk("parameter_group_name"); ok {
+		createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
+	}
+
 	if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
 		createOpts.VpcSecurityGroupIds = expandStringList(attr.List())
 	}
@@ -280,6 +296,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
+	d.Set("parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("endpoint", dbc.Endpoint)
 	d.Set("engine", dbc.Engine)
 	d.Set("master_username", dbc.MasterUsername)
@@ -340,6 +357,11 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
 	}
 
+	if d.HasChange("parameter_group_name") {
+		d.SetPartial("parameter_group_name")
+		req.DBClusterParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
+	}
+
 	_, err := conn.ModifyDBCluster(req)
 	if err != nil {
 		return fmt.Errorf("[WARN] Error modifying RDS Cluster (%s): %s", d.Id(), err)
@@ -356,12 +378,15 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 		DBClusterIdentifier: aws.String(d.Id()),
 	}
 
-	finalSnapshot := d.Get("final_snapshot_identifier").(string)
-	if finalSnapshot == "" {
-		deleteOpts.SkipFinalSnapshot = aws.Bool(true)
-	} else {
-		deleteOpts.FinalDBSnapshotIdentifier = aws.String(finalSnapshot)
-		deleteOpts.SkipFinalSnapshot = aws.Bool(false)
+	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
+	deleteOpts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot)
+
+	if skipFinalSnapshot == false {
+		if name, present := d.GetOk("final_snapshot_identifier"); present {
+			deleteOpts.FinalDBSnapshotIdentifier = aws.String(name.(string))
+		} else {
+			return fmt.Errorf("RDS Cluster FinalSnapshotIdentifier is required when a final snapshot is required")
+		}
 	}
 
 	log.Printf("[DEBUG] RDS Cluster delete options: %s", deleteOpts)

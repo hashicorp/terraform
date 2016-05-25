@@ -569,3 +569,26 @@ func TestContext2Input_varPartiallyComputed(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
+
+// Module variables weren't being interpolated during the Input walk.
+// https://github.com/hashicorp/terraform/issues/5322
+func TestContext2Input_interpolateVar(t *testing.T) {
+	input := new(MockUIInput)
+
+	m := testModule(t, "input-interpolate-var")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+		UIInput: input,
+	})
+
+	if err := ctx.Input(InputModeStd); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}

@@ -415,7 +415,7 @@ func outputsAsString(state *terraform.State, schema []*config.Output, includeHea
 			}
 
 			v := outputs[k]
-			switch typedV := v.(type) {
+			switch typedV := v.Value.(type) {
 			case string:
 				outputBuf.WriteString(fmt.Sprintf("%s = %s\n", k, typedV))
 			case []interface{}:

@@ -61,6 +61,7 @@ string.
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB cluster is deleted. If omitted, no final snapshot will be
     made.
+* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB cluster is deleted. If true is specified, no DBSnapshot is created. If false is specified, a DB snapshot is created before the DB cluster is deleted, using the value from `final_snapshot_identifier`. Default is true.
 * `availability_zones` - (Optional) A list of EC2 Availability Zones that
   instances in the DB cluster can be created in
 * `backup_retention_period` - (Optional) The days to retain backups for. Default
@@ -76,6 +77,7 @@ Default: A 30-minute window selected at random from an 8-hour block of time per 
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon RDS Documentation for more information.](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
 * `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance. **NOTE:** This must match the `db_subnet_group_name` specified on every [`aws_rds_cluster_instance`](/docs/providers/aws/r/rds_cluster_instance.html) in the cluster.
+* `parameter_group_name` - (Optional) A cluster parameter group to associate with the cluster.
 
 ## Attributes Reference
 

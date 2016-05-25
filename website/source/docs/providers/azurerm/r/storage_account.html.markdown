@@ -70,3 +70,5 @@ The following attributes are exported in addition to the arguments listed above:
 * `primary_table_endpoint` - The endpoint URL for table storage in the primary location.
 * `secondary_table_endpoint` - The endpoint URL for table storage in the secondary location.
 * `primary_file_endpoint` - The endpoint URL for file storage in the primary location.
+* `primary_access_key` - The primary access key for the storage account
+* `secondary_access_key` - The secondary access key for the storage account

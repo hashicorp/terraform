@@ -17,6 +17,9 @@ func resourceAwsPlacementGroup() *schema.Resource {
 		Create: resourceAwsPlacementGroupCreate,
 		Read:   resourceAwsPlacementGroupRead,
 		Delete: resourceAwsPlacementGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -85,7 +88,7 @@ func resourceAwsPlacementGroupCreate(d *schema.ResourceData, meta interface{}) e
 func resourceAwsPlacementGroupRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	input := ec2.DescribePlacementGroupsInput{
-		GroupNames: []*string{aws.String(d.Get("name").(string))},
+		GroupNames: []*string{aws.String(d.Id())},
 	}
 	out, err := conn.DescribePlacementGroups(&input)
 	if err != nil {

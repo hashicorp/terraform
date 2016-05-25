@@ -18,6 +18,9 @@ func resourceAwsKeyPair() *schema.Resource {
 		Read:   resourceAwsKeyPairRead,
 		Update: nil,
 		Delete: resourceAwsKeyPairDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsKeyPairMigrateState,

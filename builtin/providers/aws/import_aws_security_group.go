@@ -49,6 +49,9 @@ func resourceAwsSecurityGroupImportState(
 			d.SetType("aws_security_group_rule")
 			d.Set("security_group_id", sgId)
 			d.Set("type", ruleType)
+			// XXX If the rule contained more than one source security group, this
+			// will choose one of them. We actually need to create one rule for each
+			// source security group.
 			setFromIPPerm(d, sg, perm)
 			results = append(results, d)
 		}

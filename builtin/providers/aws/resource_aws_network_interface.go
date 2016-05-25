@@ -21,6 +21,9 @@ func resourceAwsNetworkInterface() *schema.Resource {
 		Read:   resourceAwsNetworkInterfaceRead,
 		Update: resourceAwsNetworkInterfaceUpdate,
 		Delete: resourceAwsNetworkInterfaceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 

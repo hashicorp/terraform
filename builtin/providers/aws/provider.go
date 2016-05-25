@@ -110,6 +110,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"aws_availability_zones": dataSourceAwsAvailabilityZones(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"aws_ami":                                      resourceAwsAmi(),
 			"aws_ami_copy":                                 resourceAwsAmiCopy(),
@@ -179,13 +183,16 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_group_policy":                         resourceAwsIamGroupPolicy(),
 			"aws_iam_group":                                resourceAwsIamGroup(),
 			"aws_iam_group_membership":                     resourceAwsIamGroupMembership(),
+			"aws_iam_group_policy_attachment":              resourceAwsIamGroupPolicyAttachment(),
 			"aws_iam_instance_profile":                     resourceAwsIamInstanceProfile(),
 			"aws_iam_policy":                               resourceAwsIamPolicy(),
 			"aws_iam_policy_attachment":                    resourceAwsIamPolicyAttachment(),
+			"aws_iam_role_policy_attachment":               resourceAwsIamRolePolicyAttachment(),
 			"aws_iam_role_policy":                          resourceAwsIamRolePolicy(),
 			"aws_iam_role":                                 resourceAwsIamRole(),
 			"aws_iam_saml_provider":                        resourceAwsIamSamlProvider(),
 			"aws_iam_server_certificate":                   resourceAwsIAMServerCertificate(),
+			"aws_iam_user_policy_attachment":               resourceAwsIamUserPolicyAttachment(),
 			"aws_iam_user_policy":                          resourceAwsIamUserPolicy(),
 			"aws_iam_user_ssh_key":                         resourceAwsIamUserSshKey(),
 			"aws_iam_user":                                 resourceAwsIamUser(),
@@ -225,6 +232,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_proxy_protocol_policy":                    resourceAwsProxyProtocolPolicy(),
 			"aws_rds_cluster":                              resourceAwsRDSCluster(),
 			"aws_rds_cluster_instance":                     resourceAwsRDSClusterInstance(),
+			"aws_rds_cluster_parameter_group":              resourceAwsRDSClusterParameterGroup(),
 			"aws_redshift_cluster":                         resourceAwsRedshiftCluster(),
 			"aws_redshift_security_group":                  resourceAwsRedshiftSecurityGroup(),
 			"aws_redshift_parameter_group":                 resourceAwsRedshiftParameterGroup(),

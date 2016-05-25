@@ -155,10 +155,10 @@ $ TF_VAR_image=foo terraform apply
 Variables can be collected in files and passed all at once using the 
 `-var-file=foo.tfvars` flag. The format for variables in `.tfvars`
 files is:
+
 ```
 foo = "bar"
 xyz = "abc"
-
 ```
 
 The flag can be used multiple times per command invocation:

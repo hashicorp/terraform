@@ -50,7 +50,7 @@ EOT
                     }
                 `, testPrivateKey),
 				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem"]
+					gotUntyped := s.RootModule().Outputs["key_pem"].Value
 
 					got, ok := gotUntyped.(string)
 					if !ok {

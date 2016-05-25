@@ -20,7 +20,7 @@ func resourceAwsEip() *schema.Resource {
 		Update: resourceAwsEipUpdate,
 		Delete: resourceAwsEipDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceAwsEipImportState,
+			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -290,12 +290,6 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 
 		return resource.RetryableError(err)
 	})
-}
-
-func resourceAwsEipImportState(
-	d *schema.ResourceData,
-	meta interface{}) ([]*schema.ResourceData, error) {
-	return []*schema.ResourceData{d}, nil
 }
 
 func resourceAwsEipDomain(d *schema.ResourceData) string {

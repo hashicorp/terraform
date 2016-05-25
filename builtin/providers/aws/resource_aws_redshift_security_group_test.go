@@ -26,7 +26,7 @@ func TestAccAWSRedshiftSecurityGroup_ingressCidr(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_redshift_security_group.bar", "name", "redshift-sg-terraform"),
 					resource.TestCheckResourceAttr(
-						"aws_redshift_security_group.bar", "description", "this is a description"),
+						"aws_redshift_security_group.bar", "description", "Managed by Terraform"),
 					resource.TestCheckResourceAttr(
 						"aws_redshift_security_group.bar", "ingress.2735652665.cidr", "10.0.0.1/24"),
 					resource.TestCheckResourceAttr(
@@ -170,7 +170,6 @@ provider "aws" {
 
 resource "aws_redshift_security_group" "bar" {
     name = "redshift-sg-terraform"
-    description = "this is a description"
 
     ingress {
         cidr = "10.0.0.1/24"

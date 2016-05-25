@@ -129,15 +129,6 @@ func (i *Interpolater) valueModuleVar(
 	n string,
 	v *config.ModuleVariable,
 	result map[string]ast.Variable) error {
-	// If we're computing all dynamic fields, then module vars count
-	// and we mark it as computed.
-	if i.Operation == walkValidate {
-		result[n] = ast.Variable{
-			Value: config.UnknownVariableValue,
-			Type:  ast.TypeString,
-		}
-		return nil
-	}
 
 	// Build the path to the child module we want
 	path := make([]string, len(scope.Path), len(scope.Path)+1)
@@ -161,8 +152,8 @@ func (i *Interpolater) valueModuleVar(
 		result[n] = unknownVariable()
 	} else {
 		// Get the value from the outputs
-		if value, ok := mod.Outputs[v.Field]; ok {
-			output, err := hil.InterfaceToVariable(value)
+		if outputState, ok := mod.Outputs[v.Field]; ok {
+			output, err := hil.InterfaceToVariable(outputState.Value)
 			if err != nil {
 				return err
 			}
