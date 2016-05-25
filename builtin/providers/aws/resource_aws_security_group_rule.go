@@ -240,7 +240,7 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[DEBUG] Found rule for Security Group Rule (%s): %s", d.Id(), rule)
 
 	d.Set("type", ruleType)
-	setFromIPPerm(d, sg, rule)
+	setFromIPPerm(d, sg, p)
 	return nil
 }
 
