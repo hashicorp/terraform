@@ -60,16 +60,10 @@ func gcsFactory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("missing 'path' configuration")
 	}
 
-	projectId, ok := conf["project"]
-	if !ok {
-		projectId = os.Getenv("GOOGLE_PROJECT")
-		if projectId == "" {
-			return nil, fmt.Errorf(
-				"missing 'project' configuration or GOOGLE_PROJECT environment variable")
-		}
-	}
-
 	credentials, ok := conf["credentials"]
+	if !ok {
+		credentials = os.Getenv("GOOGLE_CREDENTIALS")
+	}
 
 	if credentials != "" {
 		contents, _, err := pathorcontents.Read(credentials)
