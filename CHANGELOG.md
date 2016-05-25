@@ -8,7 +8,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
  * `resource_aws_instance`: EC2 Classic users may continue to use
    `security_groups` to reference Security Groups by their `name`. Users who are
-   using Instances inside VPCs will need to use `vpc_security_group_ids` instead, 
+   managing Instances inside VPCs will need to use `vpc_security_group_ids` instead, 
    and reference the security groups by their `id`. 
    Ref https://github.com/hashicorp/terraform/issues/6416#issuecomment-219145065
 
