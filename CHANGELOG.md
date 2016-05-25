@@ -65,6 +65,7 @@ BUG FIXES:
  * provider/azurerm: Remove storage containers and blobs when storage accounts are not found [GH-6855]
  * provider/google: Fix a bug causing an error attempting to delete an already-deleted `google_compute_disk` [GH-6689]
  * provider/openstack: Reassociate Floating IP on network changes [GH-6579]
+ * provider/openstack: Ensure CIDRs Are Lower Case [GH-6864]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
 
