@@ -160,9 +160,11 @@ The supported built-in functions are:
       * `${length(split(",", "a,b,c"))}` = 3
       * `${length("a,b,c")}` = 5
 
-  * `lookup(map, key)` - Performs a dynamic lookup into a mapping
+  * `lookup(map, key [, default])` - Performs a dynamic lookup into a mapping
       variable. The `map` parameter should be another variable, such
-      as `var.amis`.
+      as `var.amis`. If `key` does not exist in `map`, the interpolation will
+      fail unless you specify a third argument, `default`, which should be a
+      string value to return if no `key` is found in `map.
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 
