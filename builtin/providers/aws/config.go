@@ -36,6 +36,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
+	"github.com/aws/aws-sdk-go/service/elastictranscoder"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/aws/aws-sdk-go/service/firehose"
@@ -75,43 +76,44 @@ type Config struct {
 }
 
 type AWSClient struct {
-	cfconn               *cloudformation.CloudFormation
-	cloudfrontconn       *cloudfront.CloudFront
-	cloudtrailconn       *cloudtrail.CloudTrail
-	cloudwatchconn       *cloudwatch.CloudWatch
-	cloudwatchlogsconn   *cloudwatchlogs.CloudWatchLogs
-	cloudwatcheventsconn *cloudwatchevents.CloudWatchEvents
-	dsconn               *directoryservice.DirectoryService
-	dynamodbconn         *dynamodb.DynamoDB
-	ec2conn              *ec2.EC2
-	ecrconn              *ecr.ECR
-	ecsconn              *ecs.ECS
-	efsconn              *efs.EFS
-	elbconn              *elb.ELB
-	emrconn              *emr.EMR
-	esconn               *elasticsearch.ElasticsearchService
-	apigateway           *apigateway.APIGateway
-	autoscalingconn      *autoscaling.AutoScaling
-	s3conn               *s3.S3
-	sqsconn              *sqs.SQS
-	snsconn              *sns.SNS
-	stsconn              *sts.STS
-	redshiftconn         *redshift.Redshift
-	r53conn              *route53.Route53
-	accountid            string
-	region               string
-	rdsconn              *rds.RDS
-	iamconn              *iam.IAM
-	kinesisconn          *kinesis.Kinesis
-	kmsconn              *kms.KMS
-	firehoseconn         *firehose.Firehose
-	elasticacheconn      *elasticache.ElastiCache
-	elasticbeanstalkconn *elasticbeanstalk.ElasticBeanstalk
-	lambdaconn           *lambda.Lambda
-	opsworksconn         *opsworks.OpsWorks
-	glacierconn          *glacier.Glacier
-	codedeployconn       *codedeploy.CodeDeploy
-	codecommitconn       *codecommit.CodeCommit
+	cfconn                *cloudformation.CloudFormation
+	cloudfrontconn        *cloudfront.CloudFront
+	cloudtrailconn        *cloudtrail.CloudTrail
+	cloudwatchconn        *cloudwatch.CloudWatch
+	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
+	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
+	dsconn                *directoryservice.DirectoryService
+	dynamodbconn          *dynamodb.DynamoDB
+	ec2conn               *ec2.EC2
+	ecrconn               *ecr.ECR
+	ecsconn               *ecs.ECS
+	efsconn               *efs.EFS
+	elbconn               *elb.ELB
+	emrconn               *emr.EMR
+	esconn                *elasticsearch.ElasticsearchService
+	apigateway            *apigateway.APIGateway
+	autoscalingconn       *autoscaling.AutoScaling
+	s3conn                *s3.S3
+	sqsconn               *sqs.SQS
+	snsconn               *sns.SNS
+	stsconn               *sts.STS
+	redshiftconn          *redshift.Redshift
+	r53conn               *route53.Route53
+	accountid             string
+	region                string
+	rdsconn               *rds.RDS
+	iamconn               *iam.IAM
+	kinesisconn           *kinesis.Kinesis
+	kmsconn               *kms.KMS
+	firehoseconn          *firehose.Firehose
+	elasticacheconn       *elasticache.ElastiCache
+	elasticbeanstalkconn  *elasticbeanstalk.ElasticBeanstalk
+	elastictranscoderconn *elastictranscoder.ElasticTranscoder
+	lambdaconn            *lambda.Lambda
+	opsworksconn          *opsworks.OpsWorks
+	glacierconn           *glacier.Glacier
+	codedeployconn        *codedeploy.CodeDeploy
+	codecommitconn        *codecommit.CodeCommit
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -227,6 +229,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing Elastic Beanstalk Connection")
 		client.elasticbeanstalkconn = elasticbeanstalk.New(sess)
+
+		log.Println("[INFO] Initializing Elastic Transcoder Connection")
+		client.elastictranscoderconn = elastictranscoder.New(sess)
 
 		authErr := c.ValidateAccountId(client.accountid)
 		if authErr != nil {
