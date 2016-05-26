@@ -85,6 +85,13 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"network_interface_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
 			"source_dest_check": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -489,8 +496,10 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	if len(instance.NetworkInterfaces) > 0 {
 		d.Set("subnet_id", instance.NetworkInterfaces[0].SubnetId)
+		d.Set("network_interface_id", instance.NetworkInterfaces[0].NetworkInterfaceId)
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
+		d.Set("network_interface_id", "")
 	}
 	d.Set("ebs_optimized", instance.EbsOptimized)
 	if instance.SubnetId != nil && *instance.SubnetId != "" {
@@ -580,9 +589,8 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	d.Partial(true)
 	if err := setTags(conn, d); err != nil {
 		return err
-	} else {
-		d.SetPartial("tags")
 	}
+	d.SetPartial("tags")
 
 	// SourceDestCheck can only be set on VPC instances
 	// AWS will return an error of InvalidParameterCombination if we attempt
@@ -1012,6 +1020,9 @@ func buildAwsInstanceOpts(
 	subnet, hasSubnet := d.GetOk("subnet_id")
 	subnetID := subnet.(string)
 
+	networkInterface, hasNetworkInterface := d.GetOk("network_interface_id")
+	networkInterfaceID := networkInterface.(string)
+
 	// Placement is used for aws_instance; SpotPlacement is used for
 	// aws_spot_instance_request. They represent the same data. :-|
 	opts.Placement = &ec2.Placement{
@@ -1045,7 +1056,15 @@ func buildAwsInstanceOpts(
 		}
 	}
 
-	if hasSubnet && associatePublicIPAddress {
+	if hasNetworkInterface {
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			NetworkInterfaceId: aws.String(networkInterfaceID),
+			DeviceIndex:        aws.Int64(int64(0)),
+			SubnetId:           aws.String(subnetID),
+			Groups:             groups,
+		}
+		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+	} else if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
 		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
