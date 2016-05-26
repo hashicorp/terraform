@@ -156,7 +156,9 @@ func pullImage(data *Data, client *dc.Client, image string) error {
 
 	if pullOpts.Registry != "" {
 		auths, _ := dc.NewAuthConfigurationsFromDockerCfg()
-		auth = auths.Configs["https://"+pullOpts.Registry]
+		if auths != nil {
+			auth = auths.Configs["https://"+pullOpts.Registry]
+		}
 	}
 
 	if err := client.PullImage(pullOpts, auth); err != nil {
