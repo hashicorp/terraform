@@ -148,14 +148,8 @@ func TestAccVSphereVirtualMachine_client_debug(t *testing.T) {
 
 func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 	var vm virtualMachine
-	var locationOpt string
-	var datastoreOpt string
-
-	locationOpt, datastoreOpt = setupBaseVars()
-	template := os.Getenv("VSPHERE_TEMPLATE")
-	gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
-	label := os.Getenv("VSPHERE_NETWORK_LABEL")
-	ip_address := os.Getenv("VSPHERE_IPV4_ADDRESS")
+	locationOpt, datastoreOpt := setupBaseVars()
+	template, gateway, label, ip_address := setupBasicVars()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -205,10 +199,7 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 
 func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 	var vm virtualMachine
-	var locationOpt string
-	var datastoreOpt string
-
-	locationOpt, datastoreOpt = setupBaseVars()
+	locationOpt, datastoreOpt := setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
@@ -308,10 +299,7 @@ func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
 
 func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 	var vm virtualMachine
-	var locationOpt string
-	var datastoreOpt string
-
-	locationOpt, datastoreOpt = setupBaseVars()
+	locationOpt, datastoreOpt := setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
@@ -468,10 +456,7 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 
 func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	var vm virtualMachine
-	var locationOpt string
-	var datastoreOpt string
-
-	locationOpt, datastoreOpt = setupBaseVars()
+	locationOpt, datastoreOpt := setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 	cdromDatastore := os.Getenv("VSPHERE_CDROM_DATASTORE")
@@ -952,25 +937,8 @@ func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resou
 
 func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 	var vm virtualMachine
-	var locationOpt string
-	var datastoreOpt string
-
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
-	template := os.Getenv("VSPHERE_TEMPLATE")
-	gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
-	label := os.Getenv("VSPHERE_NETWORK_LABEL")
-	ip_address := os.Getenv("VSPHERE_IPV4_ADDRESS")
+	locationOpt, datastoreOpt := setupBaseVars()
+	template, gateway, label, ip_address := setupBasicVars()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
