@@ -14,10 +14,32 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
+	"path/filepath"
 )
 
-func TestAccVSphereVirtualMachine_basic(t *testing.T) {
-	var vm virtualMachine
+func testBasicPreCheck(t *testing.T) {
+
+	testAccPreCheck(t)
+
+	if v := os.Getenv("VSPHERE_TEMPLATE"); v == "" {
+		t.Fatal("VSPHERE_TEMPLATE must be set for acceptance tests")
+	}
+
+	if v := os.Getenv("VSPHERE_IPV4_GATEWAY"); v == "" {
+		t.Fatal("VSPHERE_IPV4_GATEWAY must be set for acceptance tests")
+	}
+
+	if v := os.Getenv("VSPHERE_IPV4_ADDRESS"); v == "" {
+		t.Fatal("VSPHERE_IPV4_ADDRESS must be set for acceptance tests")
+	}
+
+	if v := os.Getenv("VSPHERE_NETWORK_LABEL"); v == "" {
+		t.Fatal("VSPHERE_NETWORK_LABEL must be set for acceptance tests")
+	}
+}
+
+// TODO refactor all these vars as a struct
+func setupBaseVars() (string, string) {
 	var locationOpt string
 	var datastoreOpt string
 
@@ -33,21 +55,30 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
 		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
 	}
-	template := os.Getenv("VSPHERE_TEMPLATE")
-	gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
-	label := os.Getenv("VSPHERE_NETWORK_LABEL")
-	ip_address := os.Getenv("VSPHERE_IPV4_ADDRESS")
+
+	return locationOpt, datastoreOpt
+}
+
+func setupBasicVars() (string, string, string, string) {
+	return os.Getenv("VSPHERE_TEMPLATE"), os.Getenv("VSPHERE_IPV4_GATEWAY"), os.Getenv("VSPHERE_NETWORK_LABEL"), os.Getenv("VSPHERE_IPV4_ADDRESS")
+
+}
+
+func TestAccVSphereVirtualMachine_basic(t *testing.T) {
+	var vm virtualMachine
+
+	locationOpt, datastoreOpt := setupBaseVars()
+	template, gateway, label, ip_address := setupBasicVars()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     func() { testBasicPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: fmt.Sprintf(
-					testAccCheckVSphereVirtualMachineConfig_basic,
+					testAccCheckVSphereVirtualMachineConfig_really_basic,
 					locationOpt,
-					gateway,
 					label,
 					ip_address,
 					gateway,
@@ -61,13 +92,50 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "vcpu", "2"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.foo", "memory", "4096"),
+						"vsphere_virtual_machine.foo", "memory", "256"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.foo", "memory_reservation", "4096"),
+						"vsphere_virtual_machine.foo", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.foo", "disk.#", "2"),
+						"vsphere_virtual_machine.foo", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.foo", "disk.1554349037.template", template),
+						"vsphere_virtual_machine.foo", "network_interface.0.label", label),
+				),
+			},
+		},
+	})
+}
+
+func TestAccVSphereVirtualMachine_client_debug(t *testing.T) {
+	var vm virtualMachine
+	locationOpt, datastoreOpt := setupBaseVars()
+	template, gateway, label, ip_address := setupBasicVars()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testBasicPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_debug,
+					locationOpt,
+					label,
+					ip_address,
+					gateway,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDebugExists(),
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.foo", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "name", "terraform-test"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "memory", "256"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -83,18 +151,7 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 	var locationOpt string
 	var datastoreOpt string
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL")
@@ -151,18 +208,7 @@ func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 	var locationOpt string
 	var datastoreOpt string
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
@@ -265,18 +311,7 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 	var locationOpt string
 	var datastoreOpt string
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
@@ -329,19 +364,7 @@ func TestAccVSphereVirtualMachine_createInExistingFolder(t *testing.T) {
 
 	folder := "tf_test_createInExistingFolder"
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-		datacenter = v
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
@@ -396,19 +419,7 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 
 	folder := "tf_test_createWithFolder"
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		folderLocationOpt = fmt.Sprintf("    datacenter = \"%s\"\n", v)
-		locationOpt += folderLocationOpt
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
@@ -460,18 +471,7 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	var locationOpt string
 	var datastoreOpt string
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 	cdromDatastore := os.Getenv("VSPHERE_CDROM_DATASTORE")
@@ -528,18 +528,7 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 	var locationOpt string
 	var datastoreOpt string
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -583,18 +572,7 @@ func TestAccVSphereVirtualMachine_updateMemory(t *testing.T) {
 	var locationOpt string
 	var datastoreOpt string
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
@@ -664,18 +642,7 @@ func TestAccVSphereVirtualMachine_updateVcpu(t *testing.T) {
 	var locationOpt string
 	var datastoreOpt string
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
@@ -745,18 +712,7 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 	var locationOpt string
 	var datastoreOpt string
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
-		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
-		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
-	}
+	locationOpt, datastoreOpt = setupBaseVars()
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL")
 	ipv4Address := os.Getenv("VSPHERE_IPV4_ADDRESS")
@@ -938,6 +894,16 @@ func testAccCheckVSphereVirtualMachineExistsHasCustomConfig(n string, vm *virtua
 	}
 }
 
+func testAccCheckDebugExists() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), ".govmomi")); os.IsNotExist(err) {
+			return fmt.Errorf("Debug logs not found")
+		}
+
+		return nil
+	}
+
+}
 func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -1107,6 +1073,33 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 		},
 	})
 }
+
+const testAccCheckVSphereVirtualMachineConfig_debug = `
+provider "vsphere" {
+  client_debug = true
+}
+
+` + testAccCheckVSphereVirtualMachineConfig_really_basic
+
+const testAccCheckVSphereVirtualMachineConfig_really_basic = `
+resource "vsphere_virtual_machine" "foo" {
+    name = "terraform-test"
+%s
+    vcpu = 2
+    memory = 256
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = 24
+        ipv4_gateway = "%s"
+    }
+     disk {
+%s
+        template = "%s"
+        iops = 500
+    }
+}
+`
 
 const testAccCheckVSphereVirtualMachineConfig_basic = `
 resource "vsphere_virtual_machine" "foo" {

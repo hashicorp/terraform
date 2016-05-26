@@ -44,21 +44,21 @@ func Provider() terraform.ResourceProvider {
 				Deprecated:  "This field has been renamed to vsphere_server.",
 			},
 			"client_debug": &schema.Schema{
-				Type:        schema.TypeString,
+				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLIENT_DEBUG", nil),
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG", false),
 				Description: "govomomi debug",
 			},
 			"client_debug_path_run": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLIENT_DEBUG_PATH_RUN", nil),
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH_RUN", nil),
 				Description: "govomomi debug path for a single run",
 			},
-			"client_debug_path_run": &schema.Schema{
+			"client_debug_path": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLIENT_DEBUG_PATH", nil),
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", nil),
 				Description: "govomomi debug path for debug",
 			},
 		},
@@ -95,8 +95,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		InsecureFlag:  d.Get("allow_unverified_ssl").(bool),
 		VSphereServer: server,
 		Debug:         d.Get("client_debug").(bool),
-		DebugPathRun:  d.Get("client_debug_path_run"),
-		DebugPath:     d.Get("client_debug_path"),
+		DebugPathRun:  d.Get("client_debug_path_run").(string),
+		DebugPath:     d.Get("client_debug_path").(string),
 	}
 
 	return config.Client()
