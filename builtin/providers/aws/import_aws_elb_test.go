@@ -7,7 +7,7 @@ import (
 )
 
 func TestAccAWSELB_importBasic(t *testing.T) {
-	resourceName := "aws_subnet.bar"
+	resourceName := "aws_elb.bar"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
