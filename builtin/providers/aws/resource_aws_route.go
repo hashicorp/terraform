@@ -179,7 +179,18 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating route: %s", err)
 	}
 
-	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
+	var route *ec2.Route
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+		route, err = findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
+
+		if err != nil {
+			log.Print("[DEBUG] Attempting to find route in route table %s again", d.Get("route_table_id").(string))
+			return resource.RetryableError(err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
