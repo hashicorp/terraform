@@ -125,8 +125,8 @@ resource "ultradns_dirpool" "maximal" {
 
       codes = [
         "US-OK",
-        # "US-DC",
-        # "US-MA",
+        "US-DC",
+        "US-MA",
       ]
     }
   }
