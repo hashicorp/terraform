@@ -74,9 +74,10 @@ func resourceUltradnsDirpool() *schema.Resource {
 										Default:  false,
 									},
 									"codes": &schema.Schema{
-										Type:     schema.TypeList,
+										Type:     schema.TypeSet,
 										Optional: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
+										Set:      schema.HashString,
 									},
 								},
 							},
@@ -167,9 +168,10 @@ func resourceUltradnsDirpool() *schema.Resource {
 										Default:  false,
 									},
 									"codes": &schema.Schema{
-										Type:     schema.TypeList,
+										Type:     schema.TypeSet,
 										Optional: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
+										Set:      schema.HashString,
 									},
 								},
 							},
@@ -430,7 +432,7 @@ func makeDirpoolRdataInfo(configured interface{}) (udnssdk.DPRDataInfo, error) {
 		}
 		ii, err := makeIPInfo(ipInfo[0])
 		if err != nil {
-			return res, fmt.Errorf("%v ip_info: %#v", err, res.IPInfo)
+			return res, fmt.Errorf("%v ip_info: %#v", err, ii)
 		}
 		res.IPInfo = &ii
 	}
@@ -440,12 +442,31 @@ func makeDirpoolRdataInfo(configured interface{}) (udnssdk.DPRDataInfo, error) {
 		if len(geoInfo) > 1 {
 			return res, fmt.Errorf("geo_info: only 0 or 1 blocks alowed, got: %#v", len(geoInfo))
 		}
-		err := mapDecode(geoInfo[0], &res.GeoInfo)
+		gi, err := makeGeoInfo(geoInfo[0])
 		if err != nil {
-			return res, fmt.Errorf("%v geo_info: %#v", err, res.IPInfo)
+			return res, fmt.Errorf("%v geo_info: %#v GeoInfo: %#v", err, geoInfo[0], gi)
 		}
+		res.GeoInfo = &gi
 	}
 	return res, nil
+}
+
+// makeGeoInfo converts a map[string]interface{} from an geo_info block
+// into an GeoInfo
+func makeGeoInfo(configured interface{}) (udnssdk.GeoInfo, error) {
+	var res udnssdk.GeoInfo
+	c := configured.(map[string]interface{})
+	err := mapDecode(c, &res)
+	if err != nil {
+		return res, err
+	}
+
+	rawCodes := c["codes"].(*schema.Set).List()
+	res.Codes = make([]string, 0, len(rawCodes))
+	for _, i := range rawCodes {
+		res.Codes = append(res.Codes, i.(string))
+	}
+	return res, err
 }
 
 // makeIPInfo converts a map[string]interface{} from an ip_info block
@@ -516,9 +537,21 @@ func makeSetFromIPAddrDTOs(ias []udnssdk.IPAddrDTO) *schema.Set {
 func mapFromGeoInfos(gi *udnssdk.GeoInfo) []map[string]interface{} {
 	res := make([]map[string]interface{}, 0, 1)
 	if gi != nil {
-		res = append(res, mapEncode(gi))
+		m := mapEncode(gi)
+		m["codes"] = makeSetFromStrings(gi.Codes)
+		res = append(res, m)
 	}
 	return res
+}
+
+// makeSetFromStrings encodes an []string into a
+// *schema.Set in the appropriate structure for the schema
+func makeSetFromStrings(ss []string) *schema.Set {
+	st := &schema.Set{F: schema.HashString}
+	for _, s := range ss {
+		st.Add(s)
+	}
+	return st
 }
 
 // hashIPInfoIPs generates a hashcode for an ip_info.ips block
