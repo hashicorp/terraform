@@ -245,6 +245,10 @@ func (n *GraphNodeConfigResource) DestroyNode() GraphNodeDestroy {
 		return nil
 	}
 
+	if n.Resource.Mode == config.DataResourceMode {
+		return nil
+	}
+
 	result := &graphNodeResourceDestroy{
 		GraphNodeConfigResource: *n.Copy(),
 		Original:                n,
