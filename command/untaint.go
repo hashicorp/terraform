@@ -17,14 +17,12 @@ func (c *UntaintCommand) Run(args []string) int {
 
 	var allowMissing bool
 	var module string
-	var index int
 	cmdFlags := c.Meta.flagSet("untaint")
 	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "module")
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.IntVar(&index, "index", -1, "index")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -108,11 +106,7 @@ func (c *UntaintCommand) Run(args []string) int {
 	}
 
 	// Untaint the resource
-	if err := rs.Untaint(index); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error untainting %s: %s", name, err))
-		c.Ui.Error("You can use `terraform show` to inspect the current state.")
-		return 1
-	}
+	rs.Untaint()
 
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := c.Meta.PersistState(s); err != nil {
@@ -147,13 +141,6 @@ Options:
   -backup=path        Path to backup the existing state file before
                       modifying. Defaults to the "-state-out" path with
                       ".backup" extension. Set to "-" to disable backup.
-
-  -index=n            Selects a single tainted instance when there are more
-                      than one tainted instances present in the state for a
-                      given resource. This flag is required when multiple
-                      tainted instances are present. The vast majority of the
-                      time, there is a maxiumum of one tainted instance per
-                      resource, so this flag can be safely omitted.
 
   -module=path        The module path where the resource lives. By
                       default this will be root. Child modules can be specified
