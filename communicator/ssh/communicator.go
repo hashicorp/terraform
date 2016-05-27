@@ -213,16 +213,16 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 		}
 	}
 
-	log.Printf("starting remote command: %s", cmd.Command)
-	err = session.Start(cmd.Command + "\n")
-	if err != nil {
-		return err
-	}
-
 	// Start a goroutine to wait for the session to end and set the
 	// exit boolean and status.
 	go func() {
-		defer session.Close()
+		log.Printf("starting remote command: %s", cmd.Command)
+		err = session.Start(cmd.Command + "\n")
+		if err != nil {
+			session.Close()
+			cmd.SetExited(1)
+			return
+		}
 
 		err := session.Wait()
 		exitStatus := 0
@@ -230,11 +230,15 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 			exitErr, ok := err.(*ssh.ExitError)
 			if ok {
 				exitStatus = exitErr.ExitStatus()
+			} else {
+				log.Printf("remote command err: %#v\n", err)
+				exitStatus = 1
 			}
 		}
 
 		log.Printf("remote command exited with '%d': %s", exitStatus, cmd.Command)
 		cmd.SetExited(exitStatus)
+		session.Close()
 	}()
 
 	return nil
