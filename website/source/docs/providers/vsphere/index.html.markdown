@@ -42,6 +42,14 @@ resource "vsphere_file" "ubuntu_disk" {
   destination_file = "/my_path/disks/custom_ubuntu.vmdk"
 }
 
+# Create a disk image
+resource "vsphere_virtual_disk" "extraStorage" {
+    size = 2
+    vmdk_path = "myDisk.vmdk"
+    datacenter = "Datacenter"
+    datastore = "local"
+}
+
 # Create a virtual machine within the folder
 resource "vsphere_virtual_machine" "web" {
   name   = "terraform-web"

@@ -133,11 +133,6 @@ func stateAddFunc_Resource_Resource(s *State, fromAddr, addr *ResourceAddress, r
 		}
 	}
 
-	// Move all tainted
-	if len(src.Tainted) > 0 {
-		resource.Tainted = src.Tainted
-	}
-
 	// Move all deposed
 	if len(src.Deposed) > 0 {
 		resource.Deposed = src.Deposed
@@ -281,21 +276,10 @@ func stateAddInitAddr(s *State, addr *ResourceAddress) (interface{}, bool) {
 	exists = true
 	instance := &InstanceState{}
 	switch addr.InstanceType {
-	case TypePrimary:
+	case TypePrimary, TypeTainted:
 		if v := resource.Primary; v != nil {
 			instance = resource.Primary
 		} else {
-			exists = false
-		}
-	case TypeTainted:
-		idx := addr.Index
-		if addr.Index < 0 {
-			idx = 0
-		}
-		if len(resource.Tainted) > idx {
-			instance = resource.Tainted[idx]
-		} else {
-			resource.Tainted = append(resource.Tainted, instance)
 			exists = false
 		}
 	case TypeDeposed:

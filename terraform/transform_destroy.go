@@ -4,14 +4,6 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
-type GraphNodeDestroyMode byte
-
-const (
-	DestroyNone    GraphNodeDestroyMode = 0
-	DestroyPrimary GraphNodeDestroyMode = 1 << iota
-	DestroyTainted
-)
-
 // GraphNodeDestroyable is the interface that nodes that can be destroyed
 // must implement. This is used to automatically handle the creation of
 // destroy nodes in the graph and the dependency ordering of those destroys.
@@ -19,7 +11,7 @@ type GraphNodeDestroyable interface {
 	// DestroyNode returns the node used for the destroy with the given
 	// mode. If this returns nil, then a destroy node for that mode
 	// will not be added.
-	DestroyNode(GraphNodeDestroyMode) GraphNodeDestroy
+	DestroyNode() GraphNodeDestroy
 }
 
 // GraphNodeDestroy is the interface that must implemented by
@@ -60,32 +52,6 @@ type DestroyTransformer struct {
 
 func (t *DestroyTransformer) Transform(g *Graph) error {
 	var connect, remove []dag.Edge
-
-	modes := []GraphNodeDestroyMode{DestroyPrimary, DestroyTainted}
-	for _, m := range modes {
-		connectMode, removeMode, err := t.transform(g, m)
-		if err != nil {
-			return err
-		}
-
-		connect = append(connect, connectMode...)
-		remove = append(remove, removeMode...)
-	}
-
-	// Atomatically add/remove the edges
-	for _, e := range connect {
-		g.Connect(e)
-	}
-	for _, e := range remove {
-		g.RemoveEdge(e)
-	}
-
-	return nil
-}
-
-func (t *DestroyTransformer) transform(
-	g *Graph, mode GraphNodeDestroyMode) ([]dag.Edge, []dag.Edge, error) {
-	var connect, remove []dag.Edge
 	nodeToCn := make(map[dag.Vertex]dag.Vertex, len(g.Vertices()))
 	nodeToDn := make(map[dag.Vertex]dag.Vertex, len(g.Vertices()))
 	for _, v := range g.Vertices() {
@@ -96,7 +62,7 @@ func (t *DestroyTransformer) transform(
 		}
 
 		// Grab the destroy side of the node and connect it through
-		n := cn.DestroyNode(mode)
+		n := cn.DestroyNode()
 		if n == nil {
 			continue
 		}
@@ -155,7 +121,15 @@ func (t *DestroyTransformer) transform(
 		}
 	}
 
-	return connect, remove, nil
+	// Atomatically add/remove the edges
+	for _, e := range connect {
+		g.Connect(e)
+	}
+	for _, e := range remove {
+		g.RemoveEdge(e)
+	}
+
+	return nil
 }
 
 // CreateBeforeDestroyTransformer is a GraphTransformer that modifies
