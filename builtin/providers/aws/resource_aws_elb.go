@@ -45,6 +45,7 @@ func resourceAwsElb() *schema.Resource {
 			"cross_zone_load_balancing": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 
 			"availability_zones": &schema.Schema{
