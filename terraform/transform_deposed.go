@@ -1,6 +1,10 @@
 package terraform
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/config"
+)
 
 // DeposedTransformer is a GraphTransformer that adds deposed resources
 // to the graph.
@@ -40,6 +44,7 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 				Index:        i,
 				ResourceName: k,
 				ResourceType: rs.Type,
+				ResourceMode: ResourceModeFromString(rs.Mode),
 				Provider:     rs.Provider,
 			})
 		}
@@ -53,6 +58,7 @@ type graphNodeDeposedResource struct {
 	Index        int
 	ResourceName string
 	ResourceType string
+	ResourceMode config.ResourceMode
 	Provider     string
 }
 
@@ -98,6 +104,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
+					ResourceMode: n.ResourceMode,
 					Provider:     n.Provider,
 					State:        &state,
 					Index:        n.Index,
@@ -141,6 +148,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
+					ResourceMode: n.ResourceMode,
 					Provider:     n.Provider,
 					State:        &state,
 					Index:        n.Index,
