@@ -39,6 +39,7 @@ IMPROVEMENTS:
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * provider/clc: Fix optional server password [GH-6414]
  * provider/cloudstack: Enable swapping of ACLs without having to rebuild the network tier [GH-6741]
+ * provider/cloudstack: Add support for affinity groups to `cloudstack_instance` [GH-6898]
  * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
  * provider/fastly: Add support for custom VCL configuration [GH-6662]
@@ -48,7 +49,7 @@ IMPROVEMENTS:
  * provider/openstack: Add support for client certificate authentication [GH-6279]
  * provider/openstack: Enable DHCP By Default [GH-6838]
  * provider/openstack: Allow Neutron-based Floating IP to target a specific tenant [GH-6454] 
- * provider/vsphere: fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
+ * provider/vsphere: Fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  * provider/vsphere: Add support for `controller_type` to `vsphere_virtual_machine` [GH-6785]
  * provider/vsphere: Virtual machine update disk [GH-6619]
  
