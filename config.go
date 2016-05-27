@@ -121,13 +121,16 @@ func (c *Config) Discover(ui cli.Ui) error {
 
 	// Finally, if we have a plugin compiled into Terraform and we didn't find
 	// a replacement on disk, we'll just use the internal version. Only do this
-	// from the main process.
+	// from the main process, or the log output will break the plugin handshake.
 	if os.Getenv("TF_PLUGIN_MAGIC_COOKIE") == "" {
 		for name, _ := range command.InternalProviders {
 			if path, found := c.Providers[name]; found {
-				ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provider.\n"+
-					"  If you did not expect to see this message you will need to remove the old plugin.\n"+
-					"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+				// Allow these warnings to be suppressed via TF_PLUGIN_DEV=1 or similar
+				if os.Getenv("TF_PLUGIN_DEV") == "" {
+					ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provider.\n"+
+						"  If you did not expect to see this message you will need to remove the old plugin.\n"+
+						"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+				}
 			} else {
 				cmd, err := command.BuildPluginCommandString("provider", name)
 				if err != nil {
@@ -138,9 +141,11 @@ func (c *Config) Discover(ui cli.Ui) error {
 		}
 		for name, _ := range command.InternalProvisioners {
 			if path, found := c.Provisioners[name]; found {
-				ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provisioner.\n"+
-					"  If you did not expect to see this message you will need to remove the old plugin.\n"+
-					"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+				if os.Getenv("TF_PLUGIN_DEV") == "" {
+					ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provisioner.\n"+
+						"  If you did not expect to see this message you will need to remove the old plugin.\n"+
+						"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+				}
 			} else {
 				cmd, err := command.BuildPluginCommandString("provisioner", name)
 				if err != nil {
