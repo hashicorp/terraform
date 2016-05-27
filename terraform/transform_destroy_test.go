@@ -359,8 +359,9 @@ func TestPruneDestroyTransformer_tainted(t *testing.T) {
 				Path: RootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.bar": &ResourceState{
-						Tainted: []*InstanceState{
-							&InstanceState{ID: "foo"},
+						Primary: &InstanceState{
+							ID:      "foo",
+							Tainted: true,
 						},
 					},
 				},
@@ -399,16 +400,11 @@ func TestPruneDestroyTransformer_tainted(t *testing.T) {
 
 const testTransformDestroyBasicStr = `
 aws_instance.bar
-  aws_instance.bar (destroy tainted)
   aws_instance.bar (destroy)
   aws_instance.foo
-aws_instance.bar (destroy tainted)
 aws_instance.bar (destroy)
 aws_instance.foo
-  aws_instance.foo (destroy tainted)
   aws_instance.foo (destroy)
-aws_instance.foo (destroy tainted)
-  aws_instance.bar (destroy tainted)
 aws_instance.foo (destroy)
   aws_instance.bar (destroy)
 `
@@ -456,40 +452,28 @@ aws_instance.foo-bar (destroy)
 
 const testTransformPruneDestroyTaintedStr = `
 aws_instance.bar
-  aws_instance.bar (destroy tainted)
   aws_instance.foo
-aws_instance.bar (destroy tainted)
 aws_instance.foo
 `
 
 const testTransformCreateBeforeDestroyBasicStr = `
 aws_instance.web
-  aws_instance.web (destroy tainted)
-aws_instance.web (destroy tainted)
-  aws_load_balancer.lb (destroy tainted)
 aws_instance.web (destroy)
   aws_instance.web
   aws_load_balancer.lb
   aws_load_balancer.lb (destroy)
 aws_load_balancer.lb
   aws_instance.web
-  aws_load_balancer.lb (destroy tainted)
   aws_load_balancer.lb (destroy)
-aws_load_balancer.lb (destroy tainted)
 aws_load_balancer.lb (destroy)
 `
 
 const testTransformCreateBeforeDestroyTwiceStr = `
 aws_autoscale.bar
-  aws_autoscale.bar (destroy tainted)
   aws_lc.foo
-aws_autoscale.bar (destroy tainted)
 aws_autoscale.bar (destroy)
   aws_autoscale.bar
 aws_lc.foo
-  aws_lc.foo (destroy tainted)
-aws_lc.foo (destroy tainted)
-  aws_autoscale.bar (destroy tainted)
 aws_lc.foo (destroy)
   aws_autoscale.bar
   aws_autoscale.bar (destroy)

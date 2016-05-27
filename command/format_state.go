@@ -101,7 +101,7 @@ func formatStateModuleExpand(
 		}
 
 		taintStr := ""
-		if len(rs.Tainted) > 0 {
+		if rs.Primary.Tainted {
 			taintStr = " (tainted)"
 		}
 

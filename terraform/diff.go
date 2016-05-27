@@ -215,11 +215,12 @@ func (d *ModuleDiff) String() string {
 		rdiff := d.Resources[name]
 
 		crud := "UPDATE"
-		if rdiff.RequiresNew() && (rdiff.Destroy || rdiff.DestroyTainted) {
+		switch {
+		case rdiff.RequiresNew() && (rdiff.Destroy || rdiff.DestroyTainted):
 			crud = "DESTROY/CREATE"
-		} else if rdiff.Destroy {
+		case rdiff.Destroy:
 			crud = "DESTROY"
-		} else if rdiff.RequiresNew() {
+		case rdiff.RequiresNew():
 			crud = "CREATE"
 		}
 
@@ -354,6 +355,10 @@ func (d *InstanceDiff) GoString() string {
 func (d *InstanceDiff) RequiresNew() bool {
 	if d == nil {
 		return false
+	}
+
+	if d.DestroyTainted {
+		return true
 	}
 
 	for _, rd := range d.Attributes {

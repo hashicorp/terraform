@@ -327,7 +327,7 @@ func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState
 	}
 
 	// Check lists
-	lists := [][]*InstanceState{r.Tainted, r.Deposed}
+	lists := [][]*InstanceState{r.Deposed}
 	for _, is := range lists {
 		for i, instance := range is {
 			if instance == v {
@@ -780,7 +780,7 @@ func (m *ModuleState) prune() {
 	for k, v := range m.Resources {
 		v.prune()
 
-		if (v.Primary == nil || v.Primary.ID == "") && len(v.Tainted) == 0 && len(v.Deposed) == 0 {
+		if (v.Primary == nil || v.Primary.ID == "") && len(v.Deposed) == 0 {
 			delete(m.Resources, k)
 		}
 	}
@@ -826,8 +826,8 @@ func (m *ModuleState) String() string {
 		}
 
 		taintStr := ""
-		if len(rs.Tainted) > 0 {
-			taintStr = fmt.Sprintf(" (%d tainted)", len(rs.Tainted))
+		if rs.Primary.Tainted {
+			taintStr = " (tainted)"
 		}
 
 		deposedStr := ""
@@ -860,12 +860,12 @@ func (m *ModuleState) String() string {
 			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
 		}
 
-		for idx, t := range rs.Tainted {
-			buf.WriteString(fmt.Sprintf("  Tainted ID %d = %s\n", idx+1, t.ID))
-		}
-
 		for idx, t := range rs.Deposed {
-			buf.WriteString(fmt.Sprintf("  Deposed ID %d = %s\n", idx+1, t.ID))
+			taintStr := ""
+			if t.Tainted {
+				taintStr = " (tainted)"
+			}
+			buf.WriteString(fmt.Sprintf("  Deposed ID %d = %s%s\n", idx+1, t.ID, taintStr))
 		}
 
 		if len(rs.Dependencies) > 0 {
@@ -1031,22 +1031,17 @@ type ResourceState struct {
 	// This is the instances on which providers will act.
 	Primary *InstanceState `json:"primary"`
 
-	// Tainted is used to track any underlying instances that
-	// have been created but are in a bad or unknown state and
-	// need to be cleaned up subsequently.  In the
-	// standard case, there is only at most a single instance.
-	// However, in pathological cases, it is possible for the number
-	// of instances to accumulate.
-	Tainted []*InstanceState `json:"tainted,omitempty"`
-
 	// Deposed is used in the mechanics of CreateBeforeDestroy: the existing
 	// Primary is Deposed to get it out of the way for the replacement Primary to
 	// be created by Apply. If the replacement Primary creates successfully, the
-	// Deposed instance is cleaned up. If there were problems creating the
-	// replacement, the instance remains in the Deposed list so it can be
-	// destroyed in a future run. Functionally, Deposed instances are very
-	// similar to Tainted instances in that Terraform is only tracking them in
-	// order to remember to destroy them.
+	// Deposed instance is cleaned up.
+	//
+	// If there were problems creating the replacement Primary, the Deposed
+	// instance and the (now tainted) replacement Primary will be swapped so the
+	// tainted replacement will be cleaned up instead.
+	//
+	// An instance will remain in the Deposed list until it is successfully
+	// destroyed and purged.
 	Deposed []*InstanceState `json:"deposed,omitempty"`
 
 	// Provider is used when a resource is connected to a provider with an alias.
@@ -1083,81 +1078,21 @@ func (s *ResourceState) Equal(other *ResourceState) bool {
 		return false
 	}
 
-	// Tainted
-	taints := make(map[string]*InstanceState)
-	for _, t := range other.Tainted {
-		if t == nil {
-			continue
-		}
-
-		taints[t.ID] = t
-	}
-	for _, t := range s.Tainted {
-		if t == nil {
-			continue
-		}
-
-		otherT, ok := taints[t.ID]
-		if !ok {
-			return false
-		}
-		delete(taints, t.ID)
-
-		if !t.Equal(otherT) {
-			return false
-		}
-	}
-
-	// This means that we have stuff in other tainted that we don't
-	// have, so it is not equal.
-	if len(taints) > 0 {
-		return false
-	}
-
 	return true
 }
 
-// Taint takes the primary state and marks it as tainted. If there is no
-// primary state, this does nothing.
+// Taint marks a resource as tainted.
 func (r *ResourceState) Taint() {
-	// If there is no primary, nothing to do
-	if r.Primary == nil {
-		return
+	if r.Primary != nil {
+		r.Primary.Tainted = true
 	}
-
-	// Shuffle to the end of the taint list and set primary to nil
-	r.Tainted = append(r.Tainted, r.Primary)
-	r.Primary = nil
 }
 
-// Untaint takes a tainted InstanceState and marks it as primary.
-// The index argument is used to select a single InstanceState from the
-// array of Tainted when there are more than one. If index is -1, the
-// first Tainted InstanceState will be untainted iff there is only one
-// Tainted InstanceState. Index must be >= 0 to specify an InstanceState
-// when Tainted has more than one member.
-func (r *ResourceState) Untaint(index int) error {
-	if len(r.Tainted) == 0 {
-		return fmt.Errorf("Nothing to untaint.")
-	}
+// Untaint unmarks a resource as tainted.
+func (r *ResourceState) Untaint() {
 	if r.Primary != nil {
-		return fmt.Errorf("Resource has a primary instance in the state that would be overwritten by untainting. If you want to restore a tainted resource to primary, taint the existing primary instance first.")
+		r.Primary.Tainted = false
 	}
-	if index == -1 && len(r.Tainted) > 1 {
-		return fmt.Errorf("There are %d tainted instances for this resource, please specify an index to select which one to untaint.", len(r.Tainted))
-	}
-	if index == -1 {
-		index = 0
-	}
-	if index >= len(r.Tainted) {
-		return fmt.Errorf("There are %d tainted instances for this resource, the index specified (%d) is out of range.", len(r.Tainted), index)
-	}
-
-	// Perform the untaint
-	r.Primary = r.Tainted[index]
-	r.Tainted = append(r.Tainted[:index], r.Tainted[index+1:]...)
-
-	return nil
 }
 
 func (r *ResourceState) init() {
@@ -1176,18 +1111,11 @@ func (r *ResourceState) deepcopy() *ResourceState {
 		Type:         r.Type,
 		Dependencies: nil,
 		Primary:      r.Primary.DeepCopy(),
-		Tainted:      nil,
 		Provider:     r.Provider,
 	}
 	if r.Dependencies != nil {
 		n.Dependencies = make([]string, len(r.Dependencies))
 		copy(n.Dependencies, r.Dependencies)
-	}
-	if r.Tainted != nil {
-		n.Tainted = make([]*InstanceState, 0, len(r.Tainted))
-		for _, inst := range r.Tainted {
-			n.Tainted = append(n.Tainted, inst.DeepCopy())
-		}
 	}
 	if r.Deposed != nil {
 		n.Deposed = make([]*InstanceState, 0, len(r.Deposed))
@@ -1201,20 +1129,7 @@ func (r *ResourceState) deepcopy() *ResourceState {
 
 // prune is used to remove any instances that are no longer required
 func (r *ResourceState) prune() {
-	n := len(r.Tainted)
-	for i := 0; i < n; i++ {
-		inst := r.Tainted[i]
-		if inst == nil || inst.ID == "" {
-			copy(r.Tainted[i:], r.Tainted[i+1:])
-			r.Tainted[n-1] = nil
-			n--
-			i--
-		}
-	}
-
-	r.Tainted = r.Tainted[:n]
-
-	n = len(r.Deposed)
+	n := len(r.Deposed)
 	for i := 0; i < n; i++ {
 		inst := r.Deposed[i]
 		if inst == nil || inst.ID == "" {
@@ -1263,6 +1178,9 @@ type InstanceState struct {
 	// ignored by Terraform core. It's meant to be used for accounting by
 	// external client code.
 	Meta map[string]string `json:"meta,omitempty"`
+
+	// Tainted is used to mark a resource for recreation.
+	Tainted bool `json:"tainted,omitempty"`
 }
 
 func (i *InstanceState) init() {
@@ -1282,6 +1200,7 @@ func (i *InstanceState) DeepCopy() *InstanceState {
 	n := &InstanceState{
 		ID:        i.ID,
 		Ephemeral: *i.Ephemeral.DeepCopy(),
+		Tainted:   i.Tainted,
 	}
 	if i.Attributes != nil {
 		n.Attributes = make(map[string]string, len(i.Attributes))
@@ -1341,6 +1260,10 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 		if v != otherV {
 			return false
 		}
+	}
+
+	if s.Tainted != other.Tainted {
+		return false
 	}
 
 	return true
@@ -1412,6 +1335,8 @@ func (i *InstanceState) String() string {
 		av := attributes[ak]
 		buf.WriteString(fmt.Sprintf("%s = %s\n", ak, av))
 	}
+
+	buf.WriteString(fmt.Sprintf("Tainted = %t\n", i.Tainted))
 
 	return buf.String()
 }

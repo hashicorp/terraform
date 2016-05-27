@@ -256,16 +256,15 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ResourceState w/ tainted => Resource Addr (new)": {
+		"ResourceState tainted => Resource Addr (new)": {
 			false,
 			"aws_instance.bar",
 			"aws_instance.foo",
 			&ResourceState{
 				Type: "test_instance",
-				Tainted: []*InstanceState{
-					&InstanceState{
-						ID: "foo",
-					},
+				Primary: &InstanceState{
+					ID:      "foo",
+					Tainted: true,
 				},
 			},
 
@@ -276,12 +275,10 @@ func TestStateAdd(t *testing.T) {
 						Path: []string{"root"},
 						Resources: map[string]*ResourceState{
 							"aws_instance.foo": &ResourceState{
-								Type:    "test_instance",
-								Primary: &InstanceState{},
-								Tainted: []*InstanceState{
-									&InstanceState{
-										ID: "foo",
-									},
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID:      "foo",
+									Tainted: true,
 								},
 							},
 						},
