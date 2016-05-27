@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/hashicorp/terraform",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v63",
+	"GodepVersion": "v66",
 	"Packages": [
 		"./..."
 	],
@@ -202,8 +202,8 @@
 		},
 		{
 			"ImportPath": "github.com/Ensighten/udnssdk",
-			"Comment": "v1.0.0",
-			"Rev": "b212803286841a85cb68ae87a6a4f506a7e23bbd"
+			"Comment": "v1.1.1",
+			"Rev": "025e2e4ef72a8c62491dd2bb34a026ff8d83debf"
 		},
 		{
 			"ImportPath": "github.com/ajg/form",

@@ -28,10 +28,10 @@ type AccountLevelGeoDirectionalGroupDTO struct {
 
 // IPAddrDTO wraps an IP address range or CIDR block
 type IPAddrDTO struct {
-	Start   string `json:"start,omitempty"`
-	End     string `json:"end,omitempty"`
-	CIDR    string `json:"cidr,omitempty"`
-	Address string `json:"address,omitempty"`
+	Start   string `json:"start,omitempty" terraform:"start"`
+	End     string `json:"end,omitempty" terraform:"end"`
+	CIDR    string `json:"cidr,omitempty" terraform:"cidr"`
+	Address string `json:"address,omitempty" terraform:"address"`
 }
 
 // AccountLevelIPDirectionalGroupDTO wraps an account-level, IP directional-group response
