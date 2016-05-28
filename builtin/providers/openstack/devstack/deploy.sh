@@ -116,10 +116,12 @@ wget http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img
 glance image-create --name CirrOS --disk-format qcow2 --container-format bare < cirros-0.3.4-x86_64-disk.img
 nova flavor-create m1.tform 99 512 5 1 --ephemeral 10
 _NETWORK_ID=$(nova net-list | grep private | awk -F\| '{print $2}' | tr -d ' ')
+_EXTGW_ID=$(nova net-list | grep public | awk -F\| '{print $2}' | tr -d ' ')
 _IMAGE_ID=$(nova image-list | grep CirrOS | awk -F\| '{print $2}' | tr -d ' ' | head -1)
 echo export OS_IMAGE_NAME="cirros-0.3.4-x86_64-uec" >> openrc
 echo export OS_IMAGE_ID="$_IMAGE_ID" >> openrc
 echo export OS_NETWORK_ID=$_NETWORK_ID >> openrc
+echo export OS_EXTGW_ID=$_EXTGW_ID >> openrc
 echo export OS_POOL_NAME="public" >> openrc
 echo export OS_FLAVOR_ID=99 >> openrc
 source openrc demo
