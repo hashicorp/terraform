@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"testing"
 
@@ -75,17 +76,53 @@ func setupDHCPVars() (string, string) {
 	return os.Getenv("VSPHERE_TEMPLATE"), os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 }
 
-// retunr TestCheckFunc that are useds in many of our tests
-func testCheckFuncBasic(vm virtualMachine, label string, vmName string, vmResource string, disks string) (resource.TestCheckFunc,
+// Basic data
+type TestFuncData struct {
+	vm         virtualMachine
+	label      string
+	vmName     string
+	vmResource string
+	numDisks   string
+	numCPU     string
+	mem        string
+}
+
+// returncs TestCheckFunc's that are used in many of our tests
+// mem defaults to 1024
+// cpu defaults to 2
+// disks defatuls to 1
+// vmResource defaults to "terraform-test"
+// vmName defaults to "vsphere_virtual_machine.foo
+func (test TestFuncData) testCheckFuncBasic() (
 	resource.TestCheckFunc, resource.TestCheckFunc, resource.TestCheckFunc, resource.TestCheckFunc,
-	resource.TestCheckFunc, resource.TestCheckFunc) {
-	return testAccCheckVSphereVirtualMachineExists(vmName, &vm),
-		resource.TestCheckResourceAttr(vmName, "name", vmResource),
-		resource.TestCheckResourceAttr(vmName, "vcpu", "2"),
-		resource.TestCheckResourceAttr(vmName, "memory", "1024"),
-		resource.TestCheckResourceAttr(vmName, "disk.#", "1"),
-		resource.TestCheckResourceAttr("vsphere_virtual_machine.foo", "network_interface.#", "1"),
-		resource.TestCheckResourceAttr(vmName, "network_interface.0.label", label)
+	resource.TestCheckFunc, resource.TestCheckFunc, resource.TestCheckFunc) {
+	mem := test.mem
+	if mem == "" {
+		mem = "1024"
+	}
+	cpu := test.numCPU
+	if cpu == "" {
+		cpu = "2"
+	}
+	disks := test.numDisks
+	if disks == "" {
+		disks = "1"
+	}
+	res := test.vmResource
+	if res == "" {
+		res = "terraform-test"
+	}
+	vmName := test.vmName
+	if vmName == "" {
+		vmName = "vsphere_virtual_machine.foo"
+	}
+	return testAccCheckVSphereVirtualMachineExists(test.vmName, &test.vm),
+		resource.TestCheckResourceAttr(test.vmName, "name", res),
+		resource.TestCheckResourceAttr(test.vmName, "vcpu", cpu),
+		resource.TestCheckResourceAttr(test.vmName, "memory", mem),
+		resource.TestCheckResourceAttr(test.vmName, "disk.#", disks),
+		resource.TestCheckResourceAttr(test.vmName, "network_interface.#", "1"),
+		resource.TestCheckResourceAttr(test.vmName, "network_interface.0.label", test.label)
 }
 
 func TestAccVSphereVirtualMachine_basic(t *testing.T) {
@@ -93,6 +130,8 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 
 	locationOpt, datastoreOpt := setupBaseVars()
 	template, gateway, label, ip_address := setupBasicVars()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_really_basic)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testBasicPreCheck(t) },
@@ -110,7 +149,7 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.foo", "terraform-test", "1"),
+					TestFuncData{vm: vm, label: label}.testCheckFuncBasic(),
 				),
 			},
 		},
@@ -122,6 +161,10 @@ func TestAccVSphereVirtualMachine_client_debug(t *testing.T) {
 	locationOpt, datastoreOpt := setupBaseVars()
 	template, gateway, label, ip_address := setupBasicVars()
 
+	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: label}.testCheckFuncBasic()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_debug)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testBasicPreCheck(t) },
 		Providers:    testAccProviders,
@@ -138,8 +181,8 @@ func TestAccVSphereVirtualMachine_client_debug(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					testAccCheckDebugExists(),
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.foo", "terraform-test", "1"),
 				),
 			},
 		},
@@ -150,6 +193,21 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 	var vm virtualMachine
 	locationOpt, datastoreOpt := setupBaseVars()
 	template, gateway, label, ip_address := setupBasicVars()
+	vmName := "vsphere_virtual_machine.thin"
+	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: label, vmName: vmName, numDisks: "3"}.testCheckFuncBasic()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_initType)
+	config := fmt.Sprintf(
+		testAccCheckVSphereVirtualMachineConfig_initType,
+		locationOpt,
+		label,
+		ip_address,
+		gateway,
+		datastoreOpt,
+		template,
+	)
+	log.Printf("[DEBUG] template with config= %s", config)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -157,24 +215,13 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(
-					testAccCheckVSphereVirtualMachineConfig_initType,
-					locationOpt,
-					gateway,
-					label,
-					ip_address,
-					gateway,
-					datastoreOpt,
-					template,
-				),
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.thin", "terraform-test", "3"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.thin", "disk.294918912.type", "eager_zeroed"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.thin", "disk.1380467090.controller_type", "scsi"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.thin", "disk.294918912.controller_type", "ide"),
+					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					// FIXME dynmically calculate the hashes
+					resource.TestCheckResourceAttr(vmName, "disk.294918912.type", "eager_zeroed"),
+					resource.TestCheckResourceAttr(vmName, "disk.294918912.controller_type", "ide"),
+					resource.TestCheckResourceAttr(vmName, "disk.1380467090.controller_type", "scsi"),
 				),
 			},
 		},
@@ -186,6 +233,7 @@ func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 	locationOpt, datastoreOpt := setupBaseVars()
 	template, label := setupDHCPVars()
 
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_debug)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -200,7 +248,7 @@ func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.bar", "terraform-test", "1"),
+					TestFuncData{vm: vm, label: label, vmName: "vsphere_virtual_machine.bar"}.testCheckFuncBasic(),
 				),
 			},
 		},
@@ -267,9 +315,15 @@ func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
 }
 
 func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
+
 	var vm virtualMachine
 	locationOpt, datastoreOpt := setupBaseVars()
 	template, label := setupDHCPVars()
+	vmName := "vsphere_virtual_machine.car"
+	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: label, vmName: vmName}.testCheckFuncBasic()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_custom_configs)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -285,14 +339,11 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVSphereVirtualMachineExistsHasCustomConfig("vsphere_virtual_machine.car", &vm),
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.car", "terraform-test-custom", "1"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.car", "custom_configuration_parameters.foo", "bar"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.car", "custom_configuration_parameters.car", "ferrari"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.car", "custom_configuration_parameters.num", "42"),
+					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					testAccCheckVSphereVirtualMachineExistsHasCustomConfig(vmName, &vm),
+					resource.TestCheckResourceAttr(vmName, "custom_configuration_parameters.foo", "bar"),
+					resource.TestCheckResourceAttr(vmName, "custom_configuration_parameters.car", "ferrari"),
+					resource.TestCheckResourceAttr(vmName, "custom_configuration_parameters.num", "42"),
 				),
 			},
 		},
@@ -305,10 +356,12 @@ func TestAccVSphereVirtualMachine_createInExistingFolder(t *testing.T) {
 	var datastoreOpt string
 	var datacenter string
 
-	folder := "tf_test_createInExistingFolder"
+	folder := "tf_test_cpureateInExistingFolder"
 
 	locationOpt, datastoreOpt = setupBaseVars()
 	template, label := setupDHCPVars()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_createInFolder)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -329,7 +382,7 @@ func TestAccVSphereVirtualMachine_createInExistingFolder(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.folder", "terraform-test-folder", "1"),
+					TestFuncData{vm: vm, label: label, vmName: "vsphere_virtual_machine.folder", vmResource: "terraform-test-folder"}.testCheckFuncBasic(),
 				),
 			},
 		},
@@ -343,10 +396,13 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 	var datastoreOpt string
 	var f folder
 
-	folder := "tf_test_createWithFolder"
-
+	folder := "tf_test_cpureateWithFolder"
 	locationOpt, datastoreOpt = setupBaseVars()
 	template, label := setupDHCPVars()
+	vmName := "vsphere_virtual_machine.folder"
+	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: label, vmName: vmName, vmResource: "terraform-test-folder"}.testCheckFuncBasic()
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_createWithFolder)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -367,10 +423,9 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.folder", "terraform-test-folder", "1"),
-					testAccCheckVSphereFolderExists("vsphere_folder.with_folder", &f),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.with_folder", "folder", folder),
+					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					testAccCheckVSphereFolderExists(vmName, &f),
+					resource.TestCheckResourceAttr(vmName, "folder", folder),
 				),
 			},
 		},
@@ -383,6 +438,11 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	template, label := setupDHCPVars()
 	cdromDatastore := os.Getenv("VSPHERE_CDROM_DATASTORE")
 	cdromPath := os.Getenv("VSPHERE_CDROM_PATH")
+	vmName := "vsphere_virtual_machine.with_cdrom"
+	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: label, vmName: vmName, vmResource: "terraform-test-with-cdrom"}.testCheckFuncBasic()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVsphereVirtualMachineConfig_cdrom)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -400,15 +460,12 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 					cdromPath,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.with_cdrom", "terraform-test-with-cdrom", "1"),
+					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					//resource.TestCheckResourceAttr(
 					//	"vsphere_virtual_machine.with_cdrom", "disk.4088143748.template", template),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.with_cdrom", "cdrom.#", "1"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.with_cdrom", "cdrom.0.datastore", cdromDatastore),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.with_cdrom", "cdrom.0.path", cdromPath),
+					resource.TestCheckResourceAttr(vmName, "cdrom.#", "1"),
+					resource.TestCheckResourceAttr(vmName, "cdrom.0.datastore", cdromDatastore),
+					resource.TestCheckResourceAttr(vmName, "cdrom.0.path", cdromPath),
 				),
 			},
 		},
@@ -425,6 +482,7 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 
 	locationOpt, datastoreOpt = setupBaseVars()
 
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_withExistingVmdk)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -439,7 +497,8 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 					vmdk_path,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.with_existing_vmdk", "terraform-test-with-existing-vmdk", "1"),
+					TestFuncData{vm: vm, label: label, vmName: "vsphere_virtual_machine.with_existing_vmdk",
+						vmResource: "terraform-test-with-existing-vmdk"}.testCheckFuncBasic(),
 					//resource.TestCheckResourceAttr(
 					//	"vsphere_virtual_machine.with_existing_vmdk", "disk.2393891804.vmdk", vmdk_path),
 					//resource.TestCheckResourceAttr(
@@ -458,6 +517,8 @@ func TestAccVSphereVirtualMachine_updateMemory(t *testing.T) {
 	locationOpt, datastoreOpt = setupBaseVars()
 	template, label := setupDHCPVars()
 
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_updateMemory)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -465,40 +526,28 @@ func TestAccVSphereVirtualMachine_updateMemory(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: fmt.Sprintf(
-					testAccCheckVSphereVirtualMachineConfig_updateMemoryInitial,
+					testAccCheckVSphereVirtualMachineConfig_updateMemory,
 					locationOpt,
+					"1024",
 					label,
 					datastoreOpt,
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.bar", "terraform-test", "1"),
+					TestFuncData{vm: vm, label: label, vmName: "vsphere_virtual_machine.bar"}.testCheckFuncBasic(),
 				),
 			},
 			resource.TestStep{
 				Config: fmt.Sprintf(
-					testAccCheckVSphereVirtualMachineConfig_updateMemoryUpdate,
+					testAccCheckVSphereVirtualMachineConfig_updateMemory,
 					locationOpt,
+					"2048",
 					label,
 					datastoreOpt,
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.bar", &vm),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "name", "terraform-test"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "vcpu", "2"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "memory", "2048"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "disk.#", "1"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "disk.2166312600.template", template),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "network_interface.#", "1"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "network_interface.0.label", label),
+					TestFuncData{vm: vm, label: label, mem: "2048", vmName: "vsphere_virtual_machine.bar"}.testCheckFuncBasic(),
 				),
 			},
 		},
@@ -513,6 +562,7 @@ func TestAccVSphereVirtualMachine_updateVcpu(t *testing.T) {
 	locationOpt, datastoreOpt = setupBaseVars()
 	template, label := setupDHCPVars()
 
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_updateVcpu)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -520,40 +570,28 @@ func TestAccVSphereVirtualMachine_updateVcpu(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: fmt.Sprintf(
-					testAccCheckVSphereVirtualMachineConfig_updateVcpuInitial,
+					testAccCheckVSphereVirtualMachineConfig_updateVcpu,
 					locationOpt,
+					"2",
 					label,
 					datastoreOpt,
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.bar", "terraform-test", "1"),
+					TestFuncData{vm: vm, label: label, vmName: "vsphere_virtual_machine.bar"}.testCheckFuncBasic(),
 				),
 			},
 			resource.TestStep{
 				Config: fmt.Sprintf(
-					testAccCheckVSphereVirtualMachineConfig_updateVcpuUpdate,
+					testAccCheckVSphereVirtualMachineConfig_updateVcpu,
 					locationOpt,
+					"4",
 					label,
 					datastoreOpt,
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.bar", &vm),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "name", "terraform-test"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "vcpu", "4"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "memory", "1024"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "disk.#", "1"),
-					//resource.TestCheckResourceAttr(
-					//	"vsphere_virtual_machine.bar", "disk.4088143748.template", template),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "network_interface.#", "1"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "network_interface.0.label", label),
+					TestFuncData{vm: vm, label: label, vmName: "vsphere_virtual_machine.bar", numCPU: "4"}.testCheckFuncBasic(),
 				),
 			},
 		},
@@ -562,15 +600,17 @@ func TestAccVSphereVirtualMachine_updateVcpu(t *testing.T) {
 
 func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 	var vm virtualMachine
-	var locationOpt string
-	var datastoreOpt string
-
-	locationOpt, datastoreOpt = setupBaseVars()
+	locationOpt, datastoreOpt := setupBaseVars()
 	template, label := setupDHCPVars()
+	vmName := "vsphere_virtual_machine.ipv4ipv6"
+	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: label, vmName: vmName, numDisks: "3", vmResource: "terraform-test-ipv4-ipv6"}.testCheckFuncBasic()
 	ipv4Address := os.Getenv("VSPHERE_IPV4_ADDRESS")
 	ipv4Gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
 	ipv6Address := os.Getenv("VSPHERE_IPV6_ADDRESS")
 	ipv6Gateway := os.Getenv("VSPHERE_IPV6_GATEWAY")
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_ipv4Andipv6)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -590,15 +630,11 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.ipv4ipv6", "terraform-test-ipv4-ipv6", "2"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.ipv4ipv6", "network_interface.0.ipv4_address", ipv4Address),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.ipv4ipv6", "network_interface.0.ipv4_gateway", ipv4Gateway),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.ipv4ipv6", "network_interface.0.ipv6_address", ipv6Address),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.ipv4ipv6", "network_interface.0.ipv6_gateway", ipv6Gateway),
+					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv4_address", ipv4Address),
+					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv4_gateway", ipv4Gateway),
+					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv6_address", ipv6Address),
+					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv6_gateway", ipv6Gateway),
 				),
 			},
 		},
@@ -609,7 +645,6 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 	var vm virtualMachine
 	locationOpt, datastoreOpt := setupBaseVars()
 	template, gateway, label, ip_address := setupBasicVars()
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -627,8 +662,7 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.foo", "terraform-test", "2"),
-					resource.TestCheckResourceAttr("vsphere_virtual_machine.foo", "memory_reservation", "1024"),
+					TestFuncData{vm: vm, label: label, numDisks: "2"}.testCheckFuncBasic(),
 				),
 			},
 			resource.TestStep{
@@ -643,13 +677,12 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.foo", "terraform-test", "4"),
-					resource.TestCheckResourceAttr("vsphere_virtual_machine.foo", "memory_reservation", "1024"),
+					TestFuncData{vm: vm, label: label, numDisks: "4"}.testCheckFuncBasic(),
 				),
 			},
 			resource.TestStep{
 				Config: fmt.Sprintf(
-					testAccCheckVSphereVirtualMachineConfig_updateRemoveDisks,
+					testAccCheckVSphereVirtualMachineConfig_really_basic,
 					locationOpt,
 					gateway,
 					label,
@@ -659,8 +692,7 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckFuncBasic(vm, label, "vsphere_virtual_machine.foo", "terraform-test", "1"),
-					resource.TestCheckResourceAttr("vsphere_virtual_machine.foo", "memory_reservation", "1024"),
+					TestFuncData{vm: vm, label: label, numDisks: "1"}.testCheckFuncBasic(),
 				),
 			},
 		},
@@ -857,9 +889,7 @@ provider "vsphere" {
 
 ` + testAccCheckVSphereVirtualMachineConfig_really_basic
 
-const testAccCheckVSphereVirtualMachineConfig_really_basic = `
-resource "vsphere_virtual_machine" "foo" {
-    name = "terraform-test"
+const testAccTemplateBasicBody = `
 %s
     vcpu = 2
     memory = 1024
@@ -874,28 +904,19 @@ resource "vsphere_virtual_machine" "foo" {
         template = "%s"
         iops = 500
     }
-}
 `
+const testAccTemplateBasicBodyWithEnd = testAccTemplateBasicBody + `
+}`
+
+const testAccCheckVSphereVirtualMachineConfig_really_basic = `
+resource "vsphere_virtual_machine" "foo" {
+    name = "terraform-test"
+` + testAccTemplateBasicBodyWithEnd
 
 const testAccCheckVSphereVirtualMachineConfig_basic = `
 resource "vsphere_virtual_machine" "foo" {
     name = "terraform-test"
-%s
-    vcpu = 2
-    memory = 1024
-    memory_reservation = 1024
-    gateway = "%s"
-    network_interface {
-        label = "%s"
-        ipv4_address = "%s"
-        ipv4_prefix_length = 24
-        ipv4_gateway = "%s"
-    }
-    disk {
-%s
-        template = "%s"
-        iops = 500
-    }
+` + testAccTemplateBasicBody + `
     disk {
         size = 1
         iops = 500
@@ -906,22 +927,7 @@ resource "vsphere_virtual_machine" "foo" {
 const testAccCheckVSphereVirtualMachineConfig_updateAddDisks = `
 resource "vsphere_virtual_machine" "foo" {
     name = "terraform-test"
-%s
-    vcpu = 2
-    memory = 1024
-    memory_reservation = 1024
-    gateway = "%s"
-    network_interface {
-        label = "%s"
-        ipv4_address = "%s"
-        ipv4_prefix_length = 24
-        ipv4_gateway = "%s"
-    }
-    disk {
-%s
-        template = "%s"
-        iops = 500
-    }
+` + testAccTemplateBasicBody + `
     disk {
         size = 1
         iops = 500
@@ -939,46 +945,11 @@ resource "vsphere_virtual_machine" "foo" {
     }
 }
 `
-const testAccCheckVSphereVirtualMachineConfig_updateRemoveDisks = `
-resource "vsphere_virtual_machine" "foo" {
-    name = "terraform-test"
-%s
-    vcpu = 2
-    memory = 1024
-    memory_reservation = 1024
-    gateway = "%s"
-    network_interface {
-        label = "%s"
-        ipv4_address = "%s"
-        ipv4_prefix_length = 24
-        ipv4_gateway = "%s"
-    }
-    disk {
-%s
-        template = "%s"
-        iops = 500
-    }
-}
-`
+
 const testAccCheckVSphereVirtualMachineConfig_initType = `
 resource "vsphere_virtual_machine" "thin" {
     name = "terraform-test"
-%s
-    vcpu = 2
-    memory = 1024
-    gateway = "%s"
-    network_interface {
-        label = "%s"
-        ipv4_address = "%s"
-        ipv4_prefix_length = 24
-        ipv4_gateway = "%s"
-    }
-    disk {
-%s
-        template = "%s"
-        iops = 500
-        type = "thin"
-    }
+` + testAccTemplateBasicBody + `
     disk {
         size = 1
         iops = 500
@@ -1029,20 +1000,12 @@ resource "vsphere_virtual_machine" "mac_address" {
 const testAccCheckVSphereVirtualMachineConfig_custom_configs = `
 resource "vsphere_virtual_machine" "car" {
     name = "terraform-test-custom"
-%s
-    vcpu = 2
-    memory = 1024
-    network_interface {
-        label = "%s"
-    }
+` + testAccTemplateBasicBody +
+	`
     custom_configuration_parameters {
 	"foo" = "bar"
 	"car" = "ferrari"
 	"num" = 42
-    }
-    disk {
-%s
-        template = "%s"
     }
 }
 `
@@ -1051,18 +1014,7 @@ const testAccCheckVSphereVirtualMachineConfig_createInFolder = `
 resource "vsphere_virtual_machine" "folder" {
     name = "terraform-test-folder"
     folder = "%s"
-%s
-    vcpu = 2
-    memory = 1024
-    network_interface {
-        label = "%s"
-    }
-    disk {
-%s
-      template = "%s"
-    }
-}
-`
+` + testAccTemplateBasicBodyWithEnd
 
 const testAccCheckVSphereVirtualMachineConfig_createWithFolder = `
 resource "vsphere_folder" "with_folder" {
@@ -1072,39 +1024,16 @@ resource "vsphere_folder" "with_folder" {
 resource "vsphere_virtual_machine" "with_folder" {
     name = "terraform-test-with-folder"
     folder = "${vsphere_folder.with_folder.path}"
-%s
-    vcpu = 2
-    memory = 1024
-    network_interface {
-        label = "%s"
-    }
-    disk {
-%s
-      template = "%s"
-    }
-}
-`
+` + testAccTemplateBasicBodyWithEnd
 
 const testAccCheckVsphereVirtualMachineConfig_cdrom = `
 resource "vsphere_virtual_machine" "with_cdrom" {
     name = "terraform-test-with-cdrom"
-%s
-    vcpu = 2
-    memory = 1024
-    network_interface {
-        label = "%s"
-    }
-    disk {
-%s
-        template = "%s"
-    }
-
     cdrom {
         datastore = "%s"
         path = "%s"
     }
-}
-`
+` + testAccTemplateBasicBodyWithEnd
 
 const testAccCheckVSphereVirtualMachineConfig_withExistingVmdk = `
 resource "vsphere_virtual_machine" "with_existing_vmdk" {
@@ -1122,13 +1051,12 @@ resource "vsphere_virtual_machine" "with_existing_vmdk" {
     }
 }
 `
-
-const testAccCheckVSphereVirtualMachineConfig_updateMemoryInitial = `
+const testAccCheckVSphereVirtualMachineConfig_updateMemory = `
 resource "vsphere_virtual_machine" "bar" {
     name = "terraform-test"
 %s
     vcpu = 2
-    memory = 1024
+    memory = %s
     network_interface {
         label = "%s"
     }
@@ -1139,43 +1067,11 @@ resource "vsphere_virtual_machine" "bar" {
 }
 `
 
-const testAccCheckVSphereVirtualMachineConfig_updateMemoryUpdate = `
+const testAccCheckVSphereVirtualMachineConfig_updateVcpu = `
 resource "vsphere_virtual_machine" "bar" {
     name = "terraform-test"
 %s
-    vcpu = 2
-    memory = 2048
-    network_interface {
-        label = "%s"
-    }
-    disk {
-%s
-        template = "%s"
-    }
-}
-`
-
-const testAccCheckVSphereVirtualMachineConfig_updateVcpuInitial = `
-resource "vsphere_virtual_machine" "bar" {
-    name = "terraform-test"
-%s
-    vcpu = 2
-    memory = 1024
-    network_interface {
-        label = "%s"
-    }
-    disk {
-%s
-        template = "%s"
-    }
-}
-`
-
-const testAccCheckVSphereVirtualMachineConfig_updateVcpuUpdate = `
-resource "vsphere_virtual_machine" "bar" {
-    name = "terraform-test"
-%s
-    vcpu = 4
+    vcpu = %s
     memory = 1024
     network_interface {
         label = "%s"
