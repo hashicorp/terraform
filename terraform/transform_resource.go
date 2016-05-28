@@ -562,10 +562,6 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 	nodes := make([]EvalNode, 0, 5)
 
 	// Refresh the resource
-	// TODO: Interpolate and then check if the config has any computed stuff.
-	// If it doesn't, then do the diff/apply/writestate steps here so we
-	// can get this data resource populated early enough for its values to
-	// be visible during plan.
 	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh},
 		Node: &EvalSequence{
@@ -654,24 +650,31 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 					Output: &state,
 				},
 
-				// If we already have a state (created either during refresh
-				// or on a previous apply) then we don't need to do any
-				// more work on it during apply.
+				// We need to re-interpolate the config here because some
+				// of the attributes may have become computed during
+				// earlier planning, due to other resources having
+				// "requires new resource" diffs.
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig.Copy(),
+					Resource: resource,
+					Output:   &config,
+				},
+
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if state != nil {
+						computed := config.ComputedKeys != nil && len(config.ComputedKeys) > 0
+
+						// If the configuration is complete and we
+						// already have a state then we don't need to
+						// do any further work during apply, because we
+						// already populated the state during refresh.
+						if !computed && state != nil {
 							return true, EvalEarlyExitError{}
 						}
 
 						return true, nil
 					},
 					Then: EvalNoop{},
-				},
-
-				&EvalInterpolate{
-					Config:   n.Resource.RawConfig.Copy(),
-					Resource: resource,
-					Output:   &config,
 				},
 
 				&EvalGetProvider{
