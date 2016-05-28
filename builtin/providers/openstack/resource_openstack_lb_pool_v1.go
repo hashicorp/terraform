@@ -299,6 +299,19 @@ func resourceLBPoolV1Delete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	// Make sure all monitors are disassociated first
+	if v, ok := d.GetOk("monitor_ids"); ok {
+		if monitorIDList, ok := v.([]interface{}); ok {
+			for _, monitorID := range monitorIDList {
+				mID := monitorID.(string)
+				log.Printf("[DEBUG] Attempting to disassociate monitor %s from pool %s", mID, d.Id())
+				if res := pools.DisassociateMonitor(networkingClient, d.Id(), mID); res.Err != nil {
+					return fmt.Errorf("Error disassociating monitor %s from pool %s: %s", mID, d.Id(), err)
+				}
+			}
+		}
+	}
+
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
