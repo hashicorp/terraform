@@ -426,6 +426,61 @@ func TestAccComputeV2Instance_bootFromVolumeVolume(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2Instance_bootFromVolumeForceNew(t *testing.T) {
+	var instance1_1 servers.Server
+	var instance1_2 servers.Server
+	var testAccComputeV2Instance_bootFromVolumeForceNew_1 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			block_device {
+				uuid = "%s"
+				source_type = "image"
+				volume_size = 5
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = true
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	var testAccComputeV2Instance_bootFromVolumeForceNew_2 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			block_device {
+				uuid = "%s"
+				source_type = "image"
+				volume_size = 4
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = true
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_bootFromVolumeForceNew_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance1_1),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_bootFromVolumeForceNew_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance1_2),
+					testAccCheckComputeV2InstanceInstanceIDsDoNotMatch(&instance1_1, &instance1_2),
+				),
+			},
+		},
+	})
+}
+
 // TODO: verify the personality really exists on the instance.
 func TestAccComputeV2Instance_personality(t *testing.T) {
 	var instance servers.Server

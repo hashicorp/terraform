@@ -193,37 +193,43 @@ func resourceComputeInstanceV2() *schema.Resource {
 			"block_device": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"source_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 						"uuid": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 						},
 						"volume_size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
+							ForceNew: true,
 						},
 						"destination_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 						},
 						"boot_index": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
+							ForceNew: true,
 						},
 						"delete_on_termination": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
+							ForceNew: true,
 						},
 						"guest_format": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 						},
 					},
 				},
