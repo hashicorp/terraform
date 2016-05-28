@@ -44,7 +44,6 @@ func resourceAwsIotCertificateCreate(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(*out.CertificateId)
 	d.Set("arn", *out.CertificateArn)
-	d.Set("pem", *out.CertificatePem)
 
 	return nil
 }
@@ -64,7 +63,6 @@ func resourceAwsIotCertificateRead(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId(*out.CertificateDescription.CertificateId)
 	d.Set("arn", *out.CertificateDescription.CertificateArn)
-	d.Set("pem", *out.CertificateDescription.CertificatePem)
 
 	return nil
 }
