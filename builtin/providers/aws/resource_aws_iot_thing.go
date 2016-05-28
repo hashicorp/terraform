@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iot"
@@ -20,6 +20,13 @@ func resourceAwsIotThing() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"principals": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"attributes": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -31,20 +38,47 @@ func resourceAwsIotThing() *schema.Resource {
 func resourceAwsIotThingCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iotconn
 
+	thingName := d.Get("name").(string)
+
+	attributes := make(map[string]*string)
+
+	if attrs, ok := d.GetOk("attributes"); ok {
+		for k, v := range attrs.(map[string]interface{}) {
+			attributes[k] = new(string)
+			*attributes[k] = v.(string)
+		}
+	}
+
 	params := &iot.CreateThingInput{
-		ThingName: aws.String(d.Get("name").(string)), // Required
+		ThingName: aws.String(thingName), // Required
 		AttributePayload: &iot.AttributePayload{
-			Attributes: d.Get("attributes").(map[string]*string),
+			Attributes: attributes,
 		},
 	}
-	_, err := conn.CreateThing(params)
+
+	log.Printf("[DEBUG] Creating IoT thing %s", thingName)
+	out, err := conn.CreateThing(params)
 
 	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
+		log.Printf("[ERROR] %s", err)
 		return err
 	}
+
+	log.Printf("[DEBUG] IoT thing %s created", *out.ThingArn)
+
+	for _, p := range d.Get("principals").([]string) {
+		_, err := conn.AttachThingPrincipal(&iot.AttachThingPrincipalInput{
+			ThingName: aws.String(thingName),
+			Principal: aws.String(p),
+		})
+		if err != nil {
+			log.Printf("[ERROR] %s", err)
+			return err
+		}
+	}
+
+	d.SetId(*out.ThingName)
+	d.Set("name", *out.ThingName)
 
 	return nil
 }
@@ -52,21 +86,21 @@ func resourceAwsIotThingCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsIotThingRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iotconn
 
+	thingName := d.Get("name").(string)
 	params := &iot.DescribeThingInput{
-		ThingName: aws.String(d.Get("name").(string)), // Required
+		ThingName: aws.String(thingName), // Required
 	}
-	describeThingResp, err := conn.DescribeThing(params)
+	log.Printf("[DEBUG] Reading IoT thing %s", thingName)
+	out, err := conn.DescribeThing(params)
 
 	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
 		return err
 	}
+	log.Printf("[DEBUG] Received IoT thing: %s", out.ThingName)
 
-	d.Set("name", describeThingResp.ThingName)
-	d.Set("default_client_id", describeThingResp.DefaultClientId)
-	d.Set("attributes", describeThingResp.Attributes)
+	d.SetId(*out.ThingName)
+	d.Set("default_client_id", *out.DefaultClientId)
+	d.Set("attributes", aws.StringValueMap(out.Attributes))
 
 	return nil
 }
@@ -76,18 +110,23 @@ func resourceAwsIotThingUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iotconn
 
 	if d.HasChange("attributes") {
+		attributes := make(map[string]*string)
+
+		if attrs, ok := d.GetOk("attributes"); ok {
+			for k, v := range attrs.(map[string]interface{}) {
+				attributes[k] = new(string)
+				*attributes[k] = v.(string)
+			}
+		}
 		params := &iot.UpdateThingInput{
 			AttributePayload: &iot.AttributePayload{ // Required
-				Attributes: d.Get("attributes").(map[string]*string),
+				Attributes: attributes,
 			},
 			ThingName: aws.String(d.Get("name").(string)), // Required
 		}
 		_, err := conn.UpdateThing(params)
 
 		if err != nil {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
 			return err
 		}
 	}
@@ -97,15 +136,21 @@ func resourceAwsIotThingUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsIotThingDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iotconn
 
+	thingName := aws.String(d.Get("name").(string))
+
+	for _, p := range d.Get("principals").([]string) {
+		conn.DetachThingPrincipal(&iot.DetachThingPrincipalInput{
+			ThingName: thingName,
+			Principal: aws.String(p),
+		})
+	}
+
 	params := &iot.DeleteThingInput{
-		ThingName: aws.String(d.Get("name").(string)), // Required
+		ThingName: thingName, // Required
 	}
 	_, err := conn.DeleteThing(params)
 
 	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
 		return err
 	}
 
