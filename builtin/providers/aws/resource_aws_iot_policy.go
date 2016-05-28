@@ -31,9 +31,9 @@ func resourceAwsIotPolicyCreate(d *schema.ResourceData, meta interface{}) error 
 
 	conn := meta.(*AWSClient).iotconn
 
-	_, err := conn.CreatePolicy(&iot.CreatePolicyInput{
-		PolicyName:     aws.String(d.Get("name")),
-		PolicyDocument: aws.String(d.Get("policy")),
+	out, err := conn.CreatePolicy(&iot.CreatePolicyInput{
+		PolicyName:     aws.String(d.Get("name").(string)),
+		PolicyDocument: aws.String(d.Get("policy").(string)),
 	})
 
 	if err != nil {
@@ -75,8 +75,8 @@ func resourceAwsIotPolicyUpdate(d *schema.ResourceData, meta interface{}) error 
 	if d.HasChange("policy") {
 		out, err := conn.CreatePolicyVersion(&iot.CreatePolicyVersionInput{
 			PolicyName:     aws.String(d.Id()),
-			PolicyDocument: aws.String(d.Get("policy")),
-			SetAsDefault:   true,
+			PolicyDocument: aws.String(d.Get("policy").(string)),
+			SetAsDefault:   aws.Bool(true),
 		})
 
 		if err != nil {
@@ -105,7 +105,7 @@ func resourceAwsIotPolicyDelete(d *schema.ResourceData, meta interface{}) error 
 
 	// Delete all non-default versions of the policy
 	for _, ver := range out.PolicyVersions {
-		if !ver.IsDefaultVersion {
+		if !*ver.IsDefaultVersion {
 			_, err = conn.DeletePolicyVersion(&iot.DeletePolicyVersionInput{
 				PolicyName:      aws.String(d.Id()),
 				PolicyVersionId: ver.VersionId,
