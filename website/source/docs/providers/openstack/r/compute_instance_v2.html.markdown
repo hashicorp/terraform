@@ -304,6 +304,9 @@ The `block_device` block supports:
 * `destination_type` - (Optional) The type that gets created. Possible values
     are "volume" and "local".
 
+* `delete_on_termination` - (Optional) Delete the volume / block device upon
+    termination of the instance. Defaults to false.
+
 The `volume` block supports:
 
 * `volume_id` - (Required) The UUID of the volume to attach.
