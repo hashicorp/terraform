@@ -911,6 +911,93 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
+	m := testModule(t, "plan-data-resource-becomes-computed")
+	p := testProvider("aws")
+
+	p.DiffFn = func(info *InstanceInfo, state *InstanceState, config *ResourceConfig) (*InstanceDiff, error) {
+		if info.Type != "aws_instance" {
+			t.Fatalf("don't know how to diff %s", info.Id)
+			return nil, nil
+		}
+
+		return &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"computed": &ResourceAttrDiff{
+					Old:         "",
+					New:         "",
+					NewComputed: true,
+				},
+			},
+		}, nil
+	}
+	p.ReadDataDiffReturn = &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"foo": &ResourceAttrDiff{
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"data.aws_data_resource.foo": &ResourceState{
+							Type: "aws_data_resource",
+							Primary: &InstanceState{
+								ID: "i-abc123",
+								Attributes: map[string]string{
+									"id":    "i-abc123",
+									"value": "baz",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if got := len(plan.Diff.Modules); got != 1 {
+		t.Fatalf("got %d modules; want 1", got)
+	}
+
+	if !p.ReadDataDiffCalled {
+		t.Fatal("ReadDataDiff wasn't called, but should've been")
+	}
+	if got, want := p.ReadDataDiffInfo.Id, "data.aws_data_resource.foo"; got != want {
+		t.Fatalf("ReadDataDiff info id is %s; want %s", got, want)
+	}
+
+	moduleDiff := plan.Diff.Modules[0]
+
+	iDiff, ok := moduleDiff.Resources["data.aws_data_resource.foo"]
+	if !ok {
+		t.Fatalf("missing diff for data.aws_data_resource.foo")
+	}
+
+	if same, _ := p.ReadDataDiffReturn.Same(iDiff); !same {
+		t.Fatalf(
+			"incorrect diff for data.data_resource.foo\ngot:  %#v\nwant: %#v",
+			iDiff, p.ReadDataDiffReturn,
+		)
+	}
+}
+
 func TestContext2Plan_computedList(t *testing.T) {
 	m := testModule(t, "plan-computed-list")
 	p := testProvider("aws")
