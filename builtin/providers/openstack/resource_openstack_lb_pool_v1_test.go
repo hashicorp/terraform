@@ -28,6 +28,7 @@ func TestAccLBV1Pool_basic(t *testing.T) {
 				Config: testAccLBV1Pool_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBV1PoolExists(t, "openstack_lb_pool_v1.pool_1", &pool),
+					resource.TestCheckResourceAttr("openstack_lb_pool_v1.pool_1", "lb_provider", "haproxy"),
 				),
 			},
 			resource.TestStep{
@@ -144,6 +145,7 @@ var testAccLBV1Pool_basic = fmt.Sprintf(`
     protocol = "HTTP"
     subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
     lb_method = "ROUND_ROBIN"
+    lb_provider = "haproxy"
   }`,
 	OS_REGION_NAME, OS_REGION_NAME, OS_REGION_NAME)
 
