@@ -103,15 +103,21 @@ func (h *UiHook) PreApply(
 		attrDiff := d.Attributes[attrK]
 
 		v := attrDiff.New
+		u := attrDiff.Old
 		if attrDiff.NewComputed {
 			v = "<computed>"
+		}
+
+		if attrDiff.Sensitive {
+			u = "<sensitive>"
+			v = "<sensitive>"
 		}
 
 		attrBuf.WriteString(fmt.Sprintf(
 			"  %s:%s %#v => %#v\n",
 			attrK,
 			strings.Repeat(" ", keyLen-len(attrK)),
-			attrDiff.Old,
+			u,
 			v))
 	}
 

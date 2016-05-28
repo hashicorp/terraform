@@ -153,6 +153,11 @@ func TestModuleDiff_String(t *testing.T) {
 						New:         "bar",
 						RequiresNew: true,
 					},
+					"secretfoo": &ResourceAttrDiff{
+						Old:       "foo",
+						New:       "bar",
+						Sensitive: true,
+					},
 				},
 			},
 		},
@@ -607,7 +612,8 @@ func TestInstanceDiffSame(t *testing.T) {
 
 const moduleDiffStrBasic = `
 CREATE: nodeA
-  bar:     "foo" => "<computed>"
-  foo:     "foo" => "bar"
-  longfoo: "foo" => "bar" (forces new resource)
+  bar:       "foo" => "<computed>"
+  foo:       "foo" => "bar"
+  longfoo:   "foo" => "bar" (forces new resource)
+  secretfoo: "<sensitive>" => "<sensitive>" (attribute changed)
 `
