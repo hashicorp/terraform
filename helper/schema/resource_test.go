@@ -100,6 +100,36 @@ func TestResourceApply_destroy(t *testing.T) {
 	}
 }
 
+func TestResourceApply_destroyDataSource(t *testing.T) {
+	// data sources do not have a destroy function, so we need to test that a
+	// destroy operation will properly skip over it if it is not defined.
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	s := &terraform.InstanceState{
+		ID: "bar",
+	}
+
+	d := &terraform.InstanceDiff{
+		Destroy: true,
+	}
+
+	actual, err := r.Apply(s, d, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceApply_destroyCreate(t *testing.T) {
 	r := &Resource{
 		Schema: map[string]*Schema{

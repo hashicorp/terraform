@@ -168,7 +168,15 @@ func (p *Provider) Apply(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
 	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
-	r, ok := p.ResourcesMap[info.Type]
+	m := p.ResourcesMap
+	for k, v := range p.DataSourcesMap {
+		if _, ok := m[k]; ok {
+			panic(fmt.Errorf("Data source %s is also a resource. This is a bug and should be reported.", k))
+		}
+		m[k] = v
+	}
+
+	r, ok := m[info.Type]
 	if !ok {
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
