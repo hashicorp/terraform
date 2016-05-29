@@ -713,11 +713,32 @@ func TestInterpolateFuncLookup(t *testing.T) {
 				true,
 			},
 
+			// Supplied default with valid key
+			{
+				`${lookup(var.foo, "bar", "")}`,
+				"baz",
+				false,
+			},
+
+			// Supplied default with invalid key
+			{
+				`${lookup(var.foo, "zip", "")}`,
+				"",
+				false,
+			},
+
 			// Too many args
 			{
-				`${lookup(var.foo, "bar", "baz")}`,
+				`${lookup(var.foo, "bar", "", "abc")}`,
 				nil,
 				true,
+			},
+
+			// Non-empty default
+			{
+				`${lookup(var.foo, "zap", "xyz")}`,
+				"xyz",
+				false,
 			},
 		},
 	})
