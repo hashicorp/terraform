@@ -557,6 +557,53 @@ func TestAccComputeV2Instance_accessIPv4(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2Instance_ChangeFixedIP(t *testing.T) {
+	var instance1_1 servers.Server
+	var instance1_2 servers.Server
+	var testAccComputeV2Instance_ChangeFixedIP_1 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			network {
+				uuid = "%s"
+				fixed_ip_v4 = "10.0.0.24"
+			}
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	var testAccComputeV2Instance_ChangeFixedIP_2 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			network {
+				uuid = "%s"
+				fixed_ip_v4 = "10.0.0.25"
+			}
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_ChangeFixedIP_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance1_1),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_ChangeFixedIP_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance1_2),
+					testAccCheckComputeV2InstanceInstanceIDsDoNotMatch(&instance1_1, &instance1_2),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeV2InstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	computeClient, err := config.computeV2Client(OS_REGION_NAME)
@@ -726,6 +773,15 @@ func testAccCheckComputeV2InstanceFloatingIPAttach(
 		}
 
 		return fmt.Errorf("Floating IP %s was not attached to instance %s", fip.ID, instance.ID)
+	}
+}
+func testAccCheckComputeV2InstanceInstanceIDsDoNotMatch(
+	instance1, instance2 *servers.Server) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if instance1.ID == instance2.ID {
+			return fmt.Errorf("Instance was not recreated.")
+		}
 
+		return nil
 	}
 }
