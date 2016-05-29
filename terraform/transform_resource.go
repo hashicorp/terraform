@@ -897,13 +897,30 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 				&EvalRequireState{
 					State: &state,
 				},
-				&EvalApply{
-					Info:     info,
-					State:    &state,
-					Diff:     &diffApply,
-					Provider: &provider,
-					Output:   &state,
-					Error:    &err,
+				// Make sure we handle data sources properly.
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if n.Resource.Mode == config.DataResourceMode {
+							return true, nil
+						}
+
+						return false, nil
+					},
+
+					Then: &EvalReadDataApply{
+						Info:     info,
+						Diff:     &diffApply,
+						Provider: &provider,
+						Output:   &state,
+					},
+					Else: &EvalApply{
+						Info:     info,
+						State:    &state,
+						Diff:     &diffApply,
+						Provider: &provider,
+						Output:   &state,
+						Error:    &err,
+					},
 				},
 				&EvalWriteState{
 					Name:         n.stateId(),

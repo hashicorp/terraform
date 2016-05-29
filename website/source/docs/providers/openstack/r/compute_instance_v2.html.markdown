@@ -267,16 +267,19 @@ The following arguments are supported:
 The `network` block supports:
 
 * `uuid` - (Required unless `port`  or `name` is provided) The network UUID to
-    attach to the server.
+    attach to the server. Changing this creates a new server.
 
 * `name` - (Required unless `uuid` or `port` is provided) The human-readable
-    name of the network.
+    name of the network. Changing this creates a new server.
 
 * `port` - (Required unless `uuid` or `name` is provided) The port UUID of a
-    network to attach to the server.
+    network to attach to the server. Changing this creates a new server.
 
 * `fixed_ip_v4` - (Optional) Specifies a fixed IPv4 address to be used on this
-    network.
+    network. Changing this creates a new server.
+
+* `fixed_ip_v6` - (Optional) Specifies a fixed IPv6 address to be used on this
+    network. Changing this creates a new server.
 
 * `floating_ip` - (Optional) Specifies a floating IP address to be associated
     with this network. Cannot be combined with a top-level floating IP. See
@@ -300,6 +303,9 @@ The `block_device` block supports:
 
 * `destination_type` - (Optional) The type that gets created. Possible values
     are "volume" and "local".
+
+* `delete_on_termination` - (Optional) Delete the volume / block device upon
+    termination of the instance. Defaults to false.
 
 The `volume` block supports:
 
