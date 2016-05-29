@@ -548,17 +548,32 @@ func interpolationFuncSplit() ast.Function {
 // dynamic lookups of map types within a Terraform configuration.
 func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeMap, ast.TypeString},
-		ReturnType: ast.TypeString,
+		ArgTypes:     []ast.Type{ast.TypeMap, ast.TypeString},
+		ReturnType:   ast.TypeString,
+		Variadic:     true,
+		VariadicType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
+			defaultValue := ""
+			defaultValueSet := false
+			if len(args) > 2 {
+				defaultValue = args[2].(string)
+				defaultValueSet = true
+			}
+			if len(args) > 3 {
+				return "", fmt.Errorf("lookup() takes no more than three arguments")
+			}
 			index := args[1].(string)
 			mapVar := args[0].(map[string]ast.Variable)
 
 			v, ok := mapVar[index]
 			if !ok {
-				return "", fmt.Errorf(
-					"lookup failed to find '%s'",
-					args[1].(string))
+				if defaultValueSet {
+					return defaultValue, nil
+				} else {
+					return "", fmt.Errorf(
+						"lookup failed to find '%s'",
+						args[1].(string))
+				}
 			}
 			if v.Type != ast.TypeString {
 				return "", fmt.Errorf(
