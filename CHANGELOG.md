@@ -69,6 +69,7 @@ BUG FIXES:
  * provider/aws: `aws_opsworks_application.app_source` SSH key is write-only [GH-6649]
  * provider/aws: fix Elastic Beanstalk `cname_prefix` continual plans [GH-6653]
  * provider/aws: fix aws_security_group_rule refresh [GH-6730]
+ * provider/aws: If more ENIs are attached to `aws_instance`, the one w/ DeviceIndex `0` is always used in context of `aws_instance` (previously unpredictable) [GH-6761]
  * provider/aws: Make 'stage_name' required in api_gateway_deployment [Gh-6797]
  * provider/aws: Changing keys in `aws_dynamodb_table` correctly force new resources [GH-6829]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
