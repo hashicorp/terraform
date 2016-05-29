@@ -10,6 +10,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
  * **New Command:** `terraform state` to provide access to a variety of state manipulation functions [GH-5811]
+ * **New Data Source:** `aws_ami` [GH-6911]
+ * **New Data Source:** `aws_availability_zones` [GH-6805]
  * **New Provider:** `grafana` [GH-6206]
  * **New Provider:** `random` - allows generation of random values without constantly generating diffs [GH6672]
  * **New Resource:** `aws_iam_group_policy_attachment` [GH-6858]
