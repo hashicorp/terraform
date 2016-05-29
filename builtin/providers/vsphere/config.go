@@ -42,7 +42,7 @@ func (c *Config) Client() (*govmomi.Client, error) {
 		return nil, fmt.Errorf("Error setting up client: %s", err)
 	}
 
-	log.Printf("[INFO] VMWare vSphere Client configured for URL: %s", u)
+	log.Printf("[INFO] VMWare vSphere Client configured for URL: %s", c.VSphereServer)
 
 	return client, nil
 }
