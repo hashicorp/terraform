@@ -54,16 +54,16 @@ The following arguments are supported:
   within a region.
 * `read_capacity` - (Required) The number of read units for this table
 * `write_capacity` - (Required) The number of write units for this table
-* `hash_key` - (Required) The attribute to use as the hash key (the
+* `hash_key` - (Required, Forces new resource) The attribute to use as the hash key (the
   attribute must also be defined as an attribute record
-* `range_key` - (Optional) The attribute to use as the range key (must
+* `range_key` - (Optional, Forces new resource) The attribute to use as the range key (must
   also be defined)
 * `attribute` - Define an attribute, has two properties:
   * `name` - The name of the attribute
   * `type` - One of: S, N, or B for (S)tring, (N)umber or (B)inary data
 * `stream_enabled` - (Optional) Indicates whether Streams are to be enabled (true) or disabled (false).
 * `stream_view_type` - (Optional) When an item in the table is modified, StreamViewType determines what information is written to the table's stream. Valid values are KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES.
-* `local_secondary_index` - (Optional) Describe an LSI on the table;
+* `local_secondary_index` - (Optional, Forces new resource) Describe an LSI on the table;
   these can only be allocated *at creation* so you cannot change this
 definition after you have created the resource.
 * `global_secondary_index` - (Optional) Describe a GSO for the table;
