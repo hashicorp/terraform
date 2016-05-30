@@ -27,6 +27,10 @@ func resourceAwsIotTopicRule() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"sql_version": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"cloudwatch_alarm": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
