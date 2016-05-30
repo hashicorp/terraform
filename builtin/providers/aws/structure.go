@@ -1276,3 +1276,20 @@ func flattenApiGatewayThrottleSettings(settings *apigateway.ThrottleSettings) []
 
 	return result
 }
+
+// Build a slice of EC2 filter options from the filters provided.
+func buildEc2Filters(set *schema.Set) []*ec2.Filter {
+	var filters []*ec2.Filter
+	for _, v := range set.List() {
+		m := v.(map[string]interface{})
+		var filterValues []*string
+		for _, e := range m["values"].([]interface{}) {
+			filterValues = append(filterValues, aws.String(e.(string)))
+		}
+		filters = append(filters, &ec2.Filter{
+			Name:   aws.String(m["name"].(string)),
+			Values: filterValues,
+		})
+	}
+	return filters
+}
