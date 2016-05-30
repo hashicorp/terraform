@@ -20,7 +20,7 @@ func resourceAwsIotPolicyAttachment() *schema.Resource {
 				Required: true,
 			},
 			"policies": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -33,10 +33,10 @@ func resourceAwsIotPolicyAttachment() *schema.Resource {
 func resourceAwsIotPolicyAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iotconn
 
-	for _, p := range d.Get("policies").([]string) {
+	for _, p := range d.Get("policies").(*schema.Set).List() {
 		_, err := conn.AttachPrincipalPolicy(&iot.AttachPrincipalPolicyInput{
 			Principal:  aws.String(d.Get("principal").(string)),
-			PolicyName: aws.String(p),
+			PolicyName: aws.String(p.(string)),
 		})
 
 		if err != nil {
@@ -79,10 +79,10 @@ func resourceAwsIotPolicyAttachmentUpdate(d *schema.ResourceData, meta interface
 func resourceAwsIotPolicyAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iotconn
 
-	for _, p := range d.Get("policies").([]string) {
+	for _, p := range d.Get("policies").(*schema.Set).List() {
 		_, err := conn.DetachPrincipalPolicy(&iot.DetachPrincipalPolicyInput{
 			Principal:  aws.String(d.Get("principal").(string)),
-			PolicyName: aws.String(p),
+			PolicyName: aws.String(p.(string)),
 		})
 
 		if err != nil {
