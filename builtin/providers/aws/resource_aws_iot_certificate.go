@@ -89,7 +89,7 @@ func resourceAwsIotCertificateUpdate(d *schema.ResourceData, meta interface{}) e
 
 		out, err := conn.CreateCertificateFromCsr(&iot.CreateCertificateFromCsrInput{
 			CertificateSigningRequest: aws.String(d.Get("csr").(string)),
-			SetAsActive:               aws.Bool(d.Get("active")),
+			SetAsActive:               aws.Bool(d.Get("active").(bool)),
 		})
 
 		if err != nil {
