@@ -147,26 +147,38 @@ func formatPlanModuleExpand(
 				v = "<computed>"
 			}
 
-			newResource := ""
+			if attrDiff.Sensitive {
+				v = "<sensitive>"
+			}
+
+			updateMsg := ""
 			if attrDiff.RequiresNew && rdiff.Destroy {
-				newResource = opts.Color.Color(" [red](forces new resource)")
+				updateMsg = opts.Color.Color(" [red](forces new resource)")
+			} else if attrDiff.Sensitive && oldValues {
+				updateMsg = opts.Color.Color(" [yellow](attribute changed)")
 			}
 
 			if oldValues {
+				var u string
+				if attrDiff.Sensitive {
+					u = "<sensitive>"
+				} else {
+					u = attrDiff.Old
+				}
 				buf.WriteString(fmt.Sprintf(
 					"    %s:%s %#v => %#v%s\n",
 					attrK,
 					strings.Repeat(" ", keyLen-len(attrK)),
-					attrDiff.Old,
+					u,
 					v,
-					newResource))
+					updateMsg))
 			} else {
 				buf.WriteString(fmt.Sprintf(
 					"    %s:%s %#v%s\n",
 					attrK,
 					strings.Repeat(" ", keyLen-len(attrK)),
 					v,
-					newResource))
+					updateMsg))
 			}
 		}
 
