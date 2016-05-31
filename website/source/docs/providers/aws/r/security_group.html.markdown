@@ -88,7 +88,7 @@ The `ingress` block supports:
 * `protocol` - (Required) The protocol. If you select a protocol of
 "-1", you must specify a "from_port" and "to_port" equal to 0.
 * `security_groups` - (Optional) List of security group Group Names if using
-    EC2-Classic or the default VPC, or Group IDs if using a non-default VPC.
+    EC2-Classic, or Group IDs if using a VPC.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
 * `to_port` - (Required) The end range port.
@@ -100,7 +100,7 @@ The `egress` block supports:
 * `protocol` - (Required) The protocol. If you select a protocol of
 "-1", you must specify a "from_port" and "to_port" equal to 0.
 * `security_groups` - (Optional) List of security group Group Names if using
-    EC2-Classic or the default VPC, or Group IDs if using a non-default VPC.
+    EC2-Classic, or Group IDs if using a VPC.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this egress rule.
 * `to_port` - (Required) The end range port.

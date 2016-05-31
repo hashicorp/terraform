@@ -742,11 +742,14 @@ func TestResourceStateEqual(t *testing.T) {
 		{
 			false,
 			&ResourceState{
-				Tainted: nil,
+				Primary: &InstanceState{
+					ID: "foo",
+				},
 			},
 			&ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "foo"},
+				Primary: &InstanceState{
+					ID:      "foo",
+					Tainted: true,
 				},
 			},
 		},
@@ -754,28 +757,15 @@ func TestResourceStateEqual(t *testing.T) {
 		{
 			true,
 			&ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "foo"},
+				Primary: &InstanceState{
+					ID:      "foo",
+					Tainted: true,
 				},
 			},
 			&ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "foo"},
-				},
-			},
-		},
-
-		{
-			true,
-			&ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "foo"},
-					nil,
-				},
-			},
-			&ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "foo"},
+				Primary: &InstanceState{
+					ID:      "foo",
+					Tainted: true,
 				},
 			},
 		},
@@ -801,28 +791,29 @@ func TestResourceStateTaint(t *testing.T) {
 			&ResourceState{},
 		},
 
-		"primary, no tainted": {
+		"primary, not tainted": {
 			&ResourceState{
 				Primary: &InstanceState{ID: "foo"},
 			},
 			&ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "foo"},
+				Primary: &InstanceState{
+					ID:      "foo",
+					Tainted: true,
 				},
 			},
 		},
 
-		"primary, with tainted": {
+		"primary, tainted": {
 			&ResourceState{
-				Primary: &InstanceState{ID: "foo"},
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "bar"},
+				Primary: &InstanceState{
+					ID:      "foo",
+					Tainted: true,
 				},
 			},
 			&ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "bar"},
-					&InstanceState{ID: "foo"},
+				Primary: &InstanceState{
+					ID:      "foo",
+					Tainted: true,
 				},
 			},
 		},
@@ -841,92 +832,36 @@ func TestResourceStateTaint(t *testing.T) {
 func TestResourceStateUntaint(t *testing.T) {
 	cases := map[string]struct {
 		Input          *ResourceState
-		Index          func() int
 		ExpectedOutput *ResourceState
-		ExpectedErrMsg string
 	}{
-		"no primary, no tainted, err": {
+		"no primary, err": {
 			Input:          &ResourceState{},
 			ExpectedOutput: &ResourceState{},
-			ExpectedErrMsg: "Nothing to untaint",
 		},
 
-		"one tainted, no primary": {
+		"primary, not tainted": {
 			Input: &ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "foo"},
+				Primary: &InstanceState{ID: "foo"},
+			},
+			ExpectedOutput: &ResourceState{
+				Primary: &InstanceState{ID: "foo"},
+			},
+		},
+		"primary, tainted": {
+			Input: &ResourceState{
+				Primary: &InstanceState{
+					ID:      "foo",
+					Tainted: true,
 				},
 			},
 			ExpectedOutput: &ResourceState{
 				Primary: &InstanceState{ID: "foo"},
-				Tainted: []*InstanceState{},
 			},
-		},
-
-		"one tainted, existing primary error": {
-			Input: &ResourceState{
-				Primary: &InstanceState{ID: "foo"},
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "foo"},
-				},
-			},
-			ExpectedErrMsg: "Resource has a primary",
-		},
-
-		"multiple tainted, no index": {
-			Input: &ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "bar"},
-					&InstanceState{ID: "foo"},
-				},
-			},
-			ExpectedErrMsg: "please specify an index",
-		},
-
-		"multiple tainted, with index": {
-			Input: &ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "bar"},
-					&InstanceState{ID: "foo"},
-				},
-			},
-			Index: func() int { return 1 },
-			ExpectedOutput: &ResourceState{
-				Primary: &InstanceState{ID: "foo"},
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "bar"},
-				},
-			},
-		},
-
-		"index out of bounds error": {
-			Input: &ResourceState{
-				Tainted: []*InstanceState{
-					&InstanceState{ID: "bar"},
-					&InstanceState{ID: "foo"},
-				},
-			},
-			Index:          func() int { return 2 },
-			ExpectedErrMsg: "out of range",
 		},
 	}
 
 	for k, tc := range cases {
-		index := -1
-		if tc.Index != nil {
-			index = tc.Index()
-		}
-		err := tc.Input.Untaint(index)
-		if tc.ExpectedErrMsg == "" && err != nil {
-			t.Fatalf("[%s] unexpected err: %s", k, err)
-		}
-		if tc.ExpectedErrMsg != "" {
-			if strings.Contains(err.Error(), tc.ExpectedErrMsg) {
-				continue
-			}
-			t.Fatalf("[%s] expected err: %s to contain: %s",
-				k, err, tc.ExpectedErrMsg)
-		}
+		tc.Input.Untaint()
 		if !reflect.DeepEqual(tc.Input, tc.ExpectedOutput) {
 			t.Fatalf(
 				"Failure: %s\n\nExpected: %#v\n\nGot: %#v",
@@ -1152,7 +1087,7 @@ func TestInstanceState_MergeDiff(t *testing.T) {
 }
 
 func TestInstanceState_MergeDiff_nil(t *testing.T) {
-	var is *InstanceState = nil
+	var is *InstanceState
 
 	diff := &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
@@ -1504,7 +1439,7 @@ func TestUpgradeV0State(t *testing.T) {
 		foo.Primary.Attributes["key"] != "val" {
 		t.Fatalf("bad: %#v", foo)
 	}
-	if len(foo.Tainted) > 0 {
+	if foo.Primary.Tainted {
 		t.Fatalf("bad: %#v", foo)
 	}
 
@@ -1512,15 +1447,8 @@ func TestUpgradeV0State(t *testing.T) {
 	if bar.Type != "test_resource" {
 		t.Fatalf("bad: %#v", bar)
 	}
-	if bar.Primary != nil {
+	if !bar.Primary.Tainted {
 		t.Fatalf("bad: %#v", bar)
-	}
-	if len(bar.Tainted) != 1 {
-		t.Fatalf("bad: %#v", bar)
-	}
-	bt := bar.Tainted[0]
-	if bt.ID != "1234" || bt.Attributes["a"] != "b" {
-		t.Fatalf("bad: %#v", bt)
 	}
 }
 

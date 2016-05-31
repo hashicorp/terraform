@@ -37,7 +37,8 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "Managed by Terraform",
 			},
 
 			"subnet_ids": &schema.Schema{

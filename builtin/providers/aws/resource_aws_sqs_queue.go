@@ -77,8 +77,8 @@ func resourceAwsSqsQueue() *schema.Resource {
 					jsonb := []byte(s)
 					buffer := new(bytes.Buffer)
 					if err := json.Compact(buffer, jsonb); err != nil {
-						log.Printf("[WARN] Error compacting JSON for Policy in SNS Queue")
-						return ""
+						log.Printf("[WARN] Error compacting JSON for Policy in SNS Queue, using raw string: %s", err)
+						return s
 					}
 					return buffer.String()
 				},

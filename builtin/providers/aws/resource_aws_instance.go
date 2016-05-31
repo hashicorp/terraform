@@ -488,7 +488,11 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
 	if len(instance.NetworkInterfaces) > 0 {
-		d.Set("subnet_id", instance.NetworkInterfaces[0].SubnetId)
+		for _, ni := range instance.NetworkInterfaces {
+			if *ni.Attachment.DeviceIndex == 0 {
+				d.Set("subnet_id", ni.SubnetId)
+			}
+		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
 	}

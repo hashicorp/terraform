@@ -99,7 +99,9 @@ The supported built-in functions are:
   * `cidrsubnet(iprange, newbits, netnum)` - Takes an IP address range in
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
     additional subnet number. For example,
-    ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``.
+    ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``;
+    ``cidrsubnet("2607:f298:6051:516c::/64", 8, 2)`` returns
+    ``2607:f298:6051:516c:200::/72``.
 
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
     the given arguments. At least two arguments must be provided.
@@ -150,17 +152,21 @@ The supported built-in functions are:
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
 
-  * `jsonencode(string)` - Returns a JSON-encoded representation of the given
-    string (including double quotes).
+  * `jsonencode(item)` - Returns a JSON-encoded representation of the given
+    item, which may be a string, list of strings, or map from string to string.
+    Note that if the item is a string, the return value includes the double
+    quotes.
 
   * `length(list)` - Returns a number of members in a given list
       or a number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
       * `${length("a,b,c")}` = 5
 
-  * `lookup(map, key)` - Performs a dynamic lookup into a mapping
+  * `lookup(map, key [, default])` - Performs a dynamic lookup into a mapping
       variable. The `map` parameter should be another variable, such
-      as `var.amis`.
+      as `var.amis`. If `key` does not exist in `map`, the interpolation will
+      fail unless you specify a third argument, `default`, which should be a
+      string value to return if no `key` is found in `map.
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 

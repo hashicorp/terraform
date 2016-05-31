@@ -73,6 +73,14 @@ func resourceCloudStackInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"affinity_group_ids": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -197,6 +205,16 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetIpaddress(ipaddress.(string))
 	}
 
+	if ags := d.Get("affinity_group_ids").(*schema.Set); ags.Len() > 0 {
+		var groups []string
+
+		for _, group := range ags.List() {
+			groups = append(groups, group.(string))
+		}
+
+		p.SetAffinitygroupids(groups)
+	}
+
 	// If there is a project supplied, we retrieve and set the project id
 	if err := setProjectid(p, cs, d); err != nil {
 		return err
@@ -281,6 +299,15 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	setValueOrID(d, "project", vm.Project, vm.Projectid)
 	setValueOrID(d, "zone", vm.Zonename, vm.Zoneid)
 
+	groups := &schema.Set{F: schema.HashString}
+	for _, group := range vm.Affinitygroup {
+		groups.Add(group.Id)
+	}
+
+	if groups.Len() > 0 {
+		d.Set("affinity_group_ids", groups)
+	}
+
 	return nil
 }
 
@@ -331,7 +358,7 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Attributes that require reboot to update
-	if d.HasChange("name") || d.HasChange("service_offering") || d.HasChange("keypair") {
+	if d.HasChange("name") || d.HasChange("service_offering") || d.HasChange("affinity_group_ids") || d.HasChange("keypair") {
 		// Before we can actually make these changes, the virtual machine must be stopped
 		_, err := cs.VirtualMachine.StopVirtualMachine(
 			cs.VirtualMachine.NewStopVirtualMachineParams(d.Id()))
@@ -380,6 +407,19 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 					"Error changing the service offering for instance %s: %s", name, err)
 			}
 			d.SetPartial("service_offering")
+		}
+
+		if d.HasChange("affinity_group_ids") {
+			p := cs.AffinityGroup.NewUpdateVMAffinityGroupParams(d.Id())
+			groups := []string{}
+
+			if ags := d.Get("affinity_group_ids").(*schema.Set); ags.Len() > 0 {
+				for _, group := range ags.List() {
+					groups = append(groups, group.(string))
+				}
+			}
+
+			p.SetAffinitygroupids(groups)
 		}
 
 		if d.HasChange("keypair") {

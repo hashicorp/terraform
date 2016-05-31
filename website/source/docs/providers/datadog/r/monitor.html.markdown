@@ -74,6 +74,10 @@ The following arguments are supported:
 * `include_tags` (Optional) A boolean indicating whether notifications from this monitor will automatically insert its
     triggering tags into the title. Defaults to true.
 * `silenced` (Optional) Each scope will be muted until the given POSIX timestamp or forever if the value is 0.
+* `require_full_window` (Optional) A boolean indicating whether this monitor needs a full window of data before it's evaluated.
+    We highly recommend you set this to False for sparse metrics, otherwise some evaluations will be skipped.
+    Default: True for "on average", "at all times" and "in total" aggregation. False otherwise.
+* `locked` (Optional) A boolean indicating whether changes to to this monitor should be restricted to the creator or admins. Defaults to False.
     
     To mute the alert completely:
     

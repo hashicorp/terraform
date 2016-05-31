@@ -67,4 +67,9 @@ func testAccPreCheck(t *testing.T) {
 	if v == "" {
 		t.Fatal("OS_NETWORK_ID must be set for acceptance tests")
 	}
+
+	v = os.Getenv("OS_EXTGW_ID")
+	if v == "" {
+		t.Fatal("OS_EXTGW_ID must be set for acceptance tests")
+	}
 }

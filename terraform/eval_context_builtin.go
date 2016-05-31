@@ -291,6 +291,7 @@ func (ctx *BuiltinEvalContext) Interpolate(
 			Path:     ctx.Path(),
 			Resource: r,
 		}
+
 		vs, err := ctx.Interpolater.Values(scope, cfg.Variables)
 		if err != nil {
 			return nil, err

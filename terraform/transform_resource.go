@@ -337,7 +337,7 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Config:      &resourceConfig,
 					Provider:    &provider,
 					State:       &state,
-					Output:      &diff,
+					OutputDiff:  &diff,
 					OutputState: &state,
 				},
 				&EvalCheckPreventDestroy{
@@ -354,10 +354,6 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Provider:     n.Resource.Provider,
 					Dependencies: n.StateDependencies(),
 					State:        &state,
-				},
-				&EvalDiffTainted{
-					Diff: &diff,
-					Name: n.stateId(),
 				},
 				&EvalWriteDiff{
 					Name: n.stateId(),
@@ -396,7 +392,7 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 	// Apply
 	var diffApply *InstanceDiff
 	var err error
-	var createNew, tainted bool
+	var createNew bool
 	var createBeforeDestroyEnabled bool
 	var wasChangeType DiffChangeType
 	nodes = append(nodes, &EvalOpFilter{
@@ -460,11 +456,12 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 				},
 
 				&EvalDiff{
-					Info:     info,
-					Config:   &resourceConfig,
-					Provider: &provider,
-					State:    &state,
-					Output:   &diffApply,
+					Info:       info,
+					Config:     &resourceConfig,
+					Provider:   &provider,
+					Diff:       &diffApply,
+					State:      &state,
+					OutputDiff: &diffApply,
 				},
 				&EvalIgnoreChanges{
 					Resource:      n.Resource,
@@ -515,20 +512,22 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Resource:       n.Resource,
 					InterpResource: resource,
 					CreateNew:      &createNew,
-					Tainted:        &tainted,
 					Error:          &err,
 				},
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if createBeforeDestroyEnabled {
-							tainted = err != nil
-						}
-
-						failure := tainted || err != nil
-						return createBeforeDestroyEnabled && failure, nil
+						return createBeforeDestroyEnabled && err != nil, nil
 					},
 					Then: &EvalUndeposeState{
-						Name: n.stateId(),
+						Name:  n.stateId(),
+						State: &state,
+					},
+					Else: &EvalWriteState{
+						Name:         n.stateId(),
+						ResourceType: n.Resource.Type,
+						Provider:     n.Resource.Provider,
+						Dependencies: n.StateDependencies(),
+						State:        &state,
 					},
 				},
 
@@ -540,38 +539,6 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Diff: nil,
 				},
 
-				&EvalIf{
-					If: func(ctx EvalContext) (bool, error) {
-						return tainted, nil
-					},
-					Then: &EvalSequence{
-						Nodes: []EvalNode{
-							&EvalWriteStateTainted{
-								Name:         n.stateId(),
-								ResourceType: n.Resource.Type,
-								Provider:     n.Resource.Provider,
-								Dependencies: n.StateDependencies(),
-								State:        &state,
-								Index:        -1,
-							},
-							&EvalIf{
-								If: func(ctx EvalContext) (bool, error) {
-									return !n.Resource.Lifecycle.CreateBeforeDestroy, nil
-								},
-								Then: &EvalClearPrimaryState{
-									Name: n.stateId(),
-								},
-							},
-						},
-					},
-					Else: &EvalWriteState{
-						Name:         n.stateId(),
-						ResourceType: n.Resource.Type,
-						Provider:     n.Resource.Provider,
-						Dependencies: n.StateDependencies(),
-						State:        &state,
-					},
-				},
 				&EvalApplyPost{
 					Info:  info,
 					State: &state,
@@ -595,10 +562,6 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 	nodes := make([]EvalNode, 0, 5)
 
 	// Refresh the resource
-	// TODO: Interpolate and then check if the config has any computed stuff.
-	// If it doesn't, then do the diff/apply/writestate steps here so we
-	// can get this data resource populated early enough for its values to
-	// be visible during plan.
 	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh},
 		Node: &EvalSequence{
@@ -687,24 +650,31 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 					Output: &state,
 				},
 
-				// If we already have a state (created either during refresh
-				// or on a previous apply) then we don't need to do any
-				// more work on it during apply.
+				// We need to re-interpolate the config here because some
+				// of the attributes may have become computed during
+				// earlier planning, due to other resources having
+				// "requires new resource" diffs.
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig.Copy(),
+					Resource: resource,
+					Output:   &config,
+				},
+
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if state != nil {
+						computed := config.ComputedKeys != nil && len(config.ComputedKeys) > 0
+
+						// If the configuration is complete and we
+						// already have a state then we don't need to
+						// do any further work during apply, because we
+						// already populated the state during refresh.
+						if !computed && state != nil {
 							return true, EvalEarlyExitError{}
 						}
 
 						return true, nil
 					},
 					Then: EvalNoop{},
-				},
-
-				&EvalInterpolate{
-					Config:   n.Resource.RawConfig.Copy(),
-					Resource: resource,
-					Output:   &config,
 				},
 
 				&EvalGetProvider{
@@ -810,6 +780,7 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 				&EvalReadDataDiff{
 					Info:     info,
 					Config:   &config,
+					Previous: &diff,
 					Provider: &provider,
 					Output:   &diff,
 				},
@@ -926,13 +897,30 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 				&EvalRequireState{
 					State: &state,
 				},
-				&EvalApply{
-					Info:     info,
-					State:    &state,
-					Diff:     &diffApply,
-					Provider: &provider,
-					Output:   &state,
-					Error:    &err,
+				// Make sure we handle data sources properly.
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if n.Resource.Mode == config.DataResourceMode {
+							return true, nil
+						}
+
+						return false, nil
+					},
+
+					Then: &EvalReadDataApply{
+						Info:     info,
+						Diff:     &diffApply,
+						Provider: &provider,
+						Output:   &state,
+					},
+					Else: &EvalApply{
+						Info:     info,
+						State:    &state,
+						Diff:     &diffApply,
+						Provider: &provider,
+						Output:   &state,
+						Error:    &err,
+					},
 				},
 				&EvalWriteState{
 					Name:         n.stateId(),

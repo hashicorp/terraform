@@ -114,26 +114,31 @@ func resourceComputeInstanceV2() *schema.Resource {
 						"uuid": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"port": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"fixed_ip_v4": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"fixed_ip_v6": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 						"floating_ip": &schema.Schema{
@@ -702,9 +707,9 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 		// old attachments and new attachments
 		oldAttachments, newAttachments := d.GetChange("volume")
-
 		// for each old attachment, detach the volume
 		oldAttachmentSet := oldAttachments.(*schema.Set).List()
+
 		if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
 			return err
 		} else {
@@ -755,7 +760,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 			Pending:    []string{"RESIZE"},
 			Target:     []string{"VERIFY_RESIZE"},
 			Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
-			Timeout:    3 * time.Minute,
+			Timeout:    30 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -776,7 +781,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 			Pending:    []string{"VERIFY_RESIZE"},
 			Target:     []string{"ACTIVE"},
 			Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
-			Timeout:    3 * time.Minute,
+			Timeout:    30 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}

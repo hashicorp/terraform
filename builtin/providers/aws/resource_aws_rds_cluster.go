@@ -103,6 +103,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 				},
 			},
 
+			"skip_final_snapshot": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+
 			"master_username": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -372,12 +378,15 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 		DBClusterIdentifier: aws.String(d.Id()),
 	}
 
-	finalSnapshot := d.Get("final_snapshot_identifier").(string)
-	if finalSnapshot == "" {
-		deleteOpts.SkipFinalSnapshot = aws.Bool(true)
-	} else {
-		deleteOpts.FinalDBSnapshotIdentifier = aws.String(finalSnapshot)
-		deleteOpts.SkipFinalSnapshot = aws.Bool(false)
+	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
+	deleteOpts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot)
+
+	if skipFinalSnapshot == false {
+		if name, present := d.GetOk("final_snapshot_identifier"); present {
+			deleteOpts.FinalDBSnapshotIdentifier = aws.String(name.(string))
+		} else {
+			return fmt.Errorf("RDS Cluster FinalSnapshotIdentifier is required when a final snapshot is required")
+		}
 	}
 
 	log.Printf("[DEBUG] RDS Cluster delete options: %s", deleteOpts)

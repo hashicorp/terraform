@@ -67,7 +67,7 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "disk.#", "2"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.foo", "disk.0.template", template),
+						"vsphere_virtual_machine.foo", "disk.1554349037.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -125,13 +125,17 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.thin", "memory", "4096"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.thin", "disk.#", "2"),
+						"vsphere_virtual_machine.thin", "disk.#", "3"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.thin", "disk.0.template", template),
+						"vsphere_virtual_machine.thin", "disk.3770202010.template", template),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.thin", "disk.0.type", "thin"),
+						"vsphere_virtual_machine.thin", "disk.3770202010.type", "thin"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.thin", "disk.1.type", "eager_zeroed"),
+						"vsphere_virtual_machine.thin", "disk.294918912.type", "eager_zeroed"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.1380467090.controller_type", "scsi"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.294918912.controller_type", "ide"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.thin", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -186,7 +190,7 @@ func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "disk.0.template", template),
+						"vsphere_virtual_machine.bar", "disk.2166312600.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -241,7 +245,7 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.car", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.car", "disk.0.template", template),
+						"vsphere_virtual_machine.car", "disk.2166312600.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.car", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -313,7 +317,7 @@ func TestAccVSphereVirtualMachine_createInExistingFolder(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.folder", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.folder", "disk.0.template", template),
+						"vsphere_virtual_machine.folder", "disk.2166312600.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.folder", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -381,7 +385,7 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.with_folder", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.with_folder", "disk.0.template", template),
+						"vsphere_virtual_machine.with_folder", "disk.2166312600.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.with_folder", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -440,7 +444,7 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.with_cdrom", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.with_cdrom", "disk.0.template", template),
+						"vsphere_virtual_machine.with_cdrom", "disk.2166312600.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.with_cdrom", "cdrom.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -502,9 +506,9 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.with_existing_vmdk", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.with_existing_vmdk", "disk.0.vmdk", vmdk_path),
+						"vsphere_virtual_machine.with_existing_vmdk", "disk.2393891804.vmdk", vmdk_path),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.with_existing_vmdk", "disk.0.bootable", "true"),
+						"vsphere_virtual_machine.with_existing_vmdk", "disk.2393891804.bootable", "true"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.with_existing_vmdk", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -559,7 +563,7 @@ func TestAccVSphereVirtualMachine_updateMemory(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "disk.0.template", template),
+						"vsphere_virtual_machine.bar", "disk.2166312600.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -585,7 +589,7 @@ func TestAccVSphereVirtualMachine_updateMemory(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "disk.0.template", template),
+						"vsphere_virtual_machine.bar", "disk.2166312600.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -640,7 +644,7 @@ func TestAccVSphereVirtualMachine_updateVcpu(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "disk.0.template", template),
+						"vsphere_virtual_machine.bar", "disk.2166312600.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -666,7 +670,7 @@ func TestAccVSphereVirtualMachine_updateVcpu(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "disk.0.template", template),
+						"vsphere_virtual_machine.bar", "disk.2166312600.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -729,7 +733,7 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.ipv4ipv6", "disk.#", "2"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.ipv4ipv6", "disk.0.template", template),
+						"vsphere_virtual_machine.ipv4ipv6", "disk.3582676876.template", template),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.ipv4ipv6", "network_interface.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -921,6 +925,130 @@ func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resou
 	}
 }
 
+func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL")
+	ip_address := os.Getenv("VSPHERE_IPV4_ADDRESS")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_basic,
+					locationOpt,
+					gateway,
+					label,
+					ip_address,
+					gateway,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.foo", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "name", "terraform-test"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "memory_reservation", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "disk.#", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "disk.1554349037.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "network_interface.0.label", label),
+				),
+			},
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_updateAddDisks,
+					locationOpt,
+					gateway,
+					label,
+					ip_address,
+					gateway,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.foo", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "name", "terraform-test"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "memory_reservation", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "disk.#", "4"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "disk.1554349037.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "network_interface.0.label", label),
+				),
+			},
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_updateRemoveDisks,
+					locationOpt,
+					gateway,
+					label,
+					ip_address,
+					gateway,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.foo", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "name", "terraform-test"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "memory_reservation", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "disk.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "disk.1554349037.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "network_interface.0.label", label),
+				),
+			},
+		},
+	})
+}
+
 const testAccCheckVSphereVirtualMachineConfig_basic = `
 resource "vsphere_virtual_machine" "foo" {
     name = "terraform-test"
@@ -942,6 +1070,64 @@ resource "vsphere_virtual_machine" "foo" {
     }
     disk {
         size = 1
+        iops = 500
+		name = "one"
+    }
+}
+`
+const testAccCheckVSphereVirtualMachineConfig_updateAddDisks = `
+resource "vsphere_virtual_machine" "foo" {
+    name = "terraform-test"
+%s
+    vcpu = 2
+    memory = 4096
+    memory_reservation = 4096
+    gateway = "%s"
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = 24
+        ipv4_gateway = "%s"
+    }
+    disk {
+%s
+        template = "%s"
+        iops = 500
+    }
+    disk {
+        size = 1
+        iops = 500
+		name = "one"
+    }
+	disk {
+        size = 1
+        iops = 500
+		name = "two"
+    }
+	disk {
+        size = 1
+        iops = 500
+		name = "three"
+    }
+}
+`
+const testAccCheckVSphereVirtualMachineConfig_updateRemoveDisks = `
+resource "vsphere_virtual_machine" "foo" {
+    name = "terraform-test"
+%s
+    vcpu = 2
+    memory = 4096
+    memory_reservation = 4096
+    gateway = "%s"
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = 24
+        ipv4_gateway = "%s"
+    }
+    disk {
+%s
+        template = "%s"
         iops = 500
     }
 }
@@ -968,6 +1154,14 @@ resource "vsphere_virtual_machine" "thin" {
     disk {
         size = 1
         iops = 500
+		controller_type = "scsi"
+		name = "one"
+    }
+	disk {
+        size = 1
+		controller_type = "ide"
+		type = "eager_zeroed"
+		name = "two"
     }
 }
 `
@@ -1171,6 +1365,7 @@ resource "vsphere_virtual_machine" "ipv4ipv6" {
     disk {
         size = 1
         iops = 500
+		name = "one"
     }
 }
 `
