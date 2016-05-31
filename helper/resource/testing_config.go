@@ -101,10 +101,12 @@ func testStep(
 	}
 
 	// And another after a Refresh.
-	state, err = ctx.Refresh()
-	if err != nil {
-		return state, fmt.Errorf(
-			"Error on follow-up refresh: %s", err)
+	if !step.Destroy || (step.Destroy && !step.PreventPostDestroyRefresh) {
+		state, err = ctx.Refresh()
+		if err != nil {
+			return state, fmt.Errorf(
+				"Error on follow-up refresh: %s", err)
+		}
 	}
 	if p, err = ctx.Plan(); err != nil {
 		return state, fmt.Errorf("Error on second follow-up plan: %s", err)

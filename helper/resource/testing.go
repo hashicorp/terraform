@@ -56,6 +56,10 @@ type TestCase struct {
 	Providers         map[string]terraform.ResourceProvider
 	ProviderFactories map[string]terraform.ResourceProviderFactory
 
+	// PreventPostDestroyRefresh can be set to true for cases where data sources
+	// are tested alongside real resources
+	PreventPostDestroyRefresh bool
+
 	// CheckDestroy is called after the resource is finally destroyed
 	// to allow the tester to test that the resource is truly gone.
 	CheckDestroy TestCheckFunc
@@ -130,6 +134,10 @@ type TestStep struct {
 	// ExpectNonEmptyPlan can be set to true for specific types of tests that are
 	// looking to verify that a diff occurs
 	ExpectNonEmptyPlan bool
+
+	// PreventPostDestroyRefresh can be set to true for cases where data sources
+	// are tested alongside real resources
+	PreventPostDestroyRefresh bool
 
 	//---------------------------------------------------------------
 	// ImportState testing
@@ -283,10 +291,12 @@ func Test(t TestT, c TestCase) {
 
 	// If we have a state, then run the destroy
 	if state != nil {
+		lastStep := c.Steps[len(c.Steps)-1]
 		destroyStep := TestStep{
-			Config:  c.Steps[len(c.Steps)-1].Config,
-			Check:   c.CheckDestroy,
-			Destroy: true,
+			Config:                    lastStep.Config,
+			Check:                     c.CheckDestroy,
+			Destroy:                   true,
+			PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
 		}
 
 		log.Printf("[WARN] Test: Executing destroy step")
