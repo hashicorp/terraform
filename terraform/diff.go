@@ -247,22 +247,30 @@ func (d *ModuleDiff) String() string {
 			attrDiff := rdiff.Attributes[attrK]
 
 			v := attrDiff.New
+			u := attrDiff.Old
 			if attrDiff.NewComputed {
 				v = "<computed>"
 			}
 
-			newResource := ""
+			if attrDiff.Sensitive {
+				u = "<sensitive>"
+				v = "<sensitive>"
+			}
+
+			updateMsg := ""
 			if attrDiff.RequiresNew {
-				newResource = " (forces new resource)"
+				updateMsg = " (forces new resource)"
+			} else if attrDiff.Sensitive {
+				updateMsg = " (attribute changed)"
 			}
 
 			buf.WriteString(fmt.Sprintf(
 				"  %s:%s %#v => %#v%s\n",
 				attrK,
 				strings.Repeat(" ", keyLen-len(attrK)),
-				attrDiff.Old,
+				u,
 				v,
-				newResource))
+				updateMsg))
 		}
 	}
 
@@ -284,6 +292,7 @@ type ResourceAttrDiff struct {
 	NewRemoved  bool        // True if this attribute is being removed
 	NewExtra    interface{} // Extra information for the provider
 	RequiresNew bool        // True if change requires new resource
+	Sensitive   bool        // True if the data should not be displayed in UI output
 	Type        DiffAttrType
 }
 

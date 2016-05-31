@@ -147,6 +147,12 @@ type Schema struct {
 	//
 	// ValidateFunc currently only works for primitive types.
 	ValidateFunc SchemaValidateFunc
+
+	// Sensitive ensures that the attribute's value does not get displayed in
+	// logs or regular output. It should be used for passwords or other
+	// secret fields. Futrure versions of Terraform may encrypt these
+	// values.
+	Sensitive bool
 }
 
 // SchemaDefaultFunc is a function called to return a default value for
@@ -279,6 +285,11 @@ func (s *Schema) finalizeDiff(
 	if s.ForceNew {
 		// Force new, set it to true in the diff
 		d.RequiresNew = true
+	}
+
+	if s.Sensitive {
+		// Set the Sensitive flag so output is hidden in the UI
+		d.Sensitive = true
 	}
 
 	return d
