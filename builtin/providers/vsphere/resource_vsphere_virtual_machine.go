@@ -896,7 +896,16 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 			virtualDevice := vd.GetVirtualDevice()
 
-			diskFullPath := virtualDevice.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName
+			backingInfo := virtualDevice.Backing
+			var diskFullPath string
+			var diskUuid string
+			if v, ok := backingInfo.(*types.VirtualDiskFlatVer2BackingInfo); ok {
+				diskFullPath = v.FileName
+				diskUuid = v.Uuid
+			} else if v, ok := backingInfo.(*types.VirtualDiskSparseVer2BackingInfo); ok {
+				diskFullPath = v.FileName
+				diskUuid = v.Uuid
+			}
 			log.Printf("[DEBUG] resourceVSphereVirtualMachineRead - Analyzing disk: %v", diskFullPath)
 
 			// Separate datastore and path
@@ -932,7 +941,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 						if diskName == prevDisk["name"] || diskPath == prevDisk["vmdk"] {
 
 							prevDisk["key"] = virtualDevice.Key
-							prevDisk["uuid"] = virtualDevice.Backing.(*types.VirtualDiskFlatVer2BackingInfo).Uuid
+							prevDisk["uuid"] = diskUuid
 
 							disks = append(disks, prevDisk)
 							break
@@ -1093,10 +1102,36 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	}
 	log.Printf("[DEBUG] vm devices: %#v\n", devices)
 
-	controller, err := devices.FindDiskController(controller_type)
+	var controller types.BaseVirtualController
+	controller, err = devices.FindDiskController(controller_type)
 	if err != nil {
-		return err
+		log.Printf("[DEBUG] Couldn't find a %v controller.  Creating one..", controller_type)
+
+		var c types.BaseVirtualDevice
+		switch controller_type {
+		case "scsi":
+			// Create scsi controller
+			c, err = devices.CreateSCSIController("scsi")
+			if err != nil {
+				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
+			}
+		case "ide":
+			// Create ide controller
+			c, err = devices.CreateIDEController()
+			if err != nil {
+				return fmt.Errorf("[ERROR] Failed creating IDE controller: %v", err)
+			}
+		default:
+			return fmt.Errorf("[ERROR] Unsupported disk controller provided: %v", controller_type)
+		}
+
+		vm.AddDevice(context.TODO(), c)
+		controller, err = devices.FindDiskController(controller_type)
+		if err != nil {
+			return fmt.Errorf("[ERROR] Could not find the controller we just created")
+		}
 	}
+
 	log.Printf("[DEBUG] disk controller: %#v\n", controller)
 
 	// TODO Check if diskPath & datastore exist
@@ -1150,9 +1185,27 @@ func addCdrom(vm *object.VirtualMachine, datastore, path string) error {
 	}
 	log.Printf("[DEBUG] vm devices: %#v", devices)
 
-	controller, err := devices.FindIDEController("")
+	var controller *types.VirtualIDEController
+	controller, err = devices.FindIDEController("")
 	if err != nil {
-		return err
+		log.Printf("[DEBUG] Couldn't find a ide controller.  Creating one..")
+
+		var c types.BaseVirtualDevice
+		c, err := devices.CreateIDEController()
+		if err != nil {
+			return fmt.Errorf("[ERROR] Failed creating IDE controller: %v", err)
+		}
+
+		if v, ok := c.(*types.VirtualIDEController); ok {
+			controller = v
+		} else {
+			return fmt.Errorf("[ERROR] Controller type could not be asserted")
+		}
+		vm.AddDevice(context.TODO(), c)
+		controller, err = devices.FindIDEController("")
+		if err != nil {
+			return fmt.Errorf("[ERROR] Could not find the controller we just created")
+		}
 	}
 	log.Printf("[DEBUG] ide controller: %#v", controller)
 
