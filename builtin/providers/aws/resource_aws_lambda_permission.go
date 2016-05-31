@@ -189,7 +189,28 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 		statement, err = findLambdaPolicyStatementById(&policy, d.Id())
 		return resource.RetryableError(err)
 	})
+
 	if err != nil {
+		switch e := err.(type) {
+		case *resource.TimeoutError:
+			switch underlying := e.LastError.(type) {
+			case awserr.Error:
+				if underlying.Code() == "ResourceNotFoundException" {
+					log.Printf("[WARN] No Lambda Permission Policy found: %v", input)
+					d.SetId("")
+					return nil
+				}
+			case *resource.NotFoundError:
+				log.Printf("[WARN] found Lambda Permission Policy for %v but statement '%s' is absent", input, d.Id())
+				d.SetId("")
+				return nil
+			}
+		case (*resource.NotFoundError):
+			log.Printf("[WARN] No Lambda Permission Policy found: %v", input)
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
@@ -303,9 +324,7 @@ func resourceAwsLambdaPermissionDelete(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func findLambdaPolicyStatementById(policy *LambdaPolicy, id string) (
-	*LambdaPolicyStatement, error) {
-
+func findLambdaPolicyStatementById(policy *LambdaPolicy, id string) (*LambdaPolicyStatement, error) {
 	log.Printf("[DEBUG] Received %d statements in Lambda policy: %s", len(policy.Statement), policy.Statement)
 	for _, statement := range policy.Statement {
 		if statement.Sid == id {
@@ -313,7 +332,11 @@ func findLambdaPolicyStatementById(policy *LambdaPolicy, id string) (
 		}
 	}
 
-	return nil, fmt.Errorf("Failed to find statement %q in Lambda policy:\n%s", id, policy.Statement)
+	return nil, &resource.NotFoundError{
+		LastRequest:  id,
+		LastResponse: policy,
+		Message:      fmt.Sprintf("Failed to find statement %q in Lambda policy:\n%s", id, policy.Statement),
+	}
 }
 
 func getQualifierFromLambdaAliasOrVersionArn(arn string) (string, error) {
