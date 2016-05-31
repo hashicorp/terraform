@@ -66,6 +66,7 @@ IMPROVEMENTS:
  * provider/vsphere: Add support for `controller_type` to `vsphere_virtual_machine` [GH-6785]
  * provider/vsphere: Fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  * provider/vsphere: Virtual machine update disk [GH-6619]
+ * provider/vsphere: `vsphere_virtual_machine` adding controller creation logic [GH-6853]
  
 BUG FIXES:
 
