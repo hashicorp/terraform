@@ -15,7 +15,7 @@ func resourceAwsRoute53RecordMigrateState(
 		log.Println("[INFO] Found AWS Route53 Record State v0; migrating to v1")
 		return migrateRoute53RecordStateV0toV1(is)
 	case 1:
-		log.Println("[INFO] Found AWS Route53 Record State v0; migrating to v1")
+		log.Println("[INFO] Found AWS Route53 Record State v1; migrating to v2")
 		return migrateRoute53RecordStateV1toV2(is)
 	default:
 		return is, fmt.Errorf("Unexpected schema version: %d", v)

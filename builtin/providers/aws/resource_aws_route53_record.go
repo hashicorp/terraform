@@ -73,7 +73,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 			"weight": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Removed:  "Now implemented as weighted_routing_policy; see docs",
+				Removed:  "Now implemented as weighted_routing_policy; Please see https://www.terraform.io/docs/providers/aws/r/route53_record.html",
 			},
 
 			"set_identifier": &schema.Schema{
@@ -151,7 +151,6 @@ func resourceAwsRoute53Record() *schema.Resource {
 						"region": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							Optional: false,
 						},
 					},
 				},
@@ -382,9 +381,8 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		v := []map[string]interface{}{{
 			"type": aws.StringValue(record.Failover),
 		}}
-		d.Set("failover_routing_policy", v)
-		if err != nil {
-			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", d.Id(), err)
+		if err := d.Set("failover_routing_policy", v); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting failover records for: %s, error: %#v", d.Id(), err)
 		}
 	}
 
@@ -394,9 +392,8 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 			"country":     aws.StringValue(record.GeoLocation.CountryCode),
 			"subdivision": aws.StringValue(record.GeoLocation.SubdivisionCode),
 		}}
-		d.Set("geolocation_routing_policy", v)
-		if err != nil {
-			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", d.Id(), err)
+		if err := d.Set("geolocation_routing_policy", v); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting gelocation records for: %s, error: %#v", d.Id(), err)
 		}
 	}
 
@@ -404,9 +401,8 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		v := []map[string]interface{}{{
 			"region": aws.StringValue(record.Region),
 		}}
-		d.Set("latency_routing_policy", v)
-		if err != nil {
-			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", d.Id(), err)
+		if err := d.Set("latency_routing_policy", v); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting latency records for: %s, error: %#v", d.Id(), err)
 		}
 	}
 
@@ -414,9 +410,8 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		v := []map[string]interface{}{{
 			"weight": aws.Int64Value((record.Weight)),
 		}}
-		d.Set("weighted_routing_policy", v)
-		if err != nil {
-			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", d.Id(), err)
+		if err := d.Set("weighted_routing_policy", v); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting weighted records for: %s, error: %#v", d.Id(), err)
 		}
 	}
 
