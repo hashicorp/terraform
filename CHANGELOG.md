@@ -68,6 +68,7 @@ IMPROVEMENTS:
  * provider/vsphere: Fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  * provider/vsphere: Virtual machine update disk [GH-6619]
  * provider/vsphere: `vsphere_virtual_machine` adding controller creation logic [GH-6853]
+ * provider/vsphere: `vsphere_virtual_machine` added support for `mac address` on `network_interface` [GH-6966]
  
 BUG FIXES:
 
