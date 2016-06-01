@@ -56,6 +56,7 @@ Add header actions support the following:
 
 * `header_name` - (Required) The name of the header to add
 * `header_value` - (Required) The value of the header to add
+* `position` - (Required) The position of the action in the receipt rule
 
 Bounce actions support the following:
 
@@ -64,12 +65,14 @@ Bounce actions support the following:
 * `smtp_reply_code` - (Required) The RFC 5321 SMTP reply code
 * `status_code` - (Optional) The RFC 3463 SMTP enhanced status code
 * `topic_arn` - (Optional) The ARN of an SNS topic to notify
+* `position` - (Required) The position of the action in the receipt rule
 
 Lambda actions support the following:
 
 * `function_arn` - (Required) The ARN of the Lambda function to invoke
 * `invocation_type` - (Optional) Event or RequestResponse
 * `topic_arn` - (Optional) The ARN of an SNS topic to notify
+* `position` - (Required) The position of the action in the receipt rule
 
 S3 actions support the following:
 
@@ -77,17 +80,21 @@ S3 actions support the following:
 * `kms_key_arn` - (Optional) The ARN of the KMS key
 * `object_key_prefix` - (Optional) The key prefix of the S3 bucket
 * `topic_arn` - (Optional) The ARN of an SNS topic to notify
+* `position` - (Required) The position of the action in the receipt rule
 
 SNS actions support the following:
 
 * `topic_arn` - (Required) The ARN of an SNS topic to notify
+* `position` - (Required) The position of the action in the receipt rule
 
 Stop actions support the following:
 
 * `scope` - (Required) The scope to apply
 * `topic_arn` - (Optional) The ARN of an SNS topic to notify
+* `position` - (Required) The position of the action in the receipt rule
 
 WorkMail actions support the following:
 
 * `organization_arn` - (Required) The ARN of the WorkMail organization
 * `topic_arn` - (Optional) The ARN of an SNS topic to notify
+* `position` - (Required) The position of the action in the receipt rule
