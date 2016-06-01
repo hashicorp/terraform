@@ -16,9 +16,10 @@ The provider needs to be configured with the proper credentials before it can be
 
 Use the navigation to the left to read about the available resources.
 
-~> **NOTE:** The VMware vSphere Provider currently represents _initial support_
-and therefore may undergo significant changes as the community improves it. This
-provider at this time only supports IPv4 addresses on virtual machines.
+~> **NOTE:** The VMware vSphere Provider currently represents _alpha support_
+and therefore may undergo changes as the community improves it.  As always we strive
+to not introduce breaking changes.  This provider is maintained by the community,
+and therefore all contributions are welcome!
 
 ## Example Usage
 
@@ -84,54 +85,20 @@ The following arguments are used to configure the VMware vSphere Provider:
   value is `false`. Can also be specified with the `VSPHERE_ALLOW_UNVERIFIED_SSL`
   environment variable.
 
-## Required Privileges
-
-In order to use Terraform provider as non priviledged user, a Role within
-vCenter must be assigned the following privileges:
-
-* Datastore
-   - Allocate space
-   - Browse datastore
-   - Low level file operations
-   - Remove file
-   - Update virtual machine files
-   - Update virtual machine metadata
-
-* Folder (all)
-   - Create folder
-   - Delete folder
-   - Move folder
-   - Rename folder
-
-* Network
-   - Assign network
-
-* Resource
-   - Apply recommendation
-   - Assign virtual machine to resource pool
-
-* Virtual Machine
-   - Configuration (all) - for now
-   - Guest Operations (all) - for now
-   - Interaction (all)
-   - Inventory (all)
-   - Provisioning (all)
-
-These settings were tested with [vSphere
-6.0](https://pubs.vmware.com/vsphere-60/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html)
-and [vSphere
-5.5](https://pubs.vmware.com/vsphere-55/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html).
-For additional information on roles and permissions, please refer to official
-VMware documentation.
 
 ## Virtual Machine Customization
 
+### VMware Tools
+
+This module utilizes VMware [tools][vtools] for multiple different vm level operations.  Open VM Tools for
+Linux is recommended and VMware supported Windows VMware tools is recommended.
+
+### Guest Customizations
+
 Guest Operating Systems can be configured using
-[customizations](https://pubs.vmware.com/vsphere-50/index.jsp#com.vmware.vsphere.vm_admin.doc_50/GUID-80F3F5B5-F795-45F1-B0FA-3709978113D5.html),
-in order to set things properties such as domain and hostname. This mechanism
+[customizations][custom], in order to set things properties such as domain and hostname. This mechanism
 is not compatible with all operating systems, however. A list of compatible
-operating systems can be found
-[here](http://partnerweb.vmware.com/programs/guestOS/guest-os-customization-matrix.pdf)
+operating systems can be found [here][matrix].
 
 If customization is attempted on an operating system which is not supported, Terraform will
 create the virtual machine, but fail with the following error message:
@@ -146,43 +113,6 @@ versions. Refer to vCenter documentation for supported configurations.  ```
 In order to skip the customization step for unsupported operating systems, use
 the `skip_customization` argument on the virtual machine resource.
 
-## Acceptance Tests
-
-The VMware vSphere provider's acceptance tests require the above provider
-configuration fields to be set using the documented environment variables.
-
-In addition, the following environment variables are used in tests, and must be
-set to valid values for your VMware vSphere environment:
-
- * VSPHERE\_IPV4\_GATEWAY
- * VSPHERE\_IPV4\_ADDRESS
- * VSPHERE\_IPV6\_GATEWAY
- * VSPHERE\_IPV6\_ADDRESS
- * VSPHERE\_NETWORK\_LABEL
- * VSPHERE\_NETWORK\_LABEL\_DHCP
- * VSPHERE\_TEMPLATE
-
-The following environment variables depend on your vSphere environment:
-
- * VSPHERE\_DATACENTER
- * VSPHERE\_CLUSTER
- * VSPHERE\_RESOURCE\_POOL
- * VSPHERE\_DATASTORE
-
-The following additional environment variables are needed for running the
-"Mount ISO as CDROM media" acceptance tests.
-
- * VSPHERE\_CDROM\_DATASTORE
- * VSPHERE\_CDROM\_PATH
-
-
-These are used to set and verify attributes on the `vsphere_virtual_machine`
-resource in tests.
-
-Once all these variables are in place, the tests can be run like this:
-
-```
-make testacc TEST=./builtin/providers/vsphere
-```
-
-
+[vtools]:https://kb.vmware.com/selfservice/search.do?cmd=displayKC&docType=kc&docTypeID=DT_KB_1_1&externalId=2004754
+[custom]:https://pubs.vmware.com/vsphere-50/index.jsp#com.vmware.vsphere.vm_admin.doc_50/GUID-80F3F5B5-F795-45F1-B0FA-3709978113D5.html
+[matrix]:http://partnerweb.vmware.com/programs/guestOS/guest-os-customization-matrix.pdf

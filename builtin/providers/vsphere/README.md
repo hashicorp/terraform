@@ -8,7 +8,7 @@ Thank-you [@tkak](https://github.com/tkak) and [Rakuten, Inc.](https://github.co
 
 Both [README.md](../../../README.md) and [BUILDING.md](../../../BUILDING.md) should be read first!
 
-## Base API Dependency ~ [govmomi](https://github.com/vmware/govmomi) 
+## Base API Dependency ~ [govmomi](https://github.com/vmware/govmomi)
 
 This provider utilizes [govmomi](https://github.com/vmware/govmomi) Go Library for communicating to  VMware vSphere APIs (ESXi and/or vCenter).
 Because of the dependency this provider is compatible with VMware systems that are supported by govmomi. Much thanks to the dev team that maintains govmomi, and
@@ -16,7 +16,7 @@ even more thanks to their guidance with the development of this provider.  We ha
 
 #### vSphere CLI ~ [govc](https://github.com/vmware/govmomi/blob/master/govc/README.md)
 
-One of the great tools that govmomi contains is [govc](https://github.com/vmware/govmomi/blob/master/govc/README.md). It is a command line tool for using the govmomi API.  Not only is it a tool to use, but also it's 
+One of the great tools that govmomi contains is [govc](https://github.com/vmware/govmomi/blob/master/govc/README.md). It is a command line tool for using the govmomi API.  Not only is it a tool to use, but also it's
 [source base](https://github.com/vmware/govmomi/blob/master/govc/) is a great resource of examples on how to exercise the API.
 
 ## Required privileges for running Terraform as non-administrative user
@@ -30,13 +30,13 @@ Click on "+" icon (Create role action), give it appropraite name and select foll
    - Remove file
    - Update virtual machine files
    - Update virtual machine metadata
- 
+
  * Folder (all)
    - Create folder
    - Delete folder
    - Move folder
    - Rename folder
- 
+
  * Network
    - Assign network
 
@@ -54,4 +54,59 @@ Click on "+" icon (Create role action), give it appropraite name and select foll
 These settings were tested with [vSphere 6.0](https://pubs.vmware.com/vsphere-60/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html) and [vSphere 5.5](https://pubs.vmware.com/vsphere-55/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html). For additional information on roles and permissions, please refer to official VMware documentation.
 
 This section is a work in progress and additional contributions are more than welcome.
- 
+
+# Acceptance Tests
+
+The VMware vSphere provider's acceptance tests require the above provider
+configuration fields to be set using the documented environment variables.
+
+## Environment Variables
+
+In addition, the following environment variables are used in tests, and must be
+set to valid values for your VMware vSphere environment:
+
+ * VSPHERE\_IPV4\_GATEWAY
+ * VSPHERE\_IPV4\_ADDRESS
+ * VSPHERE\_IPV6\_GATEWAY
+ * VSPHERE\_IPV6\_ADDRESS
+ * VSPHERE\_NETWORK\_LABEL
+ * VSPHERE\_NETWORK\_LABEL\_DHCP
+ * VSPHERE\_TEMPLATE
+
+The following environment variables depend on your vSphere environment:
+
+ * VSPHERE\_DATACENTER
+ * VSPHERE\_CLUSTER
+ * VSPHERE\_RESOURCE\_POOL
+ * VSPHERE\_DATASTORE
+
+The following additional environment variables are needed for running the
+"Mount ISO as CDROM media" acceptance tests.
+
+ * VSPHERE\_CDROM\_DATASTORE
+ * VSPHERE\_CDROM\_PATH
+
+ The following environment variable is needed from running the "Create With Existing VMDK"
+ acceptance tests
+
+ * VSPHERE\_VMDK\_PATH
+
+ Refer to the TF documentation in regards to logging but at the current time
+
+ * TF\_LOG=DEBUG
+
+ As always refer to the acceptance test source code for the latest variables.
+
+## Running tests
+
+Once all these variables are in place, the tests can be run like this:
+
+```
+make testacc TEST=./builtin/providers/vsphere
+```
+
+In order to run a single test `TESTARGS` Envrionment variable can be set:
+
+```
+export TESTARGS="-run TestAccVSphereVirtualMachine_ipv4Andipv6"
+```
