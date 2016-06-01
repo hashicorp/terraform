@@ -54,7 +54,7 @@ func Provider() terraform.ResourceProvider {
 			//"azurerm_network_security_rule":  resourceArmNetworkSecurityRule(),
 			"azurerm_public_ip": resourceArmPublicIp(),
 			//"azurerm_route":                  resourceArmRoute(),
-			//"azurerm_route_table":            resourceArmRouteTable(),
+			"azurerm_route_table":       resourceArmRouteTable(),
 			"azurerm_storage_account":   resourceArmStorageAccount(),
 			"azurerm_storage_blob":      resourceArmStorageBlob(),
 			"azurerm_storage_container": resourceArmStorageContainer(),
