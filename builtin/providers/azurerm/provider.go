@@ -49,7 +49,7 @@ func Provider() terraform.ResourceProvider {
 			//"azurerm_cdn_endpoint":           resourceArmCdnEndpoint(),
 			//"azurerm_cdn_profile":            resourceArmCdnProfile(),
 			//"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
-			//"azurerm_network_interface":      resourceArmNetworkInterface(),
+			"azurerm_network_interface": resourceArmNetworkInterface(),
 			//"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
 			//"azurerm_network_security_rule":  resourceArmNetworkSecurityRule(),
 			"azurerm_public_ip":         resourceArmPublicIp(),
