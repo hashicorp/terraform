@@ -47,6 +47,7 @@ IMPROVEMENTS:
  * provider/aws: Set default description to "Managed by Terraform" [GH-6104]
  * provider/aws: Support for Redshift Cluster encryption using a KMS key [GH-6712]
  * provider/aws: Support tags for AWS redshift cluster [GH-5356]
+ * provider/aws: Add `iam_arn` to aws_cloudfront_origin_access_identity [GH-6955]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
