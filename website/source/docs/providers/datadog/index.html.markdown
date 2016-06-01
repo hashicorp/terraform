@@ -27,6 +27,11 @@ provider "datadog" {
 resource "datadog_monitor" "default" {
     ...
 }
+
+# Create a new timeboard
+resource "datadog_timeboard" "default" {
+    ...
+}
 ```
 
 ## Argument Reference
