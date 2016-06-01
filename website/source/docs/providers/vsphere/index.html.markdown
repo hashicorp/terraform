@@ -161,6 +161,7 @@ set to valid values for your VMware vSphere environment:
  * VSPHERE\_NETWORK\_LABEL
  * VSPHERE\_NETWORK\_LABEL\_DHCP
  * VSPHERE\_TEMPLATE
+ * VSPHERE\_MAC\_ADDRESS
 
 The following environment variables depend on your vSphere environment:
 
