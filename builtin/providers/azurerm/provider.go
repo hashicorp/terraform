@@ -62,7 +62,7 @@ func Provider() terraform.ResourceProvider {
 			//"azurerm_subnet":                 resourceArmSubnet(),
 			//"azurerm_template_deployment":    resourceArmTemplateDeployment(),
 			//"azurerm_virtual_machine":        resourceArmVirtualMachine(),
-			//"azurerm_virtual_network":        resourceArmVirtualNetwork(),
+			"azurerm_virtual_network": resourceArmVirtualNetwork(),
 
 			// These resources use the Riviera SDK
 			"azurerm_dns_a_record":      resourceArmDnsARecord(),
