@@ -201,6 +201,65 @@ func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 	})
 }
 
+func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
+	macAddress := os.Getenv("VSPHERE_NETWORK_MAC_ADDRESS")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_mac_address,
+					locationOpt,
+					label,
+					macAddress,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.mac_address", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.mac_address", "name", "terraform-mac-address"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.mac_address", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.mac_address", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.mac_address", "disk.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.mac_address", "disk.2166312600.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.mac_address", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.mac_address", "network_interface.0.label", label),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.mac_address", "network_interface.0.mac_address", macAddress),
+				),
+			},
+		},
+	})
+}
+
 func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 	var vm virtualMachine
 	var locationOpt string
@@ -1173,6 +1232,23 @@ resource "vsphere_virtual_machine" "bar" {
     memory = 4096
     network_interface {
         label = "%s"
+    }
+    disk {
+%s
+        template = "%s"
+    }
+}
+`
+
+const testAccCheckVSphereVirtualMachineConfig_mac_address = `
+resource "vsphere_virtual_machine" "mac_address" {
+    name = "terraform-mac-address"
+%s
+    vcpu = 2
+    memory = 4096
+    network_interface {
+        label = "%s"
+        mac_address = "%s"
     }
     disk {
 %s
