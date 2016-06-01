@@ -36,6 +36,7 @@ type networkInterface struct {
 	ipv6PrefixLength int
 	ipv6Gateway      string
 	adapterType      string // TODO: Make "adapter_type" argument
+	macAddress       string
 }
 
 type hardDisk struct {
@@ -316,6 +317,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
+						},
+
+						"mac_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
 						},
 					},
 				},
@@ -719,6 +726,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			if v, ok := network["ipv6_gateway"].(string); ok && v != "" {
 				networks[i].ipv6Gateway = v
 			}
+			if v, ok := network["mac_address"].(string); ok && v != "" {
+				networks[i].macAddress = v
+			}
 		}
 		vm.networkInterfaces = networks
 		log.Printf("[DEBUG] network_interface init: %v", networks)
@@ -963,6 +973,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			log.Printf("[DEBUG] v.Network - %#v", v.Network)
 			networkInterface := make(map[string]interface{})
 			networkInterface["label"] = v.Network
+			networkInterface["mac_address"] = v.MacAddress
 			for _, ip := range v.IpConfig.IpAddress {
 				p := net.ParseIP(ip.IpAddress)
 				if p.To4() != nil {
@@ -1221,7 +1232,7 @@ func addCdrom(vm *object.VirtualMachine, datastore, path string) error {
 }
 
 // buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
-func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.VirtualDeviceConfigSpec, error) {
+func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
 	network, err := f.Network(context.TODO(), "*"+label)
 	if err != nil {
 		return nil, err
@@ -1230,6 +1241,13 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 	backing, err := network.EthernetCardBackingInfo(context.TODO())
 	if err != nil {
 		return nil, err
+	}
+
+	var address_type string
+	if macAddress == "" {
+		address_type = string(types.VirtualEthernetCardMacTypeGenerated)
+	} else {
+		address_type = string(types.VirtualEthernetCardMacTypeManual)
 	}
 
 	if adapterType == "vmxnet3" {
@@ -1242,7 +1260,8 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 							Key:     -1,
 							Backing: backing,
 						},
-						AddressType: string(types.VirtualEthernetCardMacTypeGenerated),
+						AddressType: address_type,
+						MacAddress:  macAddress,
 					},
 				},
 			},
@@ -1256,7 +1275,8 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 						Key:     -1,
 						Backing: backing,
 					},
-					AddressType: string(types.VirtualEthernetCardMacTypeGenerated),
+					AddressType: address_type,
+					MacAddress:  macAddress,
 				},
 			},
 		}, nil
@@ -1575,10 +1595,11 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		} else {
 			networkDeviceType = "vmxnet3"
 		}
-		nd, err := buildNetworkDevice(finder, network.label, networkDeviceType)
+		nd, err := buildNetworkDevice(finder, network.label, networkDeviceType, network.macAddress)
 		if err != nil {
 			return err
 		}
+		log.Printf("[DEBUG] network device: %+v", nd.Device)
 		networkDevices = append(networkDevices, nd)
 
 		if vm.template != "" {
@@ -1632,8 +1653,8 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			networkConfigs = append(networkConfigs, config)
 		}
 	}
-	log.Printf("[DEBUG] network devices: %v", networkDevices)
-	log.Printf("[DEBUG] network configs: %v", networkConfigs)
+	log.Printf("[DEBUG] network devices: %#v", networkDevices)
+	log.Printf("[DEBUG] network configs: %#v", networkConfigs)
 
 	var task *object.Task
 	if vm.template == "" {
