@@ -205,8 +205,8 @@ func testAccCheckAwsSESReceiptRuleActions(n string) resource.TestCheckFunc {
 			return fmt.Errorf("Header Name (%s) was not equal to Another-Header", *addHeaderAction.HeaderName)
 		}
 
-		if *addHeaderAction.HeaderValue != "Second" {
-			return fmt.Errorf("Header Value (%s) was not equal to Second", *addHeaderAction.HeaderValue)
+		if *addHeaderAction.HeaderValue != "First" {
+			return fmt.Errorf("Header Value (%s) was not equal to First", *addHeaderAction.HeaderValue)
 		}
 
 		secondAddHeaderAction := actions[1].AddHeaderAction
@@ -275,15 +275,18 @@ resource "aws_ses_receipt_rule" "actions" {
     add_header_action {
 	header_name = "Added-By"
 	header_value = "Terraform"
+	position = 1
     }
 
     add_header_action {
 	header_name = "Another-Header"
-	header_value = "Second"
+	header_value = "First"
+	position = 0
     }
 
     stop_action {
 	scope = "RuleSet"
+	position = 2
     }
 }
 `
