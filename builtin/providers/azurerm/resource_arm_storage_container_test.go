@@ -24,7 +24,7 @@ func TestAccAzureRMStorageContainer_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageContainerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageContainerExists("azurerm_storage_container.test", &c),
@@ -46,7 +46,7 @@ func TestAccAzureRMStorageContainer_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageContainerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageContainerExists("azurerm_storage_container.test", &c),

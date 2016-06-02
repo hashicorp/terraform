@@ -18,7 +18,7 @@ func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
@@ -37,7 +37,7 @@ func TestAccAzureRMVirtualMachine_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
@@ -50,7 +50,7 @@ func TestAccAzureRMVirtualMachine_tags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
@@ -75,7 +75,7 @@ func TestAccAzureRMVirtualMachine_updateMachineSize(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
@@ -83,7 +83,7 @@ func TestAccAzureRMVirtualMachine_updateMachineSize(t *testing.T) {
 						"azurerm_virtual_machine.test", "vm_size", "Standard_A0"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
@@ -103,7 +103,7 @@ func TestAccAzureRMVirtualMachine_basicWindowsMachine(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),

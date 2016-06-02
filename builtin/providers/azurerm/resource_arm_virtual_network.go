@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -20,19 +19,21 @@ func resourceArmVirtualNetwork() *schema.Resource {
 		Delete: resourceArmVirtualNetworkDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"address_space": &schema.Schema{
+			"address_space": {
 				Type:     schema.TypeList,
 				Required: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 
-			"dns_servers": &schema.Schema{
+			"dns_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -40,21 +41,21 @@ func resourceArmVirtualNetwork() *schema.Resource {
 				},
 			},
 
-			"subnet": &schema.Schema{
+			"subnet": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"address_prefix": &schema.Schema{
+						"address_prefix": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"security_group": &schema.Schema{
+						"security_group": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -63,14 +64,14 @@ func resourceArmVirtualNetwork() *schema.Resource {
 				Set: resourceAzureSubnetHash,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -99,23 +100,20 @@ func resourceArmVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) e
 		Tags:       expandTags(tags),
 	}
 
-	resp, err := vnetClient.CreateOrUpdate(resGroup, name, vnet)
+	_, err := vnetClient.CreateOrUpdate(resGroup, name, vnet, make(chan struct{}))
 	if err != nil {
 		return err
 	}
 
-	d.SetId(*resp.ID)
+	read, err := vnetClient.Get(resGroup, name, "")
+	if err != nil {
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Virtual Network %s (resource group %s) ID", name, resGroup)
+	}
 
-	log.Printf("[DEBUG] Waiting for Virtual Network (%s) to become available", name)
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"Accepted", "Updating"},
-		Target:  []string{"Succeeded"},
-		Refresh: virtualNetworkStateRefreshFunc(client, resGroup, name),
-		Timeout: 10 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Virtual Network (%s) to become available: %s", name, err)
-	}
+	d.SetId(*read.ID)
 
 	return resourceArmVirtualNetworkRead(d, meta)
 }
@@ -181,7 +179,7 @@ func resourceArmVirtualNetworkDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualNetworks"]
 
-	_, err = vnetClient.Delete(resGroup, name)
+	_, err = vnetClient.Delete(resGroup, name, make(chan struct{}))
 
 	return err
 }
