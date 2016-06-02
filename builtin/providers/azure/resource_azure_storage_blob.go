@@ -163,7 +163,7 @@ func resourceAzureStorageBlobDelete(d *schema.ResourceData, meta interface{}) er
 	log.Println("[INFO] Issuing storage blob delete command off Azure.")
 	name := d.Get("name").(string)
 	cont := d.Get("storage_container_name").(string)
-	if _, err = blobClient.DeleteBlobIfExists(cont, name); err != nil {
+	if _, err = blobClient.DeleteBlobIfExists(cont, name, make(map[string]string)); err != nil {
 		return fmt.Errorf("Error whilst deleting storage blob: %s", err)
 	}
 
