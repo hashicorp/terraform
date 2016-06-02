@@ -90,9 +90,6 @@ Each `ebs_block_device` supports the following:
   This must be set with a `volume_type` of `"io1"`.
 * `delete_on_termination` - (Optional) Whether the volume should be destroyed
   on instance termination (Default: `true`).
-* `encrypted` - (Optional) Enables [EBS
-  encryption](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html)
-  on the volume (Default: `false`). Cannot be used with `snapshot_id`.
 
 Modifying any `ebs_block_device` currently requires resource replacement.
 
