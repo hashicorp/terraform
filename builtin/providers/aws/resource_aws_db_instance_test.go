@@ -176,6 +176,34 @@ func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_updateidentifier(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBInstanceIdentifier,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "identifier", "myidentity1"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSDBInstanceIdentifierUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "identifier", "myidentity100"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
@@ -420,8 +448,8 @@ resource "aws_db_instance" "bar" {
 	username = "foo"
 
 
-	# Maintenance Window is stored in lower case in the API, though not strictly 
-	# documented. Terraform will downcase this to match (as opposed to throw a 
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
 	# validation error).
 	maintenance_window = "Fri:09:00-Fri:09:30"
 
@@ -517,7 +545,7 @@ func testAccReplicaInstanceConfig(val int) string {
 
 		parameter_group_name = "default.mysql5.6"
 	}
-	
+
 	resource "aws_db_instance" "replica" {
 		identifier = "tf-replica-db-%d"
 		backup_retention_period = 0
@@ -641,3 +669,35 @@ resource "aws_db_instance" "enhanced_monitoring" {
 	skip_final_snapshot = true
 }
 `
+
+var testAccAWSDBInstanceIdentifier = `
+resource "aws_db_instance" "bar" {
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6.21"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	identifier = "myidentity1"
+
+	maintenance_window = "Fri:09:00-Fri:09:30"
+	backup_retention_period = 0
+	parameter_group_name = "default.mysql5.6"
+}`
+
+var testAccAWSDBInstanceIdentifierUpdated = `
+resource "aws_db_instance" "bar" {
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6.21"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	identifier = "myidentity100"
+
+	maintenance_window = "Fri:09:00-Fri:09:30"
+	backup_retention_period = 0
+	parameter_group_name = "default.mysql5.6"
+}`

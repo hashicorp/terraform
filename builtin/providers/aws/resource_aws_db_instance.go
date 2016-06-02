@@ -88,7 +88,6 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ForceNew:     true,
 				ValidateFunc: validateRdsId,
 			},
 
@@ -785,13 +784,19 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 
 	d.Partial(true)
 
+	applyImmediately := d.Get("apply_immediately").(bool)
 	req := &rds.ModifyDBInstanceInput{
-		ApplyImmediately:     aws.Bool(d.Get("apply_immediately").(bool)),
+		ApplyImmediately:     aws.Bool(applyImmediately),
 		DBInstanceIdentifier: aws.String(d.Id()),
 	}
 	d.SetPartial("apply_immediately")
 
 	requestUpdate := false
+	if d.HasChange("identifier") {
+		d.SetPartial("identifier")
+		req.NewDBInstanceIdentifier = aws.String(d.Get("identifier").(string))
+		requestUpdate = true
+	}
 	if d.HasChange("allocated_storage") {
 		d.SetPartial("allocated_storage")
 		req.AllocatedStorage = aws.Int64(int64(d.Get("allocated_storage").(int)))
@@ -918,6 +923,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		_, err := conn.ModifyDBInstance(req)
 		if err != nil {
 			return fmt.Errorf("Error modifying DB Instance %s: %s", d.Id(), err)
+		}
+		if applyImmediately {
+			//we will **ONLY** change the identifier state if we have applied
+			//immediately AND no error has occured
+			d.SetId(d.Get("identifier").(string))
 		}
 	}
 
