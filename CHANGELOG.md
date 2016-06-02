@@ -28,6 +28,7 @@ FEATURES:
  * **New Resource:** `aws_rds_cluster_parameter_group` [GH-5269]
  * **New Resource:** `openstack_blockstorage_volume_v2` [GH-6693]
  * **New Resource:** `vsphere_virtual_disk` [GH-6273]
+ * **New Resource:** `github_repository_collaborator` [GH-6861]
  * core: Data Resources are now supported. Values are refreshed, and available during the planning stage [GH-6598]
  * core: Lists and maps can now be used as first class types for variables, and may be passed between modules [GH-6322]
  * core: Tainted resources now show up in the plan and respect dependency ordering [GH-6600]
