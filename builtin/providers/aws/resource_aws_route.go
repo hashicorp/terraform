@@ -184,7 +184,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		route, err = findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
 
 		if err != nil {
-			log.Print("[DEBUG] Attempting to find route in route table %s again", d.Get("route_table_id").(string))
+			log.Printf("[DEBUG] Attempting to find route in route table %s again", d.Get("route_table_id").(string))
 			return resource.RetryableError(err)
 		}
 
