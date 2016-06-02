@@ -174,6 +174,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 					return
 				},
 			},
+
+			"db_cluster_parameter_group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -191,6 +196,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	if v := d.Get("database_name"); v.(string) != "" {
 		createOpts.DatabaseName = aws.String(v.(string))
+	}
+
+	if attr, ok := d.GetOk("db_cluster_parameter_group"); ok {
+		createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
 	}
 
 	if attr, ok := d.GetOk("port"); ok {
@@ -305,6 +314,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("backup_retention_period", dbc.BackupRetentionPeriod)
 	d.Set("preferred_backup_window", dbc.PreferredBackupWindow)
 	d.Set("preferred_maintenance_window", dbc.PreferredMaintenanceWindow)
+	d.Set("db_cluster_parameter_group", dbc.DBClusterParameterGroup)
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {
@@ -331,6 +341,10 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 	req := &rds.ModifyDBClusterInput{
 		ApplyImmediately:    aws.Bool(d.Get("apply_immediately").(bool)),
 		DBClusterIdentifier: aws.String(d.Id()),
+	}
+
+	if d.HasChange("db_cluster_parameter_group") {
+		req.DBClusterParameterGroupName = aws.String(d.Get("db_cluster_parameter_group").(string))
 	}
 
 	if d.HasChange("master_password") {
