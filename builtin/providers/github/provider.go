@@ -32,10 +32,11 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"github_team":            resourceGithubTeam(),
-			"github_team_membership": resourceGithubTeamMembership(),
-			"github_team_repository": resourceGithubTeamRepository(),
-			"github_membership":      resourceGithubMembership(),
+			"github_team":                    resourceGithubTeam(),
+			"github_team_membership":         resourceGithubTeamMembership(),
+			"github_team_repository":         resourceGithubTeamRepository(),
+			"github_membership":              resourceGithubMembership(),
+			"github_repository_collaborator": resourceGithubRepositoryCollaborator(),
 		},
 
 		ConfigureFunc: providerConfigure,
