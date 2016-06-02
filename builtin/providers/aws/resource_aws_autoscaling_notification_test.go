@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-        "github.com/hashicorp/terraform/helper/acctest"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -15,7 +15,7 @@ import (
 func TestAccAWSASGNotification_basic(t *testing.T) {
 	var asgn autoscaling.DescribeNotificationConfigurationsOutput
 
-        rName := acctest.RandString(5)
+	rName := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -23,9 +23,9 @@ func TestAccAWSASGNotification_basic(t *testing.T) {
 		CheckDestroy: testAccCheckASGNDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-                                Config: testAccASGNotificationConfig_basic(rName),
+				Config: testAccASGNotificationConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckASGNotificationExists("aws_autoscaling_notification.example", []string{"foobar1-terraform-test-" + rName}, &asgn),
+					testAccCheckASGNotificationExists("aws_autoscaling_notification.example", []string{"foobar1-terraform-test-" + rName}, &asgn),
 					testAccCheckAWSASGNotificationAttributes("aws_autoscaling_notification.example", &asgn),
 				),
 			},
@@ -36,7 +36,7 @@ func TestAccAWSASGNotification_basic(t *testing.T) {
 func TestAccAWSASGNotification_update(t *testing.T) {
 	var asgn autoscaling.DescribeNotificationConfigurationsOutput
 
-        rName := acctest.RandString(5)
+	rName := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -44,17 +44,17 @@ func TestAccAWSASGNotification_update(t *testing.T) {
 		CheckDestroy: testAccCheckASGNDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-                                Config: testAccASGNotificationConfig_basic(rName),
+				Config: testAccASGNotificationConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckASGNotificationExists("aws_autoscaling_notification.example", []string{"foobar1-terraform-test-" + rName}, &asgn),
+					testAccCheckASGNotificationExists("aws_autoscaling_notification.example", []string{"foobar1-terraform-test-" + rName}, &asgn),
 					testAccCheckAWSASGNotificationAttributes("aws_autoscaling_notification.example", &asgn),
 				),
 			},
 
 			resource.TestStep{
-                                Config: testAccASGNotificationConfig_update(rName),
+				Config: testAccASGNotificationConfig_update(rName),
 				Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckASGNotificationExists("aws_autoscaling_notification.example", []string{"foobar1-terraform-test-" + rName, "barfoo-terraform-test-" + rName}, &asgn),
+					testAccCheckASGNotificationExists("aws_autoscaling_notification.example", []string{"foobar1-terraform-test-" + rName, "barfoo-terraform-test-" + rName}, &asgn),
 					testAccCheckAWSASGNotificationAttributes("aws_autoscaling_notification.example", &asgn),
 				),
 			},
@@ -211,7 +211,7 @@ func testAccCheckAWSASGNotificationAttributes(n string, asgn *autoscaling.Descri
 }
 
 func testAccASGNotificationConfig_basic(rName string) string {
-        return fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "aws_sns_topic" "topic_example" {
   name = "user-updates-topic-%s"
 }
@@ -247,7 +247,7 @@ resource "aws_autoscaling_notification" "example" {
 }
 
 func testAccASGNotificationConfig_update(rName string) string {
-        return fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "aws_sns_topic" "topic_example" {
   name = "user-updates-topic-%s"
 }
