@@ -7,6 +7,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/jen20/riviera/azure"
 )
 
 func resourceArmAvailabilitySet() *schema.Resource {
@@ -78,16 +79,16 @@ func resourceArmAvailabilitySetCreate(d *schema.ResourceData, meta interface{}) 
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
-	updateDomainCount := d.Get("platform_update_domain_count").(int32)
-	faultDomainCount := d.Get("platform_fault_domain_count").(int32)
+	updateDomainCount := d.Get("platform_update_domain_count").(int)
+	faultDomainCount := d.Get("platform_fault_domain_count").(int)
 	tags := d.Get("tags").(map[string]interface{})
 
 	availSet := compute.AvailabilitySet{
 		Name:     &name,
 		Location: &location,
 		Properties: &compute.AvailabilitySetProperties{
-			PlatformFaultDomainCount:  &faultDomainCount,
-			PlatformUpdateDomainCount: &updateDomainCount,
+			PlatformFaultDomainCount:  azure.Int32(int32(faultDomainCount)),
+			PlatformUpdateDomainCount: azure.Int32(int32(updateDomainCount)),
 		},
 		Tags: expandTags(tags),
 	}

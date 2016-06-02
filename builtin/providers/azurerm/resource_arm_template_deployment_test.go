@@ -134,7 +134,7 @@ var testAccAzureRMTemplateDeployment_basicExample = `
     "publicIPAddressName": "[concat('myPublicIp', uniquestring(resourceGroup().id))]",
     "publicIPAddressType": "Dynamic",
     "apiVersion": "2015-06-15",
-    "dnsLabelPrefix": "terraform-acctest"
+    "dnsLabelPrefix": "terraform-tdacctest"
   },
   "resources": [
     {
