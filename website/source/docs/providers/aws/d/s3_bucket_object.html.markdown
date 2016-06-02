@@ -1,12 +1,12 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_s3_object"
-sidebar_current: "docs-aws-datasource-s3-object"
+page_title: "AWS: aws_s3_bucket_object"
+sidebar_current: "docs-aws-datasource-s3-bucket-object"
 description: |-
     Provides metadata and optionally content of an S3 object
 ---
 
-# aws\_s3\_object
+# aws\_s3\_bucket\_object
 
 The S3 object data source allows access to the metadata and
 _optionally_ (see below) content of an object stored inside S3 bucket.
@@ -16,7 +16,7 @@ _optionally_ (see below) content of an object stored inside S3 bucket.
 ## Example Usage
 
 ```
-data "aws_s3_object" "lambda" {
+data "aws_s3_bucket_object" "lambda" {
     bucket = "my-lambda-functions"
     key = "hello-world.zip"
 }
@@ -41,9 +41,9 @@ EOF
 }
 
 resource "aws_lambda_function" "test_lambda" {
-    s3_bucket = "${data.aws_s3_object.lambda.bucket}"
-    s3_key = "${data.aws_s3_object.lambda.key}"
-    s3_object_version = "${data.aws_s3_object.lambda.version_id}"
+    s3_bucket = "${data.aws_s3_bucket_object.lambda.bucket}"
+    s3_key = "${data.aws_s3_bucket_object.lambda.key}"
+    s3_object_version = "${data.aws_s3_bucket_object.lambda.version_id}"
     function_name = "lambda_function_name"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.test"
