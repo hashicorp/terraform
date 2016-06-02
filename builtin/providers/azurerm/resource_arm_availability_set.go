@@ -17,26 +17,26 @@ func resourceArmAvailabilitySet() *schema.Resource {
 		Delete: resourceArmAvailabilitySetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"platform_update_domain_count": &schema.Schema{
+			"platform_update_domain_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  5,
@@ -50,7 +50,7 @@ func resourceArmAvailabilitySet() *schema.Resource {
 				},
 			},
 
-			"platform_fault_domain_count": &schema.Schema{
+			"platform_fault_domain_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  3,
@@ -78,8 +78,8 @@ func resourceArmAvailabilitySetCreate(d *schema.ResourceData, meta interface{}) 
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
-	updateDomainCount := d.Get("platform_update_domain_count").(int)
-	faultDomainCount := d.Get("platform_fault_domain_count").(int)
+	updateDomainCount := d.Get("platform_update_domain_count").(int32)
+	faultDomainCount := d.Get("platform_fault_domain_count").(int32)
 	tags := d.Get("tags").(map[string]interface{})
 
 	availSet := compute.AvailabilitySet{

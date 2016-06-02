@@ -10,13 +10,12 @@ import (
 )
 
 func TestAccAzureRMNetworkInterface_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkInterface_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
@@ -26,14 +25,13 @@ func TestAccAzureRMNetworkInterface_basic(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMNetworkInterfaceenableIPForwarding(t *testing.T) {
-
+func TestAccAzureRMNetworkInterface_enableIPForwarding(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkInterface_ipForwarding,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
@@ -46,13 +44,12 @@ func TestAccAzureRMNetworkInterfaceenableIPForwarding(t *testing.T) {
 }
 
 func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkInterface_withTags,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
@@ -64,8 +61,7 @@ func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
 						"azurerm_network_interface.test", "tags.cost_center", "MSFT"),
 				),
 			},
-
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkInterface_withTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),

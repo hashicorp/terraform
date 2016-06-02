@@ -18,7 +18,7 @@ func TestAccAzureRMTemplateDeployment_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMTemplateDeploymentExists("azurerm_template_deployment.test"),
@@ -36,7 +36,7 @@ func TestAccAzureRMTemplateDeployment_withParams(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMTemplateDeploymentExists("azurerm_template_deployment.test"),

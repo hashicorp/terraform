@@ -10,13 +10,12 @@ import (
 )
 
 func TestAccAzureRMNetworkSecurityGroup_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkSecurityGroup_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
@@ -27,13 +26,12 @@ func TestAccAzureRMNetworkSecurityGroup_basic(t *testing.T) {
 }
 
 func TestAccAzureRMNetworkSecurityGroup_withTags(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkSecurityGroup_withTags,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
@@ -46,7 +44,7 @@ func TestAccAzureRMNetworkSecurityGroup_withTags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkSecurityGroup_withTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
@@ -61,13 +59,12 @@ func TestAccAzureRMNetworkSecurityGroup_withTags(t *testing.T) {
 }
 
 func TestAccAzureRMNetworkSecurityGroup_addingExtraRules(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkSecurityGroup_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
@@ -76,7 +73,7 @@ func TestAccAzureRMNetworkSecurityGroup_addingExtraRules(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkSecurityGroup_anotherRule,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),

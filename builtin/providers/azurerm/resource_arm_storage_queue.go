@@ -16,13 +16,13 @@ func resourceArmStorageQueue() *schema.Resource {
 		Delete: resourceArmStorageQueueDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateArmStorageQueueName,
 			},
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
