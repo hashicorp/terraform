@@ -85,6 +85,41 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"network_interface": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"delete_on_termination": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+							ForceNew: true,
+						},
+
+						"network_interface_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+
+						"device_index": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["network_interface_id"].(string)))
+					buf.WriteString(fmt.Sprintf("%d-", m["device_index"].(int)))
+					return hashcode.String(buf.String())
+				},
+			},
+
 			"source_dest_check": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -1071,6 +1106,17 @@ func buildAwsInstanceOpts(
 		}
 
 		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+	} else if v := d.Get("network_interface").(*schema.Set); v.Len() > 0 {
+		networkInterfaces := make([]*ec2.InstanceNetworkInterfaceSpecification, 0)
+		for _, v := range v.List() {
+			ni := v.(map[string]interface{})
+			networkInterfaces = append(networkInterfaces, &ec2.InstanceNetworkInterfaceSpecification{
+				DeleteOnTermination: aws.Bool(ni["delete_on_termination"].(bool)),
+				NetworkInterfaceId:  aws.String(ni["network_interface_id"].(string)),
+				DeviceIndex:         aws.Int64(int64(ni["device_index"].(int))),
+			})
+		}
+		opts.NetworkInterfaces = networkInterfaces
 	} else {
 		if subnetID != "" {
 			opts.SubnetID = aws.String(subnetID)
