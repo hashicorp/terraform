@@ -6,6 +6,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * The `terraform plan` command no longer persists state. This makes the command much safer to run, since it is now side-effect free. The `refresh` and `apply` commands still persist state to local and remote storage. Any automation that assumes that `terraform plan` persists state will need to be reworked to explicitly call `terraform refresh` to get the equivalent side-effect.
  * The `concat()` interpolation function can no longer be used to join strings.
  * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
+ * `aws_elb` now defaults `cross_zone_load_balancing` to `true`
  * `resource_aws_instance`: EC2 Classic users may continue to use
    `security_groups` to reference Security Groups by their `name`. Users who are
    managing Instances inside VPCs will need to use `vpc_security_group_ids` instead, 
@@ -50,6 +51,7 @@ IMPROVEMENTS:
  * provider/aws: Support for Redshift Cluster encryption using a KMS key [GH-6712]
  * provider/aws: Support tags for AWS redshift cluster [GH-5356]
  * provider/aws: Add `iam_arn` to aws_cloudfront_origin_access_identity [GH-6955]
+ * provider/aws: Add `cross_zone_load_balancing` on `aws_elb` default to true [GH-6897]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
