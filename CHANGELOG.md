@@ -52,6 +52,7 @@ IMPROVEMENTS:
  * provider/aws: Support tags for AWS redshift cluster [GH-5356]
  * provider/aws: Add `iam_arn` to aws_cloudfront_origin_access_identity [GH-6955]
  * provider/aws: Add `cross_zone_load_balancing` on `aws_elb` default to true [GH-6897]
+ * provider/aws: Add support for `character_set_name` to `aws_db_instance` [GH-4861]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
