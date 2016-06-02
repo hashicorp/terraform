@@ -991,6 +991,14 @@ func flattenCloudFormationParameters(cfParams []*cloudformation.Parameter,
 	return params
 }
 
+func flattenAllCloudFormationParameters(cfParams []*cloudformation.Parameter) map[string]interface{} {
+	params := make(map[string]interface{}, len(cfParams))
+	for _, p := range cfParams {
+		params[*p.ParameterKey] = *p.ParameterValue
+	}
+	return params
+}
+
 func expandCloudFormationTags(tags map[string]interface{}) []*cloudformation.Tag {
 	var cfTags []*cloudformation.Tag
 	for k, v := range tags {
