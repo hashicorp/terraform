@@ -71,11 +71,6 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Computed: true,
 			},
 
-			"status": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			// apply_immediately is used to determine when the update modifications
 			// take place.
 			// See http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html
