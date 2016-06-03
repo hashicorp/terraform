@@ -21,6 +21,17 @@ type ProbeAlertDataDTO struct {
 	Status          string    `json:"status"`
 }
 
+// Equal compares to another ProbeAlertDataDTO, but uses time.Equals to compare semantic equvalance of AlertDate
+func (a ProbeAlertDataDTO) Equal(b ProbeAlertDataDTO) bool {
+	return a.PoolRecord == b.PoolRecord &&
+		a.ProbeType == b.ProbeType &&
+		a.ProbeStatus == b.ProbeStatus &&
+		a.AlertDate.Equal(b.AlertDate) &&
+		a.FailoverOccured == b.FailoverOccured &&
+		a.OwnerName == b.OwnerName &&
+		a.Status == b.Status
+}
+
 // ProbeAlertDataListDTO wraps the response for an index of probe alerts
 type ProbeAlertDataListDTO struct {
 	Alerts     []ProbeAlertDataDTO `json:"alerts"`

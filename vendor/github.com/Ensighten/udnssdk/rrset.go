@@ -1,10 +1,12 @@
 package udnssdk
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/fatih/structs"
+	"github.com/mitchellh/mapstructure"
 )
 
 // RRSetsService provides access to RRSet resources
@@ -53,13 +55,24 @@ func (rp RawProfile) GetProfileObject() (interface{}, error) {
 	}
 }
 
-// remarshalJSON takes a structure and marshals it into another type
-func remarshalJSON(in, result interface{}) error {
-	bs, err := json.Marshal(in)
+// decode takes a RawProfile and uses reflection to convert it into the
+// given Go native structure. val must be a pointer to a struct.
+// This is identical to mapstructure.Decode, but uses the `json:` tag instead of `mapstructure:`
+func decodeProfile(m interface{}, rawVal interface{}) error {
+	config := &mapstructure.DecoderConfig{
+		Metadata:         nil,
+		TagName:          "json",
+		Result:           rawVal,
+		ErrorUnused:      true,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(bs, &result)
+
+	return decoder.Decode(m)
 }
 
 // DirPoolProfile extracts the full Profile as a DirPoolProfile or returns an error
@@ -69,7 +82,7 @@ func (rp RawProfile) DirPoolProfile() (DirPoolProfile, error) {
 	if c != DirPoolSchema {
 		return result, fmt.Errorf("RDPoolProfile has incorrect JSON-LD @context %s\n", c)
 	}
-	err := remarshalJSON(rp, &result)
+	err := decodeProfile(rp, &result)
 	return result, err
 }
 
@@ -80,7 +93,7 @@ func (rp RawProfile) RDPoolProfile() (RDPoolProfile, error) {
 	if c != RDPoolSchema {
 		return result, fmt.Errorf("RDPoolProfile has incorrect JSON-LD @context %s\n", c)
 	}
-	err := remarshalJSON(rp, &result)
+	err := decodeProfile(rp, &result)
 	return result, err
 }
 
@@ -91,7 +104,7 @@ func (rp RawProfile) SBPoolProfile() (SBPoolProfile, error) {
 	if c != SBPoolSchema {
 		return result, fmt.Errorf("SBPoolProfile has incorrect JSON-LD @context %s\n", c)
 	}
-	err := remarshalJSON(rp, &result)
+	err := decodeProfile(rp, &result)
 	return result, err
 }
 
@@ -102,36 +115,35 @@ func (rp RawProfile) TCPoolProfile() (TCPoolProfile, error) {
 	if c != TCPoolSchema {
 		return result, fmt.Errorf("TCPoolProfile has incorrect JSON-LD @context %s\n", c)
 	}
-	err := remarshalJSON(rp, &result)
+	err := decodeProfile(rp, &result)
 	return result, err
 }
 
-// RawProfile converts to a naive RawProfile
-func (p DirPoolProfile) RawProfile() (RawProfile, error) {
-	var rp RawProfile
-	err := remarshalJSON(p, &rp)
-	return rp, err
+// encodeProfile takes a struct and converts to a RawProfile
+func encodeProfile(rawVal interface{}) RawProfile {
+	s := structs.New(rawVal)
+	s.TagName = "json"
+	return s.Map()
 }
 
 // RawProfile converts to a naive RawProfile
-func (p RDPoolProfile) RawProfile() (RawProfile, error) {
-	var rp RawProfile
-	err := remarshalJSON(p, &rp)
-	return rp, err
+func (p DirPoolProfile) RawProfile() RawProfile {
+	return encodeProfile(p)
 }
 
 // RawProfile converts to a naive RawProfile
-func (p SBPoolProfile) RawProfile() (RawProfile, error) {
-	var rp RawProfile
-	err := remarshalJSON(p, &rp)
-	return rp, err
+func (p RDPoolProfile) RawProfile() RawProfile {
+	return encodeProfile(p)
 }
 
 // RawProfile converts to a naive RawProfile
-func (p TCPoolProfile) RawProfile() (RawProfile, error) {
-	var rp RawProfile
-	err := remarshalJSON(p, &rp)
-	return rp, err
+func (p SBPoolProfile) RawProfile() RawProfile {
+	return encodeProfile(p)
+}
+
+// RawProfile converts to a naive RawProfile
+func (p TCPoolProfile) RawProfile() RawProfile {
+	return encodeProfile(p)
 }
 
 // DirPoolProfile wraps a Profile for a Directional Pool
@@ -140,28 +152,28 @@ type DirPoolProfile struct {
 	Description     string        `json:"description"`
 	ConflictResolve string        `json:"conflictResolve,omitempty"`
 	RDataInfo       []DPRDataInfo `json:"rdataInfo"`
-	NoResponse      DPRDataInfo   `json:"noResponse"`
+	NoResponse      DPRDataInfo   `json:"noResponse,omitempty"`
 }
 
 // DPRDataInfo wraps the rdataInfo object of a DirPoolProfile response
 type DPRDataInfo struct {
-	AllNonConfigured bool    `json:"allNonConfigured,omitempty"`
-	IPInfo           IPInfo  `json:"ipInfo,omitempty"`
-	GeoInfo          GeoInfo `json:"geoInfo,omitempty"`
+	AllNonConfigured bool     `json:"allNonConfigured,omitempty" terraform:"all_non_configured"`
+	IPInfo           *IPInfo  `json:"ipInfo,omitempty" terraform:"ip_info"`
+	GeoInfo          *GeoInfo `json:"geoInfo,omitempty" terraform:"geo_info"`
 }
 
 // IPInfo wraps the ipInfo object of a DPRDataInfo
 type IPInfo struct {
-	Name           string      `json:"name"`
-	IsAccountLevel bool        `json:"isAccountLevel,omitempty"`
-	Ips            []IPAddrDTO `json:"ips"`
+	Name           string      `json:"name" terraform:"name"`
+	IsAccountLevel bool        `json:"isAccountLevel,omitempty" terraform:"is_account_level"`
+	Ips            []IPAddrDTO `json:"ips,omitempty" terraform:"-"`
 }
 
 // GeoInfo wraps the geoInfo object of a DPRDataInfo
 type GeoInfo struct {
-	Name           string   `json:"name"`
-	IsAccountLevel bool     `json:"isAccountLevel,omitempty"`
-	Codes          []string `json:"codes"`
+	Name           string   `json:"name" terraform:"name"`
+	IsAccountLevel bool     `json:"isAccountLevel,omitempty" terraform:"is_account_level"`
+	Codes          []string `json:"codes,omitempty" terraform:"-"`
 }
 
 // RDPoolProfile wraps a Profile for a Resource Distribution pool
