@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"net/url"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -49,6 +50,39 @@ func TestAccAWSRole_testNameChange(t *testing.T) {
 				Config: testAccAWSRolePost,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role_update_test", &conf),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRole_testAssumeRolePolicyChange(t *testing.T) {
+	var conf iam.GetRoleOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRoleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSRoleConfigPolicyChangePre,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
+					testAccCheckAWSRoleAssumeRolePolicy(
+						&conf,
+						`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}`,
+					),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSRoleConfigPolicyChangePost,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
+					testAccCheckAWSRoleAssumeRolePolicy(
+						&conf,
+						`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"s3.amazonaws.com"},"Action":"sts:AssumeRole"}]}`,
+					),
 				),
 			},
 		},
@@ -110,6 +144,19 @@ func testAccCheckAWSRoleExists(n string, res *iam.GetRoleOutput) resource.TestCh
 	}
 }
 
+func testAccCheckAWSRoleAssumeRolePolicy(role *iam.GetRoleOutput, expectedPolicy string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		policy, err := url.QueryUnescape(*role.Role.AssumeRolePolicyDocument)
+		if err != nil {
+			return fmt.Errorf("could not decode policy: %s", *role.Role.AssumeRolePolicyDocument)
+		}
+		if policy != expectedPolicy {
+			return fmt.Errorf("expected assume role policy to be %s, got %s", expectedPolicy, policy)
+		}
+		return nil
+	}
+}
+
 func testAccCheckAWSRoleAttributes(role *iam.GetRoleOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *role.Role.RoleName != "test-role" {
@@ -128,6 +175,22 @@ resource "aws_iam_role" "role" {
 	name   = "test-role"
 	path = "/"
 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+`
+
+const testAccAWSRoleConfigPolicyChangePre = `
+resource "aws_iam_role" "role" {
+	name   = "test-role"
+	path = "/"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+}
+`
+
+const testAccAWSRoleConfigPolicyChangePost = `
+resource "aws_iam_role" "role" {
+	name   = "test-role"
+	path = "/"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"s3.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 `
 
