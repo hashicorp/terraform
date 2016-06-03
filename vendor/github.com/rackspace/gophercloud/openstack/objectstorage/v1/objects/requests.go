@@ -117,7 +117,7 @@ func Download(c *gophercloud.ServiceClient, containerName, objectName string, op
 	var res DownloadResult
 
 	url := downloadURL(c, containerName, objectName)
-	h := c.AuthenticatedHeaders()
+	h := make(map[string]string)
 
 	if opts != nil {
 		headers, query, err := opts.ToObjectDownloadParams()
@@ -282,7 +282,7 @@ func (opts CopyOpts) ToObjectCopyMap() (map[string]string, error) {
 // Copy is a function that copies one object to another.
 func Copy(c *gophercloud.ServiceClient, containerName, objectName string, opts CopyOptsBuilder) CopyResult {
 	var res CopyResult
-	h := c.AuthenticatedHeaders()
+	h := make(map[string]string)
 
 	headers, err := opts.ToObjectCopyMap()
 	if err != nil {
@@ -427,7 +427,7 @@ func (opts UpdateOpts) ToObjectUpdateMap() (map[string]string, error) {
 // Update is a function that creates, updates, or deletes an object's metadata.
 func Update(c *gophercloud.ServiceClient, containerName, objectName string, opts UpdateOptsBuilder) UpdateResult {
 	var res UpdateResult
-	h := c.AuthenticatedHeaders()
+	h := make(map[string]string)
 
 	if opts != nil {
 		headers, err := opts.ToObjectUpdateMap()
