@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
@@ -527,7 +528,9 @@ func testInterpolate(
 		"foo": expectedVar,
 	}
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("%q: actual: %#v\nexpected: %#v", n, actual, expected)
+		spew.Config.DisableMethods = true
+		t.Fatalf("%q: actual: %#v\nexpected: %#v\n\n%s\n\n%s\n\n", n, actual, expected,
+			spew.Sdump(actual), spew.Sdump(expected))
 	}
 }
 
