@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/mitchellh/mapstructure"
+	"github.com/hashicorp/terraform/helper/hilmapstructure"
 )
 
 // EvalTypeCheckVariable is an EvalNode which ensures that the variable
@@ -134,19 +134,19 @@ func (n *EvalVariableBlock) Eval(ctx EvalContext) (interface{}, error) {
 	rc := *n.Config
 	for k, v := range rc.Config {
 		var vString string
-		if err := mapstructure.WeakDecode(v, &vString); err == nil {
+		if err := hilmapstructure.WeakDecode(v, &vString); err == nil {
 			n.VariableValues[k] = vString
 			continue
 		}
 
 		var vMap map[string]interface{}
-		if err := mapstructure.WeakDecode(v, &vMap); err == nil {
+		if err := hilmapstructure.WeakDecode(v, &vMap); err == nil {
 			n.VariableValues[k] = vMap
 			continue
 		}
 
 		var vSlice []interface{}
-		if err := mapstructure.WeakDecode(v, &vSlice); err == nil {
+		if err := hilmapstructure.WeakDecode(v, &vSlice); err == nil {
 			n.VariableValues[k] = vSlice
 			continue
 		}
