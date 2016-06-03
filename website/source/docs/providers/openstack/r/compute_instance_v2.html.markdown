@@ -267,16 +267,19 @@ The following arguments are supported:
 The `network` block supports:
 
 * `uuid` - (Required unless `port`  or `name` is provided) The network UUID to
-    attach to the server.
+    attach to the server. Changing this creates a new server.
 
 * `name` - (Required unless `uuid` or `port` is provided) The human-readable
-    name of the network.
+    name of the network. Changing this creates a new server.
 
 * `port` - (Required unless `uuid` or `name` is provided) The port UUID of a
-    network to attach to the server.
+    network to attach to the server. Changing this creates a new server.
 
 * `fixed_ip_v4` - (Optional) Specifies a fixed IPv4 address to be used on this
-    network.
+    network. Changing this creates a new server.
+
+* `fixed_ip_v6` - (Optional) Specifies a fixed IPv6 address to be used on this
+    network. Changing this creates a new server.
 
 * `floating_ip` - (Optional) Specifies a floating IP address to be associated
     with this network. Cannot be combined with a top-level floating IP. See
@@ -287,19 +290,26 @@ The `network` block supports:
 
 The `block_device` block supports:
 
-* `uuid` - (Required unless `source_type` is set to `"blank"` ) The UUID of the image, volume, or snapshot.
+* `uuid` - (Required unless `source_type` is set to `"blank"` ) The UUID of
+    the image, volume, or snapshot. Changing this creates a new server.
 
 * `source_type` - (Required) The source type of the device. Must be one of
-    "blank", "image", "volume", or "snapshot".
+    "blank", "image", "volume", or "snapshot". Changing this creates a new
+    server.
 
 * `volume_size` - The size of the volume to create (in gigabytes). Required
     in the following combinations: source=image and destination=volume,
-    source=blank and destination=local.
+    source=blank and destination=local. Changing this creates a new server.
 
 * `boot_index` - (Optional) The boot index of the volume. It defaults to 0.
+    Changing this creates a new server.
 
 * `destination_type` - (Optional) The type that gets created. Possible values
-    are "volume" and "local".
+    are "volume" and "local". Changing this creates a new server.
+
+* `delete_on_termination` - (Optional) Delete the volume / block device upon
+    termination of the instance. Defaults to false. Changing this creates a
+    new server.
 
 The `volume` block supports:
 

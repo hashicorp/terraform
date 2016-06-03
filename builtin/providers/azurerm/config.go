@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -15,6 +12,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
 )
@@ -77,22 +76,6 @@ func withRequestLogging() autorest.SendDecorator {
 	}
 }
 
-func withPollWatcher() autorest.SendDecorator {
-	return func(s autorest.Sender) autorest.Sender {
-		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
-			fmt.Printf("[DEBUG] Sending Azure RM Request %q to %q\n", r.Method, r.URL)
-			resp, err := s.Do(r)
-			fmt.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
-			if autorest.ResponseRequiresPolling(resp) {
-				fmt.Printf("[DEBUG] Azure RM request will poll %s after %d seconds\n",
-					autorest.GetPollingLocation(resp),
-					int(autorest.GetPollingDelay(resp, time.Duration(0))/time.Second))
-			}
-			return resp, err
-		})
-	}
-}
-
 func setUserAgent(client *autorest.Client) {
 	var version string
 	if terraform.VersionPrerelease != "" {
@@ -130,7 +113,23 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	}
 	client.rivieraClient = rivieraClient
 
-	spt, err := azure.NewServicePrincipalToken(c.ClientID, c.ClientSecret, c.TenantID, azure.AzureResourceManagerScope)
+	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(c.TenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// This is necessary because no-one thought about API usability. OAuthConfigForTenant
+	// returns a pointer, which can be nil. NewServicePrincipalToken does not take a pointer.
+	// Consequently we have to nil check this and do _something_ if it is nil, which should
+	// be either an invariant of OAuthConfigForTenant (guarantee the token is not nil if
+	// there is no error), or NewServicePrincipalToken should error out if the configuration
+	// is required and is nil. This is the worst of all worlds, however.
+	if oauthConfig == nil {
+		return nil, fmt.Errorf("Unable to configure OAuthConfig for tenant %s", c.TenantID)
+	}
+
+	spt, err := azure.NewServicePrincipalToken(*oauthConfig, c.ClientID, c.ClientSecret,
+		azure.PublicCloud.ResourceManagerEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +283,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ssc := storage.NewAccountsClient(c.SubscriptionID)
 	setUserAgent(&ssc.Client)
 	ssc.Authorizer = spt
-	ssc.Sender = autorest.CreateSender(withRequestLogging(), withPollWatcher())
+	ssc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageServiceClient = ssc
 
 	suc := storage.NewUsageOperationsClient(c.SubscriptionID)
@@ -349,6 +348,7 @@ func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupN
 	blobClient := storageClient.GetBlobService()
 	return &blobClient, true, nil
 }
+
 func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.QueueServiceClient, bool, error) {
 	key, accountExists, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {

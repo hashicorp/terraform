@@ -43,6 +43,24 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VCENTER", nil),
 				Deprecated:  "This field has been renamed to vsphere_server.",
 			},
+			"client_debug": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG", false),
+				Description: "govomomi debug",
+			},
+			"client_debug_path_run": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH_RUN", nil),
+				Description: "govomomi debug path for a single run",
+			},
+			"client_debug_path": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", nil),
+				Description: "govomomi debug path for debug",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -76,6 +94,9 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Password:      d.Get("password").(string),
 		InsecureFlag:  d.Get("allow_unverified_ssl").(bool),
 		VSphereServer: server,
+		Debug:         d.Get("client_debug").(bool),
+		DebugPathRun:  d.Get("client_debug_path_run").(string),
+		DebugPath:     d.Get("client_debug_path").(string),
 	}
 
 	return config.Client()

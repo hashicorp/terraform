@@ -348,7 +348,7 @@ Usage: terraform remote config [options]
 Options:
 
   -backend=Atlas         Specifies the type of remote backend. Must be one
-                         of Atlas, Consul, Etcd, HTTP, S3, or Swift. Defaults
+                         of Atlas, Consul, Etcd, GCS, HTTP, S3, or Swift. Defaults
                          to Atlas.
 
   -backend-config="k=v"  Specifies configuration for the remote storage

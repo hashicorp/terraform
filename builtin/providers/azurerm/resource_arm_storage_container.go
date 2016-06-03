@@ -19,30 +19,30 @@ func resourceArmStorageContainer() *schema.Resource {
 		Delete: resourceArmStorageContainerDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateArmStorageContainerName,
 			},
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"storage_account_name": &schema.Schema{
+			"storage_account_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"container_access_type": &schema.Schema{
+			"container_access_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				Default:      "private",
 				ValidateFunc: validateArmStorageContainerAccessType,
 			},
-			"properties": &schema.Schema{
+			"properties": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},

@@ -44,8 +44,9 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 
 			"engine": &schema.Schema{
@@ -63,6 +64,13 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+			},
+
+			"character_set_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"storage_encrypted": &schema.Schema{
@@ -503,6 +511,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		}
 
+		if attr, ok := d.GetOk("character_set_name"); ok {
+			opts.CharacterSetName = aws.String(attr.(string))
+		}
+
 		if attr, ok := d.GetOk("maintenance_window"); ok {
 			opts.PreferredMaintenanceWindow = aws.String(attr.(string))
 		}
@@ -648,6 +660,10 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("kms_key_id", v.KmsKeyId)
 	if v.DBSubnetGroup != nil {
 		d.Set("db_subnet_group_name", v.DBSubnetGroup.DBSubnetGroupName)
+	}
+
+	if v.CharacterSetName != nil {
+		d.Set("character_set_name", v.CharacterSetName)
 	}
 
 	if len(v.DBParameterGroups) > 0 {
