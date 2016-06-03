@@ -25,6 +25,7 @@ var (
 		"user_script":          "user-script",
 		"user_data":            "user-data",
 		"administrator_pw":     "administrator-pw",
+		"triton_cns_status":    "triton.cns.status",
 	}
 )
 
@@ -167,6 +168,20 @@ func resourceMachine() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 			},
+			"triton_cns_status": {
+				Description: "up/down flag to control Triton's CNS",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "up",
+			},
+			"domain_names": {
+				Description: "list of domain names from Triton's CNS",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 
 			// computed resources from metadata
 			"root_authorized_keys": {
@@ -229,18 +244,13 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	tags := map[string]string{}
-	for k, v := range d.Get("tags").(map[string]interface{}) {
-		tags[k] = v.(string)
-	}
-
 	machine, err := client.CreateMachine(cloudapi.CreateMachineOpts{
 		Name:            d.Get("name").(string),
 		Package:         d.Get("package").(string),
 		Image:           d.Get("image").(string),
 		Networks:        networks,
 		Metadata:        metadata,
-		Tags:            tags,
+		Tags:            tagsToTritonTags(d.Get("tags").(map[string]interface{})),
 		FirewallEnabled: d.Get("firewall_enabled").(bool),
 	})
 	if err != nil {
@@ -291,13 +301,14 @@ func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("memory", machine.Memory)
 	d.Set("disk", machine.Disk)
 	d.Set("ips", machine.IPs)
-	d.Set("tags", machine.Tags)
+	d.Set("tags", tagsFromTritonTags(machine.Tags))
 	d.Set("created", machine.Created)
 	d.Set("updated", machine.Updated)
 	d.Set("package", machine.Package)
 	d.Set("image", machine.Image)
 	d.Set("primaryip", machine.PrimaryIP)
 	d.Set("firewall_enabled", machine.FirewallEnabled)
+	d.Set("domain_names", machine.DomainNames)
 
 	// create and update NICs
 	var (
@@ -356,10 +367,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("tags") {
-		tags := map[string]string{}
-		for k, v := range d.Get("tags").(map[string]interface{}) {
-			tags[k] = v.(string)
-		}
+		tags := tagsToTritonTags(d.Get("tags").(map[string]interface{}))
 
 		var err error
 		if len(tags) == 0 {
