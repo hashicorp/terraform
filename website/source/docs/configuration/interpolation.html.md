@@ -183,11 +183,11 @@ The supported built-in functions are:
 
   * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-1 hash of the given string.
-    Example: `"${sha1(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+    Example: `"${sha1("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
   * `sha256(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-256 hash of the given string.
-    Example: `"${sha256(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+    Example: `"${sha256("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
   * `signum(int)` - Returns -1 for negative numbers, 0 for 0 and 1 for positive numbers.
       This function is useful when you need to set a value for the first resource and
