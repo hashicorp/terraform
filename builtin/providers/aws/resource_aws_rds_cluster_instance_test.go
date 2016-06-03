@@ -177,10 +177,25 @@ resource "aws_rds_cluster" "default" {
 }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {
-  identifier         = "tf-cluster-instance-%d"
-  cluster_identifier = "${aws_rds_cluster.default.id}"
-  instance_class     = "db.r3.large"
+  identifier              = "tf-cluster-instance-%d"
+  cluster_identifier      = "${aws_rds_cluster.default.id}"
+  instance_class          = "db.r3.large"
+  db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
 }
 
+resource "aws_db_parameter_group" "bar" {
+  name   = "tfcluster-test-group"
+  family = "aurora5.6"
+
+  parameter {
+    name         = "back_log"
+    value        = "32767"
+    apply_method = "pending-reboot"
+  }
+
+  tags {
+    foo = "bar"
+  }
+}
 `, n, n)
 }
