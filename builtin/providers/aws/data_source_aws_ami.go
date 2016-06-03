@@ -345,7 +345,6 @@ func amiBlockDeviceMappings(m []*ec2.BlockDeviceMapping) *schema.Set {
 			ebs := map[string]interface{}{
 				"delete_on_termination": fmt.Sprintf("%t", *v.Ebs.DeleteOnTermination),
 				"encrypted":             fmt.Sprintf("%t", *v.Ebs.Encrypted),
-				"snapshot_id":           *v.Ebs.SnapshotId,
 				"volume_size":           fmt.Sprintf("%d", *v.Ebs.VolumeSize),
 				"volume_type":           *v.Ebs.VolumeType,
 			}
@@ -355,6 +354,11 @@ func amiBlockDeviceMappings(m []*ec2.BlockDeviceMapping) *schema.Set {
 			} else {
 				ebs["iops"] = "0"
 			}
+			// snapshot id may not be set
+			if v.Ebs.SnapshotId != nil {
+				ebs["snapshot_id"] = *v.Ebs.SnapshotId
+			}
+
 			mapping["ebs"] = ebs
 		}
 		if v.VirtualName != nil {
@@ -422,7 +426,6 @@ func amiBlockDeviceMappingHash(v interface{}) int {
 			buf.WriteString(fmt.Sprintf("%s-", e["delete_on_termination"].(string)))
 			buf.WriteString(fmt.Sprintf("%s-", e["encrypted"].(string)))
 			buf.WriteString(fmt.Sprintf("%s-", e["iops"].(string)))
-			buf.WriteString(fmt.Sprintf("%s-", e["snapshot_id"].(string)))
 			buf.WriteString(fmt.Sprintf("%s-", e["volume_size"].(string)))
 			buf.WriteString(fmt.Sprintf("%s-", e["volume_type"].(string)))
 		}
@@ -431,6 +434,9 @@ func amiBlockDeviceMappingHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", d.(string)))
 	}
 	if d, ok := m["virtual_name"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", d.(string)))
+	}
+	if d, ok := m["snapshot_id"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", d.(string)))
 	}
 	return hashcode.String(buf.String())
