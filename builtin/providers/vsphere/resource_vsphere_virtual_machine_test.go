@@ -1005,6 +1005,34 @@ func TestAccVSphereVirtualMachine_updateDRSDisks(t *testing.T) {
 	})
 }
 
+////
+// Create a vm on drs
+////
+func TestAccVSphereVirtualMachine_createVMOnDRS(t *testing.T) {
+	var vm virtualMachine
+	basic_vars := setupTemplateBasicBodyVars()
+
+	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) + close_p
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_basic_drs+close_p)
+
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testBasicPreCheckSRS(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "1"}.testCheckFuncBasic(),
+				),
+			},
+		},
+	})
+}
+
 const testAccCheckVSphereVirtualMachineConfig_mac_address = `
 resource "vsphere_virtual_machine" "mac_address" {
     name = "terraform-mac-address"
