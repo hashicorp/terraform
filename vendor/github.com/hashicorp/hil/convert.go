@@ -9,7 +9,7 @@ import (
 
 func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 	var stringVal string
-	if err := mapstructure.WeakDecode(input, &stringVal); err == nil {
+	if err := mapstructure.Decode(input, &stringVal); err == nil {
 		return ast.Variable{
 			Type:  ast.TypeString,
 			Value: stringVal,
@@ -17,7 +17,7 @@ func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 	}
 
 	var mapVal map[string]interface{}
-	if err := mapstructure.WeakDecode(input, &mapVal); err == nil {
+	if err := mapstructure.Decode(input, &mapVal); err == nil {
 		elements := make(map[string]ast.Variable)
 		for i, element := range mapVal {
 			varElement, err := InterfaceToVariable(element)
@@ -34,7 +34,7 @@ func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 	}
 
 	var sliceVal []interface{}
-	if err := mapstructure.WeakDecode(input, &sliceVal); err == nil {
+	if err := mapstructure.Decode(input, &sliceVal); err == nil {
 		elements := make([]ast.Variable, len(sliceVal))
 		for i, element := range sliceVal {
 			varElement, err := InterfaceToVariable(element)
