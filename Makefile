@@ -4,6 +4,11 @@ GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
 default: test vet
 
+tools:
+	go get -u github.com/kardianos/govendor
+	go get -u golang.org/x/tools/cmd/stringer
+	go get -u golang.org/x/tools/cmd/cover
+
 # bin generates the releaseable binaries for Terraform
 bin: fmtcheck generate
 	@TF_RELEASE=1 sh -c "'$(CURDIR)/scripts/build.sh'"
@@ -60,9 +65,6 @@ cover:
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
 vet:
-	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
-		go get golang.org/x/tools/cmd/vet; \
-	fi
 	@echo "go tool vet $(VETARGS) ."
 	@go tool vet $(VETARGS) $$(ls -d */ | grep -v vendor) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
@@ -86,4 +88,4 @@ fmt:
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
-.PHONY: bin default generate test vet fmt fmtcheck
+.PHONY: bin default generate test vet fmt fmtcheck tools
