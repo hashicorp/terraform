@@ -73,6 +73,7 @@ IMPROVEMENTS:
  * provider/openstack: Implement fixed_ip on Neutron floating ip allocations [GH-6837] 
  * provider/openstack: Increase timeouts for image resize, subnets, and routers [GH-6764]
  * provider/openstack: Add `lb_provider` argument to `lb_pool_v1` resource [GH-6919]
+ * provider/openstack: Enforce `ForceNew` on Instance Block Device [GH-6921]
  * provider/vsphere: Add support for `controller_type` to `vsphere_virtual_machine` [GH-6785]
  * provider/vsphere: Fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  * provider/vsphere: Virtual machine update disk [GH-6619]
