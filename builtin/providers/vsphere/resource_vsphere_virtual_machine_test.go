@@ -68,6 +68,7 @@ func setupBaseVars() (string, string) {
 		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
 	}
 	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		// TODO do we need the \n here??
 		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
 	}
 
@@ -172,6 +173,17 @@ func (body TemplateBasicBodyVars) testSprintfTemplateBody(template string) strin
 		body.ipv4Gateway,
 		body.datastoreOpt,
 		body.template,
+	)
+}
+
+// Takes a base template that has seven "%s" values in it, used by most fixed ip
+// tests
+func (body TemplateBasicBodyVars) testSprintfTemplateDisk(s string, diskName string) string {
+
+	return fmt.Sprintf(
+		s,
+		body.datastoreOpt,
+		diskName,
 	)
 }
 
@@ -839,6 +851,9 @@ resource "vsphere_virtual_machine" "foo" {
 	name = "three"
     }
 }
+
+
+
 `
 const testAccCheckVSphereVirtualMachineConfig_basic = `
 resource "vsphere_virtual_machine" "foo" {
@@ -889,6 +904,99 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 			},
 			resource.TestStep{
 				Config: config_del,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "1"}.testCheckFuncBasic(),
+				),
+			},
+		},
+	})
+}
+
+const testAccCheckVSphereVirtualMachineConfig_basic_drs = `
+resource "vsphere_virtual_machine" "foo" {
+    name = "terraform-test"
+    use_sdrs = true
+` + testAccTemplateBasicBody
+
+const testAccCheckVSphereVirtualMachineConfig_basic_drs_disk = `
+    disk {
+        size = 1
+        iops = 500
+%s
+	name = "%s"
+    }
+`
+const close_p = `
+	}`
+
+func testBasicPreCheckSRS(t *testing.T) {
+
+	testAccPreCheck(t)
+
+	if v := os.Getenv("VSPHERE_USE_SDRS"); v == "" {
+		t.Skip(
+			"ENV variable VSPHERE_USE_SDRS must be set for this integration test, you need a storage pod",
+		)
+	}
+}
+
+////
+// Create a vm with two disk via drs, add two more disks, and then delete three disks
+////
+func TestAccVSphereVirtualMachine_updateDRSDisks(t *testing.T) {
+	var vm virtualMachine
+	basic_vars := setupTemplateBasicBodyVars()
+
+	config_disk_2 := basic_vars.testSprintfTemplateDisk(
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk, "two")
+	config_disk_3 := config_disk_2 + basic_vars.testSprintfTemplateDisk(
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk, "three")
+
+	config_two_disks := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) +
+		config_disk_2 + close_p
+
+	config_four_disks := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) +
+		config_disk_3 + close_p
+
+	config_one_disk := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) +
+		close_p
+
+	s1 := testAccCheckVSphereVirtualMachineConfig_basic_drs +
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk + close_p
+	log.Printf("[DEBUG] template= %s", s1)
+
+	s2 := testAccCheckVSphereVirtualMachineConfig_basic_drs +
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk +
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk +
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk + close_p
+
+	log.Printf("[DEBUG] template= %s", s2)
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_basic_drs+close_p)
+
+	log.Printf("[DEBUG] template config= %s", config_two_disks)
+	log.Printf("[DEBUG] template config= %s", config_four_disks)
+	log.Printf("[DEBUG] template config= %s", config_one_disk)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testBasicPreCheckSRS(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config_two_disks,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "2"}.testCheckFuncBasic(),
+				),
+			},
+			resource.TestStep{
+				Config: config_four_disks,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "4"}.testCheckFuncBasic(),
+				),
+			},
+			resource.TestStep{
+				Config: config_one_disk,
 				Check: resource.ComposeTestCheckFunc(
 					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "1"}.testCheckFuncBasic(),
 				),
