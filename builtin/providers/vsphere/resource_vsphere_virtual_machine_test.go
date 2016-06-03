@@ -29,9 +29,10 @@ func testBasicPreCheck(t *testing.T) {
 
 	testAccPreCheck(t)
 
-	if v := os.Getenv("VSPHERE_TEMPLATE"); v == "" {
-		t.Fatal("env variable VSPHERE_TEMPLATE must be set for acceptance tests")
-	}
+	// TODO determine which tests we need this
+	//if v := os.Getenv("VSPHERE_TEMPLATE"); v == "" {
+	//	t.Fatal("env variable VSPHERE_TEMPLATE must be set for acceptance tests")
+	//}
 
 	if v := os.Getenv("VSPHERE_IPV4_GATEWAY"); v == "" {
 		t.Fatal("env variable VSPHERE_IPV4_GATEWAY must be set for acceptance tests")
@@ -39,6 +40,10 @@ func testBasicPreCheck(t *testing.T) {
 
 	if v := os.Getenv("VSPHERE_IPV4_ADDRESS"); v == "" {
 		t.Fatal("env variable VSPHERE_IPV4_ADDRESS must be set for acceptance tests")
+	}
+
+	if v := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP"); v == "" {
+		t.Fatal("env variable VSPHERE_NETWORK_LABEL_DHCP must be set for acceptance tests")
 	}
 
 	if v := os.Getenv("VSPHERE_NETWORK_LABEL"); v == "" {

@@ -325,6 +325,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Computed: true,
 						},
 
+						// TODO validate adapter types here
 						"adapter_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -990,6 +991,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			networkInterface := make(map[string]interface{})
 			networkInterface["label"] = v.Network
 			networkInterface["mac_address"] = v.MacAddress
+<<<<<<< Updated upstream
 			for _, ip := range v.IpConfig.IpAddress {
 				p := net.ParseIP(ip.IpAddress)
 				if p.To4() != nil {
@@ -1002,6 +1004,26 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 					log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
 					networkInterface["ipv6_address"] = p.String()
 					networkInterface["ipv6_prefix_length"] = ip.PrefixLength
+=======
+			// Fixing https://github.com/hashicorp/terraform/issues/5945
+			if v.IpConfig != nil && v.IpConfig.IpAddress != nil {
+				for _, ip := range v.IpConfig.IpAddress {
+					if ip.IpAddress != "" {
+						p := net.ParseIP(ip.IpAddress)
+						if p.To4() != nil {
+							log.Printf("[DEBUG] p.String - %#v", p.String())
+							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
+							networkInterface["ipv4_address"] = p.String()
+							networkInterface["ipv4_prefix_length"] = ip.PrefixLength
+						} else if p.To16() != nil {
+							log.Printf("[DEBUG] p.String - %#v", p.String())
+							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
+							networkInterface["ipv6_address"] = p.String()
+							networkInterface["ipv6_prefix_length"] = ip.PrefixLength
+						}
+						log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
+					}
+>>>>>>> Stashed changes
 				}
 				log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
 			}
@@ -1266,6 +1288,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress st
 		address_type = string(types.VirtualEthernetCardMacTypeManual)
 	}
 
+	// TODO: validate this in "adapter_type": &schema
 	if adapterType == "vmxnet3" {
 		return &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
