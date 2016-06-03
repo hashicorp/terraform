@@ -16,7 +16,7 @@ Creates a new storage container within a given storage service on Azure.
 resource "azure_storage_container" "stor-cont" {
     name = "terraform-storage-container"
     container_access_type = "blob"
-    storage_service_name = "tfstorserv"
+    storage_account_name = "tfstorserv"
 }
 ````
 
@@ -27,7 +27,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the storage container. Must be unique within
     the storage service the container is located.
 
-* `storage_service_name` - (Required) The name of the storage service within
+* `storage_account_name` - (Required) The name of the storage service within
     which the storage container should be created.
 
 * `container_access_type` - (Required) The 'interface' for access the container
