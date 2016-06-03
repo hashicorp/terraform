@@ -16,6 +16,10 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
+ * **Data sources** are a new kind of primitive in Terraform. Attributes for data sources are refreshed and available during the planning stage. [GH-6598]
+ * **Lists and maps** can now be used as first class types for variables and may also be passed between modules. [GH-6322]
+ * **State management CLI commands** provide a variety of state manipulation functions for advanced use cases. This should be used where possible instead of manually modifying state files. [GH-5811]
+ 
  * **New Command:** `terraform state` to provide access to a variety of state manipulation functions [GH-5811]
  * **New Data Source:** `aws_ami` [GH-6911]
  * **New Data Source:** `aws_availability_zones` [GH-6805]
@@ -31,8 +35,6 @@ FEATURES:
  * **New Resource:** `openstack_blockstorage_volume_v2` [GH-6693]
  * **New Resource:** `vsphere_virtual_disk` [GH-6273]
  * **New Resource:** `github_repository_collaborator` [GH-6861]
- * core: Data Resources are now supported. Values are refreshed, and available during the planning stage [GH-6598]
- * core: Lists and maps can now be used as first class types for variables, and may be passed between modules [GH-6322]
  * core: Tainted resources now show up in the plan and respect dependency ordering [GH-6600]
  * core: The `lookup` interpolation function can now have a default fall-back value specified [GH-6884]
  * core: The `terraform plan` command no longer persists state. [GH-6811]
