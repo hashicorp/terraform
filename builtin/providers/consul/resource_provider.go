@@ -26,6 +26,27 @@ func Provider() terraform.ResourceProvider {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
+			"tls": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ca_file": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"cert_file": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"key_file": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
