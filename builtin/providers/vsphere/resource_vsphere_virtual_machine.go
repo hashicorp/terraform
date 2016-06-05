@@ -111,6 +111,9 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		Update: resourceVSphereVirtualMachineUpdate,
 		Delete: resourceVSphereVirtualMachineDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceVSphereVirtualMachineMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
