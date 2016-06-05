@@ -1987,10 +1987,10 @@ func TestResourceDataState(t *testing.T) {
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "2",
-					"config_vars.0.#":   "2",
+					"config_vars.0.%":   "2",
 					"config_vars.0.foo": "bar",
 					"config_vars.0.bar": "bar",
-					"config_vars.1.#":   "1",
+					"config_vars.1.%":   "1",
 					"config_vars.1.bar": "baz",
 				},
 			},
@@ -2017,9 +2017,9 @@ func TestResourceDataState(t *testing.T) {
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "2",
-					"config_vars.0.#":   "1",
+					"config_vars.0.%":   "1",
 					"config_vars.0.foo": "bar",
-					"config_vars.1.#":   "1",
+					"config_vars.1.%":   "1",
 					"config_vars.1.baz": "bang",
 				},
 			},
@@ -2444,10 +2444,10 @@ func TestResourceDataState(t *testing.T) {
 				Attributes: map[string]string{
 					// TODO: broken, shouldn't bar be removed?
 					"config_vars.#":     "2",
-					"config_vars.0.#":   "2",
+					"config_vars.0.%":   "2",
 					"config_vars.0.foo": "bar",
 					"config_vars.0.bar": "bar",
-					"config_vars.1.#":   "1",
+					"config_vars.1.%":   "1",
 					"config_vars.1.bar": "baz",
 				},
 			},
@@ -2551,7 +2551,7 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"tags.#":    "1",
+					"tags.%":    "1",
 					"tags.Name": "foo",
 				},
 			},
@@ -2584,7 +2584,7 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"tags.#": "0",
+					"tags.%": "0",
 				},
 			},
 		},
@@ -2690,7 +2690,7 @@ func TestResourceDataState(t *testing.T) {
 				Attributes: map[string]string{
 					"ports.#":           "1",
 					"ports.10.index":    "10",
-					"ports.10.uuids.#":  "1",
+					"ports.10.uuids.%":  "1",
 					"ports.10.uuids.80": "value",
 				},
 			},
@@ -2831,7 +2831,7 @@ func TestResourceDataState(t *testing.T) {
 				Attributes: map[string]string{
 					"ports.#":          "1",
 					"ports.0.index":    "10",
-					"ports.0.uuids.#":  "1",
+					"ports.0.uuids.%":  "1",
 					"ports.0.uuids.80": "value",
 				},
 			},

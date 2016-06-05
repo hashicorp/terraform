@@ -294,7 +294,7 @@ func TestInterpolator_resourceMultiAttributes(t *testing.T) {
 								"name_servers.3": "ns-601.awsdns-11.net",
 								"listeners.#":    "1",
 								"listeners.0":    "red",
-								"tags.#":         "1",
+								"tags.%":         "1",
 								"tags.Name":      "reindeer",
 								"nothing.#":      "0",
 							},
@@ -529,7 +529,7 @@ func testInterpolate(
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		spew.Config.DisableMethods = true
-		t.Fatalf("%q: actual: %#v\nexpected: %#v\n\n%s\n\n%s\n\n", n, actual, expected,
+		t.Fatalf("%q:\n\n  actual: %#v\nexpected: %#v\n\n%s\n\n%s\n\n", n, actual, expected,
 			spew.Sdump(actual), spew.Sdump(expected))
 	}
 }

@@ -162,7 +162,7 @@ func TestResourceApply_destroyCreate(t *testing.T) {
 		Attributes: map[string]string{
 			"id":        "foo",
 			"foo":       "42",
-			"tags.#":    "1",
+			"tags.%":    "1",
 			"tags.Name": "foo",
 		},
 	}

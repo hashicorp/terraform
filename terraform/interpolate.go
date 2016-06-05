@@ -353,6 +353,10 @@ func (i *Interpolater) computeResourceVariable(
 
 	unknownVariable := unknownVariable()
 
+	// These variables must be declared early because of the use of GOTO
+	var isList bool
+	var isMap bool
+
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
 	module, _, err := i.resourceVariableInfo(scope, v)
@@ -388,7 +392,9 @@ func (i *Interpolater) computeResourceVariable(
 	}
 
 	// computed list or map attribute
-	if _, ok := r.Primary.Attributes[v.Field+".#"]; ok {
+	_, isList = r.Primary.Attributes[v.Field+".#"]
+	_, isMap = r.Primary.Attributes[v.Field+".%"]
+	if isList || isMap {
 		variable, err := i.interpolateComplexTypeAttribute(v.Field, r.Primary.Attributes)
 		return &variable, err
 	}
@@ -566,49 +572,70 @@ func (i *Interpolater) interpolateComplexTypeAttribute(
 	resourceID string,
 	attributes map[string]string) (ast.Variable, error) {
 
-	attr := attributes[resourceID+".#"]
-	log.Printf("[DEBUG] Interpolating computed complex type attribute %s (%s)",
-		resourceID, attr)
+	// We can now distinguish between lists and maps in state by the count field:
+	//    - lists (and by extension, sets) use the traditional .# notation
+	//    - maps use the newer .% notation
+	// Consequently here we can decide how to deal with the keys appropriately
+	// based on whether the type is a map of list.
+	if lengthAttr, isList := attributes[resourceID+".#"]; isList {
+		log.Printf("[DEBUG] Interpolating computed list element attribute %s (%s)",
+			resourceID, lengthAttr)
 
-	// In Terraform's internal dotted representation of list-like attributes, the
-	// ".#" count field is marked as unknown to indicate "this whole list is
-	// unknown". We must honor that meaning here so computed references can be
-	// treated properly during the plan phase.
-	if attr == config.UnknownVariableValue {
-		return unknownVariable(), nil
-	}
-
-	// At this stage we don't know whether the item is a list or a map, so we
-	// examine the keys to see whether they are all numeric.
-	var numericKeys []string
-	var allKeys []string
-	numberedListKey := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
-	otherListKey := regexp.MustCompile("^" + resourceID + "\\.([^#]+)$")
-	for id, _ := range attributes {
-		if numberedListKey.MatchString(id) {
-			numericKeys = append(numericKeys, id)
+		// In Terraform's internal dotted representation of list-like attributes, the
+		// ".#" count field is marked as unknown to indicate "this whole list is
+		// unknown". We must honor that meaning here so computed references can be
+		// treated properly during the plan phase.
+		if lengthAttr == config.UnknownVariableValue {
+			return unknownVariable(), nil
 		}
-		if submatches := otherListKey.FindAllStringSubmatch(id, -1); len(submatches) > 0 {
-			allKeys = append(allKeys, submatches[0][1])
-		}
-	}
 
-	if len(numericKeys) == len(allKeys) {
-		// This is a list
+		var keys []string
+		listElementKey := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
+		for id, _ := range attributes {
+			if listElementKey.MatchString(id) {
+				keys = append(keys, id)
+			}
+		}
+
 		var members []string
-		for _, key := range numericKeys {
+		for _, key := range keys {
 			members = append(members, attributes[key])
 		}
+		// This behaviour still seems very broken to me... it retains BC but is
+		// probably going to cause problems in future
 		sort.Strings(members)
+
 		return hil.InterfaceToVariable(members)
-	} else {
-		// This is a map
+	}
+
+	if lengthAttr, isMap := attributes[resourceID+".%"]; isMap {
+		log.Printf("[DEBUG] Interpolating computed map element attribute %s (%s)",
+			resourceID, lengthAttr)
+
+		// In Terraform's internal dotted representation of map attributes, the
+		// ".%" count field is marked as unknown to indicate "this whole list is
+		// unknown". We must honor that meaning here so computed references can be
+		// treated properly during the plan phase.
+		if lengthAttr == config.UnknownVariableValue {
+			return unknownVariable(), nil
+		}
+
+		var keys []string
+		mapElementKey := regexp.MustCompile("^" + resourceID + "\\.([^%]+)$")
+		for id, _ := range attributes {
+			if submatches := mapElementKey.FindAllStringSubmatch(id, -1); len(submatches) > 0 {
+				keys = append(keys, submatches[0][1])
+			}
+		}
+
 		members := make(map[string]interface{})
-		for _, key := range allKeys {
+		for _, key := range keys {
 			members[key] = attributes[resourceID+"."+key]
 		}
 		return hil.InterfaceToVariable(members)
 	}
+
+	return ast.Variable{}, fmt.Errorf("No complex type %s found", resourceID)
 }
 
 func (i *Interpolater) resourceVariableInfo(
