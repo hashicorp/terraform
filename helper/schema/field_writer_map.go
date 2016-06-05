@@ -165,7 +165,7 @@ func (w *MapFieldWriter) setMap(
 	}
 
 	// Set the count
-	w.result[k+".#"] = strconv.Itoa(len(vs))
+	w.result[k+".%"] = strconv.Itoa(len(vs))
 
 	return nil
 }
