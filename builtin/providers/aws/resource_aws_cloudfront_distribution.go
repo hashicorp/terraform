@@ -23,6 +23,9 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 			State: resourceAwsCloudFrontDistributionImport,
 		},
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsCloudFrontDistributionMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"arn": {
 				Type:     schema.TypeString,
