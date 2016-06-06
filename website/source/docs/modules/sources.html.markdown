@@ -29,6 +29,8 @@ Terraform supports the following sources:
 
   * HTTP URLs
 
+Note that all remote modules are git-based.  The `HTTP URL` source redirects terraform to use another one of the sources.
+
 Each is documented further below.
 
 ## Local File Paths
@@ -194,8 +196,9 @@ parameters:
 
 ## HTTP URLs
 
-Any HTTP endpoint can serve up Terraform modules. For HTTP URLs (SSL is
-supported, as well), Terraform will make a GET request to the given URL.
+An HTTP URL can be used to redirect Terraform to get the module source from 
+one of the other sources.  For HTTP URLs (SSL is supported, as well), 
+Terraform will make a GET request to the given URL.
 An additional GET parameter `terraform-get=1` will be appended, allowing
 you to optionally render the page differently when Terraform is requesting it.
 
@@ -206,7 +209,13 @@ the source URL of the actual module. This will be used.
 
 If the header isn't present, Terraform will look for a `<meta>` tag
 with the name of "terraform-get". The value will be used as the source
-URL.
+URL.  
+
+Example:
+
+```
+<meta name=“terraform-get” content="github.com/hashicorp/example" />
+```
 
 ## Forced Source Type
 
