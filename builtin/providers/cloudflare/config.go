@@ -3,8 +3,7 @@ package cloudflare
 import (
 	"log"
 
-	// NOTE: Temporary until they merge my PR:
-	"github.com/mitchellh/cloudflare-go"
+	"github.com/cloudflare/cloudflare-go"
 )
 
 type Config struct {
