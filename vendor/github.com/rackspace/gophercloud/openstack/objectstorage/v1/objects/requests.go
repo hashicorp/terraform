@@ -155,6 +155,7 @@ type CreateOptsBuilder interface {
 // CreateOpts is a structure that holds parameters for creating an object.
 type CreateOpts struct {
 	Metadata           map[string]string
+	CacheControl       string `h:"Cache-Control"`
 	ContentDisposition string `h:"Content-Disposition"`
 	ContentEncoding    string `h:"Content-Encoding"`
 	ContentLength      int64  `h:"Content-Length"`
