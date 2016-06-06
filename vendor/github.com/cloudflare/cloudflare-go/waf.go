@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ListWAFPackages returns a slice of the WAF packages for the given zone.
 func (api *API) ListWAFPackages(zoneID string) ([]WAFPackage, error) {
 	var p WAFPackagesResponse
 	var packages []WAFPackage
@@ -24,12 +25,13 @@ func (api *API) ListWAFPackages(zoneID string) ([]WAFPackage, error) {
 		// TODO: Provide an actual error message instead of always returning nil
 		return []WAFPackage{}, err
 	}
-	for pi, _ := range p.Result {
+	for pi := range p.Result {
 		packages = append(packages, p.Result[pi])
 	}
 	return packages, nil
 }
 
+// ListWAFRules returns a slice of the WAF rules for the given WAF package.
 func (api *API) ListWAFRules(zoneID, packageID string) ([]WAFRule, error) {
 	var r WAFRulesResponse
 	var rules []WAFRule
@@ -48,7 +50,7 @@ func (api *API) ListWAFRules(zoneID, packageID string) ([]WAFRule, error) {
 		// TODO: Provide an actual error message instead of always returning nil
 		return []WAFRule{}, err
 	}
-	for ri, _ := range r.Result {
+	for ri := range r.Result {
 		rules = append(rules, r.Result[ri])
 	}
 	return rules, nil
