@@ -12,19 +12,26 @@ import (
 )
 
 type Config struct {
-	Username         string
-	UserID           string
-	Password         string
-	Token            string
-	APIKey           string
-	IdentityEndpoint string
-	TenantID         string
-	TenantName       string
-	DomainID         string
-	DomainName       string
-	Insecure         bool
-	EndpointType     string
-	CACertFile       string
+	DefaultDomain     string
+	Username          string
+	UserID            string
+	UserDomainName    string
+	UserDomainID      string
+	Password          string
+	Token             string
+	APIKey            string
+	IdentityEndpoint  string
+	TenantID          string // The tenant_* keyword is deprecated as
+	TenantName        string // of the 1.7.0 release in favor of project_*
+	ProjectID         string
+	ProjectName       string
+	ProjectDomainID   string
+	ProjectDomainName string
+	DomainID          string
+	DomainName        string
+	Insecure          bool
+	EndpointType      string
+	CACertFile        string
 
 	osClient *gophercloud.ProviderClient
 }
@@ -38,17 +45,33 @@ func (c *Config) loadAndValidate() error {
 		return fmt.Errorf("Invalid endpoint type provided")
 	}
 
+	// Check if using the old tenant notation or the project notation
+	if c.TenantID != "" && c.ProjectID != "" ||
+		c.TenantName != "" && c.ProjectName != "" {
+		return fmt.Errorf("Please provide either a tenant ID/name or a projet ID/name")
+	} else if c.ProjectID != "" || c.ProjectName != "" {
+		// If using ProjectID/Name, overwrite TenantID/Name because gophercloud doesn't support
+		// ProjectID/Name yet.
+		c.TenantID = c.ProjectID
+		c.TenantName = c.ProjectName
+	}
+
 	ao := gophercloud.AuthOptions{
-		Username:         c.Username,
-		UserID:           c.UserID,
-		Password:         c.Password,
-		TokenID:          c.Token,
-		APIKey:           c.APIKey,
-		IdentityEndpoint: c.IdentityEndpoint,
-		TenantID:         c.TenantID,
-		TenantName:       c.TenantName,
-		DomainID:         c.DomainID,
-		DomainName:       c.DomainName,
+		DefaultDomain:     c.DefaultDomain,
+		Username:          c.Username,
+		UserID:            c.UserID,
+		UserDomainID:      c.UserDomainID,
+		UserDomainName:    c.UserDomainName,
+		Password:          c.Password,
+		TokenID:           c.Token,
+		APIKey:            c.APIKey,
+		IdentityEndpoint:  c.IdentityEndpoint,
+		TenantID:          c.TenantID,
+		TenantName:        c.TenantName,
+		ProjectDomainID:   c.ProjectDomainID,
+		ProjectDomainName: c.ProjectDomainName,
+		DomainID:          c.DomainID,
+		DomainName:        c.DomainName,
 	}
 
 	client, err := openstack.NewClient(ao.IdentityEndpoint)

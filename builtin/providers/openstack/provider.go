@@ -18,6 +18,11 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", nil),
 			},
+			"default_domain": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_DEFAULT_DOMAIN", ""),
+			},
 			"user_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -28,6 +33,16 @@ func Provider() terraform.ResourceProvider {
 				Optional: true,
 				Default:  "",
 			},
+			"user_domain_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_USER_DOMAIN_NAME", ""),
+			},
+			"user_domain_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_USER_DOMAIN_ID", ""),
+			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -37,6 +52,26 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_TENANT_NAME", nil),
+			},
+			"project_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_ID", nil),
+			},
+			"project_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_NAME", nil),
+			},
+			"project_domain_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_DOMAIN_ID", ""),
+			},
+			"project_domain_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_DOMAIN_NAME", ""),
 			},
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
@@ -112,19 +147,26 @@ func Provider() terraform.ResourceProvider {
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		IdentityEndpoint: d.Get("auth_url").(string),
-		Username:         d.Get("user_name").(string),
-		UserID:           d.Get("user_id").(string),
-		Password:         d.Get("password").(string),
-		Token:            d.Get("token").(string),
-		APIKey:           d.Get("api_key").(string),
-		TenantID:         d.Get("tenant_id").(string),
-		TenantName:       d.Get("tenant_name").(string),
-		DomainID:         d.Get("domain_id").(string),
-		DomainName:       d.Get("domain_name").(string),
-		Insecure:         d.Get("insecure").(bool),
-		EndpointType:     d.Get("endpoint_type").(string),
-		CACertFile:       d.Get("cacert_file").(string),
+		IdentityEndpoint:  d.Get("auth_url").(string),
+		DefaultDomain:     d.Get("default_domain").(string),
+		Username:          d.Get("user_name").(string),
+		UserID:            d.Get("user_id").(string),
+		UserDomainID:      d.Get("user_domain_id").(string),
+		UserDomainName:    d.Get("user_domain_name").(string),
+		Password:          d.Get("password").(string),
+		Token:             d.Get("token").(string),
+		APIKey:            d.Get("api_key").(string),
+		TenantID:          d.Get("tenant_id").(string),
+		TenantName:        d.Get("tenant_name").(string),
+		ProjectID:         d.Get("project_id").(string),
+		ProjectName:       d.Get("project_name").(string),
+		ProjectDomainID:   d.Get("project_domain_id").(string),
+		ProjectDomainName: d.Get("project_domain_name").(string),
+		DomainID:          d.Get("domain_id").(string),
+		DomainName:        d.Get("domain_name").(string),
+		Insecure:          d.Get("insecure").(bool),
+		EndpointType:      d.Get("endpoint_type").(string),
+		CACertFile:        d.Get("cacert_file").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {

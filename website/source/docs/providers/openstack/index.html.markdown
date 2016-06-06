@@ -59,11 +59,11 @@ The following arguments are supported:
     you can safely ignore this argument. If omitted, the `OS_API_KEY`
     environment variable is used.
 
-* `domain_id` - (Optional) If omitted, the `OS_DOMAIN_ID` environment
-    variable is used.
+* `project_id` - (Optional) Project-level authentication scope. If omitted,
+    the `OS_PROJECT_ID` environment variable is used.
 
-* `domain_name` - (Optional) If omitted, the `OS_DOMAIN_NAME`
-    environment variable is used.
+* `project_name` - (Optional) `project_id` alternative. If omitted,
+    the `OS_PROJECT_NAME` environment variable is used.
 
 * `tenant_id` - (Optional)
 
@@ -79,6 +79,32 @@ The following arguments are supported:
 * `endpoint_type` - (Optional) Specify which type of endpoint to use from the
     service catalog. It can be set using the OS_ENDPOINT_TYPE environment
     variable. If not set, public endpoints is used.
+
+Authenticating using Identity Server API v3:
+
+* `user_domain_id` - (Optional) If the user is specified by name, then the
+    domain id of the user must also be specified in order to uniquely identify
+    the user. If omitted, the `OS_USER_DOMAIN_ID` environment variable is used.
+
+* `user_domain_name` - (Optional) Alternatively to `user_domain_id`, the
+    domain name of the user may be used to uniquely identify the user. If
+    omitted, the `OS_USER_DOMAIN_NAME` environment variable is used.
+
+* `project_domain_id` - (Optional) Project scoping using the project domain
+    id. If omitted, the `OS_PROJECT_DOMAIN_ID` environment variable is used.
+
+* `project_domain_name` - (Optional) Project scoping using the project domain
+    name. If omitted, the `OS_PROJECT_DOMAIN_NAME` environment variable is used.
+
+* `domain_id` - (Optional) Domain scoping using the domain id. If omitted,
+    the `OS_DOMAIN_ID` environment variable is used.
+
+* `domain_name` - (Optional) Domain scoping using the domain name. If omitted,
+    the `OS_DOMAIN_NAME` environment variable is used.
+
+* `default_domain` - (Optional) Default domain id if the user and project
+    share the same domain. If omitted, the `OS_DEFAULT_DOMAIN` environment
+    variable is used. 
 
 ## Rackspace Compatibility
 
