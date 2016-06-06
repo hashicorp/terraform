@@ -255,6 +255,14 @@ func remoteState(
 				return nil, errwrap.Wrapf(
 					"Error preparing remote state: {{err}}", err)
 			}
+
+		case state.CacheRefreshConflict:
+			return nil, fmt.Errorf(
+				"%s.\n%s",
+				cache.RefreshResult(),
+				cacheRefreshConflictMessage,
+			)
+
 		default:
 			return nil, fmt.Errorf(
 				"Unknown refresh result: %s", cache.RefreshResult())
@@ -274,3 +282,30 @@ func remoteStateFromPath(path string, refresh bool) (*state.CacheState, error) {
 
 	return remoteState(localState, path, refresh)
 }
+
+// This is a scary but not-particularly-helpful error message. This situation
+// should not arise in legitimate usage, but if it *does* arise there isn't
+// really a "magic bullet" to fix it, so this message is primarily to explain
+// the gravity of the situation to the user.
+//
+// In future it would be nice to do more to prevent this situation from
+// arising. In medium-term, we could provide more elaborate advice on the
+// website and link to it here. For now, we're just focused on minimizing the
+// risk of accidental loss of state, so we do our best.
+const cacheRefreshConflictMessage = `
+This may mean that you have activated remote state while you already had
+resources locally, but the remote state also has resources. In this case,
+you must decide to keep either the local or remote resources.
+
+This may alternatively mean that two "refresh" or "apply" operations
+ran concurrently and have created divergent states. In this case, some
+resources may be duplicated across the two states.
+
+In either case, caution is advised. Your local state cache is preserved
+at .terraform/terraform.tfstate and it will not overwrite the remote until
+the confict is resolved.
+
+At this point it is safe to disable remote state, which will retain the
+local state on this computer and leave the remote state untouched:
+    terraform remote config -disable -pull=false
+`

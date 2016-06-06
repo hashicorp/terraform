@@ -417,8 +417,35 @@ func TestApply_plan(t *testing.T) {
 
 	planPath := testPlanFile(t, &terraform.Plan{
 		Module: testModule(t, "apply"),
+		State: &terraform.State{
+			Version: 2,
+			Lineage: "TestApply_plan",
+			Serial:  1,
+			Modules: []*terraform.ModuleState{
+				&terraform.ModuleState{
+					Path:      []string{"root"},
+					Resources: map[string]*terraform.ResourceState{},
+				},
+			},
+		},
 	})
-	statePath := testTempFile(t)
+
+	// Current state has the same lineage and serial as the plan state,
+	// so the plan is current and should apply successfully.
+	statePath := testStateFile(t, &terraform.State{
+		Version: 2,
+		Lineage: "TestApply_plan",
+		Serial:  1,
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path:      []string{"root"},
+				Resources: map[string]*terraform.ResourceState{},
+			},
+		},
+	})
+
+	stateContents, _ := ioutil.ReadFile(statePath)
+	os.Stderr.Write(stateContents)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -457,6 +484,94 @@ func TestApply_plan(t *testing.T) {
 	}
 	if state == nil {
 		t.Fatal("state should not be nil")
+	}
+}
+
+func TestApply_stalePlan(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = new(bytes.Buffer)
+	defaultInputWriter = new(bytes.Buffer)
+
+	planPath := testPlanFile(t, &terraform.Plan{
+		Module: testModule(t, "apply"),
+		State: &terraform.State{
+			Version: 2,
+			Lineage: "TestApply_stalePlan",
+			Serial:  1,
+		},
+	})
+
+	// Current state has a higher serial than the state in the
+	// plan, so the plan is "stale" and should fail to apply.
+	statePath := testStateFile(t, &terraform.State{
+		Version: 2,
+		Lineage: "TestApply_stalePlan",
+		Serial:  2,
+	})
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		planPath,
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("bad: succeeded, but wanted failure")
+	}
+}
+
+func TestApply_unrelatedPlan(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = new(bytes.Buffer)
+	defaultInputWriter = new(bytes.Buffer)
+
+	planPath := testPlanFile(t, &terraform.Plan{
+		Module: testModule(t, "apply"),
+		State: &terraform.State{
+			Version: 2,
+			Lineage: "TestApply_unrelatedPlan",
+			Serial:  1,
+		},
+	})
+
+	// Current state has a different lineage than plan, so the plan
+	// should fail to apply.
+	statePath := testStateFile(t, &terraform.State{
+		Version: 2,
+		Lineage: "TestApply_unrelatedPlan_other",
+		Serial:  1,
+	})
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		planPath,
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("bad: succeeded, but wanted failure")
 	}
 }
 

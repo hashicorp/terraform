@@ -339,6 +339,156 @@ func TestStateEqual(t *testing.T) {
 	}
 }
 
+func TestStateCompareAges(t *testing.T) {
+	cases := []struct {
+		Result   StateAgeComparison
+		Err      bool
+		One, Two *State
+	}{
+		{
+			StateAgeEqual, false,
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+		},
+		{
+			StateAgeReceiverOlder, false,
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+			&State{
+				Lineage: "1",
+				Serial:  3,
+			},
+		},
+		{
+			StateAgeReceiverNewer, false,
+			&State{
+				Lineage: "1",
+				Serial:  3,
+			},
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+		},
+		{
+			StateAgeEqual, true,
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+			&State{
+				Lineage: "2",
+				Serial:  2,
+			},
+		},
+		{
+			StateAgeEqual, true,
+			&State{
+				Lineage: "1",
+				Serial:  3,
+			},
+			&State{
+				Lineage: "2",
+				Serial:  2,
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		result, err := tc.One.CompareAges(tc.Two)
+
+		if err != nil && !tc.Err {
+			t.Errorf(
+				"%d: got error, but want success\n\n%s\n\n%s",
+				i, tc.One, tc.Two,
+			)
+			continue
+		}
+
+		if err == nil && tc.Err {
+			t.Errorf(
+				"%d: got success, but want error\n\n%s\n\n%s",
+				i, tc.One, tc.Two,
+			)
+			continue
+		}
+
+		if result != tc.Result {
+			t.Errorf(
+				"%d: got result %d, but want %d\n\n%s\n\n%s",
+				i, result, tc.Result, tc.One, tc.Two,
+			)
+			continue
+		}
+	}
+}
+
+func TestStateSameLineage(t *testing.T) {
+	cases := []struct {
+		Result   bool
+		One, Two *State
+	}{
+		{
+			true,
+			&State{
+				Lineage: "1",
+			},
+			&State{
+				Lineage: "1",
+			},
+		},
+		{
+			// Empty lineage is compatible with all
+			true,
+			&State{
+				Lineage: "",
+			},
+			&State{
+				Lineage: "1",
+			},
+		},
+		{
+			// Empty lineage is compatible with all
+			true,
+			&State{
+				Lineage: "1",
+			},
+			&State{
+				Lineage: "",
+			},
+		},
+		{
+			false,
+			&State{
+				Lineage: "1",
+			},
+			&State{
+				Lineage: "2",
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		result := tc.One.SameLineage(tc.Two)
+
+		if result != tc.Result {
+			t.Errorf(
+				"%d: got %v, but want %v\n\n%s\n\n%s",
+				i, result, tc.Result, tc.One, tc.Two,
+			)
+			continue
+		}
+	}
+}
+
 func TestStateIncrementSerialMaybe(t *testing.T) {
 	cases := map[string]struct {
 		S1, S2 *State
@@ -987,6 +1137,64 @@ func TestStateEmpty(t *testing.T) {
 	}
 }
 
+func TestStateHasResources(t *testing.T) {
+	cases := []struct {
+		In     *State
+		Result bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&State{},
+			false,
+		},
+		{
+			&State{
+				Remote: &RemoteState{Type: "foo"},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{
+						Resources: map[string]*ResourceState{
+							"foo.foo": &ResourceState{},
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.In.HasResources() != tc.Result {
+			t.Fatalf("bad %d %#v:\n\n%#v", i, tc.Result, tc.In)
+		}
+	}
+}
+
 func TestStateFromFutureTerraform(t *testing.T) {
 	cases := []struct {
 		In     string
@@ -1210,7 +1418,7 @@ func TestReadUpgradeState(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(actual, upgraded) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("bad: %#v; want %#v", actual, upgraded)
 	}
 }
 

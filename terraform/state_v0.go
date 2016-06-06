@@ -320,6 +320,12 @@ func (old *StateV0) upgrade() (*State, error) {
 	s := &State{}
 	s.init()
 
+	// "lineage" was not a concept in V0, so empty out the new
+	// lineage that s.init() just placed there or else different
+	// upgraders of the same state will end up with non-compatible
+	// lineages.
+	s.Lineage = ""
+
 	// Old format had no modules, so we migrate everything
 	// directly into the root module.
 	root := s.RootModule()
