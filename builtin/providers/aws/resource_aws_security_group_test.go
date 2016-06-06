@@ -504,7 +504,7 @@ func TestAccAWSSecurityGroup_generatedName(t *testing.T) {
 	})
 }
 
-func TestAccAWSSecurityGroup_DefaultEgress(t *testing.T) {
+func TestAccAWSSecurityGroup_DefaultEgress_VPC(t *testing.T) {
 
 	// VPC
 	resource.Test(t, resource.TestCase{
@@ -521,6 +521,9 @@ func TestAccAWSSecurityGroup_DefaultEgress(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSSecurityGroup_DefaultEgress_Classic(t *testing.T) {
 
 	// Classic
 	var group ec2.SecurityGroup
