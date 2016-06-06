@@ -138,7 +138,7 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	// It probably maybe worked, so store the ID now
 	d.SetId(disk.Name)
 
-	err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Creating Disk")
+	err = computeOperationWaitZone(config, op, project, d.Get("zone").(string), "Creating Disk")
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func resourceComputeDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	zone := d.Get("zone").(string)
-	err = computeOperationWaitZone(config, op, zone, "Creating Disk")
+	err = computeOperationWaitZone(config, op, project, zone, "Creating Disk")
 	if err != nil {
 		return err
 	}

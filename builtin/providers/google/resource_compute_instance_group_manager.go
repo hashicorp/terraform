@@ -176,7 +176,7 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 	d.SetId(manager.Name)
 
 	// Wait for the operation to complete
-	err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Creating InstanceGroupManager")
+	err = computeOperationWaitZone(config, op, project, d.Get("zone").(string), "Creating InstanceGroupManager")
 	if err != nil {
 		return err
 	}
@@ -247,7 +247,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		}
 
 		// Wait for the operation to complete
-		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
+		err = computeOperationWaitZone(config, op, project, d.Get("zone").(string), "Updating InstanceGroupManager")
 		if err != nil {
 			return err
 		}
@@ -269,7 +269,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		}
 
 		// Wait for the operation to complete
-		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
+		err = computeOperationWaitZone(config, op, project, d.Get("zone").(string), "Updating InstanceGroupManager")
 		if err != nil {
 			return err
 		}
@@ -296,7 +296,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 			}
 
 			// Wait for the operation to complete
-			err = computeOperationWaitZoneTime(config, op, d.Get("zone").(string),
+			err = computeOperationWaitZoneTime(config, op, project, d.Get("zone").(string),
 				managedInstanceCount*4, "Restarting InstanceGroupManagers instances")
 			if err != nil {
 				return err
@@ -323,7 +323,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		}
 
 		// Wait for the operation to complete:
-		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
+		err = computeOperationWaitZone(config, op, project, d.Get("zone").(string), "Updating InstanceGroupManager")
 		if err != nil {
 			return err
 		}
@@ -344,7 +344,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 			}
 
 			// Wait for the operation to complete
-			err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
+			err = computeOperationWaitZone(config, op, project, d.Get("zone").(string), "Updating InstanceGroupManager")
 			if err != nil {
 				return err
 			}
@@ -375,7 +375,7 @@ func resourceComputeInstanceGroupManagerDelete(d *schema.ResourceData, meta inte
 	currentSize := int64(d.Get("target_size").(int))
 
 	// Wait for the operation to complete
-	err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Deleting InstanceGroupManager")
+	err = computeOperationWaitZone(config, op, project, d.Get("zone").(string), "Deleting InstanceGroupManager")
 
 	for err != nil && currentSize > 0 {
 		if !strings.Contains(err.Error(), "timeout") {
@@ -397,7 +397,7 @@ func resourceComputeInstanceGroupManagerDelete(d *schema.ResourceData, meta inte
 
 		currentSize = instanceGroup.Size
 
-		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Deleting InstanceGroupManager")
+		err = computeOperationWaitZone(config, op, project, d.Get("zone").(string), "Deleting InstanceGroupManager")
 	}
 
 	d.SetId("")

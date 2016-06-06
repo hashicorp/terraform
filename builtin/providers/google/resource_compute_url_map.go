@@ -288,7 +288,7 @@ func resourceComputeUrlMapCreate(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error, failed to insert Url Map %s: %s", name, err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Insert Url Map")
+	err = computeOperationWaitGlobal(config, op, project, "Insert Url Map")
 
 	if err != nil {
 		return fmt.Errorf("Error, failed waitng to insert Url Map %s: %s", name, err)
@@ -651,7 +651,7 @@ func resourceComputeUrlMapUpdate(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error, failed to update Url Map %s: %s", name, err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Update Url Map")
+	err = computeOperationWaitGlobal(config, op, project, "Update Url Map")
 
 	if err != nil {
 		return fmt.Errorf("Error, failed waitng to update Url Map %s: %s", name, err)
@@ -676,7 +676,7 @@ func resourceComputeUrlMapDelete(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error, failed to delete Url Map %s: %s", name, err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Delete Url Map")
+	err = computeOperationWaitGlobal(config, op, project, "Delete Url Map")
 
 	if err != nil {
 		return fmt.Errorf("Error, failed waitng to delete Url Map %s: %s", name, err)
