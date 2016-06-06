@@ -2,6 +2,7 @@ package cloudflare
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -32,13 +33,13 @@ Valid IDs are:
   cache_level
   disable_apps
   disable_performance
+  disable_railgun
   disable_security
   edge_cache_ttl
   email_obfuscation
   forwarding_url
   ip_geolocation
   mirage
-  railgun
   rocket_loader
   security_level
   server_side_exclude
@@ -60,13 +61,13 @@ var PageRuleActions = map[string]string{
 	"cache_level":         "Cache Level",              // Value of type string
 	"disable_apps":        "Disable Apps",             // Value of type interface{}
 	"disable_performance": "Disable Performance",      // Value of type interface{}
+	"disable_railgun":     "Disable Railgun",          // Value of type string
 	"disable_security":    "Disable Security",         // Value of type interface{}
 	"edge_cache_ttl":      "Edge Cache TTL",           // Value of type int
 	"email_obfuscation":   "Email Obfuscation",        // Value of type string
 	"forwarding_url":      "Forwarding URL",           // Value of type map[string]interface
 	"ip_geolocation":      "IP Geolocation Header",    // Value of type string
 	"mirage":              "Mirage",                   // Value of type string
-	"railgun":             "Railgun",                  // Value of type string
 	"rocket_loader":       "Rocker Loader",            // Value of type string
 	"security_level":      "Security Level",           // Value of type string
 	"server_side_exclude": "Server Side Excludes",     // Value of type string
@@ -82,8 +83,8 @@ type PageRule struct {
 	Actions    []PageRuleAction `json:"actions"`
 	Priority   int              `json:"priority"`
 	Status     string           `json:"status"` // can be: active, paused
-	ModifiedOn string           `json:"modified_on,omitempty"`
-	CreatedOn  string           `json:"created_on,omitempty"`
+	ModifiedOn time.Time        `json:"modified_on,omitempty"`
+	CreatedOn  time.Time        `json:"created_on,omitempty"`
 }
 
 // PageRuleDetailResponse is the API response, containing a single PageRule.

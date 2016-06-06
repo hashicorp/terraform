@@ -531,6 +531,12 @@
 			"revision": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
 		},
 		{
+			"checksumSHA1": "JJWLM3YJwgJD4vOLZnOYi1C2k0E=",
+			"path": "github.com/cloudflare/cloudflare-go",
+			"revision": "746075f034254832ead032aee02ac072636ff25a",
+			"revisionTime": "2016-06-01T21:42:51Z"
+		},
+		{
 			"comment": "v2.3.0-alpha.0-652-ge552791",
 			"path": "github.com/coreos/etcd/client",
 			"revision": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
@@ -988,10 +994,6 @@
 		{
 			"path": "github.com/mitchellh/cli",
 			"revision": "83f97d41cf100ee5f33944a8815c167d5e4aa272"
-		},
-		{
-			"path": "github.com/mitchellh/cloudflare-go",
-			"revision": "84c7a0993a06d555dbfddd2b32f5fa9b92fa1dc1"
 		},
 		{
 			"path": "github.com/mitchellh/colorstring",

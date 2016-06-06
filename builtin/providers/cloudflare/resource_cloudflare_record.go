@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/cloudflare/cloudflare-go"
 	"github.com/hashicorp/terraform/helper/schema"
-
-	// NOTE: Temporary until they merge my PR:
-	"github.com/mitchellh/cloudflare-go"
 )
 
 func resourceCloudFlareRecord() *schema.Resource {
