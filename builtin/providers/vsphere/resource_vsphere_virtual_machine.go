@@ -655,6 +655,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				}
 
 				log.Printf("[INFO] Attaching disk: %v", diskPath)
+				log.Printf("[INFO] Attaching datastore: %v", datastore)
 				err = addHardDisk(vm, size, iops, "thin", datastore, diskPath, controller_type)
 				if err != nil {
 					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
@@ -722,6 +723,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
+	log.SetFlags(log.Lshortfile)
 	client := meta.(*govmomi.Client)
 
 	vm := virtualMachine{
@@ -1309,7 +1311,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 			backing.ThinProvisioned = types.NewBool(true)
 		}
 
-		log.Printf("[DEBUG] addHardDisk: %#v\n", disk)
+		log.Printf("[DEBUG] addHardDisk: %s\n", disk)
 		log.Printf("[DEBUG] addHardDisk capacity: %#v\n", disk.CapacityInKB)
 
 		return vm.AddDevice(context.TODO(), disk)
@@ -1475,6 +1477,7 @@ func createCdroms(vm *object.VirtualMachine, cdroms []cdrom) error {
 }
 
 func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
+	log.SetFlags(log.Lshortfile)
 	dc, err := getDatacenter(c, vm.datacenter)
 
 	if err != nil {
