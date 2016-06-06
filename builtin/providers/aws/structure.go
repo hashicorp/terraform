@@ -207,6 +207,13 @@ func expandIPPerms(
 			}
 		}
 
+		if raw, ok := m["prefix_list_ids"]; ok {
+			list := raw.([]interface{})
+			for _, v := range list {
+				perm.PrefixListIds = append(perm.PrefixListIds, &ec2.PrefixListId{PrefixListId: aws.String(v.(string))})
+			}
+		}
+
 		perms[i] = &perm
 	}
 
