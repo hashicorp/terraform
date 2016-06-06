@@ -31,6 +31,7 @@ func resourceLocallySignedCert() *schema.Resource {
 		Required:    true,
 		Description: "PEM-encoded CA private key used to sign the certificate",
 		ForceNew:    true,
+		Sensitive:   true,
 		StateFunc: func(v interface{}) string {
 			return hashForState(v.(string))
 		},

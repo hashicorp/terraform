@@ -46,6 +46,7 @@ func dataSourceCertRequest() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "PEM-encoded private key that the certificate will belong to",
+				Sensitive:   true,
 				StateFunc: func(v interface{}) string {
 					return hashForState(v.(string))
 				},
