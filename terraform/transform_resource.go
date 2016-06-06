@@ -306,6 +306,7 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					ResourceMode: n.Resource.Mode,
 					Provider:     n.Resource.Provider,
 					Dependencies: n.StateDependencies(),
 					State:        &state,
@@ -351,6 +352,7 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					ResourceMode: n.Resource.Mode,
 					Provider:     n.Resource.Provider,
 					Dependencies: n.StateDependencies(),
 					State:        &state,
@@ -502,6 +504,7 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					ResourceMode: n.Resource.Mode,
 					Provider:     n.Resource.Provider,
 					Dependencies: n.StateDependencies(),
 					State:        &state,
@@ -525,6 +528,7 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Else: &EvalWriteState{
 						Name:         n.stateId(),
 						ResourceType: n.Resource.Type,
+						ResourceMode: n.Resource.Mode,
 						Provider:     n.Resource.Provider,
 						Dependencies: n.StateDependencies(),
 						State:        &state,
@@ -574,6 +578,7 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					ResourceMode: n.Resource.Mode,
 					Provider:     n.Resource.Provider,
 					Dependencies: n.StateDependencies(),
 					State:        &state, // state is nil here
@@ -629,6 +634,7 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					ResourceMode: n.Resource.Mode,
 					Provider:     n.Resource.Provider,
 					Dependencies: n.StateDependencies(),
 					State:        &state,
@@ -693,6 +699,7 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					ResourceMode: n.Resource.Mode,
 					Provider:     n.Resource.Provider,
 					Dependencies: n.StateDependencies(),
 					State:        &state,
@@ -795,6 +802,7 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					ResourceMode: n.Resource.Mode,
 					Provider:     n.Resource.Provider,
 					Dependencies: n.StateDependencies(),
 					State:        &state,
@@ -925,6 +933,7 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					ResourceMode: n.Resource.Mode,
 					Provider:     n.Resource.Provider,
 					Dependencies: n.StateDependencies(),
 					State:        &state,

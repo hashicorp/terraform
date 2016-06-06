@@ -3,6 +3,8 @@ package terraform
 import (
 	"sync"
 	"testing"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 func TestEvalRequireState(t *testing.T) {
@@ -160,6 +162,66 @@ restype.resname:
 	`)
 }
 
+func TestEvalWriteState_resourceModeDefault(t *testing.T) {
+	state := &State{}
+	ctx := new(MockEvalContext)
+	ctx.StateState = state
+	ctx.StateLock = new(sync.RWMutex)
+	ctx.PathPath = rootModulePath
+
+	is := &InstanceState{ID: "i-abc123"}
+	node := &EvalWriteState{
+		Name:         "restype.resname",
+		ResourceType: "restype",
+		ResourceMode: config.ManagedResourceMode,
+		State:        &is,
+	}
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("Got err: %#v", err)
+	}
+
+	expectedMode := ""
+	gotMode := state.Modules[0].Resources["restype.resname"].Mode
+	if gotMode != expectedMode {
+		t.Fatalf("Expected mode: %q, got: %q", expectedMode, gotMode)
+	}
+	checkStateString(t, state, `
+restype.resname:
+  ID = i-abc123
+	`)
+}
+
+func TestEvalWriteState_resourceModeData(t *testing.T) {
+	state := &State{}
+	ctx := new(MockEvalContext)
+	ctx.StateState = state
+	ctx.StateLock = new(sync.RWMutex)
+	ctx.PathPath = rootModulePath
+
+	is := &InstanceState{ID: "i-abc123"}
+	node := &EvalWriteState{
+		Name:         "restype.resname",
+		ResourceType: "restype",
+		ResourceMode: config.DataResourceMode,
+		State:        &is,
+	}
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("Got err: %#v", err)
+	}
+
+	expectedMode := "data"
+	gotMode := state.Modules[0].Resources["restype.resname"].Mode
+	if gotMode != expectedMode {
+		t.Fatalf("Expected mode: %q, got: %q", expectedMode, gotMode)
+	}
+	checkStateString(t, state, `
+restype.resname:
+  ID = i-abc123
+	`)
+}
+
 func TestEvalWriteStateDeposed(t *testing.T) {
 	state := &State{}
 	ctx := new(MockEvalContext)
@@ -177,6 +239,39 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 	_, err := node.Eval(ctx)
 	if err != nil {
 		t.Fatalf("Got err: %#v", err)
+	}
+
+	checkStateString(t, state, `
+restype.resname: (1 deposed)
+  ID = <not created>
+  Deposed ID 1 = i-abc123
+	`)
+}
+
+func TestEvalWriteStateDeposed_resourceModeData(t *testing.T) {
+	state := &State{}
+	ctx := new(MockEvalContext)
+	ctx.StateState = state
+	ctx.StateLock = new(sync.RWMutex)
+	ctx.PathPath = rootModulePath
+
+	is := &InstanceState{ID: "i-abc123"}
+	node := &EvalWriteStateDeposed{
+		Name:         "restype.resname",
+		ResourceType: "restype",
+		ResourceMode: config.DataResourceMode,
+		State:        &is,
+		Index:        -1,
+	}
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("Got err: %#v", err)
+	}
+
+	expectedMode := "data"
+	gotMode := state.Modules[0].Resources["restype.resname"].Mode
+	if gotMode != expectedMode {
+		t.Fatalf("Expected mode: %q, got: %q", expectedMode, gotMode)
 	}
 
 	checkStateString(t, state, `

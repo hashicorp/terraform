@@ -1,6 +1,10 @@
 package terraform
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/config"
+)
 
 // EvalReadState is an EvalNode implementation that reads the
 // primary InstanceState for a specific resource out of the state.
@@ -127,13 +131,14 @@ func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 type EvalWriteState struct {
 	Name         string
 	ResourceType string
+	ResourceMode config.ResourceMode
 	Provider     string
 	Dependencies []string
 	State        **InstanceState
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
-	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
+	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.ResourceMode, n.Provider, n.Dependencies,
 		func(rs *ResourceState) error {
 			rs.Primary = *n.State
 			return nil
@@ -146,6 +151,7 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 type EvalWriteStateDeposed struct {
 	Name         string
 	ResourceType string
+	ResourceMode config.ResourceMode
 	Provider     string
 	Dependencies []string
 	State        **InstanceState
@@ -154,7 +160,7 @@ type EvalWriteStateDeposed struct {
 }
 
 func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
-	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
+	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.ResourceMode, n.Provider, n.Dependencies,
 		func(rs *ResourceState) error {
 			if n.Index == -1 {
 				rs.Deposed = append(rs.Deposed, *n.State)
@@ -174,6 +180,7 @@ func writeInstanceToState(
 	ctx EvalContext,
 	resourceName string,
 	resourceType string,
+	resourceMode config.ResourceMode,
 	provider string,
 	dependencies []string,
 	writerFn func(*ResourceState) error,
@@ -203,6 +210,7 @@ func writeInstanceToState(
 	rs.Type = resourceType
 	rs.Dependencies = dependencies
 	rs.Provider = provider
+	rs.Mode = ResourceModeAsString(resourceMode)
 
 	if err := writerFn(rs); err != nil {
 		return nil, err

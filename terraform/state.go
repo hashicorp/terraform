@@ -1011,6 +1011,12 @@ type ResourceState struct {
 	// this value, it won't be persisted.
 	Type string `json:"type"`
 
+	// Mode indicates the config.ResourceMode of this resource. The default mode
+	// is a ManagedResourceMode, in which case this field will be omitted.
+	// Terraform core manages this value, resource providers should not interact
+	// with it.
+	Mode string `json:"mode,omitempty"`
+
 	// Dependencies are a list of things that this resource relies on
 	// existing to remain intact. For example: an AWS instance might
 	// depend on a subnet (which itself might depend on a VPC, and so
@@ -1537,4 +1543,29 @@ func (s moduleStateSort) Less(i, j int) bool {
 
 func (s moduleStateSort) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
+}
+
+// ResourceModeFromString parses a mode string as written to the state back
+// into a config.ResourceMode
+func ResourceModeFromString(s string) config.ResourceMode {
+	switch s {
+	case "data":
+		return config.DataResourceMode
+	default:
+		return config.ManagedResourceMode
+	}
+}
+
+// ResourceModeAsString stores a config.ResourceMode into a string suitable for
+// saving to the state.
+func ResourceModeAsString(mode config.ResourceMode) string {
+	switch mode {
+	case config.ManagedResourceMode:
+		// Normal resources just have this field omitted from the state.
+		return ""
+	case config.DataResourceMode:
+		return "data"
+	default:
+		panic(fmt.Sprintf("Unrecognized resource mode: %s", mode))
+	}
 }
