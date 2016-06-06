@@ -107,7 +107,7 @@ func resourceComputeForwardingRuleCreate(d *schema.ResourceData, meta interface{
 	// It probably maybe worked, so store the ID now
 	d.SetId(frule.Name)
 
-	err = computeOperationWaitRegion(config, op, region, "Creating Fowarding Rule")
+	err = computeOperationWaitRegion(config, op, project, region, "Creating Fowarding Rule")
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func resourceComputeForwardingRuleUpdate(d *schema.ResourceData, meta interface{
 			return fmt.Errorf("Error updating target: %s", err)
 		}
 
-		err = computeOperationWaitRegion(config, op, region, "Updating Forwarding Rule")
+		err = computeOperationWaitRegion(config, op, project, region, "Updating Forwarding Rule")
 		if err != nil {
 			return err
 		}
@@ -207,7 +207,7 @@ func resourceComputeForwardingRuleDelete(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error deleting ForwardingRule: %s", err)
 	}
 
-	err = computeOperationWaitRegion(config, op, region, "Deleting Forwarding Rule")
+	err = computeOperationWaitRegion(config, op, project, region, "Deleting Forwarding Rule")
 	if err != nil {
 		return err
 	}
