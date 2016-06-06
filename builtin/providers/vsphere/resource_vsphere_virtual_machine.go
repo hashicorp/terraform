@@ -73,6 +73,7 @@ type virtualMachine struct {
 	datacenter            string
 	cluster               string
 	resourcePool          string
+	hostSystem            string
 	datastore             string
 	vcpu                  int32
 	memoryMb              int64
@@ -154,6 +155,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			},
 
 			"resource_pool": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"host_system": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -642,6 +649,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("resource_pool"); ok {
 		vm.resourcePool = v.(string)
+	}
+
+	if v, ok := d.GetOk("host_system"); ok {
+		vm.hostSystem = v.(string)
 	}
 
 	if v, ok := d.GetOk("domain"); ok {
@@ -1286,7 +1297,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress st
 }
 
 // buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
-func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
+func buildVMRelocateSpec(rp *object.ResourcePool, hs *object.HostSystem, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
 	var key int32
 	var moveType string
 	if linkedClone {
@@ -1307,11 +1318,13 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 	}
 
 	isThin := initType == "thin"
+	hsr := hs.Reference()
 	rpr := rp.Reference()
 	dsr := ds.Reference()
 	return types.VirtualMachineRelocateSpec{
 		Datastore:    &dsr,
 		Pool:         &rpr,
+		Host:         &hsr,
 		DiskMoveType: moveType,
 		Disk: []types.VirtualMachineRelocateSpecDiskLocator{
 			{
@@ -1342,10 +1355,11 @@ func getDatastoreObject(client *govmomi.Client, f *object.DatacenterFolders, nam
 }
 
 // buildStoragePlacementSpecCreate builds StoragePlacementSpec for create action.
-func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
+func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, hs *object.HostSystem, storagePod object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
 	spr := storagePod.Reference()
+	hsr := hs.Reference()
 
 	sps := types.StoragePlacementSpec{
 		Type:       "create",
@@ -1355,16 +1369,18 @@ func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.Res
 		},
 		Folder:       &vmfr,
 		ResourcePool: &rpr,
+		Host:         &hsr,
 	}
 	log.Printf("[DEBUG] findDatastore: StoragePlacementSpec: %#v\n", sps)
 	return sps
 }
 
 // buildStoragePlacementSpecClone builds StoragePlacementSpec for clone action.
-func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod object.StoragePod) types.StoragePlacementSpec {
+func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, hs *object.HostSystem, storagePod object.StoragePod) types.StoragePlacementSpec {
 	vmr := vm.Reference()
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
+	hsr := hs.Reference()
 	spr := storagePod.Reference()
 
 	var o mo.VirtualMachine
@@ -1402,6 +1418,7 @@ func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolde
 					},
 				},
 				Pool: &rpr,
+				Host: &hsr,
 			},
 			PowerOn:  false,
 			Template: false,
@@ -1472,25 +1489,60 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	}
 
 	var resourcePool *object.ResourcePool
-	if vm.resourcePool == "" {
-		if vm.cluster == "" {
-			resourcePool, err = finder.DefaultResourcePool(context.TODO())
-			if err != nil {
-				return err
+	var hostSystem *object.HostSystem
+	if vm.hostSystem == "" {
+		if vm.resourcePool == "" {
+			if vm.cluster == "" {
+				resourcePool, err = finder.DefaultResourcePool(context.TODO())
+				if err != nil {
+					return err
+				}
+			} else {
+				resourcePool, err = finder.ResourcePool(context.TODO(), "*"+vm.cluster+"/Resources")
+				if err != nil {
+					return err
+				}
 			}
 		} else {
-			resourcePool, err = finder.ResourcePool(context.TODO(), "*"+vm.cluster+"/Resources")
+			resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
-		if err != nil {
-			return err
+		if vm.resourcePool == "" {
+			if vm.cluster == "" {
+				resourcePool, err = finder.DefaultResourcePool(context.TODO())
+				if err != nil {
+					return err
+				}
+				hostSystem, err = finder.HostSystem(context.TODO(), vm.hostSystem)
+				if err != nil {
+					return err
+				}
+			} else {
+				resourcePool, err = finder.ResourcePool(context.TODO(), "*"+vm.cluster+"/Resources")
+				if err != nil {
+					return err
+				}
+				hostSystem, err = finder.HostSystem(context.TODO(), "*"+vm.cluster+"/"+vm.hostSystem)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
+			if err != nil {
+				return err
+			}
+			hostSystem, err = finder.HostSystem(context.TODO(), "*"+vm.cluster+"/"+vm.hostSystem)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	log.Printf("[DEBUG] resource pool: %#v", resourcePool)
+	log.Printf("[DEBUG] host system: %#v", hostSystem)
 
 	dcFolders, err := dc.Folders(context.TODO())
 	if err != nil {
@@ -1567,9 +1619,9 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 				var sps types.StoragePlacementSpec
 				if vm.template != "" {
-					sps = buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
+					sps = buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, hostSystem, sp)
 				} else {
-					sps = buildStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
+					sps = buildStoragePlacementSpecCreate(dcFolders, resourcePool, hostSystem, sp, configSpec)
 				}
 
 				datastore, err = findDatastore(c, sps)
@@ -1687,7 +1739,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 	} else {
 
-		relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
+		relocateSpec, err := buildVMRelocateSpec(resourcePool, hostSystem, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
 		if err != nil {
 			return err
 		}
