@@ -1128,7 +1128,7 @@ func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
 	}
 }
 
-func TestReadUpgradeStateV1toV2(t *testing.T) {
+func TestReadUpgradeStateV1toV3(t *testing.T) {
 	// ReadState should transparently detect the old version but will upgrade
 	// it on Write.
 	actual, err := ReadState(strings.NewReader(testV1State))
@@ -1141,7 +1141,7 @@ func TestReadUpgradeStateV1toV2(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if actual.Version != 2 {
+	if actual.Version != 3 {
 		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
 	}
 
@@ -1155,7 +1155,7 @@ func TestReadUpgradeStateV1toV2(t *testing.T) {
 	}
 }
 
-func TestReadUpgradeStateV1toV2_outputs(t *testing.T) {
+func TestReadUpgradeStateV1toV3_outputs(t *testing.T) {
 	// ReadState should transparently detect the old version but will upgrade
 	// it on Write.
 	actual, err := ReadState(strings.NewReader(testV1StateWithOutputs))
@@ -1168,7 +1168,7 @@ func TestReadUpgradeStateV1toV2_outputs(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if actual.Version != 2 {
+	if actual.Version != 3 {
 		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
 	}
 
