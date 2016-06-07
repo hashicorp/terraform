@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -23,14 +24,18 @@ func resourceAwsIamRole() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
 			"unique_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
 					value := v.(string)
@@ -45,12 +50,33 @@ func resourceAwsIamRole() *schema.Resource {
 					return
 				},
 			},
+
+			"name_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
+					value := v.(string)
+					if len(value) > 32 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 32 characters, name is limited to 64", k))
+					}
+					if !regexp.MustCompile("^[\\w+=,.@-]*$").MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q must match [\\w+=,.@-]", k))
+					}
+					return
+				},
+			},
+
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
 				ForceNew: true,
 			},
+
 			"assume_role_policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -61,7 +87,15 @@ func resourceAwsIamRole() *schema.Resource {
 
 func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
-	name := d.Get("name").(string)
+
+	var name string
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		name = resource.PrefixedUniqueId(v.(string))
+	} else {
+		name = resource.UniqueId()
+	}
 
 	request := &iam.CreateRoleInput{
 		Path:                     aws.String(d.Get("path").(string)),
@@ -93,6 +127,7 @@ func resourceAwsIamRoleRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	return resourceAwsIamRoleReadResult(d, getResp.Role)
 }
+
 func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 

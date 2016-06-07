@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -24,6 +25,28 @@ func TestAccAWSRole_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
 					testAccCheckAWSRoleAttributes(&conf),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRole_namePrefix(t *testing.T) {
+	var conf iam.GetRoleOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:        func() { testAccPreCheck(t) },
+		IDRefreshName:   "aws_iam_role.role",
+		IDRefreshIgnore: []string{"name_prefix"},
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckAWSRoleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSRolePrefixNameConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
+					testAccCheckAWSRoleGeneratedNamePrefix(
+						"aws_iam_role.role", "test-role-"),
 				),
 			},
 		},
@@ -110,6 +133,23 @@ func testAccCheckAWSRoleExists(n string, res *iam.GetRoleOutput) resource.TestCh
 	}
 }
 
+func testAccCheckAWSRoleGeneratedNamePrefix(resource, prefix string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		r, ok := s.RootModule().Resources[resource]
+		if !ok {
+			return fmt.Errorf("Resource not found")
+		}
+		name, ok := r.Primary.Attributes["name"]
+		if !ok {
+			return fmt.Errorf("Name attr not found: %#v", r.Primary.Attributes)
+		}
+		if !strings.HasPrefix(name, prefix) {
+			return fmt.Errorf("Name: %q, does not have prefix: %q", name, prefix)
+		}
+		return nil
+	}
+}
+
 func testAccCheckAWSRoleAttributes(role *iam.GetRoleOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *role.Role.RoleName != "test-role" {
@@ -128,6 +168,14 @@ resource "aws_iam_role" "role" {
 	name   = "test-role"
 	path = "/"
 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+`
+
+const testAccAWSRolePrefixNameConfig = `
+resource "aws_iam_role" "role" {
+    name_prefix = "test-role-"
+    path = "/"
+    assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
 }
 `
 
