@@ -96,6 +96,38 @@ func TestCloudFlareRecordMigrateState(t *testing.T) {
 			Expected:   "12342092cbc4c391be33ce548713bba3",
 			ShouldFail: true,
 		},
+		"proxied": {
+			StateVersion: 0,
+			ID:           "123456",
+			Attributes: map[string]string{
+				"id":       "123456",
+				"name":     "tftestingsubv616",
+				"hostname": "tftestingsubv616.hashicorptest.com",
+				"type":     "A",
+				"content":  "52.39.212.111",
+				"proxied":  "true",
+				"ttl":      "1",
+				"zone_id":  "1234567890",
+				"domain":   "hashicorptest.com",
+			},
+			Expected: "888ffe3f93a31231ad6b0c6d09185eee",
+		},
+		"not_proxied": {
+			StateVersion: 0,
+			ID:           "123456",
+			Attributes: map[string]string{
+				"id":       "123456",
+				"name":     "tftestingsubv616",
+				"hostname": "tftestingsubv616.hashicorptest.com",
+				"type":     "A",
+				"content":  "52.39.212.111",
+				"proxied":  "false",
+				"ttl":      "1",
+				"zone_id":  "1234567890",
+				"domain":   "hashicorptest.com",
+			},
+			Expected: "222ffe3f93a31231ad6b0c6d09185jjj",
+		},
 	}
 
 	for tn, tc := range cases {
@@ -129,7 +161,7 @@ func mockCloudFlareEnv() *httptest.Server {
 		log.Printf("[DEBUG] Mocker server received request to %q", r.RequestURI)
 		rBase, err := url.ParseRequestURI(r.RequestURI)
 		if err != nil {
-			log.Fatalf("Failed to find the base path: %s")
+			log.Fatalf("Failed to find the base path: %s", err)
 		}
 		for _, e := range endpoints {
 			if rBase.Path == e.BasePath {
@@ -236,6 +268,18 @@ const dnsResponse = `
       "proxiable": false,
       "proxied": false,
       "ttl": 120,
+      "locked": false,
+      "zone_id": "1234567890",
+      "zone_name": "hashicorptest.com"
+    },
+    {
+      "id": "222ffe3f93a31231ad6b0c6d09185jjj",
+      "type": "A",
+      "name": "tftestingsubv616.hashicorptest.com",
+      "content": "52.39.212.111",
+      "proxiable": true,
+      "proxied": false,
+      "ttl": 1,
       "locked": false,
       "zone_id": "1234567890",
       "zone_name": "hashicorptest.com"
