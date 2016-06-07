@@ -172,12 +172,12 @@ resource "aws_elastictranscoder_pipeline" "bar" {
   name         = "aws_elastictranscoder_pipeline_tf_test_"
   role         = "${aws_iam_role.test_role.arn}"
 
-  content_config = {
+  content_config {
     bucket        = "${aws_s3_bucket.content_bucket.bucket}"
     storage_class = "Standard"
   }
 
-  thumbnail_config = {
+  thumbnail_config {
     bucket        = "${aws_s3_bucket.content_bucket.bucket}"
     storage_class = "Standard"
   }
@@ -225,12 +225,12 @@ resource "aws_elastictranscoder_pipeline" "bar" {
   name         = "aws_elastictranscoder_pipeline_tf_test_"
   role         = "${aws_iam_role.test_role.arn}"
 
-  content_config = {
+  content_config {
     bucket        = "${aws_s3_bucket.content_bucket.bucket}"
     storage_class = "Standard"
   }
 
-  thumbnail_config = {
+  thumbnail_config {
     bucket        = "${aws_s3_bucket.thumb_bucket.bucket}"
     storage_class = "Standard"
   }
@@ -278,7 +278,7 @@ resource "aws_elastictranscoder_pipeline" "baz" {
   name         = "aws_elastictranscoder_pipeline_tf_test_"
   role         = "${aws_iam_role.test_role.arn}"
 
-  content_config = {
+  content_config {
     bucket        = "${aws_s3_bucket.content_bucket.bucket}"
     storage_class = "Standard"
   }
@@ -289,7 +289,7 @@ resource "aws_elastictranscoder_pipeline" "baz" {
     access       = ["FullControl"]
   }
 
-  thumbnail_config = {
+  thumbnail_config {
     bucket        = "${aws_s3_bucket.content_bucket.bucket}"
     storage_class = "Standard"
   }
