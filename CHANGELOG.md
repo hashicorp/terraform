@@ -29,6 +29,8 @@ FEATURES:
  * **New Provider:** `random` - allows generation of random values without constantly generating diffs [GH-6672]
  * **New Remote State Provider:** - `gcs` - Google Cloud Storage [GH-6814]
  * **New Resource:** `aws_elb_attachment` [GH-6879]
+ * **New Resource:** `aws_elastictranscoder_preset` [GH-6965]
+ * **New Resource:** `aws_elastictranscoder_pipeline` [GH-6965]
  * **New Resource:** `aws_iam_group_policy_attachment` [GH-6858]
  * **New Resource:** `aws_iam_role_policy_attachment` [GH-6858]
  * **New Resource:** `aws_iam_user_policy_attachment` [GH-6858]
