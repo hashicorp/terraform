@@ -461,6 +461,39 @@ func TestValidateS3BucketLifecycleRuleId(t *testing.T) {
 	}
 }
 
+func TestValidateS3BucketName(t *testing.T) {
+	validId := []string{
+		"yadahereandthere",
+		"www.example.com",
+		"foo.bar.baz",
+		"123",
+		"foo-bar-baz",
+		strings.Repeat("w", 63),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketName(v, "bucket")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid bucket name: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		"YadaHereAndThere",
+		"123.456.789.012",
+		"foo..bar.baz",
+		".foo",
+		"foo.",
+		"foo_bar",
+		strings.Repeat("w", 64),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketName(v, "bucket")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid bucket name", v)
+		}
+	}
+}
+
 func TestValidateIntegerInRange(t *testing.T) {
 	validIntegers := []int{-259, 0, 1, 5, 999}
 	min := -259

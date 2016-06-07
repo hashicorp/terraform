@@ -26,9 +26,10 @@ func resourceAwsS3Bucket() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"bucket": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateS3BucketName,
 			},
 
 			"arn": &schema.Schema{

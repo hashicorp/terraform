@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -435,6 +436,36 @@ func validateS3BucketLifecycleRuleId(v interface{}, k string) (ws []string, erro
 	if len(value) > 255 {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot exceed 255 characters", k))
+	}
+	return
+}
+
+// https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
+func validateS3BucketName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if (len(value) < 3) || (len(value) > 63) {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain from 3 to 63 characters", k))
+	}
+	if !regexp.MustCompile(`^[0-9a-z-.]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if regexp.MustCompile(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must not be formatted as an IP address", k))
+	}
+	if strings.HasPrefix(value, `.`) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot start with a period", k))
+	}
+	if strings.HasSuffix(value, `.`) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot end with a period", k))
+	}
+	if strings.Contains(value, `..`) {
+		errors = append(errors, fmt.Errorf(
+			"%q can be only one period between labels", k))
 	}
 	return
 }
