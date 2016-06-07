@@ -117,7 +117,7 @@ resource "aws_elastictranscoder_preset" "bar" {
   description = "elastic transcoder preset test 1"
   name        = "aws_elastictranscoder_preset_tf_test_"
 
-  audio = {
+  audio {
     audio_packing_mode = "SingleTrack"
     bit_rate           = 320
     channels           = 2
@@ -133,7 +133,7 @@ resource "aws_elastictranscoder_preset" "bar" {
   description = "elastic transcoder preset test 2"
   name        = "aws_elastictranscoder_preset_tf_test_"
 
-  audio = {
+  audio {
     audio_packing_mode = "SingleTrack"
     bit_rate           = 128
     channels           = 2
@@ -141,11 +141,11 @@ resource "aws_elastictranscoder_preset" "bar" {
     sample_rate        = 48000
   }
 
-  audio_codec_options = {
+  audio_codec_options {
     profile = "auto"
   }
 
-  video = {
+  video {
     bit_rate             = "auto"
     codec                = "H.264"
     display_aspect_ratio = "16:9"
@@ -158,13 +158,13 @@ resource "aws_elastictranscoder_preset" "bar" {
     sizing_policy        = "Fit"
   }
 
-  video_codec_options = {
+  video_codec_options {
     Profile            = "main"
     Level              = "4.1"
     MaxReferenceFrames = 4
   }
 
-  thumbnails = {
+  thumbnails {
     format         = "jpg"
     interval       = 5
     max_width      = 960
@@ -181,7 +181,7 @@ resource "aws_elastictranscoder_preset" "bar" {
   description = "elastic transcoder preset test 3"
   name        = "aws_elastictranscoder_preset_tf_test_"
 
-  audio = {
+  audio {
     audio_packing_mode = "SingleTrack"
     bit_rate           = 96
     channels           = 2
@@ -189,11 +189,11 @@ resource "aws_elastictranscoder_preset" "bar" {
     sample_rate        = 44100
   }
 
-  audio_codec_options = {
+  audio_codec_options {
     profile = "AAC-LC"
   }
 
-  video = {
+  video {
     bit_rate             = "1600"
     codec                = "H.264"
     display_aspect_ratio = "16:9"
@@ -207,7 +207,7 @@ resource "aws_elastictranscoder_preset" "bar" {
     sizing_policy        = "Fit"
   }
 
-  video_codec_options = {
+  video_codec_options {
     Profile                  = "main"
     Level                    = "2.2"
     MaxReferenceFrames       = 3
@@ -215,7 +215,7 @@ resource "aws_elastictranscoder_preset" "bar" {
     ColorSpaceConversionMode = "None"
   }
 
-  video_watermarks = {
+  video_watermarks {
     id                = "Terraform Test"
     max_width         = "20%"
     max_height        = "20%"
@@ -228,7 +228,7 @@ resource "aws_elastictranscoder_preset" "bar" {
     target            = "Content"
   }
 
-  thumbnails = {
+  thumbnails {
     format         = "png"
     interval       = 120
     max_width      = "auto"
