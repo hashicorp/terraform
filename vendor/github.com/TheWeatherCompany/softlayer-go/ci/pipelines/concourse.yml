@@ -1,0 +1,41 @@
+resources:
+- name: softlayer-go
+  type: git
+  source:
+    uri: https://github.com/TheWeatherCompany/softlayer-go.git
+    branch: master
+
+jobs:
+- name: sl-go-unit
+  public: true
+  plan:
+  - get: softlayer-go
+    trigger: true
+  - task: unit
+    file: softlayer-go/ci/unit.yml
+    config:
+      params:
+        SL_USERNAME: fake-username
+        SL_API_KEY: fake-api-key
+
+- name: sl-go-integration
+  plan:
+  - get: softlayer-go
+    trigger: true
+    passed: [sl-go-unit]
+  - task: integration
+    file: softlayer-go/ci/integration.yml
+    config:
+      params:
+        SL_USERNAME: {{SL_USERNAME}}
+        SL_API_KEY: {{SL_API_KEY}}
+        SL_DATACENTER: {{SL_DATACENTER}}
+
+groups:
+- name: softlayer-go
+  jobs:
+  - sl-go-unit
+  - sl-go-integration
+
+
+

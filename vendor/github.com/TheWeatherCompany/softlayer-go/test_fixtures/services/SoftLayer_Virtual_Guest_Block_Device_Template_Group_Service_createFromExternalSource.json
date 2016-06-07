@@ -1,0 +1,14 @@
+{
+	"accountId": 278444,
+	"createDate": "2014-08-24T18:54:44-08:00",
+	"id": 211582,
+	"name": " ubuntu-10.04-bosh-2168-IEM-itcs104-dea-stemcell",
+	"note": "fake-note",
+	"parentId": 211578,
+	"publicFlag": 0,
+	"statusId": 1,
+	"transactionId": null,
+	"userRecordId": 180816,
+	"summary": "fake-summary",
+	"globalIdentifier": "fake-global-identifier"
+}

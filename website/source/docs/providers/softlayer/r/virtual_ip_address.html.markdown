@@ -4,9 +4,9 @@ page_title: "SoftLayer: softlayer_loadbalancer_virtual_ip_address"
 sidebar_current: "docs-softlayer-resource-softlayer-loadbalancer-virtual-ip-address"
 description: |-
   Provides Softlayer's LoadBalancer Virtual IP Address
--------------------------------------------
+---
 
-#softlayer_loadbalancer_virtual_ip_address_resource
+# softlayer_loadbalancer_virtual_ip_address
 
 Create, update, and delete Softlayer Load Balancer Virtual IP Addresses. For additional details please refer to the [API documentation](http://sldn.softlayer.com/reference/datatypes/SoftLayer_Network_LoadBalancer_VirtualIpAddress).
 ## Example Usage

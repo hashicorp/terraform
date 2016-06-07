@@ -1,0 +1,14 @@
+{
+	"createDate": "2014-09-08T11:09:52-08:00",
+	"elapsedSeconds": 1,
+	"guestId": 1234567,
+	"hardwareId": null,
+	"id": 11878004,
+	"modifyDate": "2014-09-08T11:09:52-08:00",
+	"statusChangeDate": "2014-09-08T11:09:52-08:00",
+	"transactionStatus": {
+		"averageDuration": ".42",
+		"friendlyName": "Attach disk image",
+		"name": "ATTACH_DISK_IMAGE"
+	}
+}

@@ -6,7 +6,7 @@ description: |-
   Provides a Softlayer's DNS Domain.
 ---
 
-# SoftLayer_Dns_Domain
+# softlayer_dns_domain
 
 The `softLayer_dns_domain` data type represents a single DNS domain record hosted on the SoftLayer nameservers. Domains contain general information about the domain name such as name and serial. Individual records such as `A`, `AAAA`, `CTYPE`, and `MX` records are stored in the domain's associated resource records using the  [`softlayer_dns_domain_resourcerecord`](/docs/providers/softlayer/r/dns_records.html) resource.
 
@@ -22,7 +22,8 @@ resource "softlayer_dns_domain" "dns-domain-test" {
 ## Argument Reference
 The following arguments are supported:
 
-* `name` - (Required) A domain's name including top-level domain, for example "example.com". _Name_ is the only field that needs to be set for `softlayer_dns_domain`. During creation the `NS` and `SOA` resource records are created automatically.
+* `name` | *string*
+     * (Required) A domain's name including top-level domain, for example "example.com". _Name_ is the only field that needs to be set for `softlayer_dns_domain`. During creation the `NS` and `SOA` resource records are created automatically.
 
 ## Attributes Reference
 The following attributes are exported

@@ -1,0 +1,18 @@
+{
+	"createDate": "2014-09-25T15:07:49-08:00",
+	"elapsedSeconds": 0,
+	"guestId": 1234567,
+	"hardwareId": null,
+	"id": 12476326,
+	"modifyDate": "2014-09-25T15:07:49-08:00",
+	"statusChangeDate": "2014-09-25T15:07:49-08:00",
+	"transactionGroup": {
+		"averageTimeToComplete": "1.62",
+		"name": "Configure Cloud Metadata Disk"
+	},
+	"transactionStatus": {
+		"averageDuration": ".32",
+		"friendlyName": "Configure Cloud Metadata Disk",
+		"name": "CLOUD_CONFIGURE_METADATA_DISK"
+	}
+}

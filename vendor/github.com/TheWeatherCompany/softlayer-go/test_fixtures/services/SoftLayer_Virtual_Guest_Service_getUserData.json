@@ -1,0 +1,14 @@
+[{
+	"value": "V2hvJ3Mgc21hcnRlcj8gRG1pdHJ5aSBvciBkci5tYXguLi4gIHRoZSBkb2MsIGFueSBkYXkgOik=",
+	"type": {
+		"keyname": "USER_DATA",
+		"name": "User Data"
+	}
+},
+{
+	"value": "ZmFrZS1iYXNlNjQtZGF0YQo=",
+	"type": {
+		"keyname": "FAKE_DATA",
+		"name": "Fake Data"
+	}
+}]

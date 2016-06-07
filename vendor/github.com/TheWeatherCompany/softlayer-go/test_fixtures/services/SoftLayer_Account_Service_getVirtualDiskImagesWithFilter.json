@@ -1,0 +1,15 @@
+[
+  {
+    "capacity": 2,
+    "createDate": "2014-08-24T04:46:04-08:00",
+    "description": "4839214-SWAP",
+    "id": 4854514,
+    "modifyDate": null,
+    "name": "4839214-SWAP",
+    "parentId": null,
+    "storageRepositoryId": 912988,
+    "typeId": 246,
+    "units": "GB",
+    "uuid": "d6d9f651-a05f-4827-a0d1-c96636473848"
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "description": "Virtual Server Instance 1",
+    "id": 200,
+    "isActive": 1,
+    "name": "Cloud Server 1",
+    "type": {
+      "keyName": "VIRTUAL_SERVER_INSTANCE"
+    }
+  },
+  {
+    "description": "Virtual Server Instance 2",
+    "id": 202,
+    "isActive": 1,
+    "name": "Cloud Server 2",
+    "type": {
+      "keyName": "VIRTUAL_SERVER_INSTANCE"
+    }
+  },
+  {
+    "description": "Virtual Server Instance 3",
+    "id": 123,
+    "isActive": 1,
+    "name": "Cloud Server 3",
+    "type": {
+      "keyName": "VIRTUAL_SERVER_INSTANCE"
+    }
+  },
+  {
+    "description": "Virtual Server Instance 4",
+    "id": 47,
+    "isActive": 1,
+    "name": "Cloud Server 4",
+    "type": {
+      "keyName": "VIRTUAL_SERVER_INSTANCE"
+    }
+  }
+]

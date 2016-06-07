@@ -1,0 +1,14 @@
+{
+	"accountId": 278444,
+	"createDate": "2014-08-12T08:01:09-08:00",
+	"id": 200150,
+	"name": "BOSH-eCPI-packer-centos-2014-08-12T15:54:16Z",
+	"note": "centos image created by packer at 2014-08-12T15:54:16Z",
+	"parentId": null,
+	"publicFlag": 0,
+	"statusId": 1,
+	"summary": "centos image created by packer at 2014-08-12T15:54:16Z",
+	"transactionId": null,
+	"userRecordId": 239954,
+	"globalIdentifier": "8071601b-5ee1-483e-a9e8-6e5582dcb9f7"
+}

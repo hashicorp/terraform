@@ -1,0 +1,35 @@
+[
+  {
+    "accountId": 795313,
+    "createDate": "2015-12-14T19:24:23+03:00",
+    "id": 15293,
+    "modifyDate": "2015-12-14T19:24:39+03:00",
+    "name": "TWCADC795313-1",
+    "typeId": 2,
+    "networkVlanCount": 1,
+    "datacenter": {
+      "id": 154820,
+      "longName": "Dallas 6",
+      "name": "dal06",
+      "statusId": 2
+    },
+    "description": "Citrix NetScaler VPX 10.1 10Mbps Standard",
+    "licenseExpirationDate": "2016-09-30T08:00:00+03:00",
+    "managedResourceFlag": false,
+    "managementIpAddress": "10.107.140.243",
+    "password": {
+      "createDate": "2015-12-14T19:24:48+03:00",
+      "id": 9168889,
+      "modifyDate": "2015-12-14T19:24:48+03:00",
+      "password": "GYdN95kA",
+      "port": null,
+      "softwareId": 8663917,
+      "username": "root"
+    },
+    "primaryIpAddress": "184.172.114.147",
+    "type": {
+      "keyName": "NETSCALER_VPX",
+      "name": "NetScaler VPX"
+    }
+  }
+]

@@ -1,0 +1,56 @@
+[
+    {
+        "empRecordId": null,
+        "id": 1855150,
+        "resourceTableId": 7967498,
+        "tag": {
+            "accountId": 278444,
+            "id": 91128,
+            "internal": 0,
+            "name": "tag1"
+        },
+        "tagId": 91128,
+        "tagType": {
+            "description": "CCI",
+            "keyName": "GUEST"
+        },
+        "tagTypeId": 2,
+        "usrRecordId": 239954
+    },
+    {
+        "empRecordId": null,
+        "id": 1855152,
+        "resourceTableId": 7967498,
+        "tag": {
+            "accountId": 278444,
+            "id": 91130,
+            "internal": 0,
+            "name": "tag2"
+        },
+        "tagId": 91130,
+        "tagType": {
+            "description": "CCI",
+            "keyName": "GUEST"
+        },
+        "tagTypeId": 2,
+        "usrRecordId": 239954
+    },
+    {
+        "empRecordId": null,
+        "id": 1855154,
+        "resourceTableId": 7967498,
+        "tag": {
+            "accountId": 278444,
+            "id": 91132,
+            "internal": 0,
+            "name": "tag3"
+        },
+        "tagId": 91132,
+        "tagType": {
+            "description": "CCI",
+            "keyName": "GUEST"
+        },
+        "tagTypeId": 2,
+        "usrRecordId": 239954
+    }
+]

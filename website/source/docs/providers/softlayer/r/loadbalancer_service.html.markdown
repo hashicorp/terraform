@@ -4,9 +4,9 @@ page_title: "SoftLayer: softlayer_loadbalancer_service"
 sidebar_current: "docs-softlayer-resource-softlayer-loadbalancer-service"
 description: |-
   Provides Softlayer's LoadBalancer Service
--------------------------------------------
+---
 
-#softlayer_loadbalancer_service_resource
+#softlayer_loadbalancer_service
 
 Create, update, and delete Softlayer Load Balancer Services. For additional details please refer to the [API documentation](http://sldn.softlayer.com/reference/datatypes/SoftLayer_Network_LoadBalancer_Service).
 ## Example Usage
