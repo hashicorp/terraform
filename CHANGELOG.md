@@ -112,6 +112,7 @@ BUG FIXES:
  * provider/openstack: Rebuild Instances On Network Changes [GH-6844]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
+ * provider/vsphere: adding a `vsphere_virtual_machine` migration [GH-7023]
 
 ## 0.6.16 (May 9, 2016)
 
