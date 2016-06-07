@@ -443,6 +443,12 @@
 			"revision": "2cc71659118a868dc7544a7ef0808eb42d487011"
 		},
 		{
+			"checksumSHA1": "hvaMQ+Wb+SWjYhT6gSAx6DCks2Y=",
+			"path": "github.com/aws/aws-sdk-go/service/elastictranscoder",
+			"revision": "2cc71659118a868dc7544a7ef0808eb42d487011",
+			"revisionTime": "2016-05-03T21:45:29Z"
+		},
+		{
 			"comment": "v1.1.23",
 			"path": "github.com/aws/aws-sdk-go/service/elb",
 			"revision": "2cc71659118a868dc7544a7ef0808eb42d487011"
