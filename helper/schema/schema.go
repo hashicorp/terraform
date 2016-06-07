@@ -19,10 +19,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
-	"log"
 )
 
 // Schema is used to describe the structure of a value.
@@ -1145,8 +1143,6 @@ func (m schemaMap) validateMap(
 		// If raw and reified are equal, this is a string and should
 		// be rejected.
 		reified, reifiedOk := c.Get(k)
-		log.Printf("[jen20] reified: %s", spew.Sdump(reified))
-		log.Printf("[jen20]     raw: %s", spew.Sdump(raw))
 		if reifiedOk && raw == reified && !c.IsComputed(k) {
 			return nil, []error{fmt.Errorf("%s: should be a map", k)}
 		}
