@@ -84,15 +84,15 @@ See ["Create Preset"](http://docs.aws.amazon.com/elastictranscoder/latest/develo
 
 The following arguments are supported:
 
-* `audio` - Audio parameters object (documented below).
-* `audio_codec_options` - Codec options for the audio parameters (documented below)
-* `container` - (Required) The container type for the output file. Valid values are `flac`, `flv`, `fmp4`, `gif`, `mp3`, `mp4`, `mpg`, `mxf`, `oga`, `ogg`, `ts`, and `webm`.
-* `description` - (Optional) A description of the preset (maximum 255 characters)
-* `name` - (Optional) The name of the preset. (maximum 40 characters)
-* `thumbnails` - (Optional) Thumbnail parameters object (documented below)
-* `video` - (Optional) Video parameters object (documented below)
-* `video_watermarks` - (Optional) Watermark parameters for the video parameters (documented below)
-* `video_codec_options` (Optional) Codec options for the video parameters
+* `audio` - (Optional, ForceNew) Audio parameters object (documented below).
+* `audio_codec_options` - (Optional, ForceNew) Codec options for the audio parameters (documented below)
+* `container` - (Required, ForceNew) The container type for the output file. Valid values are `flac`, `flv`, `fmp4`, `gif`, `mp3`, `mp4`, `mpg`, `mxf`, `oga`, `ogg`, `ts`, and `webm`.
+* `description` - (Optional, ForceNew) A description of the preset (maximum 255 characters)
+* `name` - (Optional, ForceNew) The name of the preset. (maximum 40 characters)
+* `thumbnails` - (Optional, ForceNew) Thumbnail parameters object (documented below)
+* `video` - (Optional, ForceNew) Video parameters object (documented below)
+* `video_watermarks` - (Optional, ForceNew) Watermark parameters for the video parameters (documented below)
+* `video_codec_options` (Optional, ForceNew) Codec options for the video parameters
 
 The `audio` object supports the following:
 
