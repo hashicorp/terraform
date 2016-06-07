@@ -42,7 +42,7 @@ The following arguments are supported:
 * `content_config` - (Optional) The ContentConfig object specifies information about the Amazon S3 bucket in which you want Elastic Transcoder to save transcoded files and playlists. (documented below)
 * `content_config_permissions` - (Optional) The permissions for the `content_config` object. (documented below)
 * `input_bucket` - (Required) The Amazon S3 bucket in which you saved the media files that you want to transcode and the graphics that you want to use as watermarks.
-* `name` - (Optional, ForceNew) The name of the pipeline. Maximum 40 characters
+* `name` - (Optional, Forces new resource) The name of the pipeline. Maximum 40 characters
 * `notifications` - (Optional) The Amazon Simple Notification Service (Amazon SNS) topic that you want to notify to report job status. (documented below)
 * `output_bucket` - (Optional) The Amazon S3 bucket in which you want Elastic Transcoder to save the transcoded files.
 * `role` - (Required) The IAM Amazon Resource Name (ARN) for the role that you want Elastic Transcoder to use to transcode jobs for this pipeline.
