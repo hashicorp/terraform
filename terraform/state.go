@@ -1384,18 +1384,19 @@ type jsonStateVersionIdentifier struct {
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
 
-	// Check if this is a V0 format
-	start, err := buf.Peek(len(stateFormatMagic))
+	// Check if this is a V0 format - the magic bytes at the start of the file
+	// should be "tfstate" if so. We no longer support upgrading this type of
+	// state but display an error message explaining to a user how they can
+	// upgrade via the 0.6.x series.
+	start, err := buf.Peek(len("tfstate"))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to check for magic bytes: %v", err)
 	}
-	if string(start) == stateFormatMagic {
-		// Read the old state
-		old, err := ReadStateV0(buf)
-		if err != nil {
-			return nil, err
-		}
-		return old.upgrade()
+	if string(start) == "tfstate" {
+		return nil, fmt.Errorf("Terraform 0.7 no longer supports upgrading the binary state\n" +
+			"format which was used prior to Terraform 0.3. Please upgrade\n" +
+			"this state file using Terraform 0.6.16 prior to using it with\n" +
+			"Terraform 0.7.")
 	}
 
 	// If we are JSON we buffer the whole thing in memory so we can read it twice.
