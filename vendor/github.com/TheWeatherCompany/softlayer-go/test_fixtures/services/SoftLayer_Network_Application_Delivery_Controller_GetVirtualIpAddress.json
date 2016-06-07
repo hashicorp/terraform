@@ -1,0 +1,15 @@
+[
+  {
+    "connectionLimit": null,
+    "id": null,
+    "loadBalancingMethod": "pi",
+    "loadBalancingMethodFullName": "Persistent IP - Round Robin",
+    "modifyDate": null,
+    "name": "testVipName",
+    "securityCertificateId": null,
+    "sourcePort": 80,
+    "type": "someTestType",
+    "virtualIpAddress": "158.85.140.190",
+    "services": []
+  }
+]

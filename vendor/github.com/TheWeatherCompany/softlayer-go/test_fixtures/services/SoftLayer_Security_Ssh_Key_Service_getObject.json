@@ -1,0 +1,9 @@
+{
+  "createDate": "2014-08-12T19:00:19-08:00",
+  "fingerprint": "e9:56:6d:b1:f3:8b:f1:2a:dd:a3:24:73:4f:d3:1b:3c",
+  "id": 1337,
+  "key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAA\/DczU7Wj4hgAgy14LfjOvVKtDBOfwFgHFwsXQ7Efp0pQRBOIwWoQfQ3hHMWw1X5Q7Mhwl9Gbat9V7tu985Hf5h9BOrq9D\/ZIFQ1yhsvt6klZYoHHbM5kHFUegx9lgn3mHcfLNcvahDHpQAFXCPknc1VNpn0VP0RPhqZ8pubP7r9\/Uczmit1ipy43SGzlxM46cyyqNPgDDRJepDla6coJJGuWVZMZaTXc3fNNFTSIi1ODDQgXxaYWcz5ThcQ1CT\/MLSzAz7IDNNjAr5W40ZUmxxHzA5nPmLcKKqqXrxbnCyw+SrVjhIsKSoz41caYdSz2Bpw00ZxzVO9dCnHsEw==",
+  "label": "packer-53ead4c1-df11-9023-1173-eef40a291b7e",
+  "modifyDate": null,
+  "notes": "My test key"
+}

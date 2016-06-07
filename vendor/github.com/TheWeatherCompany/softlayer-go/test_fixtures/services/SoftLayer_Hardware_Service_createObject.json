@@ -1,0 +1,9 @@
+{
+	"bareMetalInstanceFlag": 1,
+	"domain": "testing.com",
+	"hostname": "softlayer",
+	"id": 123,
+	"hardwareStatusId": 1,
+	"provisionDate": "2014-11-01T15:04:05-07:00",
+	"GlobalIdentifier": "abcdefg"
+}

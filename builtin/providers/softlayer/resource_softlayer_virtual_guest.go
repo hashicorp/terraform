@@ -1,18 +1,17 @@
 package softlayer
 
 import (
-	"fmt"
-	"log"
-	"strconv"
-	"time"
-
 	"encoding/base64"
+	"fmt"
+	datatypes "github.com/TheWeatherCompany/softlayer-go/data_types"
+	"github.com/TheWeatherCompany/softlayer-go/softlayer"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	datatypes "github.com/maximilien/softlayer-go/data_types"
-	"github.com/maximilien/softlayer-go/softlayer"
+	"log"
 	"math"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func resourceSoftLayerVirtualGuest() *schema.Resource {
@@ -347,7 +346,6 @@ func resourceSoftLayerVirtualGuestRead(d *schema.ResourceData, meta interface{})
 			d.Set("user_data", string(data))
 		}
 	}
-
 	return nil
 }
 
@@ -374,12 +372,10 @@ func resourceSoftLayerVirtualGuestUpdate(d *schema.ResourceData, meta interface{
 			return fmt.Errorf("Couldn't update virtual guest: %s", err)
 		}
 	}
-
 	// Set user data if provided and not empty
 	if d.HasChange("user_data") {
 		client.SetMetadata(id, d.Get("user_data").(string))
 	}
-
 	// Upgrade "cpu", "ram" and "nic_speed" if provided and changed
 	upgradeOptions := softlayer.UpgradeOptions{}
 	if d.HasChange("cpu") {

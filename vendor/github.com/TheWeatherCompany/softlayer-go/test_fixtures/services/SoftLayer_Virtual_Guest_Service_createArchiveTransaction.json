@@ -1,0 +1,18 @@
+{
+	"createDate": "2014-09-08T11:09:52-08:00",
+	"elapsedSeconds": 1,
+	"guestId": 123456,
+	"hardwareId": 123456,
+	"id": 0,
+	"modifyDate": "2014-09-08T11:09:52-08:00",
+	"statusChangeDate": "2014-09-08T11:09:52-08:00",
+	"transactionGroup": {
+		"averageTimeToComplete" : ".5",
+		"name" : "fake-name"
+	},
+	"transactionStatus": {
+		"averageDuration": ".4",
+		"friendlyName": "fake-friendly-name",
+		"name": "fake-name"
+	}
+}

@@ -6,12 +6,11 @@ description: |-
   Manages SoftLayer Virtual Guests.
 ---
 
-# softlayer\virtual_guest
+# softlayer_virtual_guest
 
-Provides virtual guest resource. This allows virtual guests to be created, updated
-and deleted. For additional details please refer to [API documentation](http://sldn.softlayer.com/reference/services/SoftLayer_Virtual_Guest).
+Provides a `virtual_guest` resource. This allows virtual guests to be created, updated and deleted.
 
-## Example Usage
+## Example Usage | [SLDN](http://sldn.softlayer.com/reference/services/SoftLayer_Virtual_Guest)
 
 ```
 # Create a new virtual guest using image "Debian"

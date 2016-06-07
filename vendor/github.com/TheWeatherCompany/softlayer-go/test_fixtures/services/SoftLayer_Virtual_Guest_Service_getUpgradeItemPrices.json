@@ -1,0 +1,46 @@
+[
+	{
+        "currentPriceFlag": false,
+        "hourlyRecurringFee": ".001",
+        "id": 12345,
+        "itemId": 1,
+        "laborFee": "0",
+        "onSaleFlag": null,
+        "oneTimeFee": "0",
+        "quantity": null,
+        "recurringFee": "0.01",
+        "setupFee": "0",
+        "sort": 0,
+        "accountRestrictions": [],
+        "categories": [
+            {
+                "categoryCode": "guest_disk1",
+                "id": 1,
+                "name": "fake-category",
+                "quantityLimit": 0
+            }
+        ],
+        "item": {
+            "capacity": "25",
+            "description": "25 GB (LOCAL)",
+            "id": 1,
+            "itemTaxCategoryId": 1,
+            "keyName": "fake-key-name",
+            "softwareDescriptionId": null,
+            "units": "GB",
+            "upgradeItemId": null,
+            "attributes": [
+                {
+                    "id": 1,
+                    "itemAttributeTypeId": 1,
+                    "itemId": 1,
+                    "value": "1",
+                    "attributeType": {
+                        "keyName": "fake-key",
+                        "name": "fake-name"
+                    }
+                }
+            ]
+        }
+    }
+]

@@ -12,11 +12,14 @@ The SoftLayer provider is used to manage SoftLayer resources.
 
 Use the navigation to the left to read about the available resources.
 
-<div class="alert alert-block alert-info">
-<strong>Note:</strong> The SoftLayer provider is new as of Terraform 0.X.
+<div class="alert alert-block alert-warning">
+<strong>Note:</strong> The SoftLayer provider is new as of Terraform 0.6.16.
 It is ready to be used but many features are still being added. If there
-is a SoftLayer feature missing, please report it in the GitHub repo.
-</div>
+is a SoftLayer feature missing, please report it in the GitHub repo.</div>
+
+<div class="alert alert-block alert-info">
+<strong>Note:</strong> For managing SoftLayer object storage containers and objects, please see
+the Swift provider, since SoftLayer's object storage is an implementation of Swift object storage.</div>
 
 ## Example Usage
 
@@ -35,8 +38,8 @@ provider "softlayer" {
 
 # This will create a new SSH key that will show up under the \
 # Devices>Manage>SSH Keys in the SoftLayer console.
-resource "softlayer_ssh_key" "test_key_1" {
-    name = "test_key_1"
+resource "softlayer_ssh_key" "testkey1" {
+    name = "testkey1"
     public_key = "${file(\"~/.ssh/id_rsa_test_key_1.pub\")}"
     # Windows Example:
     # public_key = "${file(\"C:\ssh\keys\path\id_rsa_test_key_1.pub\")}"
@@ -44,8 +47,8 @@ resource "softlayer_ssh_key" "test_key_1" {
 
 # Virtual Server created with existing SSH Key already in SoftLayer \
 # inventory and not created using this Terraform template.
-resource "softlayer_virtual_guest" "my_server_1" {
-    name = "my_server_1"
+resource "softlayer_virtual_guest" "host-a" {
+    name = "host-a.example.com"
     domain = "example.com"
     ssh_keys = ["123456"]
     image = "DEBIAN_7_64"
@@ -57,8 +60,8 @@ resource "softlayer_virtual_guest" "my_server_1" {
 
 # Virtual Server created with a mix of previously existing and \
 # Terraform created/managed resources.
-resource "softlayer_virtual_guest" "my_server_2" {
-    name = "my_server_2"
+resource "softlayer_virtual_guest" "host-b" {
+    name = "host-b.example.com"
     domain = "example.com"
     ssh_keys = ["123456", "${softlayer_ssh_key.test_key_1.id}"]
     image = "CENTOS_6_64"

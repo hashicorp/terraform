@@ -1,0 +1,51 @@
+[
+  {
+    "capacity": "10",
+    "description": "Citrix NetScaler VPX 10.1 10Mbps Standard",
+    "id": 4425,
+    "itemTaxCategoryId": 166,
+    "keyName": "CITRIX_NETSCALER_VPX_10_1_10MBPS_STANDARD",
+    "softwareDescriptionId": 1182,
+    "units": "Mbps",
+    "upgradeItemId": null,
+    "prices": [
+      {
+        "currentPriceFlag": null,
+        "id": 22315,
+        "itemId": 4425,
+        "laborFee": "0",
+        "locationGroupId": null,
+        "onSaleFlag": null,
+        "oneTimeFee": "0",
+        "quantity": null,
+        "recurringFee": "299",
+        "setupFee": "0",
+        "sort": 0
+      }
+    ]
+  },
+  {
+    "capacity": "2",
+    "description": "2 Static Public IP Addresses",
+    "id": 3938,
+    "itemTaxCategoryId": 166,
+    "keyName": "2_STATIC_PUBLIC_IP_ADDRESSES",
+    "softwareDescriptionId": null,
+    "upgradeItemId": null,
+    "prices": [
+      {
+        "currentPriceFlag": null,
+        "id": 17238,
+        "itemId": 3938,
+        "laborFee": "0",
+        "locationGroupId": null,
+        "onSaleFlag": null,
+        "oneTimeFee": "0",
+        "quantity": null,
+        "recurringFee": "2",
+        "setupFee": "0",
+        "sort": 0
+      }
+    ]
+  }
+]

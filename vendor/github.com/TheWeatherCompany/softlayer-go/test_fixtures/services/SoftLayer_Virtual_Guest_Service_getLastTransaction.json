@@ -1,0 +1,18 @@
+{
+  "createDate": "2015-10-27T16:51:41+08:00",
+  "elapsedSeconds": 3,
+  "guestId": 1234567,
+  "hardwareId": null,
+  "id": 25102695,
+  "modifyDate": "2015-10-27T16:53:53+08:00",
+  "statusChangeDate": "2015-10-27T16:53:53+08:00",
+  "transactionGroup": {
+	"averageTimeToComplete": ".1",
+	"name": "Service Setup"
+  },
+  "transactionStatus": {
+	"averageDuration": "0",
+	"friendlyName": "Complete",
+	"name": "COMPLETE"
+  }
+}

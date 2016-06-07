@@ -41,8 +41,7 @@ EOF
 
 The following arguments are supported:
 
-* `name` - (Optional, Forces new resource) The profile's name.
-* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
+* `name` - (Required) The profile's name.
 * `path` - (Optional, default "/") Path in which to create the profile.
 * `roles` - (Required) A list of role names to include in the profile.
 

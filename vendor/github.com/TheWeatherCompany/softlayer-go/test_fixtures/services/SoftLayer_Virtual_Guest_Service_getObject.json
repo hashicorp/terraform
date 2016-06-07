@@ -1,0 +1,48 @@
+{
+	"accountId": 278444,
+	"createDate": "2014-08-12T12:13:01-08:00",
+	"dedicatedAccountHostOnlyFlag": false,
+	"domain": "softlayer.com",
+	"fullyQualifiedDomainName": "bosh-ecpi1.softlayer.com",
+	"hostname": "bosh-ecpi1",
+	"id": 1234567,
+	"lastPowerStateId": null,
+	"lastVerifiedDate": null,
+	"maxCpu": 1,
+	"maxCpuUnits": "CORE",
+	"maxMemory": 1024,
+	"metricPollDate": null,
+	"modifyDate": "2014-08-12T12:14:39-08:00",
+	"startCpus": 1,
+	"statusId": 1001,
+	"uuid": "85d444ce-55a0-39c0-e17a-f697f223cd8a",
+	"globalIdentifier": "52145e01-97b6-4312-9c15-dac7f24b6c2a",
+	"primaryBackendIpAddress": "10.106.192.42",
+	"primaryIpAddress": "23.246.234.32",
+	"location": {
+		"id": 1234567,
+		"name": "R5",
+		"longName": "Room 5"
+	},
+	"datacenter": {
+		"id": 456,
+		"name": "bej2",
+		"longName": "Beijing 2"
+	},
+    "networkComponents": [
+	  {
+		"maxSpeed": 100
+	  }
+	],
+	"operatingSystem": {
+		"passwords": [
+			{
+				"username": "test_username",
+				"password": "test_password"
+			}
+		]
+	},
+    "userData": [{
+	    "value": "some user data $_/<| with special characters"
+	}]
+}
