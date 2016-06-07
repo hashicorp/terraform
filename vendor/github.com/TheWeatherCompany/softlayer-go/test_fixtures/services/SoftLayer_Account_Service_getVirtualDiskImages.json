@@ -1,0 +1,54 @@
+[
+  {
+    "capacity": 2,
+    "createDate": "2014-08-24T04:46:04-08:00",
+    "description": "4839214-SWAP",
+    "id": 4854514,
+    "modifyDate": null,
+    "name": "4839214-SWAP",
+    "parentId": null,
+    "storageRepositoryId": 912988,
+    "typeId": 246,
+    "units": "GB",
+    "uuid": "d6d9f651-a05f-4827-a0d1-c96636473848"
+  },
+  {
+    "capacity": 25,
+    "createDate": "2014-08-26T05:00:59-08:00",
+    "description": "yz-fabric-node-20140407-133340-856.softlayer.com",
+    "id": 4868344,
+    "modifyDate": null,
+    "name": "yz-fabric-node-20140407-133340-856.softlayer.com",
+    "parentId": null,
+    "storageRepositoryId": 1105002,
+    "typeId": 241,
+    "units": "GB",
+    "uuid": "8c7a8358-d9a9-4e4d-9345-6f637e10ccb7"
+  },
+  {
+    "capacity": 2,
+    "createDate": "2014-08-26T05:01:02-08:00",
+    "description": "4182242-SWAP",
+    "id": 4868346,
+    "modifyDate": null,
+    "name": "4182242-SWAP",
+    "parentId": null,
+    "storageRepositoryId": 1105002,
+    "typeId": 246,
+    "units": "GB",
+    "uuid": "82ee1754-2b7d-45a5-abf0-c8d2126d43e0"
+  },
+  {
+    "capacity": 2,
+    "createDate": "2014-02-20T08:47:03-08:00",
+    "description": "3495054-SWAP",
+    "id": 2343800,
+    "modifyDate": null,
+    "name": "3495054-SWAP",
+    "parentId": null,
+    "storageRepositoryId": 594301,
+    "typeId": 246,
+    "units": "GB",
+    "uuid": "bf915ed0-ec10-4205-b77a-a5e778755688"
+  }
+]

@@ -1,0 +1,19 @@
+{ 
+    "accountId": 123456, 
+    "createDate": "2012-11-30T16:28:17-06:00", 
+    "dedicatedAccountHostOnlyFlag": false, 
+    "domain": "fake.domain.com", 
+    "hostname": "fake-hostname", 
+    "id": 1234567, 
+    "lastPowerStateId": null, 
+    "lastVerifiedDate": null, 
+    "maxCpu": 2, 
+    "maxCpuUnits": "CORE", 
+    "maxMemory": 1024, 
+    "metricPollDate": null, 
+    "modifyDate": null, 
+    "privateNetworkOnlyFlag": false, 
+    "startCpus": 2, 
+    "statusId": 1001, 
+    "globalIdentifier": "2d203774-0ee1-49f5-9599-6ef67358dd31" 
+} 

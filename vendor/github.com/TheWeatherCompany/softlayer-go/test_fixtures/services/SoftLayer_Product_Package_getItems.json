@@ -1,0 +1,87 @@
+[
+  {
+    "description": "APF Software Firewall for Linux",
+    "id": 123,
+    "prices": [
+      {
+        "id": 456,
+        "categories": [
+          {
+            "id": 30,
+            "name": "Hardware & Software Firewalls"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "capacity": "1000",
+    "description": "1 Gbps Private Network Uplink",
+    "id": 456,
+    "prices": [
+      {
+        "id": 899,
+        "categories": [
+          {
+            "id": 26,
+            "name": "Uplink Port Speeds"
+          }
+        ]
+      },
+      {
+        "id": 52425,
+        "categories": [
+          {
+            "id": 26,
+            "name": "Uplink Port Speeds"
+          }
+        ]
+      },
+      {
+        "id": 52427,
+        "categories": [
+          {
+            "id": 26,
+            "name": "Uplink Port Speeds"
+          }
+        ]
+      },
+      {
+        "id": 52429,
+        "categories": [
+          {
+            "id": 26,
+            "name": "Uplink Port Speeds"
+          }
+        ]
+      },
+      {
+        "id": 52431,
+        "categories": [
+          {
+            "id": 26,
+            "name": "Uplink Port Speeds"
+          }
+        ]
+      },
+      {
+        "id": 52433,
+        "categories": [
+          {
+            "id": 26,
+            "name": "Uplink Port Speeds"
+          }
+        ]
+      },
+      {
+        "id": 151877,
+        "categories": [
+          {
+            "id": 26,
+            "name": "Uplink Port Speeds"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+	"id": 123,
+	"locationGroupId": null,
+	"item": {
+	  "capacity": "20",
+	  "description": "20 GB Storage Space",
+	  "id": 456,
+	  "keyName": "20_GB_PERFORMANCE_STORAGE_SPACE",
+	  "units": "GB"
+	}
+  }
+]
+
+
+

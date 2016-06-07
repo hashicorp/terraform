@@ -1,0 +1,13 @@
+{
+    "capacity": 25,
+    "createDate": "2014-08-26T05:00:59-08:00",
+    "description": "yz-fabric-node-20140407-133340-856.softlayer.com",
+    "id": 4868344,
+    "modifyDate": null,
+    "name": "yz-fabric-node-20140407-133340-856.softlayer.com",
+    "parentId": null,
+    "storageRepositoryId": 1105002,
+    "typeId": 241,
+    "units": "GB",
+    "uuid": "8c7a8358-d9a9-4e4d-9345-6f637e10ccb7"
+}

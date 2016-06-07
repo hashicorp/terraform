@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	services "github.com/maximilien/softlayer-go/services"
-	softlayer "github.com/maximilien/softlayer-go/softlayer"
+	services "github.com/TheWeatherCompany/softlayer-go/services"
+	softlayer "github.com/TheWeatherCompany/softlayer-go/softlayer"
 )
 
 const (

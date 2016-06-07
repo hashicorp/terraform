@@ -1,0 +1,28 @@
+[
+	{
+		"accountId": 1,
+		"bareMetalInstanceFlag": 1,
+		"domain": "fake.com",
+		"fullyQualifiedDomainName": "fake",
+		"hardwareStatusId": 1,
+		"hostname":"fake-name",
+		"id": 1,
+		"manufacturerSerialNumber": "fake-number",
+		"notes": "fake-notes",
+		"provisionDate":"2014-11-30T23:20:47-08:00",
+		"serialNumber": "fake-sn",
+		"serviceProviderId": 1,
+		"serviceProviderResourceId": 1,
+		"globalIdentifier": "fake-id",
+		"hardwareFunction":
+			{
+				"code": "fake-code",
+				"description": "fake-description",
+				"id": 1
+			},
+		"networkManagementIpAddress": "1.1.1.1",
+		"primaryBackendIpAddress": "1.1.1.1",
+		"primaryIpAddress": "1.1.1.1",
+		"privateIpAddress": "2.2.2.2"
+	}
+]

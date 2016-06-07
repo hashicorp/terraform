@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"strconv"
 
-	common "github.com/maximilien/softlayer-go/common"
-	datatypes "github.com/maximilien/softlayer-go/data_types"
-	softlayer "github.com/maximilien/softlayer-go/softlayer"
+	common "github.com/TheWeatherCompany/softlayer-go/common"
+	datatypes "github.com/TheWeatherCompany/softlayer-go/data_types"
+	softlayer "github.com/TheWeatherCompany/softlayer-go/softlayer"
 )
 
 type softLayer_Virtual_Guest_Block_Device_Template_Group_Service struct {

@@ -1,0 +1,14 @@
+{
+  "data":		"testData",
+  "domainId":	123,
+  "expire":		99999,
+  "host":		"testHost.com",
+  "id":			111,
+  "minimum":	1,
+  "mxPriority":	9,
+  "refresh":	100,
+  "responsiblePerson": "someTestPerson",
+  "retry":		444,
+  "ttl":		222,
+  "type":		"someTestType"
+}

@@ -1,0 +1,14 @@
+{
+  "data":		"changedData",
+  "domainId":	124,
+  "expire":		99998,
+  "host":		"changedHost.com",
+  "id":			112,
+  "minimum":	2,
+  "mxPriority":	8,
+  "refresh":	101,
+  "responsiblePerson": "changedTestPerson",
+  "retry":		445,
+  "ttl":		223,
+  "type":		"changedTestType"
+}

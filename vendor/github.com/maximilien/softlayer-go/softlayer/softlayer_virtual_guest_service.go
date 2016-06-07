@@ -1,7 +1,7 @@
 package softlayer
 
 import (
-	datatypes "github.com/maximilien/softlayer-go/data_types"
+	datatypes "github.com/TheWeatherCompany/softlayer-go/data_types"
 )
 
 type UpgradeOptions struct {

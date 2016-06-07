@@ -1,0 +1,92 @@
+[
+    {
+        "id": 265592,
+        "longName": "Amsterdam 1",
+        "name": "ams01"
+    },
+    {
+        "id": 3,
+        "longName": "Dallas 1",
+        "name": "dal01"
+    },
+    {
+        "id": 138124,
+        "longName": "Dallas 5",
+        "name": "dal05"
+    },
+    {
+        "id": 154820,
+        "longName": "Dallas 6",
+        "name": "dal06"
+    },
+    {
+        "id": 449494,
+        "longName": "Dallas 9",
+        "name": "dal09"
+    },
+    {
+        "id": 449506,
+        "longName": "Frankfurt 2",
+        "name": "fra02"
+    },
+    {
+        "id": 352494,
+        "longName": "Hong Kong 2",
+        "name": "hkg02"
+    },
+    {
+        "id": 142775,
+        "longName": "Houston 2",
+        "name": "hou02"
+    },
+    {
+        "id": 358694,
+        "longName": "London 2",
+        "name": "lon02"
+    },
+    {
+        "id": 449596,
+        "longName": "Melbourne 1",
+        "name": "mel01"
+    },
+    {
+        "id": 449600,
+        "longName": "Mexico 1",
+        "name": "mex01"
+    },
+    {
+        "id": 449500,
+        "longName": "Paris 1",
+        "name": "par01"
+    },
+    {
+        "id": 18171,
+        "longName": "Seattle",
+        "name": "sea01"
+    },
+    {
+        "id": 168642,
+        "longName": "San Jose 1",
+        "name": "sjc01"
+    },
+    {
+        "id": 224092,
+        "longName": "Singapore 1",
+        "name": "sng01"
+    },
+    {
+        "id": 449604,
+        "longName": "Tokyo 2",
+        "name": "tok02"
+    },
+    {
+        "id": 448994,
+        "longName": "Toronto 1",
+        "name": "tor01"
+    },
+    {
+        "id": 37473,
+        "longName": "Washington 1",
+        "name": "wdc01"
+    }
+]

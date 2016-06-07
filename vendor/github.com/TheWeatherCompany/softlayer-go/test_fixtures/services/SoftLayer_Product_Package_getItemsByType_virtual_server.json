@@ -1,0 +1,50 @@
+[
+  {
+    "capacity": "1000",
+    "description": "1 Gbps Public & Private Network Uplinks",
+    "id": 188,
+    "prices": [
+      {
+        "id": 274,
+        "categories": [
+          {
+            "id": 26,
+            "name": "Uplink Port Speeds"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "capacity": "2",
+    "description": "2 GB",
+    "id": 862,
+    "prices": [
+      {
+        "id": 1645,
+        "categories": [
+          {
+            "id": 3,
+            "name": "RAM"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "capacity": "2",
+    "description": "Public 8 x 2.0 GHz Cores",
+    "id": 1048,
+    "prices": [
+      {
+        "id": 1965,
+        "categories": [
+          {
+            "id": 80,
+            "name": "Computing Instance"
+          }
+        ]
+      }
+    ]
+  }
+]

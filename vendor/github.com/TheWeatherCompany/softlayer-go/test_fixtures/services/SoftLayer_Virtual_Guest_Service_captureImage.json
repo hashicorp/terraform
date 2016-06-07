@@ -1,0 +1,11 @@
+{
+	"description": "fake-description",
+	"name": "fake-name",
+	"summary": "fake-summary",
+	"volumes": [{
+		"name": "fake-volume-name",
+		"partitions": [{
+			"name": "fake-partition-name"
+		}]
+	}]
+}

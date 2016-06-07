@@ -1,0 +1,10 @@
+---
+platform: linux
+image: docker:///posijon/slci
+
+inputs:
+  - name: softlayer-go
+    path: gopath/src/github.com/TheWeatherCompany/softlayer-go
+
+run:
+  path: gopath/src/github.com/TheWeatherCompany/softlayer-go/bin/ci
