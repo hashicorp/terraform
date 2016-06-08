@@ -6,7 +6,6 @@ import (
 
 	"github.com/Ensighten/udnssdk"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccUltradnsTcpool(t *testing.T) {
@@ -16,120 +15,96 @@ func TestAccUltradnsTcpool(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckUltradnsTcpoolDestroy,
+		CheckDestroy: testAccTcpoolCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordTcpoolMinimal, domain),
+				Config: fmt.Sprintf(testCfgTcpoolMinimal, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_tcpool.minimal", &record),
+					testAccCheckUltradnsRecordExists("ultradns_tcpool.it", &record),
 					// Specified
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "name", "tcpool-minimal"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "zone", domain),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "ttl", "300"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "rdata.0.host", "192.168.0.10"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "zone", domain),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "name", "test-tcpool-minimal"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "ttl", "300"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.host", "10.6.0.1"),
 					// Defaults
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "act_on_probes", "true"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "description", "Minimal TC Pool"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "max_to_lb", "0"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "run_probes", "true"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "rdata.0.failover_delay", "0"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "rdata.0.priority", "1"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "rdata.0.run_probes", "true"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "rdata.0.state", "NORMAL"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "rdata.0.threshold", "1"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "rdata.0.weight", "2"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "act_on_probes", "true"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "description", "Minimal TC Pool"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "max_to_lb", "0"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "run_probes", "true"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.failover_delay", "0"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.priority", "1"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.run_probes", "true"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.state", "NORMAL"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.threshold", "1"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.weight", "2"),
 					// Generated
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "id", "tcpool-minimal.ultradns.phinze.com"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.minimal", "hostname", "tcpool-minimal.ultradns.phinze.com."),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "id", "test-tcpool-minimal.ultradns.phinze.com"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "hostname", "test-tcpool-minimal.ultradns.phinze.com."),
 				),
 			},
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordTcpoolMaximal, domain),
+				Config: fmt.Sprintf(testCfgTcpoolMaximal, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_tcpool.maximal", &record),
+					testAccCheckUltradnsRecordExists("ultradns_tcpool.it", &record),
 					// Specified
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "name", "tcpool-maximal"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "zone", domain),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "ttl", "300"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "description", "traffic controller pool with all settings tuned"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "zone", domain),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "name", "test-tcpool-maximal"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "ttl", "300"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "description", "traffic controller pool with all settings tuned"),
 
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "act_on_probes", "false"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "max_to_lb", "2"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "run_probes", "false"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "act_on_probes", "false"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "max_to_lb", "2"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "run_probes", "false"),
 
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.0.host", "192.168.0.10"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.0.failover_delay", "30"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.0.priority", "1"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.0.run_probes", "true"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.0.state", "ACTIVE"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.0.threshold", "1"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.0.weight", "2"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.host", "10.6.1.1"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.failover_delay", "30"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.priority", "1"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.run_probes", "true"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.state", "ACTIVE"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.threshold", "1"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.0.weight", "2"),
 
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.1.host", "192.168.0.11"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.1.failover_delay", "30"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.1.priority", "2"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.1.run_probes", "true"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.1.state", "INACTIVE"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.1.threshold", "1"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.1.weight", "4"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.1.host", "10.6.1.2"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.1.failover_delay", "30"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.1.priority", "2"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.1.run_probes", "true"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.1.state", "INACTIVE"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.1.threshold", "1"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.1.weight", "4"),
 
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.2.host", "192.168.0.12"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.2.failover_delay", "30"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.2.priority", "3"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.2.run_probes", "false"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.2.state", "NORMAL"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.2.threshold", "1"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "rdata.2.weight", "8"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.2.host", "10.6.1.3"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.2.failover_delay", "30"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.2.priority", "3"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.2.run_probes", "false"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.2.state", "NORMAL"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.2.threshold", "1"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "rdata.2.weight", "8"),
 					// Generated
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "id", "tcpool-maximal.ultradns.phinze.com"),
-					resource.TestCheckResourceAttr("ultradns_tcpool.maximal", "hostname", "tcpool-maximal.ultradns.phinze.com."),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "id", "test-tcpool-maximal.ultradns.phinze.com"),
+					resource.TestCheckResourceAttr("ultradns_tcpool.it", "hostname", "test-tcpool-maximal.ultradns.phinze.com."),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckUltradnsTcpoolDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*udnssdk.Client)
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "ultradns_tcpool" {
-			continue
-		}
-
-		k := udnssdk.RRSetKey{
-			Zone: rs.Primary.Attributes["zone"],
-			Name: rs.Primary.Attributes["name"],
-			Type: rs.Primary.Attributes["type"],
-		}
-
-		_, err := client.RRSets.Select(k)
-
-		if err == nil {
-			return fmt.Errorf("Record still exists")
-		}
-	}
-
-	return nil
-}
-
-const testAccCheckUltraDNSRecordTcpoolMinimal = `
-resource "ultradns_tcpool" "minimal" {
+const testCfgTcpoolMinimal = `
+resource "ultradns_tcpool" "it" {
   zone        = "%s"
-  name        = "tcpool-minimal"
+  name        = "test-tcpool-minimal"
   ttl         = 300
   description = "Minimal TC Pool"
 
   rdata {
-    host = "192.168.0.10"
+    host = "10.6.0.1"
   }
 }
 `
 
-const testAccCheckUltraDNSRecordTcpoolMaximal = `
-resource "ultradns_tcpool" "maximal" {
+const testCfgTcpoolMaximal = `
+resource "ultradns_tcpool" "it" {
   zone        = "%s"
-  name        = "tcpool-maximal"
+  name        = "test-tcpool-maximal"
   ttl         = 300
   description = "traffic controller pool with all settings tuned"
 
@@ -138,7 +113,8 @@ resource "ultradns_tcpool" "maximal" {
   run_probes    = false
 
   rdata {
-    host           = "192.168.0.10"
+    host = "10.6.1.1"
+
     failover_delay = 30
     priority       = 1
     run_probes     = true
@@ -148,7 +124,8 @@ resource "ultradns_tcpool" "maximal" {
   }
 
   rdata {
-    host           = "192.168.0.11"
+    host = "10.6.1.2"
+
     failover_delay = 30
     priority       = 2
     run_probes     = true
@@ -158,7 +135,8 @@ resource "ultradns_tcpool" "maximal" {
   }
 
   rdata {
-    host           = "192.168.0.12"
+    host = "10.6.1.3"
+
     failover_delay = 30
     priority       = 3
     run_probes     = false
@@ -167,7 +145,7 @@ resource "ultradns_tcpool" "maximal" {
     weight         = 8
   }
 
-  backup_record_rdata          = "192.168.0.11"
+  backup_record_rdata          = "10.6.1.4"
   backup_record_failover_delay = 30
 }
 `
