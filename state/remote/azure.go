@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest/azure"
 	riviera "github.com/jen20/riviera/azure"
 )
 
@@ -87,7 +87,16 @@ func getStorageContainerClient(conf map[string]string, resourceGroup, storageAcc
 			"the Azure Service Management\n  API.")
 	}
 
-	spt, err := azure.NewServicePrincipalToken(clientID, clientSecret, tenantID, azure.AzureResourceManagerScope)
+	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	if oauthConfig == nil {
+		return nil, fmt.Errorf("Unable to configure OAuthConfig for tenant %s", tenantID)
+	}
+
+	spt, err := azure.NewServicePrincipalToken(*oauthConfig, clientID, clientSecret, azure.PublicCloud.ResourceManagerEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -174,5 +183,5 @@ func (c *AzureClient) Put(data []byte) error {
 }
 
 func (c *AzureClient) Delete() error {
-	return c.blobClient.DeleteBlob(c.containerName, c.keyName)
+	return c.blobClient.DeleteBlob(c.containerName, c.keyName, nil)
 }
