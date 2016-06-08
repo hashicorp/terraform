@@ -87,6 +87,11 @@ func resourceAwsElasticacheSubnetGroupRead(d *schema.ResourceData, meta interfac
 
 	res, err := conn.DescribeCacheSubnetGroups(req)
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "CacheSubnetGroupNotFoundFault" {
+			// Update state to indicate the db subnet no longer exists.
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 	if len(res.CacheSubnetGroups) == 0 {
