@@ -49,6 +49,92 @@ func TestProvisioner_connInfo(t *testing.T) {
 	}
 }
 
+func TestProvisioner_connInfoIpv6(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "winrm",
+				"user":     "Administrator",
+				"password": "supersecret",
+				"host":     "::1",
+				"port":     "5985",
+				"https":    "true",
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	conf, err := parseConnectionInfo(r)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if conf.User != "Administrator" {
+		t.Fatalf("expected: %v: got: %v", "Administrator", conf)
+	}
+	if conf.Password != "supersecret" {
+		t.Fatalf("expected: %v: got: %v", "supersecret", conf)
+	}
+	if conf.Host != "[::1]" {
+		t.Fatalf("expected: %v: got: %v", "[::1]", conf)
+	}
+	if conf.Port != 5985 {
+		t.Fatalf("expected: %v: got: %v", 5985, conf)
+	}
+	if conf.HTTPS != true {
+		t.Fatalf("expected: %v: got: %v", true, conf)
+	}
+	if conf.Timeout != "30s" {
+		t.Fatalf("expected: %v: got: %v", "30s", conf)
+	}
+	if conf.ScriptPath != DefaultScriptPath {
+		t.Fatalf("expected: %v: got: %v", DefaultScriptPath, conf)
+	}
+}
+
+func TestProvisioner_connInfoHostname(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "winrm",
+				"user":     "Administrator",
+				"password": "supersecret",
+				"host":     "example.com",
+				"port":     "5985",
+				"https":    "true",
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	conf, err := parseConnectionInfo(r)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if conf.User != "Administrator" {
+		t.Fatalf("expected: %v: got: %v", "Administrator", conf)
+	}
+	if conf.Password != "supersecret" {
+		t.Fatalf("expected: %v: got: %v", "supersecret", conf)
+	}
+	if conf.Host != "example.com" {
+		t.Fatalf("expected: %v: got: %v", "example.com", conf)
+	}
+	if conf.Port != 5985 {
+		t.Fatalf("expected: %v: got: %v", 5985, conf)
+	}
+	if conf.HTTPS != true {
+		t.Fatalf("expected: %v: got: %v", true, conf)
+	}
+	if conf.Timeout != "30s" {
+		t.Fatalf("expected: %v: got: %v", "30s", conf)
+	}
+	if conf.ScriptPath != DefaultScriptPath {
+		t.Fatalf("expected: %v: got: %v", DefaultScriptPath, conf)
+	}
+}
+
 func TestProvisioner_formatDuration(t *testing.T) {
 	cases := map[string]struct {
 		InstanceState *terraform.InstanceState

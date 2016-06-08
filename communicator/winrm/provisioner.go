@@ -46,8 +46,6 @@ type connectionInfo struct {
 // parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
 // a ConnectionInfo struct
 func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
-	hostFormatter := shared.HostFormatterImpl{}
-
 	connInfo := &connectionInfo{}
 	decConf := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
@@ -78,7 +76,7 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 
 	// Format the host if needed.
 	// Needed for IPv6 support.
-	connInfo.Host = hostFormatter.Format(connInfo.Host)
+	connInfo.Host = shared.IpFormat(connInfo.Host)
 
 	if connInfo.Port == 0 {
 		connInfo.Port = DefaultPort
