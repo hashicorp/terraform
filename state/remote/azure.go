@@ -36,11 +36,6 @@ func azureFactory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("Couldn't instantiate blob storage client: %s.", err)
 	}
 
-	_, err = blobClient.CreateContainerIfNotExists(containerName, mainStorage.ContainerAccessTypePrivate)
-	if err != nil {
-		return nil, fmt.Errorf("Couldn't create container with name %s: %s.", containerName, err)
-	}
-
 	return &AzureClient{
 		blobClient:    blobClient,
 		containerName: containerName,
