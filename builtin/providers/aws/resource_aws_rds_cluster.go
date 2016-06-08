@@ -61,6 +61,16 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			// TODO: remove parameter_group_name
+			// See https://github.com/hashicorp/terraform/issues/7046
+			// Likely need migration to remove from state
+			"parameter_group_name": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				Computed:   true,
+				Deprecated: "Use db_cluster_parameter_group_name instead. This attribute will be removed in a future version",
+			},
+
 			"db_cluster_parameter_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -201,6 +211,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		createOpts.DBSubnetGroupName = aws.String(attr.(string))
 	}
 
+	if attr, ok := d.GetOk("parameter_group_name"); ok {
+		createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
+	}
+
 	if attr, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
 		createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
 	}
@@ -296,6 +310,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
+	d.Set("parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("db_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("endpoint", dbc.Endpoint)
 	d.Set("engine", dbc.Engine)
@@ -355,6 +370,11 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChange("backup_retention_period") {
 		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
+	}
+
+	if d.HasChange("parameter_group_name") {
+		d.SetPartial("parameter_group_name")
+		req.DBClusterParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
 	}
 
 	if d.HasChange("db_cluster_parameter_group_name") {
