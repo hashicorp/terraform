@@ -92,7 +92,7 @@ func populateResourceDataFromRRSet(r udnssdk.RRSet, d *schema.ResourceData) erro
 	return nil
 }
 
-func resourceUltraDNSRecord() *schema.Resource {
+func resourceUltradnsRecord() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceUltraDNSRecordCreate,
 		Read:   resourceUltraDNSRecordRead,
