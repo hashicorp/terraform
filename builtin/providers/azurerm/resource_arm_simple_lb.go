@@ -625,6 +625,10 @@ func resourceArmSimpleLbRead(d *schema.ResourceData, meta interface{}) error {
 
 	loadBalancer, err := lbClient.Get(resGrp, name, "")
 	if err != nil {
+		if loadBalancer.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error reading the state of the load balancer off Azure: %s", err)
 	}
 
