@@ -66,6 +66,10 @@ The following arguments are supported:
 * `expunge` - (Optional) This determines if the instance is expunged when it is
     destroyed (defaults false)
 
+* `root_disk_size` - (Optional) The size of the root disk in
+    gigabytes. The root disk is resized on deploy. Only applies to
+    template-based deployments.
+
 ## Attributes Reference
 
 The following attributes are exported:
