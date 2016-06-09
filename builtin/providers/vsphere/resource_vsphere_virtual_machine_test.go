@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"path/filepath"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
@@ -15,7 +17,6 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
-	"path/filepath"
 )
 
 ///////
@@ -410,7 +411,7 @@ resource "vsphere_virtual_machine" "car" {
       "car" = "ferrari"
       "num" = 42
     }
-
+	enable_disk_uuid = true
 `
 
 func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
@@ -439,6 +440,7 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 					resource.TestCheckResourceAttr(vmName, "custom_configuration_parameters.foo", "bar"),
 					resource.TestCheckResourceAttr(vmName, "custom_configuration_parameters.car", "ferrari"),
 					resource.TestCheckResourceAttr(vmName, "custom_configuration_parameters.num", "42"),
+					resource.TestCheckResourceAttr(vmName, "enable_disk_uuid", "true"),
 				),
 			},
 		},
