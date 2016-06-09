@@ -85,6 +85,7 @@ IMPROVEMENTS:
  * provider/vsphere: `vsphere_virtual_machine` adding controller creation logic [GH-6853]
  * provider/vsphere: `vsphere_virtual_machine` added support for `mac address` on `network_interface` [GH-6966]
  * provider/vsphere: Enhanced `vsphere` logging capabilities [GH-6893]
+ * provider/vSphere: Add DiskEnableUUID option to `vsphere_virtual_machine` [GH-7088]
  
 BUG FIXES:
 
