@@ -28,7 +28,7 @@ func TestMapFieldReader(t *testing.T) {
 				"listInt.0": "21",
 				"listInt.1": "42",
 
-				"map.#":   "2",
+				"map.%":   "2",
 				"map.foo": "bar",
 				"map.bar": "baz",
 
@@ -56,7 +56,7 @@ func TestMapFieldReader_extra(t *testing.T) {
 		Map: BasicMapReader(map[string]string{
 			"mapDel": "",
 
-			"mapEmpty.#": "0",
+			"mapEmpty.%": "0",
 		}),
 	}
 
