@@ -516,16 +516,35 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("ami", instance.ImageId)
 	d.Set("instance_type", instance.InstanceType)
 	d.Set("key_name", instance.KeyName)
-	d.Set("public_dns", instance.PublicDnsName)
-	d.Set("public_ip", instance.PublicIpAddress)
-	d.Set("private_dns", instance.PrivateDnsName)
-	d.Set("private_ip", instance.PrivateIpAddress)
+	if instance.PublicDnsName != nil {
+		d.Set("public_dns", instance.PublicDnsName)
+	}
+	if instance.PublicIpAddress != nil {
+		d.Set("public_ip", instance.PublicIpAddress)
+	}
+	if instance.PrivateDnsName != nil {
+		d.Set("private_dns", instance.PrivateDnsName)
+	}
+	if instance.PrivateIpAddress != nil {
+		d.Set("private_ip", instance.PrivateIpAddress)
+	}
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
-	if len(instance.NetworkInterfaces) > 0 {
+	if len(instance.NetworkInterfaces) == 0 {
+		d.Set("subnet_id", instance.SubnetId)
+	} else if len(instance.NetworkInterfaces) == 1 {
 		d.Set("subnet_id", instance.NetworkInterfaces[0].SubnetId)
 	} else {
-		d.Set("subnet_id", instance.SubnetId)
+		instanceNetworkInterfaces := make([]map[string]interface{}, 0)
+		for _, ni := range instance.NetworkInterfaces {
+			networkInterface := make(map[string]interface{})
+			networkInterface["network_interface_id"] = *ni.NetworkInterfaceId
+			networkInterface["device_index"] = *ni.Attachment.DeviceIndex
+			instanceNetworkInterfaces = append(instanceNetworkInterfaces, networkInterface)
+		}
+		if err := d.Set("network_interface", instanceNetworkInterfaces); err != nil {
+			log.Printf("[WARN] Error setting network interfaces for (%s): $s", d.Id(), err)
+		}
 	}
 	d.Set("ebs_optimized", instance.EbsOptimized)
 	if instance.SubnetId != nil && *instance.SubnetId != "" {
@@ -539,51 +558,56 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("tags", tagsToMap(instance.Tags))
 
-	// Determine whether we're referring to security groups with
-	// IDs or names. We use a heuristic to figure this out. By default,
-	// we use IDs if we're in a VPC. However, if we previously had an
-	// all-name list of security groups, we use names. Or, if we had any
-	// IDs, we use IDs.
-	useID := instance.SubnetId != nil && *instance.SubnetId != ""
-	if v := d.Get("security_groups"); v != nil {
-		match := useID
-		sgs := v.(*schema.Set).List()
-		if len(sgs) > 0 {
-			match = false
-			for _, v := range v.(*schema.Set).List() {
-				if strings.HasPrefix(v.(string), "sg-") {
-					match = true
-					break
+	// Skip all this if we have multiple interfaces, instances with
+	// multiple interfaces have security groups per interface, not
+	// per instance.
+	if len(instance.NetworkInterfaces) < 2 {
+		// Determine whether we're referring to security groups with
+		// IDs or names. We use a heuristic to figure this out. By default,
+		// we use IDs if we're in a VPC. However, if we previously had an
+		// all-name list of security groups, we use names. Or, if we had any
+		// IDs, we use IDs.
+		useID := instance.SubnetId != nil && *instance.SubnetId != ""
+		if v := d.Get("security_groups"); v != nil {
+			match := useID
+			sgs := v.(*schema.Set).List()
+			if len(sgs) > 0 {
+				match = false
+				for _, v := range v.(*schema.Set).List() {
+					if strings.HasPrefix(v.(string), "sg-") {
+						match = true
+						break
+					}
 				}
 			}
+
+			useID = match
 		}
 
-		useID = match
-	}
-
-	// Build up the security groups
-	sgs := make([]string, 0, len(instance.SecurityGroups))
-	if useID {
-		for _, sg := range instance.SecurityGroups {
-			sgs = append(sgs, *sg.GroupId)
-		}
-		log.Printf("[DEBUG] Setting Security Group IDs: %#v", sgs)
-		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
-			return err
-		}
-		if err := d.Set("security_groups", []string{}); err != nil {
-			return err
-		}
-	} else {
-		for _, sg := range instance.SecurityGroups {
-			sgs = append(sgs, *sg.GroupName)
-		}
-		log.Printf("[DEBUG] Setting Security Group Names: %#v", sgs)
-		if err := d.Set("security_groups", sgs); err != nil {
-			return err
-		}
-		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
-			return err
+		// Build up the security groups
+		sgs := make([]string, 0, len(instance.SecurityGroups))
+		if useID {
+			for _, sg := range instance.SecurityGroups {
+				sgs = append(sgs, *sg.GroupId)
+			}
+			log.Printf("[DEBUG] Setting Security Group IDs: %#v", sgs)
+			if err := d.Set("vpc_security_group_ids", sgs); err != nil {
+				return err
+			}
+			if err := d.Set("security_groups", []string{}); err != nil {
+				return err
+			}
+		} else {
+			for _, sg := range instance.SecurityGroups {
+				sgs = append(sgs, *sg.GroupName)
+			}
+			log.Printf("[DEBUG] Setting Security Group Names: %#v", sgs)
+			if err := d.Set("security_groups", sgs); err != nil {
+				return err
+			}
+			if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
+				return err
+			}
 		}
 	}
 
