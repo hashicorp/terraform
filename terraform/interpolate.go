@@ -214,7 +214,6 @@ func (i *Interpolater) valueResourceVar(
 	result map[string]ast.Variable) error {
 	// If we're computing all dynamic fields, then module vars count
 	// and we mark it as computed.
-
 	if i.Operation == walkValidate {
 		result[n] = ast.Variable{
 			Value: config.UnknownVariableValue,
@@ -345,7 +344,6 @@ func (i *Interpolater) valueUserVar(
 func (i *Interpolater) computeResourceVariable(
 	scope *InterpolationScope,
 	v *config.ResourceVariable) (*ast.Variable, error) {
-
 	id := v.ResourceId()
 	if v.Multi {
 		id = fmt.Sprintf("%s.%d", id, v.Index)
