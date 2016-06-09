@@ -106,6 +106,7 @@ BUG FIXES:
  * provider/aws: Make 'stage_name' required in api_gateway_deployment [Gh-6797]
  * provider/aws: Changing keys in `aws_dynamodb_table` correctly force new resources [GH-6829]
  * provider/aws: Fix issue reattaching a VPN gateway to a VPC [GH-6987]
+ * provider/aws: Update Lambda functions on name change [GH-7081]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
