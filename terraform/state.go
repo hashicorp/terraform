@@ -19,7 +19,7 @@ import (
 
 const (
 	// StateVersion is the current version for our state file
-	StateVersion = 2
+	StateVersion = 3
 )
 
 // rootModulePath is the path of the root module
@@ -1379,23 +1379,32 @@ type jsonStateVersionIdentifier struct {
 	Version int `json:"version"`
 }
 
+// Check if this is a V0 format - the magic bytes at the start of the file
+// should be "tfstate" if so. We no longer support upgrading this type of
+// state but return an error message explaining to a user how they can
+// upgrade via the 0.6.x series.
+func testForV0State(buf *bufio.Reader) error {
+	start, err := buf.Peek(len("tfstate"))
+	if err != nil {
+		return fmt.Errorf("Failed to check for magic bytes: %v", err)
+	}
+	if string(start) == "tfstate" {
+		return fmt.Errorf("Terraform 0.7 no longer supports upgrading the binary state\n" +
+			"format which was used prior to Terraform 0.3. Please upgrade\n" +
+			"this state file using Terraform 0.6.16 prior to using it with\n" +
+			"Terraform 0.7.")
+	}
+
+	return nil
+}
+
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
 
-	// Check if this is a V0 format
-	start, err := buf.Peek(len(stateFormatMagic))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to check for magic bytes: %v", err)
-	}
-	if string(start) == stateFormatMagic {
-		// Read the old state
-		old, err := ReadStateV0(buf)
-		if err != nil {
-			return nil, err
-		}
-		return old.upgrade()
+	if err := testForV0State(buf); err != nil {
+		return nil, err
 	}
 
 	// If we are JSON we buffer the whole thing in memory so we can read it twice.
@@ -1414,17 +1423,39 @@ func ReadState(src io.Reader) (*State, error) {
 	case 0:
 		return nil, fmt.Errorf("State version 0 is not supported as JSON.")
 	case 1:
-		old, err := ReadStateV1(jsonBytes)
+		v1State, err := ReadStateV1(jsonBytes)
 		if err != nil {
 			return nil, err
 		}
-		return old.upgrade()
+
+		v2State, err := upgradeStateV1ToV2(v1State)
+		if err != nil {
+			return nil, err
+		}
+
+		v3State, err := upgradeStateV2ToV3(v2State)
+		if err != nil {
+			return nil, err
+		}
+
+		return v3State, nil
 	case 2:
-		state, err := ReadStateV2(jsonBytes)
+		v2State, err := ReadStateV2(jsonBytes)
 		if err != nil {
 			return nil, err
 		}
-		return state, nil
+		v3State, err := upgradeStateV2ToV3(v2State)
+		if err != nil {
+			return nil, err
+		}
+
+		return v3State, nil
+	case 3:
+		v3State, err := ReadStateV3(jsonBytes)
+		if err != nil {
+			return nil, err
+		}
+		return v3State, nil
 	default:
 		return nil, fmt.Errorf("State version %d not supported, please update.",
 			versionIdentifier.Version)
@@ -1432,20 +1463,52 @@ func ReadState(src io.Reader) (*State, error) {
 }
 
 func ReadStateV1(jsonBytes []byte) (*stateV1, error) {
-	state := &stateV1{}
+	v1State := &stateV1{}
+	if err := json.Unmarshal(jsonBytes, v1State); err != nil {
+		return nil, fmt.Errorf("Decoding state file failed: %v", err)
+	}
+
+	if v1State.Version != 1 {
+		return nil, fmt.Errorf("Decoded state version did not match the decoder selection: "+
+			"read %d, expected 1", v1State.Version)
+	}
+
+	return v1State, nil
+}
+
+func ReadStateV2(jsonBytes []byte) (*State, error) {
+	state := &State{}
 	if err := json.Unmarshal(jsonBytes, state); err != nil {
 		return nil, fmt.Errorf("Decoding state file failed: %v", err)
 	}
 
-	if state.Version != 1 {
-		return nil, fmt.Errorf("Decoded state version did not match the decoder selection: "+
-			"read %d, expected 1", state.Version)
+	// Check the version, this to ensure we don't read a future
+	// version that we don't understand
+	if state.Version > StateVersion {
+		return nil, fmt.Errorf("State version %d not supported, please update.",
+			state.Version)
 	}
+
+	// Make sure the version is semantic
+	if state.TFVersion != "" {
+		if _, err := version.NewVersion(state.TFVersion); err != nil {
+			return nil, fmt.Errorf(
+				"State contains invalid version: %s\n\n"+
+					"Terraform validates the version format prior to writing it. This\n"+
+					"means that this is invalid of the state becoming corrupted through\n"+
+					"some external means. Please manually modify the Terraform version\n"+
+					"field to be a proper semantic version.",
+				state.TFVersion)
+		}
+	}
+
+	// Sort it
+	state.sort()
 
 	return state, nil
 }
 
-func ReadStateV2(jsonBytes []byte) (*State, error) {
+func ReadStateV3(jsonBytes []byte) (*State, error) {
 	state := &State{}
 	if err := json.Unmarshal(jsonBytes, state); err != nil {
 		return nil, fmt.Errorf("Decoding state file failed: %v", err)

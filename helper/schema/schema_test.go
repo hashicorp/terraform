@@ -1297,7 +1297,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"config_vars.#": &terraform.ResourceAttrDiff{
+					"config_vars.%": &terraform.ResourceAttrDiff{
 						Old: "0",
 						New: "1",
 					},
@@ -1473,7 +1473,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 						Old: "1",
 						New: "0",
 					},
-					"config_vars.0.#": &terraform.ResourceAttrDiff{
+					"config_vars.0.%": &terraform.ResourceAttrDiff{
 						Old: "2",
 						New: "0",
 					},
@@ -1763,7 +1763,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"vars.#": &terraform.ResourceAttrDiff{
+					"vars.%": &terraform.ResourceAttrDiff{
 						Old:         "",
 						NewComputed: true,
 					},
@@ -1783,7 +1783,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"vars.#": "0",
+					"vars.%": "0",
 				},
 			},
 
@@ -1799,7 +1799,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"vars.#": &terraform.ResourceAttrDiff{
+					"vars.%": &terraform.ResourceAttrDiff{
 						Old:         "",
 						NewComputed: true,
 					},
@@ -2046,7 +2046,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"vars.#": &terraform.ResourceAttrDiff{
+					"vars.%": &terraform.ResourceAttrDiff{
 						Old: "0",
 						New: "1",
 					},

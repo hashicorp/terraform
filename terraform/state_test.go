@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -1128,92 +1127,6 @@ func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
 	}
 }
 
-func TestReadUpgradeStateV1toV2(t *testing.T) {
-	// ReadState should transparently detect the old version but will upgrade
-	// it on Write.
-	actual, err := ReadState(strings.NewReader(testV1State))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	buf := new(bytes.Buffer)
-	if err := WriteState(actual, buf); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if actual.Version != 2 {
-		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
-	}
-
-	roundTripped, err := ReadState(buf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !reflect.DeepEqual(actual, roundTripped) {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
-func TestReadUpgradeStateV1toV2_outputs(t *testing.T) {
-	// ReadState should transparently detect the old version but will upgrade
-	// it on Write.
-	actual, err := ReadState(strings.NewReader(testV1StateWithOutputs))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	buf := new(bytes.Buffer)
-	if err := WriteState(actual, buf); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if actual.Version != 2 {
-		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
-	}
-
-	roundTripped, err := ReadState(buf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !reflect.DeepEqual(actual, roundTripped) {
-		spew.Config.DisableMethods = true
-		t.Fatalf("bad:\n%s\n\nround tripped:\n%s\n", spew.Sdump(actual), spew.Sdump(roundTripped))
-		spew.Config.DisableMethods = false
-	}
-}
-
-func TestReadUpgradeState(t *testing.T) {
-	state := &StateV0{
-		Resources: map[string]*ResourceStateV0{
-			"foo": &ResourceStateV0{
-				ID: "bar",
-			},
-		},
-	}
-	buf := new(bytes.Buffer)
-	if err := testWriteStateV0(state, buf); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// ReadState should transparently detect the old
-	// version and upgrade up so the latest.
-	actual, err := ReadState(buf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	upgraded, err := state.upgrade()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !reflect.DeepEqual(actual, upgraded) {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
 func TestReadWriteState(t *testing.T) {
 	state := &State{
 		Serial: 9,
@@ -1385,73 +1298,6 @@ func TestWriteStateTFVersion(t *testing.T) {
 	}
 }
 
-func TestUpgradeV0State(t *testing.T) {
-	old := &StateV0{
-		Outputs: map[string]string{
-			"ip": "127.0.0.1",
-		},
-		Resources: map[string]*ResourceStateV0{
-			"foo": &ResourceStateV0{
-				Type: "test_resource",
-				ID:   "bar",
-				Attributes: map[string]string{
-					"key": "val",
-				},
-			},
-			"bar": &ResourceStateV0{
-				Type: "test_resource",
-				ID:   "1234",
-				Attributes: map[string]string{
-					"a": "b",
-				},
-			},
-		},
-		Tainted: map[string]struct{}{
-			"bar": struct{}{},
-		},
-	}
-	state, err := old.upgrade()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(state.Modules) != 1 {
-		t.Fatalf("should only have root module: %#v", state.Modules)
-	}
-	root := state.RootModule()
-
-	if len(root.Outputs) != 1 {
-		t.Fatalf("bad outputs: %v", root.Outputs)
-	}
-	if root.Outputs["ip"].Value != "127.0.0.1" {
-		t.Fatalf("bad outputs: %v", root.Outputs)
-	}
-
-	if len(root.Resources) != 2 {
-		t.Fatalf("bad resources: %v", root.Resources)
-	}
-
-	foo := root.Resources["foo"]
-	if foo.Type != "test_resource" {
-		t.Fatalf("bad: %#v", foo)
-	}
-	if foo.Primary == nil || foo.Primary.ID != "bar" ||
-		foo.Primary.Attributes["key"] != "val" {
-		t.Fatalf("bad: %#v", foo)
-	}
-	if foo.Primary.Tainted {
-		t.Fatalf("bad: %#v", foo)
-	}
-
-	bar := root.Resources["bar"]
-	if bar.Type != "test_resource" {
-		t.Fatalf("bad: %#v", bar)
-	}
-	if !bar.Primary.Tainted {
-		t.Fatalf("bad: %#v", bar)
-	}
-}
-
 func TestParseResourceStateKey(t *testing.T) {
 	cases := []struct {
 		Input       string
@@ -1517,68 +1363,3 @@ func TestParseResourceStateKey(t *testing.T) {
 		}
 	}
 }
-
-const testV1State = `{
-    "version": 1,
-    "serial": 9,
-    "remote": {
-        "type": "http",
-        "config": {
-            "url": "http://my-cool-server.com/"
-        }
-    },
-    "modules": [
-        {
-            "path": [
-                "root"
-            ],
-            "outputs": null,
-            "resources": {
-                "foo": {
-                    "type": "",
-                    "primary": {
-                        "id": "bar"
-                    }
-                }
-            },
-            "depends_on": [
-                "aws_instance.bar"
-            ]
-        }
-    ]
-}
-`
-
-const testV1StateWithOutputs = `{
-    "version": 1,
-    "serial": 9,
-    "remote": {
-        "type": "http",
-        "config": {
-            "url": "http://my-cool-server.com/"
-        }
-    },
-    "modules": [
-        {
-            "path": [
-                "root"
-            ],
-            "outputs": {
-            	"foo": "bar",
-            	"baz": "foo"
-            },
-            "resources": {
-                "foo": {
-                    "type": "",
-                    "primary": {
-                        "id": "bar"
-                    }
-                }
-            },
-            "depends_on": [
-                "aws_instance.bar"
-            ]
-        }
-    ]
-}
-`

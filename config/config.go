@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
-	"github.com/mitchellh/mapstructure"
+	"github.com/hashicorp/terraform/helper/hilmapstructure"
 	"github.com/mitchellh/reflectwalk"
 )
 
@@ -368,19 +368,19 @@ func (c *Config) Validate() error {
 		raw := make(map[string]interface{})
 		for k, v := range m.RawConfig.Raw {
 			var strVal string
-			if err := mapstructure.WeakDecode(v, &strVal); err == nil {
+			if err := hilmapstructure.WeakDecode(v, &strVal); err == nil {
 				raw[k] = strVal
 				continue
 			}
 
 			var mapVal map[string]interface{}
-			if err := mapstructure.WeakDecode(v, &mapVal); err == nil {
+			if err := hilmapstructure.WeakDecode(v, &mapVal); err == nil {
 				raw[k] = mapVal
 				continue
 			}
 
 			var sliceVal []interface{}
-			if err := mapstructure.WeakDecode(v, &sliceVal); err == nil {
+			if err := hilmapstructure.WeakDecode(v, &sliceVal); err == nil {
 				raw[k] = sliceVal
 				continue
 			}
@@ -919,19 +919,19 @@ func (v *Variable) inferTypeFromDefault() VariableType {
 	}
 
 	var s string
-	if err := mapstructure.WeakDecode(v.Default, &s); err == nil {
+	if err := hilmapstructure.WeakDecode(v.Default, &s); err == nil {
 		v.Default = s
 		return VariableTypeString
 	}
 
 	var m map[string]string
-	if err := mapstructure.WeakDecode(v.Default, &m); err == nil {
+	if err := hilmapstructure.WeakDecode(v.Default, &m); err == nil {
 		v.Default = m
 		return VariableTypeMap
 	}
 
 	var l []string
-	if err := mapstructure.WeakDecode(v.Default, &l); err == nil {
+	if err := hilmapstructure.WeakDecode(v.Default, &l); err == nil {
 		v.Default = l
 		return VariableTypeList
 	}

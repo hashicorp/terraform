@@ -53,7 +53,7 @@ func (r *MapFieldReader) readMap(k string) (FieldReadResult, error) {
 			resultSet = true
 
 			key := k[len(prefix):]
-			if key != "#" {
+			if key != "%" && key != "#" {
 				result[key] = v
 			}
 		}
