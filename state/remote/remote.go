@@ -41,10 +41,10 @@ var BuiltinClients = map[string]Factory{
 	"etcd":        etcdFactory,
 	"gcs":         gcsFactory,
 	"http":        httpFactory,
+	"mas":         masFactory,
 	"s3":          s3Factory,
 	"swift":       swiftFactory,
 	"artifactory": artifactoryFactory,
-	"azure":       azureFactory,
 
 	// This is used for development purposes only.
 	"_local": fileFactory,

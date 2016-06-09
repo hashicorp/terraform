@@ -12,11 +12,7 @@ import (
 	riviera "github.com/jen20/riviera/azure"
 )
 
-func azureFactory(conf map[string]string) (Client, error) {
-	resourceGroup, ok := conf["resource_group"]
-	if !ok {
-		return nil, fmt.Errorf("missing 'resource_group' configuration")
-	}
+func masFactory(conf map[string]string) (Client, error) {
 	storageAccountName, ok := conf["storage_account_name"]
 	if !ok {
 		return nil, fmt.Errorf("missing 'storage_account_name' configuration")
@@ -25,40 +21,55 @@ func azureFactory(conf map[string]string) (Client, error) {
 	if !ok {
 		return nil, fmt.Errorf("missing 'container_name' configuration")
 	}
-
 	keyName, ok := conf["key"]
 	if !ok {
 		return nil, fmt.Errorf("missing 'key' configuration")
 	}
 
-	blobClient, err := getStorageContainerClient(conf, resourceGroup, storageAccountName)
-	if err != nil {
-		return nil, fmt.Errorf("Couldn't instantiate blob storage client: %s.", err)
+	accessKey, ok := confOrEnv(conf, "access_key", "ARM_ACCESS_KEY")
+	if !ok {
+		resourceGroupName, ok := conf["resource_group_name"]
+		if !ok {
+			return nil, fmt.Errorf("missing 'resource_group' configuration")
+		}
+
+		var err error
+		accessKey, err = getStorageAccountAccessKey(conf, resourceGroupName, storageAccountName)
+		if err != nil {
+			return nil, fmt.Errorf("Couldn't instantiate blob storage client: %s.", err)
+		}
 	}
 
+	storageClient, err := mainStorage.NewBasicClient(storageAccountName, accessKey)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+	}
+
+	blobClient := storageClient.GetBlobService()
+
 	return &AzureClient{
-		blobClient:    blobClient,
+		blobClient:    &blobClient,
 		containerName: containerName,
 		keyName:       keyName,
 	}, nil
 }
 
-func getStorageContainerClient(conf map[string]string, resourceGroup, storageAccountName string) (*mainStorage.BlobStorageClient, error) {
+func getStorageAccountAccessKey(conf map[string]string, resourceGroupName, storageAccountName string) (string, error) {
 	subscriptionID, ok := confOrEnv(conf, "arm_subscription_id", "ARM_SUBSCRIPTION_ID")
 	if !ok {
-		return nil, fmt.Errorf("missing 'arm_subscription_id' configuration")
+		return "", fmt.Errorf("missing 'arm_subscription_id' configuration")
 	}
 	clientID, ok := confOrEnv(conf, "arm_client_id", "ARM_CLIENT_ID")
 	if !ok {
-		return nil, fmt.Errorf("missing 'arm_client_id' configuration")
+		return "", fmt.Errorf("missing 'arm_client_id' configuration")
 	}
 	clientSecret, ok := confOrEnv(conf, "arm_client_secret", "ARM_CLIENT_SECRET")
 	if !ok {
-		return nil, fmt.Errorf("missing 'arm_client_secret' configuration")
+		return "", fmt.Errorf("missing 'arm_client_secret' configuration")
 	}
 	tenantID, ok := confOrEnv(conf, "arm_tenant_id", "ARM_TENANT_ID")
 	if !ok {
-		return nil, fmt.Errorf("missing 'arm_tenant_id' configuration")
+		return "", fmt.Errorf("missing 'arm_tenant_id' configuration")
 	}
 
 	rivieraClient, err := riviera.NewClient(&riviera.AzureResourceManagerCredentials{
@@ -68,7 +79,7 @@ func getStorageContainerClient(conf map[string]string, resourceGroup, storageAcc
 		TenantID:       tenantID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Error creating Riviera client: %s", err)
+		return "", fmt.Errorf("Error creating Riviera client: %s", err)
 	}
 
 	request := rivieraClient.NewRequest()
@@ -78,49 +89,42 @@ func getStorageContainerClient(conf map[string]string, resourceGroup, storageAcc
 
 	response, err := request.Execute()
 	if err != nil {
-		return nil, fmt.Errorf("Cannot request provider registration for Azure Resource Manager: %s.", err)
+		return "", fmt.Errorf("Cannot request provider registration for Azure Resource Manager: %s.", err)
 	}
 
 	if !response.IsSuccessful() {
-		return nil, fmt.Errorf("Credentials for acessing the Azure Resource Manager API are likely " +
+		return "", fmt.Errorf("Credentials for acessing the Azure Resource Manager API are likely " +
 			"to be incorrect, or\n  the service principal does not have permission to use " +
 			"the Azure Service Management\n  API.")
 	}
 
 	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(tenantID)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if oauthConfig == nil {
-		return nil, fmt.Errorf("Unable to configure OAuthConfig for tenant %s", tenantID)
+		return "", fmt.Errorf("Unable to configure OAuthConfig for tenant %s", tenantID)
 	}
 
 	spt, err := azure.NewServicePrincipalToken(*oauthConfig, clientID, clientSecret, azure.PublicCloud.ResourceManagerEndpoint)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	accountsClient := storage.NewAccountsClient(subscriptionID)
 	accountsClient.Authorizer = spt
 
-	keys, err := accountsClient.ListKeys(resourceGroup, storageAccountName)
+	keys, err := accountsClient.ListKeys(resourceGroupName, storageAccountName)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
+		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
 	}
 
 	if keys.Key1 == nil {
-		return nil, fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
+		return "", fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, *keys.Key1)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
-	}
-
-	blobClient := storageClient.GetBlobService()
-
-	return &blobClient, nil
+	return *keys.Key1, nil
 }
 
 func confOrEnv(conf map[string]string, confKey, envVar string) (string, bool) {
