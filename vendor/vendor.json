@@ -907,6 +907,12 @@
 			"revision": "70dac624f9d3e37295dfa4012040106e5f7b1add"
 		},
 		{
+			"checksumSHA1": "nKUCquNpJ9ifHgkXoT4K3Xar6R8=",
+			"path": "github.com/jen20/riviera/storage",
+			"revision": "64de55fa8cdd0c52f7d59494c1b03c1b583c52b4",
+			"revisionTime": "2016-02-18T23:50:40Z"
+		},
+		{
 			"comment": "0.2.2-2-gc01cf91",
 			"path": "github.com/jmespath/go-jmespath",
 			"revision": "c01cf91b011868172fdcd9f41838e80c9d716264"
