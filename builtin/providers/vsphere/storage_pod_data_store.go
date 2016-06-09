@@ -6,12 +6,18 @@ import (
 
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
 )
 
+// Collector models the PropertyCollector managed object.
+//
+// For more information, see:
+// http://pubs.vmware.com/vsphere-55/index.jsp#com.vmware.wssdk.apiref.doc/vmodl.query.PropertyCollector.html
+//
 type StoragePodDataStore struct {
 	name           string
 	template       string
@@ -122,7 +128,17 @@ func (spds *StoragePodDataStore) findRecommendedDatastore(client *vim25.Client, 
 	}
 
 	spa := rds.Recommendations[0].Action[0].(*types.StoragePlacementAction)
+	var mds mo.Datastore
+
+	p := property.DefaultCollector(client)
+
+	err = p.RetrieveOne(context.TODO(), spa.Destination, []string{"name"}, &mds)
+	if err != nil {
+		return nil, err
+	}
+
 	datastore = object.NewDatastore(client, spa.Destination)
+	datastore.InventoryPath = mds.Name
 	log.Printf("[DEBUG] findDatastore: datastore: %#v", datastore)
 
 	return datastore, nil
@@ -139,14 +155,17 @@ func (spds *StoragePodDataStore) findStoragePod(client *vim25.Client) (sp *objec
 	if spds.storagePodName != "" {
 		log.Printf("[DEBUG] looking for DataStore Cluster")
 		sp, err = finder.DatastoreCluster(context.TODO(), spds.storagePodName)
+		if err != nil {
+			log.Printf("[ERROR] Couldn't find datastore cluster %v.  %s", spds.storagePodName, err)
+			return nil, err
+		}
 	} else {
 		// TODO this does not seem to be working ... wth
 		sp, err = finder.DefaultDatastoreCluster(context.TODO())
-	}
-
-	if err != nil {
-		log.Printf("[ERROR] Couldn't find datastore cluster %v.  %s", spds.storagePodName, err)
-		return nil, err
+		if err != nil {
+			log.Printf("[ERROR] Couldn't find default datastore cluster %s", err)
+			return nil, err
+		}
 	}
 
 	log.Printf("[DEBUG] Found datastore cluster: %v", sp)

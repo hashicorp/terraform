@@ -943,20 +943,24 @@ func testBasicPreCheckSRS(t *testing.T) {
 ////
 // Create a vm with two disk via drs, add two more disks, and then delete three disks
 ////
+// TODO test with different datasources
 func TestAccVSphereVirtualMachine_updateDRSDisks(t *testing.T) {
 	var vm virtualMachine
 	basic_vars := setupTemplateBasicBodyVars()
 
 	config_disk_2 := basic_vars.testSprintfTemplateDisk(
 		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk, "two")
-	config_disk_3 := config_disk_2 + basic_vars.testSprintfTemplateDisk(
-		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk, "three")
+	config_disk_4 := config_disk_2 +
+		basic_vars.testSprintfTemplateDisk(
+			testAccCheckVSphereVirtualMachineConfig_basic_drs_disk, "three") +
+		basic_vars.testSprintfTemplateDisk(
+			testAccCheckVSphereVirtualMachineConfig_basic_drs_disk, "four")
 
 	config_two_disks := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) +
 		config_disk_2 + close_p
 
 	config_four_disks := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) +
-		config_disk_3 + close_p
+		config_disk_4 + close_p
 
 	config_one_disk := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) +
 		close_p

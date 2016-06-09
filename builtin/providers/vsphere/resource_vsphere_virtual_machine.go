@@ -591,9 +591,9 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		for _, diskRaw := range addedDisks.List() {
 			if disk, ok := diskRaw.(map[string]interface{}); ok {
 
-				// TODO this feels like it won't work, because of the spec
 				var datastore *object.Datastore
-				if useSdrs && disk["datastore"] != "" {
+				if useSdrs {
+					// FIXME - add support for no datastore name
 					log.Printf("[DEBUG] starting findng recommended storage pod")
 
 					spd := StoragePodDataStore{
@@ -606,10 +606,9 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					}
 
 					log.Printf("[DEBUG] storage pod: %v", spd)
-					datastore, err = spd.findRecommendedStoragePodDataStore(client.Client)
-
+					datastore, err = spd.findDataStoreSpecCreate(client.Client, configSpec)
 					if err != nil {
-						log.Printf("[ERROR] Unable to find drs datastore: %s", err)
+						log.Printf("[ERROR] Unable to find dsrs spec create datastore: %s", err)
 						return err
 					}
 
@@ -1279,12 +1278,11 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 
 	log.Printf("[DEBUG] disk controller: %#v\n", controller)
 
-	// TODO Check if diskPath & datastore exist
+	// TODO - do we do this??
 	// If diskPath is not specified, pass empty string to CreateDisk()
 	if diskPath == "" {
 		return fmt.Errorf("[ERROR] addHardDisk - No path proided")
 	} else {
-		// TODO Check if diskPath & datastore exist
 		diskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
 	}
 	log.Printf("[DEBUG] addHardDisk - diskPath: %v", diskPath)
