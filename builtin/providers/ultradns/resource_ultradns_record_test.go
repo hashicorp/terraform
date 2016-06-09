@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccUltraDNSRecord_Basic(t *testing.T) {
+func TestAccUltradnsRecord(t *testing.T) {
 	var record udnssdk.RRSet
 	// domain := os.Getenv("ULTRADNS_DOMAIN")
 	domain := "ultradns.phinze.com"
@@ -17,65 +17,40 @@ func TestAccUltraDNSRecord_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckUltraDNSRecordDestroy,
+		CheckDestroy: testAccRecordCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigBasic, domain),
+				Config: fmt.Sprintf(testCfgRecordMinimal, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_record.basic", &record),
-					testAccCheckUltraDNSRecordAttributes(&record),
-					resource.TestCheckResourceAttr(
-						"ultradns_record.basic", "name", "basic"),
-					resource.TestCheckResourceAttr(
-						"ultradns_record.basic", "zone", domain),
-					resource.TestCheckResourceAttr(
-						"ultradns_record.basic", "rdata.0", "192.168.0.10"),
+					testAccCheckUltradnsRecordExists("ultradns_record.it", &record),
+					resource.TestCheckResourceAttr("ultradns_record.it", "zone", domain),
+					resource.TestCheckResourceAttr("ultradns_record.it", "name", "test-record"),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.0", "10.5.0.1"),
+				),
+			},
+			resource.TestStep{
+				Config: fmt.Sprintf(testCfgRecordMinimal, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckUltradnsRecordExists("ultradns_record.it", &record),
+					resource.TestCheckResourceAttr("ultradns_record.it", "zone", domain),
+					resource.TestCheckResourceAttr("ultradns_record.it", "name", "test-record"),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.0", "10.5.0.1"),
+				),
+			},
+			resource.TestStep{
+				Config: fmt.Sprintf(testCfgRecordUpdated, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckUltradnsRecordExists("ultradns_record.it", &record),
+					resource.TestCheckResourceAttr("ultradns_record.it", "zone", domain),
+					resource.TestCheckResourceAttr("ultradns_record.it", "name", "test-record"),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.0", "10.5.0.2"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccUltraDNSRecord_Updated(t *testing.T) {
-	var record udnssdk.RRSet
-	domain := "ultradns.phinze.com"
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckUltraDNSRecordDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigBasic, domain),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_record.basic", &record),
-					testAccCheckUltraDNSRecordAttributes(&record),
-					resource.TestCheckResourceAttr(
-						"ultradns_record.basic", "name", "basic"),
-					resource.TestCheckResourceAttr(
-						"ultradns_record.basic", "zone", domain),
-					resource.TestCheckResourceAttr(
-						"ultradns_record.basic", "rdata.0", "192.168.0.10"),
-				),
-			},
-			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigNewValue, domain),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_record.basic", &record),
-					testAccCheckUltraDNSRecordAttributesUpdated(&record),
-					resource.TestCheckResourceAttr(
-						"ultradns_record.basic", "name", "basic"),
-					resource.TestCheckResourceAttr(
-						"ultradns_record.basic", "zone", domain),
-					resource.TestCheckResourceAttr(
-						"ultradns_record.basic", "rdata.0", "192.168.0.11"),
-				),
-			},
-		},
-	})
-}
-
-func testAccCheckUltraDNSRecordDestroy(s *terraform.State) error {
+func testAccRecordCheckDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*udnssdk.Client)
 
 	for _, rs := range s.RootModule().Resources {
@@ -99,80 +74,23 @@ func testAccCheckUltraDNSRecordDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckUltraDNSRecordAttributes(record *udnssdk.RRSet) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if record.RData[0] != "192.168.0.10" {
-			return fmt.Errorf("Bad content: %v", record.RData)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckUltraDNSRecordAttributesUpdated(record *udnssdk.RRSet) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if record.RData[0] != "192.168.0.11" {
-			return fmt.Errorf("Bad content: %v", record.RData)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckUltraDNSRecordExists(n string, record *udnssdk.RRSet) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Record ID is set")
-		}
-
-		client := testAccProvider.Meta().(*udnssdk.Client)
-		k := udnssdk.RRSetKey{
-			Zone: rs.Primary.Attributes["zone"],
-			Name: rs.Primary.Attributes["name"],
-			Type: rs.Primary.Attributes["type"],
-		}
-
-		foundRecord, err := client.RRSets.Select(k)
-
-		if err != nil {
-			return err
-		}
-
-		if foundRecord[0].OwnerName != rs.Primary.Attributes["hostname"] {
-			return fmt.Errorf("Record not found: %+v,\n %+v\n", foundRecord, rs.Primary.Attributes)
-		}
-
-		*record = foundRecord[0]
-
-		return nil
-	}
-}
-
-const testAccCheckUltraDNSRecordConfigBasic = `
-resource "ultradns_record" "basic" {
+const testCfgRecordMinimal = `
+resource "ultradns_record" "it" {
   zone = "%s"
+  name  = "test-record"
 
-  name  = "basic"
-  rdata = ["192.168.0.10"]
+  rdata = ["10.5.0.1"]
   type  = "A"
   ttl   = 3600
 }
 `
 
-const testAccCheckUltraDNSRecordConfigNewValue = `
-resource "ultradns_record" "basic" {
+const testCfgRecordUpdated = `
+resource "ultradns_record" "it" {
   zone = "%s"
-  name  = "basic"
+  name  = "test-record"
 
-  rdata = ["192.168.0.11"]
+  rdata = ["10.5.0.2"]
   type  = "A"
   ttl   = 3600
 }
