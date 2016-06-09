@@ -13,7 +13,6 @@ func TestSerializeForHash(t *testing.T) {
 	}
 
 	tests := []testCase{
-
 		testCase{
 			Schema: &Schema{
 				Type: TypeInt,
@@ -192,6 +191,31 @@ func TestSerializeForHash(t *testing.T) {
 				"green": true,
 			},
 			Expected: "green:1;name:my-fun-database;size:12;",
+		},
+
+		// test TypeMap nested in Schema: GH-7091
+		testCase{
+			Schema: &Resource{
+				Schema: map[string]*Schema{
+					"outer": &Schema{
+						Type:     TypeSet,
+						Required: true,
+						Elem: &Schema{
+							Type:     TypeMap,
+							Optional: true,
+						},
+					},
+				},
+			},
+			Value: map[string]interface{}{
+				"outer": NewSet(func(i interface{}) int { return 42 }, []interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+						"baz": "foo",
+					},
+				}),
+			},
+			Expected: "outer:{[baz:foo;foo:bar;];};",
 		},
 	}
 
