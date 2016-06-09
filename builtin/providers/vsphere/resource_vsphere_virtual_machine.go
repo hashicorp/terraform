@@ -40,13 +40,16 @@ type networkInterface struct {
 }
 
 type hardDisk struct {
-	name       string
-	size       int64
-	iops       int64
-	initType   string
-	vmdkPath   string
-	controller string
-	bootable   bool
+	name         string
+	size         int64
+	iops         int64
+	initType     string
+	vmdkPath     string
+	controller   string
+	bootable     bool
+	datastore    string
+	useSDRS      bool
+	templateName string
 }
 
 //Additional options Vsphere can use clones of windows machines
@@ -61,6 +64,7 @@ type windowsOptConfig struct {
 type cdrom struct {
 	datastore string
 	path      string
+	useSDRS   bool
 }
 
 type memoryAllocation struct {
@@ -73,11 +77,10 @@ type virtualMachine struct {
 	datacenter            string
 	cluster               string
 	resourcePool          string
-	datastore             string
 	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
-	template              string
+	bootDisk              hardDisk
 	networkInterfaces     []networkInterface
 	hardDisks             []hardDisk
 	cdroms                []cdrom
@@ -91,7 +94,6 @@ type virtualMachine struct {
 	enableDiskUUID        bool
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
-	useSDRS               bool
 }
 
 func (v virtualMachine) Path() string {
@@ -384,6 +386,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Optional: true,
 						},
 
+						"use_sdrs": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+
 						"size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -450,6 +458,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Required: true,
 							ForceNew: true,
 						},
+
+						"use_sdrs": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 					},
 				},
 			},
@@ -458,6 +472,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 }
 
 func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.SetFlags(log.Lshortfile)
 	// flag if changes have to be applied
 	hasChanges := false
 	// flag if changes have to be done when powered off
@@ -526,83 +541,84 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		var resourcePool *object.ResourcePool
 		var folder *object.Folder
 
-		useSdrs := d.Get("use_sdrs").(bool)
-
 		// TODO this is kinda repeated code
-		if useSdrs {
-			var resourcePoolName string
-			var clusterName string
-			var folderName string
-			var datacenterName string
+		var resourcePoolName string
+		var clusterName string
+		var folderName string
+		var datacenterName string
 
-			dcFolders, err := dc.Folders(context.TODO())
-			if err != nil {
-				return err
-			}
+		dcFolders, err := dc.Folders(context.TODO())
+		if err != nil {
+			return err
+		}
 
-			folder = dcFolders.VmFolder
+		folder = dcFolders.VmFolder
 
-			if v, ok := d.GetOk("resource_pool"); ok {
-				resourcePoolName = v.(string)
-			}
-			if v, ok := d.GetOk("cluster"); ok {
-				clusterName = v.(string)
-			}
-			if v, ok := d.GetOk("folder"); ok {
-				folderName = v.(string)
-			}
-			if v, ok := d.GetOk("datacenter"); ok {
-				datacenterName = v.(string)
-			}
+		if v, ok := d.GetOk("resource_pool"); ok {
+			resourcePoolName = v.(string)
+		}
+		if v, ok := d.GetOk("cluster"); ok {
+			clusterName = v.(string)
+		}
+		if v, ok := d.GetOk("folder"); ok {
+			folderName = v.(string)
+		}
+		if v, ok := d.GetOk("datacenter"); ok {
+			datacenterName = v.(string)
+		}
 
-			if resourcePoolName == "" {
-				if clusterName == "" {
-					resourcePool, err = finder.DefaultResourcePool(context.TODO())
-					if err != nil {
-						return err
-					}
-				} else {
-					resourcePool, err = finder.ResourcePool(context.TODO(), "*"+clusterName+"/Resources")
-					if err != nil {
-						return err
-					}
+		if resourcePoolName == "" {
+			if clusterName == "" {
+				resourcePool, err = finder.DefaultResourcePool(context.TODO())
+				if err != nil {
+					return err
 				}
 			} else {
-				resourcePool, err = finder.ResourcePool(context.TODO(), resourcePoolName)
+				resourcePool, err = finder.ResourcePool(context.TODO(), "*"+clusterName+"/Resources")
 				if err != nil {
 					return err
 				}
 			}
-
-			if folderName != "" {
-				si := object.NewSearchIndex(client.Client)
-				folderRef, err := si.FindByInventoryPath(
-					context.TODO(), fmt.Sprintf("%v/vm/%v", datacenterName, folderName))
-				if err != nil {
-					return fmt.Errorf("Error reading folder %s: %s", datacenterName, err)
-				} else if folderRef == nil {
-					return fmt.Errorf("Cannot find folder %s", folderName)
-				} else {
-					folder = folderRef.(*object.Folder)
-				}
+		} else {
+			resourcePool, err = finder.ResourcePool(context.TODO(), resourcePoolName)
+			if err != nil {
+				return err
 			}
 		}
+
+		if folderName != "" {
+			si := object.NewSearchIndex(client.Client)
+			folderRef, err := si.FindByInventoryPath(
+				context.TODO(), fmt.Sprintf("%v/vm/%v", datacenterName, folderName))
+			if err != nil {
+				return fmt.Errorf("Error reading folder %s: %s", datacenterName, err)
+			} else if folderRef == nil {
+				return fmt.Errorf("Cannot find folder %s", folderName)
+			} else {
+				folder = folderRef.(*object.Folder)
+			}
+		}
+
 		log.Printf("[DEBUG] resource pool: %#v", resourcePool)
 		for _, diskRaw := range addedDisks.List() {
 			if disk, ok := diskRaw.(map[string]interface{}); ok {
 
 				var datastore *object.Datastore
-				if useSdrs {
+				if disk["use_sdrs"] != "" {
+
 					// FIXME - add support for no datastore name
 					log.Printf("[DEBUG] starting findng recommended storage pod")
 
 					spd := StoragePodDataStore{
 						name:           name,
-						storagePodName: disk["datastore"].(string),
 						DataCenter:     dc,
 						ResourcePool:   resourcePool,
 						Folder:         folder,
 						VirtualMachine: vm,
+					}
+
+					if disk["datastore"].(string) != "" {
+						spd.storagePodName = disk["datastore"].(string)
 					}
 
 					log.Printf("[DEBUG] storage pod: %v", spd)
@@ -655,6 +671,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 
 				log.Printf("[INFO] Attaching disk: %v", diskPath)
 				log.Printf("[INFO] Attaching datastore: %v", datastore)
+
+				// FIXME does this get the folder correct??
 				err = addHardDisk(vm, size, iops, "thin", datastore, diskPath, controller_type)
 				if err != nil {
 					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
@@ -666,6 +684,10 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			}
 		}
 	}
+
+	// TODO cdrom
+
+	// TODO network
 
 	// do nothing if there are no changes
 	if !hasChanges {
@@ -797,12 +819,6 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if v, ok := d.GetOk("use_sdrs"); ok {
-		vm.useSDRS = v.(bool)
-	} else {
-		vm.useSDRS = false
-	}
-
 	if vL, ok := d.GetOk("network_interface"); ok {
 		networks := make([]networkInterface, len(vL.([]interface{})))
 		for i, v := range vL.([]interface{}) {
@@ -881,15 +897,15 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				disk := value.(map[string]interface{})
 				newDisk := hardDisk{}
 
-				if v, ok := disk["template"].(string); ok && v != "" {
-					if v, ok := disk["name"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify name of a template")
+				if v, ok := disk["use_sdrs"].(string); ok {
+					var err error
+					newDisk.useSDRS, err = strconv.ParseBool(v)
+					if err != nil {
+						return err
 					}
-					vm.template = v
-					if hasBootableDisk {
-						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
-					}
-					hasBootableDisk = true
+
+				} else {
+					newDisk.useSDRS = false
 				}
 
 				if v, ok := disk["type"].(string); ok && v != "" {
@@ -897,7 +913,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				}
 
 				if v, ok := disk["datastore"].(string); ok && v != "" {
-					vm.datastore = v
+					newDisk.datastore = v
 				}
 
 				if v, ok := disk["size"].(int); ok && v != 0 {
@@ -922,8 +938,32 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 					newDisk.controller = v
 				}
 
-				if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
-					// FIXME this should be tested in schema, before we get here
+				// FIXME this should be tested in schema, before we get here
+				if v, ok := disk["template"].(string); ok && v != "" {
+
+					if v, ok := disk["vmdk"].(string); ok && v != "" {
+						return fmt.Errorf("Cannot specify a template and a vmdk")
+					} else if vm.bootDisk.templateName != "" {
+						return fmt.Errorf("Cannot have two bootdisks")
+					} else if hasBootableDisk {
+						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
+					}
+
+					if v, ok := disk["name"].(string); ok && v != "" {
+						return fmt.Errorf("Cannot specify name of a template")
+					}
+					newDisk.bootable = true
+					newDisk.templateName = v
+
+					hasBootableDisk = true
+					vm.bootDisk = newDisk
+
+				} else if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
+
+					if hasBootableDisk {
+						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
+					}
+
 					if v, ok := disk["template"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify a vmdk for a template")
 					}
@@ -939,6 +979,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 						vm.hasBootableVmdk = vBootable
 					}
 					newDisk.vmdkPath = vVmdk
+					vm.bootDisk = newDisk
 				}
 				// Preserves order so bootable disk is first
 				if newDisk.bootable == true || disk["template"] != "" {
@@ -960,6 +1001,15 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				cdroms[i].datastore = v
 			} else {
 				return fmt.Errorf("Datastore argument must be specified when attaching a cdrom image.")
+			}
+			if v, ok := c["use_sdrs"].(string); ok && v != "" {
+				var err error
+				cdroms[i].useSDRS, err = strconv.ParseBool(v)
+				if err != nil {
+					return err
+				}
+			} else {
+				cdroms[i].useSDRS = false
 			}
 			if v, ok := c["path"].(string); ok && v != "" {
 				cdroms[i].path = v
@@ -983,6 +1033,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
+
 	log.Printf("[DEBUG] virtual machine resource data: %#v", d)
 	client := meta.(*govmomi.Client)
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
@@ -1193,6 +1244,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 }
 
 func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
+	log.SetFlags(log.Lshortfile)
 	client := meta.(*govmomi.Client)
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
@@ -1465,6 +1517,7 @@ func createCdroms(vm *object.VirtualMachine, cdroms []cdrom) error {
 	for _, cd := range cdroms {
 		log.Printf("[DEBUG] add cdrom (datastore): %v", cd.datastore)
 		log.Printf("[DEBUG] add cdrom (cd path): %v", cd.path)
+		// TODO update for drs
 		err := addCdrom(vm, cd.datastore, cd.path)
 		if err != nil {
 			return err
@@ -1476,29 +1529,22 @@ func createCdroms(vm *object.VirtualMachine, cdroms []cdrom) error {
 
 func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	log.SetFlags(log.Lshortfile)
+
+	templateName := vm.bootDisk.templateName
+
+	// TODO  get DC, finder, respool, folder this is duplicated in Update
+	// TODO refactor
 	dc, err := getDatacenter(c, vm.datacenter)
 
 	if err != nil {
 		return err
 	}
+
 	finder := find.NewFinder(c.Client, true)
 	finder = finder.SetDatacenter(dc)
 
-	var template *object.VirtualMachine
 	var template_mo mo.VirtualMachine
 	var vm_mo mo.VirtualMachine
-	if vm.template != "" {
-		template, err = finder.VirtualMachine(context.TODO(), vm.template)
-		if err != nil {
-			return err
-		}
-		log.Printf("[DEBUG] template: %#v", template)
-
-		err = template.Properties(context.TODO(), template.Reference(), []string{"parent", "config.template", "config.guestId", "resourcePool", "snapshot", "guest.toolsVersionStatus2", "config.guestFullName"}, &template_mo)
-		if err != nil {
-			return err
-		}
-	}
 
 	var resourcePool *object.ResourcePool
 	if vm.resourcePool == "" {
@@ -1554,7 +1600,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			DiskUuidEnabled: &vm.enableDiskUUID,
 		},
 	}
-	if vm.template == "" {
+	if templateName == "" {
 		configSpec.GuestId = "otherLinux64Guest"
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
@@ -1583,7 +1629,9 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	for _, network := range vm.networkInterfaces {
 		// network device
 		var networkDeviceType string
-		if vm.template == "" {
+
+		// TODO why is this??
+		if templateName == "" {
 			networkDeviceType = "e1000"
 		} else {
 			networkDeviceType = "vmxnet3"
@@ -1595,7 +1643,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] network device: %+v", nd.Device)
 		networkDevices = append(networkDevices, nd)
 
-		if vm.template != "" {
+		if templateName != "" {
 			var ipSetting types.CustomizationIPSettings
 			if network.ipv4Address == "" {
 				ipSetting.Ip = &types.CustomizationDhcpIpGenerator{}
@@ -1650,83 +1698,126 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	log.Printf("[DEBUG] network configs: %#v", networkConfigs)
 
 	var datastore *object.Datastore
-	// Get Recommended StoragePod Datastore Reference
-	if vm.useSDRS {
-		log.Printf("[DEBUG] starting findng recommended storage pod")
-
-		spd := StoragePodDataStore{
-			clone:              true,
-			name:               vm.name,
-			template:           vm.template,
-			storagePodName:     vm.datastore,
-			ConfigSpecsNetwork: networkDevices,
-			DataCenter:         dc,
-			ResourcePool:       resourcePool,
-			Folder:             folder,
-			VirtualMachine:     template,
-		}
-		log.Printf("[DEBUG] storage pod: %v", spd)
-		if vm.template != "" {
-			datastore, err = spd.findRecommendedStoragePodDataStore(c.Client)
-			if err != nil {
-				log.Printf("[ERROR] Unable to find drs datastore: %s", err)
-				return err
-			}
-		} else {
-			datastore, err = spd.findDataStoreSpecCreate(c.Client, configSpec)
-			if err != nil {
-				log.Printf("[ERROR] Unable to find dsrs spec create datastore: %s", err)
-				return err
-			}
-		}
-
-	} else if vm.datastore != "" { // Get Named DS
-		datastore, err = finder.Datastore(context.TODO(), vm.datastore)
-		if err != nil {
-			log.Printf("[ERROR] Unable to find datastore: %s, %s", vm.datastore, err)
-			return err
-		}
-	} else { // Get Default DS
-		datastore, err = finder.DefaultDatastore(context.TODO())
-		if err != nil {
-			log.Printf("[ERROR] Unable to find default datastore: %s", err)
-			return err
-		}
-	}
-
-	log.Printf("[DEBUG] datastore: %#v", datastore)
+	firstDisk := 0
 
 	var task *object.Task
-	if vm.template == "" {
-		var mds mo.Datastore
-		if err = datastore.Properties(context.TODO(), datastore.Reference(), []string{"name"}, &mds); err != nil {
-			return err
-		}
-		log.Printf("[DEBUG] datastore: %#v", mds.Name)
-		scsi, err := object.SCSIControllerTypes().CreateSCSIController("scsi")
-		if err != nil {
-			log.Printf("[ERROR] %s", err)
-		}
+	if templateName == "" {
+		// TODO can we not have a disk??
+		if vm.hardDisks != nil {
+			disk := vm.hardDisks[0]
+			var mds mo.Datastore
 
-		configSpec.DeviceChange = append(configSpec.DeviceChange, &types.VirtualDeviceConfigSpec{
-			Operation: types.VirtualDeviceConfigSpecOperationAdd,
-			Device:    scsi,
-		})
+			if disk.useSDRS {
+				log.Printf("[DEBUG] starting finding recommended storage pod")
+				spd := StoragePodDataStore{
+					clone:              true,
+					name:               vm.name,
+					storagePodName:     disk.datastore,
+					ConfigSpecsNetwork: networkDevices,
+					DataCenter:         dc,
+					ResourcePool:       resourcePool,
+					Folder:             folder,
+				}
+				datastore, err = spd.findRecommendedStoragePodDataStore(c.Client)
+				if err != nil {
+					log.Printf("[ERROR] Unable to find drs datastore: %s", err)
+					return err
+				}
+			} else if disk.datastore != "" {
+				// Get Named DS
+				datastore, err = finder.Datastore(context.TODO(), disk.datastore)
+				if err != nil {
+					log.Printf("[ERROR] Unable to find datastore: %s, %s", disk.datastore, err)
+					return err
+				}
+			} else {
+				// Get Default DS
+				datastore, err = finder.DefaultDatastore(context.TODO())
+				if err != nil {
+					log.Printf("[ERROR] Unable to find default datastore: %s", err)
+					return err
+				}
+			}
+			if !disk.useSDRS {
+				if err = datastore.Properties(context.TODO(), datastore.Reference(), []string{"name"}, &mds); err != nil {
+					return err
+				}
+			}
 
-		configSpec.Files = &types.VirtualMachineFileInfo{VmPathName: fmt.Sprintf("[%s]", mds.Name)}
+			scsi, err := object.SCSIControllerTypes().CreateSCSIController("scsi")
+			if err != nil {
+				log.Printf("[ERROR] %s", err)
+			}
+
+			configSpec.DeviceChange = append(configSpec.DeviceChange, &types.VirtualDeviceConfigSpec{
+				Operation: types.VirtualDeviceConfigSpecOperationAdd,
+				Device:    scsi,
+			})
+			configSpec.Files = &types.VirtualMachineFileInfo{VmPathName: fmt.Sprintf("[%s]", mds.Name)}
+		}
 
 		task, err = folder.CreateVM(context.TODO(), configSpec, resourcePool, nil)
+
 		if err != nil {
 			log.Printf("[ERROR] %s", err)
+			// TODO should we return error
+			return err
 		}
 
 		err = task.Wait(context.TODO())
 		if err != nil {
 			log.Printf("[ERROR] %s", err)
+			// TODO should we return error
+			return err
 		}
 
-	} else {
+	} else if templateName != "" {
+		var template *object.VirtualMachine
+		template, err = finder.VirtualMachine(context.TODO(), vm.bootDisk.templateName)
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] template: %#v", template)
 
+		err = template.Properties(context.TODO(), template.Reference(), []string{"parent", "config.template", "config.guestId", "resourcePool", "snapshot", "guest.toolsVersionStatus2", "config.guestFullName"}, &template_mo)
+		if err != nil {
+			return err
+		}
+
+		firstDisk++
+
+		if vm.bootDisk.useSDRS {
+			log.Printf("[DEBUG] starting finding recommended storage pod")
+			spd := StoragePodDataStore{
+				clone:              true,
+				name:               vm.name,
+				template:           vm.bootDisk.templateName,
+				storagePodName:     vm.bootDisk.datastore,
+				ConfigSpecsNetwork: networkDevices,
+				DataCenter:         dc,
+				ResourcePool:       resourcePool,
+				Folder:             folder,
+				VirtualMachine:     template,
+			}
+			log.Printf("[DEBUG] storage pod: %v", spd)
+			datastore, err = spd.findRecommendedStoragePodDataStore(c.Client)
+			if err != nil {
+				log.Printf("[ERROR] Unable to find drs datastore: %s", err)
+				return err
+			}
+		} else if vm.bootDisk.datastore != "" {
+			datastore, err = finder.Datastore(context.TODO(), vm.bootDisk.datastore)
+			if err != nil {
+				log.Printf("[ERROR] Unable to find datastore: %s, %s", vm.bootDisk.datastore, err)
+				return err
+			}
+		} else { // Get Default DS
+			datastore, err = finder.DefaultDatastore(context.TODO())
+			if err != nil {
+				log.Printf("[ERROR] Unable to find default datastore: %s", err)
+				return err
+			}
+		}
 		relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
 		if err != nil {
 			return err
@@ -1754,7 +1845,6 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			return err
 		}
 	}
-
 	err = task.Wait(context.TODO())
 	if err != nil {
 		log.Printf("[ERROR] %s", err)
@@ -1796,10 +1886,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	}
 
 	newVM.Properties(context.TODO(), newVM.Reference(), []string{"summary", "config"}, &vm_mo)
-	firstDisk := 0
-	if vm.template != "" {
-		firstDisk++
-	}
+
 	for i := firstDisk; i < len(vm.hardDisks); i++ {
 		log.Printf("[DEBUG] disk index: %v", i)
 
@@ -1825,7 +1912,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		}
 	}
 
-	if vm.skipCustomization || vm.template == "" {
+	if vm.skipCustomization || templateName == "" {
 		log.Printf("[DEBUG] VM customization skipped")
 	} else {
 		var identity_options types.BaseCustomizationIdentitySettings
@@ -1911,7 +1998,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] VM customization finished")
 	}
 
-	if vm.hasBootableVmdk || vm.template != "" {
+	if vm.hasBootableVmdk || templateName != "" {
 		newVM.PowerOn(context.TODO())
 	}
 	return nil
