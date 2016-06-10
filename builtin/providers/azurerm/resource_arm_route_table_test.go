@@ -94,7 +94,7 @@ func TestAccAzureRMRouteTable_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_route_table.test", "tags.#", "2"),
+						"azurerm_route_table.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_route_table.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -107,7 +107,7 @@ func TestAccAzureRMRouteTable_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_route_table.test", "tags.#", "1"),
+						"azurerm_route_table.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_route_table.test", "tags.environment", "staging"),
 				),

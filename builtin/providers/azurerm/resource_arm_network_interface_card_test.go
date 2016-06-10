@@ -54,7 +54,7 @@ func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_network_interface.test", "tags.#", "2"),
+						"azurerm_network_interface.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_network_interface.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -66,7 +66,7 @@ func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_network_interface.test", "tags.#", "1"),
+						"azurerm_network_interface.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_network_interface.test", "tags.environment", "staging"),
 				),

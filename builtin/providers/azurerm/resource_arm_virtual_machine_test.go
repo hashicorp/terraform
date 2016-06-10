@@ -42,7 +42,7 @@ func TestAccAzureRMVirtualMachine_tags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_virtual_machine.test", "tags.#", "2"),
+						"azurerm_virtual_machine.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_machine.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -55,7 +55,7 @@ func TestAccAzureRMVirtualMachine_tags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_virtual_machine.test", "tags.#", "1"),
+						"azurerm_virtual_machine.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_machine.test", "tags.environment", "Production"),
 				),
