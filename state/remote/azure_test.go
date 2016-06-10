@@ -12,13 +12,13 @@ import (
 	"github.com/jen20/riviera/storage"
 )
 
-func TestMASClient_impl(t *testing.T) {
-	var _ Client = new(MASClient)
+func TestAzureClient_impl(t *testing.T) {
+	var _ Client = new(AzureClient)
 }
 
-func TestMASClient(t *testing.T) {
-	// This test creates a bucket in MAS and populates it.
-	// It may incur costs, so it will only run if MAS credential environment
+func TestAzureClient(t *testing.T) {
+	// This test creates a bucket in Azure and populates it.
+	// It may incur costs, so it will only run if Azure credential environment
 	// variables are present.
 
 	config := map[string]string{
@@ -42,7 +42,7 @@ func TestMASClient(t *testing.T) {
 	setup(t, config)
 	defer teardown(t, config)
 
-	client, err := masFactory(config)
+	client, err := azureFactory(config)
 	if err != nil {
 		t.Fatalf("Error for valid config: %v", err)
 	}

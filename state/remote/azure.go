@@ -12,7 +12,7 @@ import (
 	riviera "github.com/jen20/riviera/azure"
 )
 
-func masFactory(conf map[string]string) (Client, error) {
+func azureFactory(conf map[string]string) (Client, error) {
 	storageAccountName, ok := conf["storage_account_name"]
 	if !ok {
 		return nil, fmt.Errorf("missing 'storage_account_name' configuration")
@@ -47,7 +47,7 @@ func masFactory(conf map[string]string) (Client, error) {
 
 	blobClient := storageClient.GetBlobService()
 
-	return &MASClient{
+	return &AzureClient{
 		blobClient:    &blobClient,
 		containerName: containerName,
 		keyName:       keyName,
@@ -125,13 +125,13 @@ func confOrEnv(conf map[string]string, confKey, envVar string) (string, bool) {
 	return value, value != ""
 }
 
-type MASClient struct {
+type AzureClient struct {
 	blobClient    *mainStorage.BlobStorageClient
 	containerName string
 	keyName       string
 }
 
-func (c *MASClient) Get() (*Payload, error) {
+func (c *AzureClient) Get() (*Payload, error) {
 	blob, err := c.blobClient.GetBlob(c.containerName, c.keyName)
 	if err != nil {
 		if storErr, ok := err.(mainStorage.AzureStorageServiceError); ok {
@@ -161,7 +161,7 @@ func (c *MASClient) Get() (*Payload, error) {
 	return payload, nil
 }
 
-func (c *MASClient) Put(data []byte) error {
+func (c *AzureClient) Put(data []byte) error {
 	return c.blobClient.CreateBlockBlobFromReader(
 		c.containerName,
 		c.keyName,
@@ -173,6 +173,6 @@ func (c *MASClient) Put(data []byte) error {
 	)
 }
 
-func (c *MASClient) Delete() error {
+func (c *AzureClient) Delete() error {
 	return c.blobClient.DeleteBlob(c.containerName, c.keyName, nil)
 }
