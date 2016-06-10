@@ -82,7 +82,7 @@ func TestAccAzureRMCdnProfile_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnProfileExists("azurerm_cdn_profile.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_cdn_profile.test", "tags.#", "2"),
+						"azurerm_cdn_profile.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_cdn_profile.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -95,7 +95,7 @@ func TestAccAzureRMCdnProfile_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnProfileExists("azurerm_cdn_profile.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_cdn_profile.test", "tags.#", "1"),
+						"azurerm_cdn_profile.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_cdn_profile.test", "tags.environment", "staging"),
 				),

@@ -75,7 +75,7 @@ func TestAccAzureRMDnsAAAARecord_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMDnsAAAARecordExists("azurerm_dns_aaaa_record.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_dns_aaaa_record.test", "tags.#", "2"),
+						"azurerm_dns_aaaa_record.test", "tags.%", "2"),
 				),
 			},
 
@@ -84,7 +84,7 @@ func TestAccAzureRMDnsAAAARecord_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMDnsAAAARecordExists("azurerm_dns_aaaa_record.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_dns_aaaa_record.test", "tags.#", "1"),
+						"azurerm_dns_aaaa_record.test", "tags.%", "1"),
 				),
 			},
 		},
