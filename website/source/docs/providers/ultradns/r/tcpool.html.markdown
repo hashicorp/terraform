@@ -6,12 +6,11 @@ description: |-
   Provides a UltraDNS Traffic Controller pool resource.
 ---
 
-# ultradns\_record
+# ultradns\_tcpool
 
-Provides a UltraDNS record resource.
+Provides a UltraDNS Traffic Controller pool resource.
 
 ## Example Usage
-r.ultradns_domain}
 ```
 # Create a Traffic Controller pool
 resource "ultradns_tcpool" "pool" {
