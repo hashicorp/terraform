@@ -118,6 +118,7 @@ BUG FIXES:
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
  * provider/azurerm: Add support for storage container name validation [GH-6852]
  * provider/azurerm: Remove storage containers and blobs when storage accounts are not found [GH-6855]
+ * provider/azurerm: `azurerm_virtual_machine` fix `additional_unattend_rm` Windows config option [GH-7105]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
