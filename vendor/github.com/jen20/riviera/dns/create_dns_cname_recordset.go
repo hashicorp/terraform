@@ -12,7 +12,7 @@ type CreateCNAMERecordSetResponse struct {
 	Location     string             `mapstructure:"location"`
 	Tags         map[string]*string `mapstructure:"tags"`
 	TTL          *int               `mapstructure:"TTL"`
-	CNAMERecords []CNAMERecord      `mapstructure:"CNAMERecords"`
+	CNAMERecord  CNAMERecord        `mapstructure:"CNAMERecord"`
 }
 
 type CreateCNAMERecordSet struct {
@@ -22,7 +22,7 @@ type CreateCNAMERecordSet struct {
 	Location          string             `json:"-" riviera:"location"`
 	Tags              map[string]*string `json:"-" riviera:"tags"`
 	TTL               int                `json:"TTL"`
-	CNAMERecords      []CNAMERecord      `json:"CNAMERecords"`
+	CNAMERecord       CNAMERecord        `json:"CNAMERecord"`
 }
 
 func (command CreateCNAMERecordSet) APIInfo() azure.APIInfo {
