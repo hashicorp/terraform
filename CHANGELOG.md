@@ -14,6 +14,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
    Ref https://github.com/hashicorp/terraform/issues/6416#issuecomment-219145065
  * `aws_route53_record`: `latency_routing_policy`, `geolocation_routing_policy`, and `failover_routing_policy` block options have been added. With these additions we’ve renamed the `weight` attribute to `weighted_routing_policy`, and it has changed from a string to a block to match the others. Please see the updated documentation on using `weighted_routing_policy`:  https://www.terraform.io/docs/providers/aws/r/route53_record.html . [GH-6954]
  * You now access the values of maps using the syntax `var.map["key"]` or the `lookup` function instead of `var.map.key`.
+ * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
 
 FEATURES:
 
@@ -119,6 +120,7 @@ BUG FIXES:
  * provider/azurerm: Add support for storage container name validation [GH-6852]
  * provider/azurerm: Remove storage containers and blobs when storage accounts are not found [GH-6855]
  * provider/azurerm: `azurerm_virtual_machine` fix `additional_unattend_rm` Windows config option [GH-7105]
+ * provider/azurerm: `azurerm_dns_cname_record` can create CNAME records again [GH-7113]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
