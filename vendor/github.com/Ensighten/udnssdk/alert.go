@@ -2,6 +2,7 @@ package udnssdk
 
 import (
 	"log"
+	"net/http"
 	"time"
 )
 
@@ -76,7 +77,7 @@ func (s *AlertsService) Select(k RRSetKey) ([]ProbeAlertDataDTO, error) {
 }
 
 // SelectWithOffset returns the probe alerts with a RRSetKey, accepting an offset
-func (s *AlertsService) SelectWithOffset(k RRSetKey, offset int) ([]ProbeAlertDataDTO, ResultInfo, *Response, error) {
+func (s *AlertsService) SelectWithOffset(k RRSetKey, offset int) ([]ProbeAlertDataDTO, ResultInfo, *http.Response, error) {
 	var ald ProbeAlertDataListDTO
 
 	uri := k.AlertsQueryURI(offset)

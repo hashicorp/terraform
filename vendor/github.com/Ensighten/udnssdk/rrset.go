@@ -3,6 +3,7 @@ package udnssdk
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/fatih/structs"
@@ -365,7 +366,7 @@ func (s *RRSetsService) Select(k RRSetKey) ([]RRSet, error) {
 }
 
 // SelectWithOffset requests zone rrsets by RRSetKey & optional offset
-func (s *RRSetsService) SelectWithOffset(k RRSetKey, offset int) ([]RRSet, ResultInfo, *Response, error) {
+func (s *RRSetsService) SelectWithOffset(k RRSetKey, offset int) ([]RRSet, ResultInfo, *http.Response, error) {
 	var rrsld RRSetListDTO
 
 	uri := k.QueryURI(offset)
@@ -379,18 +380,18 @@ func (s *RRSetsService) SelectWithOffset(k RRSetKey, offset int) ([]RRSet, Resul
 }
 
 // Create creates an rrset with val
-func (s *RRSetsService) Create(k RRSetKey, rrset RRSet) (*Response, error) {
+func (s *RRSetsService) Create(k RRSetKey, rrset RRSet) (*http.Response, error) {
 	var ignored interface{}
 	return s.client.post(k.URI(), rrset, &ignored)
 }
 
 // Update updates a RRSet with the provided val
-func (s *RRSetsService) Update(k RRSetKey, val RRSet) (*Response, error) {
+func (s *RRSetsService) Update(k RRSetKey, val RRSet) (*http.Response, error) {
 	var ignored interface{}
 	return s.client.put(k.URI(), val, &ignored)
 }
 
 // Delete deletes an RRSet
-func (s *RRSetsService) Delete(k RRSetKey) (*Response, error) {
+func (s *RRSetsService) Delete(k RRSetKey) (*http.Response, error) {
 	return s.client.delete(k.URI(), nil)
 }

@@ -202,8 +202,8 @@
 		},
 		{
 			"ImportPath": "github.com/Ensighten/udnssdk",
-			"Comment": "v1.1.1",
-			"Rev": "025e2e4ef72a8c62491dd2bb34a026ff8d83debf"
+			"Comment": "v1.2.0",
+			"Rev": "b6c3f17c9afbd57e628fcbc276a14b63d0dcbaf2"
 		},
 		{
 			"ImportPath": "github.com/ajg/form",
@@ -1473,6 +1473,11 @@
 		{
 			"ImportPath": "google.golang.org/cloud/internal",
 			"Rev": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
+		},
+		{
+			"ImportPath": "github.com/Ensighten/udnssdk/passwordcredentials",
+			"Comment": "v1.2.0",
+			"Rev": "b6c3f17c9afbd57e628fcbc276a14b63d0dcbaf2"
 		}
 	]
 }

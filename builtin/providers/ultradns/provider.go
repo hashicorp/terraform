@@ -33,9 +33,11 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"ultradns_dirpool": resourceUltradnsDirpool(),
-			"ultradns_record":  resourceUltradnsRecord(),
-			"ultradns_tcpool":  resourceUltradnsTcpool(),
+			"ultradns_dirpool":    resourceUltradnsDirpool(),
+			"ultradns_probe_http": resourceUltradnsProbeHTTP(),
+			"ultradns_probe_ping": resourceUltradnsProbePing(),
+			"ultradns_record":     resourceUltradnsRecord(),
+			"ultradns_tcpool":     resourceUltradnsTcpool(),
 		},
 
 		ConfigureFunc: providerConfigure,
