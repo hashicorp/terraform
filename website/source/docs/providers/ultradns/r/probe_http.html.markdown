@@ -1,14 +1,14 @@
 ---
 layout: "ultradns"
-page_title: "UltraDNS: ultradns_probe_ping"
-sidebar_current: "docs-ultradns-resource-probe-ping"
+page_title: "UltraDNS: ultradns_probe_http"
+sidebar_current: "docs-ultradns-resource-probe-http"
 description: |-
-  Provides a UltraDNS Ping Probe
+  Provides a UltraDNS HTTP Probe
 ---
 
-# ultradns\_probe\_ping
+# ultradns\_probe\_http
 
-Provides a UltraDNS ping probe
+Provides a UltraDNS HTTP probe
 
 ## Example Usage
 ```
@@ -80,7 +80,7 @@ The following arguments are supported:
 - `http_probe` - (Required) an HTTP Probe block.
 - `interval` - (Optional) Length of time between probes in minutes. Valid values are `"HALF_MINUTE"`, `"ONE_MINUTE"`, `"TWO_MINUTES"`, `"FIVE_MINUTES"`, `"TEN_MINUTES"` & `"FIFTEEN_MINUTE"`. Default: `"FIVE_MINUTES"`.
 
-Ping Probe block
+HTTP Probe block
 - `transaction` - (Optional) One or more Transaction blocks.
 - `total_limits` - (Optional) A Limit block, but with no `name` attribute.
 
