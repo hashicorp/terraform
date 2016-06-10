@@ -2169,7 +2169,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"tags.#": "0",
+					"tags.%": "0",
 				},
 			},
 
