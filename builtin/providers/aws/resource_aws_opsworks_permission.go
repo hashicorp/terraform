@@ -90,7 +90,6 @@ func resourceAwsOpsworksPermissionRead(d *schema.ResourceData, meta interface{})
 			if awserr.Code() == "ResourceNotFoundException" {
 				log.Printf("[INFO] Permission not found")
 				d.SetId("")
-				d.Set("id", "")
 				return nil
 			}
 		}
@@ -116,7 +115,6 @@ func resourceAwsOpsworksPermissionRead(d *schema.ResourceData, meta interface{})
 
 	if false == found {
 		d.SetId("")
-		d.Set("id", "")
 		log.Printf("[INFO] The correct permission could not be found for: %s on stack: %s", d.Get("user_arn"), d.Get("stack_id"))
 	}
 
