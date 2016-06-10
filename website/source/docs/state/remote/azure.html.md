@@ -1,12 +1,12 @@
 ---
 layout: "remotestate"
-page_title: "Remote State Backend: mas"
-sidebar_current: "docs-state-remote-mas"
+page_title: "Remote State Backend: azure"
+sidebar_current: "docs-state-remote-azure"
 description: |-
   Terraform can store the state remotely, making it easier to version and work with in a team.
 ---
 
-# mas
+# azure
 
 Stores the state as a given key in a given bucket on [Microsoft Azure Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/).
 
@@ -18,7 +18,7 @@ Use of environment variables or config file is recommended.
 
 ```
 terraform remote config \
-  -backend=mas \
+  -backend=azure \
   -backend-config="storage_account_name=terraform123abc" \
   -backend-config="container_name=terraform-state" \
   -backend-config="key=prod.terraform.tfstate"
@@ -29,7 +29,7 @@ terraform remote config \
 ```hcl
 # setup remote state data source
 data "terraform_remote_state" "foo" {
-  backend = "mas"
+  backend = "azure"
   config {
     storage_account_name = "terraform123abc"
     container_name       = "terraform-state"
