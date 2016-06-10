@@ -16,12 +16,12 @@ func Provider() terraform.ResourceProvider {
 			"auth_url": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", nil),
+				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", ""),
 			},
 			"default_domain": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_DEFAULT_DOMAIN", ""),
+				DefaultFunc: schema.EnvDefaultFunc("OS_DEFAULT_DOMAIN", "default"),
 			},
 			"user_name": &schema.Schema{
 				Type:        schema.TypeString,
@@ -44,24 +44,24 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("OS_USER_DOMAIN_ID", ""),
 			},
 			"tenant_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_TENANT_ID", ""),
 			},
 			"tenant_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_TENANT_NAME", nil),
+				DefaultFunc: schema.EnvDefaultFunc("OS_TENANT_NAME", ""),
 			},
 			"project_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_ID", nil),
+				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_ID", ""),
 			},
 			"project_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_NAME", nil),
+				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_NAME", ""),
 			},
 			"project_domain_id": &schema.Schema{
 				Type:        schema.TypeString,
