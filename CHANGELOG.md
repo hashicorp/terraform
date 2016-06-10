@@ -15,6 +15,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `aws_route53_record`: `latency_routing_policy`, `geolocation_routing_policy`, and `failover_routing_policy` block options have been added. With these additions we’ve renamed the `weight` attribute to `weighted_routing_policy`, and it has changed from a string to a block to match the others. Please see the updated documentation on using `weighted_routing_policy`:  https://www.terraform.io/docs/providers/aws/r/route53_record.html . [GH-6954]
  * You now access the values of maps using the syntax `var.map["key"]` or the `lookup` function instead of `var.map.key`.
  * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
+ * `aws_db_instance` now defaults `publicly_accessible` to false
 
 FEATURES:
 
@@ -114,6 +115,7 @@ BUG FIXES:
  * provider/aws: Changing keys in `aws_dynamodb_table` correctly force new resources [GH-6829]
  * provider/aws: Fix issue reattaching a VPN gateway to a VPC [GH-6987]
  * provider/aws: Update Lambda functions on name change [GH-7081]
+ * provider/aws: `aws_db_instance` now defaults `publicly_accessible` to false [GH-7117]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
