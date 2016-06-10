@@ -33,6 +33,11 @@ func resourceStatusCakeTest() *schema.Resource {
 				Required: true,
 			},
 
+			"contact_id": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
 			"check_rate": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -65,6 +70,7 @@ func CreateTest(d *schema.ResourceData, meta interface{}) error {
 		WebsiteURL:  d.Get("website_url").(string),
 		TestType:    d.Get("test_type").(string),
 		CheckRate:   d.Get("check_rate").(int),
+		ContactID:   d.Get("contact_id").(int),
 	}
 
 	log.Printf("[DEBUG] Creating new StatusCake Test: %s", d.Get("website_name").(string))
@@ -141,6 +147,9 @@ func getStatusCakeTestInput(d *schema.ResourceData) *statuscake.Test {
 	}
 	if v, ok := d.GetOk("check_rate"); ok {
 		test.CheckRate = v.(int)
+	}
+	if v, ok := d.GetOk("contact_id"); ok {
+		test.ContactID = v.(int)
 	}
 	if v, ok := d.GetOk("test_type"); ok {
 		test.TestType = v.(string)

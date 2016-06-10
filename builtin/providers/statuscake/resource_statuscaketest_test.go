@@ -2,6 +2,7 @@ package statuscake
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 
@@ -9,6 +10,19 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// check to ensure that contact group id is provided before running
+// tests on it.
+func testAccContactGroupPreCheck(t *testing.T, testAlt bool) {
+	if v := os.Getenv("CONTACT_GROUP"); v == "" {
+		t.Fatal("CONTACT_GROUP must be set for contact group acceptance tests")
+	}
+	if testAlt {
+		if v := os.Getenv("ALT_CONTACT_GROUP"); v == "" {
+			t.Fatal("ALT_CONTACT_GROUP must be set for contact group acceptance tests")
+		}
+	}
+}
 
 func TestAccStatusCake_basic(t *testing.T) {
 	var test statuscake.Test
@@ -49,6 +63,57 @@ func TestAccStatusCake_withUpdate(t *testing.T) {
 					testAccTestCheckExists("statuscake_test.google", &test),
 					resource.TestCheckResourceAttr("statuscake_test.google", "check_rate", "500"),
 					resource.TestCheckResourceAttr("statuscake_test.google", "paused", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccStatusCake_contactGroup_basic(t *testing.T) {
+	var test statuscake.Test
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccContactGroupPreCheck(t, false)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccTestCheckDestroy(&test),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccTestConfig_contactGroup,
+				Check: resource.ComposeTestCheckFunc(
+					testAccTestCheckExists("statuscake_test.google", &test),
+				),
+			},
+		},
+	})
+}
+
+func TestAccStatusCake_contactGroup_withUpdate(t *testing.T) {
+	var test statuscake.Test
+	var altContactGroup = os.Getenv("ALT_CONTACT_GROUP")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccContactGroupPreCheck(t, true)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccTestCheckDestroy(&test),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccTestConfig_contactGroup,
+				Check: resource.ComposeTestCheckFunc(
+					testAccTestCheckExists("statuscake_test.google", &test),
+				),
+			},
+			// make sure to creat
+			resource.TestStep{
+				Config: testAccTestConfig_contactGroup_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccTestCheckExists("statuscake_test.google", &test),
+					resource.TestCheckResourceAttr("statuscake_test.google", "contact_id", altContactGroup),
 				),
 			},
 		},
@@ -113,3 +178,21 @@ resource "statuscake_test" "google" {
   paused = true
 }
 `
+
+var testAccTestConfig_contactGroup string = `` +
+	`resource "statuscake_test" "google" {
+  		website_name = "google.com"
+  		website_url = "www.google.com"
+  		test_type = "HTTP"
+ 		check_rate = 300
+		contact_id = ` + os.Getenv("CONTACT_GROUP") + `
+	}`
+
+var testAccTestConfig_contactGroup_update string = `` +
+	`resource "statuscake_test" "google" {
+  		website_name = "google.com"
+  		website_url = "www.google.com"
+  		test_type = "HTTP"
+ 		check_rate = 300
+		contact_id = ` + os.Getenv("ALT_CONTACT_GROUP") + `
+	}`
