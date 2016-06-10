@@ -257,7 +257,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							},
 						},
 						"additional_unattend_config": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -506,7 +506,7 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if resp.Properties.OsProfile.WindowsConfiguration != nil {
-		if err := d.Set("os_profile_windows_config", schema.NewSet(resourceArmVirtualMachineStorageOsProfileWindowsConfigHash, flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.Properties.OsProfile.WindowsConfiguration))); err != nil {
+		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.Properties.OsProfile.WindowsConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Windows Configuration: %#v", err)
 		}
 	}
@@ -980,7 +980,7 @@ func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (
 		}
 	}
 	if v := osProfileConfig["additional_unattend_config"]; v != nil {
-		additionalConfig := v.(*schema.Set).List()
+		additionalConfig := v.([]interface{})
 		if len(additionalConfig) > 0 {
 			additionalConfigContent := make([]compute.AdditionalUnattendContent, 0, len(additionalConfig))
 			for _, addConfig := range additionalConfig {
