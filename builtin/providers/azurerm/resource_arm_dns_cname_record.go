@@ -34,11 +34,11 @@ func resourceArmDnsCNameRecord() *schema.Resource {
 			},
 
 			"records": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				Elem:       &schema.Schema{Type: schema.TypeString},
-				Set:        schema.HashString,
-				Deprecated: "Use `record` instead. This attribute will be removed in a future version",
+				Type:     schema.TypeString,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+				Removed:  "Use `record` instead. This attribute will be removed in a future version",
 			},
 
 			"record": &schema.Schema{
