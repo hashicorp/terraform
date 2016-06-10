@@ -48,7 +48,7 @@ func TestAccAWSDBParameterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.2478663599.value", "utf8"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "tags.#", "1"),
+						"aws_db_parameter_group.bar", "tags.%", "1"),
 				),
 			},
 			resource.TestStep{
@@ -83,7 +83,7 @@ func TestAccAWSDBParameterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.2478663599.value", "utf8"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "tags.#", "2"),
+						"aws_db_parameter_group.bar", "tags.%", "2"),
 				),
 			},
 		},

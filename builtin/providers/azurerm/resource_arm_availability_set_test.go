@@ -50,7 +50,7 @@ func TestAccAzureRMAvailabilitySet_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_availability_set.test", "tags.#", "2"),
+						"azurerm_availability_set.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_availability_set.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -63,7 +63,7 @@ func TestAccAzureRMAvailabilitySet_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_availability_set.test", "tags.#", "1"),
+						"azurerm_availability_set.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_availability_set.test", "tags.environment", "staging"),
 				),
