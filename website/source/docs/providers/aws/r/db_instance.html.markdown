@@ -78,7 +78,7 @@ the final snapshot (if `final_snapshot_identifier` is specified). Default
   See [RDS Maintenance Window docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html) for more.
 * `multi_az` - (Optional) Specifies if the RDS instance is multi-AZ
 * `port` - (Optional) The port on which the DB accepts connections.
-* `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible.
+* `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible. Defaults to `false`.
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate.
 * `security_group_names` - (Optional/Deprecated) List of DB Security Groups to associate.
     Only used for [DB Instances on the _EC2-Classic_ Platform](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html#USER_VPC.FindDefaultVPC).
