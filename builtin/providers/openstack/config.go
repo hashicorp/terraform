@@ -46,8 +46,7 @@ func (c *Config) loadAndValidate() error {
 	}
 
 	// Check if using the old tenant notation or the project notation
-	if c.TenantID != "" && c.ProjectID != "" ||
-		c.TenantName != "" && c.ProjectName != "" {
+	if (c.TenantID == "" && c.TenantName == "") == (c.ProjectID == "" && c.ProjectName == "") {
 		return fmt.Errorf("Please provide either a tenant ID/name or a projet ID/name")
 	} else if c.ProjectID != "" || c.ProjectName != "" {
 		// If using ProjectID/Name, overwrite TenantID/Name because gophercloud doesn't support
