@@ -29,6 +29,7 @@ FEATURES:
  * **New Provider:** `grafana` [GH-6206]
  * **New Provider:** `random` - allows generation of random values without constantly generating diffs [GH-6672]
  * **New Remote State Provider:** - `gcs` - Google Cloud Storage [GH-6814]
+ * **New Remote State Provider:** - `azure` - Microsoft Azure Storage [GH-7064]
  * **New Resource:** `aws_elb_attachment` [GH-6879]
  * **New Resource:** `aws_elastictranscoder_preset` [GH-6965]
  * **New Resource:** `aws_elastictranscoder_pipeline` [GH-6965]
