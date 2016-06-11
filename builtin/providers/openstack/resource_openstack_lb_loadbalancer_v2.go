@@ -110,7 +110,7 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForLoadBalancerActive(networkingClient, lb.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    20 * time.Minute,
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
