@@ -28,24 +28,24 @@ func TestAccAzureRMVirtualMachineScaleSet_basicLinux(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMVirtualMachineScaleSet_basicWindowsMachine(t *testing.T) {
-	ri := acctest.RandInt()
-	rs := acctest.RandString(6)
-	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSet_basicWindows, ri, ri, ri, ri, ri, ri, rs, ri)
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualMachineScaleSetDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineScaleSetExists("azurerm_virtual_machine_scale_set.test"),
-				),
-			},
-		},
-	})
-}
+//func TestAccAzureRMVirtualMachineScaleSet_basicWindowsMachine(t *testing.T) {
+//	ri := acctest.RandInt()
+//	rs := acctest.RandString(6)
+//	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSet_basicWindows, ri, ri, ri, ri, ri, ri, rs, ri)
+//	resource.Test(t, resource.TestCase{
+//		PreCheck:     func() { testAccPreCheck(t) },
+//		Providers:    testAccProviders,
+//		CheckDestroy: testCheckAzureRMVirtualMachineScaleSetDestroy,
+//		Steps: []resource.TestStep{
+//			{
+//				Config: config,
+//				Check: resource.ComposeTestCheckFunc(
+//					testCheckAzureRMVirtualMachineScaleSetExists("azurerm_virtual_machine_scale_set.test"),
+//				),
+//			},
+//		},
+//	})
+//}
 
 func testCheckAzureRMVirtualMachineScaleSetExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -163,13 +163,13 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     capacity = 2
   }
 
-  virtual_machine_os_profile {
+  os_profile {
     computer_name_prefix = "testvm-%d"
     admin_username = "myadmin"
     admin_password = "Passwword1234"
   }
 
-  virtual_machine_network_profile {
+  network_profile {
       name = "TestNetworkProfile-%d"
       primary = true
       ip_configuration {
@@ -178,14 +178,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       }
   }
 
-  virtual_machine_storage_profile_os_disk {
+  storage_profile_os_disk {
     name = "osDiskProfile"
     caching       = "ReadWrite"
     create_option = "FromImage"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
 
-  virtual_machine_storage_profile_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"
@@ -256,13 +256,13 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     capacity = 2
   }
 
-  virtual_machine_os_profile {
+  os_profile {
     computer_name_prefix = "vm-%s"
     admin_username = "myadmin"
     admin_password = "Passwword1234"
   }
 
-  virtual_machine_network_profile {
+  network_profile {
       name = "TestNetworkProfile-%d"
       primary = true
       ip_configuration {
@@ -271,14 +271,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       }
   }
 
-  virtual_machine_storage_profile_os_disk {
+  storage_profile_os_disk {
      name = "osDiskProfile"
      caching       = "ReadWrite"
      create_option = "FromImage"
      vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
 
-  virtual_machine_storage_profile_image_reference {
+  storage_profile_image_reference {
      publisher = "MicrosoftWindowsServer"
      offer = "WindowsServer"
      sku = "2012-R2-Datacenter"
