@@ -12,8 +12,10 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
    managing Instances inside VPCs will need to use `vpc_security_group_ids` instead, 
    and reference the security groups by their `id`. 
    Ref https://github.com/hashicorp/terraform/issues/6416#issuecomment-219145065
+ * Lists materialized using splat syntax, for example `aws_instance.foo.*.id` are now ordered by the count index rather than lexographically sorted. If this produces a large number of undesirable differences, you can use the new `sort()` interpolation function to produce the previous behaviour.
  * `aws_route53_record`: `latency_routing_policy`, `geolocation_routing_policy`, and `failover_routing_policy` block options have been added. With these additions we’ve renamed the `weight` attribute to `weighted_routing_policy`, and it has changed from a string to a block to match the others. Please see the updated documentation on using `weighted_routing_policy`:  https://www.terraform.io/docs/providers/aws/r/route53_record.html . [GH-6954]
  * You now access the values of maps using the syntax `var.map["key"]` or the `lookup` function instead of `var.map.key`.
+ * Outputs on `terraform_remote_state` resources are now top level attributes rather than inside the `output` map. In order to access outputs, use the syntax: `terraform_remote_state.name.outputname`. Currently outputs cannot be named `config` or `backend`.
  * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
  * `aws_db_instance` now defaults `publicly_accessible` to false
 
