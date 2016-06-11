@@ -241,7 +241,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Optional: true,
 						},
 						"winrm": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -576,18 +576,6 @@ func resourceArmVirtualMachineStorageOsProfileHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["computer_name"].(string)))
 	return hashcode.String(buf.String())
 }
-
-//func resourceArmVirtualMachineStorageDataDiskHash(v interface{}) int {
-//	var buf bytes.Buffer
-//	m := v.(map[string]interface{})
-//	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-//	buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
-//	buf.WriteString(fmt.Sprintf("%s-", m["create_option"].(string)))
-//	buf.WriteString(fmt.Sprintf("%d-", m["disk_size_gb"].(int)))
-//	buf.WriteString(fmt.Sprintf("%d-", m["lun"].(int)))
-//
-//	return hashcode.String(buf.String())
-//}
 
 func resourceArmVirtualMachineStorageOsDiskHash(v interface{}) int {
 	var buf bytes.Buffer
@@ -958,7 +946,7 @@ func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (
 	}
 
 	if v := osProfileConfig["winrm"]; v != nil {
-		winRm := v.(*schema.Set).List()
+		winRm := v.([]interface{})
 		if len(winRm) > 0 {
 			winRmListners := make([]compute.WinRMListener, 0, len(winRm))
 			for _, winRmConfig := range winRm {
