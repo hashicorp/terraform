@@ -29,6 +29,16 @@ func (w *MapFieldWriter) Map() map[string]string {
 	return w.result
 }
 
+func (w *MapFieldWriter) unsafeWriteField(addr string, value string) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+	if w.result == nil {
+		w.result = make(map[string]string)
+	}
+
+	w.result[addr] = value
+}
+
 func (w *MapFieldWriter) WriteField(addr []string, value interface{}) error {
 	w.lock.Lock()
 	defer w.lock.Unlock()

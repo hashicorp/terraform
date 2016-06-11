@@ -1755,7 +1755,87 @@ func TestResourceDataSet(t *testing.T) {
 	}
 }
 
-func TestResourceDataState(t *testing.T) {
+func TestResourceDataState_dynamicAttributes(t *testing.T) {
+	cases := []struct {
+		Schema    map[string]*Schema
+		State     *terraform.InstanceState
+		Diff      *terraform.InstanceDiff
+		Set       map[string]interface{}
+		UnsafeSet map[string]string
+		Result    *terraform.InstanceState
+	}{
+		{
+			Schema: map[string]*Schema{
+				"__has_dynamic_attributes": {
+					Type:     TypeString,
+					Optional: true,
+				},
+
+				"schema_field": {
+					Type:     TypeString,
+					Required: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Set: map[string]interface{}{
+				"schema_field": "present",
+			},
+
+			UnsafeSet: map[string]string{
+				"test1": "value",
+				"test2": "value",
+			},
+
+			Result: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"schema_field": "present",
+					"test1":        "value",
+					"test2":        "value",
+				},
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		for k, v := range tc.Set {
+			d.Set(k, v)
+		}
+
+		for k, v := range tc.UnsafeSet {
+			d.UnsafeSetFieldRaw(k, v)
+		}
+
+		// Set an ID so that the state returned is not nil
+		idSet := false
+		if d.Id() == "" {
+			idSet = true
+			d.SetId("foo")
+		}
+
+		actual := d.State()
+
+		// If we set an ID, then undo what we did so the comparison works
+		if actual != nil && idSet {
+			actual.ID = ""
+			delete(actual.Attributes, "id")
+		}
+
+		if !reflect.DeepEqual(actual, tc.Result) {
+			t.Fatalf("Bad: %d\n\n%#v\n\nExpected:\n\n%#v", i, actual, tc.Result)
+		}
+	}
+}
+
+func TestResourceDataState_schema(t *testing.T) {
 	cases := []struct {
 		Schema  map[string]*Schema
 		State   *terraform.InstanceState
