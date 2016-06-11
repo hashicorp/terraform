@@ -195,6 +195,11 @@ The supported built-in functions are:
       Example: `element(split(",", var.r53_failover_policy), signum(count.index))`
       where the 0th index points to `PRIMARY` and 1st to `FAILOVER`
 
+  * `sort(list)` - Returns a lexographically sorted list of the strings contained in
+      the list passed as an argument. Sort may only be used with lists which contain only
+      strings.
+      Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`
+
   * `split(delim, string)` - Splits the string previously created by `join`
       back into a list. This is useful for pushing lists through module
       outputs since they currently only support string values. Depending on the

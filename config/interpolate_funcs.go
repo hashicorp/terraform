@@ -75,6 +75,7 @@ func Funcs() map[string]ast.Function {
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
 		"signum":       interpolationFuncSignum(),
+		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
@@ -525,6 +526,34 @@ func interpolationFuncSignum() ast.Function {
 			default:
 				return 0, nil
 			}
+		},
+	}
+}
+
+// interpolationFuncSort sorts a list of a strings lexographically
+func interpolationFuncSort() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList},
+		ReturnType: ast.TypeList,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			inputList := args[0].([]ast.Variable)
+
+			// Ensure that all the list members are strings and
+			// create a string slice from them
+			members := make([]string, len(inputList))
+			for i, val := range inputList {
+				if val.Type != ast.TypeString {
+					return nil, fmt.Errorf(
+						"sort() may only be used with lists of strings - %s at index %d",
+						val.Type.String(), i)
+				}
+
+				members[i] = val.Value.(string)
+			}
+
+			sort.Strings(members)
+			return stringSliceToVariableValue(members), nil
 		},
 	}
 }

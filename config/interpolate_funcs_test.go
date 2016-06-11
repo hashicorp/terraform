@@ -638,6 +638,40 @@ func TestInterpolateFuncSignum(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSort(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.strings": ast.Variable{
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{Type: ast.TypeString, Value: "c"},
+					{Type: ast.TypeString, Value: "a"},
+					{Type: ast.TypeString, Value: "b"},
+				},
+			},
+			"var.notstrings": ast.Variable{
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{Type: ast.TypeList, Value: []ast.Variable{}},
+					{Type: ast.TypeString, Value: "b"},
+				},
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${sort(var.strings)}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+			{
+				`${sort(var.notstrings)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncSplit(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
