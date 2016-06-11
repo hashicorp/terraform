@@ -40,6 +40,13 @@ type ImportStateCheckFunc func([]*terraform.InstanceState) error
 // When the destroy plan is executed, the config from the last TestStep
 // is used to plan it.
 type TestCase struct {
+	// OverrideEnvVar allows a test to run regardless of the TF_ACC
+	// environment variable. This should be used with care - only for
+	// fast tests on local resources (e.g. remote state with a local
+	// backend) but can be used to increase confidence in correct
+	// operation of Terraform without waiting for a full acctest run.
+	OverrideEnvVar bool
+
 	// PreCheck, if non-nil, will be called before any test steps are
 	// executed. It will only be executed in the case that the steps
 	// would run, so it can be used for some validation before running
@@ -181,8 +188,9 @@ type TestStep struct {
 // output.
 func Test(t TestT, c TestCase) {
 	// We only run acceptance tests if an env var is set because they're
-	// slow and generally require some outside configuration.
-	if os.Getenv(TestEnvVar) == "" {
+	// slow and generally require some outside configuration. You can opt out
+	// of this with OverrideEnvVar on individual TestCases.
+	if os.Getenv(TestEnvVar) == "" && !c.OverrideEnvVar {
 		t.Skip(fmt.Sprintf(
 			"Acceptance tests skipped unless env '%s' set",
 			TestEnvVar))
@@ -198,7 +206,7 @@ func Test(t TestT, c TestCase) {
 	log.SetOutput(logWriter)
 
 	// We require verbose mode so that the user knows what is going on.
-	if !testTesting && !testing.Verbose() && !isUnitTest {
+	if !testTesting && !testing.Verbose() && !isUnitTest && !c.OverrideEnvVar {
 		t.Fatal("Acceptance tests must be run with the -v flag on tests")
 		return
 	}
