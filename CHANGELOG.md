@@ -123,6 +123,7 @@ BUG FIXES:
  * provider/azurerm: Add support for storage container name validation [GH-6852]
  * provider/azurerm: Remove storage containers and blobs when storage accounts are not found [GH-6855]
  * provider/azurerm: `azurerm_virtual_machine` fix `additional_unattend_rm` Windows config option [GH-7105]
+ * provider/azurerm: Fix `azurerm_virtual_machine` windows_config [GH-7123]
  * provider/azurerm: `azurerm_dns_cname_record` can create CNAME records again [GH-7113]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
