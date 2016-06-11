@@ -1,4 +1,4 @@
-TEST?=$$(go list ./... | grep -v /vendor/)
+TEST?=$$(go list ./... | grep -v '/vendor/' | grep -v '/builtin/bins/')
 VETARGS?=-all
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
