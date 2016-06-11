@@ -90,39 +90,39 @@ func testAccCheckLBV2LoadBalancerExists(t *testing.T, n string, lb *loadbalancer
 }
 
 var TestAccLBV2LoadBalancerConfig_basic = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-    name = "tf_test_network"
-    admin_state_up = "true"
-  }
+	resource "openstack_networking_network_v2" "network_1" {
+		name = "tf_test_network"
+		admin_state_up = "true"
+	}
 
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-    ip_version = 4
-    name = "tf_test_subnet"
-  }
+	resource "openstack_networking_subnet_v2" "subnet_1" {
+		network_id = "${openstack_networking_network_v2.network_1.id}"
+		cidr = "192.168.199.0/24"
+		ip_version = 4
+		name = "tf_test_subnet"
+	}
 
-  resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
-	vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-  	name = "tf_test_loadbalancer_v2"
-  }`)
+	resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
+		vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+		name = "tf_test_loadbalancer_v2"
+	}`)
 
 var TestAccLBV2LoadBalancerConfig_update = fmt.Sprintf(`
   resource "openstack_networking_network_v2" "network_1" {
-    name = "tf_test_network"
-    admin_state_up = "true"
+		name = "tf_test_network"
+		admin_state_up = "true"
   }
 
   resource "openstack_networking_subnet_v2" "subnet_1" {
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-    ip_version = 4
-    name = "tf_test_subnet"
+		network_id = "${openstack_networking_network_v2.network_1.id}"
+		cidr = "192.168.199.0/24"
+		ip_version = 4
+		name = "tf_test_subnet"
   }
 
   resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
-	vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-  	name = "tf_test_loadbalancer_v2_updated"
-	admin_state_up = "true"
+		vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+		name = "tf_test_loadbalancer_v2_updated"
+		admin_state_up = "true"
   }
 `)
