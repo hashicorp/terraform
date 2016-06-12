@@ -487,7 +487,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 
 	// If we have no module in the state yet or count, return empty
 	if module == nil || len(module.Resources) == 0 || count == 0 {
-		return &ast.Variable{Type: ast.TypeString, Value: ""}, nil
+		return &ast.Variable{Type: ast.TypeList, Value: []ast.Variable{}}, nil
 	}
 
 	var values []string
