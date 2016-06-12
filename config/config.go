@@ -891,7 +891,8 @@ func (v *Variable) ValidateTypeAndDefault() error {
 	}
 
 	if v.inferTypeFromDefault() != v.Type() {
-		return fmt.Errorf("'%s' has a default value which is not of type '%s'", v.Name, v.DeclaredType)
+		return fmt.Errorf("'%s' has a default value which is not of type '%s' (got '%s')",
+			v.Name, v.DeclaredType, v.inferTypeFromDefault().Printable())
 	}
 
 	return nil
@@ -924,13 +925,13 @@ func (v *Variable) inferTypeFromDefault() VariableType {
 		return VariableTypeString
 	}
 
-	var m map[string]string
+	var m map[string]interface{}
 	if err := hilmapstructure.WeakDecode(v.Default, &m); err == nil {
 		v.Default = m
 		return VariableTypeMap
 	}
 
-	var l []string
+	var l []interface{}
 	if err := hilmapstructure.WeakDecode(v.Default, &l); err == nil {
 		v.Default = l
 		return VariableTypeList
