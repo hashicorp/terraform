@@ -234,3 +234,24 @@ func (n *GraphNodeConfigVariableFlat) Path() []string {
 
 	return nil
 }
+
+func (n *GraphNodeConfigVariableFlat) Noop(opts *NoopOpts) bool {
+	// First look for provider nodes that depend on this variable downstream
+	modDiff := opts.Diff.ModuleByPath(n.ModulePath)
+	if modDiff != nil && modDiff.Destroy {
+		ds, err := opts.Graph.Descendents(n)
+		if err != nil {
+			log.Printf("[ERROR] Error looking up descendents of %s: %s", n.Name(), err)
+		} else {
+			for _, d := range ds.List() {
+				if _, ok := d.(GraphNodeProvider); ok {
+					log.Printf("[DEBUG] This variable is depended on by a provider, can't be a noop.")
+					return false
+				}
+			}
+		}
+	}
+
+	// Then fall back to existing impl
+	return n.GraphNodeConfigVariable.Noop(opts)
+}
