@@ -836,16 +836,16 @@
 			"revisionTime": "2016-06-07T00:19:40Z"
 		},
 		{
-			"checksumSHA1": "rYMJhG5J/OzcBIRfatklb/+JrJ4=",
+			"checksumSHA1": "vWW3HXm7OTOMISuZPcCSJODRYkU=",
 			"path": "github.com/hashicorp/hil",
-			"revision": "58c35af3b2c3a72c572851bc9e650b62a61d5ec2",
-			"revisionTime": "2016-06-05T07:46:40Z"
+			"revision": "7130f7330953adacbfb4ca0ad4b14b806bce3762",
+			"revisionTime": "2016-06-12T11:49:46Z"
 		},
 		{
-			"checksumSHA1": "eJv3RKa2gk/4khPzo3+pJzThz8w=",
+			"checksumSHA1": "UICubs001+Q4MsUf9zl2vcMzWQQ=",
 			"path": "github.com/hashicorp/hil/ast",
-			"revision": "42cfb33535beaca9a8ca2ef415930a1bd8f32998",
-			"revisionTime": "2016-06-03T20:14:09Z"
+			"revision": "7130f7330953adacbfb4ca0ad4b14b806bce3762",
+			"revisionTime": "2016-06-12T11:49:46Z"
 		},
 		{
 			"path": "github.com/hashicorp/logutils",
@@ -1117,264 +1117,6 @@
 			"revision": "42fa80f2ac6ed17a977ce826074bd3009593fa9d"
 		},
 		{
-			"path": "github.com/rainycape/unidecode",
-			"revision": "cb7f23ec59bec0d61b19c56cd88cee3d0cc1870c"
-		},
-		{
-			"comment": "v2.0.1-8-g983d3a5",
-			"path": "github.com/ryanuber/columnize",
-			"revision": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
-		},
-		{
-			"path": "github.com/satori/go.uuid",
-			"revision": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
-		},
-		{
-			"path": "github.com/sethvargo/go-fastly",
-			"revision": "6566b161e807516f4a45bc3054eac291a120e217"
-		},
-		{
-			"comment": "v1.1-2-g5578a8c",
-			"path": "github.com/soniah/dnsmadeeasy",
-			"revision": "5578a8c15e33958c61cf7db720b6181af65f4a9e"
-		},
-		{
-			"path": "github.com/sthulb/mime/multipart",
-			"revision": "698462dc9685d7743511c26da726c1b0c1cfb111"
-		},
-		{
-			"path": "github.com/tent/http-link-go",
-			"revision": "ac974c61c2f990f4115b119354b5e0b47550e888"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/find",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/list",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/object",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/property",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/session",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/task",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/vim25",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/vim25/debug",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/vim25/methods",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/vim25/mo",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/vim25/progress",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/vim25/soap",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/vim25/types",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "v0.6.2",
-			"path": "github.com/vmware/govmomi/vim25/xml",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
-		},
-		{
-			"comment": "2.0.0-6-g5686bcd",
-			"path": "github.com/xanzy/go-cloudstack/cloudstack",
-			"revision": "5686bcde5af20565d8c7a3f66b5441430ac54186"
-		},
-		{
-			"path": "github.com/xanzy/ssh-agent",
-			"revision": "ba9c9e33906f58169366275e3450db66139a31a9"
-		},
-		{
-			"comment": "v1.5.4-13-g75ce5fb",
-			"path": "github.com/ziutek/mymysql/mysql",
-			"revision": "75ce5fbba34b1912a3641adbd58cf317d7315821"
-		},
-		{
-			"comment": "v1.5.4-13-g75ce5fb",
-			"path": "github.com/ziutek/mymysql/native",
-			"revision": "75ce5fbba34b1912a3641adbd58cf317d7315821"
-		},
-		{
-			"comment": "v1.5.4-13-g75ce5fb",
-			"path": "github.com/ziutek/mymysql/thrsafe",
-			"revision": "75ce5fbba34b1912a3641adbd58cf317d7315821"
-		},
-		{
-			"path": "github.com/zorkian/go-datadog-api",
-			"revision": "af9919d4fd020eba6daada1cbba9310f5d7b44a8"
-		},
-		{
-			"path": "golang.org/x/crypto/curve25519",
-			"revision": "1f22c0103821b9390939b6776727195525381532"
-		},
-		{
-			"path": "golang.org/x/crypto/ssh",
-			"revision": "1f22c0103821b9390939b6776727195525381532"
-		},
-		{
-			"path": "golang.org/x/crypto/ssh/agent",
-			"revision": "1f22c0103821b9390939b6776727195525381532"
-		},
-		{
-			"path": "golang.org/x/net/context",
-			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e"
-		},
-		{
-			"path": "golang.org/x/net/context/ctxhttp",
-			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e"
-		},
-		{
-			"path": "golang.org/x/oauth2",
-			"revision": "2897dcade18a126645f1368de827f1e613a60049"
-		},
-		{
-			"path": "golang.org/x/oauth2/google",
-			"revision": "2897dcade18a126645f1368de827f1e613a60049"
-		},
-		{
-			"path": "golang.org/x/oauth2/internal",
-			"revision": "2897dcade18a126645f1368de827f1e613a60049"
-		},
-		{
-			"path": "golang.org/x/oauth2/jws",
-			"revision": "2897dcade18a126645f1368de827f1e613a60049"
-		},
-		{
-			"path": "golang.org/x/oauth2/jwt",
-			"revision": "2897dcade18a126645f1368de827f1e613a60049"
-		},
-		{
-			"path": "golang.org/x/sys/unix",
-			"revision": "5eaf0df67e70d6997a9fe0ed24383fa1b01638d3"
-		},
-		{
-			"path": "google.golang.org/api/compute/v1",
-			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
-		},
-		{
-			"path": "google.golang.org/api/container/v1",
-			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
-		},
-		{
-			"path": "google.golang.org/api/dns/v1",
-			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
-		},
-		{
-			"path": "google.golang.org/api/gensupport",
-			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
-		},
-		{
-			"path": "google.golang.org/api/googleapi",
-			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
-		},
-		{
-			"path": "google.golang.org/api/googleapi/internal/uritemplates",
-			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
-		},
-		{
-			"path": "google.golang.org/api/pubsub/v1",
-			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
-		},
-		{
-			"path": "google.golang.org/api/sqladmin/v1beta4",
-			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
-		},
-		{
-			"path": "google.golang.org/api/storage/v1",
-			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
-		},
-		{
-			"path": "google.golang.org/appengine",
-			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
-		},
-		{
-			"path": "google.golang.org/appengine/internal",
-			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
-		},
-		{
-			"path": "google.golang.org/appengine/internal/app_identity",
-			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
-		},
-		{
-			"path": "google.golang.org/appengine/internal/base",
-			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
-		},
-		{
-			"path": "google.golang.org/appengine/internal/datastore",
-			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
-		},
-		{
-			"path": "google.golang.org/appengine/internal/log",
-			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
-		},
-		{
-			"path": "google.golang.org/appengine/internal/modules",
-			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
-		},
-		{
-			"path": "google.golang.org/appengine/internal/remote_api",
-			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
-		},
-		{
-			"path": "google.golang.org/cloud/compute/metadata",
-			"revision": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
-		},
-		{
-			"path": "google.golang.org/cloud/internal",
-			"revision": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
-		},
-		{
-			"comment": "v1.8.5",
-			"path": "gopkg.in/ini.v1",
-			"revision": "77178f22699a4ecafce485fb8d86b7afeb7e3e28"
-		},
-		{
 			"checksumSHA1": "9y6a4i+MNtKDGCbRLtZUCCgra5o=",
 			"path": "github.com/rackspace/gophercloud",
 			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
@@ -1632,6 +1374,264 @@
 			"path": "github.com/rackspace/gophercloud/testhelper/client",
 			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
 			"revisionTime": "2016-06-03T22:34:01Z"
+		},
+		{
+			"path": "github.com/rainycape/unidecode",
+			"revision": "cb7f23ec59bec0d61b19c56cd88cee3d0cc1870c"
+		},
+		{
+			"comment": "v2.0.1-8-g983d3a5",
+			"path": "github.com/ryanuber/columnize",
+			"revision": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
+		},
+		{
+			"path": "github.com/satori/go.uuid",
+			"revision": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
+		},
+		{
+			"path": "github.com/sethvargo/go-fastly",
+			"revision": "6566b161e807516f4a45bc3054eac291a120e217"
+		},
+		{
+			"comment": "v1.1-2-g5578a8c",
+			"path": "github.com/soniah/dnsmadeeasy",
+			"revision": "5578a8c15e33958c61cf7db720b6181af65f4a9e"
+		},
+		{
+			"path": "github.com/sthulb/mime/multipart",
+			"revision": "698462dc9685d7743511c26da726c1b0c1cfb111"
+		},
+		{
+			"path": "github.com/tent/http-link-go",
+			"revision": "ac974c61c2f990f4115b119354b5e0b47550e888"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/find",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/list",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/object",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/property",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/session",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/task",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/vim25",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/vim25/debug",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/vim25/methods",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/vim25/mo",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/vim25/progress",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/vim25/soap",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/vim25/types",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "v0.6.2",
+			"path": "github.com/vmware/govmomi/vim25/xml",
+			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+		},
+		{
+			"comment": "2.0.0-6-g5686bcd",
+			"path": "github.com/xanzy/go-cloudstack/cloudstack",
+			"revision": "5686bcde5af20565d8c7a3f66b5441430ac54186"
+		},
+		{
+			"path": "github.com/xanzy/ssh-agent",
+			"revision": "ba9c9e33906f58169366275e3450db66139a31a9"
+		},
+		{
+			"comment": "v1.5.4-13-g75ce5fb",
+			"path": "github.com/ziutek/mymysql/mysql",
+			"revision": "75ce5fbba34b1912a3641adbd58cf317d7315821"
+		},
+		{
+			"comment": "v1.5.4-13-g75ce5fb",
+			"path": "github.com/ziutek/mymysql/native",
+			"revision": "75ce5fbba34b1912a3641adbd58cf317d7315821"
+		},
+		{
+			"comment": "v1.5.4-13-g75ce5fb",
+			"path": "github.com/ziutek/mymysql/thrsafe",
+			"revision": "75ce5fbba34b1912a3641adbd58cf317d7315821"
+		},
+		{
+			"path": "github.com/zorkian/go-datadog-api",
+			"revision": "af9919d4fd020eba6daada1cbba9310f5d7b44a8"
+		},
+		{
+			"path": "golang.org/x/crypto/curve25519",
+			"revision": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"path": "golang.org/x/crypto/ssh",
+			"revision": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"path": "golang.org/x/crypto/ssh/agent",
+			"revision": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"path": "golang.org/x/net/context",
+			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e"
+		},
+		{
+			"path": "golang.org/x/net/context/ctxhttp",
+			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e"
+		},
+		{
+			"path": "golang.org/x/oauth2",
+			"revision": "2897dcade18a126645f1368de827f1e613a60049"
+		},
+		{
+			"path": "golang.org/x/oauth2/google",
+			"revision": "2897dcade18a126645f1368de827f1e613a60049"
+		},
+		{
+			"path": "golang.org/x/oauth2/internal",
+			"revision": "2897dcade18a126645f1368de827f1e613a60049"
+		},
+		{
+			"path": "golang.org/x/oauth2/jws",
+			"revision": "2897dcade18a126645f1368de827f1e613a60049"
+		},
+		{
+			"path": "golang.org/x/oauth2/jwt",
+			"revision": "2897dcade18a126645f1368de827f1e613a60049"
+		},
+		{
+			"path": "golang.org/x/sys/unix",
+			"revision": "5eaf0df67e70d6997a9fe0ed24383fa1b01638d3"
+		},
+		{
+			"path": "google.golang.org/api/compute/v1",
+			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
+		},
+		{
+			"path": "google.golang.org/api/container/v1",
+			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
+		},
+		{
+			"path": "google.golang.org/api/dns/v1",
+			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
+		},
+		{
+			"path": "google.golang.org/api/gensupport",
+			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
+		},
+		{
+			"path": "google.golang.org/api/googleapi",
+			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
+		},
+		{
+			"path": "google.golang.org/api/googleapi/internal/uritemplates",
+			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
+		},
+		{
+			"path": "google.golang.org/api/pubsub/v1",
+			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
+		},
+		{
+			"path": "google.golang.org/api/sqladmin/v1beta4",
+			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
+		},
+		{
+			"path": "google.golang.org/api/storage/v1",
+			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4"
+		},
+		{
+			"path": "google.golang.org/appengine",
+			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
+		},
+		{
+			"path": "google.golang.org/appengine/internal",
+			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
+		},
+		{
+			"path": "google.golang.org/appengine/internal/app_identity",
+			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
+		},
+		{
+			"path": "google.golang.org/appengine/internal/base",
+			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
+		},
+		{
+			"path": "google.golang.org/appengine/internal/datastore",
+			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
+		},
+		{
+			"path": "google.golang.org/appengine/internal/log",
+			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
+		},
+		{
+			"path": "google.golang.org/appengine/internal/modules",
+			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
+		},
+		{
+			"path": "google.golang.org/appengine/internal/remote_api",
+			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
+		},
+		{
+			"path": "google.golang.org/cloud/compute/metadata",
+			"revision": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
+		},
+		{
+			"path": "google.golang.org/cloud/internal",
+			"revision": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
+		},
+		{
+			"comment": "v1.8.5",
+			"path": "gopkg.in/ini.v1",
+			"revision": "77178f22699a4ecafce485fb8d86b7afeb7e3e28"
 		}
 	],
 	"rootPath": "github.com/hashicorp/terraform"
