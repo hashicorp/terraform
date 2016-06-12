@@ -233,6 +233,8 @@ func TestAccTritonMachine_metadata(t *testing.T) {
 	machineName := fmt.Sprintf("acctest-%d", acctest.RandInt())
 	basic := fmt.Sprintf(testAccTritonMachine_metadata_1, machineName)
 	add_metadata := fmt.Sprintf(testAccTritonMachine_metadata_1, machineName)
+	add_metadata_2 := fmt.Sprintf(testAccTritonMachine_metadata_2, machineName)
+	add_metadata_3 := fmt.Sprintf(testAccTritonMachine_metadata_3, machineName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -253,18 +255,32 @@ func TestAccTritonMachine_metadata(t *testing.T) {
 						"triton_machine.test", "user_data", "hello"),
 				),
 			},
+			resource.TestStep{
+				Config: add_metadata_2,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckTritonMachineExists("triton_machine.test"),
+					resource.TestCheckResourceAttr(
+						"triton_machine.test",
+						"tags.triton.cns.services", "test-cns-service"),
+				),
+			},
+			resource.TestStep{
+				Config: add_metadata_3,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckTritonMachineExists("triton_machine.test"),
+					resource.TestCheckResourceAttr(
+						"triton_machine.test",
+						"tags.triton.cns.services", "test-cns-service"),
+				),
+			},
 		},
 	})
 }
 
 var testAccTritonMachine_basic = `
-provider "triton" {
-  url = "https://us-west-1.api.joyentcloud.com"
-}
-
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-highcpu-128M"
   image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
   tags = {
@@ -274,26 +290,18 @@ resource "triton_machine" "test" {
 `
 
 var testAccTritonMachine_firewall_0 = `
-provider "triton" {
-  url = "https://us-west-1.api.joyentcloud.com"
-}
-
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-highcpu-128M"
   image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
 	firewall_enabled = 0
 }
 `
 var testAccTritonMachine_firewall_1 = `
-provider "triton" {
-  url = "https://us-west-1.api.joyentcloud.com"
-}
-
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-highcpu-128M"
   image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
 	firewall_enabled = 1
@@ -301,13 +309,9 @@ resource "triton_machine" "test" {
 `
 
 var testAccTritonMachine_metadata_1 = `
-provider "triton" {
-  url = "https://us-west-1.api.joyentcloud.com"
-}
-
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-highcpu-128M"
   image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
   user_data = "hello"
@@ -317,7 +321,37 @@ resource "triton_machine" "test" {
 	}
 }
 `
+var testAccTritonMachine_metadata_2 = `
+variable "tags" {
+  default = {
+    test = "hello!"
+    triton.cns.services = "test-cns-service"
+  }
+}
+resource "triton_machine" "test" {
+  name = "%s"
+  package = "g4-highcpu-128M"
+  image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
+  user_data = "hello"
+
+  tags = "${var.tags}"
+}
+`
+var testAccTritonMachine_metadata_3 = `
+resource "triton_machine" "test" {
+  name = "%s"
+  package = "g4-highcpu-128M"
+  image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
+
+  user_data = "hello"
+
+  tags = {
+    test = "hello!"
+    triton.cns.services = "test-cns-service"
+  }
+}
+`
 var testAccTritonMachine_withnic = `
 resource "triton_fabric" "test" {
   name = "%s-network"
@@ -334,7 +368,7 @@ resource "triton_fabric" "test" {
 
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-highcpu-128M"
   image = "842e6fa6-6e9b-11e5-8402-1b490459e334"
 
   tags = {
@@ -361,7 +395,7 @@ resource "triton_fabric" "test" {
 
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-highcpu-128M"
   image = "842e6fa6-6e9b-11e5-8402-1b490459e334"
 
   tags = {
