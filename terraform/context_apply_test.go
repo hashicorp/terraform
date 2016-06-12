@@ -48,6 +48,69 @@ func TestContext2Apply(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_resourceCountOneList(t *testing.T) {
+	m := testModule(t, "apply-resource-count-one-list")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`null_resource.foo:
+  ID = foo
+
+Outputs:
+
+test = [foo]`)
+	if actual != expected {
+		t.Fatalf("expected: \n%s\n\ngot: \n%s\n", expected, actual)
+	}
+}
+func TestContext2Apply_resourceCountZeroList(t *testing.T) {
+	m := testModule(t, "apply-resource-count-zero-list")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`<no state>
+Outputs:
+
+test = []`)
+	if actual != expected {
+		t.Fatalf("expected: \n%s\n\ngot: \n%s\n", expected, actual)
+	}
+}
+
 func TestContext2Apply_mapVarBetweenModules(t *testing.T) {
 	m := testModule(t, "apply-map-var-through-module")
 	p := testProvider("null")
