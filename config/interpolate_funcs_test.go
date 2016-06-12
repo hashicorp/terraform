@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hil"
@@ -224,6 +225,40 @@ func TestInterpolateFuncConcat(t *testing.T) {
 			},
 		},
 	})
+}
+
+// TODO: This test is split out and calls a private function
+// because there's no good way to get a list of maps into the unit
+// tests due to GH-7142 - once lists of maps can be expressed properly as
+// literals this unit test can be wrapped back into the suite above.
+//
+// Reproduces crash reported in GH-7030.
+func TestInterpolationFuncConcatListOfMaps(t *testing.T) {
+	listOfMapsOne := ast.Variable{
+		Type: ast.TypeList,
+		Value: []ast.Variable{
+			{
+				Type:  ast.TypeMap,
+				Value: map[string]interface{}{"one": "foo"},
+			},
+		},
+	}
+	listOfMapsTwo := ast.Variable{
+		Type: ast.TypeList,
+		Value: []ast.Variable{
+			{
+				Type:  ast.TypeMap,
+				Value: map[string]interface{}{"two": "bar"},
+			},
+		},
+	}
+	args := []interface{}{listOfMapsOne.Value, listOfMapsTwo.Value}
+
+	_, err := interpolationFuncConcat().Callback(args)
+
+	if err == nil || !strings.Contains(err.Error(), "concat() does not support lists of type map") {
+		t.Fatalf("Expected err, got: %v", err)
+	}
 }
 
 func TestInterpolateFuncFile(t *testing.T) {
