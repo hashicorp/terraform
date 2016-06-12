@@ -148,6 +148,7 @@ func formatListOutput(indent, outputName string, outputList []interface{}) strin
 	keyIndent := ""
 
 	outputBuf := new(bytes.Buffer)
+
 	if outputName != "" {
 		outputBuf.WriteString(fmt.Sprintf("%s%s = [", indent, outputName))
 		keyIndent = "  "
@@ -158,7 +159,11 @@ func formatListOutput(indent, outputName string, outputList []interface{}) strin
 	}
 
 	if outputName != "" {
-		outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
+		if len(outputList) > 0 {
+			outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
+		} else {
+			outputBuf.WriteString("]")
+		}
 	}
 
 	return strings.TrimPrefix(outputBuf.String(), "\n")
@@ -185,7 +190,11 @@ func formatMapOutput(indent, outputName string, outputMap map[string]interface{}
 	}
 
 	if outputName != "" {
-		outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
+		if len(outputMap) > 0 {
+			outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
+		} else {
+			outputBuf.WriteString("}")
+		}
 	}
 
 	return strings.TrimPrefix(outputBuf.String(), "\n")
