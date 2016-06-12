@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -166,7 +167,12 @@ func testDiffFn(
 
 		attrDiff := &ResourceAttrDiff{
 			Old: "",
-			New: v.(string),
+		}
+
+		if reflect.DeepEqual(v, []interface{}{}) {
+			attrDiff.New = ""
+		} else {
+			attrDiff.New = v.(string)
 		}
 
 		if k == "require_new" {
