@@ -240,12 +240,18 @@ func interpolationFuncConcat() ast.Function {
 				// Otherwise variables
 				if argument, ok := arg.([]ast.Variable); ok {
 					for _, element := range argument {
-						finalListElements = append(finalListElements, element.Value.(string))
+						t := element.Type
+						switch t {
+						case ast.TypeString:
+							finalListElements = append(finalListElements, element.Value.(string))
+						default:
+							return nil, fmt.Errorf("concat() does not support lists of %s", t.Printable())
+						}
 					}
 					continue
 				}
 
-				return nil, fmt.Errorf("arguments to concat() must be a string or list")
+				return nil, fmt.Errorf("arguments to concat() must be a string or list of strings")
 			}
 
 			return stringSliceToVariableValue(finalListElements), nil
