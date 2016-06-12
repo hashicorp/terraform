@@ -55,9 +55,9 @@ string.
 * `database_name` - (Optional) The name for your database of up to 8 alpha-numeric
   characters. If you do not provide a name, Amazon RDS will not create a
   database in the DB cluster you are creating
-* `master_password` - (Required) Password for the master DB user. Note that this may
+* `master_password` - (Required unless a `snapshot_identifier` is provided) Password for the master DB user. Note that this may
     show up in logs, and it will be stored in the state file
-* `master_username` - (Required) Username for the master DB user
+* `master_username` - (Required unless a `snapshot_identifier` is provided) Username for the master DB user
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB cluster is deleted. If omitted, no final snapshot will be
     made.
@@ -72,6 +72,7 @@ Default: A 30-minute window selected at random from an 8-hour block of time per 
 * `port` - (Optional) The port on which the DB accepts connections
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate
   with the Cluster
+* `snapshot_identifier` - (Optional) Specifies whether or not to create this cluster from a snapshot. This correlates to the snapshot ID you'd find in the RDS console, e.g: rds:production-2015-06-26-06-05.
 * `storage_encrypted` - (Optional) Specifies whether the DB cluster is encrypted. The default is `false` if not specified.
 * `apply_immediately` - (Optional) Specifies whether any cluster modifications
      are applied immediately, or during the next maintenance window. Default is
