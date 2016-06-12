@@ -443,6 +443,45 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
+	m := testModule(t, "apply-destroy-mod-var-provider-config")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 // https://github.com/hashicorp/terraform/issues/2892
 func TestContext2Apply_destroyCrossProviders(t *testing.T) {
 	m := testModule(t, "apply-destroy-cross-providers")
