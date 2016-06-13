@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -301,7 +302,19 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 			}
 
 			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)
-			if _, err := conn.CreateRoute(&opts); err != nil {
+			err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+				_, err := conn.CreateRoute(&opts)
+				if err != nil {
+					if awsErr, ok := err.(awserr.Error); ok {
+						if awsErr.Code() == "InvalidRouteTableID.NotFound" && strings.Contains(awsErr.Message(), "does not exist") {
+							return resource.RetryableError(awsErr)
+						}
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			if err != nil {
 				return err
 			}
 
