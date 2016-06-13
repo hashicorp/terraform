@@ -20,8 +20,8 @@ const (
 
 // ProbeInfoDTO wraps a probe response
 type ProbeInfoDTO struct {
-	ID         string           `json:"id"`
-	PoolRecord string           `json:"poolRecord"`
+	ID         string           `json:"id,omitempty"`
+	PoolRecord string           `json:"poolRecord,omitempty"`
 	ProbeType  ProbeType        `json:"type"`
 	Interval   string           `json:"interval"`
 	Agents     []string         `json:"agents"`

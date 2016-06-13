@@ -54,7 +54,7 @@ func (s *AlertsService) Select(k RRSetKey) ([]ProbeAlertDataDTO, error) {
 	for {
 		reqAlerts, ri, res, err := s.SelectWithOffset(k, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)

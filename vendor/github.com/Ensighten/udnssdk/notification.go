@@ -74,7 +74,7 @@ func (s *NotificationsService) Select(k RRSetKey, query string) ([]NotificationD
 	for {
 		reqNotifications, ri, res, err := s.SelectWithOffset(k, query, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)
