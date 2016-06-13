@@ -65,6 +65,14 @@ func Configure(d *schema.ResourceData) (interface{}, error) {
 	cluster.Keyspace = "system"
 	cluster.Timeout = time.Second * time.Duration(3)
 
+	username := d.Get("username").(string)
+	if username != "" {
+		cluster.Authenticator = gocql.PasswordAuthenticator{
+			Username: username,
+			Password: d.Get("password").(string),
+		}
+	}
+
 	session, err := cluster.CreateSession()
 	if err != nil {
 		return nil, err
