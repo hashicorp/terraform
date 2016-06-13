@@ -2,7 +2,6 @@ package cassandra
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"testing"
 	"time"
@@ -163,7 +162,7 @@ func checkKeyspaceProperties(actualMeta *gocql.KeyspaceMetadata, expectedMeta go
 			return fmt.Errorf("Keyspace name %s does not match expected %s", actualMeta.Name, expectedMeta.Name)
 		}
 		if expectedMeta.DurableWrites != actualMeta.DurableWrites {
-			return fmt.Errorf("Durable writes %s does not match expected %s", actualMeta.DurableWrites, expectedMeta.DurableWrites)
+			return fmt.Errorf("Durable writes %t does not match expected %t", actualMeta.DurableWrites, expectedMeta.DurableWrites)
 		}
 		// We use Contains, because the actual class looks more like this: 'org.apache.cassandra.locator.SimpleStrategy'
 		if expectedMeta.StrategyClass != "" && !strings.Contains(actualMeta.StrategyClass, expectedMeta.StrategyClass) {
