@@ -912,17 +912,35 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 	})
 }
 
+const testAccDRSTemplateBasicBody = `
+%s
+    vcpu = 2
+    memory = 1024
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = %s
+        ipv4_gateway = "%s"
+    }
+     disk {
+%s
+        use_sdrs = true
+        template = "%s"
+        iops = 500
+    }
+`
+
 const testAccCheckVSphereVirtualMachineConfig_basic_drs = `
 resource "vsphere_virtual_machine" "foo" {
     name = "terraform-test"
-    use_sdrs = true
-` + testAccTemplateBasicBody
+` + testAccDRSTemplateBasicBody
 
 const testAccCheckVSphereVirtualMachineConfig_basic_drs_disk = `
     disk {
         size = 1
         iops = 500
 %s
+        use_sdrs = true
 	name = "%s"
     }
 `
