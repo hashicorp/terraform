@@ -3,12 +3,12 @@ layout: "ultradns"
 page_title: "UltraDNS: ultradns_record"
 sidebar_current: "docs-ultradns-resource-record"
 description: |-
-  Provides a UltraDNS record resource.
+  Provides an UltraDNS record resource.
 ---
 
 # ultradns\_record
 
-Provides a UltraDNS record resource.
+Provides an UltraDNS record resource.
 
 ## Example Usage
 

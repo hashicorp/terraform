@@ -3,12 +3,12 @@ layout: "ultradns"
 page_title: "UltraDNS: ultradns_probe_http"
 sidebar_current: "docs-ultradns-resource-probe-http"
 description: |-
-  Provides a UltraDNS HTTP Probe
+  Provides an UltraDNS HTTP probe
 ---
 
 # ultradns\_probe\_http
 
-Provides a UltraDNS HTTP probe
+Provides an UltraDNS HTTP probe
 
 ## Example Usage
 ```
