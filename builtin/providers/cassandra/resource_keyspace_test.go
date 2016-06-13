@@ -147,7 +147,6 @@ func checkKeyspaceExists(name string, keyspaceMeta *gocql.KeyspaceMetadata) reso
 	return func(s *terraform.State) error {
 		data, err := keyspaceExists(name)
 		if err != nil {
-			log.Println("Returning error: %s", err)
 			return err
 		}
 		if data == nil {
