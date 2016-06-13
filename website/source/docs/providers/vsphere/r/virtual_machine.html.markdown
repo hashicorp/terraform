@@ -81,7 +81,6 @@ The following arguments are supported:
 * `enable_disk_uuid` - (Optional) This option causes the vm to mount disks by uuid on the guest OS.
 * `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
 * `skip_customization` - (Optional) Skip virtual machine customization (useful if OS is not in the guest OS support matrix of VMware like "other3xLinux64Guest").
-* `use_sdrs` - (Optional) Use vSphere Storage DRS. Defaults to `false`.
 
 The `network_interface` block supports:
 
@@ -123,6 +122,7 @@ The `disk` block supports:
 * `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
 * `controller_type` - (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
 * `keep_on_remove` - (Optional) Keep the vmdk when you remove the disk from a vm 
+* `use_sdrs` - (Optional) Use vSphere Storage DRS. Defaults to `false`. The datastore if provided must be a DRS Storage Pod.
 
 <a id="cdrom"></a>
 ## CDROM
