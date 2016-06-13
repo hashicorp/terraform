@@ -565,9 +565,7 @@ resource "vsphere_virtual_machine" "with_cdrom" {
     }
 `
 
-
 func testBasicPreCheckCDROM(t *testing.T) {
-
 
 	if v := os.Getenv("VSPHERE_CDROM_DATASTORE"); v == "" {
 		t.Skip(
@@ -975,7 +973,6 @@ const close_p = `
 	}`
 
 func testBasicPreCheckSRS(t *testing.T) {
-
 
 	if v := os.Getenv("VSPHERE_USE_SDRS"); v == "" {
 		t.Skip(
