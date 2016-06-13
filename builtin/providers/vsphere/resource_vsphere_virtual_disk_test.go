@@ -13,6 +13,16 @@ import (
 	"golang.org/x/net/context"
 )
 
+func testVirtualDiskPreCheck(t *testing.T) {
+	if v := os.Getenv("VSPHERE_INIT_TYPE"); v == "" {
+		t.Fatal("VSPHERE_INIT_TYPE must be set to test")
+	}
+	if v := os.Getenv("VSPHERE_ADAPTER_TYPE"); v == "" {
+		t.Fatal("VSPHERE_ADAPTER_TYPE must be set to test")
+	}
+	testAccPreCheck(t)
+}
+
 func TestAccVSphereVirtualDisk_basic(t *testing.T) {
 	var datacenterOpt string
 	var datastoreOpt string
@@ -32,19 +42,24 @@ func TestAccVSphereVirtualDisk_basic(t *testing.T) {
 		adapterTypeOpt += fmt.Sprintf("    adapter_type = \"%s\"\n", v)
 	}
 
+	config := fmt.Sprintf(
+		testAccCheckVSphereVirtuaDiskConfig_basic,
+		initTypeOpt,
+		adapterTypeOpt,
+		datacenterOpt,
+		datastoreOpt,
+	)
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtuaDiskConfig_basic)
+	log.Printf("[DEBUG] template config= %s", config)
+
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     func() { testVirtualDiskPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(
-					testAccCheckVSphereVirtuaDiskConfig_basic,
-					initTypeOpt,
-					adapterTypeOpt,
-					datacenterOpt,
-					datastoreOpt,
-				),
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo"),
 				),
