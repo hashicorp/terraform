@@ -108,6 +108,8 @@ func vmPath(folder string, name string) string {
 	return path + name
 }
 
+// TODO merge https://github.com/hashicorp/terraform/pull/7088/files
+
 func resourceVSphereVirtualMachine() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereVirtualMachineCreate,
@@ -685,9 +687,9 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	// TODO cdrom
+	// TODO cdrom updates
 
-	// TODO network
+	// TODO network updates
 
 	// do nothing if there are no changes
 	if !hasChanges {

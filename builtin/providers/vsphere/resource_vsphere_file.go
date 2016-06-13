@@ -19,6 +19,7 @@ type file struct {
 	destinationFile string
 }
 
+// TODO add DRS
 func resourceVSphereFile() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereFileCreate,
@@ -297,6 +298,7 @@ func deleteFile(client *govmomi.Client, f *file) error {
 }
 
 // getDatastore gets datastore object
+// TODO add DRS functionality
 func getDatastore(f *find.Finder, ds string) (*object.Datastore, error) {
 
 	if ds != "" {
