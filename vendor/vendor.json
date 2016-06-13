@@ -670,6 +670,30 @@
 			"revision": "afbd495e5aaea13597b5e14fe514ddeaa4d76fc3"
 		},
 		{
+			"checksumSHA1": "Ob6CmVNdVsBvXJLDGIcowMz4WsA=",
+			"path": "github.com/gocql/gocql",
+			"revision": "b7b8a0e04b0cb0ca0b379421c58ec6fab9939b85",
+			"revisionTime": "2016-05-25T20:37:33Z"
+		},
+		{
+			"checksumSHA1": "Z3N6HDGWcvcNu0FloZRq54uO3h4=",
+			"path": "github.com/gocql/gocql/internal/lru",
+			"revision": "b7b8a0e04b0cb0ca0b379421c58ec6fab9939b85",
+			"revisionTime": "2016-05-25T20:37:33Z"
+		},
+		{
+			"checksumSHA1": "YOInrAqkff2LCxpajtrC+csLjYQ=",
+			"path": "github.com/gocql/gocql/internal/murmur",
+			"revision": "b7b8a0e04b0cb0ca0b379421c58ec6fab9939b85",
+			"revisionTime": "2016-05-25T20:37:33Z"
+		},
+		{
+			"checksumSHA1": "tZQDfMMTKrYMXqen0zjJWLtOf1A=",
+			"path": "github.com/gocql/gocql/internal/streams",
+			"revision": "b7b8a0e04b0cb0ca0b379421c58ec6fab9939b85",
+			"revisionTime": "2016-05-25T20:37:33Z"
+		},
+		{
 			"path": "github.com/golang/protobuf/proto",
 			"revision": "34a5f244f1c01cdfee8e60324258cfbb97a42aec"
 		},

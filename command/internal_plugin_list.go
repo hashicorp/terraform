@@ -10,6 +10,7 @@ import (
 	awsprovider "github.com/hashicorp/terraform/builtin/providers/aws"
 	azureprovider "github.com/hashicorp/terraform/builtin/providers/azure"
 	azurermprovider "github.com/hashicorp/terraform/builtin/providers/azurerm"
+	cassandraprovider "github.com/hashicorp/terraform/builtin/providers/cassandra"
 	chefprovider "github.com/hashicorp/terraform/builtin/providers/chef"
 	clcprovider "github.com/hashicorp/terraform/builtin/providers/clc"
 	cloudflareprovider "github.com/hashicorp/terraform/builtin/providers/cloudflare"
@@ -62,6 +63,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"aws":          awsprovider.Provider,
 	"azure":        azureprovider.Provider,
 	"azurerm":      azurermprovider.Provider,
+	"cassandra":    cassandraprovider.Provider,
 	"chef":         chefprovider.Provider,
 	"clc":          clcprovider.Provider,
 	"cloudflare":   cloudflareprovider.Provider,
