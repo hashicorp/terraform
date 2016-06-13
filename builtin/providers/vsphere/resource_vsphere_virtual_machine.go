@@ -227,12 +227,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"use_sdrs": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-				Default:  false,
-			},
 			"windows_opt_config": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
