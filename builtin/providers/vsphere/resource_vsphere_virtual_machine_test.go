@@ -17,6 +17,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
+	"strings"
 )
 
 ///////
@@ -809,6 +810,17 @@ resource "vsphere_virtual_machine" "ipv4ipv6" {
 }
 `
 
+func testBasicPreCheckIPV6(t *testing.T) {
+	if v := os.Getenv("VSPHERE_IPV6_ADDRESS"); v == "" {
+		t.Skip("env variable VSPHERE_IPV6_ADDRESS must be set for acceptance tests")
+	}
+
+	if v := os.Getenv("VSPHERE_IPV6_GATEWAY"); v == "" {
+		t.Skip("env variable VSPHERE_IPV6_GATEWAY must be set for acceptance tests")
+	}
+	testBasicPreCheck(t)
+}
+
 func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 	var vm virtualMachine
 	data := setupTemplateBasicBodyVars()
@@ -838,7 +850,7 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     func() { testBasicPreCheckIPV6(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -974,7 +986,7 @@ const close_p = `
 
 func testBasicPreCheckSRS(t *testing.T) {
 
-	if v := os.Getenv("VSPHERE_USE_SDRS"); v == "" {
+	if v := os.Getenv("VSPHERE_USE_SDRS"); v == "" || strings.ToUpper(v) != "TRUE" {
 		t.Skip(
 			"ENV variable VSPHERE_USE_SDRS must be set for this integration test, you need a storage pod",
 		)
