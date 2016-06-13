@@ -18,7 +18,7 @@ resource "vsphere_virtual_disk" "myDisk" {
     vmdk_path = "myDisk.vmdk"
     datacenter = "Datacenter"
     datastore = "local"
-    init_type = "thin"
+    type = "thin"
 }
 ```
 
@@ -31,3 +31,4 @@ The following arguments are supported:
 * `type` - (Optional) 'eagerZeroedThick' (the default), or 'thin' are supported options.
 * `datacenter` - (Optional) The name of a Datacenter in which to create the disk.
 * `datastore` - (Required) The name of the Datastore in which to create the disk.
+* `adapter_type` - (Optional) Defaults to 'ide'. Support values are 'ide', 'busLogic', and 'lsiLogic'.
