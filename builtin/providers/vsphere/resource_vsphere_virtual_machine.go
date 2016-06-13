@@ -600,9 +600,10 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			if disk, ok := diskRaw.(map[string]interface{}); ok {
 
 				var datastore *object.Datastore
-				if disk["use_sdrs"] != "" {
 
-					// FIXME - add support for no datastore name
+				if v, ok := disk["use_sdrs"].(bool); ok && v {
+
+					// FIXME - add support for default datastore
 					log.Printf("[DEBUG] starting findng recommended storage pod")
 
 					spd := StoragePodDataStore{
@@ -613,8 +614,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 						VirtualMachine: vm,
 					}
 
-					if disk["datastore"].(string) != "" {
-						spd.storagePodName = disk["datastore"].(string)
+					if v, ok := disk["datastore"].(string); ok && v != "" {
+						spd.storagePodName = v
 					}
 
 					log.Printf("[DEBUG] storage pod: %v", spd)
@@ -624,27 +625,33 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 						return err
 					}
 
-				} else if disk["datastore"] == "" {
+				} else if v, ok := disk["datastore"].(string); ok && v != "" {
+					datastore, err = finder.Datastore(context.TODO(), v)
+					if err != nil {
+						log.Printf("[ERROR] Couldn't find datastore %v.  %s", v, err)
+						return err
+					}
+				} else {
 					datastore, err = finder.DefaultDatastore(context.TODO())
 					if err != nil {
 						return fmt.Errorf("[ERROR] Update Remove Disk - Error finding datastore: %v", err)
 					}
-				} else {
-					datastore, err = finder.Datastore(context.TODO(), disk["datastore"].(string))
-					if err != nil {
-						log.Printf("[ERROR] Couldn't find datastore %v.  %s", disk["datastore"].(string), err)
-						return err
-					}
 				}
 
 				var size int64
-				if disk["size"] == 0 {
-					size = 0
-				} else {
-					size = int64(disk["size"].(int))
+				if v, ok := disk["size"].(int); ok {
+					size = int64(v)
 				}
-				iops := int64(disk["iops"].(int))
-				controller_type := disk["controller"].(string)
+
+				var iops int64
+				if v, ok := disk["iops"].(int); ok {
+					iops = int64(v)
+				}
+
+				var controller_type string
+				if v, ok := disk["controller"].(string); ok {
+					controller_type = v
+				}
 
 				var mo mo.VirtualMachine
 				vm.Properties(context.TODO(), vm.Reference(), []string{"summary", "config"}, &mo)
@@ -892,14 +899,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			for _, value := range diskSet.List() {
 				disk := value.(map[string]interface{})
 				newDisk := hardDisk{}
+				log.Printf("[DEBUG] reading disk info: %s", disk)
 
-				if v, ok := disk["use_sdrs"].(string); ok {
-					var err error
-					newDisk.useSDRS, err = strconv.ParseBool(v)
-					if err != nil {
-						return err
-					}
-
+				if v, ok := disk["use_sdrs"].(bool); ok {
+					newDisk.useSDRS = v
+					log.Printf("[DEBUG] disk using sdrs")
 				} else {
 					newDisk.useSDRS = false
 				}
@@ -934,18 +938,16 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 					newDisk.controller = v
 				}
 
-				// FIXME this should be tested in schema, before we get here
 				if v, ok := disk["template"].(string); ok && v != "" {
 
+					// TODO - alot of this scan be checked in Schema
 					if v, ok := disk["vmdk"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify a template and a vmdk")
 					} else if vm.bootDisk.templateName != "" {
 						return fmt.Errorf("Cannot have two bootdisks")
 					} else if hasBootableDisk {
 						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
-					}
-
-					if v, ok := disk["name"].(string); ok && v != "" {
+					} else if v, ok := disk["name"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify name of a template")
 					}
 					newDisk.bootable = true
@@ -954,28 +956,30 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 					hasBootableDisk = true
 					vm.bootDisk = newDisk
 
+					log.Printf("[DEBUG] new template bootdisk found: %v", vm.bootDisk)
+
 				} else if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
 
+					// TODO - alot of this scan be checked in Schema
 					if hasBootableDisk {
 						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
-					}
-
-					if v, ok := disk["template"].(string); ok && v != "" {
+					} else if v, ok := disk["template"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify a vmdk for a template")
-					}
-					if v, ok := disk["size"].(string); ok && v != "" {
+					} else if v, ok := disk["size"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify size of a vmdk")
-					}
-					if v, ok := disk["name"].(string); ok && v != "" {
+					} else if v, ok := disk["name"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify name of a vmdk")
 					}
+
 					if vBootable, ok := disk["bootable"].(bool); ok {
 						hasBootableDisk = true
 						newDisk.bootable = vBootable
 						vm.hasBootableVmdk = vBootable
 					}
+
 					newDisk.vmdkPath = vVmdk
 					vm.bootDisk = newDisk
+					log.Printf("[DEBUG] new vmdk bootdisk found: %v", vm.bootDisk)
 				}
 				// Preserves order so bootable disk is first
 				if newDisk.bootable == true || disk["template"] != "" {
@@ -983,9 +987,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				} else {
 					disks = append(disks, newDisk)
 				}
+
+				log.Printf("[DEBUG] disk init: %v", newDisk)
 			}
 			vm.hardDisks = disks
-			log.Printf("[DEBUG] disk init: %v", disks)
+			log.Printf("[DEBUG] disks init: %v", disks)
 		}
 	}
 
@@ -998,12 +1004,8 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			} else {
 				return fmt.Errorf("Datastore argument must be specified when attaching a cdrom image.")
 			}
-			if v, ok := c["use_sdrs"].(string); ok && v != "" {
-				var err error
-				cdroms[i].useSDRS, err = strconv.ParseBool(v)
-				if err != nil {
-					return err
-				}
+			if v, ok := c["use_sdrs"].(bool); ok {
+				cdroms[i].useSDRS = v
 			} else {
 				cdroms[i].useSDRS = false
 			}
@@ -1767,7 +1769,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			return err
 		}
 
-	} else if templateName != "" {
+	} else {
 		var template *object.VirtualMachine
 		template, err = finder.VirtualMachine(context.TODO(), vm.bootDisk.templateName)
 		if err != nil {
