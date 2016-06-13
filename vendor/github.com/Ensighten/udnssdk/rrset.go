@@ -343,7 +343,7 @@ func (s *RRSetsService) Select(k RRSetKey) ([]RRSet, error) {
 	for {
 		reqRrsets, ri, res, err := s.SelectWithOffset(k, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)

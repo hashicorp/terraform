@@ -147,7 +147,7 @@ func (s *GeoDirectionalPoolsService) Select(k GeoDirectionalPoolKey, query strin
 	for {
 		reqDtos, ri, res, err := s.SelectWithOffset(k, query, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)
@@ -248,7 +248,7 @@ func (s *IPDirectionalPoolsService) Select(k IPDirectionalPoolKey, query string)
 	for {
 		reqIPGroups, ri, res, err := s.SelectWithOffset(k, query, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)

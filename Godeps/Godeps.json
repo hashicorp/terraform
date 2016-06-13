@@ -202,8 +202,8 @@
 		},
 		{
 			"ImportPath": "github.com/Ensighten/udnssdk",
-			"Comment": "v1.2.0",
-			"Rev": "b6c3f17c9afbd57e628fcbc276a14b63d0dcbaf2"
+			"Comment": "v1.2.1",
+			"Rev": "9f1218928b30c6dec7f2c184c47286abc325deb9"
 		},
 		{
 			"ImportPath": "github.com/ajg/form",
@@ -1476,8 +1476,8 @@
 		},
 		{
 			"ImportPath": "github.com/Ensighten/udnssdk/passwordcredentials",
-			"Comment": "v1.2.0",
-			"Rev": "b6c3f17c9afbd57e628fcbc276a14b63d0dcbaf2"
+			"Comment": "v1.2.1",
+			"Rev": "9f1218928b30c6dec7f2c184c47286abc325deb9"
 		}
 	]
 }
