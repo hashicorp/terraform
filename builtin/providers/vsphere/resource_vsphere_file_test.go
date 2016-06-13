@@ -17,6 +17,7 @@ import (
 // Basic file creation
 func TestAccVSphereFile_basic(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
+	// TODO make this OS TMP dir ... run on windows
 	testVmdkFile := "/tmp/tf_test.vmdk"
 	err := ioutil.WriteFile(testVmdkFile, testVmdkFileData, 0644)
 	if err != nil {

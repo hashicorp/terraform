@@ -17,6 +17,7 @@ type file struct {
 	datastore       string
 	sourceFile      string
 	destinationFile string
+	// use_sdrs        bool // TODO
 }
 
 // TODO add DRS

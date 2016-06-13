@@ -19,6 +19,7 @@ type virtualDisk struct {
 	adapterType string
 	datacenter  string
 	datastore   string
+	// use_sdrs    bool // TODO implement sdrs
 }
 
 // Define VirtualDisk args
