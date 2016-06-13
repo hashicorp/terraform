@@ -68,7 +68,6 @@ func setupBaseVars() (string, string) {
 		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
 	}
 	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		// TODO do we need the \n here??
 		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
 	}
 
@@ -566,6 +565,24 @@ resource "vsphere_virtual_machine" "with_cdrom" {
     }
 `
 
+
+func testBasicPreCheckCDROM(t *testing.T) {
+
+
+	if v := os.Getenv("VSPHERE_CDROM_DATASTORE"); v == "" {
+		t.Skip(
+			"ENV variable VSPHERE_CDROM_DATASTORE must be set for this integration test, you need a cdrom datastore",
+		)
+	}
+
+	if v := os.Getenv("VSPHERE_CDROM_PATH"); v == "" {
+		t.Skip(
+			"ENV variable VSPHERE_CDROM_DATASTORE must be set for this integration test, you need a cdrom datastore",
+		)
+	}
+
+	testAccPreCheck(t)
+}
 func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	var vm virtualMachine
 
@@ -588,7 +605,7 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     func() { testBasicPreCheckCDROM(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -624,6 +641,16 @@ resource "vsphere_virtual_machine" "with_existing_vmdk" {
 }
 `
 
+func testBasicPreCheckVMDK(t *testing.T) {
+
+	if v := os.Getenv("VSPHERE_VMDK_PATH"); v == "" {
+		t.Skip(
+			"ENV variable VSPHERE_VMDK_PATH must be set for this integration test, you need a vmdk image",
+		)
+	}
+
+	testAccPreCheck(t)
+}
 func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 	var vm virtualMachine
 	vmdk_path := os.Getenv("VSPHERE_VMDK_PATH")
@@ -640,7 +667,7 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     func() { testBasicPreCheckVMDK(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -949,13 +976,14 @@ const close_p = `
 
 func testBasicPreCheckSRS(t *testing.T) {
 
-	testAccPreCheck(t)
 
 	if v := os.Getenv("VSPHERE_USE_SDRS"); v == "" {
 		t.Skip(
 			"ENV variable VSPHERE_USE_SDRS must be set for this integration test, you need a storage pod",
 		)
 	}
+
+	testAccPreCheck(t)
 }
 
 ////
