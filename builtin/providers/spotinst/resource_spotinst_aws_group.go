@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -175,6 +176,25 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 				},
 			},
 
+			"signal": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: false,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: false,
+							StateFunc: func(v interface{}) string {
+								value := v.(string)
+								return strings.ToUpper(value)
+							},
+						},
+					},
+				},
+			},
+
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -203,10 +223,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"load_balancer_names": &schema.Schema{
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 
 						"monitoring": &schema.Schema{
@@ -241,10 +262,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						},
 
 						"security_group_ids": &schema.Schema{
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 
 						"user_data": &schema.Schema{
@@ -419,10 +441,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						},
 
 						"security_group_ids": &schema.Schema{
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 
 						"network_interface_id": &schema.Schema{
@@ -484,6 +507,21 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"environment_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: false,
+						},
+					},
+				},
+			},
+
+			"ec2_container_service_integration": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: false,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cluster_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: false,
@@ -611,7 +649,7 @@ func resourceSpotinstAwsGroupCreate(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return fmt.Errorf("[ERROR] Error creating group: %s", err)
 	}
-	d.SetId(res[0].ID)
+	d.SetId(*res[0].ID)
 	log.Printf("[INFO] AwsGroup created successfully: %s\n", d.Id())
 	return resourceSpotinstAwsGroupRead(d, meta)
 }
@@ -686,6 +724,15 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 			})
 		}
 		d.Set("availability_zone", zones)
+
+		// Set the signals.
+		signals := make([]map[string]interface{}, 0, len(g.Strategy.Signals))
+		for _, s := range g.Strategy.Signals {
+			signals = append(signals, map[string]interface{}{
+				"name": s.Name,
+			})
+		}
+		d.Set("signal", signals)
 
 		// Set the scheduled tasks.
 		tasks := make([]map[string]interface{}, 0, len(g.Scheduling.Tasks))
@@ -815,6 +862,15 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 		}
 		d.Set("elastic_beanstalk_integration", beanstalk)
 
+		// Set the EC2 Container Service integration.
+		ecs := make([]map[string]interface{}, 0, 1)
+		if g.Integration.EC2ContainerService != nil {
+			ecs = append(ecs, map[string]interface{}{
+				"cluster_name": g.Integration.EC2ContainerService.ClusterName,
+			})
+		}
+		d.Set("ec2_container_service_integration", ecs)
+
 		// Set the Nirmata integration.
 		nirmata := make([]map[string]interface{}, 0, 1)
 		if g.Integration.Nirmata != nil {
@@ -833,15 +889,15 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	hasChange := false
 	client := meta.(*spotinst.Client)
-	update := &spotinst.AwsGroup{ID: d.Id()}
+	update := &spotinst.AwsGroup{ID: spotinst.String(d.Id())}
 
 	if d.HasChange("name") {
-		update.Name = d.Get("name").(string)
+		update.Name = spotinst.String(d.Get("name").(string))
 		hasChange = true
 	}
 
 	if d.HasChange("description") {
-		update.Description = d.Get("description").(string)
+		update.Description = spotinst.String(d.Get("description").(string))
 		hasChange = true
 	}
 
@@ -915,6 +971,22 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		hasChange = true
 	}
 
+	if d.HasChange("signal") {
+		vL := d.Get("signal").(*schema.Set).List()
+		signals := make([]*spotinst.AwsGroupStrategySignal, 0, len(vL))
+		for _, c := range vL {
+			if s, ok := c.(map[string]interface{}); ok {
+				signal := expandAwsGroupSignal(s)
+				signals = append(signals, signal)
+			}
+		}
+		if update.Strategy == nil {
+			update.Strategy = &spotinst.AwsGroupStrategy{}
+		}
+		update.Strategy.Signals = signals
+		hasChange = true
+	}
+
 	if d.HasChange("instance_types") {
 		vL := d.Get("instance_types").(*schema.Set).List()
 		if len(vL) > 1 {
@@ -923,7 +995,7 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			c := vL[0].(map[string]interface{})
 			it := &spotinst.AwsGroupComputeInstanceType{}
 			if v, ok := c["ondemand"].(string); ok && v != "" {
-				it.OnDemand = v
+				it.OnDemand = spotinst.String(v)
 			}
 			if v, ok := c["spot"].([]interface{}); ok {
 				types := make([]string, len(v))
@@ -946,8 +1018,8 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			tags := make([]*spotinst.AwsGroupComputeTag, 0, len(c))
 			for i, k := range c {
 				tags = append(tags, &spotinst.AwsGroupComputeTag{
-					Key:   i,
-					Value: k.(string),
+					Key:   spotinst.String(i),
+					Value: spotinst.String(k.(string)),
 				})
 			}
 			if update.Compute == nil {
@@ -1056,6 +1128,20 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	if d.HasChange("ec2_container_service_integration") {
+		vL := d.Get("ec2_container_service_integration").(*schema.Set).List()
+		if len(vL) > 1 {
+			return fmt.Errorf("Only a single ec2_container_service_integration block is expected")
+		} else if len(vL) == 1 {
+			c := vL[0].(map[string]interface{})
+			if update.Integration == nil {
+				update.Integration = &spotinst.AwsGroupIntegration{}
+			}
+			update.Integration.EC2ContainerService = expandAwsGroupEC2ContainerServiceIntegration(c)
+			hasChange = true
+		}
+	}
+
 	if d.HasChange("nirmata_integration") {
 		vL := d.Get("nirmata_integration").(*schema.Set).List()
 		if len(vL) > 1 {
@@ -1084,7 +1170,7 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceSpotinstAwsGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*spotinst.Client)
 	log.Printf("[INFO] Deleting group: %s\n", d.Id())
-	group := &spotinst.AwsGroup{ID: d.Id()}
+	group := &spotinst.AwsGroup{ID: spotinst.String(d.Id())}
 	_, err := client.AwsGroup.Delete(group)
 	if err != nil {
 		return fmt.Errorf("[ERROR] Error deleting group: %s", err)
@@ -1095,13 +1181,13 @@ func resourceSpotinstAwsGroupDelete(d *schema.ResourceData, meta interface{}) er
 // buildAwsGroupOpts builds the Spotinst AWS Group options.
 func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsGroup, error) {
 	group := &spotinst.AwsGroup{
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+		Name:        spotinst.String(d.Get("name").(string)),
+		Description: spotinst.String(d.Get("description").(string)),
 		Scaling:     &spotinst.AwsGroupScaling{},
 		Scheduling:  &spotinst.AwsGroupScheduling{},
 		Integration: &spotinst.AwsGroupIntegration{},
 		Compute: &spotinst.AwsGroupCompute{
-			Product:             d.Get("product").(string),
+			Product:             spotinst.String(d.Get("product").(string)),
 			LaunchSpecification: &spotinst.AwsGroupComputeLaunchSpecification{},
 		},
 	}
@@ -1170,7 +1256,7 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 			c := vL[0].(map[string]interface{})
 			it := &spotinst.AwsGroupComputeInstanceType{}
 			if v, ok := c["ondemand"].(string); ok && v != "" {
-				it.OnDemand = v
+				it.OnDemand = spotinst.String(v)
 			}
 			if v, ok := c["spot"].([]interface{}); ok {
 				types := make([]string, len(v))
@@ -1209,6 +1295,18 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 		group.Compute.AvailabilityZones = zones
 	}
 
+	if v, ok := d.GetOk("signal"); ok {
+		vL := v.(*schema.Set).List()
+		signals := make([]*spotinst.AwsGroupStrategySignal, 0, len(vL))
+		for _, c := range vL {
+			if s, ok := c.(map[string]interface{}); ok {
+				signal := expandAwsGroupSignal(s)
+				signals = append(signals, signal)
+			}
+		}
+		group.Strategy.Signals = signals
+	}
+
 	if v, ok := d.GetOk("launch_specification"); ok {
 		vL := v.(*schema.Set).List()
 		if len(vL) > 1 {
@@ -1225,8 +1323,8 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 		tags := make([]*spotinst.AwsGroupComputeTag, 0, len(c))
 		for i, k := range c {
 			tags = append(tags, &spotinst.AwsGroupComputeTag{
-				Key:   i,
-				Value: k.(string),
+				Key:   spotinst.String(i),
+				Value: spotinst.String(k.(string)),
 			})
 		}
 		group.Compute.LaunchSpecification.Tags = tags
@@ -1298,6 +1396,18 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 		}
 	}
 
+	if v, ok := d.GetOk("ec2_container_service_integration"); ok {
+		vL := v.(*schema.Set).List()
+		if len(vL) > 1 {
+			return nil, fmt.Errorf("Only a single ec2_container_service_integration block is expected")
+		} else if len(vL) == 1 {
+			if c, ok := vL[0].(map[string]interface{}); ok {
+				i := expandAwsGroupEC2ContainerServiceIntegration(c)
+				group.Integration.EC2ContainerService = i
+			}
+		}
+	}
+
 	if v, ok := d.GetOk("nirmata_integration"); ok {
 		vL := v.(*schema.Set).List()
 		if len(vL) > 1 {
@@ -1317,16 +1427,16 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 func expandAwsGroupCapacity(m map[string]interface{}) *spotinst.AwsGroupCapacity {
 	capacity := &spotinst.AwsGroupCapacity{}
 
-	if v, ok := m["minimum"].(int); ok && v > 0 {
-		capacity.Minimum = v
+	if v, ok := m["minimum"].(int); ok && v >= 0 {
+		capacity.Minimum = spotinst.Int(v)
 	}
 
-	if v, ok := m["maximum"].(int); ok && v > 0 {
-		capacity.Maximum = v
+	if v, ok := m["maximum"].(int); ok && v >= 0 {
+		capacity.Maximum = spotinst.Int(v)
 	}
 
-	if v, ok := m["target"].(int); ok && v > 0 {
-		capacity.Target = v
+	if v, ok := m["target"].(int); ok && v >= 0 {
+		capacity.Target = spotinst.Int(v)
 	}
 
 	log.Printf("[DEBUG] AwsGroup capacity configuration: %#v\n", capacity)
@@ -1338,19 +1448,19 @@ func expandAwsGroupStrategy(m map[string]interface{}) *spotinst.AwsGroupStrategy
 	strategy := &spotinst.AwsGroupStrategy{}
 
 	if v, ok := m["risk"].(float64); ok && v >= 0 {
-		strategy.Risk = v
+		strategy.Risk = spotinst.Float64(v)
 	}
 
-	if v, ok := m["ondemand_count"].(int); ok && v >= 0 {
-		strategy.OnDemandCount = v
+	if v, ok := m["ondemand_count"].(int); ok && v > 0 {
+		strategy.OnDemandCount = spotinst.Int(v)
 	}
 
 	if v, ok := m["availability_vs_cost"].(string); ok && v != "" {
-		strategy.AvailabilityVsCost = v
+		strategy.AvailabilityVsCost = spotinst.String(v)
 	}
 
-	if v, ok := m["draining_timeout"].(int); ok && v >= 0 {
-		strategy.DrainingTimeout = v
+	if v, ok := m["draining_timeout"].(int); ok && v > 0 {
+		strategy.DrainingTimeout = spotinst.Int(v)
 	}
 
 	log.Printf("[DEBUG] AwsGroup strategy configuration: %#v\n", strategy)
@@ -1362,59 +1472,59 @@ func expandAwsGroupScalingPolicy(m map[string]interface{}) *spotinst.AwsGroupSca
 	p := &spotinst.AwsGroupScalingPolicy{}
 
 	if v, ok := m["policy_name"].(string); ok && v != "" {
-		p.PolicyName = v
+		p.PolicyName = spotinst.String(v)
 	}
 
 	if v, ok := m["metric_name"].(string); ok && v != "" {
-		p.MetricName = v
+		p.MetricName = spotinst.String(v)
 	}
 
 	if v, ok := m["statistic"].(string); ok && v != "" {
-		p.Statistic = v
+		p.Statistic = spotinst.String(v)
 	}
 
 	if v, ok := m["unit"].(string); ok && v != "" {
-		p.Unit = v
+		p.Unit = spotinst.String(v)
 	}
 
 	if v, ok := m["threshold"].(float64); ok && v > 0 {
-		p.Threshold = v
+		p.Threshold = spotinst.Float64(v)
 	}
 
 	if v, ok := m["adjustment"].(int); ok && v > 0 {
-		p.Adjustment = v
+		p.Adjustment = spotinst.Int(v)
 	}
 
-	if v, ok := m["min_target_capacity"].(int); ok && v >= 0 {
-		p.MinTargetCapacity = v
+	if v, ok := m["min_target_capacity"].(int); ok && v > 0 {
+		p.MinTargetCapacity = spotinst.Int(v)
 	}
 
-	if v, ok := m["max_target_capacity"].(int); ok && v >= 0 {
-		p.MaxTargetCapacity = v
+	if v, ok := m["max_target_capacity"].(int); ok && v > 0 {
+		p.MaxTargetCapacity = spotinst.Int(v)
 	}
 
 	if v, ok := m["namespace"].(string); ok && v != "" {
-		p.Namespace = v
+		p.Namespace = spotinst.String(v)
 	}
 
 	if v, ok := m["period"].(int); ok && v > 0 {
-		p.Period = v
+		p.Period = spotinst.Int(v)
 	}
 
 	if v, ok := m["evaluation_periods"].(int); ok && v > 0 {
-		p.EvaluationPeriods = v
+		p.EvaluationPeriods = spotinst.Int(v)
 	}
 
 	if v, ok := m["cooldown"].(int); ok {
-		p.Cooldown = v
+		p.Cooldown = spotinst.Int(v)
 	}
 
 	if v, ok := m["dimensions"].(map[string]interface{}); ok {
 		dimensions := make([]*spotinst.AwsGroupScalingPolicyDimension, 0, len(v))
 		for i, k := range v {
 			dimensions = append(dimensions, &spotinst.AwsGroupScalingPolicyDimension{
-				Name:  i,
-				Value: k.(string),
+				Name:  spotinst.String(i),
+				Value: spotinst.String(k.(string)),
 			})
 		}
 
@@ -1430,27 +1540,27 @@ func expandAwsGroupScheduledTask(m map[string]interface{}) *spotinst.AwsGroupSch
 	t := &spotinst.AwsGroupScheduledTask{}
 
 	if v, ok := m["task_type"].(string); ok && v != "" {
-		t.TaskType = v
+		t.TaskType = spotinst.String(v)
 	}
 
 	if v, ok := m["frequency"].(string); ok && v != "" {
-		t.Frequency = v
+		t.Frequency = spotinst.String(v)
 	}
 
 	if v, ok := m["cron_expression"].(string); ok && v != "" {
-		t.CronExpression = v
+		t.CronExpression = spotinst.String(v)
 	}
 
-	if v, ok := m["scale_target_capacity"].(int); ok && v >= 0 {
-		t.ScaleTargetCapacity = v
+	if v, ok := m["scale_target_capacity"].(int); ok && v > 0 {
+		t.ScaleTargetCapacity = spotinst.Int(v)
 	}
 
-	if v, ok := m["scale_min_capacity"].(int); ok && v >= 0 {
-		t.ScaleMinCapacity = v
+	if v, ok := m["scale_min_capacity"].(int); ok && v > 0 {
+		t.ScaleMinCapacity = spotinst.Int(v)
 	}
 
-	if v, ok := m["scale_max_capacity"].(int); ok && v >= 0 {
-		t.ScaleMaxCapacity = v
+	if v, ok := m["scale_max_capacity"].(int); ok && v > 0 {
+		t.ScaleMaxCapacity = spotinst.Int(v)
 	}
 
 	log.Printf("[DEBUG] AwsGroup scheduled task configuration: %#v\n", t)
@@ -1462,15 +1572,27 @@ func expandAwsGroupAvailabilityZone(m map[string]interface{}) *spotinst.AwsGroup
 	z := &spotinst.AwsGroupComputeAvailabilityZone{}
 
 	if v, ok := m["name"].(string); ok && v != "" {
-		z.Name = v
+		z.Name = spotinst.String(v)
 	}
 
 	if v, ok := m["subnet_id"].(string); ok && v != "" {
-		z.SubnetID = v
+		z.SubnetID = spotinst.String(v)
 	}
 
 	log.Printf("[DEBUG] AwsGroup availability zone configuration: %#v\n", z)
 	return z
+}
+
+// expandAwsGroupSignal expands the Signal block.
+func expandAwsGroupSignal(m map[string]interface{}) *spotinst.AwsGroupStrategySignal {
+	s := &spotinst.AwsGroupStrategySignal{}
+
+	if v, ok := m["name"].(string); ok && v != "" {
+		s.Name = spotinst.String(strings.ToUpper(v))
+	}
+
+	log.Printf("[DEBUG] AwsGroup signal configuration: %#v\n", s)
+	return s
 }
 
 // expandAwsGroupNetworkInterface expands the Elastic Network Interface block.
@@ -1478,43 +1600,48 @@ func expandAwsGroupNetworkInterface(m map[string]interface{}) *spotinst.AwsGroup
 	i := &spotinst.AwsGroupComputeNetworkInterface{}
 
 	if v, ok := m["network_interface_id"].(string); ok && v != "" {
-		i.ID = v
+		i.ID = spotinst.String(v)
 	}
 
 	if v, ok := m["description"].(string); ok && v != "" {
-		i.Description = v
+		i.Description = spotinst.String(v)
 	}
 
 	if v, ok := m["device_index"].(int); ok && v >= 0 {
-		i.DeviceIndex = v
+		i.DeviceIndex = spotinst.Int(v)
 	}
 
-	if v, ok := m["secondary_private_ip_address_count"].(int); ok && v >= 0 {
-		i.SecondaryPrivateIPAddressCount = v
+	if v, ok := m["secondary_private_ip_address_count"].(int); ok && v > 0 {
+		i.SecondaryPrivateIPAddressCount = spotinst.Int(v)
 	}
 
 	if v, ok := m["associate_public_ip_address"].(bool); ok {
-		i.AssociatePublicIPAddress = v
+		i.AssociatePublicIPAddress = spotinst.Bool(v)
 	}
 
 	if v, ok := m["delete_on_termination"].(bool); ok {
-		i.DeleteOnTermination = v
+		i.DeleteOnTermination = spotinst.Bool(v)
 	}
 
 	if v, ok := m["private_ip_address"].(string); ok && v != "" {
-		i.PrivateIPAddress = v
+		i.PrivateIPAddress = spotinst.String(v)
 	}
 
 	if v, ok := m["subnet_id"].(string); ok && v != "" {
-		i.SubnetID = v
+		i.SubnetID = spotinst.String(v)
 	}
 
-	if v, ok := m["security_group_ids"].([]interface{}); ok {
-		sids := make([]string, len(v))
-		for i, j := range v {
-			sids[i] = j.(string)
+	if v := m["security_group_ids"]; v != nil {
+		var groups []string
+		sgs := v.(*schema.Set).List()
+		if len(sgs) > 0 {
+			for _, v := range sgs {
+				if s, ok := v.(string); ok && s != "" {
+					groups = append(groups, s)
+				}
+			}
+			i.SecurityGroupsIDs = groups
 		}
-		i.SecurityGroupsIDs = sids
 	}
 
 	log.Printf("[DEBUG] AwsGroup network interface configuration: %#v\n", i)
@@ -1526,11 +1653,11 @@ func expandAwsGroupEphemeralBlockDevice(m map[string]interface{}) *spotinst.AwsG
 	b := &spotinst.AwsGroupComputeBlockDevice{}
 
 	if v, ok := m["device_name"].(string); ok && v != "" {
-		b.DeviceName = v
+		b.DeviceName = spotinst.String(v)
 	}
 
 	if v, ok := m["virtual_name"].(string); ok && v != "" {
-		b.VirtualName = v
+		b.VirtualName = spotinst.String(v)
 	}
 
 	log.Printf("[DEBUG] AwsGroup ephemeral block device configuration: %#v\n", b)
@@ -1542,31 +1669,31 @@ func expandAwsGroupEBSBlockDevice(m map[string]interface{}) *spotinst.AwsGroupCo
 	b := &spotinst.AwsGroupComputeBlockDevice{EBS: &spotinst.AwsGroupComputeEBS{}}
 
 	if v, ok := m["device_name"].(string); ok && v != "" {
-		b.DeviceName = v
+		b.DeviceName = spotinst.String(v)
 	}
 
 	if v, ok := m["delete_on_termination"].(bool); ok {
-		b.EBS.DeleteOnTermination = v
+		b.EBS.DeleteOnTermination = spotinst.Bool(v)
 	}
 
 	if v, ok := m["encrypted"].(bool); ok {
-		b.EBS.Encrypted = v
+		b.EBS.Encrypted = spotinst.Bool(v)
 	}
 
 	if v, ok := m["snapshot_id"].(string); ok && v != "" {
-		b.EBS.SnapshotID = v
+		b.EBS.SnapshotID = spotinst.String(v)
 	}
 
 	if v, ok := m["volume_type"].(string); ok && v != "" {
-		b.EBS.VolumeType = v
+		b.EBS.VolumeType = spotinst.String(v)
 	}
 
-	if v, ok := m["volume_size"].(int); ok && v >= 0 {
-		b.EBS.VolumeSize = v
+	if v, ok := m["volume_size"].(int); ok && v > 0 {
+		b.EBS.VolumeSize = spotinst.Int(v)
 	}
 
-	if v, ok := m["iops"].(int); ok && v >= 0 {
-		b.EBS.IOPS = v
+	if v, ok := m["iops"].(int); ok && v > 0 {
+		b.EBS.IOPS = spotinst.Int(v)
 	}
 
 	log.Printf("[DEBUG] AwsGroup EBS block device configuration: %#v\n", b)
@@ -1578,47 +1705,57 @@ func expandAwsGroupLaunchSpecification(m map[string]interface{}) *spotinst.AwsGr
 	lc := &spotinst.AwsGroupComputeLaunchSpecification{}
 
 	if v, ok := m["monitoring"].(bool); ok {
-		lc.Monitoring = v
+		lc.Monitoring = spotinst.Bool(v)
 	}
 
 	if v, ok := m["image_id"].(string); ok && v != "" {
-		lc.ImageID = v
+		lc.ImageID = spotinst.String(v)
 	}
 
 	if v, ok := m["key_pair"].(string); ok && v != "" {
-		lc.KeyPair = v
+		lc.KeyPair = spotinst.String(v)
 	}
 
 	if v, ok := m["health_check_type"].(string); ok && v != "" {
-		lc.HealthCheckType = v
+		lc.HealthCheckType = spotinst.String(v)
 	}
 
-	if v, ok := m["health_check_grace_period"].(int); ok && v >= 0 {
-		lc.HealthCheckGracePeriod = v
+	if v, ok := m["health_check_grace_period"].(int); ok && v > 0 {
+		lc.HealthCheckGracePeriod = spotinst.Int(v)
 	}
 
 	if v, ok := m["iam_instance_profile"].(string); ok && v != "" {
-		lc.IamInstanceProfile = &spotinst.AwsGroupComputeIamInstanceProfile{Arn: v}
+		lc.IamInstanceProfile = &spotinst.AwsGroupComputeIamInstanceProfile{Arn: spotinst.String(v)}
 	}
 
 	if v, ok := m["user_data"].(string); ok && v != "" {
-		lc.UserData = base64.StdEncoding.EncodeToString([]byte(v))
+		lc.UserData = spotinst.String(base64.StdEncoding.EncodeToString([]byte(v)))
 	}
 
-	if v, ok := m["security_group_ids"].([]interface{}); ok {
-		sids := make([]string, len(v))
-		for i, j := range v {
-			sids[i] = j.(string)
+	if v := m["security_group_ids"]; v != nil {
+		var groups []string
+		sgs := v.(*schema.Set).List()
+		if len(sgs) > 0 {
+			for _, v := range sgs {
+				if s, ok := v.(string); ok && s != "" {
+					groups = append(groups, s)
+				}
+			}
+			lc.SecurityGroupIDs = groups
 		}
-		lc.SecurityGroupIDs = sids
 	}
 
-	if v, ok := m["load_balancer_names"].([]interface{}); ok {
-		elbs := make([]string, len(v))
-		for i, j := range v {
-			elbs[i] = j.(string)
+	if v := m["load_balancer_names"]; v != nil {
+		var names []string
+		elbs := v.(*schema.Set).List()
+		if len(elbs) > 0 {
+			for _, v := range elbs {
+				if s, ok := v.(string); ok && s != "" {
+					names = append(names, s)
+				}
+			}
+			lc.LoadBalancerNames = names
 		}
-		lc.LoadBalancerNames = elbs
 	}
 
 	log.Printf("[DEBUG] AwsGroup launch specification configuration: %#v\n", lc)
@@ -1630,15 +1767,15 @@ func expandAwsGroupRancherIntegration(m map[string]interface{}) *spotinst.AwsGro
 	i := &spotinst.AwsGroupRancherIntegration{}
 
 	if v, ok := m["master_host"].(string); ok && v != "" {
-		i.MasterHost = v
+		i.MasterHost = spotinst.String(v)
 	}
 
 	if v, ok := m["access_key"].(string); ok && v != "" {
-		i.AccessKey = v
+		i.AccessKey = spotinst.String(v)
 	}
 
 	if v, ok := m["secret_key"].(string); ok && v != "" {
-		i.SecretKey = v
+		i.SecretKey = spotinst.String(v)
 	}
 
 	return i
@@ -1649,7 +1786,18 @@ func expandAwsGroupElasticBeanstalkIntegration(m map[string]interface{}) *spotin
 	i := &spotinst.AwsGroupElasticBeanstalkIntegration{}
 
 	if v, ok := m["environment_id"].(string); ok && v != "" {
-		i.EnvironmentID = v
+		i.EnvironmentID = spotinst.String(v)
+	}
+
+	return i
+}
+
+// expandAwsGroupEC2ContainerServiceIntegration expands the EC2 Container Service Integration block.
+func expandAwsGroupEC2ContainerServiceIntegration(m map[string]interface{}) *spotinst.AwsGroupEC2ContainerServiceIntegration {
+	i := &spotinst.AwsGroupEC2ContainerServiceIntegration{}
+
+	if v, ok := m["cluster_name"].(string); ok && v != "" {
+		i.ClusterName = spotinst.String(v)
 	}
 
 	return i
@@ -1660,7 +1808,7 @@ func expandAwsGroupNirmataIntegration(m map[string]interface{}) *spotinst.AwsGro
 	i := &spotinst.AwsGroupNirmataIntegration{}
 
 	if v, ok := m["api_key"].(string); ok && v != "" {
-		i.APIKey = v
+		i.APIKey = spotinst.String(v)
 	}
 
 	return i
@@ -1670,7 +1818,7 @@ func expandAwsGroupNirmataIntegration(m map[string]interface{}) *spotinst.AwsGro
 func tagsToMap(ts []*spotinst.AwsGroupComputeTag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[t.Key] = t.Value
+		result[*t.Key] = *t.Value
 	}
 
 	return result

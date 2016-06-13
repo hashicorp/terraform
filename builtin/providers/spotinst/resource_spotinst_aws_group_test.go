@@ -74,7 +74,7 @@ func testAccCheckSpotinstGroupDestroy(s *terraform.State) error {
 
 func testAccCheckSpotinstGroupAttributes(group *spotinst.AwsGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if group.Name != "terraform" {
+		if *group.Name != "terraform" {
 			return fmt.Errorf("Bad content: %v", group.Name)
 		}
 
@@ -84,7 +84,7 @@ func testAccCheckSpotinstGroupAttributes(group *spotinst.AwsGroup) resource.Test
 
 func testAccCheckSpotinstGroupAttributesUpdated(group *spotinst.AwsGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if group.Name != "terraform_updated" {
+		if *group.Name != "terraform_updated" {
 			return fmt.Errorf("Bad content: %v", group.Name)
 		}
 
@@ -111,7 +111,7 @@ func testAccCheckSpotinstGroupExists(n string, group *spotinst.AwsGroup) resourc
 			return err
 		}
 
-		if foundGroups[0].Name != rs.Primary.Attributes["name"] {
+		if *foundGroups[0].Name != rs.Primary.Attributes["name"] {
 			return fmt.Errorf("Group not found: %+v,\n %+v\n", foundGroups[0], rs.Primary.Attributes)
 		}
 
@@ -146,12 +146,16 @@ resource "spotinst_aws_group" "foo" {
 		name = "us-west-2b"
 	}
 
+	signal {
+		name = "instance_ready"
+	}
+
 	launch_specification {
 		monitoring = false
 		image_id = "ami-f0091d91"
 		key_pair = "east"
 		security_group_ids = ["default"]
-		user_data = "!#/bin/sh echo hello"
+		user_data = "#!/bin/sh echo hello"
 	}
 
 	ebs_block_device {
@@ -266,12 +270,16 @@ resource "spotinst_aws_group" "foo" {
 		name = "us-west-2b"
 	}
 
+	signal {
+		name = "instance_ready"
+	}
+
 	launch_specification {
 		monitoring = false
 		image_id = "ami-f0091d91"
 		key_pair = "east"
 		security_group_ids = ["default"]
-		user_data = "!#/bin/sh echo hello"
+		user_data = "#!/bin/sh echo hello"
 	}
 
 	ebs_block_device {

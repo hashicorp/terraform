@@ -1,8 +1,6 @@
 package spotinst
 
 import (
-	"os"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -14,35 +12,35 @@ func Provider() terraform.ResourceProvider {
 			"email": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("SPOTINST_EMAIL"),
+				DefaultFunc: schema.EnvDefaultFunc("SPOTINST_EMAIL", ""),
 				Description: "Spotinst Email",
 			},
 
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("SPOTINST_PASSWORD"),
+				DefaultFunc: schema.EnvDefaultFunc("SPOTINST_PASSWORD", ""),
 				Description: "Spotinst Password",
 			},
 
 			"client_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("SPOTINST_CLIENT_ID"),
+				DefaultFunc: schema.EnvDefaultFunc("SPOTINST_CLIENT_ID", ""),
 				Description: "Spotinst OAuth Client ID",
 			},
 
 			"client_secret": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("SPOTINST_CLIENT_SECRET"),
+				DefaultFunc: schema.EnvDefaultFunc("SPOTINST_CLIENT_SECRET", ""),
 				Description: "Spotinst OAuth Client Secret",
 			},
 
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("SPOTINST_TOKEN"),
+				DefaultFunc: schema.EnvDefaultFunc("SPOTINST_TOKEN", ""),
 				Description: "Spotinst Personal API Access Token",
 			},
 		},
@@ -70,21 +68,4 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return config.Client()
-}
-
-func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return nil, nil
-	}
-}
-
-func envDefaultFuncAllowMissing(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		v := os.Getenv(k)
-		return v, nil
-	}
 }

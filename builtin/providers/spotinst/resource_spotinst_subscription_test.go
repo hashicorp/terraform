@@ -74,11 +74,11 @@ func testAccCheckSpotinstSubscriptionDestroy(s *terraform.State) error {
 
 func testAccCheckSpotinstSubscriptionAttributes(subscription *spotinst.Subscription) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if subscription.Protocol != "http" {
+		if *subscription.Protocol != "http" {
 			return fmt.Errorf("Bad content: %v", subscription.Protocol)
 		}
 
-		if subscription.Endpoint != "http://endpoint.com" {
+		if *subscription.Endpoint != "http://endpoint.com" {
 			return fmt.Errorf("Bad content: %v", subscription.Endpoint)
 		}
 
@@ -88,11 +88,11 @@ func testAccCheckSpotinstSubscriptionAttributes(subscription *spotinst.Subscript
 
 func testAccCheckSpotinstSubscriptionAttributesUpdated(subscription *spotinst.Subscription) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if subscription.Protocol != "https" {
+		if *subscription.Protocol != "https" {
 			return fmt.Errorf("Bad content: %v", subscription.Protocol)
 		}
 
-		if subscription.Endpoint != "https://endpoint.com" {
+		if *subscription.Endpoint != "https://endpoint.com" {
 			return fmt.Errorf("Bad content: %v", subscription.Endpoint)
 		}
 
@@ -119,7 +119,7 @@ func testAccCheckSpotinstSubscriptionExists(n string, subscription *spotinst.Sub
 			return err
 		}
 
-		if foundSubscriptions[0].ID != rs.Primary.Attributes["id"] {
+		if *foundSubscriptions[0].ID != rs.Primary.Attributes["id"] {
 			return fmt.Errorf("Subscription not found: %+v,\n %+v\n", foundSubscriptions[0], rs.Primary.Attributes)
 		}
 

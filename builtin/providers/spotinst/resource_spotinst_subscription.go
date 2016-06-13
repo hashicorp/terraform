@@ -27,6 +27,10 @@ func resourceSpotinstSubscription() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
+				StateFunc: func(v interface{}) string {
+					value := v.(string)
+					return strings.ToUpper(value)
+				},
 			},
 
 			"protocol": &schema.Schema{
@@ -61,7 +65,7 @@ func resourceSpotinstSubscriptionCreate(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return fmt.Errorf("[ERROR] Error creating subscription: %s", err)
 	}
-	d.SetId(res[0].ID)
+	d.SetId(*res[0].ID)
 	log.Printf("[INFO] Subscription created successfully: %s\n", d.Id())
 	return resourceSpotinstSubscriptionRead(d, meta)
 }
@@ -87,7 +91,7 @@ func resourceSpotinstSubscriptionRead(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("[ERROR] Got %d results, only one is allowed", len(subscriptions))
 	} else if s := subscriptions[0]; s != nil {
 		d.Set("resource_id", s.ResourceID)
-		d.Set("event_type", strings.ToLower(s.EventType))
+		d.Set("event_type", s.EventType)
 		d.Set("protocol", s.Protocol)
 		d.Set("endpoint", s.Endpoint)
 		d.Set("format", s.Format)
@@ -101,25 +105,25 @@ func resourceSpotinstSubscriptionRead(d *schema.ResourceData, meta interface{}) 
 func resourceSpotinstSubscriptionUpdate(d *schema.ResourceData, meta interface{}) error {
 	hasChange := false
 	client := meta.(*spotinst.Client)
-	update := &spotinst.Subscription{ID: d.Id()}
+	update := &spotinst.Subscription{ID: spotinst.String(d.Id())}
 
 	if d.HasChange("resource_id") {
-		update.ResourceID = d.Get("resource_id").(string)
+		update.ResourceID = spotinst.String(d.Get("resource_id").(string))
 		hasChange = true
 	}
 
 	if d.HasChange("event_type") {
-		update.EventType = strings.ToUpper(d.Get("event_type").(string))
+		update.EventType = spotinst.String(d.Get("event_type").(string))
 		hasChange = true
 	}
 
 	if d.HasChange("protocol") {
-		update.Protocol = d.Get("protocol").(string)
+		update.Protocol = spotinst.String(d.Get("protocol").(string))
 		hasChange = true
 	}
 
 	if d.HasChange("endpoint") {
-		update.Endpoint = d.Get("endpoint").(string)
+		update.Endpoint = spotinst.String(d.Get("endpoint").(string))
 		hasChange = true
 	}
 
@@ -153,10 +157,10 @@ func resourceSpotinstSubscriptionDelete(d *schema.ResourceData, meta interface{}
 // buildSubscriptionOpts builds the Spotinst Subscription options.
 func buildSubscriptionOpts(d *schema.ResourceData, meta interface{}) (*spotinst.Subscription, error) {
 	subscription := &spotinst.Subscription{
-		ResourceID: d.Get("resource_id").(string),
-		EventType:  strings.ToUpper(d.Get("event_type").(string)),
-		Protocol:   d.Get("protocol").(string),
-		Endpoint:   d.Get("endpoint").(string),
+		ResourceID: spotinst.String(d.Get("resource_id").(string)),
+		EventType:  spotinst.String(strings.ToUpper(d.Get("event_type").(string))),
+		Protocol:   spotinst.String(d.Get("protocol").(string)),
+		Endpoint:   spotinst.String(d.Get("endpoint").(string)),
 		Format:     d.Get("format").(map[string]interface{}),
 	}
 
