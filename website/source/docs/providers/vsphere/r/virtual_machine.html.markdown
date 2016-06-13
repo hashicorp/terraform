@@ -122,7 +122,7 @@ The `disk` block supports:
 * `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
 * `controller_type` - (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
 * `keep_on_remove` - (Optional) Keep the vmdk when you remove the disk from a vm 
-* `use_sdrs` - (Optional) Use vSphere Storage DRS. Defaults to `false`. The datastore if provided must be a DRS Storage Pod.
+* `use_sdrs` - (Optional) Use vSphere DRS. Defaults to `false`. The datastore if provided must be a vSphere DRS Storage.
 
 <a id="cdrom"></a>
 ## CDROM

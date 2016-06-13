@@ -945,7 +945,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 					} else if vm.bootDisk.templateName != "" {
 						return fmt.Errorf("Cannot have two templates")
 					} else if hasBootableDisk {
-						return fmt.Errorf("Only one bootable vmdk or template may be given")
+						return fmt.Errorf("Only one bootable disk or template may be given")
 					} else if v, ok := disk["name"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify name of a template")
 					}
