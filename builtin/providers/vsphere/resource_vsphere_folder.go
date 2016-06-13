@@ -48,6 +48,8 @@ func resourceVSphereFolder() *schema.Resource {
 
 func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error {
 
+	log.SetFlags(log.Lshortfile)
+
 	client := meta.(*govmomi.Client)
 
 	f := folder{
@@ -117,6 +119,7 @@ func createFolder(client *govmomi.Client, f *folder) error {
 
 func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 
+	log.SetFlags(log.Lshortfile)
 	log.Printf("[DEBUG] reading folder: %#v", d)
 	client := meta.(*govmomi.Client)
 
@@ -145,6 +148,7 @@ func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceVSphereFolderDelete(d *schema.ResourceData, meta interface{}) error {
 
+	log.SetFlags(log.Lshortfile)
 	f := folder{
 		path:         strings.TrimRight(d.Get("path").(string), "/"),
 		existingPath: d.Get("existing_path").(string),

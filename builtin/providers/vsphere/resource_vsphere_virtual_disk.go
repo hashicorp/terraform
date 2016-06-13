@@ -88,6 +88,8 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 }
 
 func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) error {
+
+	log.SetFlags(log.Lshortfile)
 	log.Printf("[INFO] Creating Virtual Disk")
 	client := meta.(*govmomi.Client)
 
@@ -129,6 +131,8 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) error {
+
+	log.SetFlags(log.Lshortfile)
 	log.Printf("[DEBUG] Reading virtual disk.")
 	client := meta.(*govmomi.Client)
 
@@ -192,6 +196,8 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) error {
+
+	log.SetFlags(log.Lshortfile)
 	client := meta.(*govmomi.Client)
 
 	vDisk := virtualDisk{}

@@ -56,6 +56,7 @@ func resourceVSphereFile() *schema.Resource {
 
 func resourceVSphereFileCreate(d *schema.ResourceData, meta interface{}) error {
 
+	log.SetFlags(log.Lshortfile)
 	log.Printf("[DEBUG] creating file: %#v", d)
 	client := meta.(*govmomi.Client)
 
@@ -124,6 +125,7 @@ func createFile(client *govmomi.Client, f *file) error {
 
 func resourceVSphereFileRead(d *schema.ResourceData, meta interface{}) error {
 
+	log.SetFlags(log.Lshortfile)
 	log.Printf("[DEBUG] reading file: %#v", d)
 	f := file{}
 
@@ -174,6 +176,7 @@ func resourceVSphereFileRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 
+	log.SetFlags(log.Lshortfile)
 	log.Printf("[DEBUG] updating file: %#v", d)
 	if d.HasChange("destination_file") {
 		oldDestinationFile, newDestinationFile := d.GetChange("destination_file")
@@ -233,6 +236,7 @@ func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceVSphereFileDelete(d *schema.ResourceData, meta interface{}) error {
 
+	log.SetFlags(log.Lshortfile)
 	log.Printf("[DEBUG] deleting file: %#v", d)
 	f := file{}
 
