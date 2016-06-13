@@ -234,6 +234,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_opsworks_ganglia_layer":                   resourceAwsOpsworksGangliaLayer(),
 			"aws_opsworks_custom_layer":                    resourceAwsOpsworksCustomLayer(),
 			"aws_opsworks_instance":                        resourceAwsOpsworksInstance(),
+			"aws_opsworks_user_profile":                    resourceAwsOpsworksUserProfile(),
 			"aws_opsworks_permission":                      resourceAwsOpsworksPermission(),
 			"aws_placement_group":                          resourceAwsPlacementGroup(),
 			"aws_proxy_protocol_policy":                    resourceAwsProxyProtocolPolicy(),

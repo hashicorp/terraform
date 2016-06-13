@@ -15,10 +15,10 @@ func TestAccAWSOpsworksPermission(t *testing.T) {
 				Config: testAccAwsOpsworksPermissionCreate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_permission.tf-acc-perm", "allow_ssh", "1",
+						"aws_opsworks_permission.tf-acc-perm", "allow_ssh", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_permission.tf-acc-perm", "allow_sudo", "1",
+						"aws_opsworks_permission.tf-acc-perm", "allow_sudo", "true",
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_permission.tf-acc-perm", "level", "iam_only",
@@ -29,13 +29,13 @@ func TestAccAWSOpsworksPermission(t *testing.T) {
 	})
 }
 
-var testAccAwsOpsworksPermissionCreate = testAccAWSUserConfig + testAccAwsOpsworksStackConfigNoVpcCreate("tf-ops-acc-permission") + `
+var testAccAwsOpsworksPermissionCreate = testAccAwsOpsworksUserProfileCreate + `
 resource "aws_opsworks_permission" "tf-acc-perm" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
 
   allow_ssh = true
   allow_sudo = true
-  user_arn = "${aws_iam_user.user.arn}"
+  user_arn = "${aws_opsworks_user_profile.user.user_arn}"
   level = "iam_only"
 }
 `
