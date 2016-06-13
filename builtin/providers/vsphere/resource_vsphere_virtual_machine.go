@@ -108,8 +108,6 @@ func vmPath(folder string, name string) string {
 	return path + name
 }
 
-// TODO merge https://github.com/hashicorp/terraform/pull/7088/files
-
 func resourceVSphereVirtualMachine() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereVirtualMachineCreate,
@@ -455,11 +453,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							ForceNew: true,
 						},
 
-						"use_sdrs": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
-						},
+						// TODO: placeholder for when we implement
+						//"use_sdrs": &schema.Schema{
+						//	Type:     schema.TypeBool,
+						//	Optional: true,
+						//	Default:  false,
+						//},
 					},
 				},
 			},
@@ -537,7 +536,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		var resourcePool *object.ResourcePool
 		var folder *object.Folder
 
-		// TODO this is kinda repeated code
+		// TODO refactor this is kinda repeated code
+		// TODO wel look up resource_pool, cluster, etc muitple times in our code
 		var resourcePoolName string
 		var clusterName string
 		var folderName string
@@ -903,7 +903,6 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 				if v, ok := disk["use_sdrs"].(bool); ok {
 					newDisk.useSDRS = v
-					log.Printf("[DEBUG] disk using sdrs")
 				} else {
 					newDisk.useSDRS = false
 				}
@@ -940,7 +939,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 				if v, ok := disk["template"].(string); ok && v != "" {
 
-					// TODO - alot of this scan be checked in Schema
+					// TODO - a lot of this logic be checked in Schema
 					if v, ok := disk["vmdk"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify a template and a vmdk")
 					} else if vm.bootDisk.templateName != "" {
@@ -960,7 +959,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 				} else if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
 
-					// TODO - alot of this scan be checked in Schema
+					// TODO - alot of this logic be checked in Schema
 					if hasBootableDisk {
 						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
 					} else if v, ok := disk["template"].(string); ok && v != "" {
@@ -1004,11 +1003,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			} else {
 				return fmt.Errorf("Datastore argument must be specified when attaching a cdrom image.")
 			}
-			if v, ok := c["use_sdrs"].(bool); ok {
-				cdroms[i].useSDRS = v
-			} else {
-				cdroms[i].useSDRS = false
-			}
+			// TODO save this for when we implements
+			//if v, ok := c["use_sdrs"].(bool); ok {
+			//	cdroms[i].useSDRS = v
+			//} else {
+			//	cdroms[i].useSDRS = false
+			//}
 			if v, ok := c["path"].(string); ok && v != "" {
 				cdroms[i].path = v
 			} else {
@@ -1328,7 +1328,6 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 
 	log.Printf("[DEBUG] disk controller: %#v\n", controller)
 
-	// TODO - do we do this??
 	// If diskPath is not specified, pass empty string to CreateDisk()
 	if diskPath == "" {
 		return fmt.Errorf("[ERROR] addHardDisk - No path proided")
