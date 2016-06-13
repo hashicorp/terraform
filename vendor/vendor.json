@@ -698,6 +698,12 @@
 			"revision": "34a5f244f1c01cdfee8e60324258cfbb97a42aec"
 		},
 		{
+			"checksumSHA1": "2a/SsTUBMKtcM6VtpbdPGO+c6c8=",
+			"path": "github.com/golang/snappy",
+			"revision": "d9eb7a3d35ec988b8585d4a0068e462c27d28380",
+			"revisionTime": "2016-05-29T05:00:41Z"
+		},
+		{
 			"path": "github.com/google/go-github/github",
 			"revision": "ac4445ca1c9dfacf5c0bbf34b712b23a3bb59b6c"
 		},
@@ -733,6 +739,12 @@
 			"comment": "v2.6.0-179-gc0cf0cb",
 			"path": "github.com/grafana/grafana/pkg/util",
 			"revision": "c0cf0cb802adad24252ce1307c4c896edd566870"
+		},
+		{
+			"checksumSHA1": "O0r0hj4YL+jSRNjnshkeH4GY+4s=",
+			"path": "github.com/hailocab/go-hostpool",
+			"revision": "e80d13ce29ede4452c43dea11e79b9bc8a15b478",
+			"revisionTime": "2016-01-25T11:53:50Z"
 		},
 		{
 			"comment": "20141209094003-92-g95fa852",
@@ -1651,6 +1663,12 @@
 		{
 			"path": "google.golang.org/cloud/internal",
 			"revision": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
+		},
+		{
+			"checksumSHA1": "6f8MEU31llHM1sLM/GGH4/Qxu0A=",
+			"path": "gopkg.in/inf.v0",
+			"revision": "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4",
+			"revisionTime": "2015-09-11T12:57:57Z"
 		},
 		{
 			"comment": "v1.8.5",
