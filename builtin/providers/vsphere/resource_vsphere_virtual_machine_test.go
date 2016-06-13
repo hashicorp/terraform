@@ -623,6 +623,70 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	})
 }
 
+const testAccCheckVSphereVirtualMachineConfig_withNewVmdk = `
+resource "vsphere_virtual_disk" "foo" {
+    size = 1
+    vmdk_path = "tfTestDisk.vmdk"
+    type = "thin"
+%s
+    datacenter = "%s"
+}
+
+resource "vsphere_virtual_machine" "with_new_vmdk" {
+    name = "terraform-test-with-new-vmdk"
+    disk {
+%s
+        vmdk = "tfTestDisk.vmdk"
+    }
+`
+
+func destroyMachineAndVMDK(s *terraform.State) (err error) {
+	err = testAccCheckVSphereVirtualMachineDestroy(s)
+	if err != nil {
+		return err
+	}
+	return testAccCheckVSphereVirtualDiskDestroy(s)
+}
+
+func TestAccVSphereVirtualMachine_createWithNewVmdk(t *testing.T) {
+	var vm virtualMachine
+
+	data := setupTemplateFuncDHCPData()
+	var dataCenter string
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		dataCenter = v
+	}
+	config := fmt.Sprintf(
+		testAccCheckVSphereVirtualMachineConfig_withNewVmdk,
+		data.datastoreOpt,
+		dataCenter,
+		data.datastoreOpt,
+	)
+	config = config + data.parseDHCPTemplateConfig()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_withNewVmdk+testAccCheckVSphereTemplate_dhcp)
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: destroyMachineAndVMDK,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: data.label, vmName: "vsphere_virtual_machine.with_new_vmdk",
+						vmResource: "terraform-test-with-new-vmdk", numDisks: "2"}.testCheckFuncBasic(),
+					//resource.TestCheckResourceAttr(
+					//	"vsphere_virtual_machine.with_existing_vmdk", "disk.2393891804.vmdk", vmdk_path),
+					//resource.TestCheckResourceAttr(
+					//	"vsphere_virtual_machine.with_existing_vmdk", "disk.2393891804.bootable", "true"),
+				),
+			},
+		},
+	})
+}
+
 const testAccCheckVSphereVirtualMachineConfig_withExistingVmdk = `
 resource "vsphere_virtual_machine" "with_existing_vmdk" {
     name = "terraform-test-with-existing-vmdk"
@@ -637,7 +701,7 @@ resource "vsphere_virtual_machine" "with_existing_vmdk" {
         vmdk = "%s"
 	bootable = true
     }
-}
+
 `
 
 func testBasicPreCheckVMDK(t *testing.T) {

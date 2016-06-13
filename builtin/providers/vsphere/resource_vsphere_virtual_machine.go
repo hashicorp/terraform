@@ -941,11 +941,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 					// TODO - a lot of this logic be checked in Schema
 					if v, ok := disk["vmdk"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify a template and a vmdk")
+						return fmt.Errorf("Cannot specify a template and a vmdk variables")
 					} else if vm.bootDisk.templateName != "" {
-						return fmt.Errorf("Cannot have two bootdisks")
+						return fmt.Errorf("Cannot have two templates")
 					} else if hasBootableDisk {
-						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
+						return fmt.Errorf("Only one bootable vmdk or template may be given")
 					} else if v, ok := disk["name"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify name of a template")
 					}
@@ -960,9 +960,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				} else if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
 
 					// TODO - alot of this logic be checked in Schema
-					if hasBootableDisk {
-						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
-					} else if v, ok := disk["template"].(string); ok && v != "" {
+					if v, ok := disk["template"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify a vmdk for a template")
 					} else if v, ok := disk["size"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify size of a vmdk")
@@ -970,14 +968,18 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 						return fmt.Errorf("Cannot specify name of a vmdk")
 					}
 
-					if vBootable, ok := disk["bootable"].(bool); ok {
+					newDisk.vmdkPath = vVmdk
+
+					if vBootable, ok := disk["bootable"].(bool); ok && vBootable {
+						if hasBootableDisk {
+							return fmt.Errorf("[ERROR] vmdk is marked as bootable. Only one bootable disk or template may be given")
+						}
 						hasBootableDisk = true
 						newDisk.bootable = vBootable
 						vm.hasBootableVmdk = vBootable
+						vm.bootDisk = newDisk
 					}
 
-					newDisk.vmdkPath = vVmdk
-					vm.bootDisk = newDisk
 					log.Printf("[DEBUG] new vmdk bootdisk found: %v", vm.bootDisk)
 				}
 				// Preserves order so bootable disk is first
