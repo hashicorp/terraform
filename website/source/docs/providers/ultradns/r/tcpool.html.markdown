@@ -3,12 +3,12 @@ layout: "ultradns"
 page_title: "UltraDNS: ultradns_tcpool"
 sidebar_current: "docs-ultradns-resource-tcpool"
 description: |-
-  Provides a UltraDNS Traffic Controller pool resource.
+  Provides an UltraDNS Traffic Controller pool resource.
 ---
 
 # ultradns\_tcpool
 
-Provides a UltraDNS Traffic Controller pool resource.
+Provides an UltraDNS Traffic Controller pool resource.
 
 ## Example Usage
 ```

@@ -3,12 +3,12 @@ layout: "ultradns"
 page_title: "UltraDNS: ultradns_probe_ping"
 sidebar_current: "docs-ultradns-resource-probe-ping"
 description: |-
-  Provides a UltraDNS Ping Probe
+  Provides an UltraDNS Ping Probe
 ---
 
 # ultradns\_probe\_ping
 
-Provides a UltraDNS ping probe
+Provides an UltraDNS ping probe
 
 ## Example Usage
 ```

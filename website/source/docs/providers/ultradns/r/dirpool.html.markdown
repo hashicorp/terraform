@@ -3,12 +3,12 @@ layout: "ultradns"
 page_title: "UltraDNS: ultradns_dirpool"
 sidebar_current: "docs-ultradns-resource-dirpool"
 description: |-
-  Provides a UltraDNS Directional Controller pool resource.
+  Provides an UltraDNS Directional Controller pool resource.
 ---
 
 # ultradns\_dirpool
 
-Provides a UltraDNS record resource.
+Provides an UltraDNS Directional Controller pool resource.
 
 ## Example Usage
 ```
