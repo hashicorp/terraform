@@ -184,7 +184,7 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
 }
 
 resource "aws_db_parameter_group" "bar" {
-  name   = "tfcluster-test-group"
+  name   = "tfcluster-test-group-%d"
   family = "aurora5.6"
 
   parameter {
@@ -197,5 +197,5 @@ resource "aws_db_parameter_group" "bar" {
     foo = "bar"
   }
 }
-`, n, n)
+`, n, n, n)
 }
