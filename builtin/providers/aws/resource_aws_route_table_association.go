@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -54,7 +53,7 @@ func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interfa
 		resp, err = conn.AssociateRouteTable(&associationOpts)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Code() == "InvalidRouteTableID.NotFound" && strings.Contains(awsErr.Message(), "does not exist") {
+				if awsErr.Code() == "InvalidRouteTableID.NotFound" {
 					return resource.RetryableError(awsErr)
 				}
 			}
