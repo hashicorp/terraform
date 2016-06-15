@@ -31,6 +31,7 @@ FEATURES:
  * **New Data Source:** `aws_iam_policy_document` [GH-6881]
  * **New Data Source:** `aws_s3_bucket_object` [GH-6946]
  * **New Interpolation Function:** `sort` [GH-7128]
+ * **New Interpolation Function:** `distinct` [GH-7174]
  * **New Provider:** `grafana` [GH-6206]
  * **New Provider:** `random` - allows generation of random values without constantly generating diffs [GH-6672]
  * **New Remote State Provider:** - `gcs` - Google Cloud Storage [GH-6814]
