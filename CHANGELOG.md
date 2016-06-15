@@ -52,6 +52,7 @@ FEATURES:
  * **New Resource:** `vsphere_virtual_disk` [GH-6273]
  * **New Resource:** `github_repository_collaborator` [GH-6861]
  * **New Resource:** `azurerm_virtual_machine_scale_set` [GH-6711]
+ * **New Resource:** `datadog_timeboard` [GH-6900]
  * core: Tainted resources now show up in the plan and respect dependency ordering [GH-6600]
  * core: The `lookup` interpolation function can now have a default fall-back value specified [GH-6884]
  * core: The `terraform plan` command no longer persists state. [GH-6811]
