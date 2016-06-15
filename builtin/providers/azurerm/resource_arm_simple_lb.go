@@ -277,8 +277,8 @@ func pullOutLbRules(d *schema.ResourceData, loadBalancer network.LoadBalancer) (
 		props := network.LoadBalancingRulePropertiesFormat{
 			Protocol:                network.TransportProtocol(rule["protocol"].(string)),
 			LoadDistribution:        network.LoadDistribution(rule["load_distribution"].(string)),
-			FrontendPort:            Int(rule["frontend_port"]),
-			BackendPort:             Int(rule["backend_port"]),
+			FrontendPort:            Int32(rule["frontend_port"]),
+			BackendPort:             Int32(rule["backend_port"]),
 			Probe:                   &network.SubResource{ID: probe.ID},
 			BackendAddressPool:      &network.SubResource{ID: backendPoolID},
 			FrontendIPConfiguration: &network.SubResource{ID: frontendIpID},
@@ -305,9 +305,9 @@ func pullOutProbes(d *schema.ResourceData) (*[]network.Probe, error) {
 
 			probeProps := network.ProbePropertiesFormat{
 				Protocol:          network.ProbeProtocol(probe["protocol"].(string)),
-				Port:              Int(probe["port"]),
-				IntervalInSeconds: Int(probe["interval"]),
-				NumberOfProbes:    Int(probe["number_of_probes"]),
+				Port:              Int32(probe["port"]),
+				IntervalInSeconds: Int32(probe["interval"]),
+				NumberOfProbes:    Int32(probe["number_of_probes"]),
 			}
 			if requestPath := probe["request_path"].(string); requestPath != "" {
 				probeProps.RequestPath = &requestPath
@@ -406,33 +406,39 @@ func resourceArmSimpleLbCreate(d *schema.ResourceData, meta interface{}) error {
 	loadBalancer.Properties.BackendAddressPools = &backendPoolConfs
 	loadBalancer.Properties.LoadBalancingRules = &[]network.LoadBalancingRule{}
 
-	resp, err := lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
+	cancelChannel := make(<-chan struct{})
+	_, err = lbClient.CreateOrUpdate(resGrp, name, loadBalancer, cancelChannel)
 	if err != nil {
 		log.Printf("[resourceArmSimpleLb] ERROR LB got status %s", err.Error())
 		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
 	}
-	log.Printf("[resourceArmSimpleLb] Create LB got status %d.  Provision State %s", resp.StatusCode, *resp.Properties.ProvisioningState)
+	respLb, err := lbClient.Get(resGrp, name, "")
+	if err != nil {
+		log.Printf("[resourceArmSimpleLb] ERROR LB retrieving load balancer %s", err.Error())
+		return fmt.Errorf("Error issuing Azure ARM get request for load balancer '%s': %s", name, err)
+	}
+	log.Printf("[resourceArmSimpleLb] Create LB got status %d.  Provision State %s", respLb.StatusCode, *respLb.Properties.ProvisioningState)
 
 	//Possible status values are Updating|Deleting|Failed|Succeeded
-	if *resp.Properties.ProvisioningState != "Succeeded" {
-		return fmt.Errorf("The load balancer was not properly deployed.  The provisioning state %s", *resp.Properties.ProvisioningState)
+	if *respLb.Properties.ProvisioningState != "Succeeded" {
+		log.Printf("[resourceArmSimpleLb] ERROR retrieving load balancer, provisioning state %s", *respLb.Properties.ProvisioningState)
+		return fmt.Errorf("ERROR retrieving load balancer, provisioning state %s", *respLb.Properties.ProvisioningState)
 	}
 
 	log.Printf("[resourceArmSimpleLb] We have the IDs now updating to set rules")
-	loadBalancer.Properties.LoadBalancingRules, err = pullOutLbRules(d, resp)
+	loadBalancer.Properties.LoadBalancingRules, err = pullOutLbRules(d, respLb)
 	if err != nil {
 		return err
 	}
 	log.Printf("[resourceArmSimpleLb] created %d rules", len(*loadBalancer.Properties.LoadBalancingRules))
 
-	resp, err = lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
+	_, err = lbClient.CreateOrUpdate(resGrp, name, loadBalancer, cancelChannel)
 	if err != nil {
 		log.Printf("[resourceArmSimpleLb] ERROR When trying to set the rules.  LB got status %s", err.Error())
 		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
 	}
-	log.Printf("[resourceArmSimpleLb] Set the rules on the LB.  Provision State %s", *resp.Properties.ProvisioningState)
 
-	return flattenAllOfLb(resp, d, meta)
+	return flattenAllOfLb(respLb, d, meta)
 }
 
 func flattenAzureRmFrontendIp(frontenIpArray []network.FrontendIPConfiguration, d *schema.ResourceData) error {
@@ -561,33 +567,40 @@ func resourceArmSimpleLbUpdate(d *schema.ResourceData, meta interface{}) error {
 	loadBalancer.Properties.BackendAddressPools = &backendPoolConfs
 	loadBalancer.Properties.LoadBalancingRules = &[]network.LoadBalancingRule{}
 
-	resp, err := lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
+	cancelChannel := make(<-chan struct{})
+	resp, err := lbClient.CreateOrUpdate(resGrp, name, loadBalancer, cancelChannel)
 	if err != nil {
 		log.Printf("[resourceArmSimpleLb] ERROR Update LB got status %s", err.Error())
 		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
 	}
-	log.Printf("[resourceArmSimpleLb] Update LB got status %d.  Provision State %s", resp.StatusCode, *resp.Properties.ProvisioningState)
+	respLb, err := lbClient.Get(resGrp, name, "")
+	if err != nil {
+		log.Printf("[resourceArmSimpleLb] ERROR LB retrieving load balancer %s", err.Error())
+		return fmt.Errorf("Error issuing Azure ARM get request for load balancer '%s': %s", name, err)
+	}
+
+	log.Printf("[resourceArmSimpleLb] Update LB got status %d.  Provision State %s", resp.StatusCode, *respLb.Properties.ProvisioningState)
 
 	//Possible status values are Updating|Deleting|Failed|Succeeded
-	if *resp.Properties.ProvisioningState != "Succeeded" {
-		return fmt.Errorf("The load balancer was not properly deployed.  The provisioning state %s", *resp.Properties.ProvisioningState)
+	if *respLb.Properties.ProvisioningState != "Succeeded" {
+		return fmt.Errorf("The load balancer was not properly deployed.  The provisioning state %s", *respLb.Properties.ProvisioningState)
 	}
 
 	log.Printf("[resourceArmSimpleLb] We have the IDs now updating to set rules")
-	loadBalancer.Properties.LoadBalancingRules, err = pullOutLbRules(d, resp)
+	loadBalancer.Properties.LoadBalancingRules, err = pullOutLbRules(d, respLb)
 	if err != nil {
 		return err
 	}
 	log.Printf("[resourceArmSimpleLb] created %d rules", len(*loadBalancer.Properties.LoadBalancingRules))
 
-	resp, err = lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
+	resp, err = lbClient.CreateOrUpdate(resGrp, name, loadBalancer, cancelChannel)
 	if err != nil {
 		log.Printf("[resourceArmSimpleLb] ERROR When trying to set the rules.  Update LB got status %s", err.Error())
 		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
 	}
-	log.Printf("[resourceArmSimpleLb] Set the rules on the LB.  Provision State %s", *resp.Properties.ProvisioningState)
+	log.Printf("[resourceArmSimpleLb] Set the rules on the LB.  Provision State %s", *respLb.Properties.ProvisioningState)
 
-	return flattenAllOfLb(resp, d, meta)
+	return flattenAllOfLb(respLb, d, meta)
 }
 
 func resourceArmSimpleLbDelete(d *schema.ResourceData, meta interface{}) error {
@@ -601,7 +614,8 @@ func resourceArmSimpleLbDelete(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[INFO] Issuing deletion request to Azure ARM for load balancer '%s'.", name)
 
-	resp, err := lbClient.Delete(resGroup, name)
+	cancelChannel := make(<-chan struct{})
+	resp, err := lbClient.Delete(resGroup, name, cancelChannel)
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM delete request for load balancer '%s': %s", name, err)
 	}

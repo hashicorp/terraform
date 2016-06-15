@@ -81,7 +81,6 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_sql_firewall_rule": resourceArmSqlFirewallRule(),
 			"azurerm_sql_server":        resourceArmSqlServer(),
 			"azurerm_simple_lb":         resourceArmSimpleLb(),
->>>>>>> A simplifed load balancer resource for AzureRM
 		},
 		ConfigureFunc: providerConfigure,
 	}
