@@ -60,6 +60,7 @@ func Funcs() map[string]ast.Function {
 		"coalesce":     interpolationFuncCoalesce(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
+		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
 		"format":       interpolationFuncFormat(),
@@ -71,7 +72,6 @@ func Funcs() map[string]ast.Function {
 		"lower":        interpolationFuncLower(),
 		"md5":          interpolationFuncMd5(),
 		"uuid":         interpolationFuncUUID(),
-		"uniq":         interpolationFuncUniq(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
@@ -383,9 +383,9 @@ func interpolationFuncIndex() ast.Function {
 	}
 }
 
-// interpolationFuncUniq implements the "uniq" function that
+// interpolationFuncDistinct implements the "distinct" function that
 // removes duplicate elements from a list.
-func interpolationFuncUniq() ast.Function {
+func interpolationFuncDistinct() ast.Function {
 	return ast.Function{
 		ArgTypes:     []ast.Type{ast.TypeList},
 		ReturnType:   ast.TypeList,
@@ -395,7 +395,7 @@ func interpolationFuncUniq() ast.Function {
 			var list []string
 
 			if len(args) != 1 {
-				return nil, fmt.Errorf("uniq() excepts only one argument.")
+				return nil, fmt.Errorf("distinct() excepts only one argument.")
 			}
 
 			if argument, ok := args[0].([]ast.Variable); ok {
