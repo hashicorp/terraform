@@ -261,6 +261,31 @@ func TestInterpolationFuncConcatListOfMaps(t *testing.T) {
 	}
 }
 
+func TestInterpolateFuncDistinct(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// 3 duplicates
+			{
+				`${distinct(concat(split(",", "user1,user2,user3"), split(",", "user1,user2,user3")))}`,
+				[]interface{}{"user1", "user2", "user3"},
+				false,
+			},
+			// 1 duplicate
+			{
+				`${distinct(concat(split(",", "user1,user2,user3"), split(",", "user1,user4")))}`,
+				[]interface{}{"user1", "user2", "user3", "user4"},
+				false,
+			},
+			// too many args
+			{
+				`${distinct(concat(split(",", "user1,user2,user3"), split(",", "user1,user4")), "foo")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncFile(t *testing.T) {
 	tf, err := ioutil.TempFile("", "tf")
 	if err != nil {
