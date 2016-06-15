@@ -139,6 +139,54 @@ func testAccCheckAppCookieStickinessPolicy(elbResource string, policyResource st
 	}
 }
 
+// ensure the policy is re-added is it goes missing
+func TestAccAWSAppCookieStickinessPolicy_drift(t *testing.T) {
+	lbName := fmt.Sprintf("tf-test-lb-%s", acctest.RandString(5))
+
+	// We only want to remove the reference to the policy from the listner,
+	// beacause that's all that can be done via the console.
+	removePolicy := func() {
+		conn := testAccProvider.Meta().(*AWSClient).elbconn
+
+		setLoadBalancerOpts := &elb.SetLoadBalancerPoliciesOfListenerInput{
+			LoadBalancerName: aws.String(lbName),
+			LoadBalancerPort: aws.Int64(80),
+			PolicyNames:      []*string{},
+		}
+
+		if _, err := conn.SetLoadBalancerPoliciesOfListener(setLoadBalancerOpts); err != nil {
+			t.Fatalf("Error removing AppCookieStickinessPolicy: %s", err)
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAppCookieStickinessPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAppCookieStickinessPolicyConfig(lbName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAppCookieStickinessPolicy(
+						"aws_elb.lb",
+						"aws_app_cookie_stickiness_policy.foo",
+					),
+				),
+			},
+			resource.TestStep{
+				PreConfig: removePolicy,
+				Config:    testAccAppCookieStickinessPolicyConfig(lbName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAppCookieStickinessPolicy(
+						"aws_elb.lb",
+						"aws_app_cookie_stickiness_policy.foo",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccAppCookieStickinessPolicyConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_elb" "lb" {
