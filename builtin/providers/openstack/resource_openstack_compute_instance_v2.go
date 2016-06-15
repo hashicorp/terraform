@@ -18,6 +18,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/schedulerhints"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/startstop"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/tenantnetworks"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/flavors"
@@ -317,6 +318,11 @@ func resourceComputeInstanceV2() *schema.Resource {
 					},
 				},
 				Set: resourceComputeInstancePersonalityHash,
+			},
+			"stop_before_destroy": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 		},
 	}
@@ -808,6 +814,27 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
+	if d.Get("stop_before_destroy").(bool) {
+		err = startstop.Stop(computeClient, d.Id()).ExtractErr()
+		if err != nil {
+			log.Printf("[WARN] Error stopping OpenStack instance: %s", err)
+		} else {
+			stopStateConf := &resource.StateChangeConf{
+				Pending:    []string{"ACTIVE"},
+				Target:     []string{"SHUTOFF"},
+				Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
+				Timeout:    3 * time.Minute,
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+			log.Printf("[DEBUG] Waiting for instance (%s) to stop", d.Id())
+			_, err = stopStateConf.WaitForState()
+			if err != nil {
+				log.Printf("[WARN] Error waiting for instance (%s) to stop: %s, proceeding to delete", d.Id(), err)
+			}
+		}
+	}
+
 	err = servers.Delete(computeClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack server: %s", err)
@@ -817,7 +844,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Waiting for instance (%s) to delete", d.Id())
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"ACTIVE"},
+		Pending:    []string{"ACTIVE", "SHUTOFF"},
 		Target:     []string{"DELETED"},
 		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 		Timeout:    30 * time.Minute,
