@@ -261,24 +261,24 @@ func TestInterpolationFuncConcatListOfMaps(t *testing.T) {
 	}
 }
 
-func TestInterpolateFuncUniq(t *testing.T) {
+func TestInterpolateFuncDistinct(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
 			// 3 duplicates
 			{
-				`${uniq(concat(split(",", "user1,user2,user3"), split(",", "user1,user2,user3")))}`,
+				`${distinct(concat(split(",", "user1,user2,user3"), split(",", "user1,user2,user3")))}`,
 				[]interface{}{"user1", "user2", "user3"},
 				false,
 			},
 			// 1 duplicate
 			{
-				`${uniq(concat(split(",", "user1,user2,user3"), split(",", "user1,user4")))}`,
+				`${distinct(concat(split(",", "user1,user2,user3"), split(",", "user1,user4")))}`,
 				[]interface{}{"user1", "user2", "user3", "user4"},
 				false,
 			},
 			// too many args
 			{
-				`${uniq(concat(split(",", "user1,user2,user3"), split(",", "user1,user4")), "foo")}`,
+				`${distinct(concat(split(",", "user1,user2,user3"), split(",", "user1,user4")), "foo")}`,
 				nil,
 				true,
 			},

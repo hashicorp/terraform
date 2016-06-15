@@ -114,6 +114,10 @@ The supported built-in functions are:
   * `concat(list1, list2)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
+  * `distinct(list)` - Removes duplicate items from a list. Keeps the first
+     occurrence of each element, and removes subsequent occurences.
+     Example: `distinct(var.usernames)`
+
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
       elements, this function will wrap using a standard mod algorithm.
