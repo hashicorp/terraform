@@ -264,6 +264,11 @@ The following arguments are supported:
     defining one or more files and their contents. The personality structure
     is described below.
 
+* `stop_before_destroy` - (Optional) Whether to try stop instance gracefully
+    before destroying it, thus giving chance for guest OS daemons to stop correctly.
+    If instance doesn't stop within timeout, it will be destroyed anyway.
+
+
 The `network` block supports:
 
 * `uuid` - (Required unless `port`  or `name` is provided) The network UUID to

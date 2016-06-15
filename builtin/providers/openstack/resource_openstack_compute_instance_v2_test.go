@@ -840,3 +840,31 @@ func testAccCheckComputeV2InstanceInstanceIDsDoNotMatch(
 		return nil
 	}
 }
+
+func TestAccComputeV2Instance_stop_before_destroy(t *testing.T) {
+	var instance servers.Server
+	var testAccComputeV2Instance_stop_before_destroy = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+			network {
+				uuid = "%s"
+			}
+			stop_before_destroy = true
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_stop_before_destroy,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+				),
+			},
+		},
+	})
+}
