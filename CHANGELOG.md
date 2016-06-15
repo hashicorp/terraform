@@ -117,7 +117,7 @@ BUG FIXES:
  * provider/aws: If more ENIs are attached to `aws_instance`, the one w/ DeviceIndex `0` is always used in context of `aws_instance` (previously unpredictable) [GH-6761]
  * provider/aws: Fix issue with Root Block Devices and encrypted flag in Launch Configurations [GH-6512]
  * provider/aws: Mark Lambda function as gone when it's gone [GH-6924]
- * provider/aws: Make 'stage_name' required in api_gateway_deployment [Gh-6797]
+ * provider/aws: Make 'stage_name' required in api_gateway_deployment [GH-6797]
  * provider/aws: Changing keys in `aws_dynamodb_table` correctly force new resources [GH-6829]
  * provider/aws: Fix issue reattaching a VPN gateway to a VPC [GH-6987]
  * provider/aws: Update Lambda functions on name change [GH-7081]
