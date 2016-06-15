@@ -60,6 +60,7 @@ func Funcs() map[string]ast.Function {
 		"coalesce":     interpolationFuncCoalesce(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
+		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
 		"format":       interpolationFuncFormat(),
@@ -380,6 +381,42 @@ func interpolationFuncIndex() ast.Function {
 			return nil, fmt.Errorf("Could not find '%s' in '%s'", needle, haystack)
 		},
 	}
+}
+
+// interpolationFuncDistinct implements the "distinct" function that
+// removes duplicate elements from a list.
+func interpolationFuncDistinct() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeList},
+		ReturnType:   ast.TypeList,
+		Variadic:     true,
+		VariadicType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var list []string
+
+			if len(args) != 1 {
+				return nil, fmt.Errorf("distinct() excepts only one argument.")
+			}
+
+			if argument, ok := args[0].([]ast.Variable); ok {
+				for _, element := range argument {
+					list = appendIfMissing(list, element.Value.(string))
+				}
+			}
+
+			return stringSliceToVariableValue(list), nil
+		},
+	}
+}
+
+// helper function to add an element to a list, if it does not already exsit
+func appendIfMissing(slice []string, element string) []string {
+	for _, ele := range slice {
+		if ele == element {
+			return slice
+		}
+	}
+	return append(slice, element)
 }
 
 // interpolationFuncJoin implements the "join" function that allows
