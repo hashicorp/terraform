@@ -1185,6 +1185,12 @@
 			"revisionTime": "2016-06-03T22:34:01Z"
 		},
 		{
+			"checksumSHA1": "jqSmOJoNKVtGwDhuoilAF7iftqA=",
+			"path": "github.com/rackspace/gophercloud/openstack/compute/v2/extensions/startstop",
+			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
+			"revisionTime": "2016-06-03T22:34:01Z"
+		},
+		{
 			"checksumSHA1": "rHEOEAm10HDsfBLU8FqKSUdwqFY=",
 			"path": "github.com/rackspace/gophercloud/openstack/compute/v2/extensions/tenantnetworks",
 			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
