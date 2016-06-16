@@ -115,6 +115,18 @@ func resourceAwsLBCookieStickinessPolicyRead(d *schema.ResourceData, meta interf
 		return fmt.Errorf("Unable to find policy %#v", getResp.PolicyDescriptions)
 	}
 
+	// we know the policy exists now, but we have to check if it's assigned to a listener
+	assigned, err := resourceAwsELBSticknessPolicyAssigned(policyName, lbName, lbPort, elbconn)
+	if err != nil {
+		return err
+	}
+	if !assigned {
+		// policy exists, but isn't assigned to a listener
+		log.Printf("[DEBUG] policy '%s' exists, but isn't assigned to a listener", policyName)
+		d.SetId("")
+		return nil
+	}
+
 	// We can get away with this because there's only one attribute, the
 	// cookie expiration, in these descriptions.
 	policyDesc := getResp.PolicyDescriptions[0]
