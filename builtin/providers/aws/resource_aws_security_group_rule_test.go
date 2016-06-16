@@ -416,6 +416,25 @@ func TestAccAWSSecurityGroupRule_Race(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroupRule_PrefixListEgress(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRulePrefixListEgressConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.egress", &group),
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.egress_1", &group, nil, "egress"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSecurityGroupRuleDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -879,3 +898,52 @@ var testAccAWSSecurityGroupRuleRace = func() string {
 	}
 	return b.String()
 }()
+
+const testAccAWSSecurityGroupRulePrefixListEgressConfig = `
+
+resource "aws_vpc" "tf_sg_prefix_list_egress_test" {
+    cidr_block = "10.0.0.0/16"
+    tags {
+            Name = "tf_sg_prefix_list_egress_test"
+    }
+}
+
+resource "aws_route_table" "default" {
+    vpc_id = "${aws_vpc.tf_sg_prefix_list_egress_test.id}"
+}
+
+resource "aws_vpc_endpoint" "s3-us-west-2" {
+  	vpc_id = "${aws_vpc.tf_sg_prefix_list_egress_test.id}"
+  	service_name = "com.amazonaws.us-west-2.s3"
+  	route_table_ids = ["${aws_route_table.default.id}"]
+  	policy = <<POLICY
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid":"AllowAll",
+			"Effect":"Allow",
+			"Principal":"*",
+			"Action":"*",
+			"Resource":"*"
+		}
+	]
+}
+POLICY
+}
+
+resource "aws_security_group" "egress" {
+    name = "terraform_acceptance_test_prefix_list_egress"
+    description = "Used in the terraform acceptance tests"
+    vpc_id = "${aws_vpc.tf_sg_prefix_list_egress_test.id}"
+}
+
+resource "aws_security_group_rule" "egress_1" {
+  type = "egress"
+  protocol = "-1"
+  from_port = 0
+  to_port = 0
+  prefix_list_ids = ["${aws_vpc_endpoint.s3-us-west-2.prefix_list_id}"]
+	security_group_id = "${aws_security_group.egress.id}"
+}
+`
