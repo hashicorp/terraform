@@ -27,6 +27,7 @@ type ArmClient struct {
 	usageOpsClient         compute.UsageOperationsClient
 	vmExtensionImageClient compute.VirtualMachineExtensionImagesClient
 	vmExtensionClient      compute.VirtualMachineExtensionsClient
+	vmScaleSetClient       compute.VirtualMachineScaleSetsClient
 	vmImageClient          compute.VirtualMachineImagesClient
 	vmClient               compute.VirtualMachinesClient
 
@@ -165,6 +166,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vmic.Authorizer = spt
 	vmic.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmImageClient = vmic
+
+	vmssc := compute.NewVirtualMachineScaleSetsClient(c.SubscriptionID)
+	setUserAgent(&vmssc.Client)
+	vmssc.Authorizer = spt
+	vmssc.Sender = autorest.CreateSender(withRequestLogging())
+	client.vmScaleSetClient = vmssc
 
 	vmc := compute.NewVirtualMachinesClient(c.SubscriptionID)
 	setUserAgent(&vmc.Client)

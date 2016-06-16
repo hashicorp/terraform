@@ -114,6 +114,10 @@ The supported built-in functions are:
   * `concat(list1, list2)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
+  * `distinct(list)` - Removes duplicate items from a list. Keeps the first
+     occurrence of each element, and removes subsequent occurences.
+     Example: `distinct(var.usernames)`
+
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
       elements, this function will wrap using a standard mod algorithm.
@@ -194,6 +198,11 @@ The supported built-in functions are:
       a different value for the rest of the resources.
       Example: `element(split(",", var.r53_failover_policy), signum(count.index))`
       where the 0th index points to `PRIMARY` and 1st to `FAILOVER`
+
+  * `sort(list)` - Returns a lexographically sorted list of the strings contained in
+      the list passed as an argument. Sort may only be used with lists which contain only
+      strings.
+      Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`
 
   * `split(delim, string)` - Splits the string previously created by `join`
       back into a list. This is useful for pushing lists through module

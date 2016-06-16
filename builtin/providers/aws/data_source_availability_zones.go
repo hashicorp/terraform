@@ -16,7 +16,7 @@ func dataSourceAwsAvailabilityZones() *schema.Resource {
 		Read: dataSourceAwsAvailabilityZonesRead,
 
 		Schema: map[string]*schema.Schema{
-			"instance": &schema.Schema{
+			"names": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -44,7 +44,7 @@ func dataSourceAwsAvailabilityZonesRead(d *schema.ResourceData, meta interface{}
 
 	sort.Strings(raw)
 
-	if err := d.Set("instance", raw); err != nil {
+	if err := d.Set("names", raw); err != nil {
 		return fmt.Errorf("[WARN] Error setting availability zones")
 	}
 

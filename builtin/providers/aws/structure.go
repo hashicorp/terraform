@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -1275,4 +1276,140 @@ func flattenApiGatewayThrottleSettings(settings *apigateway.ThrottleSettings) []
 	}
 
 	return result
+}
+
+// TODO: refactor some of these helper functions and types in the terraform/helper packages
+
+// getStringPtr returns a *string version of the value taken from m, where m
+// can be a map[string]interface{} or a *schema.ResourceData. If the key isn't
+// present or is empty, getNilString returns nil.
+func getStringPtr(m interface{}, key string) *string {
+	switch m := m.(type) {
+	case map[string]interface{}:
+		v := m[key]
+
+		if v == nil {
+			return nil
+		}
+
+		s := v.(string)
+		if s == "" {
+			return nil
+		}
+
+		return &s
+
+	case *schema.ResourceData:
+		if v, ok := m.GetOk(key); ok {
+			if v == nil || v.(string) == "" {
+				return nil
+			}
+			s := v.(string)
+			return &s
+		}
+
+	default:
+		panic("unknown type in getStringPtr")
+	}
+
+	return nil
+}
+
+// getStringPtrList returns a []*string version of the map value. If the key
+// isn't present, getNilStringList returns nil.
+func getStringPtrList(m map[string]interface{}, key string) []*string {
+	if v, ok := m[key]; ok {
+		var stringList []*string
+		for _, i := range v.([]interface{}) {
+			s := i.(string)
+			stringList = append(stringList, &s)
+		}
+
+		return stringList
+	}
+
+	return nil
+}
+
+// a convenience wrapper type for the schema.Set map[string]interface{}
+// Set operations only alter the underlying map if the value is not nil
+type setMap map[string]interface{}
+
+// SetString sets m[key] = *value only if `value != nil`
+func (s setMap) SetString(key string, value *string) {
+	if value == nil {
+		return
+	}
+
+	s[key] = *value
+}
+
+// SetStringMap sets key to value as a map[string]interface{}, stripping any nil
+// values. The value parameter can be a map[string]interface{}, a
+// map[string]*string, or a map[string]string.
+func (s setMap) SetStringMap(key string, value interface{}) {
+	// because these methods are meant to be chained without intermediate
+	// checks for nil, we are likely to get interfaces with dynamic types but
+	// a nil value.
+	if reflect.ValueOf(value).IsNil() {
+		return
+	}
+
+	m := make(map[string]interface{})
+
+	switch value := value.(type) {
+	case map[string]string:
+		for k, v := range value {
+			m[k] = v
+		}
+	case map[string]*string:
+		for k, v := range value {
+			if v == nil {
+				continue
+			}
+			m[k] = *v
+		}
+	case map[string]interface{}:
+		for k, v := range value {
+			if v == nil {
+				continue
+			}
+
+			switch v := v.(type) {
+			case string:
+				m[k] = v
+			case *string:
+				if v != nil {
+					m[k] = *v
+				}
+			default:
+				panic(fmt.Sprintf("unknown type for SetString: %T", v))
+			}
+		}
+	}
+
+	// catch the case where the interface wasn't nil, but we had no non-nil values
+	if len(m) > 0 {
+		s[key] = m
+	}
+}
+
+// Set assigns value to s[key] if value isn't nil
+func (s setMap) Set(key string, value interface{}) {
+	if reflect.ValueOf(value).IsNil() {
+		return
+	}
+
+	s[key] = value
+}
+
+// Map returns the raw map type for a shorter type conversion
+func (s setMap) Map() map[string]interface{} {
+	return map[string]interface{}(s)
+}
+
+// MapList returns the map[string]interface{} as a single element in a slice to
+// match the schema.Set data type used for structs.
+func (s setMap) MapList() []map[string]interface{} {
+	return []map[string]interface{}{s.Map()}
 }

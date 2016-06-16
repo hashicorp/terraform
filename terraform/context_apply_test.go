@@ -48,6 +48,69 @@ func TestContext2Apply(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_resourceCountOneList(t *testing.T) {
+	m := testModule(t, "apply-resource-count-one-list")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`null_resource.foo:
+  ID = foo
+
+Outputs:
+
+test = [foo]`)
+	if actual != expected {
+		t.Fatalf("expected: \n%s\n\ngot: \n%s\n", expected, actual)
+	}
+}
+func TestContext2Apply_resourceCountZeroList(t *testing.T) {
+	m := testModule(t, "apply-resource-count-zero-list")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`<no state>
+Outputs:
+
+test = []`)
+	if actual != expected {
+		t.Fatalf("expected: \n%s\n\ngot: \n%s\n", expected, actual)
+	}
+}
+
 func TestContext2Apply_mapVarBetweenModules(t *testing.T) {
 	m := testModule(t, "apply-map-var-through-module")
 	p := testProvider("null")
@@ -439,6 +502,45 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 	}
 
 	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
+	m := testModule(t, "apply-destroy-mod-var-provider-config")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err := ctx.Apply()
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }

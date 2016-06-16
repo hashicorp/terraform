@@ -331,6 +331,17 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	var blockDevices []*autoscaling.BlockDeviceMapping
 
+	// We'll use this to detect if we're declaring it incorrectly as an ebs_block_device.
+	rootDeviceName, err := fetchRootDeviceName(d.Get("image_id").(string), ec2conn)
+	if err != nil {
+		return err
+	}
+	if rootDeviceName == nil {
+		// We do this so the value is empty so we don't have to do nil checks later
+		var blank string
+		rootDeviceName = &blank
+	}
+
 	if v, ok := d.GetOk("ebs_block_device"); ok {
 		vL := v.(*schema.Set).List()
 		for _, v := range vL {
@@ -357,6 +368,10 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
 				ebs.Iops = aws.Int64(int64(v))
+			}
+
+			if *aws.String(bd["device_name"].(string)) == *rootDeviceName {
+				return fmt.Errorf("Root device (%s) declared as an 'ebs_block_device'.  Use 'root_block_device' keyword.", *rootDeviceName)
 			}
 
 			blockDevices = append(blockDevices, &autoscaling.BlockDeviceMapping{
@@ -435,7 +450,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	// IAM profiles can take ~10 seconds to propagate in AWS:
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+	err = resource.Retry(30*time.Second, func() *resource.RetryError {
 		_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
@@ -587,12 +602,13 @@ func readBlockDevicesFromLaunchConfiguration(d *schema.ResourceData, lc *autosca
 		if bdm.Ebs != nil && bdm.Ebs.Iops != nil {
 			bd["iops"] = *bdm.Ebs.Iops
 		}
-		if bdm.Ebs != nil && bdm.Ebs.Encrypted != nil {
-			bd["encrypted"] = *bdm.Ebs.Encrypted
-		}
+
 		if bdm.DeviceName != nil && *bdm.DeviceName == *rootDeviceName {
 			blockDevices["root"] = bd
 		} else {
+			if bdm.Ebs != nil && bdm.Ebs.Encrypted != nil {
+				bd["encrypted"] = *bdm.Ebs.Encrypted
+			}
 			if bdm.DeviceName != nil {
 				bd["device_name"] = *bdm.DeviceName
 			}

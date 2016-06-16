@@ -76,7 +76,7 @@ func TestAccAzureRMSqlDatabase_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlDatabaseExists("azurerm_sql_database.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_sql_database.test", "tags.#", "2"),
+						"azurerm_sql_database.test", "tags.%", "2"),
 				),
 			},
 
@@ -85,7 +85,7 @@ func TestAccAzureRMSqlDatabase_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlDatabaseExists("azurerm_sql_database.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_sql_database.test", "tags.#", "1"),
+						"azurerm_sql_database.test", "tags.%", "1"),
 				),
 			},
 		},

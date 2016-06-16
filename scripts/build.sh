@@ -35,6 +35,9 @@ if ! which gox > /dev/null; then
     go get -u github.com/mitchellh/gox
 fi
 
+# instruct gox to build statically linked binaries
+export CGO_ENABLED=0
+
 LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}"
 # In relase mode we don't want debug information in the binary
 if [[ -n "${TF_RELEASE}" ]]; then

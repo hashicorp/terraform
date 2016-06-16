@@ -3,7 +3,7 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * Terraform's built-in plugins are now distributed as part of the main Terraform binary, and use the go-plugin framework. Overrides are still available using separate binaries, but will need recompiling against Terraform 0.7.
- * The `terraform plan` command no longer persists state. This makes the command much safer to run, since it is now side-effect free. The `refresh` and `apply` commands still persist state to local and remote storage. Any automation that assumes that `terraform plan` persists state will need to be reworked to explicitly call `terraform refresh` to get the equivalent side-effect.
+ * The `terraform plan` command no longer persists state. This makes the command much safer to run, since it is now side-effect free. The `refresh` and `apply` commands still persist state to local and remote storage. Any automation that assumes that `terraform plan` persists state will need to be reworked to explicitly call `terraform refresh` to get the equivalent side-effect. (The `terraform plan` command no longer has the `-state-out` or `-backup` flags due to this change.)
  * The `concat()` interpolation function can no longer be used to join strings.
  * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
  * `aws_elb` now defaults `cross_zone_load_balancing` to `true`
@@ -12,7 +12,12 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
    managing Instances inside VPCs will need to use `vpc_security_group_ids` instead, 
    and reference the security groups by their `id`. 
    Ref https://github.com/hashicorp/terraform/issues/6416#issuecomment-219145065
+ * Lists materialized using splat syntax, for example `aws_instance.foo.*.id` are now ordered by the count index rather than lexographically sorted. If this produces a large number of undesirable differences, you can use the new `sort()` interpolation function to produce the previous behaviour.
  * `aws_route53_record`: `latency_routing_policy`, `geolocation_routing_policy`, and `failover_routing_policy` block options have been added. With these additions we’ve renamed the `weight` attribute to `weighted_routing_policy`, and it has changed from a string to a block to match the others. Please see the updated documentation on using `weighted_routing_policy`:  https://www.terraform.io/docs/providers/aws/r/route53_record.html . [GH-6954]
+ * You now access the values of maps using the syntax `var.map["key"]` or the `lookup` function instead of `var.map.key`.
+ * Outputs on `terraform_remote_state` resources are now top level attributes rather than inside the `output` map. In order to access outputs, use the syntax: `terraform_remote_state.name.outputname`. Currently outputs cannot be named `config` or `backend`.
+ * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
+ * `aws_db_instance` now defaults `publicly_accessible` to false
 
 FEATURES:
 
@@ -25,16 +30,29 @@ FEATURES:
  * **New Data Source:** `aws_availability_zones` [GH-6805]
  * **New Data Source:** `aws_iam_policy_document` [GH-6881]
  * **New Data Source:** `aws_s3_bucket_object` [GH-6946]
+ * **New Interpolation Function:** `sort` [GH-7128]
+ * **New Interpolation Function:** `distinct` [GH-7174]
  * **New Provider:** `grafana` [GH-6206]
  * **New Provider:** `random` - allows generation of random values without constantly generating diffs [GH-6672]
  * **New Remote State Provider:** - `gcs` - Google Cloud Storage [GH-6814]
+ * **New Remote State Provider:** - `azure` - Microsoft Azure Storage [GH-7064]
+ * **New Resource:** `aws_elb_attachment` [GH-6879]
+ * **New Resource:** `aws_elastictranscoder_preset` [GH-6965]
+ * **New Resource:** `aws_elastictranscoder_pipeline` [GH-6965]
  * **New Resource:** `aws_iam_group_policy_attachment` [GH-6858]
  * **New Resource:** `aws_iam_role_policy_attachment` [GH-6858]
  * **New Resource:** `aws_iam_user_policy_attachment` [GH-6858]
  * **New Resource:** `aws_rds_cluster_parameter_group` [GH-5269]
  * **New Resource:** `openstack_blockstorage_volume_v2` [GH-6693]
+ * **New Resource:** `openstack_lb_loadbalancer_v2` [GH-7012]
+ * **New Resource:** `openstack_lb_listener_v2` [GH-7012]
+ * **New Resource:** `openstack_lb_pool_v2` [GH-7012]
+ * **New Resource:** `openstack_lb_member_v2` [GH-7012]
+ * **New Resource:** `openstack_lb_monitor_v2` [GH-7012]
  * **New Resource:** `vsphere_virtual_disk` [GH-6273]
  * **New Resource:** `github_repository_collaborator` [GH-6861]
+ * **New Resource:** `azurerm_virtual_machine_scale_set` [GH-6711]
+ * **New Resource:** `datadog_timeboard` [GH-6900]
  * core: Tainted resources now show up in the plan and respect dependency ordering [GH-6600]
  * core: The `lookup` interpolation function can now have a default fall-back value specified [GH-6884]
  * core: The `terraform plan` command no longer persists state. [GH-6811]
@@ -57,6 +75,8 @@ IMPROVEMENTS:
  * provider/aws: Add support for `character_set_name` to `aws_db_instance` [GH-4861]
  * provider/aws: Add support for DB parameter group with RDS Cluster Instances (Aurora) [GH-6865]
  * provider/aws: Add `name_prefix` to `aws_iam_instance_profile` and `aws_iam_role` [GH-6939]
+ * provider/aws: Rename parameter_group_name to db_cluster_parameter_group_name [GH-7083]
+ * provider/aws: Retry RouteTable Route/Assocation creation [GH-7156]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
@@ -82,6 +102,7 @@ IMPROVEMENTS:
  * provider/vsphere: `vsphere_virtual_machine` adding controller creation logic [GH-6853]
  * provider/vsphere: `vsphere_virtual_machine` added support for `mac address` on `network_interface` [GH-6966]
  * provider/vsphere: Enhanced `vsphere` logging capabilities [GH-6893]
+ * provider/vSphere: Add DiskEnableUUID option to `vsphere_virtual_machine` [GH-7088]
  
 BUG FIXES:
 
@@ -95,22 +116,32 @@ BUG FIXES:
  * provider/aws: fix Elastic Beanstalk `cname_prefix` continual plans [GH-6653]
  * provider/aws: fix aws_security_group_rule refresh [GH-6730]
  * provider/aws: If more ENIs are attached to `aws_instance`, the one w/ DeviceIndex `0` is always used in context of `aws_instance` (previously unpredictable) [GH-6761]
+ * provider/aws: Fix issue with Root Block Devices and encrypted flag in Launch Configurations [GH-6512]
  * provider/aws: Mark Lambda function as gone when it's gone [GH-6924]
- * provider/aws: Make 'stage_name' required in api_gateway_deployment [Gh-6797]
+ * provider/aws: Make 'stage_name' required in api_gateway_deployment [GH-6797]
  * provider/aws: Changing keys in `aws_dynamodb_table` correctly force new resources [GH-6829]
  * provider/aws: Fix issue reattaching a VPN gateway to a VPC [GH-6987]
+ * provider/aws: Update Lambda functions on name change [GH-7081]
+ * provider/aws: `aws_db_instance` now defaults `publicly_accessible` to false [GH-7117]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
  * provider/azurerm: Add support for storage container name validation [GH-6852]
  * provider/azurerm: Remove storage containers and blobs when storage accounts are not found [GH-6855]
+ * provider/azurerm: `azurerm_virtual_machine` fix `additional_unattend_rm` Windows config option [GH-7105]
+ * provider/azurerm: Fix `azurerm_virtual_machine` windows_config [GH-7123]
+ * provider/azurerm: `azurerm_dns_cname_record` can create CNAME records again [GH-7113]
+ * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
+ * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
  * provider/google: Fix a bug causing an error attempting to delete an already-deleted `google_compute_disk` [GH-6689]
  * provider/openstack: Reassociate Floating IP on network changes [GH-6579]
  * provider/openstack: Ensure CIDRs Are Lower Case [GH-6864]
  * provider/openstack: Rebuild Instances On Network Changes [GH-6844]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
+ * provider/vsphere: adding a `vsphere_virtual_machine` migration [GH-7023]
+ * provider/vsphere: Don't require vsphere debug paths to be set [GH-7027]
 
 ## 0.6.16 (May 9, 2016)
 

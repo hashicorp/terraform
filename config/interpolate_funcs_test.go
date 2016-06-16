@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hil"
@@ -221,6 +222,65 @@ func TestInterpolateFuncConcat(t *testing.T) {
 				`${concat(split(",", "a,b"), split(",", "c,d"), split(",", "e,f"), split(",", "0,1"))}`,
 				[]interface{}{"a", "b", "c", "d", "e", "f", "0", "1"},
 				false,
+			},
+		},
+	})
+}
+
+// TODO: This test is split out and calls a private function
+// because there's no good way to get a list of maps into the unit
+// tests due to GH-7142 - once lists of maps can be expressed properly as
+// literals this unit test can be wrapped back into the suite above.
+//
+// Reproduces crash reported in GH-7030.
+func TestInterpolationFuncConcatListOfMaps(t *testing.T) {
+	listOfMapsOne := ast.Variable{
+		Type: ast.TypeList,
+		Value: []ast.Variable{
+			{
+				Type:  ast.TypeMap,
+				Value: map[string]interface{}{"one": "foo"},
+			},
+		},
+	}
+	listOfMapsTwo := ast.Variable{
+		Type: ast.TypeList,
+		Value: []ast.Variable{
+			{
+				Type:  ast.TypeMap,
+				Value: map[string]interface{}{"two": "bar"},
+			},
+		},
+	}
+	args := []interface{}{listOfMapsOne.Value, listOfMapsTwo.Value}
+
+	_, err := interpolationFuncConcat().Callback(args)
+
+	if err == nil || !strings.Contains(err.Error(), "concat() does not support lists of type map") {
+		t.Fatalf("Expected err, got: %v", err)
+	}
+}
+
+func TestInterpolateFuncDistinct(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// 3 duplicates
+			{
+				`${distinct(concat(split(",", "user1,user2,user3"), split(",", "user1,user2,user3")))}`,
+				[]interface{}{"user1", "user2", "user3"},
+				false,
+			},
+			// 1 duplicate
+			{
+				`${distinct(concat(split(",", "user1,user2,user3"), split(",", "user1,user4")))}`,
+				[]interface{}{"user1", "user2", "user3", "user4"},
+				false,
+			},
+			// too many args
+			{
+				`${distinct(concat(split(",", "user1,user2,user3"), split(",", "user1,user4")), "foo")}`,
+				nil,
+				true,
 			},
 		},
 	})
@@ -633,6 +693,40 @@ func TestInterpolateFuncSignum(t *testing.T) {
 				`${signum(-29)}`,
 				"-1",
 				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncSort(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.strings": ast.Variable{
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{Type: ast.TypeString, Value: "c"},
+					{Type: ast.TypeString, Value: "a"},
+					{Type: ast.TypeString, Value: "b"},
+				},
+			},
+			"var.notstrings": ast.Variable{
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{Type: ast.TypeList, Value: []ast.Variable{}},
+					{Type: ast.TypeString, Value: "b"},
+				},
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${sort(var.strings)}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+			{
+				`${sort(var.notstrings)}`,
+				nil,
+				true,
 			},
 		},
 	})
