@@ -595,6 +595,38 @@ func TestInstanceDiffSame(t *testing.T) {
 			true,
 			"",
 		},
+
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"reqnew": &ResourceAttrDiff{
+						Old:         "old",
+						New:         "new",
+						RequiresNew: true,
+					},
+					"somemap.%": &ResourceAttrDiff{
+						Old: "1",
+						New: "0",
+					},
+					"somemap.oldkey": &ResourceAttrDiff{
+						Old:        "long ago",
+						New:        "",
+						NewRemoved: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"reqnew": &ResourceAttrDiff{
+						Old:         "",
+						New:         "new",
+						RequiresNew: true,
+					},
+				},
+			},
+			true,
+			"",
+		},
 	}
 
 	for i, tc := range cases {
