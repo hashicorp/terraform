@@ -619,12 +619,6 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	ip, err := vm.WaitForIP(context.TODO())
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] ip address: %v", ip)
-
 	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
@@ -897,14 +891,20 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	var mvm mo.VirtualMachine
-
-	// wait for interfaces to appear
-	_, err = vm.WaitForNetIP(context.TODO(), true)
+	state, err := vm.PowerState(context.TODO())
 	if err != nil {
 		return err
 	}
 
+	if state == types.VirtualMachinePowerStatePoweredOn {
+		// wait for interfaces to appear
+		_, err = vm.WaitForNetIP(context.TODO(), true)
+		if err != nil {
+			return err
+		}
+	}
+
+	var mvm mo.VirtualMachine
 	collector := property.DefaultCollector(client.Client)
 	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore", "config"}, &mvm); err != nil {
 		return err
@@ -1040,11 +1040,15 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
 	}
 
-	log.Printf("[DEBUG] ip address: %v", networkInterfaces[0]["ipv4_address"].(string))
-	d.SetConnInfo(map[string]string{
-		"type": "ssh",
-		"host": networkInterfaces[0]["ipv4_address"].(string),
-	})
+	if len(networkInterfaces) > 0 {
+		if _, ok := networkInterfaces[0]["ipv4_address"]; ok {
+			log.Printf("[DEBUG] ip address: %v", networkInterfaces[0]["ipv4_address"].(string))
+			d.SetConnInfo(map[string]string{
+				"type": "ssh",
+				"host": networkInterfaces[0]["ipv4_address"].(string),
+			})
+		}
+	}
 
 	var rootDatastore string
 	for _, v := range mvm.Datastore {
@@ -1892,6 +1896,10 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 	if vm.hasBootableVmdk || vm.template != "" {
 		newVM.PowerOn(context.TODO())
+		err = newVM.WaitForPowerState(context.TODO(), types.VirtualMachinePowerStatePoweredOn)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
