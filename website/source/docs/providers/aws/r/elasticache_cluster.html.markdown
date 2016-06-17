@@ -27,7 +27,7 @@ brief downtime as the server reboots. See the AWS Docs on
 resource "aws_elasticache_cluster" "bar" {
     cluster_id = "cluster-example"
     engine = "memcached"
-    node_type = "cache.m1.small"
+    node_type = "cache.t2.micro"
     port = 11211
     num_cache_nodes = 1
     parameter_group_name = "default.memcached1.4"
