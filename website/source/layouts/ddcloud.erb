@@ -1,0 +1,32 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+				<li<%= sidebar_current("docs-ddcloud-index") %>>
+				<a href="/docs/providers/ddcloud/index.html">Dimension Data Managed Cloud Platform</a>
+                </li>
+
+				<li<%= sidebar_current(/^docs-ddcloud-resource/) %>>
+				<a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-ddcloud-resource-networkdomain") %>>
+					<a href="/docs/providers/ddcloud/r/networkdomain.html">ddcloud_networkdomain</a>
+					</li>
+                    <li<%= sidebar_current("docs-ddcloud-resource-server") %>>
+					<a href="/docs/providers/ddcloud/r/server.html">ddcloud_server</a>
+					</li>
+					<li<%= sidebar_current("docs-ddcloud-vlan") %>>
+					<a href="/docs/providers/ddcloud/r/vlan.html">ddcloud_vlan</a>
+					</li>
+				</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>
