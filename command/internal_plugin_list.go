@@ -17,6 +17,7 @@ import (
 	cobblerprovider "github.com/hashicorp/terraform/builtin/providers/cobbler"
 	consulprovider "github.com/hashicorp/terraform/builtin/providers/consul"
 	datadogprovider "github.com/hashicorp/terraform/builtin/providers/datadog"
+	ddcloudprovider "github.com/hashicorp/terraform/builtin/providers/ddcloud"
 	digitaloceanprovider "github.com/hashicorp/terraform/builtin/providers/digitalocean"
 	dmeprovider "github.com/hashicorp/terraform/builtin/providers/dme"
 	dnsimpleprovider "github.com/hashicorp/terraform/builtin/providers/dnsimple"
@@ -69,6 +70,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"cobbler":      cobblerprovider.Provider,
 	"consul":       consulprovider.Provider,
 	"datadog":      datadogprovider.Provider,
+	"ddcloud":      ddcloudprovider.Provider,
 	"digitalocean": digitaloceanprovider.Provider,
 	"dme":          dmeprovider.Provider,
 	"dnsimple":     dnsimpleprovider.Provider,
