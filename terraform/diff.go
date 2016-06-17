@@ -443,35 +443,30 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			// values. So check if there is an approximate hash in the key
 			// and if so, try to match the key.
 			if strings.Contains(k, "~") {
-				// TODO (SvH): There should be a better way to do this...
 				parts := strings.Split(k, ".")
-				parts2 := strings.Split(k, ".")
+				parts2 := append([]string(nil), parts...)
+
 				re := regexp.MustCompile(`^~\d+$`)
 				for i, part := range parts {
 					if re.MatchString(part) {
+						// we're going to consider this the base of a
+						// computed hash, and remove all longer matching fields
+						ok = true
+
 						parts2[i] = `\d+`
+						parts2 = parts2[:i+1]
+						break
 					}
 				}
-				re, err := regexp.Compile("^" + strings.Join(parts2, `\.`) + "$")
+
+				re, err := regexp.Compile("^" + strings.Join(parts2, `\.`))
 				if err != nil {
 					return false, fmt.Sprintf("regexp failed to compile; err: %#v", err)
 				}
+
 				for k2, _ := range checkNew {
 					if re.MatchString(k2) {
 						delete(checkNew, k2)
-
-						if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
-							// This is a computed list or set, so remove any keys with this
-							// prefix from the check list.
-							prefix := k2[:len(k2)-1]
-							for k2, _ := range checkNew {
-								if strings.HasPrefix(k2, prefix) {
-									delete(checkNew, k2)
-								}
-							}
-						}
-						ok = true
-						break
 					}
 				}
 			}
