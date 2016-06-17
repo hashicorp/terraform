@@ -39,9 +39,10 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			},
 
 			"vpc_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"delegation_set_id"},
 			},
 
 			"vpc_region": &schema.Schema{
@@ -57,9 +58,10 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			},
 
 			"delegation_set_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"vpc_id"},
 			},
 
 			"name_servers": &schema.Schema{
