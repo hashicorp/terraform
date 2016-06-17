@@ -9,23 +9,23 @@ import (
 )
 
 const (
-	resourceKeyServerName                 = "name"
-	resourceKeyServerDescription          = "description"
-	resourceKeyServerAdminPassword        = "admin_password"
-	resourceKeyServerNetworkDomainID      = "networkdomain"
-	resourceKeyServerMemoryGB             = "memory_gb"
-	resourceKeyServerCPUCount             = "cpu_count"
-	resourceKeyServerOSImageID            = "osimage_id"
-	resourceKeyServerOSImageName          = "osimage_name"
-	resourceKeyServerPrimaryVLAN          = "primary_adapter_vlan"
-	resourceKeyServerPrimaryIPv4          = "primary_adapter_ipv4"
-	resourceKeyServerPrimaryIPv6          = "primary_adapter_ipv6"
-	resourceKeyServerPrimaryDNS           = "dns_primary"
-	resourceKeyServerSecondaryDNS         = "dns_secondary"
-	resourceKeyServerAutoStart            = "auto_start"
-	resourceCreateTimeoutServer           = 30 * time.Minute
-	resourceUpdateTimeoutServer           = 10 * time.Minute
-	resourceDeleteTimeoutServer           = 15 * time.Minute
+	resourceKeyServerName            = "name"
+	resourceKeyServerDescription     = "description"
+	resourceKeyServerAdminPassword   = "admin_password"
+	resourceKeyServerNetworkDomainID = "networkdomain"
+	resourceKeyServerMemoryGB        = "memory_gb"
+	resourceKeyServerCPUCount        = "cpu_count"
+	resourceKeyServerOSImageID       = "osimage_id"
+	resourceKeyServerOSImageName     = "osimage_name"
+	resourceKeyServerPrimaryVLAN     = "primary_adapter_vlan"
+	resourceKeyServerPrimaryIPv4     = "primary_adapter_ipv4"
+	resourceKeyServerPrimaryIPv6     = "primary_adapter_ipv6"
+	resourceKeyServerPrimaryDNS      = "dns_primary"
+	resourceKeyServerSecondaryDNS    = "dns_secondary"
+	resourceKeyServerAutoStart       = "auto_start"
+	resourceCreateTimeoutServer      = 30 * time.Minute
+	resourceUpdateTimeoutServer      = 10 * time.Minute
+	resourceDeleteTimeoutServer      = 15 * time.Minute
 )
 
 func resourceServer() *schema.Resource {
