@@ -370,7 +370,7 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		return err
 	}
 
-	if tier == "WebServer" {
+	if tier == "WebServer" && env.CNAME != nil {
 		beanstalkCnamePrefixRegexp := regexp.MustCompile(`(^[^.]+).\w{2}-\w{4,9}-\d.elasticbeanstalk.com$`)
 		var cnamePrefix string
 		cnamePrefixMatch := beanstalkCnamePrefixRegexp.FindStringSubmatch(*env.CNAME)
