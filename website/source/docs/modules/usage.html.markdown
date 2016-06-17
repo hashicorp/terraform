@@ -28,6 +28,51 @@ the resources in the "consul" module which can be found on GitHub with the
 given URL. Just like a resource, the module configuration can be deleted
 to remove the module.
 
+## Multiple instances of a module
+
+You can instantiate a module multiple times.
+
+```
+# my_buckets.tf
+module "assets_bucket" {
+  source = "./publish_bucket"
+  name = "assets"
+}
+
+module "media_bucket" {
+  source = "./publish_bucket"
+  name = "media"
+}
+```
+```
+# publish_bucket/bucket-and-cloudfront.tf
+
+variable "name" {} # this is the input parameter of the module
+
+resource "aws_s3_bucket" "the_bucket" {
+...
+
+resource "aws_iam_user" "deploy_user" {
+...
+```
+
+In this example you can provide module implementation in the `./publish_bucket`
+subfolder - define there, how to create a bucket resource, set access and
+caching rules, create e.g. a CloudFront resource, which wraps the bucket and
+all the other implementation details, which are common to you project.
+
+In the snippet above, you now use your module definition twice. The string
+after the `module` keyword is a name of the instance of the module.
+
+Note: the resource names in your implementation get prefixed by the
+`module.<module-instance-name>` when instantiated. Example: your `publish_bucket`
+implementation creates `aws_s3_bucket.the_bucket` and `aws_iam_access_key.deploy_user`.
+The full name of the resulting resources will be `module.assets_bucket.aws_s3_bucket.the_bucket`
+and `module.assets_bucket.aws_iam_access_key.deploy_user`. So beware, if you
+extract your implementation to a module. The resource names will change and
+this will lead to destroying s3 buckets and creating new ones - so always
+check with `tf plan` before running `tf apply`. 
+
 ## Source
 
 The only required configuration key is the `source` parameter. The value of
