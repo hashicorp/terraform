@@ -8,58 +8,165 @@ import (
 	"testing"
 )
 
-const testAccDDCloudVLANBasic = `
-provider "ddcloud" {
-	region		= "AU"
+func testAccDDCloudVLANBasic(name string, description string) string {
+	return fmt.Sprintf(`
+		provider "ddcloud" {
+			region		= "AU"
+		}
+
+		resource "ddcloud_networkdomain" "acc_test_domain" {
+			name		= "acc-test-networkdomain"
+			description	= "Network domain for Terraform acceptance test."
+			datacenter	= "AU9"
+		}
+
+		resource "ddcloud_vlan" "acc_test_vlan" {
+			name				= "%s"
+			description 		= "%s"
+
+			networkdomain 		= "${ddcloud_networkdomain.acc_test_domain.id}"
+
+			ipv4_base_address	= "192.168.17.0"
+			ipv4_prefix_size	= 24
+		}
+	`, name, description)
 }
-
-resource "ddcloud_networkdomain" "acc_test_domain" {
-	name		= "acc-test-domain"
-	description	= "Network domain for Terraform acceptance test."
-	datacenter	= "AU9"
-}
-
-resource "ddcloud_vlan" "test_vlan" {
-	name				= "acc-test-vlan"
-	description 		= "VLAN for Terraform acceptance test."
-
-	networkdomain 		= "${ddcloud_networkdomain.acc_test_domain.id}"
-
-	ipv4_base_address	= "192.168.17.0"
-	ipv4_prefix_size	= 24
-}
-`
 
 // Acceptance test for ddcloud_vlan (basic):
 //
 // Create a VLAN and verify that it gets created with the correct configuration.
 func TestAccVLANBasicCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		Providers:    testAccProviders,
+		Providers: testAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testCheckDDComputeVLANDestroy,
 			testCheckDDComputeNetworkDomainDestroy,
 		),
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDDCloudVLANBasic,
+				Config: testAccDDCloudVLANBasic("acc-test-vlan", "VLAN for Terraform acceptance test."),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckDDCloudVLANExists("ddcloud_networkdomain.acc_test_domain", true),
-					testCheckDDCloudVLANMatches("ddcloud_networkdomain.acc_test_domain", compute.VLAN{
-						Name:         "acc-test-vlan",
-						Description:  "VLAN for Terraform acceptance test.",
+					testCheckDDCloudVLANExists("ddcloud_vlan.acc_test_vlan", true),
+					testCheckDDCloudVLANMatches("ddcloud_vlan.acc_test_vlan", compute.VLAN{
+						Name:        "acc-test-vlan",
+						Description: "VLAN for Terraform acceptance test.",
 						IPv4Range: compute.IPv4Range{
 							BaseAddress: "192.168.17.0",
-							PrefixSize: 24,
+							PrefixSize:  24,
 						},
 						NetworkDomain: compute.EntitySummary{
-							Name: "Network domain for Terraform acceptance test.",
+							Name: "acc-test-networkdomain",
 						},
 					}),
 				),
 			},
 		},
 	})
+}
+
+// Data structure that holds resource data for use between test steps.
+type testAccResourceData struct {
+	ID *string
+}
+
+// Acceptance test for ddcloud_vlan (basic):
+//
+// Update a VLAN and verify that it gets updated with the correct configuration.
+func TestAccVLANBasicUpdate(t *testing.T) {
+	vlanResourceData := testAccResourceData{}
+
+	resource.Test(t, resource.TestCase{
+		Providers: testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testCheckDDComputeVLANDestroy,
+			testCheckDDComputeNetworkDomainDestroy,
+		),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDDCloudVLANBasic(
+					"acc-test-vlan",
+					"VLAN for Terraform acceptance test.",
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckDDCloudVLANCaptureID("ddcloud_vlan.acc_test_vlan", &vlanResourceData),
+					testCheckDDCloudVLANExists("ddcloud_vlan.acc_test_vlan", true),
+					testCheckDDCloudVLANMatches("ddcloud_vlan.acc_test_vlan", compute.VLAN{
+						Name:        "acc-test-vlan",
+						Description: "VLAN for Terraform acceptance test.",
+						IPv4Range: compute.IPv4Range{
+							BaseAddress: "192.168.17.0",
+							PrefixSize:  24,
+						},
+						NetworkDomain: compute.EntitySummary{
+							Name: "acc-test-networkdomain",
+						},
+					}),
+				),
+			},
+			resource.TestStep{
+				Config: testAccDDCloudVLANBasic(
+					"acc-test-vlan-updated",
+					"Updated VLAN for Terraform acceptance test.",
+				),
+				Check: resource.ComposeTestCheckFunc(
+					// Should be update, not re-create.
+					testCheckDDCloudVLANIDHasNotChanged("ddcloud_vlan.acc_test_vlan", &vlanResourceData),
+
+					testCheckDDCloudVLANExists("ddcloud_vlan.acc_test_vlan", true),
+					testCheckDDCloudVLANMatches("ddcloud_vlan.acc_test_vlan", compute.VLAN{
+						Name:        "acc-test-vlan-updated",
+						Description: "Updated VLAN for Terraform acceptance test.",
+						IPv4Range: compute.IPv4Range{
+							BaseAddress: "192.168.17.0",
+							PrefixSize:  24,
+						},
+						NetworkDomain: compute.EntitySummary{
+							Name: "acc-test-networkdomain",
+						},
+					}),
+				),
+			},
+		},
+	})
+}
+
+// Acceptance test check for ddcloud_vlan:
+//
+// Capture the VLAN's Id.
+func testCheckDDCloudVLANCaptureID(name string, testData *testAccResourceData) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		res, ok := state.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		testData.ID = &res.Primary.ID
+
+		return nil
+	}
+}
+
+// Acceptance test check for ddcloud_vlan:
+//
+// Check if the VLAN's Id has not changed.
+func testCheckDDCloudVLANIDHasNotChanged(name string, testData *testAccResourceData) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		if testData.ID == nil {
+			return fmt.Errorf("testAccResourceData.ID is nil")
+		}
+
+		res, ok := state.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		vlanID := res.Primary.ID
+		if vlanID != *testData.ID {
+			return fmt.Errorf("Bad: VLAN Id has changed (was: %s, now: %s)", *testData.ID, vlanID)
+		}
+
+		return nil
+	}
 }
 
 // Acceptance test check for ddcloud_vlan:

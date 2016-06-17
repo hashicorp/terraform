@@ -74,6 +74,7 @@ func resourceVLANCreate(data *schema.ResourceData, provider interface{}) error {
 
 	apiClient := provider.(*compute.Client)
 
+	// TODO: Handle RESOURCE_BUSY response (retry?)
 	vlanID, err := apiClient.DeployVLAN(networkDomainID, name, description, ipv4BaseAddress, ipv4PrefixSize)
 	if err != nil {
 		return err
@@ -145,6 +146,7 @@ func resourceVLANUpdate(data *schema.ResourceData, provider interface{}) error {
 
 	apiClient := provider.(*compute.Client)
 
+	// TODO: Handle RESOURCE_BUSY response (retry?)
 	if newName != nil || newDescription != nil {
 		err := apiClient.EditVLAN(id, newName, newDescription)
 		if err != nil {
@@ -171,5 +173,6 @@ func resourceVLANDelete(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("VLAN '%s' is being deleted...", id)
 
+	// TODO: Handle RESOURCE_BUSY response (retry?)
 	return apiClient.WaitForDelete(compute.ResourceTypeVLAN, id, resourceDeleteTimeoutServer)
 }

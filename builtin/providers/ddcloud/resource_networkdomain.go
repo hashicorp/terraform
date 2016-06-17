@@ -63,6 +63,7 @@ func resourceNetworkDomainCreate(data *schema.ResourceData, provider interface{}
 
 	log.Printf("Create network domain '%s' in data center '%s' (plan = '%s', description = '%s').", name, dataCenterID, plan, description)
 
+	// TODO: Handle RESOURCE_BUSY response (retry?)
 	apiClient := provider.(*compute.Client)
 	networkDomainID, err := apiClient.DeployNetworkDomain(name, description, plan, dataCenterID)
 	if err != nil {
@@ -148,6 +149,7 @@ func resourceNetworkDomainUpdate(data *schema.ResourceData, provider interface{}
 
 	apiClient := provider.(*compute.Client)
 
+	// TODO: Handle RESOURCE_BUSY response (retry?)
 	return apiClient.EditNetworkDomain(id, newName, newDescription, newPlan)
 }
 
@@ -180,6 +182,7 @@ func resourceNetworkDomainDelete(data *schema.ResourceData, provider interface{}
 		log.Printf("Successfully deleted public IP block '%s' from network domain '%s'.", block.ID, networkDomainID)
 	}
 
+	// TODO: Handle RESOURCE_BUSY response (retry?)
 	err = apiClient.DeleteNetworkDomain(networkDomainID)
 	if err != nil {
 		return err
