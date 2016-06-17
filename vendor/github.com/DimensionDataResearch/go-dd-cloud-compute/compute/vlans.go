@@ -18,7 +18,7 @@ type VLAN struct {
 	Description string `json:"description"`
 
 	// The network domain in which the VLAN is deployed associated.
-	VLAN EntitySummary `json:"networkDomain"`
+	NetworkDomain EntitySummary `json:"networkDomain"`
 
 	// The VLAN's associated IPv4 network range.
 	IPv4Range IPv4Range `json:"privateIpv4Range"`

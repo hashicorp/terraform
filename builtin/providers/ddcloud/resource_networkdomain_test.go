@@ -103,7 +103,7 @@ func testCheckDDCloudNetworkDomainMatches(name string, expected compute.NetworkD
 	}
 }
 
-// Acceptance test check for ddcloud_networkdomain:
+// Acceptance test resource-destruction check for ddcloud_networkdomain:
 //
 // Check all network domains specified in the configuration have been destroyed.
 func testCheckDDComputeNetworkDomainDestroy(state *terraform.State) error {
