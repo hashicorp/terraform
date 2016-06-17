@@ -954,8 +954,10 @@
 			"revision": "0697a5c4f39a71a4f9e3b154380b47dbfcc3da6e"
 		},
 		{
+			"checksumSHA1": "N0NRIcJF7aj1wd56DA1N9GpYq/4=",
 			"path": "github.com/joyent/gosign/auth",
-			"revision": "a1f3aa7d52213987117e47d721bcc9a499994d5f"
+			"revision": "8978c75ffefb3f63a977ad9cbfce40caeb40177e",
+			"revisionTime": "2016-06-16T18:50:15Z"
 		},
 		{
 			"comment": "v0.3.0-33-g53d1c0a",
