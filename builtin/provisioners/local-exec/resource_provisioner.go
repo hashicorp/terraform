@@ -5,6 +5,7 @@ import (
 	"io"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/terraform/helper/config"
@@ -37,13 +38,34 @@ func (p *ResourceProvisioner) Apply(
 	}
 
 	// Execute the command using a shell
-	var shell, flag string
+	var shell string
+	var params []string
 	if runtime.GOOS == "windows" {
-		shell = "cmd"
-		flag = "/C"
+		shellEx, ok := c.Config["shell"]
+		if !ok {
+			shell = "cmd"
+			params = append(params, "/C")
+			params = append(params, command)
+		} else {
+			if strings.Contains(strings.ToLower(shellEx.(string)), "powershell") {
+				shell = shellEx.(string)
+				params = append(params, "-NoProfile")
+				params = append(params, "-ExecutionPolicy")
+				params = append(params, "Bypass")
+				params = append(params, "-Command")
+				params = append(params, command)
+			} else if strings.Contains(strings.ToLower(shellEx.(string)), "cmd") {
+				shell = "cmd"
+				params = append(params, "/C")
+				params = append(params, command)
+			} else {
+				return fmt.Errorf("Unsupported shell")
+			}
+		}
 	} else {
 		shell = "/bin/sh"
-		flag = "-c"
+		params = append(params, "-c")
+		params = append(params, command)
 	}
 
 	// Setup the reader that will read the lines from the command
@@ -52,15 +74,15 @@ func (p *ResourceProvisioner) Apply(
 	go p.copyOutput(o, pr, copyDoneCh)
 
 	// Setup the command
-	cmd := exec.Command(shell, flag, command)
+	cmd := exec.Command(shell, params...)
 	output, _ := circbuf.NewBuffer(maxBufSize)
 	cmd.Stderr = io.MultiWriter(output, pw)
 	cmd.Stdout = io.MultiWriter(output, pw)
 
 	// Output what we're about to run
 	o.Output(fmt.Sprintf(
-		"Executing: %s %s \"%s\"",
-		shell, flag, command))
+		"Executing: %s %v",
+		shell, params))
 
 	// Run the command to completion
 	err := cmd.Run()
@@ -81,6 +103,7 @@ func (p *ResourceProvisioner) Apply(
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	validator := config.Validator{
 		Required: []string{"command"},
+		Optional: []string{"shell"},
 	}
 	return validator.Validate(c)
 }
