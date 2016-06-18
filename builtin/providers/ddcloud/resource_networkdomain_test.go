@@ -36,7 +36,7 @@ func testAccDDCloudNetworkDomainBasic(name string, description string, datacente
 func TestAccNetworkDomainBasicCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckDDComputeNetworkDomainDestroy,
+		CheckDestroy: testCheckDDCloudNetworkDomainDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccDDCloudNetworkDomainBasic(
@@ -63,7 +63,7 @@ func TestAccNetworkDomainBasicCreate(t *testing.T) {
 func TestAccNetworkDomainBasicUpdate(test *testing.T) {
 	testAccResourceUpdateInPlace(test, testAccResourceUpdate{
 		ResourceName: "ddcloud_networkdomain.acc_test_domain",
-		CheckDestroy: testCheckDDComputeNetworkDomainDestroy,
+		CheckDestroy: testCheckDDCloudNetworkDomainDestroy,
 
 		// Create
 		InitialConfig: testAccDDCloudNetworkDomainBasic(
@@ -164,7 +164,7 @@ func testCheckDDCloudNetworkDomainMatches(name string, expected compute.NetworkD
 // Acceptance test resource-destruction check for ddcloud_networkdomain:
 //
 // Check all network domains specified in the configuration have been destroyed.
-func testCheckDDComputeNetworkDomainDestroy(state *terraform.State) error {
+func testCheckDDCloudNetworkDomainDestroy(state *terraform.State) error {
 	for _, res := range state.RootModule().Resources {
 		if res.Type != "ddcloud_networkdomain" {
 			continue

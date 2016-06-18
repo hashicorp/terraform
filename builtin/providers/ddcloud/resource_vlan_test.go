@@ -48,8 +48,8 @@ func TestAccVLANBasicCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
-			testCheckDDComputeVLANDestroy,
-			testCheckDDComputeNetworkDomainDestroy,
+			testCheckDDCloudVLANDestroy,
+			testCheckDDCloudNetworkDomainDestroy,
 		),
 		Steps: []resource.TestStep{
 			resource.TestStep{
@@ -80,8 +80,8 @@ func TestAccVLANBasicUpdate(test *testing.T) {
 	testAccResourceUpdateInPlace(test, testAccResourceUpdate{
 		ResourceName: "ddcloud_vlan.acc_test_vlan",
 		CheckDestroy: resource.ComposeTestCheckFunc(
-			testCheckDDComputeVLANDestroy,
-			testCheckDDComputeNetworkDomainDestroy,
+			testCheckDDCloudVLANDestroy,
+			testCheckDDCloudNetworkDomainDestroy,
 		),
 
 		// Create
@@ -205,7 +205,7 @@ func testCheckDDCloudVLANMatches(name string, expected compute.VLAN) resource.Te
 // Acceptance test resource-destruction check for ddcloud_vlan:
 //
 // Check all VLANs specified in the configuration have been destroyed.
-func testCheckDDComputeVLANDestroy(state *terraform.State) error {
+func testCheckDDCloudVLANDestroy(state *terraform.State) error {
 	for _, res := range state.RootModule().Resources {
 		if res.Type != "ddcloud_vlan" {
 			continue
