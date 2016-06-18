@@ -18,6 +18,8 @@ type Server struct {
 	Network         VirtualMachineNetwork `json:"networkInfo"`
 	SourceImageID   string                `json:"sourceImageId"`
 	State           string                `json:"state"`
+	Deployed        bool                  `json:"deployed"`
+	Started         bool                  `json:"started"`
 }
 
 // GetID returns the server's Id.
@@ -59,7 +61,7 @@ type ServerDeploymentConfiguration struct {
 
 // NotifyServerIPAddressChange represents the request body when notifying the system that the IP address for a server's network adapter has changed.
 // Exactly at least 1 of IPv4Address or IPv6Address must be specified.
-type NotifyServerIPAddressChange struct {
+type notifyServerIPAddressChange struct {
 	// The server's network adapter Id.
 	AdapterID string `json:"nicId"`
 
@@ -71,7 +73,7 @@ type NotifyServerIPAddressChange struct {
 }
 
 // ReconfigureServer represents the request body when updating a server's configuration (e.g. memory, CPU count).
-type ReconfigureServer struct {
+type reconfigureServer struct {
 	ServerID string `json:"id"`
 	MemoryGB *int   `json:"memoryGb,omitempty"`
 	CPUCount *int   `json:"cpuCount,omitempty"`
@@ -94,8 +96,20 @@ func (config *ServerDeploymentConfiguration) ApplyImage(image *OSImage) error {
 	return nil
 }
 
-// DeleteServer represents a request to delete a compute virtual machine.
-type DeleteServer struct {
+// Request body when deleting a server.
+type deleteServer struct {
+	// The server Id.
+	ID string `json:"id"`
+}
+
+// Request body when starting a server.
+type startServer struct {
+	// The server Id.
+	ID string `json:"id"`
+}
+
+// Request body when stopping or powering off a server.
+type stopServer struct {
 	// The server Id.
 	ID string `json:"id"`
 }
@@ -180,7 +194,7 @@ func (client *Client) DeleteServer(id string) (err error) {
 	}
 
 	requestURI := fmt.Sprintf("%s/server/deleteServer", organizationID)
-	request, err := client.newRequestV22(requestURI, http.MethodPost, &DeleteServer{id})
+	request, err := client.newRequestV22(requestURI, http.MethodPost, &deleteServer{id})
 	responseBody, statusCode, err := client.executeRequest(request)
 	if err != nil {
 		return err
@@ -198,6 +212,84 @@ func (client *Client) DeleteServer(id string) (err error) {
 	return nil
 }
 
+// StartServer requests that the specified server be started.
+func (client *Client) StartServer(id string) error {
+	organizationID, err := client.getOrganizationID()
+	if err != nil {
+		return err
+	}
+
+	requestURI := fmt.Sprintf("%s/server/startServer", organizationID)
+	request, err := client.newRequestV22(requestURI, http.MethodPost, &startServer{id})
+	responseBody, statusCode, err := client.executeRequest(request)
+	if err != nil {
+		return err
+	}
+
+	apiResponse, err := readAPIResponseAsJSON(responseBody, statusCode)
+	if err != nil {
+		return err
+	}
+
+	if apiResponse.ResponseCode != ResponseCodeInProgress {
+		return apiResponse.ToError("Request to delete server failed with unexpected status code %d (%s): %s", statusCode, apiResponse.ResponseCode, apiResponse.Message)
+	}
+
+	return nil
+}
+
+// ShutdownServer requests that the specified server be shut down (gracefully, if possible).
+func (client *Client) ShutdownServer(id string) error {
+	organizationID, err := client.getOrganizationID()
+	if err != nil {
+		return err
+	}
+
+	requestURI := fmt.Sprintf("%s/server/shutdownServer", organizationID)
+	request, err := client.newRequestV22(requestURI, http.MethodPost, &stopServer{id})
+	responseBody, statusCode, err := client.executeRequest(request)
+	if err != nil {
+		return err
+	}
+
+	apiResponse, err := readAPIResponseAsJSON(responseBody, statusCode)
+	if err != nil {
+		return err
+	}
+
+	if apiResponse.ResponseCode != ResponseCodeInProgress {
+		return apiResponse.ToError("Request to shut down server failed with unexpected status code %d (%s): %s", statusCode, apiResponse.ResponseCode, apiResponse.Message)
+	}
+
+	return nil
+}
+
+// PowerOffServer requests that the specified server be powered off (hard shut-down).
+func (client *Client) PowerOffServer(id string) error {
+	organizationID, err := client.getOrganizationID()
+	if err != nil {
+		return err
+	}
+
+	requestURI := fmt.Sprintf("%s/server/powerOffServer", organizationID)
+	request, err := client.newRequestV22(requestURI, http.MethodPost, &stopServer{id})
+	responseBody, statusCode, err := client.executeRequest(request)
+	if err != nil {
+		return err
+	}
+
+	apiResponse, err := readAPIResponseAsJSON(responseBody, statusCode)
+	if err != nil {
+		return err
+	}
+
+	if apiResponse.ResponseCode != ResponseCodeInProgress {
+		return apiResponse.ToError("Request to power off server failed with unexpected status code %d (%s): %s", statusCode, apiResponse.ResponseCode, apiResponse.Message)
+	}
+
+	return nil
+}
+
 // NotifyServerIPAddressChange notifies the system that the IP address for a server's network adapter has changed.
 // serverNetworkAdapterID is the Id of the server's network adapter.
 // Must specify at least one of newIPv4Address / newIPv6Address.
@@ -208,7 +300,7 @@ func (client *Client) NotifyServerIPAddressChange(networkAdapterID string, newIP
 	}
 
 	requestURI := fmt.Sprintf("%s/server/notifyNicIpChange", organizationID)
-	request, err := client.newRequestV22(requestURI, http.MethodPost, &NotifyServerIPAddressChange{
+	request, err := client.newRequestV22(requestURI, http.MethodPost, &notifyServerIPAddressChange{
 		AdapterID:   networkAdapterID,
 		IPv4Address: newIPv4Address,
 		IPv6Address: newIPv6Address,
@@ -240,7 +332,7 @@ func (client *Client) ReconfigureServer(serverID string, memoryGB *int, cpuCount
 	}
 
 	requestURI := fmt.Sprintf("%s/server/reconfigureServer", organizationID)
-	request, err := client.newRequestV22(requestURI, http.MethodPost, &ReconfigureServer{
+	request, err := client.newRequestV22(requestURI, http.MethodPost, &reconfigureServer{
 		ServerID: serverID,
 		MemoryGB: memoryGB,
 		CPUCount: cpuCount,

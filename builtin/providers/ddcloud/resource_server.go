@@ -26,6 +26,7 @@ const (
 	resourceCreateTimeoutServer      = 30 * time.Minute
 	resourceUpdateTimeoutServer      = 10 * time.Minute
 	resourceDeleteTimeoutServer      = 15 * time.Minute
+	serverShutdownTimeout            = 5 * time.Minute
 )
 
 func resourceServer() *schema.Resource {
@@ -375,12 +376,37 @@ func resourceServerDelete(data *schema.ResourceData, provider interface{}) error
 	log.Printf("Delete server '%s' ('%s') in network domain '%s'.", id, name, networkDomainID)
 
 	apiClient := provider.(*compute.Client)
-	err := apiClient.DeleteServer(id)
+	server, err := apiClient.GetServer(id)
 	if err != nil {
 		return err
 	}
 
+	if server == nil {
+		log.Printf("Server '%s' not found; will treat the server as having already been deleted.", id)
+
+		return nil
+	}
+
+	if server.Started {
+		log.Printf("Server '%s' is currently running. The server will be shut down.", id)
+
+		err = apiClient.ShutdownServer(id)
+		if err != nil {
+			return err
+		}
+
+		_, err = apiClient.WaitForChange(compute.ResourceTypeServer, id, "Shut down server", serverShutdownTimeout)
+		if err != nil {
+			return err
+		}
+	}
+
 	log.Printf("Server '%s' is being deleted...", id)
+
+	err = apiClient.DeleteServer(id)
+	if err != nil {
+		return err
+	}
 
 	return apiClient.WaitForDelete(compute.ResourceTypeServer, id, resourceDeleteTimeoutServer)
 }
