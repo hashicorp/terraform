@@ -259,7 +259,7 @@ func getAwsCloudWatchMetricAlarm(d *schema.ResourceData, meta interface{}) (*clo
 
 	resp, err := conn.DescribeAlarms(&params)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	// Find it and return it
