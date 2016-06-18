@@ -13,7 +13,7 @@ A Network Domain is the fundamental building block for your MCP 2.0 Cloud deploy
 Refer to the documentation for further details:
 https://community.opsourcecloud.net/View.jsp?procId=994fa801956149b3861e428801f9888f
 
-~> **Note:** Due to current platform limitations, organisations that use MCP 2.0 cannot perform more than one concurrent deployment operation for network domains or VLANs (all other operations can however be performed concurrently).
+~> **Note:** Due to current platform limitations, organisations that use MCP 2.0 cannot perform more than one concurrent deployment operation for network domains or VLANs (all other operations can however be performed concurrently). If necessary, use the `depends_on` attribute to ensure that resources that relate to the same network domain are not run in parallel.
 
 ## Example Usage
 
