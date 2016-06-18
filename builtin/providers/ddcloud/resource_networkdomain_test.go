@@ -8,17 +8,27 @@ import (
 	"testing"
 )
 
-const testAccDDCloudNetworkDomainBasic = `
-provider "ddcloud" {
-	region		= "AU"
+/*
+ * Acceptance-test configurations.
+ */
+
+func testAccDDCloudNetworkDomainBasic(name string, description string, datacenterID string) string {
+	return fmt.Sprintf(`
+		provider "ddcloud" {
+			region		= "AU"
+		}
+
+		resource "ddcloud_networkdomain" "acc_test_domain" {
+			name		= "%s"
+			description	= "%s"
+			datacenter	= "%s"
+		}`, name, description, datacenterID,
+	)
 }
 
-resource "ddcloud_networkdomain" "acc_test_domain" {
-	name		= "acc-test-domain"
-	description	= "Network domain for Terraform acceptance test."
-	datacenter	= "AU9"
-}
-`
+/*
+ * Acceptance tests.
+ */
 
 // Acceptance test for ddcloud_networkdomain (basic):
 //
@@ -29,7 +39,11 @@ func TestAccNetworkDomainBasicCreate(t *testing.T) {
 		CheckDestroy: testCheckDDComputeNetworkDomainDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDDCloudNetworkDomainBasic,
+				Config: testAccDDCloudNetworkDomainBasic(
+					"acc-test-domain",
+					"Network domain for Terraform acceptance test.",
+					"AU9",
+				),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckDDCloudNetworkDomainExists("ddcloud_networkdomain.acc_test_domain", true),
 					testCheckDDCloudNetworkDomainMatches("ddcloud_networkdomain.acc_test_domain", compute.NetworkDomain{
@@ -42,6 +56,50 @@ func TestAccNetworkDomainBasicCreate(t *testing.T) {
 		},
 	})
 }
+
+// Acceptance test for ddcloud_networkdomain (basic):
+//
+// Update a NetworkDomain and verify that it gets updated with the correct configuration.
+func TestAccNetworkDomainBasicUpdate(test *testing.T) {
+	testAccResourceUpdateInPlace(test, testAccResourceUpdate{
+		ResourceName: "ddcloud_networkdomain.acc_test_domain",
+		CheckDestroy: testCheckDDComputeNetworkDomainDestroy,
+
+		// Create
+		InitialConfig: testAccDDCloudNetworkDomainBasic(
+			"acc-test-domain",
+			"Network domain for Terraform acceptance test.",
+			"AU9",
+		),
+		InitialCheck: resource.ComposeTestCheckFunc(
+			testCheckDDCloudNetworkDomainExists("ddcloud_networkdomain.acc_test_domain", true),
+			testCheckDDCloudNetworkDomainMatches("ddcloud_networkdomain.acc_test_domain", compute.NetworkDomain{
+				Name:         "acc-test-domain",
+				Description:  "Network domain for Terraform acceptance test.",
+				DatacenterID: "AU9",
+			}),
+		),
+
+		// Update
+		UpdateConfig: testAccDDCloudNetworkDomainBasic(
+			"acc-test-domain-updated",
+			"Updated network domain for Terraform acceptance test.",
+			"AU9",
+		),
+		UpdateCheck: resource.ComposeTestCheckFunc(
+			testCheckDDCloudNetworkDomainExists("ddcloud_networkdomain.acc_test_domain", true),
+			testCheckDDCloudNetworkDomainMatches("ddcloud_networkdomain.acc_test_domain", compute.NetworkDomain{
+				Name:         "acc-test-domain-updated",
+				Description:  "Updated network domain for Terraform acceptance test.",
+				DatacenterID: "AU9",
+			}),
+		),
+	})
+}
+
+/*
+ * Acceptance-test checks.
+ */
 
 // Acceptance test check for ddcloud_networkdomain:
 //
