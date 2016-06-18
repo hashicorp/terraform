@@ -12,7 +12,14 @@ import (
 
 // Data structure that holds resource data for use between test steps.
 type testAccResourceData struct {
-	ID *string
+	// Map from terraform resource names to provider resource Ids.
+	NamesToResourceIDs map[string]string
+}
+
+func newTestAccResourceData() testAccResourceData {
+	return testAccResourceData{
+		NamesToResourceIDs: map[string]string{},
+	}
 }
 
 // The configuration for a resource-update acceptance test.
@@ -27,7 +34,7 @@ type testAccResourceUpdate struct {
 
 // Aggregate test - update resource in-place (resource is updated, not destroyed and re-created).
 func testAccResourceUpdateInPlace(test *testing.T, testDefinition testAccResourceUpdate) {
-	resourceData := testAccResourceData{}
+	resourceData := newTestAccResourceData()
 
 	resource.Test(test, resource.TestCase{
 		Providers:    testAccProviders,
@@ -61,7 +68,7 @@ func testCheckCaptureID(name string, testData *testAccResourceData) resource.Tes
 			return fmt.Errorf("Not found: %s", name)
 		}
 
-		testData.ID = &res.Primary.ID
+		testData.NamesToResourceIDs[name] = res.Primary.ID
 
 		return nil
 	}
@@ -77,8 +84,9 @@ func testCheckResourceUpdatedInPlace(name string, testData *testAccResourceData)
 			return err
 		}
 
-		if testData.ID == nil {
-			return fmt.Errorf("testAccResourceData.ID is nil")
+		capturedResourceID, ok := testData.NamesToResourceIDs[name]
+		if !ok {
+			return fmt.Errorf("No Id has been captured for resource '%s'.", name)
 		}
 
 		res, ok := state.RootModule().Resources[name]
@@ -86,9 +94,9 @@ func testCheckResourceUpdatedInPlace(name string, testData *testAccResourceData)
 			return fmt.Errorf("Not found: %s", name)
 		}
 
-		resourceID := res.Primary.ID
-		if resourceID != *testData.ID {
-			return fmt.Errorf("Bad: The update was expected to be performed in-place but the Id for %s has changed (was: %s, now: %s) which indicates that the resource was destroyed and re-created", resourceType, *testData.ID, resourceID)
+		currentResourceID := res.Primary.ID
+		if currentResourceID != capturedResourceID {
+			return fmt.Errorf("Bad: The update was expected to be performed in-place but the Id for %s has changed (was: %s, now: %s) which indicates that the resource was destroyed and re-created", resourceType, capturedResourceID, currentResourceID)
 		}
 
 		return nil
@@ -105,8 +113,9 @@ func testCheckResourceReplaced(name string, testData *testAccResourceData) resou
 			return err
 		}
 
-		if testData.ID == nil {
-			return fmt.Errorf("testAccResourceData.ID is nil")
+		capturedResourceID, ok := testData.NamesToResourceIDs[name]
+		if !ok {
+			return fmt.Errorf("No Id has been captured for resource '%s'.", name)
 		}
 
 		res, ok := state.RootModule().Resources[name]
@@ -114,9 +123,9 @@ func testCheckResourceReplaced(name string, testData *testAccResourceData) resou
 			return fmt.Errorf("Not found: %s", name)
 		}
 
-		resourceID := res.Primary.ID
-		if resourceID == *testData.ID {
-			return fmt.Errorf("Bad: The update was expected to be performed by destroying and re-creating  %s but its Id has changed (was: %s, now: %s) which indicates that the resource was performed in-place", resourceType, *testData.ID, resourceID)
+		currentResourceID := res.Primary.ID
+		if currentResourceID == capturedResourceID {
+			return fmt.Errorf("Bad: The update was expected to be performed by destroying and re-creating  %s but its Id has changed (was: %s, now: %s) which indicates that the resource was performed in-place", resourceType, capturedResourceID, currentResourceID)
 		}
 
 		return nil
