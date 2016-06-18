@@ -10,6 +10,8 @@ description: |-
 
 A virtual LAN (VLAN) is a partitioned and isolated broadcast domain within a Managed Cloud Platform network domain.
 
+~> **Note:** Due to current platform limitations, organisations that use MCP 2.0 cannot perform more than one concurrent deployment operation for network domains or VLANs (all other operations can however be performed concurrently).
+
 ## Example Usage
 
 ```
