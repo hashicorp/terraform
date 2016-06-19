@@ -81,13 +81,15 @@ func (p *ResourceProvisioner) Close() error {
 	return p.Client.Close()
 }
 
-func (p *ResourceProvisioner) Export() (terraform.ResourceProvisionerSchema, error) {
-	var result terraform.ResourceProvisionerSchema
-	err := p.Client.Call("Plugin.Export", new(interface{}), &result)
+func (p *ResourceProvisioner) Export() (*terraform.ResourceProvisionerSchema, error) {
+	var resp ResourceProvisionerExportResponse
+	args := ResourceProvisionerExportArgs{}
+
+	err := p.Client.Call("Plugin.Export", &args, &resp)
 	if err != nil {
-		// TODO: panic, log, what?
+		return nil, err
 	}
-	return result, err
+	return resp.Schema, err
 }
 
 type ResourceProvisionerValidateArgs struct {
@@ -97,6 +99,13 @@ type ResourceProvisionerValidateArgs struct {
 type ResourceProvisionerValidateResponse struct {
 	Warnings []string
 	Errors   []*plugin.BasicError
+}
+
+type ResourceProvisionerExportArgs struct {
+}
+
+type ResourceProvisionerExportResponse struct {
+	Schema *terraform.ResourceProvisionerSchema
 }
 
 type ResourceProvisionerApplyArgs struct {
@@ -153,11 +162,15 @@ func (s *ResourceProvisionerServer) Validate(
 	return nil
 }
 
-func (s *ResourceProvisionerServer) Export(nothing interface{}, result *terraform.ResourceProvisionerSchema) error {
+func (s *ResourceProvisionerServer) Export(
+	args *ResourceProvisionerExportArgs,
+	reply *ResourceProvisionerExportResponse) error {
 	r, err := s.Provisioner.Export()
 	if err != nil {
 		return err
 	}
-	*result = r
+	*reply = ResourceProvisionerExportResponse{
+		Schema: r,
+	}
 	return nil
 }

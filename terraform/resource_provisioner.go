@@ -23,7 +23,7 @@ type ResourceProvisioner interface {
 	Apply(UIOutput, *InstanceState, *ResourceConfig) error
 
 	// Export exports provisioner schema
-	Export() (ResourceProvisionerSchema, error)
+	Export() (*ResourceProvisionerSchema, error)
 }
 
 // ResourceProvisionerCloser is an interface that provisioners that can close

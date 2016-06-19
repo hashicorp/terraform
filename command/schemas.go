@@ -33,7 +33,7 @@ type resourceResourceSchema struct {
 
 type provisionerResourceSchemaInfo struct {
 	resultBase
-	terraform.ResourceProvisionerSchema
+	*terraform.ResourceProvisionerSchema
 }
 
 type errorResult struct {

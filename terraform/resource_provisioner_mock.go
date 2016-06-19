@@ -23,7 +23,7 @@ type MockResourceProvisioner struct {
 	ValidateReturnErrors []error
 
 	ExportCalled      bool
-	ExportFn          func() (ResourceProvisionerSchema, error)
+	ExportFn          func() (*ResourceProvisionerSchema, error)
 	ExportReturn      *ResourceProvisionerSchema
 	ExportReturnError error
 }
@@ -57,11 +57,11 @@ func (p *MockResourceProvisioner) Apply(
 	return p.ApplyReturnError
 }
 
-func (p *MockResourceProvisioner) Export() (ResourceProvisionerSchema, error) {
+func (p *MockResourceProvisioner) Export() (*ResourceProvisionerSchema, error) {
 	p.ExportCalled = true
 	if p.ExportFn != nil {
 		return p.ExportFn()
 	}
 
-	return *p.ExportReturn, p.ExportReturnError
+	return p.ExportReturn, p.ExportReturnError
 }
