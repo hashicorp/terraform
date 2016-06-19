@@ -284,13 +284,13 @@ func (p *ResourceProvider) DataSources() []terraform.DataSource {
 	return result
 }
 
-func (p *ResourceProvider) Export() (terraform.ResourceProviderSchema, error) {
-	var result terraform.ResourceProviderSchema
-	err := p.Client.Call("Plugin.Export", new(interface{}), &result)
+func (p *ResourceProvider) Export() (*terraform.ResourceProviderSchema, error) {
+	var resp ResourceProviderExportResponse
+	err := p.Client.Call("Plugin.Export", new(interface{}), &resp)
 	if err != nil {
 		// TODO: panic, log, what?
 	}
-	return result, err
+	return resp.Schema, err
 }
 
 func (p *ResourceProvider) Close() error {
@@ -397,6 +397,10 @@ type ResourceProviderValidateResourceArgs struct {
 type ResourceProviderValidateResourceResponse struct {
 	Warnings []string
 	Errors   []*plugin.BasicError
+}
+
+type ResourceProviderExportResponse struct {
+	Schema *terraform.ResourceProviderSchema
 }
 
 func (s *ResourceProviderServer) Input(
@@ -558,11 +562,15 @@ func (s *ResourceProviderServer) DataSources(
 	return nil
 }
 
-func (s *ResourceProviderServer) Export(nothing interface{}, result *terraform.ResourceProviderSchema) error {
+func (s *ResourceProviderServer) Export(
+	nothing interface{},
+	result *ResourceProviderExportResponse) error {
 	r, err := s.Provider.Export()
 	if err != nil {
 		return err
 	}
-	*result = r
+	*result = ResourceProviderExportResponse{
+		Schema: r,
+	}
 	return nil
 }

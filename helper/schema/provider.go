@@ -93,8 +93,8 @@ func (p *Provider) InternalValidate() error {
 
 // ExportSchema should be called to export the structure
 // of the provider.
-func (p *Provider) Export() (terraform.ResourceProviderSchema, error) {
-	result := terraform.ResourceProviderSchema{}
+func (p *Provider) Export() (*terraform.ResourceProviderSchema, error) {
+	result := new(terraform.ResourceProviderSchema)
 
 	result.Schema = schemaMap(p.Schema).Export()
 	result.Resources = make(map[string]terraform.SchemaInfo)

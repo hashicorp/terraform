@@ -37,7 +37,7 @@ type MockResourceProvider struct {
 	DiffReturn                     *InstanceDiff
 	DiffReturnError                error
 	ExportCalled                   bool
-	ExportFn                       func() (ResourceProviderSchema, error)
+	ExportFn                       func() (*ResourceProviderSchema, error)
 	ExportReturn                   *ResourceProviderSchema
 	ExportReturnError              error
 	RefreshCalled                  bool
@@ -182,7 +182,7 @@ func (p *MockResourceProvider) Diff(
 	return p.DiffReturn, p.DiffReturnError
 }
 
-func (p *MockResourceProvider) Export() (ResourceProviderSchema, error) {
+func (p *MockResourceProvider) Export() (*ResourceProviderSchema, error) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -191,7 +191,7 @@ func (p *MockResourceProvider) Export() (ResourceProviderSchema, error) {
 		return p.ExportFn()
 	}
 
-	return *p.ExportReturn, p.ExportReturnError
+	return p.ExportReturn, p.ExportReturnError
 }
 
 func (p *MockResourceProvider) Refresh(

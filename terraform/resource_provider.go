@@ -130,7 +130,7 @@ type ResourceProvider interface {
 	ReadDataApply(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
 
 	// Export exports provider and resources schema
-	Export() (ResourceProviderSchema, error)
+	Export() (*ResourceProviderSchema, error)
 }
 
 // ResourceProviderCloser is an interface that providers that can close

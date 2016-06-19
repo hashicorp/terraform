@@ -22,7 +22,7 @@ type resultBase struct {
 
 type providerResourceSchema struct {
 	resultBase
-	terraform.ResourceProviderSchema
+	*terraform.ResourceProviderSchema
 }
 
 type resourceResourceSchema struct {
