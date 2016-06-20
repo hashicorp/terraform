@@ -566,6 +566,34 @@ func TestInstanceDiffSame(t *testing.T) {
 			"",
 		},
 
+		// Computed values in maps will fail the "Same" check as well
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.%": &ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.%": &ResourceAttrDiff{
+						Old:         "0",
+						New:         "1",
+						NewComputed: false,
+					},
+					"foo.val": &ResourceAttrDiff{
+						Old: "",
+						New: "something",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
 		// In a DESTROY/CREATE scenario, the plan diff will be run against the
 		// state of the old instance, while the apply diff will be run against an
 		// empty state (because the state is cleared when the destroy runs.)
