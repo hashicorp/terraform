@@ -110,6 +110,7 @@ type ResourceLifecycle struct {
 	CreateBeforeDestroy bool     `mapstructure:"create_before_destroy"`
 	PreventDestroy      bool     `mapstructure:"prevent_destroy"`
 	IgnoreChanges       []string `mapstructure:"ignore_changes"`
+	HideIgnored         bool     `mapstructure:"hide_ignored"`
 }
 
 // Copy returns a copy of this ResourceLifecycle
