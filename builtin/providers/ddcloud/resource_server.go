@@ -47,10 +47,9 @@ func resourceServer() *schema.Resource {
 				Default:  "",
 			},
 			resourceKeyServerAdminPassword: &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-
-				// TODO: Mark this property as sensitive when we upgrade to a version of Terraform that supports it.
+				Type:      schema.TypeString,
+				Required:  true,
+				Sensitive: true,
 			},
 			resourceKeyServerMemoryGB: &schema.Schema{
 				Type:     schema.TypeInt,

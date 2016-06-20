@@ -19,15 +19,15 @@ By default, the Managed Cloud Platform's CentOS image does not have httpd instal
 
 ```
 provider "ddcloud" {
-	"username"              = "my_username"
-    "password"              = "my_password"
-    "region"                = "AU"
+  "username" = "my_username"
+  "password" = "my_password"
+  "region"   = "AU"
 }
 
 resource "ddcloud_networkdomain" "mydomain" {
-  name                    = "terraform-test-domain"
-  description             = "My Terraform test network domain."
-  datacenter              = "AU9"
+  name        = "terraform-test-domain"
+  description = "My Terraform test network domain."
+  datacenter  = "AU9"
 }
 
 resource "ddcloud_vlan" "myvlan" {
