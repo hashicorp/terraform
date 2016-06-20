@@ -182,7 +182,7 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing STS connection")
 		client.stsconn = sts.New(sess)
 
-		err = c.ValidateCredentials(client.iamconn)
+		err = c.ValidateCredentials(client.stsconn)
 		if err != nil {
 			errs = append(errs, err)
 			return nil, &multierror.Error{Errors: errs}
@@ -336,24 +336,8 @@ func (c *Config) ValidateRegion() error {
 }
 
 // Validate credentials early and fail before we do any graph walking.
-// In the case of an IAM role/profile with insuffecient privileges, fail
-// silently
-func (c *Config) ValidateCredentials(iamconn *iam.IAM) error {
-	_, err := iamconn.GetUser(nil)
-
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == "AccessDenied" || awsErr.Code() == "ValidationError" {
-			log.Printf("[WARN] AccessDenied Error with iam.GetUser, assuming IAM role")
-			// User may be an IAM instance profile, or otherwise IAM role without the
-			// GetUser permissions, so fail silently
-			return nil
-		}
-
-		if awsErr.Code() == "SignatureDoesNotMatch" {
-			return fmt.Errorf("Failed authenticating with AWS: please verify credentials")
-		}
-	}
-
+func (c *Config) ValidateCredentials(stsconn *sts.STS) error {
+	_, err := stsconn.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	return err
 }
 
