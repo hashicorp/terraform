@@ -33,7 +33,7 @@ func TestAccAWSDBSecurityGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_security_group.bar", "ingress.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_db_security_group.bar", "tags.#", "1"),
+						"aws_db_security_group.bar", "tags.%", "1"),
 				),
 			},
 		},

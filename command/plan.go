@@ -157,10 +157,6 @@ Usage: terraform plan [options] [dir]
 
 Options:
 
-  -backup=path        Path to backup the existing state file before
-                      modifying. Defaults to the "-state-out" path with
-                      ".backup" extension. Set to "-" to disable backup.
-
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.
 

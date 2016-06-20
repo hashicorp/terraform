@@ -44,7 +44,7 @@ func TestAccAzureRMCdnEndpoint_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnEndpointExists("azurerm_cdn_endpoint.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_cdn_endpoint.test", "tags.#", "2"),
+						"azurerm_cdn_endpoint.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_cdn_endpoint.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -57,7 +57,7 @@ func TestAccAzureRMCdnEndpoint_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnEndpointExists("azurerm_cdn_endpoint.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_cdn_endpoint.test", "tags.#", "1"),
+						"azurerm_cdn_endpoint.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_cdn_endpoint.test", "tags.environment", "staging"),
 				),

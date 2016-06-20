@@ -1,4 +1,4 @@
-TEST?=$$(go list ./... | grep -v /vendor/)
+TEST?=$$(go list ./... | grep -v '/vendor/' | grep -v '/builtin/bins/')
 VETARGS?=-all
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
@@ -33,7 +33,7 @@ core-test: generate
 
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
-plugin-dev: fmtcheck generate
+plugin-dev: generate
 	go install github.com/hashicorp/terraform/builtin/bins/$(PLUGIN)
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 

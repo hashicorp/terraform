@@ -16,15 +16,20 @@ configured in the provider.
 
 ```
 # Declare the data source
-data "aws_availability_zones" "zones" {}
+data "aws_availability_zones" "available" {}
 
-# Create a subnet in each availability zone
-resource "aws_subnet" "public" {
-    count = "${length(data.aws_availability_zones.zones.instance)}"
-    
-    availability_zone = "${data.aws_availability_zones.zones.instance[count.index]}"
+# e.g. Create subnets in the first two available availability zones
 
-    # Other properties...
+resource "aws_subnet" "primary" {
+  availability_zone = "${data.aws_availability_zones.available.names[0]}"
+
+  # Other properties...
+}
+
+resource "aws_subnet" "secondary" {
+  availability_zone = "${data.aws_availability_zones.available.names[1]}"
+
+  # Other properties...
 }
 ```
 
@@ -36,4 +41,4 @@ There are no arguments for this data source.
 
 The following attributes are exported:
 
-* `instance` - A list of the availability zone names available to the account.
+* `names` - A list of the availability zone names available to the account.

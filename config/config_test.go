@@ -2,6 +2,7 @@ package config
 
 import (
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -82,6 +83,31 @@ func TestConfigCount_var(t *testing.T) {
 	_, err := c.Resources[0].Count()
 	if err == nil {
 		t.Fatalf("should error")
+	}
+}
+
+func TestConfig_emptyCollections(t *testing.T) {
+	c := testConfig(t, "empty-collections")
+	if len(c.Variables) != 3 {
+		t.Fatalf("bad: expected 3 variables, got %d", len(c.Variables))
+	}
+	for _, variable := range c.Variables {
+		switch variable.Name {
+		case "empty_string":
+			if variable.Default != "" {
+				t.Fatalf("bad: wrong default %q for variable empty_string", variable.Default)
+			}
+		case "empty_map":
+			if !reflect.DeepEqual(variable.Default, map[string]interface{}{}) {
+				t.Fatalf("bad: wrong default %#v for variable empty_map", variable.Default)
+			}
+		case "empty_list":
+			if !reflect.DeepEqual(variable.Default, []interface{}{}) {
+				t.Fatalf("bad: wrong default %#v for variable empty_list", variable.Default)
+			}
+		default:
+			t.Fatalf("Unexpected variable: %s", variable.Name)
+		}
 	}
 }
 

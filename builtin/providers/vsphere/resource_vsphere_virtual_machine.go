@@ -88,6 +88,7 @@ type virtualMachine struct {
 	hasBootableVmdk       bool
 	linkedClone           bool
 	skipCustomization     bool
+	enableDiskUUID        bool
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
 }
@@ -110,6 +111,9 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		Read:   resourceVSphereVirtualMachineRead,
 		Update: resourceVSphereVirtualMachineUpdate,
 		Delete: resourceVSphereVirtualMachineDelete,
+
+		SchemaVersion: 1,
+		MigrateState:  resourceVSphereVirtualMachineMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -207,11 +211,19 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Default:  false,
 			},
 
+			"enable_disk_uuid": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
+
 			"custom_configuration_parameters": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
 			},
+
 			"windows_opt_config": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -658,6 +670,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("skip_customization"); ok {
 		vm.skipCustomization = v.(bool)
+	}
+
+	if v, ok := d.GetOk("enable_disk_uuid"); ok {
+		vm.enableDiskUUID = v.(bool)
 	}
 
 	if raw, ok := d.GetOk("dns_suffixes"); ok {
@@ -1520,6 +1536,9 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		MemoryMB:          vm.memoryMb,
 		MemoryAllocation: &types.ResourceAllocationInfo{
 			Reservation: vm.memoryAllocation.reservation,
+		},
+		Flags: &types.VirtualMachineFlagInfo{
+			DiskUuidEnabled: &vm.enableDiskUUID,
 		},
 	}
 	if vm.template == "" {

@@ -968,6 +968,24 @@ func testAccCheckAWSSecurityGroupExistsWithoutDefault(n string) resource.TestChe
 	}
 }
 
+func TestAccAWSSecurityGroup_failWithDiffMismatch(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfig_failWithDiffMismatch,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.nat", &group),
+				),
+			},
+		},
+	})
+}
+
 const testAccAWSSecurityGroupConfig = `
 resource "aws_vpc" "foo" {
   cidr_block = "10.1.0.0/16"
@@ -1526,6 +1544,53 @@ resource "aws_security_group" "web" {
 
   tags {
     Name = "tf-acc-test"
+  }
+}
+`
+
+// fails to apply in one pass with the error "diffs didn't match during apply"
+// GH-2027
+const testAccAWSSecurityGroupConfig_failWithDiffMismatch = `
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "tf-test"
+  }
+}
+
+resource "aws_security_group" "ssh_base" {
+  name   = "test-ssh-base"
+  vpc_id = "${aws_vpc.main.id}"
+}
+
+resource "aws_security_group" "jump" {
+  name   = "test-jump"
+  vpc_id = "${aws_vpc.main.id}"
+}
+
+resource "aws_security_group" "provision" {
+  name   = "test-provision"
+  vpc_id = "${aws_vpc.main.id}"
+}
+
+resource "aws_security_group" "nat" {
+  vpc_id      = "${aws_vpc.main.id}"
+  name        = "nat"
+  description = "For nat servers "
+
+  ingress {
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = ["${aws_security_group.jump.id}"]
+  }
+
+  ingress {
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = ["${aws_security_group.provision.id}"]
   }
 }
 `

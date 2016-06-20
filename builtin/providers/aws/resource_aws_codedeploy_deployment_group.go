@@ -387,13 +387,13 @@ func ec2TagFiltersToMap(list []*codedeploy.EC2TagFilter) []map[string]string {
 	result := make([]map[string]string, 0, len(list))
 	for _, tf := range list {
 		l := make(map[string]string)
-		if *tf.Key != "" {
+		if tf.Key != nil && *tf.Key != "" {
 			l["key"] = *tf.Key
 		}
-		if *tf.Value != "" {
+		if tf.Value != nil && *tf.Value != "" {
 			l["value"] = *tf.Value
 		}
-		if *tf.Type != "" {
+		if tf.Type != nil && *tf.Type != "" {
 			l["type"] = *tf.Type
 		}
 		result = append(result, l)

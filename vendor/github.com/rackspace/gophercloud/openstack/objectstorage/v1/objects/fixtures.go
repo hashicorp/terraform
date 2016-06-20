@@ -125,6 +125,24 @@ func HandleCreateTextObjectSuccessfully(t *testing.T, content string) {
 	})
 }
 
+// HandleCreateTextWithCacheControlSuccessfully creates an HTTP handler at `/testContainer/testObject` on the test handler
+// mux that responds with a `Create` response. A Cache-Control of `max-age="3600", public` is expected.
+func HandleCreateTextWithCacheControlSuccessfully(t *testing.T, content string) {
+	th.Mux.HandleFunc("/testContainer/testObject", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "PUT")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Cache-Control", `max-age="3600", public`)
+		th.TestHeader(t, r, "Accept", "application/json")
+
+		hash := md5.New()
+		io.WriteString(hash, content)
+		localChecksum := hash.Sum(nil)
+
+		w.Header().Set("ETag", fmt.Sprintf("%x", localChecksum))
+		w.WriteHeader(http.StatusCreated)
+	})
+}
+
 // HandleCreateTypelessObjectSuccessfully creates an HTTP handler at `/testContainer/testObject` on the test handler
 // mux that responds with a `Create` response. No Content-Type header may be present in the request, so that server-
 // side content-type detection will be triggered properly.

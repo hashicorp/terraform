@@ -154,7 +154,7 @@ func TestAccAWSRedshiftCluster_tags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
 					resource.TestCheckResourceAttr(
-						"aws_redshift_cluster.default", "tags.#", "3"),
+						"aws_redshift_cluster.default", "tags.%", "3"),
 					resource.TestCheckResourceAttr("aws_redshift_cluster.default", "tags.environment", "Production"),
 				),
 			},
@@ -164,7 +164,7 @@ func TestAccAWSRedshiftCluster_tags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
 					resource.TestCheckResourceAttr(
-						"aws_redshift_cluster.default", "tags.#", "1"),
+						"aws_redshift_cluster.default", "tags.%", "1"),
 					resource.TestCheckResourceAttr("aws_redshift_cluster.default", "tags.environment", "Production"),
 				),
 			},
