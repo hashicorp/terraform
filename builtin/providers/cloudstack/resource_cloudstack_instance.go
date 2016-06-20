@@ -74,11 +74,19 @@ func resourceCloudStackInstance() *schema.Resource {
 			},
 
 			"affinity_group_ids": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Set:           schema.HashString,
+				ConflictsWith: []string{"affinity_group_names"},
+			},
+
+			"affinity_group_names": &schema.Schema{
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Set:           schema.HashString,
+				ConflictsWith: []string{"affinity_group_ids"},
 			},
 
 			"project": &schema.Schema{
@@ -221,6 +229,17 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetAffinitygroupids(groups)
 	}
 
+	// If there is a affinity_group_names supplied, add it to the parameter struct
+	if agns := d.Get("affinity_group_names").(*schema.Set); agns.Len() > 0 {
+		var groups []string
+
+		for _, group := range agns.List() {
+			groups = append(groups, group.(string))
+		}
+
+		p.SetAffinitygroupnames(groups)
+	}
+
 	// If there is a project supplied, we retrieve and set the project id
 	if err := setProjectid(p, cs, d); err != nil {
 		return err
@@ -317,6 +336,15 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 
 	if groups.Len() > 0 {
 		d.Set("affinity_group_ids", groups)
+	}
+
+	agns := &schema.Set{F: schema.HashString}
+	for _, group := range vm.Affinitygroup {
+		agns.Add(group.Name)
+	}
+
+	if agns.Len() > 0 {
+		d.Set("affinity_group_names", agns)
 	}
 
 	return nil
