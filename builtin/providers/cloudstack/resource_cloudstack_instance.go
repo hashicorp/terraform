@@ -89,6 +89,15 @@ func resourceCloudStackInstance() *schema.Resource {
 				ConflictsWith: []string{"affinity_group_ids"},
 			},
 
+			"security_group_names": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -240,6 +249,17 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetAffinitygroupnames(groups)
 	}
 
+	// If there is a security_group_names supplied, add it to the parameter struct
+	if sgns := d.Get("security_group_names").(*schema.Set); sgns.Len() > 0 {
+		var groups []string
+
+		for _, group := range sgns.List() {
+			groups = append(groups, group.(string))
+		}
+
+		p.SetSecuritygroupnames(groups)
+	}
+
 	// If there is a project supplied, we retrieve and set the project id
 	if err := setProjectid(p, cs, d); err != nil {
 		return err
@@ -345,6 +365,15 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 
 	if agns.Len() > 0 {
 		d.Set("affinity_group_names", agns)
+	}
+
+	sgns := &schema.Set{F: schema.HashString}
+	for _, group := range vm.Securitygroup {
+		sgns.Add(group.Name)
+	}
+
+	if sgns.Len() > 0 {
+		d.Set("security_group_names", sgns)
 	}
 
 	return nil

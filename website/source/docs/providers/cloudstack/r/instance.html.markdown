@@ -73,6 +73,9 @@ The following arguments are supported:
 * `affinity_group_names` - (Optional) List of affinity groups to apply to this
     instance. Changing this forces a new resource to be created.
 
+* `security_group_names` - (Optional) List of security groups to apply to this
+    isnstance. Changing this forces a new resource to be created.
+
 ## Attributes Reference
 
 The following attributes are exported:
