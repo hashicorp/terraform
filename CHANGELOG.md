@@ -5,6 +5,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * Terraform's built-in plugins are now distributed as part of the main Terraform binary, and use the go-plugin framework. Overrides are still available using separate binaries, but will need recompiling against Terraform 0.7.
  * The `terraform plan` command no longer persists state. This makes the command much safer to run, since it is now side-effect free. The `refresh` and `apply` commands still persist state to local and remote storage. Any automation that assumes that `terraform plan` persists state will need to be reworked to explicitly call `terraform refresh` to get the equivalent side-effect. (The `terraform plan` command no longer has the `-state-out` or `-backup` flags due to this change.)
  * The `concat()` interpolation function can no longer be used to join strings.
+ * Quotation marks may no longer be escaped in HIL expressions [GH-7201]
  * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
  * `aws_elb` now defaults `cross_zone_load_balancing` to `true`
  * `resource_aws_instance`: EC2 Classic users may continue to use
