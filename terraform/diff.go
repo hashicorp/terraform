@@ -471,12 +471,12 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 				}
 			}
 
-			// This is a little tricky, but when a diff contains a computed list
-			// or set that can only be interpolated after the apply command has
-			// created the dependent resources, it could turn out that the result
-			// is actually the same as the existing state which would remove the
-			// key from the diff.
-			if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
+			// This is a little tricky, but when a diff contains a computed
+			// list, set, or map that can only be interpolated after the apply
+			// command has created the dependent resources, it could turn out
+			// that the result is actually the same as the existing state which
+			// would remove the key from the diff.
+			if diffOld.NewComputed && (strings.HasSuffix(k, ".#") || strings.HasSuffix(k, ".%")) {
 				ok = true
 			}
 
@@ -492,10 +492,16 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			}
 		}
 
-		if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
-			// This is a computed list or set, so remove any keys with this
-			// prefix from the check list.
-			kprefix := k[:len(k)-1]
+		// search for the suffix of the base of a [computed] map, list or set.
+		multiVal := regexp.MustCompile(`\.(#|~#|%)$`)
+		match := multiVal.FindStringSubmatch(k)
+
+		if diffOld.NewComputed && len(match) == 2 {
+			matchLen := len(match[1])
+
+			// This is a computed list, set, or map, so remove any keys with
+			// this prefix from the check list.
+			kprefix := k[:len(k)-matchLen]
 			for k2, _ := range checkOld {
 				if strings.HasPrefix(k2, kprefix) {
 					delete(checkOld, k2)
