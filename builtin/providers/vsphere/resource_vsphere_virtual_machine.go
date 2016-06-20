@@ -93,6 +93,10 @@ type virtualMachine struct {
 	customConfigurations  map[string](types.AnyType)
 }
 
+func NetInterfaceID(v interface{}) int {
+	return strconv.Atoi(v["device_key"])
+}
+
 func (v virtualMachine) Path() string {
 	return vmPath(v.folder, v.name)
 }
@@ -265,6 +269,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 
 			"network_interface": &schema.Schema{
 				Type:     schema.TypeSet,
+				Set:      NetInterfaceID,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
