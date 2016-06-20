@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -94,7 +95,15 @@ type virtualMachine struct {
 }
 
 func NetInterfaceID(v interface{}) int {
-	return strconv.Atoi(v["device_key"])
+	device_key := v.(map[string]interface{})["device_key"].(string)
+	id, err := strconv.Atoi(device_key)
+	if err != nil {
+		log.Printf("[WARNING] using fallback hashing of network interface device id %s. %v", device_key, err)
+		// default hash method from  terraform/helper/schema/set.go
+		return hashcode.String(device_key)
+	} else {
+		return id
+	}
 }
 
 func (v virtualMachine) Path() string {
@@ -1061,10 +1070,15 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			}
 		}
 	}
+	networkInterfaces_slice := []map[string]interface{}{}
+	for _, value := range networkInterfaces {
+		networkInterfaces_slice = append(networkInterfaces_slice, value)
+	}
 	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
-	err = d.Set("network_interface", networkInterfaces)
+	log.Printf("[DEBUG] networkInterfaces_slice: %#v", networkInterfaces_slice)
+	err = d.Set("network_interface", networkInterfaces_slice)
 	if err != nil {
-		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
+		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces_slice)
 	}
 
 	log.Printf("[DEBUG] ip address: %v", connect_ip)
