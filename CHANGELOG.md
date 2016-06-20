@@ -76,6 +76,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for `character_set_name` to `aws_db_instance` [GH-4861]
  * provider/aws: Add support for DB parameter group with RDS Cluster Instances (Aurora) [GH-6865]
  * provider/aws: Add `name_prefix` to `aws_iam_instance_profile` and `aws_iam_role` [GH-6939]
+ * provider/aws: Allow authentication & credentials validation for federated IAM Roles and EC2 instance profiles [GH-6536]
  * provider/aws: Rename parameter_group_name to db_cluster_parameter_group_name [GH-7083]
  * provider/aws: Retry RouteTable Route/Assocation creation [GH-7156]
  * provider/aws: `delegation_set_id` conflicts w/ `vpc_id` in `aws_route53_zone` as delegation sets can only be used for public zones [GH-7213]
