@@ -1513,14 +1513,35 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 				if err != nil {
 					return err
 				}
+				hostSystem, err = finder.DefaultHostSystem(context.TODO())
+				if err != nil {
+					return err
+				}
 			} else {
 				resourcePool, err = finder.ResourcePool(context.TODO(), "*"+vm.cluster+"/Resources")
 				if err != nil {
 					return err
 				}
+				hostSystem, err = finder.HostSystemOrDefault(context.TODO(), "*"+vm.cluster)
+				if err != nil {
+					return err
+				}
+			}
+		} else if vm.cluster == "" {
+			resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
+			if err != nil {
+				return err
+			}
+			hostSystem, err = finder.DefaultHostSystem(context.TODO())
+			if err != nil {
+				return err
 			}
 		} else {
-			resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
+			resourcePool, err = finder.ResourcePool(context.TODO(), "*"+vm.cluster+"/Resources")
+			if err != nil {
+				return err
+			}
+			hostSystem, err = finder.HostSystemOrDefault(context.TODO(), "*"+vm.cluster)
 			if err != nil {
 				return err
 			}
