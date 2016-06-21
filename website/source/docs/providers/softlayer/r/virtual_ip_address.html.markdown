@@ -1,7 +1,7 @@
 ---
 layout: "softlayer"
 page_title: "SoftLayer: softlayer_loadbalancer_virtual_ip_address"
-sidebar_current: "docs-softlayer-resource-softlayer-loadbalancer-virtual-ip-address"
+sidebar_current: "docs-softlayer-resource-load-balancer-virtual-ip-address"
 description: |-
   Provides Softlayer's LoadBalancer Virtual IP Address
 ---
