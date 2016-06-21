@@ -37,6 +37,9 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-input=true` - Ask for input for variables if not directly set.
 
+* `-auto-approve=true` - Skip interactive approval of plan before applying. In a
+  future version of Terraform, this flag's default value will change to false.
+
 * `-no-color` - Disables output with coloring.
 
 * `-parallelism=n` - Limit the number of concurrent operation as Terraform
