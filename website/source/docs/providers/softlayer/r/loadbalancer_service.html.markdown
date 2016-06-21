@@ -1,7 +1,7 @@
 ---
 layout: "softlayer"
 page_title: "SoftLayer: softlayer_loadbalancer_service"
-sidebar_current: "docs-softlayer-resource-softlayer-loadbalancer-service"
+sidebar_current: "docs-softlayer-resource-load-balancer-service"
 description: |-
   Provides Softlayer's LoadBalancer Service
 ---

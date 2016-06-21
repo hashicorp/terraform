@@ -1,12 +1,12 @@
 ---
 layout: "softlayer"
 page_title: "SoftLayer: ssh_key"
-sidebar_current: "docs-softlayer-resource-ssh-key"
+sidebar_current: "docs-softlayer-resource-virtual-guest-ssh-key"
 description: |-
   Manages SoftLayer SSH Keys.
 ---
 
-# softlayer\ssh_key
+# softlayer_ssh_key
 
 Provides SSK keys. This allows SSH keys to be created, updated and deleted.
 For additional details please refer to [API documentation](http://sldn.softlayer.com/reference/datatypes/SoftLayer_Security_Ssh_Key).
