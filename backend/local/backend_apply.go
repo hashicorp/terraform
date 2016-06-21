@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -89,9 +90,36 @@ func (b *Local) opApply(
 
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
-		if _, err := tfCtx.Plan(); err != nil {
+		plan, err := tfCtx.Plan()
+		if err != nil {
 			runningOp.Err = errwrap.Wrapf("Error running plan: {{err}}", err)
 			return
+		}
+
+		trivialPlan := plan.Diff == nil || plan.Diff.Empty()
+		hasUI := op.UIOut != nil && op.UIIn != nil
+		if hasUI && !op.AutoApprove && !trivialPlan {
+			op.UIOut.Output(strings.TrimSpace(approvePlanHeader) + "\n")
+			op.UIOut.Output(format.Plan(&format.PlanOpts{
+				Plan:        plan,
+				Color:       b.Colorize(),
+				ModuleDepth: -1,
+			}))
+			desc := "Terraform will apply the plan described above.\n" +
+				"Only 'yes' will be accepted to approve."
+			v, err := op.UIIn.Input(&terraform.InputOpts{
+				Id:          "approve",
+				Query:       "Do you want to apply the plan above?",
+				Description: desc,
+			})
+			if err != nil {
+				runningOp.Err = errwrap.Wrapf("Error asking for approval: {{err}}", err)
+				return
+			}
+			if v != "yes" {
+				runningOp.Err = errors.New("Apply cancelled.")
+				return
+			}
 		}
 	}
 
@@ -287,4 +315,12 @@ const earlyStateWriteErrorFmt = `Error saving current state: %s
 Terraform encountered an error attempting to save the state before canceling
 the current operation. Once the operation is complete another attempt will be
 made to save the final state.
+`
+
+const approvePlanHeader = `
+The Terraform execution plan has been generated and is shown below.
+Resources are shown in alphabetical order for quick scanning. Green resources
+will be created (or destroyed and then created if an existing resource
+exists), yellow resources are being changed in-place, and red resources
+will be destroyed. Cyan entries are data sources to be read.
 `
