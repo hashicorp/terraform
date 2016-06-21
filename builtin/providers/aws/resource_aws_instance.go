@@ -24,6 +24,9 @@ func resourceAwsInstance() *schema.Resource {
 		Read:   resourceAwsInstanceRead,
 		Update: resourceAwsInstanceUpdate,
 		Delete: resourceAwsInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsInstanceMigrateState,
@@ -485,7 +488,11 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
 	if len(instance.NetworkInterfaces) > 0 {
-		d.Set("subnet_id", instance.NetworkInterfaces[0].SubnetId)
+		for _, ni := range instance.NetworkInterfaces {
+			if *ni.Attachment.DeviceIndex == 0 {
+				d.Set("subnet_id", ni.SubnetId)
+			}
+		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
 	}
@@ -533,6 +540,9 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
 			return err
 		}
+		if err := d.Set("security_groups", []string{}); err != nil {
+			return err
+		}
 	} else {
 		for _, sg := range instance.SecurityGroups {
 			sgs = append(sgs, *sg.GroupName)
@@ -541,10 +551,28 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("security_groups", sgs); err != nil {
 			return err
 		}
+		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
+			return err
+		}
 	}
 
 	if err := readBlockDevices(d, instance, conn); err != nil {
 		return err
+	}
+	if _, ok := d.GetOk("ephemeral_block_device"); !ok {
+		d.Set("ephemeral_block_device", []interface{}{})
+	}
+
+	// Instance attributes
+	{
+		attr, err := conn.DescribeInstanceAttribute(&ec2.DescribeInstanceAttributeInput{
+			Attribute:  aws.String("disableApiTermination"),
+			InstanceId: aws.String(d.Id()),
+		})
+		if err != nil {
+			return err
+		}
+		d.Set("disable_api_termination", attr.DisableApiTermination.Value)
 	}
 
 	return nil
@@ -696,8 +724,17 @@ func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.
 	if err := d.Set("ebs_block_device", ibds["ebs"]); err != nil {
 		return err
 	}
+
+	// This handles the import case which needs to be defaulted to empty
+	if _, ok := d.GetOk("root_block_device"); !ok {
+		if err := d.Set("root_block_device", []interface{}{}); err != nil {
+			return err
+		}
+	}
+
 	if ibds["root"] != nil {
-		if err := d.Set("root_block_device", []interface{}{ibds["root"]}); err != nil {
+		roots := []interface{}{ibds["root"]}
+		if err := d.Set("root_block_device", roots); err != nil {
 			return err
 		}
 	}
@@ -964,8 +1001,16 @@ func buildAwsInstanceOpts(
 		Name: aws.String(d.Get("iam_instance_profile").(string)),
 	}
 
-	opts.UserData64 = aws.String(
-		base64.StdEncoding.EncodeToString([]byte(d.Get("user_data").(string))))
+	user_data := d.Get("user_data").(string)
+
+	// Check whether the user_data is already Base64 encoded; don't double-encode
+	_, base64DecodeError := base64.StdEncoding.DecodeString(user_data)
+
+	if base64DecodeError == nil {
+		opts.UserData64 = aws.String(user_data)
+	} else {
+		opts.UserData64 = aws.String(base64.StdEncoding.EncodeToString([]byte(user_data)))
+	}
 
 	// check for non-default Subnet, and cast it to a String
 	subnet, hasSubnet := d.GetOk("subnet_id")

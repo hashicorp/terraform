@@ -70,10 +70,10 @@ resource "azurerm_virtual_machine" "test" {
     vm_size = "Standard_A0"
 
     storage_image_reference {
-	publisher = "Canonical"
-	offer = "UbuntuServer"
-	sku = "14.04.2-LTS"
-	version = "latest"
+        publisher = "Canonical"
+        offer = "UbuntuServer"
+        sku = "14.04.2-LTS"
+        version = "latest"
     }
 
     storage_os_disk {
@@ -84,13 +84,17 @@ resource "azurerm_virtual_machine" "test" {
     }
 
     os_profile {
-	computer_name = "hostname"
-	admin_username = "testadmin"
-	admin_password = "Password1234!"
+	    computer_name = "hostname"
+	    admin_username = "testadmin"
+	    admin_password = "Password1234!"
     }
 
     os_profile_linux_config {
-	disable_password_authentication = false
+	    disable_password_authentication = false
+    }
+    
+    tags {
+        environment = "staging"
     }
 }
 ```
@@ -115,6 +119,7 @@ The following arguments are supported:
 * `os_profile_linux_config` - (Required, when a linux machine) A Linux config block as documented below.
 * `os_profile_secrets` - (Optional) A collection of Secret blocks as documented below.
 * `network_interface_ids` - (Required) Specifies the list of resource IDs for the network interfaces associated with the virtual machine.
+* `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 For more information on the different example configurations, please check out the [azure documentation](https://msdn.microsoft.com/en-us/library/mt163591.aspx#Anchor_2)
 
@@ -137,6 +142,8 @@ For more information on the different example configurations, please check out t
 * `vhd_uri` - (Required) Specifies the vhd uri.
 * `create_option` - (Required) Specifies how the virtual machine should be created. Possible values are `attach` and `FromImage`.
 * `caching` - (Optional) Specifies the caching requirements.
+* `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version. `image_uri` can also specify the [VHD uri](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-deploy-templates/#create-a-custom-vm-image) of a custom VM image to clone. When cloning a custom disk image the `os_type` documented below becomes required.
+* `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
 
 `storage_data_disk` supports the following:
 
@@ -152,6 +159,12 @@ For more information on the different example configurations, please check out t
 * `admin_username` - (Required) Specifies the name of the administrator account.
 * `admin_password` - (Required) Specifies the password of the administrator account.
 * `custom_data` - (Optional) Specifies a base-64 encoded string of custom data. The base-64 encoded string is decoded to a binary array that is saved as a file on the Virtual Machine. The maximum length of the binary array is 65535 bytes.
+
+~> **NOTE:** `admin_password` must be between 6-72 characters long and must satisfy at least 3 of password complexity requirements from the following:  
+1. Contains an uppercase character  
+2. Contains a lowercase character  
+3. Contains a numeric digit  
+4. Contains a special character
 
 `os_profile_windows_config` supports the following:
 
@@ -175,7 +188,9 @@ For more information on the different example configurations, please check out t
 `os_profile_linux_config` supports the following:
 
 * `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled.
-* `ssh_keys` - (Optional) Specifies a collection of `key_path` and `key_data` to be placed on the virtual machine.
+* `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine. 
+
+~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure_
 
 `os_profile_secrets` supports the following:
 

@@ -24,7 +24,7 @@ func TestAccAWSRDSClusterInstance_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSClusterInstanceConfig,
+				Config: testAccAWSClusterInstanceConfig(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
 					testAccCheckAWSDBClusterInstanceAttributes(&v),
@@ -44,7 +44,7 @@ func TestAccAWSRDSClusterInstance_disappears(t *testing.T) {
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSClusterInstanceConfig,
+				Config: testAccAWSClusterInstanceConfig(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
 					testAccAWSClusterInstanceDisappears(&v),
@@ -166,7 +166,8 @@ func testAccCheckAWSClusterInstanceExists(n string, v *rds.DBInstance) resource.
 }
 
 // Add some random to the name, to avoid collision
-var testAccAWSClusterInstanceConfig = fmt.Sprintf(`
+func testAccAWSClusterInstanceConfig(n int) string {
+	return fmt.Sprintf(`
 resource "aws_rds_cluster" "default" {
   cluster_identifier = "tf-aurora-cluster-test-%d"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
@@ -176,9 +177,25 @@ resource "aws_rds_cluster" "default" {
 }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {
-  identifier         = "tf-cluster-instance-%d"
-  cluster_identifier = "${aws_rds_cluster.default.id}"
-  instance_class     = "db.r3.large"
+  identifier              = "tf-cluster-instance-%d"
+  cluster_identifier      = "${aws_rds_cluster.default.id}"
+  instance_class          = "db.r3.large"
+  db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
 }
 
-`, acctest.RandInt(), acctest.RandInt())
+resource "aws_db_parameter_group" "bar" {
+  name   = "tfcluster-test-group-%d"
+  family = "aurora5.6"
+
+  parameter {
+    name         = "back_log"
+    value        = "32767"
+    apply_method = "pending-reboot"
+  }
+
+  tags {
+    foo = "bar"
+  }
+}
+`, n, n, n)
+}

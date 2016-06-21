@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -250,7 +251,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if !c.Destroy {
-		if outputs := outputsAsString(state); outputs != "" {
+		if outputs := outputsAsString(state, ctx.Module().Config().Outputs, true); outputs != "" {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
@@ -276,10 +277,15 @@ func (c *ApplyCommand) Synopsis() string {
 
 func (c *ApplyCommand) helpApply() string {
 	helpText := `
-Usage: terraform apply [options] [DIR]
+Usage: terraform apply [options] [DIR-OR-PLAN]
 
   Builds or changes infrastructure according to Terraform configuration
   files in DIR.
+
+  By default, apply scans the current directory for the configuration
+  and applies the changes appropriately. However, a path to another
+  configuration or an execution plan can be provided. Execution plans can be
+  used to only execute a pre-determined set of actions.
 
   DIR can also be a SOURCE as given to the "init" command. In this case,
   apply behaves as though "init" was called followed by "apply". This only
@@ -371,7 +377,7 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *terraform.State) string {
+func outputsAsString(state *terraform.State, schema []*config.Output, includeHeader bool) string {
 	if state == nil {
 		return ""
 	}
@@ -379,27 +385,46 @@ func outputsAsString(state *terraform.State) string {
 	outputs := state.RootModule().Outputs
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
-		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
+		schemaMap := make(map[string]*config.Output)
+		if schema != nil {
+			for _, s := range schema {
+				schemaMap[s.Name] = s
+			}
+		}
+
+		if includeHeader {
+			outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
+		}
 
 		// Output the outputs in alphabetical order
 		keyLen := 0
-		keys := make([]string, 0, len(outputs))
+		ks := make([]string, 0, len(outputs))
 		for key, _ := range outputs {
-			keys = append(keys, key)
+			ks = append(ks, key)
 			if len(key) > keyLen {
 				keyLen = len(key)
 			}
 		}
-		sort.Strings(keys)
+		sort.Strings(ks)
 
-		for _, k := range keys {
+		for _, k := range ks {
+			schema, ok := schemaMap[k]
+			if ok && schema.Sensitive {
+				outputBuf.WriteString(fmt.Sprintf("%s = <sensitive>\n", k))
+				continue
+			}
+
 			v := outputs[k]
-
-			outputBuf.WriteString(fmt.Sprintf(
-				"  %s%s = %s\n",
-				k,
-				strings.Repeat(" ", keyLen-len(k)),
-				v))
+			switch typedV := v.Value.(type) {
+			case string:
+				outputBuf.WriteString(fmt.Sprintf("%s = %s\n", k, typedV))
+			case []interface{}:
+				outputBuf.WriteString(formatListOutput("", k, typedV))
+				outputBuf.WriteString("\n")
+			case map[string]interface{}:
+				outputBuf.WriteString(formatMapOutput("", k, typedV))
+				outputBuf.WriteString("\n")
+			}
 		}
 	}
 

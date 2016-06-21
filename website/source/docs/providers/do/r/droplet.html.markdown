@@ -31,7 +31,10 @@ The following arguments are supported:
 * `image` - (Required) The droplet image ID or slug.
 * `name` - (Required) The droplet name
 * `region` - (Required) The region to start in
-* `size` - (Required) The instance size to start
+* `size` - (Required) The instance size to start  
+
+-> **Note:** When resizing a droplet, only a bigger droplet size can be chosen.  
+
 * `backups` - (Optional) Boolean controlling if backups are made. Defaults to
    false.
 * `ipv6` - (Optional) Boolean controlling if IPv6 is enabled. Defaults to false.

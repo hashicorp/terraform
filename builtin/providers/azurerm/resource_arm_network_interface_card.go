@@ -6,11 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -22,77 +20,82 @@ func resourceArmNetworkInterface() *schema.Resource {
 		Delete: resourceArmNetworkInterfaceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"network_security_group_id": &schema.Schema{
+			"network_security_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"mac_address": &schema.Schema{
+			"mac_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virtual_machine_id": &schema.Schema{
+			"private_ip_address": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"virtual_machine_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ip_configuration": &schema.Schema{
+			"ip_configuration": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"subnet_id": &schema.Schema{
+						"subnet_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"private_ip_address": &schema.Schema{
+						"private_ip_address": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"private_ip_address_allocation": &schema.Schema{
+						"private_ip_address_allocation": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateNetworkInterfacePrivateIpAddressAllocation,
 						},
 
-						"public_ip_address_id": &schema.Schema{
+						"public_ip_address_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"load_balancer_backend_address_pools_ids": &schema.Schema{
+						"load_balancer_backend_address_pools_ids": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Computed: true,
@@ -100,7 +103,7 @@ func resourceArmNetworkInterface() *schema.Resource {
 							Set:      schema.HashString,
 						},
 
-						"load_balancer_inbound_nat_rules_ids": &schema.Schema{
+						"load_balancer_inbound_nat_rules_ids": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Computed: true,
@@ -112,7 +115,7 @@ func resourceArmNetworkInterface() *schema.Resource {
 				Set: resourceArmNetworkInterfaceIpConfigurationHash,
 			},
 
-			"dns_servers": &schema.Schema{
+			"dns_servers": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -120,13 +123,13 @@ func resourceArmNetworkInterface() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"internal_dns_name_label": &schema.Schema{
+			"internal_dns_name_label": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"applied_dns_servers": &schema.Schema{
+			"applied_dns_servers": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -134,10 +137,16 @@ func resourceArmNetworkInterface() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"internal_fqdn": &schema.Schema{
+			"internal_fqdn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+			},
+
+			"enable_ip_forwarding": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 
 			"tags": tagsSchema(),
@@ -154,9 +163,12 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
+	enableIpForwarding := d.Get("enable_ip_forwarding").(bool)
 	tags := d.Get("tags").(map[string]interface{})
 
-	properties := network.InterfacePropertiesFormat{}
+	properties := network.InterfacePropertiesFormat{
+		EnableIPForwarding: &enableIpForwarding,
+	}
 
 	if v, ok := d.GetOk("network_security_group_id"); ok {
 		nsgId := v.(string)
@@ -204,23 +216,20 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		Tags:       expandTags(tags),
 	}
 
-	resp, err := ifaceClient.CreateOrUpdate(resGroup, name, iface)
+	_, err := ifaceClient.CreateOrUpdate(resGroup, name, iface, make(chan struct{}))
 	if err != nil {
 		return err
 	}
 
-	d.SetId(*resp.ID)
+	read, err := ifaceClient.Get(resGroup, name, "")
+	if err != nil {
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read NIC %s (resource group %s) ID", name, resGroup)
+	}
 
-	log.Printf("[DEBUG] Waiting for Network Interface (%s) to become available", name)
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"Accepted", "Updating"},
-		Target:  []string{"Succeeded"},
-		Refresh: networkInterfaceStateRefreshFunc(client, resGroup, name),
-		Timeout: 10 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Network Interface (%s) to become available: %s", name, err)
-	}
+	d.SetId(*read.ID)
 
 	return resourceArmNetworkInterfaceRead(d, meta)
 }
@@ -241,7 +250,7 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure Netowkr Interface %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure Network Interface %s: %s", name, err)
 	}
 
 	iface := *resp.Properties
@@ -249,6 +258,18 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	if iface.MacAddress != nil {
 		if *iface.MacAddress != "" {
 			d.Set("mac_address", iface.MacAddress)
+		}
+	}
+
+	if iface.IPConfigurations != nil && len(*iface.IPConfigurations) > 0 {
+		var privateIPAddress *string
+		///TODO: Change this to a loop when https://github.com/Azure/azure-sdk-for-go/issues/259 is fixed
+		if (*iface.IPConfigurations)[0].Properties != nil {
+			privateIPAddress = (*iface.IPConfigurations)[0].Properties.PrivateIPAddress
+		}
+
+		if *privateIPAddress != "" {
+			d.Set("private_ip_address", *privateIPAddress)
 		}
 	}
 
@@ -290,20 +311,9 @@ func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 	resGroup := id.ResourceGroup
 	name := id.Path["networkInterfaces"]
 
-	_, err = ifaceClient.Delete(resGroup, name)
+	_, err = ifaceClient.Delete(resGroup, name, make(chan struct{}))
 
 	return err
-}
-
-func networkInterfaceStateRefreshFunc(client *ArmClient, resourceGroupName string, ifaceName string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		res, err := client.ifaceClient.Get(resourceGroupName, ifaceName, "")
-		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in networkInterfaceStateRefreshFunc to Azure ARM for network interace '%s' (RG: '%s'): %s", ifaceName, resourceGroupName, err)
-		}
-
-		return res, *res.Properties.ProvisioningState, nil
-	}
 }
 
 func resourceArmNetworkInterfaceIpConfigurationHash(v interface{}) int {
@@ -311,7 +321,13 @@ func resourceArmNetworkInterfaceIpConfigurationHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["subnet_id"].(string)))
+	if m["private_ip_address"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address"].(string)))
+	}
 	buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address_allocation"].(string)))
+	if m["public_ip_address_id"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["public_ip_address_id"].(string)))
+	}
 
 	return hashcode.String(buf.String())
 }
@@ -339,11 +355,23 @@ func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]ne
 		subnet_id := data["subnet_id"].(string)
 		private_ip_allocation_method := data["private_ip_address_allocation"].(string)
 
+		var allocationMethod network.IPAllocationMethod
+		switch strings.ToLower(private_ip_allocation_method) {
+		case "dynamic":
+			allocationMethod = network.Dynamic
+		case "static":
+			allocationMethod = network.Static
+		default:
+			return []network.InterfaceIPConfiguration{}, fmt.Errorf(
+				"valid values for private_ip_allocation_method are 'dynamic' and 'static' - got '%s'",
+				private_ip_allocation_method)
+		}
+
 		properties := network.InterfaceIPConfigurationPropertiesFormat{
 			Subnet: &network.Subnet{
 				ID: &subnet_id,
 			},
-			PrivateIPAllocationMethod: &private_ip_allocation_method,
+			PrivateIPAllocationMethod: allocationMethod,
 		}
 
 		if v := data["private_ip_address"].(string); v != "" {

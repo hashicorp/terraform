@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -14,6 +15,9 @@ func resourceAwsFlowLog() *schema.Resource {
 		Create: resourceAwsLogFlowCreate,
 		Read:   resourceAwsLogFlowRead,
 		Delete: resourceAwsLogFlowDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"iam_role_arn": &schema.Schema{
@@ -129,10 +133,21 @@ func resourceAwsLogFlowRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	fl := resp.FlowLogs[0]
-
 	d.Set("traffic_type", fl.TrafficType)
 	d.Set("log_group_name", fl.LogGroupName)
 	d.Set("iam_role_arn", fl.DeliverLogsPermissionArn)
+
+	var resourceKey string
+	if strings.HasPrefix(*fl.ResourceId, "vpc-") {
+		resourceKey = "vpc_id"
+	} else if strings.HasPrefix(*fl.ResourceId, "subnet-") {
+		resourceKey = "subnet_id"
+	} else if strings.HasPrefix(*fl.ResourceId, "eni-") {
+		resourceKey = "eni_id"
+	}
+	if resourceKey != "" {
+		d.Set(resourceKey, fl.ResourceId)
+	}
 
 	return nil
 }

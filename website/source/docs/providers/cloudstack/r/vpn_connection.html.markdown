@@ -16,8 +16,8 @@ Basic usage:
 
 ```
 resource "cloudstack_vpn_connection" "default" {
-    customergatewayid = "xxx"
-    vpngatewayid = "xxx"
+    customer_gateway_id = "8dab9381-ae73-48b8-9a3d-c460933ef5f7"
+    vpn_gateway_id = "a7900060-f8a8-44eb-be15-ea54cf499703"
 }
 ```
 
@@ -25,10 +25,16 @@ resource "cloudstack_vpn_connection" "default" {
 
 The following arguments are supported:
 
-* `customergatewayid` - (Required) The Customer Gateway ID to connect.
+* `customer_gateway_id` - (Required) The Customer Gateway ID to connect.
     Changing this forces a new resource to be created.
 
-* `vpngatewayid` - (Required) The VPN Gateway ID to connect.
+* `customergatewayid` - (Required, Deprecated) The Customer Gateway ID
+    to connect. Changing this forces a new resource to be created.
+
+* `vpn_gateway_id` - (Required) The VPN Gateway ID to connect. Changing
+    this forces a new resource to be created.
+
+* `vpngatewayid` - (Required, Deprecated) The VPN Gateway ID to connect.
     Changing this forces a new resource to be created.
 
 ## Attributes Reference

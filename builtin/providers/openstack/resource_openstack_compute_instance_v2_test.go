@@ -426,6 +426,61 @@ func TestAccComputeV2Instance_bootFromVolumeVolume(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2Instance_bootFromVolumeForceNew(t *testing.T) {
+	var instance1_1 servers.Server
+	var instance1_2 servers.Server
+	var testAccComputeV2Instance_bootFromVolumeForceNew_1 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			block_device {
+				uuid = "%s"
+				source_type = "image"
+				volume_size = 5
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = true
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	var testAccComputeV2Instance_bootFromVolumeForceNew_2 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			block_device {
+				uuid = "%s"
+				source_type = "image"
+				volume_size = 4
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = true
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_bootFromVolumeForceNew_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance1_1),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_bootFromVolumeForceNew_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance1_2),
+					testAccCheckComputeV2InstanceInstanceIDsDoNotMatch(&instance1_1, &instance1_2),
+				),
+			},
+		},
+	})
+}
+
 // TODO: verify the personality really exists on the instance.
 func TestAccComputeV2Instance_personality(t *testing.T) {
 	var instance servers.Server
@@ -497,6 +552,107 @@ func TestAccComputeV2Instance_multiEphemeral(t *testing.T) {
 				Config: testAccComputeV2Instance_multiEphemeral,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_accessIPv4(t *testing.T) {
+	var instance servers.Server
+	var testAccComputeV2Instance_accessIPv4 = fmt.Sprintf(`
+		resource "openstack_compute_floatingip_v2" "myip" {
+		}
+
+		resource "openstack_networking_network_v2" "network_1" {
+			name = "network_1"
+		}
+
+		resource "openstack_networking_subnet_v2" "subnet_1" {
+			name = "subnet_1"
+			network_id = "${openstack_networking_network_v2.network_1.id}"
+			cidr = "192.168.1.0/24"
+			ip_version = 4
+			enable_dhcp = true
+			no_gateway = true
+		}
+
+		resource "openstack_compute_instance_v2" "instance_1" {
+			depends_on = ["openstack_networking_subnet_v2.subnet_1"]
+
+			name = "instance_1"
+			security_groups = ["default"]
+			floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
+
+			network {
+				uuid = "%s"
+			}
+
+			network {
+				uuid = "${openstack_networking_network_v2.network_1.id}"
+				fixed_ip_v4 = "192.168.1.100"
+				access_network = true
+			}
+		}`, os.Getenv("OS_NETWORK_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_accessIPv4,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance),
+					resource.TestCheckResourceAttr(
+						"openstack_compute_instance_v2.instance_1", "access_ip_v4", "192.168.1.100"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_ChangeFixedIP(t *testing.T) {
+	var instance1_1 servers.Server
+	var instance1_2 servers.Server
+	var testAccComputeV2Instance_ChangeFixedIP_1 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			network {
+				uuid = "%s"
+				fixed_ip_v4 = "10.0.0.24"
+			}
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	var testAccComputeV2Instance_ChangeFixedIP_2 = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			network {
+				uuid = "%s"
+				fixed_ip_v4 = "10.0.0.25"
+			}
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_ChangeFixedIP_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance1_1),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_ChangeFixedIP_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance1_2),
+					testAccCheckComputeV2InstanceInstanceIDsDoNotMatch(&instance1_1, &instance1_2),
 				),
 			},
 		},
@@ -672,6 +828,15 @@ func testAccCheckComputeV2InstanceFloatingIPAttach(
 		}
 
 		return fmt.Errorf("Floating IP %s was not attached to instance %s", fip.ID, instance.ID)
+	}
+}
+func testAccCheckComputeV2InstanceInstanceIDsDoNotMatch(
+	instance1, instance2 *servers.Server) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if instance1.ID == instance2.ID {
+			return fmt.Errorf("Instance was not recreated.")
+		}
 
+		return nil
 	}
 }

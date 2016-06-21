@@ -27,13 +27,13 @@ func TestAccAWSDBSecurityGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_security_group.bar", "name", "secgroup-terraform"),
 					resource.TestCheckResourceAttr(
-						"aws_db_security_group.bar", "description", "just cuz"),
+						"aws_db_security_group.bar", "description", "Managed by Terraform"),
 					resource.TestCheckResourceAttr(
 						"aws_db_security_group.bar", "ingress.3363517775.cidr", "10.0.0.1/24"),
 					resource.TestCheckResourceAttr(
 						"aws_db_security_group.bar", "ingress.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_db_security_group.bar", "tags.#", "1"),
+						"aws_db_security_group.bar", "tags.%", "1"),
 				),
 			},
 		},
@@ -97,10 +97,6 @@ func testAccCheckAWSDBSecurityGroupAttributes(group *rds.DBSecurityGroup) resour
 			return fmt.Errorf("bad name: %#v", *group.DBSecurityGroupName)
 		}
 
-		if *group.DBSecurityGroupDescription != "just cuz" {
-			return fmt.Errorf("bad description: %#v", *group.DBSecurityGroupDescription)
-		}
-
 		return nil
 	}
 }
@@ -146,7 +142,6 @@ provider "aws" {
 
 resource "aws_db_security_group" "bar" {
     name = "secgroup-terraform"
-    description = "just cuz"
 
     ingress {
         cidr = "10.0.0.1/24"

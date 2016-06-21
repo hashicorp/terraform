@@ -41,7 +41,51 @@ func resourceDockerImageUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDockerImageDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*dc.Client)
+	err := removeImage(d, client)
+	if err != nil {
+		return fmt.Errorf("Unable to remove Docker image: %s", err)
+	}
 	d.SetId("")
+	return nil
+}
+
+func searchLocalImages(data Data, imageName string) *dc.APIImages {
+	if apiImage, ok := data.DockerImages[imageName]; ok {
+		return apiImage
+	}
+	if apiImage, ok := data.DockerImages[imageName+":latest"]; ok {
+		imageName = imageName + ":latest"
+		return apiImage
+	}
+	return nil
+}
+
+func removeImage(d *schema.ResourceData, client *dc.Client) error {
+	var data Data
+
+	if keepLocally := d.Get("keep_locally").(bool); keepLocally {
+		return nil
+	}
+
+	if err := fetchLocalImages(&data, client); err != nil {
+		return err
+	}
+
+	imageName := d.Get("name").(string)
+	if imageName == "" {
+		return fmt.Errorf("Empty image name is not allowed")
+	}
+
+	foundImage := searchLocalImages(data, imageName)
+
+	if foundImage != nil {
+		err := client.RemoveImage(foundImage.ID)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -146,18 +190,7 @@ func findImage(d *schema.ResourceData, client *dc.Client) (*dc.APIImages, error)
 		return nil, fmt.Errorf("Empty image name is not allowed")
 	}
 
-	searchLocal := func() *dc.APIImages {
-		if apiImage, ok := data.DockerImages[imageName]; ok {
-			return apiImage
-		}
-		if apiImage, ok := data.DockerImages[imageName+":latest"]; ok {
-			imageName = imageName + ":latest"
-			return apiImage
-		}
-		return nil
-	}
-
-	foundImage := searchLocal()
+	foundImage := searchLocalImages(data, imageName)
 
 	if d.Get("keep_updated").(bool) || foundImage == nil {
 		if err := pullImage(&data, client, imageName); err != nil {
@@ -165,7 +198,7 @@ func findImage(d *schema.ResourceData, client *dc.Client) (*dc.APIImages, error)
 		}
 	}
 
-	foundImage = searchLocal()
+	foundImage = searchLocalImages(data, imageName)
 	if foundImage != nil {
 		return foundImage, nil
 	}

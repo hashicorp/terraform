@@ -38,6 +38,39 @@ func TestAccAWSRedshiftCluster_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSRedshiftCluster_iamRoles(t *testing.T) {
+	var v redshift.Cluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	preConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_iamRoles, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_updateIamRoles, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "iam_roles.#", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "iam_roles.#", "1"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRedshiftCluster_publiclyAccessible(t *testing.T) {
 	var v redshift.Cluster
 
@@ -65,6 +98,74 @@ func TestAccAWSRedshiftCluster_publiclyAccessible(t *testing.T) {
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
 					resource.TestCheckResourceAttr(
 						"aws_redshift_cluster.default", "publicly_accessible", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRedshiftCluster_updateNodeCount(t *testing.T) {
+	var v redshift.Cluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	preConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_basic, ri)
+	postConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_updateNodeCount, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "number_of_nodes", "1"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "number_of_nodes", "2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRedshiftCluster_tags(t *testing.T) {
+	var v redshift.Cluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	preConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_tags, ri)
+	postConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_updatedTags, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "tags.%", "3"),
+					resource.TestCheckResourceAttr("aws_redshift_cluster.default", "tags.environment", "Production"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "tags.%", "1"),
+					resource.TestCheckResourceAttr("aws_redshift_cluster.default", "tags.environment", "Production"),
 				),
 			},
 		},
@@ -257,6 +358,10 @@ func TestResourceAWSRedshiftClusterMasterUsernameValidation(t *testing.T) {
 			Value:    randomString(129),
 			ErrCount: 1,
 		},
+		{
+			Value:    "testing_testing123",
+			ErrCount: 0,
+		},
 	}
 
 	for _, tc := range cases {
@@ -268,11 +373,33 @@ func TestResourceAWSRedshiftClusterMasterUsernameValidation(t *testing.T) {
 	}
 }
 
-var testAccAWSRedshiftClusterConfig_basic = `
-provider "aws" {
-	region = "us-west-2"
+var testAccAWSRedshiftClusterConfig_updateNodeCount = `
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  number_of_nodes = 2
 }
+`
 
+var testAccAWSRedshiftClusterConfig_basic = `
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+}`
+
+var testAccAWSRedshiftClusterConfig_tags = `
 resource "aws_redshift_cluster" "default" {
   cluster_identifier = "tf-redshift-cluster-%d"
   availability_zone = "us-west-2a"
@@ -282,57 +409,14 @@ resource "aws_redshift_cluster" "default" {
   node_type = "dc1.large"
   automated_snapshot_retention_period = 7
   allow_version_upgrade = false
+  tags {
+    environment = "Production"
+    cluster = "reader"
+    Type = "master"
+  }
 }`
 
-var testAccAWSRedshiftClusterConfig_notPubliclyAccessible = `
-provider "aws" {
-	region = "us-west-2"
-}
-
-resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
-}
-
-resource "aws_internet_gateway" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
-	tags {
-		foo = "bar"
-	}
-}
-
-resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	availability_zone = "us-west-2a"
-	vpc_id = "${aws_vpc.foo.id}"
-	tags {
-		Name = "tf-dbsubnet-test-1"
-	}
-}
-
-resource "aws_subnet" "bar" {
-	cidr_block = "10.1.2.0/24"
-	availability_zone = "us-west-2b"
-	vpc_id = "${aws_vpc.foo.id}"
-	tags {
-		Name = "tf-dbsubnet-test-2"
-	}
-}
-
-resource "aws_subnet" "foobar" {
-	cidr_block = "10.1.3.0/24"
-	availability_zone = "us-west-2c"
-	vpc_id = "${aws_vpc.foo.id}"
-	tags {
-		Name = "tf-dbsubnet-test-3"
-	}
-}
-
-resource "aws_redshift_subnet_group" "foo" {
-	name = "foo"
-	description = "foo description"
-	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}", "${aws_subnet.foobar.id}"]
-}
-
+var testAccAWSRedshiftClusterConfig_updatedTags = `
 resource "aws_redshift_cluster" "default" {
   cluster_identifier = "tf-redshift-cluster-%d"
   availability_zone = "us-west-2a"
@@ -341,27 +425,74 @@ resource "aws_redshift_cluster" "default" {
   master_password = "Mustbe8characters"
   node_type = "dc1.large"
   automated_snapshot_retention_period = 7
+  allow_version_upgrade = false
+  tags {
+    environment = "Production"
+  }
+}`
+
+var testAccAWSRedshiftClusterConfig_notPubliclyAccessible = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+resource "aws_internet_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		foo = "bar"
+	}
+}
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-1"
+	}
+}
+resource "aws_subnet" "bar" {
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-2"
+	}
+}
+resource "aws_subnet" "foobar" {
+	cidr_block = "10.1.3.0/24"
+	availability_zone = "us-west-2c"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-3"
+	}
+}
+resource "aws_redshift_subnet_group" "foo" {
+	name = "foo"
+	description = "foo description"
+	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}", "${aws_subnet.foobar.id}"]
+}
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
   allow_version_upgrade = false
   cluster_subnet_group_name = "${aws_redshift_subnet_group.foo.name}"
   publicly_accessible = false
 }`
 
 var testAccAWSRedshiftClusterConfig_updatePubliclyAccessible = `
-provider "aws" {
-	region = "us-west-2"
-}
-
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
-
 resource "aws_internet_gateway" "foo" {
 	vpc_id = "${aws_vpc.foo.id}"
 	tags {
 		foo = "bar"
 	}
 }
-
 resource "aws_subnet" "foo" {
 	cidr_block = "10.1.1.0/24"
 	availability_zone = "us-west-2a"
@@ -370,7 +501,6 @@ resource "aws_subnet" "foo" {
 		Name = "tf-dbsubnet-test-1"
 	}
 }
-
 resource "aws_subnet" "bar" {
 	cidr_block = "10.1.2.0/24"
 	availability_zone = "us-west-2b"
@@ -379,7 +509,6 @@ resource "aws_subnet" "bar" {
 		Name = "tf-dbsubnet-test-2"
 	}
 }
-
 resource "aws_subnet" "foobar" {
 	cidr_block = "10.1.3.0/24"
 	availability_zone = "us-west-2c"
@@ -388,13 +517,11 @@ resource "aws_subnet" "foobar" {
 		Name = "tf-dbsubnet-test-3"
 	}
 }
-
 resource "aws_redshift_subnet_group" "foo" {
 	name = "foo"
 	description = "foo description"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}", "${aws_subnet.foobar.id}"]
 }
-
 resource "aws_redshift_cluster" "default" {
   cluster_identifier = "tf-redshift-cluster-%d"
   availability_zone = "us-west-2a"
@@ -402,8 +529,58 @@ resource "aws_redshift_cluster" "default" {
   master_username = "foo"
   master_password = "Mustbe8characters"
   node_type = "dc1.large"
-  automated_snapshot_retention_period = 7
+  automated_snapshot_retention_period = 0
   allow_version_upgrade = false
   cluster_subnet_group_name = "${aws_redshift_subnet_group.foo.name}"
   publicly_accessible = true
 }`
+
+var testAccAWSRedshiftClusterConfig_iamRoles = `
+resource "aws_iam_role" "ec2-role" {
+	name   = "test-role-ec2-%d"
+	path = "/"
+ 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_iam_role" "lambda-role" {
+ 	name   = "test-role-lambda-%d"
+ 	path = "/"
+ 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"lambda.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_redshift_cluster" "default" {
+   cluster_identifier = "tf-redshift-cluster-%d"
+   availability_zone = "us-west-2a"
+   database_name = "mydb"
+   master_username = "foo_test"
+   master_password = "Mustbe8characters"
+   node_type = "dc1.large"
+   automated_snapshot_retention_period = 0
+   allow_version_upgrade = false
+   iam_roles = ["${aws_iam_role.ec2-role.arn}", "${aws_iam_role.lambda-role.arn}"]
+}`
+
+var testAccAWSRedshiftClusterConfig_updateIamRoles = `
+resource "aws_iam_role" "ec2-role" {
+ 	name   = "test-role-ec2-%d"
+ 	path = "/"
+ 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+ }
+
+ resource "aws_iam_role" "lambda-role" {
+ 	name   = "test-role-lambda-%d"
+ 	path = "/"
+ 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"lambda.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+ }
+
+ resource "aws_redshift_cluster" "default" {
+   cluster_identifier = "tf-redshift-cluster-%d"
+   availability_zone = "us-west-2a"
+   database_name = "mydb"
+   master_username = "foo_test"
+   master_password = "Mustbe8characters"
+   node_type = "dc1.large"
+   automated_snapshot_retention_period = 0
+   allow_version_upgrade = false
+   iam_roles = ["${aws_iam_role.ec2-role.arn}"]
+ }`

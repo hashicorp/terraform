@@ -23,9 +23,6 @@ for the configuration and state file to refresh.
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-backup=path` - Path to the backup file. Defaults to `-state-out` with
-  the ".backup" extension. Disabled by setting to "-".
-
 * `-destroy` - If set, generates a plan to destroy all the known resources.
 
 * `-detailed-exitcode` - Return a detailed exit code when the command exits.

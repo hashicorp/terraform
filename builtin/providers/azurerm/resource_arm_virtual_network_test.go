@@ -46,7 +46,7 @@ func TestAccAzureRMVirtualNetwork_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkExists("azurerm_virtual_network.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_virtual_network.test", "tags.#", "2"),
+						"azurerm_virtual_network.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_network.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -59,7 +59,7 @@ func TestAccAzureRMVirtualNetwork_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkExists("azurerm_virtual_network.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_virtual_network.test", "tags.#", "1"),
+						"azurerm_virtual_network.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_network.test", "tags.environment", "staging"),
 				),

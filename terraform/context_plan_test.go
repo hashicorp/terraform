@@ -626,6 +626,57 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_moduleVarWrongType(t *testing.T) {
+	m := testModule(t, "plan-module-wrong-var-type")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err == nil {
+		t.Fatalf("should error")
+	}
+}
+
+func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
+	m := testModule(t, "plan-module-wrong-var-type-nested")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err == nil {
+		t.Fatalf("should error")
+	}
+}
+
+func TestContext2Plan_moduleVarWithDefaultValue(t *testing.T) {
+	m := testModule(t, "plan-module-var-with-default-value")
+	p := testProvider("null")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+}
+
 func TestContext2Plan_moduleVarComputed(t *testing.T) {
 	m := testModule(t, "plan-module-var-computed")
 	p := testProvider("aws")
@@ -810,6 +861,140 @@ func TestContext2Plan_computed(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformPlanComputedStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContext2Plan_computedDataResource(t *testing.T) {
+	m := testModule(t, "plan-computed-data-resource")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if got := len(plan.Diff.Modules); got != 1 {
+		t.Fatalf("got %d modules; want 1", got)
+	}
+
+	moduleDiff := plan.Diff.Modules[0]
+
+	if _, ok := moduleDiff.Resources["aws_instance.foo"]; !ok {
+		t.Fatalf("missing diff for aws_instance.foo")
+	}
+	iDiff, ok := moduleDiff.Resources["data.aws_vpc.bar"]
+	if !ok {
+		t.Fatalf("missing diff for data.aws_vpc.bar")
+	}
+
+	expectedDiff := &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"id": {
+				NewComputed: true,
+				RequiresNew: true,
+				Type:        DiffAttrOutput,
+			},
+		},
+	}
+	if same, _ := expectedDiff.Same(iDiff); !same {
+		t.Fatalf(
+			"incorrect diff for data.aws_vpc.bar\ngot:  %#v\nwant: %#v",
+			iDiff, expectedDiff,
+		)
+	}
+}
+
+func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
+	m := testModule(t, "plan-data-resource-becomes-computed")
+	p := testProvider("aws")
+
+	p.DiffFn = func(info *InstanceInfo, state *InstanceState, config *ResourceConfig) (*InstanceDiff, error) {
+		if info.Type != "aws_instance" {
+			t.Fatalf("don't know how to diff %s", info.Id)
+			return nil, nil
+		}
+
+		return &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"computed": &ResourceAttrDiff{
+					Old:         "",
+					New:         "",
+					NewComputed: true,
+				},
+			},
+		}, nil
+	}
+	p.ReadDataDiffReturn = &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"foo": &ResourceAttrDiff{
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"data.aws_data_resource.foo": &ResourceState{
+							Type: "aws_data_resource",
+							Primary: &InstanceState{
+								ID: "i-abc123",
+								Attributes: map[string]string{
+									"id":    "i-abc123",
+									"value": "baz",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if got := len(plan.Diff.Modules); got != 1 {
+		t.Fatalf("got %d modules; want 1", got)
+	}
+
+	if !p.ReadDataDiffCalled {
+		t.Fatal("ReadDataDiff wasn't called, but should've been")
+	}
+	if got, want := p.ReadDataDiffInfo.Id, "data.aws_data_resource.foo"; got != want {
+		t.Fatalf("ReadDataDiff info id is %s; want %s", got, want)
+	}
+
+	moduleDiff := plan.Diff.Modules[0]
+
+	iDiff, ok := moduleDiff.Resources["data.aws_data_resource.foo"]
+	if !ok {
+		t.Fatalf("missing diff for data.aws_data_resource.foo")
+	}
+
+	if same, _ := p.ReadDataDiffReturn.Same(iDiff); !same {
+		t.Fatalf(
+			"incorrect diff for data.data_resource.foo\ngot:  %#v\nwant: %#v",
+			iDiff, p.ReadDataDiffReturn,
+		)
 	}
 }
 
@@ -1620,10 +1805,9 @@ func TestContext2Plan_taint(t *testing.T) {
 					},
 					"aws_instance.bar": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "baz",
-							},
+						Primary: &InstanceState{
+							ID:      "baz",
+							Tainted: true,
 						},
 					},
 				},
@@ -1650,57 +1834,6 @@ func TestContext2Plan_taint(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_multiple_taint(t *testing.T) {
-	m := testModule(t, "plan-taint")
-	p := testProvider("aws")
-	p.DiffFn = testDiffFn
-	s := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "bar",
-							Attributes: map[string]string{"num": "2"},
-						},
-					},
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "baz",
-							},
-							&InstanceState{
-								ID: "zip",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	ctx := testContext2(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-		State: s,
-	})
-
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(plan.String())
-	expected := strings.TrimSpace(testTerraformPlanMultipleTaintStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s", actual)
-	}
-}
-
 // Fails about 50% of the time before the fix for GH-4982, covers the fix.
 func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 	m := testModule(t, "plan-taint-interpolated-count")
@@ -1713,8 +1846,9 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo.0": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{ID: "bar"},
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
 						},
 					},
 					"aws_instance.foo.1": &ResourceState{
@@ -1751,9 +1885,8 @@ DESTROY/CREATE: aws_instance.foo.0
 
 STATE:
 
-aws_instance.foo.0: (1 tainted)
-  ID = <not created>
-  Tainted ID 1 = bar
+aws_instance.foo.0: (tainted)
+  ID = bar
 aws_instance.foo.1:
   ID = bar
 aws_instance.foo.2:
@@ -2035,6 +2168,7 @@ func TestContext2Plan_varListErr(t *testing.T) {
 	})
 
 	_, err := ctx.Plan()
+
 	if err == nil {
 		t.Fatal("should error")
 	}

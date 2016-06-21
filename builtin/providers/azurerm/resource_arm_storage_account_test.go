@@ -60,7 +60,7 @@ func TestAccAzureRMStorageAccount_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_type", "Standard_LRS"),
-					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.#", "1"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.%", "1"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.environment", "production"),
 				),
 			},
@@ -70,7 +70,7 @@ func TestAccAzureRMStorageAccount_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_type", "Standard_GRS"),
-					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.#", "1"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.%", "1"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.environment", "staging"),
 				),
 			},

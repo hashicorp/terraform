@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -260,6 +263,64 @@ func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, 
 	return parameters, nil
 }
 
+func expandOptionConfiguration(configured []interface{}) ([]*rds.OptionConfiguration, error) {
+	var option []*rds.OptionConfiguration
+
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		o := &rds.OptionConfiguration{
+			OptionName: aws.String(data["option_name"].(string)),
+		}
+
+		if raw, ok := data["port"]; ok {
+			port := raw.(int)
+			if port != 0 {
+				o.Port = aws.Int64(int64(port))
+			}
+		}
+
+		if raw, ok := data["db_security_group_memberships"]; ok {
+			memberships := expandStringList(raw.(*schema.Set).List())
+			if len(memberships) > 0 {
+				o.DBSecurityGroupMemberships = memberships
+			}
+		}
+
+		if raw, ok := data["vpc_security_group_memberships"]; ok {
+			memberships := expandStringList(raw.(*schema.Set).List())
+			if len(memberships) > 0 {
+				o.VpcSecurityGroupMemberships = memberships
+			}
+		}
+
+		if raw, ok := data["option_settings"]; ok {
+			o.OptionSettings = expandOptionSetting(raw.(*schema.Set).List())
+		}
+
+		option = append(option, o)
+	}
+
+	return option, nil
+}
+
+func expandOptionSetting(list []interface{}) []*rds.OptionSetting {
+	options := make([]*rds.OptionSetting, 0, len(list))
+
+	for _, oRaw := range list {
+		data := oRaw.(map[string]interface{})
+
+		o := &rds.OptionSetting{
+			Name:  aws.String(data["name"].(string)),
+			Value: aws.String(data["value"].(string)),
+		}
+
+		options = append(options, o)
+	}
+
+	return options
+}
+
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
 func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.ParameterNameValue, error) {
@@ -303,6 +364,58 @@ func flattenAccessLog(l *elb.AccessLog) []map[string]interface{} {
 	}
 
 	return result
+}
+
+// Takes the result of flatmap.Expand for an array of step adjustments and
+// returns a []*autoscaling.StepAdjustment.
+func expandStepAdjustments(configured []interface{}) ([]*autoscaling.StepAdjustment, error) {
+	var adjustments []*autoscaling.StepAdjustment
+
+	// Loop over our configured step adjustments and create an array
+	// of aws-sdk-go compatible objects. We're forced to convert strings
+	// to floats here because there's no way to detect whether or not
+	// an uninitialized, optional schema element is "0.0" deliberately.
+	// With strings, we can test for "", which is definitely an empty
+	// struct value.
+	for _, raw := range configured {
+		data := raw.(map[string]interface{})
+		a := &autoscaling.StepAdjustment{
+			ScalingAdjustment: aws.Int64(int64(data["scaling_adjustment"].(int))),
+		}
+		if data["metric_interval_lower_bound"] != "" {
+			bound := data["metric_interval_lower_bound"]
+			switch bound := bound.(type) {
+			case string:
+				f, err := strconv.ParseFloat(bound, 64)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"metric_interval_lower_bound must be a float value represented as a string")
+				}
+				a.MetricIntervalLowerBound = aws.Float64(f)
+			default:
+				return nil, fmt.Errorf(
+					"metric_interval_lower_bound isn't a string. This is a bug. Please file an issue.")
+			}
+		}
+		if data["metric_interval_upper_bound"] != "" {
+			bound := data["metric_interval_upper_bound"]
+			switch bound := bound.(type) {
+			case string:
+				f, err := strconv.ParseFloat(bound, 64)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"metric_interval_upper_bound must be a float value represented as a string")
+				}
+				a.MetricIntervalUpperBound = aws.Float64(f)
+			default:
+				return nil, fmt.Errorf(
+					"metric_interval_upper_bound isn't a string. This is a bug. Please file an issue.")
+			}
+		}
+		adjustments = append(adjustments, a)
+	}
+
+	return adjustments, nil
 }
 
 // Flattens a health check into something that flatmap.Flatten()
@@ -452,6 +565,53 @@ func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (str
 	return string(byteArray[:n]), nil
 }
 
+// Flattens an array of Options into a []map[string]interface{}
+func flattenOptions(list []*rds.Option) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		if i.OptionName != nil {
+			r := make(map[string]interface{})
+			r["option_name"] = strings.ToLower(*i.OptionName)
+			// Default empty string, guard against nil parameter values
+			r["port"] = ""
+			if i.Port != nil {
+				r["port"] = int(*i.Port)
+			}
+			if i.VpcSecurityGroupMemberships != nil {
+				vpcs := make([]string, 0, len(i.VpcSecurityGroupMemberships))
+				for _, vpc := range i.VpcSecurityGroupMemberships {
+					id := vpc.VpcSecurityGroupId
+					vpcs = append(vpcs, *id)
+				}
+
+				r["vpc_security_group_memberships"] = vpcs
+			}
+			if i.DBSecurityGroupMemberships != nil {
+				dbs := make([]string, 0, len(i.DBSecurityGroupMemberships))
+				for _, db := range i.DBSecurityGroupMemberships {
+					id := db.DBSecurityGroupName
+					dbs = append(dbs, *id)
+				}
+
+				r["db_security_group_memberships"] = dbs
+			}
+			if i.OptionSettings != nil {
+				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
+				for _, j := range i.OptionSettings {
+					settings = append(settings, map[string]interface{}{
+						"name":  *j.Name,
+						"value": *j.Value,
+					})
+				}
+
+				r["option_settings"] = settings
+			}
+			result = append(result, r)
+		}
+	}
+	return result
+}
+
 // Flattens an array of Parameters into a []map[string]interface{}
 func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
@@ -486,10 +646,12 @@ func flattenRedshiftParameters(list []*redshift.Parameter) []map[string]interfac
 func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
-		result = append(result, map[string]interface{}{
-			"name":  strings.ToLower(*i.ParameterName),
-			"value": strings.ToLower(*i.ParameterValue),
-		})
+		if i.ParameterValue != nil {
+			result = append(result, map[string]interface{}{
+				"name":  strings.ToLower(*i.ParameterName),
+				"value": strings.ToLower(*i.ParameterValue),
+			})
+		}
 	}
 	return result
 }
@@ -562,6 +724,24 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentId
 	return att
+}
+
+// Flattens step adjustments into a list of map[string]interface.
+func flattenStepAdjustments(adjustments []*autoscaling.StepAdjustment) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(adjustments))
+	for _, raw := range adjustments {
+		a := map[string]interface{}{
+			"scaling_adjustment": *raw.ScalingAdjustment,
+		}
+		if raw.MetricIntervalUpperBound != nil {
+			a["metric_interval_upper_bound"] = *raw.MetricIntervalUpperBound
+		}
+		if raw.MetricIntervalLowerBound != nil {
+			a["metric_interval_lower_bound"] = *raw.MetricIntervalLowerBound
+		}
+		result = append(result, a)
+	}
+	return result
 }
 
 func flattenResourceRecords(recs []*route53.ResourceRecord) []string {
@@ -876,6 +1056,59 @@ func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key 
 	return operations
 }
 
+func expandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	oldParameters, newParameters := d.GetChange(key)
+	oldParametersMap := make(map[string]interface{})
+	newParametersMap := make(map[string]interface{})
+
+	if err := json.Unmarshal([]byte(oldParameters.(string)), &oldParametersMap); err != nil {
+		err := fmt.Errorf("Error unmarshaling old %s: %s", key, err)
+		return operations, err
+	}
+
+	if err := json.Unmarshal([]byte(newParameters.(string)), &newParametersMap); err != nil {
+		err := fmt.Errorf("Error unmarshaling new %s: %s", key, err)
+		return operations, err
+	}
+
+	for k, _ := range oldParametersMap {
+		operation := apigateway.PatchOperation{
+			Op:   aws.String("remove"),
+			Path: aws.String(fmt.Sprintf("/%s/%s", prefix, k)),
+		}
+
+		for nK, nV := range newParametersMap {
+			if nK == k {
+				operation.Op = aws.String("replace")
+				operation.Value = aws.String(strconv.FormatBool(nV.(bool)))
+			}
+		}
+
+		operations = append(operations, &operation)
+	}
+
+	for nK, nV := range newParametersMap {
+		exists := false
+		for k, _ := range oldParametersMap {
+			if k == nK {
+				exists = true
+			}
+		}
+		if !exists {
+			operation := apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, nK)),
+				Value: aws.String(strconv.FormatBool(nV.(bool))),
+			}
+			operations = append(operations, &operation)
+		}
+	}
+
+	return operations, nil
+}
+
 func expandApiGatewayStageKeyOperations(d *schema.ResourceData) []*apigateway.PatchOperation {
 	operations := make([]*apigateway.PatchOperation, 0)
 
@@ -944,4 +1177,239 @@ func flattenCloudWachLogMetricTransformations(ts []*cloudwatchlogs.MetricTransfo
 	m["value"] = *ts[0].MetricValue
 
 	return m
+}
+
+func flattenBeanstalkAsg(list []*elasticbeanstalk.AutoScalingGroup) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkInstances(list []*elasticbeanstalk.Instance) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Id != nil {
+			strs = append(strs, *r.Id)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkLc(list []*elasticbeanstalk.LaunchConfiguration) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkElb(list []*elasticbeanstalk.LoadBalancer) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkSqs(list []*elasticbeanstalk.Queue) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.URL != nil {
+			strs = append(strs, *r.URL)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkTrigger(list []*elasticbeanstalk.Trigger) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+// There are several parts of the AWS API that will sort lists of strings,
+// causing diffs inbetweeen resources that use lists. This avoids a bit of
+// code duplication for pre-sorts that can be used for things like hash
+// functions, etc.
+func sortInterfaceSlice(in []interface{}) []interface{} {
+	a := []string{}
+	b := []interface{}{}
+	for _, v := range in {
+		a = append(a, v.(string))
+	}
+
+	sort.Strings(a)
+
+	for _, v := range a {
+		b = append(b, v)
+	}
+
+	return b
+}
+
+func flattenApiGatewayThrottleSettings(settings *apigateway.ThrottleSettings) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if settings != nil {
+		r := make(map[string]interface{})
+		if settings.BurstLimit != nil {
+			r["burst_limit"] = *settings.BurstLimit
+		}
+
+		if settings.RateLimit != nil {
+			r["rate_limit"] = *settings.RateLimit
+		}
+
+		result = append(result, r)
+	}
+
+	return result
+}
+
+// TODO: refactor some of these helper functions and types in the terraform/helper packages
+
+// getStringPtr returns a *string version of the value taken from m, where m
+// can be a map[string]interface{} or a *schema.ResourceData. If the key isn't
+// present or is empty, getNilString returns nil.
+func getStringPtr(m interface{}, key string) *string {
+	switch m := m.(type) {
+	case map[string]interface{}:
+		v := m[key]
+
+		if v == nil {
+			return nil
+		}
+
+		s := v.(string)
+		if s == "" {
+			return nil
+		}
+
+		return &s
+
+	case *schema.ResourceData:
+		if v, ok := m.GetOk(key); ok {
+			if v == nil || v.(string) == "" {
+				return nil
+			}
+			s := v.(string)
+			return &s
+		}
+
+	default:
+		panic("unknown type in getStringPtr")
+	}
+
+	return nil
+}
+
+// getStringPtrList returns a []*string version of the map value. If the key
+// isn't present, getNilStringList returns nil.
+func getStringPtrList(m map[string]interface{}, key string) []*string {
+	if v, ok := m[key]; ok {
+		var stringList []*string
+		for _, i := range v.([]interface{}) {
+			s := i.(string)
+			stringList = append(stringList, &s)
+		}
+
+		return stringList
+	}
+
+	return nil
+}
+
+// a convenience wrapper type for the schema.Set map[string]interface{}
+// Set operations only alter the underlying map if the value is not nil
+type setMap map[string]interface{}
+
+// SetString sets m[key] = *value only if `value != nil`
+func (s setMap) SetString(key string, value *string) {
+	if value == nil {
+		return
+	}
+
+	s[key] = *value
+}
+
+// SetStringMap sets key to value as a map[string]interface{}, stripping any nil
+// values. The value parameter can be a map[string]interface{}, a
+// map[string]*string, or a map[string]string.
+func (s setMap) SetStringMap(key string, value interface{}) {
+	// because these methods are meant to be chained without intermediate
+	// checks for nil, we are likely to get interfaces with dynamic types but
+	// a nil value.
+	if reflect.ValueOf(value).IsNil() {
+		return
+	}
+
+	m := make(map[string]interface{})
+
+	switch value := value.(type) {
+	case map[string]string:
+		for k, v := range value {
+			m[k] = v
+		}
+	case map[string]*string:
+		for k, v := range value {
+			if v == nil {
+				continue
+			}
+			m[k] = *v
+		}
+	case map[string]interface{}:
+		for k, v := range value {
+			if v == nil {
+				continue
+			}
+
+			switch v := v.(type) {
+			case string:
+				m[k] = v
+			case *string:
+				if v != nil {
+					m[k] = *v
+				}
+			default:
+				panic(fmt.Sprintf("unknown type for SetString: %T", v))
+			}
+		}
+	}
+
+	// catch the case where the interface wasn't nil, but we had no non-nil values
+	if len(m) > 0 {
+		s[key] = m
+	}
+}
+
+// Set assigns value to s[key] if value isn't nil
+func (s setMap) Set(key string, value interface{}) {
+	if reflect.ValueOf(value).IsNil() {
+		return
+	}
+
+	s[key] = value
+}
+
+// Map returns the raw map type for a shorter type conversion
+func (s setMap) Map() map[string]interface{} {
+	return map[string]interface{}(s)
+}
+
+// MapList returns the map[string]interface{} as a single element in a slice to
+// match the schema.Set data type used for structs.
+func (s setMap) MapList() []map[string]interface{} {
+	return []map[string]interface{}{s.Map()}
 }

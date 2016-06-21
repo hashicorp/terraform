@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -152,7 +155,26 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Route create config: %s", createOpts)
 
 	// Create the route
-	_, err := conn.CreateRoute(createOpts)
+	var err error
+
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+		_, err = conn.CreateRoute(createOpts)
+
+		if err != nil {
+			ec2err, ok := err.(awserr.Error)
+			if !ok {
+				return resource.NonRetryableError(err)
+			}
+			if ec2err.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to create route again: %q", ec2err.Message())
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Error creating route: %s", err)
 	}
@@ -269,8 +291,29 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Route delete opts: %s", deleteOpts)
 
-	resp, err := conn.DeleteRoute(deleteOpts)
-	log.Printf("[DEBUG] Route delete result: %s", resp)
+	var err error
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		log.Printf("[DEBUG] Trying to delete route with opts %s", deleteOpts)
+		resp, err := conn.DeleteRoute(deleteOpts)
+		log.Printf("[DEBUG] Route delete result: %s", resp)
+
+		if err == nil {
+			return nil
+		}
+
+		ec2err, ok := err.(awserr.Error)
+		if !ok {
+			return resource.NonRetryableError(err)
+		}
+		if ec2err.Code() == "InvalidParameterException" {
+			log.Printf("[DEBUG] Trying to delete route again: %q",
+				ec2err.Message())
+			return resource.RetryableError(err)
+		}
+
+		return resource.NonRetryableError(err)
+	})
+
 	if err != nil {
 		return err
 	}
@@ -289,7 +332,13 @@ func resourceAwsRouteExists(d *schema.ResourceData, meta interface{}) (bool, err
 
 	res, err := conn.DescribeRouteTables(findOpts)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Error while checking if route exists: %s", err)
+	}
+
+	if len(res.RouteTables) < 1 || res.RouteTables[0] == nil {
+		log.Printf("[WARN] Route table %s is gone, so route does not exist.",
+			routeTableId)
+		return false, nil
 	}
 
 	cidr := d.Get("destination_cidr_block").(string)
@@ -320,8 +369,13 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 		return nil, err
 	}
 
+	if len(resp.RouteTables) < 1 || resp.RouteTables[0] == nil {
+		return nil, fmt.Errorf("Route table %s is gone, so route does not exist.",
+			routeTableID)
+	}
+
 	for _, route := range (*resp.RouteTables[0]).Routes {
-		if *route.DestinationCidrBlock == cidr {
+		if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == cidr {
 			return route, nil
 		}
 	}

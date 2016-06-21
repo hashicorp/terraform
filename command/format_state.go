@@ -61,7 +61,17 @@ func FormatState(opts *FormatStateOpts) string {
 		// Output each output k/v pair
 		for _, k := range ks {
 			v := m.Outputs[k]
-			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
+			switch output := v.Value.(type) {
+			case string:
+				buf.WriteString(fmt.Sprintf("%s = %s", k, output))
+				buf.WriteString("\n")
+			case []interface{}:
+				buf.WriteString(formatListOutput("", k, output))
+				buf.WriteString("\n")
+			case map[string]interface{}:
+				buf.WriteString(formatMapOutput("", k, output))
+				buf.WriteString("\n")
+			}
 		}
 	}
 
@@ -101,7 +111,7 @@ func formatStateModuleExpand(
 		}
 
 		taintStr := ""
-		if len(rs.Tainted) > 0 {
+		if rs.Primary != nil && rs.Primary.Tainted {
 			taintStr = " (tainted)"
 		}
 

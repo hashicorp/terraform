@@ -24,7 +24,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -70,6 +70,11 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				ForceNew: false,
 				Computed: true,
 			},
+			"no_gateway": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
+			},
 			"ip_version": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -80,7 +85,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
-				Computed: true,
+				Default:  true,
 			},
 			"dns_nameservers": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -117,6 +122,14 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	if _, ok := d.GetOk("gateway_ip"); ok {
+		if _, ok2 := d.GetOk("no_gateway"); ok2 {
+			return fmt.Errorf("Both gateway_ip and no_gateway cannot be set.")
+		}
+	}
+
+	enableDHCP := d.Get("enable_dhcp").(bool)
+
 	createOpts := subnets.CreateOpts{
 		NetworkID:       d.Get("network_id").(string),
 		CIDR:            d.Get("cidr").(string),
@@ -124,14 +137,11 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		TenantID:        d.Get("tenant_id").(string),
 		AllocationPools: resourceSubnetAllocationPoolsV2(d),
 		GatewayIP:       d.Get("gateway_ip").(string),
+		NoGateway:       d.Get("no_gateway").(bool),
 		IPVersion:       d.Get("ip_version").(int),
 		DNSNameservers:  resourceSubnetDNSNameserversV2(d),
 		HostRoutes:      resourceSubnetHostRoutesV2(d),
-	}
-
-	if raw, ok := d.GetOk("enable_dhcp"); ok {
-		value := raw.(bool)
-		createOpts.EnableDHCP = &value
+		EnableDHCP:      &enableDHCP,
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -145,7 +155,7 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 	stateConf := &resource.StateChangeConf{
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForSubnetActive(networkingClient, s.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    10 * time.Minute,
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -178,7 +188,6 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 	d.Set("tenant_id", s.TenantID)
 	d.Set("allocation_pools", s.AllocationPools)
 	d.Set("gateway_ip", s.GatewayIP)
-	d.Set("enable_dhcp", s.EnableDHCP)
 	d.Set("dns_nameservers", s.DNSNameservers)
 	d.Set("host_routes", s.HostRoutes)
 
@@ -192,6 +201,13 @@ func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	// Check if both gateway_ip and no_gateway are set
+	if _, ok := d.GetOk("gateway_ip"); ok {
+		if _, ok2 := d.GetOk("no_gateway"); ok2 {
+			return fmt.Errorf("Both gateway_ip and no_gateway cannot be set.")
+		}
+	}
+
 	var updateOpts subnets.UpdateOpts
 
 	if d.HasChange("name") {
@@ -200,6 +216,10 @@ func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) 
 
 	if d.HasChange("gateway_ip") {
 		updateOpts.GatewayIP = d.Get("gateway_ip").(string)
+	}
+
+	if d.HasChange("no_gateway") {
+		updateOpts.NoGateway = d.Get("no_gateway").(bool)
 	}
 
 	if d.HasChange("dns_nameservers") {
@@ -236,7 +256,7 @@ func resourceNetworkingSubnetV2Delete(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForSubnetDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    10 * time.Minute,
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

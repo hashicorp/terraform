@@ -4,6 +4,7 @@
 package dynamodb
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -785,6 +786,25 @@ func (s AttributeDefinition) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AttributeDefinition) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AttributeDefinition"}
+	if s.AttributeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeName"))
+	}
+	if s.AttributeName != nil && len(*s.AttributeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributeName", 1))
+	}
+	if s.AttributeType == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the data for an attribute. You can set one, and only one, of the
 // elements.
 //
@@ -1049,6 +1069,32 @@ func (s BatchGetItemInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchGetItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchGetItemInput"}
+	if s.RequestItems == nil {
+		invalidParams.Add(request.NewErrParamRequired("RequestItems"))
+	}
+	if s.RequestItems != nil && len(s.RequestItems) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequestItems", 1))
+	}
+	if s.RequestItems != nil {
+		for i, v := range s.RequestItems {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "RequestItems", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a BatchGetItem operation.
 type BatchGetItemOutput struct {
 	_ struct{} `type:"structure"`
@@ -1164,6 +1210,22 @@ func (s BatchWriteItemInput) String() string {
 // GoString returns the string representation
 func (s BatchWriteItemInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchWriteItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchWriteItemInput"}
+	if s.RequestItems == nil {
+		invalidParams.Add(request.NewErrParamRequired("RequestItems"))
+	}
+	if s.RequestItems != nil && len(s.RequestItems) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequestItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a BatchWriteItem operation.
@@ -1435,6 +1497,19 @@ func (s Condition) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Condition) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Condition"}
+	if s.ComparisonOperator == nil {
+		invalidParams.Add(request.NewErrParamRequired("ComparisonOperator"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The capacity units consumed by an operation. The data returned includes the
 // total provisioned throughput consumed, along with statistics for the table
 // and any indexes involved in the operation. ConsumedCapacity is only returned
@@ -1502,6 +1577,54 @@ func (s CreateGlobalSecondaryIndexAction) String() string {
 // GoString returns the string representation
 func (s CreateGlobalSecondaryIndexAction) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateGlobalSecondaryIndexAction) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateGlobalSecondaryIndexAction"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.KeySchema == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeySchema"))
+	}
+	if s.KeySchema != nil && len(s.KeySchema) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
+	}
+	if s.Projection == nil {
+		invalidParams.Add(request.NewErrParamRequired("Projection"))
+	}
+	if s.ProvisionedThroughput == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
+	}
+	if s.KeySchema != nil {
+		for i, v := range s.KeySchema {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeySchema", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Projection != nil {
+		if err := s.Projection.Validate(); err != nil {
+			invalidParams.AddNested("Projection", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the input of a CreateTable operation.
@@ -1656,6 +1779,79 @@ func (s CreateTableInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTableInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTableInput"}
+	if s.AttributeDefinitions == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeDefinitions"))
+	}
+	if s.KeySchema == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeySchema"))
+	}
+	if s.KeySchema != nil && len(s.KeySchema) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
+	}
+	if s.ProvisionedThroughput == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.AttributeDefinitions != nil {
+		for i, v := range s.AttributeDefinitions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "AttributeDefinitions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.GlobalSecondaryIndexes != nil {
+		for i, v := range s.GlobalSecondaryIndexes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.KeySchema != nil {
+		for i, v := range s.KeySchema {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeySchema", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.LocalSecondaryIndexes != nil {
+		for i, v := range s.LocalSecondaryIndexes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "LocalSecondaryIndexes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a CreateTable operation.
 type CreateTableOutput struct {
 	_ struct{} `type:"structure"`
@@ -1690,6 +1886,22 @@ func (s DeleteGlobalSecondaryIndexAction) String() string {
 // GoString returns the string representation
 func (s DeleteGlobalSecondaryIndexAction) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteGlobalSecondaryIndexAction) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteGlobalSecondaryIndexAction"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the input of a DeleteItem operation.
@@ -2046,6 +2258,25 @@ func (s DeleteItemInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteItemInput"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a DeleteItem operation.
 type DeleteItemOutput struct {
 	_ struct{} `type:"structure"`
@@ -2133,6 +2364,22 @@ func (s DeleteTableInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTableInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTableInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a DeleteTable operation.
 type DeleteTableOutput struct {
 	_ struct{} `type:"structure"`
@@ -2215,6 +2462,22 @@ func (s DescribeTableInput) String() string {
 // GoString returns the string representation
 func (s DescribeTableInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeTableInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeTableInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a DescribeTable operation.
@@ -2564,6 +2827,28 @@ func (s GetItemInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetItemInput"}
+	if s.AttributesToGet != nil && len(s.AttributesToGet) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributesToGet", 1))
+	}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a GetItem operation.
 type GetItemOutput struct {
 	_ struct{} `type:"structure"`
@@ -2637,6 +2922,54 @@ func (s GlobalSecondaryIndex) String() string {
 // GoString returns the string representation
 func (s GlobalSecondaryIndex) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GlobalSecondaryIndex) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GlobalSecondaryIndex"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.KeySchema == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeySchema"))
+	}
+	if s.KeySchema != nil && len(s.KeySchema) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
+	}
+	if s.Projection == nil {
+		invalidParams.Add(request.NewErrParamRequired("Projection"))
+	}
+	if s.ProvisionedThroughput == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
+	}
+	if s.KeySchema != nil {
+		for i, v := range s.KeySchema {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeySchema", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Projection != nil {
+		if err := s.Projection.Validate(); err != nil {
+			invalidParams.AddNested("Projection", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the properties of a global secondary index.
@@ -2759,6 +3092,31 @@ func (s GlobalSecondaryIndexUpdate) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GlobalSecondaryIndexUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GlobalSecondaryIndexUpdate"}
+	if s.Create != nil {
+		if err := s.Create.Validate(); err != nil {
+			invalidParams.AddNested("Create", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Delete != nil {
+		if err := s.Delete.Validate(); err != nil {
+			invalidParams.AddNested("Delete", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Update != nil {
+		if err := s.Update.Validate(); err != nil {
+			invalidParams.AddNested("Update", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Information about item collections, if any, that were affected by the operation.
 // ItemCollectionMetrics is only returned if the request asked for it. If the
 // table does not have any local secondary indexes, this information is not
@@ -2834,6 +3192,25 @@ func (s KeySchemaElement) String() string {
 // GoString returns the string representation
 func (s KeySchemaElement) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *KeySchemaElement) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "KeySchemaElement"}
+	if s.AttributeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeName"))
+	}
+	if s.AttributeName != nil && len(*s.AttributeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributeName", 1))
+	}
+	if s.KeyType == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents a set of primary keys and, for each key, the attributes to retrieve
@@ -2920,6 +3297,25 @@ func (s KeysAndAttributes) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *KeysAndAttributes) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "KeysAndAttributes"}
+	if s.AttributesToGet != nil && len(s.AttributesToGet) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributesToGet", 1))
+	}
+	if s.Keys == nil {
+		invalidParams.Add(request.NewErrParamRequired("Keys"))
+	}
+	if s.Keys != nil && len(s.Keys) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Keys", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of a ListTables operation.
 type ListTablesInput struct {
 	_ struct{} `type:"structure"`
@@ -2942,6 +3338,22 @@ func (s ListTablesInput) String() string {
 // GoString returns the string representation
 func (s ListTablesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTablesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTablesInput"}
+	if s.ExclusiveStartTableName != nil && len(*s.ExclusiveStartTableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("ExclusiveStartTableName", 3))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a ListTables operation.
@@ -3014,6 +3426,46 @@ func (s LocalSecondaryIndex) String() string {
 // GoString returns the string representation
 func (s LocalSecondaryIndex) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *LocalSecondaryIndex) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "LocalSecondaryIndex"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.KeySchema == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeySchema"))
+	}
+	if s.KeySchema != nil && len(s.KeySchema) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
+	}
+	if s.Projection == nil {
+		invalidParams.Add(request.NewErrParamRequired("Projection"))
+	}
+	if s.KeySchema != nil {
+		for i, v := range s.KeySchema {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeySchema", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Projection != nil {
+		if err := s.Projection.Validate(); err != nil {
+			invalidParams.AddNested("Projection", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the properties of a local secondary index.
@@ -3103,6 +3555,19 @@ func (s Projection) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Projection) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Projection"}
+	if s.NonKeyAttributes != nil && len(s.NonKeyAttributes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NonKeyAttributes", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the provisioned throughput settings for a specified table or index.
 // The settings can be modified using the UpdateTable operation.
 //
@@ -3133,6 +3598,28 @@ func (s ProvisionedThroughput) String() string {
 // GoString returns the string representation
 func (s ProvisionedThroughput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ProvisionedThroughput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ProvisionedThroughput"}
+	if s.ReadCapacityUnits == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReadCapacityUnits"))
+	}
+	if s.ReadCapacityUnits != nil && *s.ReadCapacityUnits < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("ReadCapacityUnits", 1))
+	}
+	if s.WriteCapacityUnits == nil {
+		invalidParams.Add(request.NewErrParamRequired("WriteCapacityUnits"))
+	}
+	if s.WriteCapacityUnits != nil && *s.WriteCapacityUnits < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("WriteCapacityUnits", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the provisioned throughput settings for the table, consisting
@@ -3537,6 +4024,25 @@ func (s PutItemInput) String() string {
 // GoString returns the string representation
 func (s PutItemInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutItemInput"}
+	if s.Item == nil {
+		invalidParams.Add(request.NewErrParamRequired("Item"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a PutItem operation.
@@ -4103,6 +4609,51 @@ func (s QueryInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *QueryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "QueryInput"}
+	if s.AttributesToGet != nil && len(s.AttributesToGet) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributesToGet", 1))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.KeyConditions != nil {
+		for i, v := range s.KeyConditions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeyConditions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.QueryFilter != nil {
+		for i, v := range s.QueryFilter {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "QueryFilter", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a Query operation.
 type QueryOutput struct {
 	_ struct{} `type:"structure"`
@@ -4460,6 +5011,44 @@ func (s ScanInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ScanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ScanInput"}
+	if s.AttributesToGet != nil && len(s.AttributesToGet) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributesToGet", 1))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.TotalSegments != nil && *s.TotalSegments < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TotalSegments", 1))
+	}
+	if s.ScanFilter != nil {
+		for i, v := range s.ScanFilter {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ScanFilter", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a Scan operation.
 type ScanOutput struct {
 	_ struct{} `type:"structure"`
@@ -4791,6 +5380,30 @@ func (s UpdateGlobalSecondaryIndexAction) String() string {
 // GoString returns the string representation
 func (s UpdateGlobalSecondaryIndexAction) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateGlobalSecondaryIndexAction) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateGlobalSecondaryIndexAction"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.ProvisionedThroughput == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the input of an UpdateItem operation.
@@ -5326,6 +5939,25 @@ func (s UpdateItemInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateItemInput"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of an UpdateItem operation.
 type UpdateItemOutput struct {
 	_ struct{} `type:"structure"`
@@ -5410,6 +6042,47 @@ func (s UpdateTableInput) String() string {
 // GoString returns the string representation
 func (s UpdateTableInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTableInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTableInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.AttributeDefinitions != nil {
+		for i, v := range s.AttributeDefinitions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "AttributeDefinitions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.GlobalSecondaryIndexUpdates != nil {
+		for i, v := range s.GlobalSecondaryIndexUpdates {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexUpdates", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of an UpdateTable operation.

@@ -1755,7 +1755,87 @@ func TestResourceDataSet(t *testing.T) {
 	}
 }
 
-func TestResourceDataState(t *testing.T) {
+func TestResourceDataState_dynamicAttributes(t *testing.T) {
+	cases := []struct {
+		Schema    map[string]*Schema
+		State     *terraform.InstanceState
+		Diff      *terraform.InstanceDiff
+		Set       map[string]interface{}
+		UnsafeSet map[string]string
+		Result    *terraform.InstanceState
+	}{
+		{
+			Schema: map[string]*Schema{
+				"__has_dynamic_attributes": {
+					Type:     TypeString,
+					Optional: true,
+				},
+
+				"schema_field": {
+					Type:     TypeString,
+					Required: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Set: map[string]interface{}{
+				"schema_field": "present",
+			},
+
+			UnsafeSet: map[string]string{
+				"test1": "value",
+				"test2": "value",
+			},
+
+			Result: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"schema_field": "present",
+					"test1":        "value",
+					"test2":        "value",
+				},
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		for k, v := range tc.Set {
+			d.Set(k, v)
+		}
+
+		for k, v := range tc.UnsafeSet {
+			d.UnsafeSetFieldRaw(k, v)
+		}
+
+		// Set an ID so that the state returned is not nil
+		idSet := false
+		if d.Id() == "" {
+			idSet = true
+			d.SetId("foo")
+		}
+
+		actual := d.State()
+
+		// If we set an ID, then undo what we did so the comparison works
+		if actual != nil && idSet {
+			actual.ID = ""
+			delete(actual.Attributes, "id")
+		}
+
+		if !reflect.DeepEqual(actual, tc.Result) {
+			t.Fatalf("Bad: %d\n\n%#v\n\nExpected:\n\n%#v", i, actual, tc.Result)
+		}
+	}
+}
+
+func TestResourceDataState_schema(t *testing.T) {
 	cases := []struct {
 		Schema  map[string]*Schema
 		State   *terraform.InstanceState
@@ -1987,10 +2067,10 @@ func TestResourceDataState(t *testing.T) {
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "2",
-					"config_vars.0.#":   "2",
+					"config_vars.0.%":   "2",
 					"config_vars.0.foo": "bar",
 					"config_vars.0.bar": "bar",
-					"config_vars.1.#":   "1",
+					"config_vars.1.%":   "1",
 					"config_vars.1.bar": "baz",
 				},
 			},
@@ -2017,9 +2097,9 @@ func TestResourceDataState(t *testing.T) {
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "2",
-					"config_vars.0.#":   "1",
+					"config_vars.0.%":   "1",
 					"config_vars.0.foo": "bar",
-					"config_vars.1.#":   "1",
+					"config_vars.1.%":   "1",
 					"config_vars.1.baz": "bang",
 				},
 			},
@@ -2444,10 +2524,10 @@ func TestResourceDataState(t *testing.T) {
 				Attributes: map[string]string{
 					// TODO: broken, shouldn't bar be removed?
 					"config_vars.#":     "2",
-					"config_vars.0.#":   "2",
+					"config_vars.0.%":   "2",
 					"config_vars.0.foo": "bar",
 					"config_vars.0.bar": "bar",
-					"config_vars.1.#":   "1",
+					"config_vars.1.%":   "1",
 					"config_vars.1.bar": "baz",
 				},
 			},
@@ -2551,7 +2631,7 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"tags.#":    "1",
+					"tags.%":    "1",
 					"tags.Name": "foo",
 				},
 			},
@@ -2584,7 +2664,7 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"tags.#": "0",
+					"tags.%": "0",
 				},
 			},
 		},
@@ -2690,7 +2770,7 @@ func TestResourceDataState(t *testing.T) {
 				Attributes: map[string]string{
 					"ports.#":           "1",
 					"ports.10.index":    "10",
-					"ports.10.uuids.#":  "1",
+					"ports.10.uuids.%":  "1",
 					"ports.10.uuids.80": "value",
 				},
 			},
@@ -2831,7 +2911,7 @@ func TestResourceDataState(t *testing.T) {
 				Attributes: map[string]string{
 					"ports.#":          "1",
 					"ports.0.index":    "10",
-					"ports.0.uuids.#":  "1",
+					"ports.0.uuids.%":  "1",
 					"ports.0.uuids.80": "value",
 				},
 			},
@@ -2926,6 +3006,17 @@ func TestResourceDataSetId_override(t *testing.T) {
 
 	actual := d.State()
 	if actual.ID != "foo" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceDataSetType(t *testing.T) {
+	d := &ResourceData{}
+	d.SetId("foo")
+	d.SetType("bar")
+
+	actual := d.State()
+	if v := actual.Ephemeral.Type; v != "bar" {
 		t.Fatalf("bad: %#v", actual)
 	}
 }

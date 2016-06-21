@@ -88,26 +88,12 @@ func TestPlan_destroy(t *testing.T) {
 			}
 		}
 	}
-
-	f, err := os.Open(statePath + DefaultBackupExtension)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	backupState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actualStr := strings.TrimSpace(backupState.String())
-	expectedStr := strings.TrimSpace(originalState.String())
-	if actualStr != expectedStr {
-		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
-	}
 }
 
 func TestPlan_noState(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
@@ -345,6 +331,70 @@ func TestPlan_stateDefault(t *testing.T) {
 	}
 }
 
+func TestPlan_stateFuture(t *testing.T) {
+	originalState := testState()
+	originalState.TFVersion = "99.99.99"
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("plan"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("should fail")
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	newState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !newState.Equal(originalState) {
+		t.Fatalf("bad: %#v", newState)
+	}
+	if newState.TFVersion != originalState.TFVersion {
+		t.Fatalf("bad: %#v", newState)
+	}
+}
+
+func TestPlan_statePast(t *testing.T) {
+	originalState := testState()
+	originalState.TFVersion = "0.1.0"
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("plan"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
 func TestPlan_vars(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -493,154 +543,6 @@ func TestPlan_varFileDefault(t *testing.T) {
 	}
 }
 
-func TestPlan_backup(t *testing.T) {
-	// Write out some prior state
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	statePath := tf.Name()
-	defer os.Remove(tf.Name())
-
-	// Write out some prior state
-	backupf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	backupPath := backupf.Name()
-	backupf.Close()
-	os.Remove(backupPath)
-	defer os.Remove(backupPath)
-
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	err = terraform.WriteState(originalState, tf)
-	tf.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &PlanCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-backup", backupPath,
-		testFixturePath("plan"),
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	// Verify that the provider was called with the existing state
-	actual := strings.TrimSpace(p.DiffState.String())
-	expected := strings.TrimSpace(testPlanBackupStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-
-	// Verify the backup exist
-	f, err := os.Open(backupPath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	backupState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actualStr := strings.TrimSpace(backupState.String())
-	expectedStr := strings.TrimSpace(originalState.String())
-	if actualStr != expectedStr {
-		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
-	}
-}
-
-func TestPlan_disableBackup(t *testing.T) {
-	// Write out some prior state
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	statePath := tf.Name()
-	defer os.Remove(tf.Name())
-
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	err = terraform.WriteState(originalState, tf)
-	tf.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &PlanCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-backup", "-",
-		testFixturePath("plan"),
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	// Verify that the provider was called with the existing state
-	actual := strings.TrimSpace(p.DiffState.String())
-	expected := strings.TrimSpace(testPlanDisableBackupStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-
-	// Ensure there is no backup
-	_, err = os.Stat(statePath + DefaultBackupExtension)
-	if err == nil || !os.IsNotExist(err) {
-		t.Fatalf("backup should not exist")
-	}
-}
-
 func TestPlan_detailedExitcode(t *testing.T) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -695,22 +597,16 @@ const planVarFile = `
 foo = "bar"
 `
 
-const testPlanBackupStr = `
-ID = bar
-`
-
-const testPlanDisableBackupStr = `
-ID = bar
-`
-
 const testPlanNoStateStr = `
 <not created>
 `
 
 const testPlanStateStr = `
 ID = bar
+Tainted = false
 `
 
 const testPlanStateDefaultStr = `
 ID = bar
+Tainted = false
 `

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -25,7 +26,7 @@ func resourceComputeSecGroupV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -66,6 +67,9 @@ func resourceComputeSecGroupV2() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: false,
+							StateFunc: func(v interface{}) string {
+								return strings.ToLower(v.(string))
+							},
 						},
 						"from_group_id": &schema.Schema{
 							Type:     schema.TypeString,
@@ -355,7 +359,7 @@ func secgroupRuleV2Hash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["ip_protocol"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["cidr"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(m["cidr"].(string))))
 	buf.WriteString(fmt.Sprintf("%s-", m["from_group_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%t-", m["self"].(bool)))
 

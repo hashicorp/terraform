@@ -10,6 +10,7 @@ import (
 
 // Commands is the mapping of all the available Terraform commands.
 var Commands map[string]cli.CommandFactory
+var PlumbingCommands map[string]struct{}
 
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
@@ -34,6 +35,10 @@ func init() {
 		Ui:          Ui,
 	}
 
+	PlumbingCommands = map[string]struct{}{
+		"state": struct{}{}, // includes all subcommands
+	}
+
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
@@ -50,6 +55,12 @@ func init() {
 			}, nil
 		},
 
+		"fmt": func() (cli.Command, error) {
+			return &command.FmtCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"get": func() (cli.Command, error) {
 			return &command.GetCommand{
 				Meta: meta,
@@ -62,8 +73,20 @@ func init() {
 			}, nil
 		},
 
+		"import": func() (cli.Command, error) {
+			return &command.ImportCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"init": func() (cli.Command, error) {
 			return &command.InitCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"internal-plugin": func() (cli.Command, error) {
+			return &command.InternalPluginCommand{
 				Meta: meta,
 			}, nil
 		},
@@ -128,6 +151,28 @@ func init() {
 
 		"untaint": func() (cli.Command, error) {
 			return &command.UntaintCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		//-----------------------------------------------------------
+		// Plumbing
+		//-----------------------------------------------------------
+
+		"state": func() (cli.Command, error) {
+			return &command.StateCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state list": func() (cli.Command, error) {
+			return &command.StateListCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state show": func() (cli.Command, error) {
+			return &command.StateShowCommand{
 				Meta: meta,
 			}, nil
 		},

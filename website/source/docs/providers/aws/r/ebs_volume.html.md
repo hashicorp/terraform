@@ -22,6 +22,8 @@ resource "aws_ebs_volume" "example" {
 }
 ```
 
+~> **NOTE**: One of `size` or `snapshot_id` is required when specifying an EBS volume 
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -31,7 +33,7 @@ The following arguments are supported:
 * `iops` - (Optional) The amount of IOPS to provision for the disk.
 * `size` - (Optional) The size of the drive in GB.
 * `snapshot_id` (Optional) A snapshot to base the EBS volume off of.
-* `type` - (Optional) The type of EBS volume. Can be "standard", "gp2", or "io1". (Default: "standard").
+* `type` - (Optional) The type of EBS volume. Can be "standard", "gp2", "io1", or "st1" (Default: "standard").
 * `kms_key_id` - (Optional) The KMS key ID for the volume.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 

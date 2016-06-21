@@ -144,6 +144,43 @@ func TestAccAWSSecurityGroupRule_Ingress_VPC(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroupRule_Ingress_Protocol(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	testRuleCount := func(*terraform.State) error {
+		if len(group.IpPermissions) != 1 {
+			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
+				1, len(group.IpPermissions))
+		}
+
+		rule := group.IpPermissions[0]
+		if *rule.FromPort != int64(80) {
+			return fmt.Errorf("Wrong Security Group port setting, expected %d, got %d",
+				80, int(*rule.FromPort))
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRuleIngress_protocolConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group_rule.ingress_1", "from_port", "80"),
+					testRuleCount,
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSecurityGroupRule_Ingress_Classic(t *testing.T) {
 	var group ec2.SecurityGroup
 
@@ -543,6 +580,35 @@ resource "aws_security_group_rule" "ingress_1" {
 
   security_group_id = "${aws_security_group.web.id}"
 }
+`
+
+const testAccAWSSecurityGroupRuleIngress_protocolConfig = `
+resource "aws_vpc" "tftest" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "tf-testing"
+  }
+}
+
+resource "aws_security_group" "web" {
+  vpc_id = "${aws_vpc.tftest.id}"
+
+  tags {
+    Name = "tf-acc-test"
+  }
+}
+
+resource "aws_security_group_rule" "ingress_1" {
+  type        = "ingress"
+  protocol    = "6"
+  from_port   = 80
+  to_port     = 8000
+  cidr_blocks = ["10.0.0.0/8"]
+
+  security_group_id = "${aws_security_group.web.id}"
+}
+
 `
 
 const testAccAWSSecurityGroupRuleIssue5310 = `

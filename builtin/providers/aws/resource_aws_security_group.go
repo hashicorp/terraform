@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,9 @@ func resourceAwsSecurityGroup() *schema.Resource {
 		Read:   resourceAwsSecurityGroupRead,
 		Update: resourceAwsSecurityGroupUpdate,
 		Delete: resourceAwsSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsSecurityGroupImportState,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -93,8 +97,9 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						},
 
 						"protocol": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: protocolStateFunc,
 						},
 
 						"cidr_blocks": &schema.Schema{
@@ -137,8 +142,9 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						},
 
 						"protocol": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: protocolStateFunc,
 						},
 
 						"cidr_blocks": &schema.Schema{
@@ -373,7 +379,8 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
+	p := protocolForValue(m["protocol"].(string))
+	buf.WriteString(fmt.Sprintf("%s-", p))
 	buf.WriteString(fmt.Sprintf("%t-", m["self"].(bool)))
 
 	// We need to make sure to sort the strings below so that we always
@@ -823,4 +830,52 @@ func idHash(rType, protocol string, toPort, fromPort int64, self bool) string {
 	buf.WriteString(fmt.Sprintf("%t-", self))
 
 	return fmt.Sprintf("rule-%d", hashcode.String(buf.String()))
+}
+
+// protocolStateFunc ensures we only store a string in any protocol field
+func protocolStateFunc(v interface{}) string {
+	switch v.(type) {
+	case string:
+		p := protocolForValue(v.(string))
+		return p
+	default:
+		log.Printf("[WARN] Non String value given for Protocol: %#v", v)
+		return ""
+	}
+}
+
+// protocolForValue converts a valid Internet Protocol number into it's name
+// representation. If a name is given, it validates that it's a proper protocol
+// name. Names/numbers are as defined at
+// https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+func protocolForValue(v string) string {
+	// special case -1
+	protocol := strings.ToLower(v)
+	if protocol == "-1" || protocol == "all" {
+		return "-1"
+	}
+	// if it's a name like tcp, return that
+	if _, ok := protocolIntegers()[protocol]; ok {
+		return protocol
+	}
+	// convert to int, look for that value
+	p, err := strconv.Atoi(protocol)
+	if err != nil {
+		// we were unable to convert to int, suggesting a string name, but it wasn't
+		// found above
+		log.Printf("[WARN] Unable to determine valid protocol: %s", err)
+		return protocol
+	}
+
+	for k, v := range protocolIntegers() {
+		if p == v {
+			// guard against protocolIntegers sometime in the future not having lower
+			// case ids in the map
+			return strings.ToLower(k)
+		}
+	}
+
+	// fall through
+	log.Printf("[WARN] Unable to determine valid protocol: no matching protocols found")
+	return protocol
 }

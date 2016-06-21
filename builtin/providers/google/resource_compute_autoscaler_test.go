@@ -139,7 +139,7 @@ resource "google_compute_instance_template" "foobar" {
 	tags = ["foo", "bar"]
 
 	disk {
-		source_image = "debian-cloud/debian-7-wheezy-v20140814"
+		source_image = "debian-cloud/debian-7-wheezy-v20160301"
 		auto_delete = true
 		boot = true
 	}
@@ -196,7 +196,7 @@ resource "google_compute_instance_template" "foobar" {
 	tags = ["foo", "bar"]
 
 	disk {
-		source_image = "debian-cloud/debian-7-wheezy-v20140814"
+		source_image = "debian-cloud/debian-7-wheezy-v20160301"
 		auto_delete = true
 		boot = true
 	}

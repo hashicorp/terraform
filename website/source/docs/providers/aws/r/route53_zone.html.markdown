@@ -57,8 +57,10 @@ The following arguments are supported:
 * `comment` - (Optional) A comment for the hosted zone. Defaults to 'Managed by Terraform'.
 * `tags` - (Optional) A mapping of tags to assign to the zone.
 * `vpc_id` - (Optional) The VPC to associate with a private hosted zone. Specifying `vpc_id` will create a private hosted zone.
+  Conflicts w/ `delegation_set_id` as delegation sets can only be used for public zones.
 * `vpc_region` - (Optional) The VPC's region. Defaults to the region of the AWS provider.
 * `delegation_set_id` - (Optional) The ID of the reusable delgation set whose NS records you want to assign to the hosted zone.
+  Conflicts w/ `vpc_id` as delegation sets can only be used for public zones.
 
 ## Attributes Reference
 

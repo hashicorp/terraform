@@ -126,7 +126,7 @@ func TestAccComputeInstance_IP(t *testing.T) {
 	})
 }
 
-func TestAccComputeInstance_disks(t *testing.T) {
+func TestAccComputeInstance_disksWithoutAutodelete(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
 	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
@@ -137,12 +137,35 @@ func TestAccComputeInstance_disks(t *testing.T) {
 		CheckDestroy: testAccCheckComputeInstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeInstance_disks(diskName, instanceName),
+				Config: testAccComputeInstance_disks(diskName, instanceName, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
 					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
 					testAccCheckComputeInstanceDisk(&instance, diskName, false, false),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_disksWithAutodelete(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_disks(diskName, instanceName, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName, true, false),
 				),
 			},
 		},
@@ -515,7 +538,7 @@ func testAccComputeInstance_basic_deprecated_network(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network {
@@ -537,7 +560,7 @@ func testAccComputeInstance_update_deprecated_network(instance string) string {
 		tags = ["baz"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network {
@@ -560,7 +583,7 @@ func testAccComputeInstance_basic(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -586,7 +609,7 @@ func testAccComputeInstance_basic2(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-cloud/debian-7-wheezy-v20140814"
+			image = "debian-cloud/debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -610,7 +633,7 @@ func testAccComputeInstance_basic3(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140814"
+			image = "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -635,7 +658,7 @@ func testAccComputeInstance_forceNewAndChangeMetadata(instance string) string {
 		tags = ["baz"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -659,7 +682,7 @@ func testAccComputeInstance_update(instance string) string {
 		tags = ["baz"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -686,7 +709,7 @@ func testAccComputeInstance_ip(ip, instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -702,7 +725,7 @@ func testAccComputeInstance_ip(ip, instance string) string {
 	}`, ip, instance)
 }
 
-func testAccComputeInstance_disks(disk, instance string) string {
+func testAccComputeInstance_disks(disk, instance string, autodelete bool) string {
 	return fmt.Sprintf(`
 	resource "google_compute_disk" "foobar" {
 		name = "%s"
@@ -717,12 +740,12 @@ func testAccComputeInstance_disks(disk, instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		disk {
 			disk = "${google_compute_disk.foobar.name}"
-			auto_delete = false
+			auto_delete = %v
 		}
 
 		network_interface {
@@ -732,7 +755,7 @@ func testAccComputeInstance_disks(disk, instance string) string {
 		metadata {
 			foo = "bar"
 		}
-	}`, disk, instance)
+	}`, disk, instance, autodelete)
 }
 
 func testAccComputeInstance_local_ssd(instance string) string {
@@ -743,7 +766,7 @@ func testAccComputeInstance_local_ssd(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		disk {
@@ -766,7 +789,7 @@ func testAccComputeInstance_service_account(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -791,7 +814,7 @@ func testAccComputeInstance_scheduling(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -816,7 +839,7 @@ func testAccComputeInstance_subnet_auto(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -847,7 +870,7 @@ func testAccComputeInstance_subnet_custom(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {

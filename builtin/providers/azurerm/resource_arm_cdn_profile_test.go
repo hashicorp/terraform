@@ -56,7 +56,7 @@ func TestAccAzureRMCdnProfile_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMCdnProfileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnProfileExists("azurerm_cdn_profile.test"),
@@ -77,12 +77,12 @@ func TestAccAzureRMCdnProfile_withTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMCdnProfileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnProfileExists("azurerm_cdn_profile.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_cdn_profile.test", "tags.#", "2"),
+						"azurerm_cdn_profile.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_cdn_profile.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -90,12 +90,12 @@ func TestAccAzureRMCdnProfile_withTags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnProfileExists("azurerm_cdn_profile.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_cdn_profile.test", "tags.#", "1"),
+						"azurerm_cdn_profile.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_cdn_profile.test", "tags.environment", "staging"),
 				),

@@ -146,12 +146,11 @@ func testAccCheckCloudStackSSHKeyPairDestroy(s *terraform.State) error {
 		if err != nil {
 			return err
 		}
-		if list.Count != 1 {
-			return fmt.Errorf("Found more Key pair %s still exists", rs.Primary.ID)
-		}
 
-		if list.SSHKeyPairs[0].Name == rs.Primary.ID {
-			return fmt.Errorf("Key pair %s still exists", rs.Primary.ID)
+		for _, keyPair := range list.SSHKeyPairs {
+			if keyPair.Name == rs.Primary.ID {
+				return fmt.Errorf("Key pair %s still exists", rs.Primary.ID)
+			}
 		}
 	}
 

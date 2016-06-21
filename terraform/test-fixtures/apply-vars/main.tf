@@ -19,5 +19,5 @@ resource "aws_instance" "foo" {
 resource "aws_instance" "bar" {
     foo = "${var.foo}"
     bar = "${lookup(var.amis, var.foo)}"
-    baz = "${var.amis.us-east-1}"
+    baz = "${var.amis["us-east-1"]}"
 }

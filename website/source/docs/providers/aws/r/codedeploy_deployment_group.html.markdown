@@ -29,14 +29,14 @@ resource "aws_iam_role_policy" "foo_policy" {
             "Action": [
                 "autoscaling:CompleteLifecycleAction",
                 "autoscaling:DeleteLifecycleHook",
-            "autoscaling:DescribeAutoScalingGroups",
+                "autoscaling:DescribeAutoScalingGroups",
                 "autoscaling:DescribeLifecycleHooks",
                 "autoscaling:PutLifecycleHook",
                 "autoscaling:RecordLifecycleActionHeartbeat",
                 "ec2:DescribeInstances",
                 "ec2:DescribeInstanceStatus",
                 "tag:GetTags",
-            "tag:GetResources"
+                "tag:GetResources"
             ],
             "Resource": "*"
         }
@@ -70,10 +70,17 @@ resource "aws_codedeploy_deployment_group" "foo" {
     app_name = "${aws_codedeploy_app.foo_app.name}"
     deployment_group_name = "bar"
     service_role_arn = "${aws_iam_role.foo_role.arn}"
+
     ec2_tag_filter {
         key = "filterkey"
         type = "KEY_AND_VALUE"
         value = "filtervalue"
+    }
+
+    trigger_configuration {
+        trigger_events = ["DeploymentFailure"]
+        trigger_name = "foo-trigger"
+        trigger_target_arn = "foo-topic-arn"
     }
 }
 ```
@@ -89,12 +96,19 @@ The following arguments are supported:
 * `deployment_config_name` - (Optional) The name of the group's deployment config. The default is "CodeDeployDefault.OneAtATime".
 * `ec2_tag_filter` - (Optional) Tag filters associated with the group. See the AWS docs for details.
 * `on_premises_instance_tag_filter` - (Optional) On premise tag filters associated with the group. See the AWS docs for details.
+* `trigger_configuration` - (Optional) A Trigger Configuration block. Trigger Configurations are documented below.
 
 Both ec2_tag_filter and on_premises_tag_filter blocks support the following:
 
 * `key` - (Optional) The key of the tag filter.
 * `type` - (Optional) The type of the tag filter, either KEY_ONLY, VALUE_ONLY, or KEY_AND_VALUE.
 * `value` - (Optional) The value of the tag filter.
+
+Add triggers to a Deployment Group to receive notifications about events related to deployments or instances in the group. Notifications are sent to subscribers of the SNS topic associated with the trigger. CodeDeploy must have permission to publish to the topic from this deployment group. Trigger Configurations support the following:
+
+ * `trigger_events` - (Required) The event type or types for which notifications are triggered. The following values are supported: `DeploymentStart`, `DeploymentSuccess`, `DeploymentFailure`, `DeploymentStop`, `InstanceStart`, `InstanceSuccess`, `InstanceFailure`.
+ * `trigger_name` - (Required) The name of the notification trigger.
+ * `trigger_target_arn` - (Required) The ARN of the SNS topic through which notifications are sent.
 
 ## Attributes Reference
 

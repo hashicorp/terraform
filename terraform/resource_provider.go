@@ -4,6 +4,10 @@ package terraform
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.
 type ResourceProvider interface {
+	/*********************************************************************
+	* Functions related to the provider
+	*********************************************************************/
+
 	// Input is called to ask the provider to ask the user for input
 	// for completing the configuration if necesarry.
 	//
@@ -25,18 +29,6 @@ type ResourceProvider interface {
 	// set.
 	Validate(*ResourceConfig) ([]string, []error)
 
-	// ValidateResource is called once at the beginning with the raw
-	// configuration (no interpolation done) and can return a list of warnings
-	// and/or errors.
-	//
-	// This is called once per resource.
-	//
-	// This should not assume any of the values in the resource configuration
-	// are valid since it is possible they have to be interpolated still.
-	// The primary use case of this call is to check that the required keys
-	// are set and that the general structure is correct.
-	ValidateResource(string, *ResourceConfig) ([]string, []error)
-
 	// Configure configures the provider itself with the configuration
 	// given. This is useful for setting things like access keys.
 	//
@@ -48,6 +40,22 @@ type ResourceProvider interface {
 	// Resources returns all the available resource types that this provider
 	// knows how to manage.
 	Resources() []ResourceType
+
+	/*********************************************************************
+	* Functions related to individual resources
+	*********************************************************************/
+
+	// ValidateResource is called once at the beginning with the raw
+	// configuration (no interpolation done) and can return a list of warnings
+	// and/or errors.
+	//
+	// This is called once per resource.
+	//
+	// This should not assume any of the values in the resource configuration
+	// are valid since it is possible they have to be interpolated still.
+	// The primary use case of this call is to check that the required keys
+	// are set and that the general structure is correct.
+	ValidateResource(string, *ResourceConfig) ([]string, []error)
 
 	// Apply applies a diff to a specific resource and returns the new
 	// resource state along with an error.
@@ -69,6 +77,55 @@ type ResourceProvider interface {
 	// Refresh refreshes a resource and updates all of its attributes
 	// with the latest information.
 	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
+
+	/*********************************************************************
+	* Functions related to importing
+	*********************************************************************/
+
+	// ImportState requests that the given resource be imported.
+	//
+	// The returned InstanceState only requires ID be set. Importing
+	// will always call Refresh after the state to complete it.
+	//
+	// IMPORTANT: InstanceState doesn't have the resource type attached
+	// to it. A type must be specified on the state via the Ephemeral
+	// field on the state.
+	//
+	// This function can return multiple states. Normally, an import
+	// will map 1:1 to a physical resource. However, some resources map
+	// to multiple. For example, an AWS security group may contain many rules.
+	// Each rule is represented by a separate resource in Terraform,
+	// therefore multiple states are returned.
+	ImportState(*InstanceInfo, string) ([]*InstanceState, error)
+
+	/*********************************************************************
+	* Functions related to data resources
+	*********************************************************************/
+
+	// ValidateDataSource is called once at the beginning with the raw
+	// configuration (no interpolation done) and can return a list of warnings
+	// and/or errors.
+	//
+	// This is called once per data source instance.
+	//
+	// This should not assume any of the values in the resource configuration
+	// are valid since it is possible they have to be interpolated still.
+	// The primary use case of this call is to check that the required keys
+	// are set and that the general structure is correct.
+	ValidateDataSource(string, *ResourceConfig) ([]string, []error)
+
+	// DataSources returns all of the available data sources that this
+	// provider implements.
+	DataSources() []DataSource
+
+	// ReadDataDiff produces a diff that represents the state that will
+	// be produced when the given data source is read using a later call
+	// to ReadDataApply.
+	ReadDataDiff(*InstanceInfo, *ResourceConfig) (*InstanceDiff, error)
+
+	// ReadDataApply initializes a data instance using the configuration
+	// in a diff produced by ReadDataDiff.
+	ReadDataApply(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
 }
 
 // ResourceProviderCloser is an interface that providers that can close
@@ -79,6 +136,12 @@ type ResourceProviderCloser interface {
 
 // ResourceType is a type of resource that a resource provider can manage.
 type ResourceType struct {
+	Name       string // Name of the resource, example "instance" (no provider prefix)
+	Importable bool   // Whether this resource supports importing
+}
+
+// DataSource is a data source that a resource provider implements.
+type DataSource struct {
 	Name string
 }
 
@@ -94,8 +157,18 @@ func ResourceProviderFactoryFixed(p ResourceProvider) ResourceProviderFactory {
 	}
 }
 
-func ProviderSatisfies(p ResourceProvider, n string) bool {
+func ProviderHasResource(p ResourceProvider, n string) bool {
 	for _, rt := range p.Resources() {
+		if rt.Name == n {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ProviderHasDataSource(p ResourceProvider, n string) bool {
+	for _, rt := range p.DataSources() {
 		if rt.Name == n {
 			return true
 		}

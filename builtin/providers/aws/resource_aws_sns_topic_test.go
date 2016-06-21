@@ -13,9 +13,10 @@ import (
 
 func TestAccAWSSNSTopic_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSNSTopicDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_sns_topic.test_topic",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSNSTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSNSTopicConfig,
@@ -29,9 +30,10 @@ func TestAccAWSSNSTopic_basic(t *testing.T) {
 
 func TestAccAWSSNSTopic_withIAMRole(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSNSTopicDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_sns_topic.test_topic",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSNSTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSNSTopicConfig_withIAMRole,
@@ -128,8 +130,6 @@ resource "aws_sns_topic" "test_topic" {
   name = "example"
   policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Id": "Policy1445931846145",
   "Statement": [
     {
       "Sid": "Stmt1445931846145",
@@ -140,7 +140,9 @@ resource "aws_sns_topic" "test_topic" {
       "Action": "sns:Publish",
       "Resource": "arn:aws:sns:us-west-2::example"
     }
-  ]
+  ],
+  "Version": "2012-10-17",
+  "Id": "Policy1445931846145"
 }
 EOF
 }

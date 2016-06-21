@@ -35,6 +35,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("POSTGRESQL_PASSWORD", nil),
 				Description: "Password for postgresql server connection",
 			},
+			"ssl_mode": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "prefer",
+				Description: "Connection mode for postgresql server",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -52,6 +58,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Port:     d.Get("port").(int),
 		Username: d.Get("username").(string),
 		Password: d.Get("password").(string),
+		SslMode:  d.Get("ssl_mode").(string),
 	}
 
 	client, err := config.NewClient()

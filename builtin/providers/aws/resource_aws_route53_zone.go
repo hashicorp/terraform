@@ -21,6 +21,9 @@ func resourceAwsRoute53Zone() *schema.Resource {
 		Read:   resourceAwsRoute53ZoneRead,
 		Update: resourceAwsRoute53ZoneUpdate,
 		Delete: resourceAwsRoute53ZoneDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -36,9 +39,10 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			},
 
 			"vpc_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"delegation_set_id"},
 			},
 
 			"vpc_region": &schema.Schema{
@@ -54,9 +58,10 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			},
 
 			"delegation_set_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"vpc_id"},
 			},
 
 			"name_servers": &schema.Schema{
@@ -138,6 +143,14 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	// In the import case this will be empty
+	if _, ok := d.GetOk("zone_id"); !ok {
+		d.Set("zone_id", d.Id())
+	}
+	if _, ok := d.GetOk("name"); !ok {
+		d.Set("name", zone.HostedZone.Name)
+	}
+
 	if !*zone.HostedZone.Config.PrivateZone {
 		ns := make([]string, len(zone.DelegationSet.NameServers))
 		for i := range zone.DelegationSet.NameServers {
@@ -156,10 +169,24 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 		}
 
+		// In the import case we just associate it with the first VPC
+		if _, ok := d.GetOk("vpc_id"); !ok {
+			if len(zone.VPCs) > 1 {
+				return fmt.Errorf(
+					"Can't import a route53_zone with more than one VPC attachment")
+			}
+
+			if len(zone.VPCs) > 0 {
+				d.Set("vpc_id", zone.VPCs[0].VPCId)
+				d.Set("vpc_region", zone.VPCs[0].VPCRegion)
+			}
+		}
+
 		var associatedVPC *route53.VPC
 		for _, vpc := range zone.VPCs {
 			if *vpc.VPCId == d.Get("vpc_id") {
 				associatedVPC = vpc
+				break
 			}
 		}
 		if associatedVPC == nil {

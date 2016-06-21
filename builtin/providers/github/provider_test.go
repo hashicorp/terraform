@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+const testRepo string = "test-repo"
+
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
 
@@ -37,5 +39,8 @@ func testAccPreCheck(t *testing.T) {
 	}
 	if v := os.Getenv("GITHUB_TEST_USER"); v == "" {
 		t.Fatal("GITHUB_TEST_USER must be set for acceptance tests")
+	}
+	if v := os.Getenv("GITHUB_TEST_COLLABORATOR"); v == "" {
+		t.Fatal("GITHUB_TEST_COLLABORATOR must be set for acceptance tests")
 	}
 }

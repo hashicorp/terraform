@@ -37,7 +37,8 @@ EOF
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the role.
+* `name` - (Optional, Forces new resource) The name of the role.
+* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `assume_role_policy` - (Required) The policy that grants an entity permission to assume the role.
 * `path` - (Optional) The path to the role.
   See [IAM Identifiers](https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html) for more information.

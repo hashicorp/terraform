@@ -20,6 +20,9 @@ func resourceAwsRouteTable() *schema.Resource {
 		Read:   resourceAwsRouteTableRead,
 		Update: resourceAwsRouteTableUpdate,
 		Delete: resourceAwsRouteTableDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsRouteTableImportState,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"vpc_id": &schema.Schema{
@@ -298,7 +301,19 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 			}
 
 			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)
-			if _, err := conn.CreateRoute(&opts); err != nil {
+			err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+				_, err := conn.CreateRoute(&opts)
+				if err != nil {
+					if awsErr, ok := err.(awserr.Error); ok {
+						if awsErr.Code() == "InvalidRouteTableID.NotFound" {
+							return resource.RetryableError(awsErr)
+						}
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			if err != nil {
 				return err
 			}
 

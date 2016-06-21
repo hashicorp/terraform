@@ -19,6 +19,9 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 		Read:   resourceAwsRoute53HealthCheckRead,
 		Update: resourceAwsRoute53HealthCheckUpdate,
 		Delete: resourceAwsRoute53HealthCheckDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"type": &schema.Schema{
@@ -246,7 +249,7 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	d.Set("port", updated.Port)
 	d.Set("resource_path", updated.ResourcePath)
 	d.Set("measure_latency", updated.MeasureLatency)
-	d.Set("invent_healthcheck", updated.Inverted)
+	d.Set("invert_healthcheck", updated.Inverted)
 	d.Set("child_healthchecks", updated.ChildHealthChecks)
 	d.Set("child_health_threshold", updated.HealthThreshold)
 

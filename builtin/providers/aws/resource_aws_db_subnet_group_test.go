@@ -29,6 +29,10 @@ func TestAccAWSDBSubnetGroup_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(
 						"aws_db_subnet_group.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_subnet_group.foo", "name", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_db_subnet_group.foo", "description", "Managed by Terraform"),
 					testCheck,
 				),
 			},
@@ -60,6 +64,37 @@ func TestAccAWSDBSubnetGroup_withUndocumentedCharacters(t *testing.T) {
 					testAccCheckDBSubnetGroupExists(
 						"aws_db_subnet_group.spaces", &v),
 					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBSubnetGroup_updateDescription(t *testing.T) {
+	var v rds.DBSubnetGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDBSubnetGroupConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDBSubnetGroupExists(
+						"aws_db_subnet_group.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_subnet_group.foo", "description", "Managed by Terraform"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccDBSubnetGroupConfig_updatedDescription,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDBSubnetGroupExists(
+						"aws_db_subnet_group.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_subnet_group.foo", "description", "foo description updated"),
 				),
 			},
 		},
@@ -182,7 +217,39 @@ resource "aws_subnet" "bar" {
 
 resource "aws_db_subnet_group" "foo" {
 	name = "foo"
-	description = "foo description"
+	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test"
+	}
+}
+`
+
+const testAccDBSubnetGroupConfig_updatedDescription = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-1"
+	}
+}
+
+resource "aws_subnet" "bar" {
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-2"
+	}
+}
+
+resource "aws_db_subnet_group" "foo" {
+	name = "foo"
+	description = "foo description updated"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 	tags {
 		Name = "tf-dbsubnet-group-test"

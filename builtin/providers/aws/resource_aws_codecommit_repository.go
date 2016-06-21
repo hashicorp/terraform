@@ -104,9 +104,11 @@ func resourceAwsCodeCommitRepositoryCreate(d *schema.ResourceData, meta interfac
 func resourceAwsCodeCommitRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codecommitconn
 
-	if d.HasChange("default_branch") {
-		if err := resourceAwsCodeCommitUpdateDefaultBranch(conn, d); err != nil {
-			return err
+	if _, ok := d.GetOk("default_branch"); ok {
+		if d.HasChange("default_branch") {
+			if err := resourceAwsCodeCommitUpdateDefaultBranch(conn, d); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -135,8 +137,11 @@ func resourceAwsCodeCommitRepositoryRead(d *schema.ResourceData, meta interface{
 	d.Set("arn", *out.RepositoryMetadata.Arn)
 	d.Set("clone_url_http", *out.RepositoryMetadata.CloneUrlHttp)
 	d.Set("clone_url_ssh", *out.RepositoryMetadata.CloneUrlSsh)
-	if out.RepositoryMetadata.DefaultBranch != nil {
-		d.Set("default_branch", *out.RepositoryMetadata.DefaultBranch)
+
+	if _, ok := d.GetOk("default_branch"); ok {
+		if out.RepositoryMetadata.DefaultBranch != nil {
+			d.Set("default_branch", *out.RepositoryMetadata.DefaultBranch)
+		}
 	}
 
 	return nil
@@ -171,12 +176,26 @@ func resourceAwsCodeCommitUpdateDescription(conn *codecommit.CodeCommit, d *sche
 }
 
 func resourceAwsCodeCommitUpdateDefaultBranch(conn *codecommit.CodeCommit, d *schema.ResourceData) error {
+	input := &codecommit.ListBranchesInput{
+		RepositoryName: aws.String(d.Id()),
+	}
+
+	out, err := conn.ListBranches(input)
+	if err != nil {
+		return fmt.Errorf("Error reading CodeCommit Repository branches: %s", err.Error())
+	}
+
+	if len(out.Branches) == 0 {
+		log.Printf("[WARN] Not setting Default Branch CodeCommit Repository that has no branches: %s", d.Id())
+		return nil
+	}
+
 	branchInput := &codecommit.UpdateDefaultBranchInput{
 		RepositoryName:    aws.String(d.Id()),
 		DefaultBranchName: aws.String(d.Get("default_branch").(string)),
 	}
 
-	_, err := conn.UpdateDefaultBranch(branchInput)
+	_, err = conn.UpdateDefaultBranch(branchInput)
 	if err != nil {
 		return fmt.Errorf("Error Updating Default Branch for CodeCommit Repository: %s", err.Error())
 	}

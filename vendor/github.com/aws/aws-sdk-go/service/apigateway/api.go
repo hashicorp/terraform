@@ -32,6 +32,7 @@ func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request
 	return
 }
 
+// Create an ApiKey resource.
 func (c *APIGateway) CreateApiKey(input *CreateApiKeyInput) (*ApiKey, error) {
 	req, out := c.CreateApiKeyRequest(input)
 	err := req.Send()
@@ -58,6 +59,7 @@ func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req 
 	return
 }
 
+// Adds a new Authorizer resource to an existing RestApi resource.
 func (c *APIGateway) CreateAuthorizer(input *CreateAuthorizerInput) (*Authorizer, error) {
 	req, out := c.CreateAuthorizerRequest(input)
 	err := req.Send()
@@ -364,6 +366,7 @@ func (c *APIGateway) DeleteClientCertificateRequest(input *DeleteClientCertifica
 	return
 }
 
+// Deletes the ClientCertificate resource.
 func (c *APIGateway) DeleteClientCertificate(input *DeleteClientCertificateInput) (*DeleteClientCertificateOutput, error) {
 	req, out := c.DeleteClientCertificateRequest(input)
 	err := req.Send()
@@ -739,6 +742,7 @@ func (c *APIGateway) GenerateClientCertificateRequest(input *GenerateClientCerti
 	return
 }
 
+// Generates a ClientCertificate resource.
 func (c *APIGateway) GenerateClientCertificate(input *GenerateClientCertificateInput) (*ClientCertificate, error) {
 	req, out := c.GenerateClientCertificateRequest(input)
 	err := req.Send()
@@ -982,6 +986,7 @@ func (c *APIGateway) GetClientCertificateRequest(input *GetClientCertificateInpu
 	return
 }
 
+// Gets information about the current ClientCertificate resource.
 func (c *APIGateway) GetClientCertificate(input *GetClientCertificateInput) (*ClientCertificate, error) {
 	req, out := c.GetClientCertificateRequest(input)
 	err := req.Send()
@@ -1014,6 +1019,7 @@ func (c *APIGateway) GetClientCertificatesRequest(input *GetClientCertificatesIn
 	return
 }
 
+// Gets a collection of ClientCertificate resources.
 func (c *APIGateway) GetClientCertificates(input *GetClientCertificatesInput) (*GetClientCertificatesOutput, error) {
 	req, out := c.GetClientCertificatesRequest(input)
 	err := req.Send()
@@ -1185,6 +1191,7 @@ func (c *APIGateway) GetExportRequest(input *GetExportInput) (req *request.Reque
 	return
 }
 
+// Exports a deployed version of a RestApi in a specified format.
 func (c *APIGateway) GetExport(input *GetExportInput) (*GetExportOutput, error) {
 	req, out := c.GetExportRequest(input)
 	err := req.Send()
@@ -1551,6 +1558,7 @@ func (c *APIGateway) GetSdkRequest(input *GetSdkInput) (req *request.Request, ou
 	return
 }
 
+// Generates a client SDK for a RestApi and Stage.
 func (c *APIGateway) GetSdk(input *GetSdkInput) (*GetSdkOutput, error) {
 	req, out := c.GetSdkRequest(input)
 	err := req.Send()
@@ -1607,6 +1615,34 @@ func (c *APIGateway) GetStagesRequest(input *GetStagesInput) (req *request.Reque
 // Gets information about one or more Stage resources.
 func (c *APIGateway) GetStages(input *GetStagesInput) (*GetStagesOutput, error) {
 	req, out := c.GetStagesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opImportRestApi = "ImportRestApi"
+
+// ImportRestApiRequest generates a request for the ImportRestApi operation.
+func (c *APIGateway) ImportRestApiRequest(input *ImportRestApiInput) (req *request.Request, output *RestApi) {
+	op := &request.Operation{
+		Name:       opImportRestApi,
+		HTTPMethod: "POST",
+		HTTPPath:   "/restapis?mode=import",
+	}
+
+	if input == nil {
+		input = &ImportRestApiInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RestApi{}
+	req.Data = output
+	return
+}
+
+// A feature of the Amazon API Gateway control service for creating a new API
+// from an external API definition file.
+func (c *APIGateway) ImportRestApi(input *ImportRestApiInput) (*RestApi, error) {
+	req, out := c.ImportRestApiRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -1719,6 +1755,36 @@ func (c *APIGateway) PutMethodResponse(input *PutMethodResponseInput) (*MethodRe
 	return out, err
 }
 
+const opPutRestApi = "PutRestApi"
+
+// PutRestApiRequest generates a request for the PutRestApi operation.
+func (c *APIGateway) PutRestApiRequest(input *PutRestApiInput) (req *request.Request, output *RestApi) {
+	op := &request.Operation{
+		Name:       opPutRestApi,
+		HTTPMethod: "PUT",
+		HTTPPath:   "/restapis/{restapi_id}",
+	}
+
+	if input == nil {
+		input = &PutRestApiInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RestApi{}
+	req.Data = output
+	return
+}
+
+// A feature of the Amazon API Gateway control service for updating an existing
+// API with an input of external API definitions. The update can take the form
+// of merging the supplied definition into the existing API or overwriting the
+// existing API.
+func (c *APIGateway) PutRestApi(input *PutRestApiInput) (*RestApi, error) {
+	req, out := c.PutRestApiRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opTestInvokeAuthorizer = "TestInvokeAuthorizer"
 
 // TestInvokeAuthorizerRequest generates a request for the TestInvokeAuthorizer operation.
@@ -1739,6 +1805,8 @@ func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInpu
 	return
 }
 
+// Simulate the execution of an Authorizer in your RestApi with headers, parameters,
+// and an incoming request body.
 func (c *APIGateway) TestInvokeAuthorizer(input *TestInvokeAuthorizerInput) (*TestInvokeAuthorizerOutput, error) {
 	req, out := c.TestInvokeAuthorizerRequest(input)
 	err := req.Send()
@@ -1765,6 +1833,8 @@ func (c *APIGateway) TestInvokeMethodRequest(input *TestInvokeMethodInput) (req 
 	return
 }
 
+// Simulate the execution of a Method in your RestApi with headers, parameters,
+// and an incoming request body.
 func (c *APIGateway) TestInvokeMethod(input *TestInvokeMethodInput) (*TestInvokeMethodOutput, error) {
 	req, out := c.TestInvokeMethodRequest(input)
 	err := req.Send()
@@ -1899,6 +1969,7 @@ func (c *APIGateway) UpdateClientCertificateRequest(input *UpdateClientCertifica
 	return
 }
 
+// Changes information about an ClientCertificate resource.
 func (c *APIGateway) UpdateClientCertificate(input *UpdateClientCertificateInput) (*ClientCertificate, error) {
 	req, out := c.UpdateClientCertificateRequest(input)
 	err := req.Send()
@@ -2243,6 +2314,10 @@ func (s ApiKey) GoString() string {
 type Authorizer struct {
 	_ struct{} `type:"structure"`
 
+	// Optional customer-defined field, used in Swagger imports/exports. Has no
+	// functional impact.
+	AuthType *string `locationName:"authType" type:"string"`
+
 	// Specifies the credentials required for the authorizer, if any. Two options
 	// are available. To specify an IAM Role for Amazon API Gateway to assume, use
 	// the role's Amazon Resource Name (ARN). To use resource-based permissions
@@ -2323,17 +2398,27 @@ func (s BasePathMapping) GoString() string {
 	return s.String()
 }
 
+// Represents a Client Certificate used to configure client-side SSL authentication
+// while sending requests to the integration endpoint.
 type ClientCertificate struct {
 	_ struct{} `type:"structure"`
 
+	// The identifier of the Client Certificate.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
+	// The date when the Client Certificate was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
+	// target="_blank).
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
+	// The description of the Client Certificate.
 	Description *string `locationName:"description" type:"string"`
 
+	// The date when the Client Certificate will expire, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
+	// target="_blank).
 	ExpirationDate *time.Time `locationName:"expirationDate" type:"timestamp" timestampFormat:"unix"`
 
+	// The PEM-encoded public key of the Client Certificate, that can be used to
+	// configure certificate authentication in the integration endpoint .
 	PemEncodedCertificate *string `locationName:"pemEncodedCertificate" type:"string"`
 }
 
@@ -2347,6 +2432,7 @@ func (s ClientCertificate) GoString() string {
 	return s.String()
 }
 
+// Request to create an ApiKey resource.
 type CreateApiKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2373,8 +2459,13 @@ func (s CreateApiKeyInput) GoString() string {
 	return s.String()
 }
 
+// Request to add a new Authorizer to an existing RestApi resource.
 type CreateAuthorizerInput struct {
 	_ struct{} `type:"structure"`
+
+	// Optional customer-defined field, used in Swagger imports/exports. Has no
+	// functional impact.
+	AuthType *string `locationName:"authType" type:"string"`
 
 	// Specifies the credentials required for the authorizer, if any.
 	AuthorizerCredentials *string `locationName:"authorizerCredentials" type:"string"`
@@ -2394,6 +2485,7 @@ type CreateAuthorizerInput struct {
 	// [Required] The name of the authorizer.
 	Name *string `locationName:"name" type:"string" required:"true"`
 
+	// The RestApi identifier under which the Authorizer will be created.
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// [Required] The type of the authorizer.
@@ -2408,6 +2500,31 @@ func (s CreateAuthorizerInput) String() string {
 // GoString returns the string representation
 func (s CreateAuthorizerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateAuthorizerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateAuthorizerInput"}
+	if s.AuthorizerUri == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizerUri"))
+	}
+	if s.IdentitySource == nil {
+		invalidParams.Add(request.NewErrParamRequired("IdentitySource"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Requests Amazon API Gateway to create a new BasePathMapping resource.
@@ -2440,6 +2557,22 @@ func (s CreateBasePathMappingInput) String() string {
 // GoString returns the string representation
 func (s CreateBasePathMappingInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateBasePathMappingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateBasePathMappingInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Requests Amazon API Gateway to create a Deployment resource.
@@ -2481,6 +2614,22 @@ func (s CreateDeploymentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDeploymentInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StageName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A request to create a new domain name.
 type CreateDomainNameInput struct {
 	_ struct{} `type:"structure"`
@@ -2516,6 +2665,31 @@ func (s CreateDomainNameInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDomainNameInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDomainNameInput"}
+	if s.CertificateBody == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificateBody"))
+	}
+	if s.CertificateChain == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificateChain"))
+	}
+	if s.CertificateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificateName"))
+	}
+	if s.CertificatePrivateKey == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificatePrivateKey"))
+	}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to add a new Model to an existing RestApi resource.
 type CreateModelInput struct {
 	_ struct{} `type:"structure"`
@@ -2547,6 +2721,25 @@ func (s CreateModelInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateModelInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateModelInput"}
+	if s.ContentType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContentType"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Requests Amazon API Gateway to create a Resource resource.
 type CreateResourceInput struct {
 	_ struct{} `type:"structure"`
@@ -2571,7 +2764,26 @@ func (s CreateResourceInput) GoString() string {
 	return s.String()
 }
 
-// Request to add a new RestApi resource to your collection.
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateResourceInput"}
+	if s.ParentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParentId"))
+	}
+	if s.PathPart == nil {
+		invalidParams.Add(request.NewErrParamRequired("PathPart"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The POST Request to add a new RestApi resource to your collection.
 type CreateRestApiInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2593,6 +2805,19 @@ func (s CreateRestApiInput) String() string {
 // GoString returns the string representation
 func (s CreateRestApiInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateRestApiInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateRestApiInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Requests Amazon API Gateway to create a Stage resource.
@@ -2632,6 +2857,25 @@ func (s CreateStageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateStageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateStageInput"}
+	if s.DeploymentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StageName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A request to delete the ApiKey resource.
 type DeleteApiKeyInput struct {
 	_ struct{} `type:"structure"`
@@ -2648,6 +2892,19 @@ func (s DeleteApiKeyInput) String() string {
 // GoString returns the string representation
 func (s DeleteApiKeyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteApiKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteApiKeyInput"}
+	if s.ApiKey == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApiKey"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteApiKeyOutput struct {
@@ -2685,6 +2942,22 @@ func (s DeleteAuthorizerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteAuthorizerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteAuthorizerInput"}
+	if s.AuthorizerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizerId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteAuthorizerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2720,6 +2993,22 @@ func (s DeleteBasePathMappingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteBasePathMappingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteBasePathMappingInput"}
+	if s.BasePath == nil {
+		invalidParams.Add(request.NewErrParamRequired("BasePath"))
+	}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteBasePathMappingOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2734,9 +3023,11 @@ func (s DeleteBasePathMappingOutput) GoString() string {
 	return s.String()
 }
 
+// A request to delete the ClientCertificate resource.
 type DeleteClientCertificateInput struct {
 	_ struct{} `type:"structure"`
 
+	// The identifier of the ClientCertificate resource to be deleted.
 	ClientCertificateId *string `location:"uri" locationName:"clientcertificate_id" type:"string" required:"true"`
 }
 
@@ -2748,6 +3039,19 @@ func (s DeleteClientCertificateInput) String() string {
 // GoString returns the string representation
 func (s DeleteClientCertificateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClientCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClientCertificateInput"}
+	if s.ClientCertificateId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientCertificateId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteClientCertificateOutput struct {
@@ -2785,6 +3089,22 @@ func (s DeleteDeploymentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDeploymentInput"}
+	if s.DeploymentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteDeploymentOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2815,6 +3135,19 @@ func (s DeleteDomainNameInput) String() string {
 // GoString returns the string representation
 func (s DeleteDomainNameInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDomainNameInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDomainNameInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteDomainNameOutput struct {
@@ -2853,6 +3186,25 @@ func (s DeleteIntegrationInput) String() string {
 // GoString returns the string representation
 func (s DeleteIntegrationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteIntegrationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteIntegrationInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteIntegrationOutput struct {
@@ -2896,6 +3248,28 @@ func (s DeleteIntegrationResponseInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteIntegrationResponseInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteIntegrationResponseInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StatusCode == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteIntegrationResponseOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2932,6 +3306,25 @@ func (s DeleteMethodInput) String() string {
 // GoString returns the string representation
 func (s DeleteMethodInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMethodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMethodInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteMethodOutput struct {
@@ -2975,6 +3368,28 @@ func (s DeleteMethodResponseInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMethodResponseInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMethodResponseInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StatusCode == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteMethodResponseOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3008,6 +3423,22 @@ func (s DeleteModelInput) String() string {
 // GoString returns the string representation
 func (s DeleteModelInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteModelInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteModelInput"}
+	if s.ModelName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ModelName"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteModelOutput struct {
@@ -3045,6 +3476,22 @@ func (s DeleteResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteResourceInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3075,6 +3522,19 @@ func (s DeleteRestApiInput) String() string {
 // GoString returns the string representation
 func (s DeleteRestApiInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRestApiInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRestApiInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteRestApiOutput struct {
@@ -3110,6 +3570,22 @@ func (s DeleteStageInput) String() string {
 // GoString returns the string representation
 func (s DeleteStageInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteStageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteStageInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StageName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteStageOutput struct {
@@ -3208,6 +3684,22 @@ func (s FlushStageAuthorizersCacheInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *FlushStageAuthorizersCacheInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "FlushStageAuthorizersCacheInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StageName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type FlushStageAuthorizersCacheOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3243,6 +3735,22 @@ func (s FlushStageCacheInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *FlushStageCacheInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "FlushStageCacheInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StageName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type FlushStageCacheOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3257,9 +3765,11 @@ func (s FlushStageCacheOutput) GoString() string {
 	return s.String()
 }
 
+// A request to generate a ClientCertificate resource.
 type GenerateClientCertificateInput struct {
 	_ struct{} `type:"structure"`
 
+	// The description of the ClientCertificate.
 	Description *string `locationName:"description" type:"string"`
 }
 
@@ -3305,6 +3815,19 @@ func (s GetApiKeyInput) String() string {
 // GoString returns the string representation
 func (s GetApiKeyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetApiKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetApiKeyInput"}
+	if s.ApiKey == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApiKey"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A request to get information about the current ApiKeys resource.
@@ -3369,12 +3892,31 @@ func (s GetAuthorizerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetAuthorizerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetAuthorizerInput"}
+	if s.AuthorizerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizerId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to describe an existing Authorizers resource.
 type GetAuthorizersInput struct {
 	_ struct{} `type:"structure"`
 
+	// Limit the number of Authorizer resources in the response.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
+	// If not all Authorizer resources in the response were present, the position
+	// will specificy where to start the next page of results.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The RestApi identifier for the Authorizers resource.
@@ -3389,6 +3931,19 @@ func (s GetAuthorizersInput) String() string {
 // GoString returns the string representation
 func (s GetAuthorizersInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetAuthorizersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetAuthorizersInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents a collection of Authorizer resources.
@@ -3435,6 +3990,22 @@ func (s GetBasePathMappingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetBasePathMappingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetBasePathMappingInput"}
+	if s.BasePath == nil {
+		invalidParams.Add(request.NewErrParamRequired("BasePath"))
+	}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A request to get information about a collection of BasePathMapping resources.
 type GetBasePathMappingsInput struct {
 	_ struct{} `type:"structure"`
@@ -3462,6 +4033,19 @@ func (s GetBasePathMappingsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetBasePathMappingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetBasePathMappingsInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents a collection of BasePathMapping resources.
 type GetBasePathMappingsOutput struct {
 	_ struct{} `type:"structure"`
@@ -3483,9 +4067,11 @@ func (s GetBasePathMappingsOutput) GoString() string {
 	return s.String()
 }
 
+// A request to get information about the current ClientCertificate resource.
 type GetClientCertificateInput struct {
 	_ struct{} `type:"structure"`
 
+	// The identifier of the ClientCertificate resource to be described.
 	ClientCertificateId *string `location:"uri" locationName:"clientcertificate_id" type:"string" required:"true"`
 }
 
@@ -3499,11 +4085,30 @@ func (s GetClientCertificateInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetClientCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetClientCertificateInput"}
+	if s.ClientCertificateId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientCertificateId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// A request to get information about a collection of ClientCertificate resources.
 type GetClientCertificatesInput struct {
 	_ struct{} `type:"structure"`
 
+	// The maximum number of ClientCertificate resources in the collection to get
+	// information about. The default limit is 25. It should be an integer between
+	// 1 - 500.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
+	// The position of the current ClientCertificate resource in the collection
+	// to get information about.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 }
 
@@ -3517,9 +4122,12 @@ func (s GetClientCertificatesInput) GoString() string {
 	return s.String()
 }
 
+// Represents a collection of ClientCertificate resources.
 type GetClientCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
+	// The current page of any ClientCertificate resources in the collection of
+	// ClientCertificate resources.
 	Items []*ClientCertificate `locationName:"item" type:"list"`
 
 	Position *string `locationName:"position" type:"string"`
@@ -3557,6 +4165,22 @@ func (s GetDeploymentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeploymentInput"}
+	if s.DeploymentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Requests Amazon API Gateway to get information about a Deployments collection.
 type GetDeploymentsInput struct {
 	_ struct{} `type:"structure"`
@@ -3582,6 +4206,19 @@ func (s GetDeploymentsInput) String() string {
 // GoString returns the string representation
 func (s GetDeploymentsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeploymentsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeploymentsInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents a collection resource that contains zero or more references to
@@ -3624,6 +4261,19 @@ func (s GetDomainNameInput) String() string {
 // GoString returns the string representation
 func (s GetDomainNameInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDomainNameInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDomainNameInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Request to describe a collection of DomainName resources.
@@ -3669,17 +4319,30 @@ func (s GetDomainNamesOutput) GoString() string {
 	return s.String()
 }
 
+// Request a new export of a RestApi for a particular Stage.
 type GetExportInput struct {
 	_ struct{} `type:"structure"`
 
+	// The content-type of the export, for example 'application/json'. Currently
+	// 'application/json' and 'application/yaml' are supported for exportType 'swagger'.
+	// Should be specifed in the 'Accept' header for direct API requests.
 	Accepts *string `location:"header" locationName:"Accept" type:"string"`
 
+	// The type of export. Currently only 'swagger' is supported.
 	ExportType *string `location:"uri" locationName:"export_type" type:"string" required:"true"`
 
+	// A key-value map of query string parameters that specify properties of the
+	// export, depending on the requested exportType. For exportType 'swagger',
+	// any combination of the following parameters are supported: 'integrations'
+	// will export x-amazon-apigateway-integration extensions 'authorizers' will
+	// export x-amazon-apigateway-authorizer extensions 'postman' will export with
+	// Postman extensions, allowing for import to the Postman tool
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
+	// The identifier of the RestApi to be exported.
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
+	// The name of the Stage that will be exported.
 	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
 }
 
@@ -3693,13 +4356,37 @@ func (s GetExportInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetExportInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetExportInput"}
+	if s.ExportType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ExportType"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StageName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The binary blob response to GetExport, which contains the generated SDK.
 type GetExportOutput struct {
 	_ struct{} `type:"structure" payload:"Body"`
 
+	// The binary blob response to GetExport, which contains the export.
 	Body []byte `locationName:"body" type:"blob"`
 
+	// The content-disposition header value in the HTTP reseponse.
 	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
 
+	// The content-type header value in the HTTP response. This will correspond
+	// to a valid 'accept' type in the request.
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 }
 
@@ -3737,6 +4424,25 @@ func (s GetIntegrationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetIntegrationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetIntegrationInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents a get integration response request.
 type GetIntegrationResponseInput struct {
 	_ struct{} `type:"structure"`
@@ -3764,6 +4470,28 @@ func (s GetIntegrationResponseInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetIntegrationResponseInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetIntegrationResponseInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StatusCode == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to describe an existing Method resource.
 type GetMethodInput struct {
 	_ struct{} `type:"structure"`
@@ -3786,6 +4514,25 @@ func (s GetMethodInput) String() string {
 // GoString returns the string representation
 func (s GetMethodInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetMethodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetMethodInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Request to describe a MethodResponse resource.
@@ -3815,6 +4562,28 @@ func (s GetMethodResponseInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetMethodResponseInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetMethodResponseInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StatusCode == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to list information about a model in an existing RestApi resource.
 type GetModelInput struct {
 	_ struct{} `type:"structure"`
@@ -3839,6 +4608,22 @@ func (s GetModelInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetModelInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetModelInput"}
+	if s.ModelName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ModelName"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to generate a sample mapping template used to transform the payload.
 type GetModelTemplateInput struct {
 	_ struct{} `type:"structure"`
@@ -3858,6 +4643,22 @@ func (s GetModelTemplateInput) String() string {
 // GoString returns the string representation
 func (s GetModelTemplateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetModelTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetModelTemplateInput"}
+	if s.ModelName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ModelName"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents a mapping template used to transform a payload.
@@ -3905,6 +4706,19 @@ func (s GetModelsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetModelsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetModelsInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents a collection of Model resources.
 type GetModelsOutput struct {
 	_ struct{} `type:"structure"`
@@ -3946,6 +4760,22 @@ func (s GetResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetResourceInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to list information about a collection of resources.
 type GetResourcesInput struct {
 	_ struct{} `type:"structure"`
@@ -3972,6 +4802,19 @@ func (s GetResourcesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetResourcesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetResourcesInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents a collection of Resource resources.
 type GetResourcesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3992,7 +4835,7 @@ func (s GetResourcesOutput) GoString() string {
 	return s.String()
 }
 
-// Request to list an existing RestApi defined for your collection.
+// The GET request to list an existing RestApi defined for your collection.
 type GetRestApiInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4010,7 +4853,20 @@ func (s GetRestApiInput) GoString() string {
 	return s.String()
 }
 
-// Request to list existing RestApis defined for your collection.
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetRestApiInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetRestApiInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The GET request to list existing RestApis defined for your collection.
 type GetRestApisInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4054,15 +4910,24 @@ func (s GetRestApisOutput) GoString() string {
 	return s.String()
 }
 
+// Request a new generated client SDK for a RestApi and Stage.
 type GetSdkInput struct {
 	_ struct{} `type:"structure"`
 
+	// A key-value map of query string parameters that specify properties of the
+	// SDK, depending on the requested sdkType. For sdkType 'objectivec', a parameter
+	// named "classPrefix" is required. For sdkType 'android', parameters named
+	// "groupId", "artifactId", "artifactVersion", and "invokerPackage" are required.
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
+	// The identifier of the RestApi that the SDK will use.
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
+	// The language for the generated SDK. Currently javascript, android, and objectivec
+	// (for iOS) are supported.
 	SdkType *string `location:"uri" locationName:"sdk_type" type:"string" required:"true"`
 
+	// The name of the Stage that the SDK will use.
 	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
 }
 
@@ -4076,13 +4941,36 @@ func (s GetSdkInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetSdkInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetSdkInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.SdkType == nil {
+		invalidParams.Add(request.NewErrParamRequired("SdkType"))
+	}
+	if s.StageName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The binary blob response to GetSdk, which contains the generated SDK.
 type GetSdkOutput struct {
 	_ struct{} `type:"structure" payload:"Body"`
 
+	// The binary blob response to GetSdk, which contains the generated SDK.
 	Body []byte `locationName:"body" type:"blob"`
 
+	// The content-disposition header value in the HTTP reseponse.
 	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
 
+	// The content-type header value in the HTTP response.
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 }
 
@@ -4118,6 +5006,22 @@ func (s GetStageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetStageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetStageInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StageName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Requests Amazon API Gateway to get information about one or more Stage resources.
 type GetStagesInput struct {
 	_ struct{} `type:"structure"`
@@ -4139,6 +5043,19 @@ func (s GetStagesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetStagesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetStagesInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A list of Stage resource that are associated with the ApiKey resource.
 type GetStagesOutput struct {
 	_ struct{} `type:"structure"`
@@ -4155,6 +5072,46 @@ func (s GetStagesOutput) String() string {
 // GoString returns the string representation
 func (s GetStagesOutput) GoString() string {
 	return s.String()
+}
+
+// A POST request to import an API to Amazon API Gateway using an input of an
+// API definition file.
+type ImportRestApiInput struct {
+	_ struct{} `type:"structure" payload:"Body"`
+
+	// The POST request body containing external API definitions. Currently, only
+	// Swagger definition JSON files are supported.
+	Body []byte `locationName:"body" type:"blob" required:"true"`
+
+	// A query parameter to indicate whether to rollback the API creation (true)
+	// or not (false) when a warning is encountered. The default value is false.
+	FailOnWarnings *bool `location:"querystring" locationName:"failonwarnings" type:"boolean"`
+
+	// Custom header parameters as part of the request.
+	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
+}
+
+// String returns the string representation
+func (s ImportRestApiInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportRestApiInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ImportRestApiInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ImportRestApiInput"}
+	if s.Body == nil {
+		invalidParams.Add(request.NewErrParamRequired("Body"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents a HTTP, AWS, or Mock integration.
@@ -4194,7 +5151,7 @@ type Integration struct {
 	// Specifies the integration's request templates.
 	RequestTemplates map[string]*string `locationName:"requestTemplates" type:"map"`
 
-	// Specifies the integration's type.
+	// Specifies the integration's type. The valid value is HTTP, AWS, or MOCK.
 	Type *string `locationName:"type" type:"string" enum:"IntegrationType"`
 
 	// Specifies the integration's Uniform Resource Identifier (URI). For HTTP integrations,
@@ -4545,7 +5502,9 @@ type PutIntegrationInput struct {
 	Type *string `locationName:"type" type:"string" required:"true" enum:"IntegrationType"`
 
 	// Specifies a put integration input's Uniform Resource Identifier (URI). When
-	// the integration type is HTTP or AWS, this field is required.
+	// the integration type is HTTP or AWS, this field is required. For integration
+	// with Lambda as an AWS service proxy, this value is of the 'arn:aws:apigateway:<region>:lambda:path/2015-03-31/functions/<functionArn>/invocations'
+	// format.
 	Uri *string `locationName:"uri" type:"string"`
 }
 
@@ -4557,6 +5516,28 @@ func (s PutIntegrationInput) String() string {
 // GoString returns the string representation
 func (s PutIntegrationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutIntegrationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutIntegrationInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents a put integration response request.
@@ -4600,6 +5581,28 @@ func (s PutIntegrationResponseInput) String() string {
 // GoString returns the string representation
 func (s PutIntegrationResponseInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutIntegrationResponseInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutIntegrationResponseInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StatusCode == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Request to add a method to an existing Resource resource.
@@ -4651,6 +5654,28 @@ func (s PutMethodInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutMethodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutMethodInput"}
+	if s.AuthorizationType == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizationType"))
+	}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to add a MethodResponse to an existing Method resource.
 type PutMethodResponseInput struct {
 	_ struct{} `type:"structure"`
@@ -4692,6 +5717,78 @@ func (s PutMethodResponseInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutMethodResponseInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutMethodResponseInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StatusCode == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// A PUT request to update an existing API, with external API definitions specified
+// as the request body.
+type PutRestApiInput struct {
+	_ struct{} `type:"structure" payload:"Body"`
+
+	// The PUT request body containing external API definitions. Currently, only
+	// Swagger definition JSON files are supported.
+	Body []byte `locationName:"body" type:"blob" required:"true"`
+
+	// A query parameter to indicate whether to rollback the API update (true) or
+	// not (false) when a warning is encountered. The default value is false.
+	FailOnWarnings *bool `location:"querystring" locationName:"failonwarnings" type:"boolean"`
+
+	// The mode query parameter to specify the update mode. Valid values are "merge"
+	// and "overwrite". By default, the update mode is "merge".
+	Mode *string `location:"querystring" locationName:"mode" type:"string" enum:"PutMode"`
+
+	// Custom headers supplied as part of the request.
+	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
+
+	// The identifier of the RestApi to be updated.
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutRestApiInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRestApiInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRestApiInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRestApiInput"}
+	if s.Body == nil {
+		invalidParams.Add(request.NewErrParamRequired("Body"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents a resource.
 type Resource struct {
 	_ struct{} `type:"structure"`
@@ -4708,8 +5805,8 @@ type Resource struct {
 	// The last path segment for this resource.
 	PathPart *string `locationName:"pathPart" type:"string"`
 
-	// Map of methods for this resource, which is included only if requested using
-	// the embed option.
+	// Map of methods for this resource, which is included only if the request uses
+	// the embed query option.
 	ResourceMethods map[string]*Method `locationName:"resourceMethods" type:"map"`
 }
 
@@ -4740,6 +5837,8 @@ type RestApi struct {
 
 	// The API's name.
 	Name *string `locationName:"name" type:"string"`
+
+	Warnings []*string `locationName:"warnings" type:"list"`
 }
 
 // String returns the string representation
@@ -4827,21 +5926,33 @@ func (s StageKey) GoString() string {
 	return s.String()
 }
 
+// Make a request to simulate the execution of an Authorizer.
 type TestInvokeAuthorizerInput struct {
 	_ struct{} `type:"structure"`
 
+	// [Optional] A key-value map of additional context variables.
 	AdditionalContext map[string]*string `locationName:"additionalContext" type:"map"`
 
+	// Specifies a test invoke authorizer request's Authorizer ID.
 	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
 
+	// [Optional] The simulated request body of an incoming invocation request.
 	Body *string `locationName:"body" type:"string"`
 
+	// [Required] A key-value map of headers to simulate an incoming invocation
+	// request. This is where the incoming authorization token, or identity source,
+	// should be specified.
 	Headers map[string]*string `locationName:"headers" type:"map"`
 
+	// [Optional] The URI path, including query string, of the simulated invocation
+	// request. Use this to specify path parameters and query string parameters.
 	PathWithQueryString *string `locationName:"pathWithQueryString" type:"string"`
 
+	// Specifies a test invoke authorizer request's RestApi identifier.
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
+	// A key-value map of stage variables to simulate an invocation on a deployed
+	// Stage.
 	StageVariables map[string]*string `locationName:"stageVariables" type:"map"`
 }
 
@@ -4853,6 +5964,22 @@ func (s TestInvokeAuthorizerInput) String() string {
 // GoString returns the string representation
 func (s TestInvokeAuthorizerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TestInvokeAuthorizerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TestInvokeAuthorizerInput"}
+	if s.AuthorizerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizerId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the response of the test invoke request in for a custom Authorizer
@@ -4888,23 +6015,36 @@ func (s TestInvokeAuthorizerOutput) GoString() string {
 	return s.String()
 }
 
+// Make a request to simulate the execution of a Method.
 type TestInvokeMethodInput struct {
 	_ struct{} `type:"structure"`
 
+	// The simulated request body of an incoming invocation request.
 	Body *string `locationName:"body" type:"string"`
 
+	// A ClientCertificate identifier to use in the test invocation. API Gateway
+	// will use use the certificate when making the HTTPS request to the defined
+	// backend endpoint.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
+	// A key-value map of headers to simulate an incoming invocation request.
 	Headers map[string]*string `locationName:"headers" type:"map"`
 
+	// Specifies a test invoke method request's HTTP method.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
+	// The URI path, including query string, of the simulated invocation request.
+	// Use this to specify path parameters and query string parameters.
 	PathWithQueryString *string `locationName:"pathWithQueryString" type:"string"`
 
+	// Specifies a test invoke method request's resource ID.
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
+	// Specifies a test invoke method request's API identifier.
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
+	// A key-value map of stage variables to simulate an invocation on a deployed
+	// Stage.
 	StageVariables map[string]*string `locationName:"stageVariables" type:"map"`
 }
 
@@ -4916,6 +6056,25 @@ func (s TestInvokeMethodInput) String() string {
 // GoString returns the string representation
 func (s TestInvokeMethodInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TestInvokeMethodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TestInvokeMethodInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the response of the test invoke request in HTTP method.
@@ -5011,6 +6170,19 @@ func (s UpdateApiKeyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateApiKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateApiKeyInput"}
+	if s.ApiKey == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApiKey"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to update an existing Authorizer resource.
 type UpdateAuthorizerInput struct {
 	_ struct{} `type:"structure"`
@@ -5034,6 +6206,22 @@ func (s UpdateAuthorizerInput) String() string {
 // GoString returns the string representation
 func (s UpdateAuthorizerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateAuthorizerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateAuthorizerInput"}
+	if s.AuthorizerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizerId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A request to change information about the BasePathMapping resource.
@@ -5061,9 +6249,27 @@ func (s UpdateBasePathMappingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateBasePathMappingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateBasePathMappingInput"}
+	if s.BasePath == nil {
+		invalidParams.Add(request.NewErrParamRequired("BasePath"))
+	}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// A request to change information about an ClientCertificate resource.
 type UpdateClientCertificateInput struct {
 	_ struct{} `type:"structure"`
 
+	// The identifier of the ClientCertificate resource to be updated.
 	ClientCertificateId *string `location:"uri" locationName:"clientcertificate_id" type:"string" required:"true"`
 
 	// A list of operations describing the updates to apply to the specified resource.
@@ -5079,6 +6285,19 @@ func (s UpdateClientCertificateInput) String() string {
 // GoString returns the string representation
 func (s UpdateClientCertificateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateClientCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateClientCertificateInput"}
+	if s.ClientCertificateId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientCertificateId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Requests Amazon API Gateway to change information about a Deployment resource.
@@ -5108,6 +6327,22 @@ func (s UpdateDeploymentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateDeploymentInput"}
+	if s.DeploymentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A request to change information about the DomainName resource.
 type UpdateDomainNameInput struct {
 	_ struct{} `type:"structure"`
@@ -5128,6 +6363,19 @@ func (s UpdateDomainNameInput) String() string {
 // GoString returns the string representation
 func (s UpdateDomainNameInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateDomainNameInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateDomainNameInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents an update integration request.
@@ -5156,6 +6404,25 @@ func (s UpdateIntegrationInput) String() string {
 // GoString returns the string representation
 func (s UpdateIntegrationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateIntegrationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateIntegrationInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents an update integration response request.
@@ -5189,6 +6456,28 @@ func (s UpdateIntegrationResponseInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateIntegrationResponseInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateIntegrationResponseInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StatusCode == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to update an existing Method resource.
 type UpdateMethodInput struct {
 	_ struct{} `type:"structure"`
@@ -5215,6 +6504,25 @@ func (s UpdateMethodInput) String() string {
 // GoString returns the string representation
 func (s UpdateMethodInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateMethodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateMethodInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A request to update an existing MethodResponse resource.
@@ -5248,6 +6556,28 @@ func (s UpdateMethodResponseInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateMethodResponseInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateMethodResponseInput"}
+	if s.HttpMethod == nil {
+		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StatusCode == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to update an existing model in an existing RestApi resource.
 type UpdateModelInput struct {
 	_ struct{} `type:"structure"`
@@ -5271,6 +6601,22 @@ func (s UpdateModelInput) String() string {
 // GoString returns the string representation
 func (s UpdateModelInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateModelInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateModelInput"}
+	if s.ModelName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ModelName"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Request to change information about a Resource resource.
@@ -5298,6 +6644,22 @@ func (s UpdateResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateResourceInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to update an existing RestApi resource in your collection.
 type UpdateRestApiInput struct {
 	_ struct{} `type:"structure"`
@@ -5318,6 +6680,19 @@ func (s UpdateRestApiInput) String() string {
 // GoString returns the string representation
 func (s UpdateRestApiInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateRestApiInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateRestApiInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Requests Amazon API Gateway to change information about a Stage resource.
@@ -5346,6 +6721,23 @@ func (s UpdateStageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateStageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateStageInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.StageName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The authorizer type. Only current value is TOKEN.
 const (
 	// @enum AuthorizerType
 	AuthorizerTypeToken = "TOKEN"
@@ -5385,7 +6777,7 @@ const (
 	CacheClusterStatusFlushInProgress = "FLUSH_IN_PROGRESS"
 )
 
-// The integration type. Possible values are HTTP, AWS, or Mock.
+// The integration type. The valid value is HTTP, AWS, or MOCK.
 const (
 	// @enum IntegrationType
 	IntegrationTypeHttp = "HTTP"
@@ -5393,6 +6785,13 @@ const (
 	IntegrationTypeAws = "AWS"
 	// @enum IntegrationType
 	IntegrationTypeMock = "MOCK"
+)
+
+const (
+	// @enum PutMode
+	PutModeMerge = "merge"
+	// @enum PutMode
+	PutModeOverwrite = "overwrite"
 )
 
 const (

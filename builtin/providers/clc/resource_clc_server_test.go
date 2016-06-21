@@ -46,6 +46,8 @@ func TestAccServerBasic(t *testing.T) {
 						"clc_server.acc_test_server", "cpu", "2"),
 					resource.TestCheckResourceAttr(
 						"clc_server.acc_test_server", "memory_mb", "2048"),
+					resource.TestCheckResourceAttr(
+						"clc_server.acc_test_server", "password", "Green123$"),
 					testAccCheckServerUpdatedSpec("clc_server.acc_test_server", &resp),
 				),
 			},

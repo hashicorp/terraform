@@ -18,74 +18,84 @@ func resourceArmStorageAccount() *schema.Resource {
 		Delete: resourceArmStorageAccountDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateArmStorageAccountName,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"account_type": &schema.Schema{
+			"account_type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateArmStorageAccountType,
 			},
 
-			"primary_location": &schema.Schema{
+			"primary_location": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"secondary_location": &schema.Schema{
+			"secondary_location": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"primary_blob_endpoint": &schema.Schema{
+			"primary_blob_endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"secondary_blob_endpoint": &schema.Schema{
+			"secondary_blob_endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"primary_queue_endpoint": &schema.Schema{
+			"primary_queue_endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"secondary_queue_endpoint": &schema.Schema{
+			"secondary_queue_endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"primary_table_endpoint": &schema.Schema{
+			"primary_table_endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"secondary_table_endpoint": &schema.Schema{
+			"secondary_table_endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
 			// NOTE: The API does not appear to expose a secondary file endpoint
-			"primary_file_endpoint": &schema.Schema{
+			"primary_file_endpoint": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"primary_access_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"secondary_access_key": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -112,22 +122,22 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		Tags: expandTags(tags),
 	}
 
-	accResp, err := client.Create(resourceGroupName, storageAccountName, opts)
+	_, err := client.Create(resourceGroupName, storageAccountName, opts, make(chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error creating Azure Storage Account '%s': %s", storageAccountName, err)
 	}
-	_, err = pollIndefinitelyAsNeeded(client.Client, accResp.Response.Response, http.StatusOK)
-	if err != nil {
-		return fmt.Errorf("Error creating Azure Storage Account %q: %s", storageAccountName, err)
-	}
 
 	// The only way to get the ID back apparently is to read the resource again
-	account, err := client.GetProperties(resourceGroupName, storageAccountName)
+	read, err := client.GetProperties(resourceGroupName, storageAccountName)
 	if err != nil {
-		return fmt.Errorf("Error retrieving Azure Storage Account %q: %s", storageAccountName, err)
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Storage Account %s (resource group %s) ID",
+			storageAccountName, resourceGroupName)
 	}
 
-	d.SetId(*account.ID)
+	d.SetId(*read.ID)
 
 	return resourceArmStorageAccountRead(d, meta)
 }
@@ -154,11 +164,7 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 				AccountType: storage.AccountType(accountType),
 			},
 		}
-		accResp, err := client.Update(resourceGroupName, storageAccountName, opts)
-		if err != nil {
-			return fmt.Errorf("Error updating Azure Storage Account type %q: %s", storageAccountName, err)
-		}
-		_, err = pollIndefinitelyAsNeeded(client.Client, accResp.Response.Response, http.StatusOK)
+		_, err := client.Update(resourceGroupName, storageAccountName, opts)
 		if err != nil {
 			return fmt.Errorf("Error updating Azure Storage Account type %q: %s", storageAccountName, err)
 		}
@@ -172,11 +178,7 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		opts := storage.AccountUpdateParameters{
 			Tags: expandTags(tags),
 		}
-		accResp, err := client.Update(resourceGroupName, storageAccountName, opts)
-		if err != nil {
-			return fmt.Errorf("Error updating Azure Storage Account tags %q: %s", storageAccountName, err)
-		}
-		_, err = pollIndefinitelyAsNeeded(client.Client, accResp.Response.Response, http.StatusOK)
+		_, err := client.Update(resourceGroupName, storageAccountName, opts)
 		if err != nil {
 			return fmt.Errorf("Error updating Azure Storage Account tags %q: %s", storageAccountName, err)
 		}
@@ -200,7 +202,7 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 
 	resp, err := client.GetProperties(resGroup, name)
 	if err != nil {
-		if resp.StatusCode == http.StatusNoContent {
+		if resp.StatusCode == http.StatusNotFound {
 			d.SetId("")
 			return nil
 		}
@@ -208,6 +210,13 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error reading the state of AzureRM Storage Account %q: %s", name, err)
 	}
 
+	keys, err := client.ListKeys(resGroup, name)
+	if err != nil {
+		return err
+	}
+
+	d.Set("primary_access_key", keys.Key1)
+	d.Set("secondary_access_key", keys.Key2)
 	d.Set("location", resp.Location)
 	d.Set("account_type", resp.Properties.AccountType)
 	d.Set("primary_location", resp.Properties.PrimaryLocation)
@@ -253,13 +262,9 @@ func resourceArmStorageAccountDelete(d *schema.ResourceData, meta interface{}) e
 	name := id.Path["storageAccounts"]
 	resGroup := id.ResourceGroup
 
-	accResp, err := client.Delete(resGroup, name)
+	_, err = client.Delete(resGroup, name)
 	if err != nil {
 		return fmt.Errorf("Error issuing AzureRM delete request for storage account %q: %s", name, err)
-	}
-	_, err = pollIndefinitelyAsNeeded(client.Client, accResp.Response, http.StatusNotFound)
-	if err != nil {
-		return fmt.Errorf("Error polling for AzureRM delete request for storage account %q: %s", name, err)
 	}
 
 	return nil

@@ -46,11 +46,16 @@ resource "aws_kinesis_stream" "test_stream" {
 ## Argument Reference
 
 -> **Note:** `input` and `input_path` are mutually exclusive options.
+-> **Note:** In order to be able to have your AWS Lambda function or
+   SNS topic invoked by a CloudWatch Events rule, you must setup the right permissions
+   using [`aws_lambda_permission`](https://www.terraform.io/docs/providers/aws/r/lambda_permission.html)
+   or [`aws_sns_topic.policy`](https://www.terraform.io/docs/providers/aws/r/sns_topic.html#policy).
+   More info here [here](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/EventsResourceBasedPermissions.html).
 
 The following arguments are supported:
 
 * `rule` - (Required) The name of the rule you want to add targets to.
-* `target_id` - (Required) The unique target assignment ID.
+* `target_id` - (Optional) The unique target assignment ID.  If missing, will generate a random, unique id.
 * `arn` - (Required) The Amazon Resource Name (ARN) associated of the target.
 * `input` - (Optional) Valid JSON text passed to the target.
 * `input_path` - (Optional) The value of the [JSONPath](http://goessner.net/articles/JsonPath/)

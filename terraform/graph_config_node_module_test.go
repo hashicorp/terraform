@@ -71,8 +71,6 @@ const testGraphNodeModuleExpandStr = `
 aws_instance.bar
   aws_instance.foo
 aws_instance.foo
-  module inputs
-module inputs
 plan-destroy
 `
 

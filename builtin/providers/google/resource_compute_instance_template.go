@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -17,36 +18,37 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://cloud.google.com/compute/docs/reference/latest/instanceTemplates#resource
+					value := v.(string)
+					if len(value) > 63 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 63 characters", k))
+					}
+					return
+				},
 			},
 
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"can_ip_forward": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				ForceNew: true,
-			},
-
-			"instance_description": &schema.Schema{
+			"name_prefix": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://cloud.google.com/compute/docs/reference/latest/instanceTemplates#resource
+					// uuid is 26 characters, limit the prefix to 37.
+					value := v.(string)
+					if len(value) > 37 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 37 characters, name is limited to 63", k))
+					}
+					return
+				},
 			},
-
-			"machine_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"disk": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
@@ -123,10 +125,48 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				},
 			},
 
+			"machine_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"automatic_restart": &schema.Schema{
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Default:    true,
+				ForceNew:   true,
+				Deprecated: "Please use `scheduling.automatic_restart` instead",
+			},
+
+			"can_ip_forward": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"instance_description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"metadata": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"metadata_fingerprint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"network_interface": &schema.Schema{
@@ -164,19 +204,17 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				},
 			},
 
-			"automatic_restart": &schema.Schema{
-				Type:       schema.TypeBool,
-				Optional:   true,
-				Default:    true,
-				ForceNew:   true,
-				Deprecated: "Please use `scheduling.automatic_restart` instead",
-			},
-
 			"on_host_maintenance": &schema.Schema{
 				Type:       schema.TypeString,
 				Optional:   true,
 				ForceNew:   true,
 				Deprecated: "Please use `scheduling.on_host_maintenance` instead",
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"region": &schema.Schema{
@@ -211,6 +249,11 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 						},
 					},
 				},
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"service_account": &schema.Schema{
@@ -248,17 +291,7 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"metadata_fingerprint": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"tags_fingerprint": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -337,9 +370,14 @@ func buildDisks(d *schema.ResourceData, meta interface{}) ([]*compute.AttachedDi
 	return disks, nil
 }
 
-func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.NetworkInterface) {
+func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.NetworkInterface, error) {
 	// Build up the list of networks
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return nil, err
+	}
 
 	networksCount := d.Get("network_interface.#").(int)
 	networkInterfaces := make([]*compute.NetworkInterface, 0, networksCount)
@@ -355,34 +393,33 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.
 		}
 
 		if networkName == "" && subnetworkName == "" {
-			return fmt.Errorf("network or subnetwork must be provided"), nil
+			return nil, fmt.Errorf("network or subnetwork must be provided")
 		}
 		if networkName != "" && subnetworkName != "" {
-			return fmt.Errorf("network or subnetwork must not both be provided"), nil
+			return nil, fmt.Errorf("network or subnetwork must not both be provided")
 		}
 
 		var networkLink, subnetworkLink string
 		if networkName != "" {
 			network, err := config.clientCompute.Networks.Get(
-				config.Project, networkName).Do()
+				project, networkName).Do()
 			if err != nil {
-				return fmt.Errorf(
-					"Error referencing network '%s': %s",
-					networkName, err), nil
+				return nil, fmt.Errorf("Error referencing network '%s': %s",
+					networkName, err)
 			}
 			networkLink = network.SelfLink
 		} else {
 			// lookup subnetwork link using region and subnetwork name
-			region := d.Get("region").(string)
-			if region == "" {
-				region = config.Region
+			region, err := getRegion(d, config)
+			if err != nil {
+				return nil, err
 			}
 			subnetwork, err := config.clientCompute.Subnetworks.Get(
-				config.Project, region, subnetworkName).Do()
+				project, region, subnetworkName).Do()
 			if err != nil {
-				return fmt.Errorf(
+				return nil, fmt.Errorf(
 					"Error referencing subnetwork '%s' in region '%s': %s",
-					subnetworkName, region, err), nil
+					subnetworkName, region, err)
 			}
 			subnetworkLink = subnetwork.SelfLink
 		}
@@ -404,11 +441,16 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.
 
 		networkInterfaces = append(networkInterfaces, &iface)
 	}
-	return nil, networkInterfaces
+	return networkInterfaces, nil
 }
 
 func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	instanceProperties := &compute.InstanceProperties{}
 
@@ -425,7 +467,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 	instanceProperties.Metadata = metadata
-	err, networks := buildNetworks(d, meta)
+	networks, err := buildNetworks(d, meta)
 	if err != nil {
 		return err
 	}
@@ -497,14 +539,22 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 
 	instanceProperties.Tags = resourceInstanceTags(d)
 
+	var itName string
+	if v, ok := d.GetOk("name"); ok {
+		itName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		itName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		itName = resource.UniqueId()
+	}
 	instanceTemplate := compute.InstanceTemplate{
 		Description: d.Get("description").(string),
 		Properties:  instanceProperties,
-		Name:        d.Get("name").(string),
+		Name:        itName,
 	}
 
 	op, err := config.clientCompute.InstanceTemplates.Insert(
-		config.Project, &instanceTemplate).Do()
+		project, &instanceTemplate).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating instance: %s", err)
 	}
@@ -523,8 +573,13 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	instanceTemplate, err := config.clientCompute.InstanceTemplates.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Instance Template %q because it's gone", d.Get("name").(string))
@@ -547,15 +602,20 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 		d.Set("tags_fingerprint", instanceTemplate.Properties.Tags.Fingerprint)
 	}
 	d.Set("self_link", instanceTemplate.SelfLink)
-
+	d.Set("name", instanceTemplate.Name)
 	return nil
 }
 
 func resourceComputeInstanceTemplateDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	op, err := config.clientCompute.InstanceTemplates.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting instance template: %s", err)
 	}

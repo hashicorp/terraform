@@ -28,6 +28,7 @@ func TestAccLBV1Pool_basic(t *testing.T) {
 				Config: testAccLBV1Pool_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBV1PoolExists(t, "openstack_lb_pool_v1.pool_1", &pool),
+					resource.TestCheckResourceAttr("openstack_lb_pool_v1.pool_1", "lb_provider", "haproxy"),
 				),
 			},
 			resource.TestStep{
@@ -144,6 +145,7 @@ var testAccLBV1Pool_basic = fmt.Sprintf(`
     protocol = "HTTP"
     subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
     lb_method = "ROUND_ROBIN"
+    lb_provider = "haproxy"
   }`,
 	OS_REGION_NAME, OS_REGION_NAME, OS_REGION_NAME)
 
@@ -237,12 +239,14 @@ var testAccLBV1Pool_fullstack = fmt.Sprintf(`
 		pool_id = "${openstack_lb_pool_v1.pool_1.id}"
 		address = "${openstack_compute_instance_v2.instance_1.access_ip_v4}"
 		port = 80
+		admin_state_up = true
 	}
 
 	resource "openstack_lb_member_v1" "member_2" {
 		pool_id = "${openstack_lb_pool_v1.pool_1.id}"
 		address = "${openstack_compute_instance_v2.instance_2.access_ip_v4}"
 		port = 80
+		admin_state_up = true
 	}
 
 	resource "openstack_lb_vip_v1" "vip_1" {
@@ -251,4 +255,5 @@ var testAccLBV1Pool_fullstack = fmt.Sprintf(`
 		protocol = "TCP"
 		port = 80
 		pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+		admin_state_up = true
 	}`)

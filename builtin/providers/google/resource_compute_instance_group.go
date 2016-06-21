@@ -25,10 +25,22 @@ func resourceComputeInstanceGroup() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"instances": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"named_port": &schema.Schema{
@@ -49,30 +61,24 @@ func resourceComputeInstanceGroup() *schema.Resource {
 				},
 			},
 
-			"instances": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"network": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
-			"network": &schema.Schema{
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
 			"size": &schema.Schema{
 				Type:     schema.TypeInt,
-				Computed: true,
-			},
-
-			"zone": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
@@ -100,6 +106,11 @@ func validInstanceURLs(instanceUrls []string) bool {
 func resourceComputeInstanceGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Build the parameter
 	instanceGroup := &compute.InstanceGroup{
 		Name: d.Get("name").(string),
@@ -116,7 +127,7 @@ func resourceComputeInstanceGroupCreate(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] InstanceGroup insert request: %#v", instanceGroup)
 	op, err := config.clientCompute.InstanceGroups.Insert(
-		config.Project, d.Get("zone").(string), instanceGroup).Do()
+		project, d.Get("zone").(string), instanceGroup).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating InstanceGroup: %s", err)
 	}
@@ -142,7 +153,7 @@ func resourceComputeInstanceGroupCreate(d *schema.ResourceData, meta interface{}
 
 		log.Printf("[DEBUG] InstanceGroup add instances request: %#v", addInstanceReq)
 		op, err := config.clientCompute.InstanceGroups.AddInstances(
-			config.Project, d.Get("zone").(string), d.Id(), addInstanceReq).Do()
+			project, d.Get("zone").(string), d.Id(), addInstanceReq).Do()
 		if err != nil {
 			return fmt.Errorf("Error adding instances to InstanceGroup: %s", err)
 		}
@@ -160,9 +171,14 @@ func resourceComputeInstanceGroupCreate(d *schema.ResourceData, meta interface{}
 func resourceComputeInstanceGroupRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// retreive instance group
 	instanceGroup, err := config.clientCompute.InstanceGroups.Get(
-		config.Project, d.Get("zone").(string), d.Id()).Do()
+		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
@@ -177,7 +193,7 @@ func resourceComputeInstanceGroupRead(d *schema.ResourceData, meta interface{}) 
 	// retreive instance group members
 	var memberUrls []string
 	members, err := config.clientCompute.InstanceGroups.ListInstances(
-		config.Project, d.Get("zone").(string), d.Id(), &compute.InstanceGroupsListInstancesRequest{
+		project, d.Get("zone").(string), d.Id(), &compute.InstanceGroupsListInstancesRequest{
 			InstanceState: "ALL",
 		}).Do()
 	if err != nil {
@@ -206,8 +222,13 @@ func resourceComputeInstanceGroupRead(d *schema.ResourceData, meta interface{}) 
 func resourceComputeInstanceGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// refresh the state incase referenced instances have been removed earlier in the run
-	err := resourceComputeInstanceGroupRead(d, meta)
+	err = resourceComputeInstanceGroupRead(d, meta)
 	if err != nil {
 		return fmt.Errorf("Error reading InstanceGroup: %s", err)
 	}
@@ -237,7 +258,7 @@ func resourceComputeInstanceGroupUpdate(d *schema.ResourceData, meta interface{}
 
 			log.Printf("[DEBUG] InstanceGroup remove instances request: %#v", removeReq)
 			removeOp, err := config.clientCompute.InstanceGroups.RemoveInstances(
-				config.Project, d.Get("zone").(string), d.Id(), removeReq).Do()
+				project, d.Get("zone").(string), d.Id(), removeReq).Do()
 			if err != nil {
 				return fmt.Errorf("Error removing instances from InstanceGroup: %s", err)
 			}
@@ -257,7 +278,7 @@ func resourceComputeInstanceGroupUpdate(d *schema.ResourceData, meta interface{}
 
 			log.Printf("[DEBUG] InstanceGroup adding instances request: %#v", addReq)
 			addOp, err := config.clientCompute.InstanceGroups.AddInstances(
-				config.Project, d.Get("zone").(string), d.Id(), addReq).Do()
+				project, d.Get("zone").(string), d.Id(), addReq).Do()
 			if err != nil {
 				return fmt.Errorf("Error adding instances from InstanceGroup: %s", err)
 			}
@@ -281,7 +302,7 @@ func resourceComputeInstanceGroupUpdate(d *schema.ResourceData, meta interface{}
 
 		log.Printf("[DEBUG] InstanceGroup updating named ports request: %#v", namedPortsReq)
 		op, err := config.clientCompute.InstanceGroups.SetNamedPorts(
-			config.Project, d.Get("zone").(string), d.Id(), namedPortsReq).Do()
+			project, d.Get("zone").(string), d.Id(), namedPortsReq).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating named ports for InstanceGroup: %s", err)
 		}
@@ -301,8 +322,13 @@ func resourceComputeInstanceGroupUpdate(d *schema.ResourceData, meta interface{}
 func resourceComputeInstanceGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zone := d.Get("zone").(string)
-	op, err := config.clientCompute.InstanceGroups.Delete(config.Project, zone, d.Id()).Do()
+	op, err := config.clientCompute.InstanceGroups.Delete(project, zone, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting InstanceGroup: %s", err)
 	}

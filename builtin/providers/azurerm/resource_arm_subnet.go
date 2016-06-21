@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -19,42 +18,42 @@ func resourceArmSubnet() *schema.Resource {
 		Delete: resourceArmSubnetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"virtual_network_name": &schema.Schema{
+			"virtual_network_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"address_prefix": &schema.Schema{
+			"address_prefix": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"network_security_group_id": &schema.Schema{
+			"network_security_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"route_table_id": &schema.Schema{
+			"route_table_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ip_configurations": &schema.Schema{
+			"ip_configurations": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -102,23 +101,20 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 		Properties: &properties,
 	}
 
-	resp, err := subnetClient.CreateOrUpdate(resGroup, vnetName, name, subnet)
+	_, err := subnetClient.CreateOrUpdate(resGroup, vnetName, name, subnet, make(chan struct{}))
 	if err != nil {
 		return err
 	}
 
-	d.SetId(*resp.ID)
+	read, err := subnetClient.Get(resGroup, vnetName, name, "")
+	if err != nil {
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Subnet %s/%s (resource group %s) ID", vnetName, name, resGroup)
+	}
 
-	log.Printf("[DEBUG] Waiting for Subnet (%s) to become available", name)
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"Accepted", "Updating"},
-		Target:  []string{"Succeeded"},
-		Refresh: subnetRuleStateRefreshFunc(client, resGroup, vnetName, name),
-		Timeout: 10 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Subnet (%s) to become available: %s", name, err)
-	}
+	d.SetId(*read.ID)
 
 	return resourceArmSubnetRead(d, meta)
 }
@@ -171,7 +167,7 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	armMutexKV.Lock(vnetName)
 	defer armMutexKV.Unlock(vnetName)
 
-	_, err = subnetClient.Delete(resGroup, vnetName, name)
+	_, err = subnetClient.Delete(resGroup, vnetName, name, make(chan struct{}))
 
 	return err
 }
