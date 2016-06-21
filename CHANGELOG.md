@@ -126,6 +126,7 @@ BUG FIXES:
  * provider/aws: `aws_db_instance` now defaults `publicly_accessible` to false [GH-7117]
  * provider/aws: `aws_opsworks_application.app_source` SSH key is write-only [GH-6649]
  * provider/aws: fix Elastic Beanstalk `cname_prefix` continual plans [GH-6653]
+ * provider/aws: Bundle IOPs and Allocated Storage update for DB Instances [GH-7203]
  * provider/aws: fix aws_security_group_rule refresh [GH-6730]
  * provider/aws: Fix issue with Elastic Beanstalk and invalid settings [GH-7222]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
