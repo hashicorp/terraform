@@ -13,6 +13,8 @@ const (
 	resourceKeyVLANDescription     = "description"
 	resourceKeyVLANIPv4BaseAddress = "ipv4_base_address"
 	resourceKeyVLANIPv4PrefixSize  = "ipv4_prefix_size"
+	resourceKeyVLANIPv6BaseAddress = "ipv6_base_address"
+	resourceKeyVLANIPv6PrefixSize  = "ipv6_prefix_size"
 	resourceCreateTimeoutVLAN      = 5 * time.Minute
 	resourceDeleteTimeoutVLAN      = 5 * time.Minute
 )
@@ -53,6 +55,16 @@ func resourceVLAN() *schema.Resource {
 				ForceNew:    true,
 				Description: "The VLAN's private IPv4 prefix length.",
 			},
+			resourceKeyVLANIPv6BaseAddress: &schema.Schema{
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The VLAN's IPv6 base address.",
+			},
+			resourceKeyVLANIPv6PrefixSize: &schema.Schema{
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The VLAN's IPv6 prefix length.",
+			},
 		},
 	}
 }
@@ -84,26 +96,30 @@ func resourceVLANCreate(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("VLAN '%s' is being provisioned...", vlanID)
 
-	_, err = apiClient.WaitForDeploy(compute.ResourceTypeVLAN, vlanID, resourceCreateTimeoutVLAN)
+	deployedResource, err := apiClient.WaitForDeploy(compute.ResourceTypeVLAN, vlanID, resourceCreateTimeoutVLAN)
+	if err != nil {
+		return err
+	}
 
-	return err
+	vlan := deployedResource.(*compute.VLAN)
+	data.Set(resourceKeyVLANIPv6BaseAddress, vlan.IPv6Range.BaseAddress)
+	data.Set(resourceKeyVLANIPv6PrefixSize, vlan.IPv6Range.PrefixSize)
+
+	return nil
 }
 
 // Read a VLAN resource.
 func resourceVLANRead(data *schema.ResourceData, provider interface{}) error {
-	var (
-		id, networkDomainID, name, description, ipv4BaseAddress string
-		ipv4PrefixSize                                          int
-	)
+	id := data.Id()
+	networkDomainID := data.Get(resourceKeyVLANNetworkDomainID).(string)
+	name := data.Get(resourceKeyVLANName).(string)
+	description := data.Get(resourceKeyVLANDescription).(string)
+	ipv4BaseAddress := data.Get(resourceKeyVLANIPv4BaseAddress).(string)
+	ipv4PrefixSize := data.Get(resourceKeyVLANIPv4PrefixSize).(int)
+	ipv6BaseAddress := data.Get(resourceKeyVLANIPv6BaseAddress).(string)
+	ipv6PrefixSize := data.Get(resourceKeyVLANIPv6PrefixSize).(int)
 
-	id = data.Id()
-	networkDomainID = data.Get(resourceKeyVLANNetworkDomainID).(string)
-	name = data.Get(resourceKeyVLANName).(string)
-	description = data.Get(resourceKeyVLANDescription).(string)
-	ipv4BaseAddress = data.Get(resourceKeyVLANIPv4BaseAddress).(string)
-	ipv4PrefixSize = data.Get(resourceKeyVLANIPv4PrefixSize).(int)
-
-	log.Printf("Read VLAN '%s' (Name = '%s', description = '%s') in network domain '%s' (IPv4 network = '%s/%d').", id, name, description, networkDomainID, ipv4BaseAddress, ipv4PrefixSize)
+	log.Printf("Read VLAN '%s' (Name = '%s', description = '%s') in network domain '%s' (IPv4 network = '%s/%d', IPv6 network = '%s/%d').", id, name, description, networkDomainID, ipv4BaseAddress, ipv4PrefixSize, ipv6BaseAddress, ipv6PrefixSize)
 
 	apiClient := provider.(*compute.Client)
 
@@ -115,6 +131,8 @@ func resourceVLANRead(data *schema.ResourceData, provider interface{}) error {
 	if vlan != nil {
 		data.Set(resourceKeyVLANName, vlan.Name)
 		data.Set(resourceKeyVLANDescription, vlan.Description)
+		data.Set(resourceKeyVLANIPv6BaseAddress, vlan.IPv6Range.BaseAddress)
+		data.Set(resourceKeyVLANIPv6PrefixSize, vlan.IPv6Range.PrefixSize)
 	} else {
 		data.SetId("") // Mark resource as deleted.
 	}
