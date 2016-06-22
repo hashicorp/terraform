@@ -19,7 +19,6 @@ func resourceCloudinitConfig() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceCloudinitConfigCreate,
 		Delete: resourceCloudinitConfigDelete,
-		Update: resourceCloudinitConfigCreate,
 		Exists: resourceCloudinitConfigExists,
 		Read:   resourceCloudinitConfigRead,
 
