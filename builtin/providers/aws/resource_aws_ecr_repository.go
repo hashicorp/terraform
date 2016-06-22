@@ -16,6 +16,9 @@ func resourceAwsEcrRepository() *schema.Resource {
 		Create: resourceAwsEcrRepositoryCreate,
 		Read:   resourceAwsEcrRepositoryRead,
 		Delete: resourceAwsEcrRepositoryDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsEcrRepositoryImportState,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
