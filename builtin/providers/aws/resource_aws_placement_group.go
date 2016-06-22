@@ -18,7 +18,7 @@ func resourceAwsPlacementGroup() *schema.Resource {
 		Read:   resourceAwsPlacementGroupRead,
 		Delete: resourceAwsPlacementGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsPlacementGroupImportState,
 		},
 
 		Schema: map[string]*schema.Schema{
