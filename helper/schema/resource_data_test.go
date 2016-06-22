@@ -818,7 +818,7 @@ func TestSetInsideSet(t *testing.T) {
 	}
 }
 
-func TestSetInsideList(t *testing.T) {
+func TestSetInsideList_simple(t *testing.T) {
 	_schema := map[string]*Schema{
 		"main_list": &Schema{
 			Type:     TypeList,
@@ -849,6 +849,78 @@ func TestSetInsideList(t *testing.T) {
 			"main_list.0.inner_string_set.#":          "2",
 			"main_list.0.inner_string_set.2654390964": "blue",
 			"main_list.0.inner_string_set.3499814433": "green",
+		},
+		Meta:    map[string]string{},
+		Tainted: false,
+	}
+
+	suggestedDiff := &terraform.InstanceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"main_int": &terraform.ResourceAttrDiff{
+				Old: "9",
+				New: "2",
+			},
+		},
+	}
+
+	d := &ResourceData{
+		schema: _schema,
+		state:  existingState,
+		diff:   suggestedDiff,
+	}
+
+	v := d.Get("main_list").([]interface{})
+	if len(v) != 1 {
+		t.Fatalf("Expected exactly 1 instance of main_list, got %d", len(v))
+	}
+	if v[0] == nil {
+		t.Fatalf("Expected main_list to be not nil: %#v", v)
+	}
+
+	m := v[0].(map[string]interface{})
+	set := m["inner_string_set"].(*Set).List()
+	expectedSet := NewSet(HashString, []interface{}{"blue", "green"}).List()
+	if !reflect.DeepEqual(set, expectedSet) {
+		t.Fatalf("Given: %#v\n\nExpected: %#v", set, expectedSet)
+	}
+}
+
+func TestSetInsideList_complex(t *testing.T) {
+	_schema := map[string]*Schema{
+		"main_list": &Schema{
+			Type:     TypeList,
+			Optional: true,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"inner_string_set": &Schema{
+						Type:     TypeSet,
+						Required: true,
+						Set:      HashString,
+						Elem:     &Schema{Type: TypeString},
+					},
+					"inner_int": &Schema{
+						Type:     TypeInt,
+						Required: true,
+					},
+				},
+			},
+		},
+		"main_int": &Schema{
+			Type:     TypeInt,
+			Optional: true,
+		},
+	}
+
+	existingState := &terraform.InstanceState{
+		ID: "8395051352714003426",
+		Attributes: map[string]string{
+			"id":                                      "8395051352714003426",
+			"main_int":                                "9",
+			"main_list.#":                             "2",
+			"main_list.0.inner_string_set.#":          "2",
+			"main_list.0.inner_string_set.2654390964": "blue",
+			"main_list.0.inner_string_set.3499814433": "green",
+			"main_list.0.inner_int":                   "4",
 		},
 		Meta:    map[string]string{},
 		Tainted: false,
