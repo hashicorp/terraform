@@ -27,6 +27,7 @@ func resourceCloudinitConfig() *schema.Resource {
 			"part": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"content_type": &schema.Schema{
