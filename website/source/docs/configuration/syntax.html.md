@@ -75,6 +75,8 @@ Basic bullet point reference:
 
   * Maps can be made with the `{}` syntax:
 	`{ "foo": "bar", "bar": "baz" }`.
+    Quotes may be omitted on keys, unless the key starts with a number,
+    in which case quotes are required.
 
 In addition to the basics, the syntax supports hierarchies of sections,
 such as the "resource" and "variable" in the example above. These
