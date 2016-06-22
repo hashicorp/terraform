@@ -128,6 +128,7 @@ func testState() *terraform.State {
 						},
 					},
 				},
+				Outputs: map[string]*terraform.OutputState{},
 			},
 		},
 	}
