@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -72,24 +73,24 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 			case string:
 				continue
 			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %T",
-					name, modulePathDescription, declaredType.Printable(), proposedValue)
+				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
+					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
 			}
 		case config.VariableTypeMap:
 			switch proposedValue.(type) {
 			case map[string]interface{}:
 				continue
 			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %T",
-					name, modulePathDescription, declaredType.Printable(), proposedValue)
+				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
+					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
 			}
 		case config.VariableTypeList:
 			switch proposedValue.(type) {
 			case []interface{}:
 				continue
 			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %T",
-					name, modulePathDescription, declaredType.Printable(), proposedValue)
+				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
+					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
 			}
 		default:
 			// This will need the actual type substituting when we have more than
@@ -160,4 +161,27 @@ func (n *EvalVariableBlock) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	return nil, nil
+}
+
+// hclTypeName returns the name of the type that would represent this value in
+// a config file, or falls back to the Go type name if there's no corresponding
+// HCL type. This is used for formatted output, not for comparing types.
+func hclTypeName(i interface{}) string {
+	switch k := reflect.Indirect(reflect.ValueOf(i)).Kind(); k {
+	case reflect.Bool:
+		return "boolean"
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+		reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64:
+		return "number"
+	case reflect.Array, reflect.Slice:
+		return "array"
+	case reflect.Map:
+		return "object"
+	case reflect.String:
+		return "string"
+	default:
+		// fall back to the Go type if there's no match
+		return k.String()
+	}
 }
