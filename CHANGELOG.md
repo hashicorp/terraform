@@ -111,6 +111,8 @@ BUG FIXES:
 
  * core: Correct the previous fix for a bug causing "attribute not found" messages during destroy, as it was insufficient [GH-6599]
  * core: Fix issue causing syntax errors interpolating count attribute when value passed between modules [GH-6833]
+ * core: Fix "diffs didn't match during apply" error for computed sets [GH-7205]
+ * core: Fix issue where `terraform init .` would truncate existing files [GH-7273]
  * provider/aws: Changing keys in `aws_dynamodb_table` correctly force new resources [GH-6829]
  * provider/aws: Fix a bug where CloudWatch alarms are created repeatedly if the user does not have permission to use the the DescribeAlarms operation [GH-7227]
  * provider/aws: Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
@@ -129,6 +131,8 @@ BUG FIXES:
  * provider/aws: Bundle IOPs and Allocated Storage update for DB Instances [GH-7203]
  * provider/aws: fix aws_security_group_rule refresh [GH-6730]
  * provider/aws: Fix issue with Elastic Beanstalk and invalid settings [GH-7222]
+ * provider/aws: Fix issue where aws_app_cookie_stickiness_policy fails on destroy if LoadBalancer doesn't exist [GH-7166]
+ * provider/aws: Stickiness Policy exists, but isn't assigned to the ELB [GH-7188]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
