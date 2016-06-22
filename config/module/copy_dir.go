@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // copyDir copies the src directory contents into dst. Both directories
@@ -19,6 +20,7 @@ func copyDir(dst, src string) error {
 		if err != nil {
 			return err
 		}
+
 		if path == src {
 			return nil
 		}
@@ -35,6 +37,19 @@ func copyDir(dst, src string) error {
 		// The "path" has the src prefixed to it. We need to join our
 		// destination with the path without the src on it.
 		dstPath := filepath.Join(dst, path[len(src):])
+
+		// we don't want to try and copy the same file over itself.
+		if path == dstPath {
+			return nil
+		}
+
+		// We still might have the same file through a link, so check the
+		// inode if we can
+		if eq, err := sameInode(path, dstPath); eq {
+			return nil
+		} else if err != nil {
+			return err
+		}
 
 		// If we have a directory, make that subdirectory, then continue
 		// the walk.
@@ -73,4 +88,37 @@ func copyDir(dst, src string) error {
 	}
 
 	return filepath.Walk(src, walkFn)
+}
+
+// sameInode looks up the inode for paths a and b and returns if they are
+// equal. On windows this will always return false.
+func sameInode(a, b string) (bool, error) {
+	var aIno, bIno uint64
+	aStat, err := os.Stat(a)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if st, ok := aStat.Sys().(*syscall.Stat_t); ok {
+		aIno = st.Ino
+	}
+
+	bStat, err := os.Stat(b)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if st, ok := bStat.Sys().(*syscall.Stat_t); ok {
+		bIno = st.Ino
+	}
+
+	if aIno > 0 && aIno == bIno {
+		return true, nil
+	}
+
+	return false, nil
 }
