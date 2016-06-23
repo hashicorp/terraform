@@ -156,6 +156,7 @@ BUG FIXES:
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
  * provider/vsphere: adding a `vsphere_virtual_machine` migration [GH-7023]
  * provider/vsphere: Don't require vsphere debug paths to be set [GH-7027]
+ * provider/vsphere: Fix bug where `enable_disk_uuid` was not set on `vsphere_virtual_machine` resources [GH-7275]
 
 ## 0.6.16 (May 9, 2016)
 
