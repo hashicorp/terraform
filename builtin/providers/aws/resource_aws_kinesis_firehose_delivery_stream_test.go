@@ -9,19 +9,19 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/firehose"
-        "github.com/hashicorp/terraform/helper/acctest"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSKinesisFirehoseDeliveryStream_s3basic(t *testing.T) {
 	var stream firehose.DeliveryStreamDescription
-        ri := acctest.RandInt()
-        config := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3basic,
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3basic,
 		os.Getenv("AWS_ACCOUNT_ID"), ri, ri)
 
 	resource.Test(t, resource.TestCase{
-                PreCheck:     testAccKinesisFirehosePreCheck(t),
+		PreCheck:     testAccKinesisFirehosePreCheck(t),
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
 		Steps: []resource.TestStep{
@@ -39,81 +39,14 @@ func TestAccAWSKinesisFirehoseDeliveryStream_s3basic(t *testing.T) {
 func TestAccAWSKinesisFirehoseDeliveryStream_s3ConfigUpdates(t *testing.T) {
 	var stream firehose.DeliveryStreamDescription
 
-        ri := acctest.RandInt()
-        preconfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3basic,
+	ri := acctest.RandInt()
+	preconfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3basic,
 		os.Getenv("AWS_ACCOUNT_ID"), ri, ri)
 	postConfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3Updates,
 		os.Getenv("AWS_ACCOUNT_ID"), ri, ri)
 
 	resource.Test(t, resource.TestCase{
-                PreCheck:     testAccKinesisFirehosePreCheck(t),
-                Providers:    testAccProviders,
-                CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: preconfig,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
-                                        testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "5"),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "300"),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "UNCOMPRESSED"),
-                                ),
-                        },
-
-                        resource.TestStep{
-                                Config: postConfig,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
-                                        testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "10"),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "400"),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "GZIP"),
-                                ),
-                        },
-		},
-        })
-}
-
-func TestAccAWSKinesisFirehoseDeliveryStream_RedshiftBasic(t *testing.T) {
-        var stream firehose.DeliveryStreamDescription
-        ri := acctest.RandInt()
-        config := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_RedshiftBasic,
-                os.Getenv("AWS_ACCOUNT_ID"), ri, ri, ri)
-
-        resource.Test(t, resource.TestCase{
-                PreCheck:     testAccKinesisFirehosePreCheck(t),
-                Providers:    testAccProviders,
-                CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: config,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
-                                        testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
-                                ),
-                        },
-                },
-        })
-}
-
-func TestAccAWSKinesisFirehoseDeliveryStream_RedshiftConfigUpdates(t *testing.T) {
-        var stream firehose.DeliveryStreamDescription
-
-        ri := acctest.RandInt()
-        preconfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_RedshiftBasic,
-                os.Getenv("AWS_ACCOUNT_ID"), ri, ri, ri)
-        postConfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_RedshiftUpdates,
-                os.Getenv("AWS_ACCOUNT_ID"), ri, ri, ri)
-
-        resource.Test(t, resource.TestCase{
-                PreCheck:     testAccKinesisFirehosePreCheck(t),
+		PreCheck:     testAccKinesisFirehosePreCheck(t),
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
 		Steps: []resource.TestStep{
@@ -123,15 +56,11 @@ func TestAccAWSKinesisFirehoseDeliveryStream_RedshiftConfigUpdates(t *testing.T)
 					testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
 					testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
 					resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "5"),
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "5"),
 					resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "300"),
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "300"),
 					resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "UNCOMPRESSED"),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.copy_options", ""),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.data_table_columns", ""),
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "UNCOMPRESSED"),
 				),
 			},
 
@@ -141,15 +70,86 @@ func TestAccAWSKinesisFirehoseDeliveryStream_RedshiftConfigUpdates(t *testing.T)
 					testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
 					testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
 					resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "10"),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "400"),
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "10"),
 					resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "GZIP"),
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "400"),
 					resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.copy_options", "GZIP"),
-                                        resource.TestCheckResourceAttr(
-                                                "aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.data_table_columns", "test-col"),
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "GZIP"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSKinesisFirehoseDeliveryStream_RedshiftBasic(t *testing.T) {
+	var stream firehose.DeliveryStreamDescription
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_RedshiftBasic,
+		os.Getenv("AWS_ACCOUNT_ID"), ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     testAccKinesisFirehosePreCheck(t),
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
+					testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSKinesisFirehoseDeliveryStream_RedshiftConfigUpdates(t *testing.T) {
+	var stream firehose.DeliveryStreamDescription
+
+	ri := acctest.RandInt()
+	preconfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_RedshiftBasic,
+		os.Getenv("AWS_ACCOUNT_ID"), ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_RedshiftUpdates,
+		os.Getenv("AWS_ACCOUNT_ID"), ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     testAccKinesisFirehosePreCheck(t),
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preconfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
+					testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "300"),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "UNCOMPRESSED"),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.copy_options", ""),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.data_table_columns", ""),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
+					testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "10"),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "400"),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "GZIP"),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.copy_options", "GZIP"),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.data_table_columns", "test-col"),
 				),
 			},
 		},
@@ -224,12 +224,12 @@ func testAccCheckKinesisFirehoseDeliveryStreamDestroy(s *terraform.State) error 
 }
 
 func testAccKinesisFirehosePreCheck(t *testing.T) func() {
-        return func() {
-                testAccPreCheck(t)
-                if os.Getenv("AWS_ACCOUNT_ID") == "" {
-                        t.Fatal("AWS_ACCOUNT_ID must be set")
-                }
-        }
+	return func() {
+		testAccPreCheck(t)
+		if os.Getenv("AWS_ACCOUNT_ID") == "" {
+			t.Fatal("AWS_ACCOUNT_ID must be set")
+		}
+	}
 }
 
 const testAccKinesisFirehoseDeliveryStreamBaseConfig = `

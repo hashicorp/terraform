@@ -37,93 +37,93 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 				},
 			},
 
-                        "s3_configuration": &schema.Schema{
-                                Type:     schema.TypeSet,
+			"s3_configuration": &schema.Schema{
+				Type:     schema.TypeSet,
 				Required: true,
-                                Elem: &schema.Resource{
-                                        Schema: map[string]*schema.Schema{
-                                                "bucket_arn": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Required: true,
-                                                },
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"bucket_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
 
-                                                "buffer_size": &schema.Schema{
-                                                        Type:     schema.TypeInt,
-                                                        Optional: true,
-                                                        Default:  5,
-                                                },
+						"buffer_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  5,
+						},
 
-                                                "buffer_interval": &schema.Schema{
-                                                        Type:     schema.TypeInt,
-                                                        Optional: true,
-                                                        Default:  300,
-                                                },
+						"buffer_interval": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  300,
+						},
 
-                                                "compression_format": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Optional: true,
-                                                        Default:  "UNCOMPRESSED",
-                                                },
+						"compression_format": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "UNCOMPRESSED",
+						},
 
-                                                "kms_key_arn": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Optional: true,
-                                                },
+						"kms_key_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-                                                "role_arn": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Required: true,
-                                                },
+						"role_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
 
-                                                "prefix": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Optional: true,
-                                                },
-                                        },
-                                },
+						"prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 
-                        "redshift_configuration": &schema.Schema{
-                                Type:     schema.TypeSet,
+			"redshift_configuration": &schema.Schema{
+				Type:     schema.TypeSet,
 				Optional: true,
-                                Elem: &schema.Resource{
-                                        Schema: map[string]*schema.Schema{
-                                                "cluster_jdbcurl": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Required: true,
-                                                },
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cluster_jdbcurl": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
 
-                                                "username": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Required: true,
-                                                },
+						"username": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
 
-                                                "password": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Required: true,
-                                                },
+						"password": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
 
-                                                "role_arn": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Required: true,
-                                                },
+						"role_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
 
-                                                "copy_options": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Optional: true,
-                                                },
+						"copy_options": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-                                                "data_table_columns": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Optional: true,
-                                                },
+						"data_table_columns": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-                                                "data_table_name": &schema.Schema{
-                                                        Type:     schema.TypeString,
-                                                        Required: true,
-                                                },
-                                        },
-                                },
+						"data_table_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 
 			"arn": &schema.Schema{
@@ -148,156 +148,156 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 }
 
 func validateConfiguration(d *schema.ResourceData) error {
-        destination := d.Get("destination").(string)
-        if destination != "s3" && destination != "redshift" {
-                return fmt.Errorf("[ERROR] Destination must be s3 or redshift")
-        }
+	destination := d.Get("destination").(string)
+	if destination != "s3" && destination != "redshift" {
+		return fmt.Errorf("[ERROR] Destination must be s3 or redshift")
+	}
 
-        s3Configuration := d.Get("s3_configuration").(*schema.Set).List()
-        if len(s3Configuration) > 1 {
-                return fmt.Errorf("[ERROR] You can only define a single s3_configuration per delivery stream")
-        }
+	s3Configuration := d.Get("s3_configuration").(*schema.Set).List()
+	if len(s3Configuration) > 1 {
+		return fmt.Errorf("[ERROR] You can only define a single s3_configuration per delivery stream")
+	}
 
-        return nil
+	return nil
 }
 
 func createS3Config(d *schema.ResourceData) *firehose.S3DestinationConfiguration {
-        s3 := d.Get("s3_configuration").(*schema.Set).List()[0].(map[string]interface{})
+	s3 := d.Get("s3_configuration").(*schema.Set).List()[0].(map[string]interface{})
 
-        return &firehose.S3DestinationConfiguration{
-                BucketARN: aws.String(s3["bucket_arn"].(string)),
-                RoleARN:   aws.String(s3["role_arn"].(string)),
-                BufferingHints: &firehose.BufferingHints{
-                        IntervalInSeconds: aws.Int64(int64(s3["buffer_interval"].(int))),
-                        SizeInMBs:         aws.Int64(int64(s3["buffer_size"].(int))),
-                },
-                Prefix:                  extractPrefixConfiguration(s3),
-                CompressionFormat:       aws.String(s3["compression_format"].(string)),
-                EncryptionConfiguration: extractEncryptionConfiguration(s3),
-        }
+	return &firehose.S3DestinationConfiguration{
+		BucketARN: aws.String(s3["bucket_arn"].(string)),
+		RoleARN:   aws.String(s3["role_arn"].(string)),
+		BufferingHints: &firehose.BufferingHints{
+			IntervalInSeconds: aws.Int64(int64(s3["buffer_interval"].(int))),
+			SizeInMBs:         aws.Int64(int64(s3["buffer_size"].(int))),
+		},
+		Prefix:                  extractPrefixConfiguration(s3),
+		CompressionFormat:       aws.String(s3["compression_format"].(string)),
+		EncryptionConfiguration: extractEncryptionConfiguration(s3),
+	}
 }
 
 func updateS3Config(d *schema.ResourceData) *firehose.S3DestinationUpdate {
-        s3 := d.Get("s3_configuration").(*schema.Set).List()[0].(map[string]interface{})
+	s3 := d.Get("s3_configuration").(*schema.Set).List()[0].(map[string]interface{})
 
-        return &firehose.S3DestinationUpdate{
-                BucketARN: aws.String(s3["bucket_arn"].(string)),
-                RoleARN:   aws.String(s3["role_arn"].(string)),
-                BufferingHints: &firehose.BufferingHints{
-                        IntervalInSeconds: aws.Int64((int64)(s3["buffer_interval"].(int))),
-                        SizeInMBs:         aws.Int64((int64)(s3["buffer_size"].(int))),
-                },
-                Prefix:                  extractPrefixConfiguration(s3),
-                CompressionFormat:       aws.String(s3["compression_format"].(string)),
-                EncryptionConfiguration: extractEncryptionConfiguration(s3),
-        }
+	return &firehose.S3DestinationUpdate{
+		BucketARN: aws.String(s3["bucket_arn"].(string)),
+		RoleARN:   aws.String(s3["role_arn"].(string)),
+		BufferingHints: &firehose.BufferingHints{
+			IntervalInSeconds: aws.Int64((int64)(s3["buffer_interval"].(int))),
+			SizeInMBs:         aws.Int64((int64)(s3["buffer_size"].(int))),
+		},
+		Prefix:                  extractPrefixConfiguration(s3),
+		CompressionFormat:       aws.String(s3["compression_format"].(string)),
+		EncryptionConfiguration: extractEncryptionConfiguration(s3),
+	}
 }
 
 func extractEncryptionConfiguration(s3 map[string]interface{}) *firehose.EncryptionConfiguration {
-        if key, ok := s3["kms_key_arn"]; ok && len(key.(string)) > 0 {
-                return &firehose.EncryptionConfiguration{
-                        KMSEncryptionConfig: &firehose.KMSEncryptionConfig{
-                                AWSKMSKeyARN: aws.String(key.(string)),
-                        },
-                }
-        }
+	if key, ok := s3["kms_key_arn"]; ok && len(key.(string)) > 0 {
+		return &firehose.EncryptionConfiguration{
+			KMSEncryptionConfig: &firehose.KMSEncryptionConfig{
+				AWSKMSKeyARN: aws.String(key.(string)),
+			},
+		}
+	}
 
-        return &firehose.EncryptionConfiguration{
-                NoEncryptionConfig: aws.String("NoEncryption"),
-        }
+	return &firehose.EncryptionConfiguration{
+		NoEncryptionConfig: aws.String("NoEncryption"),
+	}
 }
 
 func extractPrefixConfiguration(s3 map[string]interface{}) *string {
-        if v, ok := s3["prefix"]; ok {
-                return aws.String(v.(string))
-        }
+	if v, ok := s3["prefix"]; ok {
+		return aws.String(v.(string))
+	}
 
-        return nil
+	return nil
 }
 
 func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3DestinationConfiguration) *firehose.RedshiftDestinationConfiguration {
-        redshift := d.Get("redshift_configuration").(*schema.Set).List()[0].(map[string]interface{})
+	redshift := d.Get("redshift_configuration").(*schema.Set).List()[0].(map[string]interface{})
 
-        return &firehose.RedshiftDestinationConfiguration{
-                ClusterJDBCURL:  aws.String(redshift["cluster_jdbcurl"].(string)),
-                Password:        aws.String(redshift["password"].(string)),
-                Username:        aws.String(redshift["username"].(string)),
-                RoleARN:         aws.String(redshift["role_arn"].(string)),
-                CopyCommand:     extractCopyCommandConfiguration(redshift),
-                S3Configuration: s3Config,
-        }
+	return &firehose.RedshiftDestinationConfiguration{
+		ClusterJDBCURL:  aws.String(redshift["cluster_jdbcurl"].(string)),
+		Password:        aws.String(redshift["password"].(string)),
+		Username:        aws.String(redshift["username"].(string)),
+		RoleARN:         aws.String(redshift["role_arn"].(string)),
+		CopyCommand:     extractCopyCommandConfiguration(redshift),
+		S3Configuration: s3Config,
+	}
 }
 
 func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3DestinationUpdate) *firehose.RedshiftDestinationUpdate {
-        redshift := d.Get("redshift_configuration").(*schema.Set).List()[0].(map[string]interface{})
+	redshift := d.Get("redshift_configuration").(*schema.Set).List()[0].(map[string]interface{})
 
-        return &firehose.RedshiftDestinationUpdate{
-                ClusterJDBCURL: aws.String(redshift["cluster_jdbcurl"].(string)),
-                Password:       aws.String(redshift["password"].(string)),
-                Username:       aws.String(redshift["username"].(string)),
-                RoleARN:        aws.String(redshift["role_arn"].(string)),
-                CopyCommand:    extractCopyCommandConfiguration(redshift),
-                S3Update:       s3Update,
-        }
+	return &firehose.RedshiftDestinationUpdate{
+		ClusterJDBCURL: aws.String(redshift["cluster_jdbcurl"].(string)),
+		Password:       aws.String(redshift["password"].(string)),
+		Username:       aws.String(redshift["username"].(string)),
+		RoleARN:        aws.String(redshift["role_arn"].(string)),
+		CopyCommand:    extractCopyCommandConfiguration(redshift),
+		S3Update:       s3Update,
+	}
 }
 
 func extractCopyCommandConfiguration(redshift map[string]interface{}) *firehose.CopyCommand {
-        cmd := &firehose.CopyCommand{
-                DataTableName: aws.String(redshift["data_table_name"].(string)),
-        }
-        if copyOptions, ok := redshift["copy_options"]; ok {
-                cmd.CopyOptions = aws.String(copyOptions.(string))
-        }
-        if columns, ok := redshift["data_table_columns"]; ok {
-                cmd.DataTableColumns = aws.String(columns.(string))
-        }
+	cmd := &firehose.CopyCommand{
+		DataTableName: aws.String(redshift["data_table_name"].(string)),
+	}
+	if copyOptions, ok := redshift["copy_options"]; ok {
+		cmd.CopyOptions = aws.String(copyOptions.(string))
+	}
+	if columns, ok := redshift["data_table_columns"]; ok {
+		cmd.DataTableColumns = aws.String(columns.(string))
+	}
 
-        return cmd
+	return cmd
 }
 
 func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).firehoseconn
 
-        if err := validateConfiguration(d); err != nil {
-                return err
+	if err := validateConfiguration(d); err != nil {
+		return err
 	}
 
 	sn := d.Get("name").(string)
-        s3Config := createS3Config(d)
+	s3Config := createS3Config(d)
 
-        createInput := &firehose.CreateDeliveryStreamInput{
+	createInput := &firehose.CreateDeliveryStreamInput{
 		DeliveryStreamName: aws.String(sn),
 	}
 
-        if d.Get("destination").(string) == "s3" {
-                createInput.S3DestinationConfiguration = s3Config
-        } else {
-                createInput.RedshiftDestinationConfiguration = createRedshiftConfig(d, s3Config)
+	if d.Get("destination").(string) == "s3" {
+		createInput.S3DestinationConfiguration = s3Config
+	} else {
+		createInput.RedshiftDestinationConfiguration = createRedshiftConfig(d, s3Config)
 	}
 
-        var lastError error
-        err := resource.Retry(1*time.Minute, func() error {
-                _, err := conn.CreateDeliveryStream(createInput)
-                if err != nil {
-                        log.Printf("[DEBUG] Error creating Firehose Delivery Stream: %s", err)
-                        lastError = err
+	var lastError error
+	err := resource.Retry(1*time.Minute, func() error {
+		_, err := conn.CreateDeliveryStream(createInput)
+		if err != nil {
+			log.Printf("[DEBUG] Error creating Firehose Delivery Stream: %s", err)
+			lastError = err
 
-                        if awsErr, ok := err.(awserr.Error); ok {
-                                // IAM roles can take ~10 seconds to propagate in AWS:
-                                // http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-                                if awsErr.Code() == "InvalidArgumentException" && strings.Contains(awsErr.Message(), "Firehose is unable to assume role") {
-                                        log.Printf("[DEBUG] Firehose could not assume role referenced, retrying...")
-                                        return awsErr
-                                }
+			if awsErr, ok := err.(awserr.Error); ok {
+				// IAM roles can take ~10 seconds to propagate in AWS:
+				// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+				if awsErr.Code() == "InvalidArgumentException" && strings.Contains(awsErr.Message(), "Firehose is unable to assume role") {
+					log.Printf("[DEBUG] Firehose could not assume role referenced, retrying...")
+					return awsErr
+				}
 			}
-                        // Not retryable
-                        return resource.RetryError{Err: err}
+			// Not retryable
+			return resource.RetryError{Err: err}
 		}
 
-                return nil
-        })
+		return nil
+	})
 	if err != nil {
-                if awsErr, ok := lastError.(awserr.Error); ok {
+		if awsErr, ok := lastError.(awserr.Error); ok {
 			return fmt.Errorf("[WARN] Error creating Kinesis Firehose Delivery Stream: \"%s\", code: \"%s\"", awsErr.Message(), awsErr.Code())
 		}
 		return err
@@ -329,26 +329,26 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).firehoseconn
 
-        if err := validateConfiguration(d); err != nil {
-                return err
+	if err := validateConfiguration(d); err != nil {
+		return err
 	}
 
 	sn := d.Get("name").(string)
-        s3Config := updateS3Config(d)
+	s3Config := updateS3Config(d)
 
-        updateInput := &firehose.UpdateDestinationInput{
+	updateInput := &firehose.UpdateDestinationInput{
 		DeliveryStreamName:             aws.String(sn),
 		CurrentDeliveryStreamVersionId: aws.String(d.Get("version_id").(string)),
 		DestinationId:                  aws.String(d.Get("destination_id").(string)),
 	}
 
-        if d.Get("destination").(string) == "s3" {
-                updateInput.S3DestinationUpdate = s3Config
-        } else {
-                updateInput.RedshiftDestinationUpdate = updateRedshiftConfig(d, s3Config)
-        }
+	if d.Get("destination").(string) == "s3" {
+		updateInput.S3DestinationUpdate = s3Config
+	} else {
+		updateInput.RedshiftDestinationUpdate = updateRedshiftConfig(d, s3Config)
+	}
 
-        _, err := conn.UpdateDestination(updateInput)
+	_, err := conn.UpdateDestination(updateInput)
 	if err != nil {
 		return fmt.Errorf(
 			"Error Updating Kinesis Firehose Delivery Stream: \"%s\"\n%s",
@@ -361,9 +361,9 @@ func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta
 func resourceAwsKinesisFirehoseDeliveryStreamRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).firehoseconn
 
-        resp, err := conn.DescribeDeliveryStream(&firehose.DescribeDeliveryStreamInput{
-                DeliveryStreamName: aws.String(d.Get("name").(string)),
-        })
+	resp, err := conn.DescribeDeliveryStream(&firehose.DescribeDeliveryStreamInput{
+		DeliveryStreamName: aws.String(d.Get("name").(string)),
+	})
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
