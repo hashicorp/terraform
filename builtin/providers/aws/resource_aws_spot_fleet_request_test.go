@@ -117,11 +117,11 @@ func testAccCheckAWSSpotFleetRequest_LaunchSpecAttributes(
 
 		spec := *sfr.SpotFleetRequestConfig.LaunchSpecifications[0]
 
-		if *spec.InstanceType != "c3.large" {
+		if *spec.InstanceType != "m1.small" {
 			return fmt.Errorf("Unexpected launch specification instance type: %s", *spec.InstanceType)
 		}
 
-		if *spec.ImageId != "ami-f652979b" {
+		if *spec.ImageId != "ami-d06a90b0" {
 			return fmt.Errorf("Unexpected launch specification image id: %s", *spec.ImageId)
 		}
 
@@ -199,10 +199,10 @@ resource "aws_spot_fleet_request" "foo" {
     target_capacity = 2
     valid_until = "2019-11-04T20:44:20Z"
     launch_specification {
-        instance_type = "c3.large"
-        ami = "ami-f652979b"
+        instance_type = "m1.small"
+        ami = "ami-d06a90b0"
         key_name = "${aws_key_pair.debugging.key_name}"
-        availability_zone = "us-east-1a"
+        availability_zone = "us-west-2a"
     }
     depends_on = ["aws_iam_policy_attachment.test-attach"]
 }
@@ -246,10 +246,10 @@ resource "aws_spot_fleet_request" "foo" {
     valid_until = "2019-11-04T20:44:20Z"
     allocation_strategy = "diversified"
     launch_specification {
-        instance_type = "c3.large"
-        ami = "ami-f652979b"
+        instance_type = "m1.small"
+        ami = "ami-d06a90b0"
         key_name = "${aws_key_pair.debugging.key_name}"
-        availability_zone = "us-east-1a"
+        availability_zone = "us-west-2a"
         spot_price = "0.01"
         weighted_capacity = 2
         user_data = "hello-world"
