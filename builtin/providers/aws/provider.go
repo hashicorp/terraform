@@ -257,6 +257,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_security_group":                           resourceAwsSecurityGroup(),
 			"aws_security_group_rule":                      resourceAwsSecurityGroupRule(),
 			"aws_spot_instance_request":                    resourceAwsSpotInstanceRequest(),
+			"aws_spot_fleet_request":                       resourceAwsSpotFleetRequest(),
 			"aws_sqs_queue":                                resourceAwsSqsQueue(),
 			"aws_sns_topic":                                resourceAwsSnsTopic(),
 			"aws_sns_topic_subscription":                   resourceAwsSnsTopicSubscription(),
