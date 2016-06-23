@@ -25,6 +25,7 @@ FEATURES:
  * **Data sources** are a new kind of primitive in Terraform. Attributes for data sources are refreshed and available during the planning stage. [GH-6598]
  * **Lists and maps** can now be used as first class types for variables and may also be passed between modules. [GH-6322]
  * **State management CLI commands** provide a variety of state manipulation functions for advanced use cases. This should be used where possible instead of manually modifying state files. [GH-5811]
+ * **State Import** allows a way to import existing resources into Terraform state for many types of resource. Initial coverage of AWS is quite high, and it is straightforward to add support for new resources.
  
  * **New Command:** `terraform state` to provide access to a variety of state manipulation functions [GH-5811]
  * **New Data Source:** `aws_ami` [GH-6911]
