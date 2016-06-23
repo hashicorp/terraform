@@ -20,6 +20,13 @@ func TestVSphereVirtualMachineMigrateState(t *testing.T) {
 				"skip_customization": "false",
 			},
 		},
+		"enable_disk_uuid before 0.6.16": {
+			StateVersion: 0,
+			Attributes:   map[string]string{},
+			Expected: map[string]string{
+				"enable_disk_uuid": "false",
+			},
+		},
 		"disk controller_type": {
 			StateVersion: 0,
 			Attributes: map[string]string{
