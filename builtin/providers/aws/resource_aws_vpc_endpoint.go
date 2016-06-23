@@ -16,6 +16,10 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 		Read:   resourceAwsVPCEndpointRead,
 		Update: resourceAwsVPCEndpointUpdate,
 		Delete: resourceAwsVPCEndpointDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"policy": &schema.Schema{
 				Type:      schema.TypeString,
