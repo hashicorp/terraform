@@ -19,6 +19,9 @@ func resourceAwsRedshiftSubnetGroup() *schema.Resource {
 		Read:   resourceAwsRedshiftSubnetGroupRead,
 		Update: resourceAwsRedshiftSubnetGroupUpdate,
 		Delete: resourceAwsRedshiftSubnetGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
