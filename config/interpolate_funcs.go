@@ -667,6 +667,9 @@ func interpolationFuncElement() ast.Function {
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			list := args[0].([]ast.Variable)
+			if len(list) == 0 {
+				return nil, fmt.Errorf("element() may not be used with an empty list")
+			}
 
 			index, err := strconv.Atoi(args[1].(string))
 			if err != nil || index < 0 {
