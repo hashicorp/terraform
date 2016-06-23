@@ -19,6 +19,9 @@ func resourceAwsElasticacheSubnetGroup() *schema.Resource {
 		Read:   resourceAwsElasticacheSubnetGroupRead,
 		Update: resourceAwsElasticacheSubnetGroupUpdate,
 		Delete: resourceAwsElasticacheSubnetGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"description": &schema.Schema{
