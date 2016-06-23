@@ -3,13 +3,14 @@ package aws
 import (
 	"bytes"
 	"fmt"
+	"log"
+	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"sort"
 )
 
 func resourceAwsSesReceiptRule() *schema.Resource {
@@ -136,8 +137,15 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 					buf.WriteString(fmt.Sprintf("%s-", m["message"].(string)))
 					buf.WriteString(fmt.Sprintf("%s-", m["sender"].(string)))
 					buf.WriteString(fmt.Sprintf("%s-", m["smtp_reply_code"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["status_code"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+
+					if _, ok := m["status_code"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", m["status_code"].(string)))
+					}
+
+					if _, ok := m["topic_arn"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+					}
+
 					buf.WriteString(fmt.Sprintf("%d-", m["position"].(int)))
 
 					return hashcode.String(buf.String())
@@ -175,8 +183,15 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 					var buf bytes.Buffer
 					m := v.(map[string]interface{})
 					buf.WriteString(fmt.Sprintf("%s-", m["function_arn"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["invocation_type"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+
+					if _, ok := m["invocation_type"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", m["invocation_type"].(string)))
+					}
+
+					if _, ok := m["topic_arn"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+					}
+
 					buf.WriteString(fmt.Sprintf("%d-", m["position"].(int)))
 
 					return hashcode.String(buf.String())
@@ -218,9 +233,19 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 					var buf bytes.Buffer
 					m := v.(map[string]interface{})
 					buf.WriteString(fmt.Sprintf("%s-", m["bucket_name"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["kms_key_arn"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["object_key_prefix"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+
+					if _, ok := m["kms_key_arn"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", m["kms_key_arn"].(string)))
+					}
+
+					if _, ok := m["object_key_prefix"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", m["object_key_prefix"].(string)))
+					}
+
+					if _, ok := m["topic_arn"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+					}
+
 					buf.WriteString(fmt.Sprintf("%d-", m["position"].(int)))
 
 					return hashcode.String(buf.String())
@@ -278,7 +303,11 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 					var buf bytes.Buffer
 					m := v.(map[string]interface{})
 					buf.WriteString(fmt.Sprintf("%s-", m["scope"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+
+					if _, ok := m["topic_arn"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+					}
+
 					buf.WriteString(fmt.Sprintf("%d-", m["position"].(int)))
 
 					return hashcode.String(buf.String())
@@ -310,7 +339,11 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 					var buf bytes.Buffer
 					m := v.(map[string]interface{})
 					buf.WriteString(fmt.Sprintf("%s-", m["organization_arn"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+
+					if _, ok := m["topic_arn"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", m["topic_arn"].(string)))
+					}
+
 					buf.WriteString(fmt.Sprintf("%d-", m["position"].(int)))
 
 					return hashcode.String(buf.String())
@@ -375,7 +408,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 	conn := meta.(*AWSClient).sesConn
 
 	describeOpts := &ses.DescribeReceiptRuleInput{
-		RuleName:    aws.String(d.Get("name").(string)),
+		RuleName:    aws.String(d.Id()),
 		RuleSetName: aws.String(d.Get("rule_set_name").(string)),
 	}
 
@@ -383,6 +416,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		_, ok := err.(awserr.Error)
 		if ok && err.(awserr.Error).Code() == "RuleDoesNotExist" {
+			log.Printf("[WARN] SES Receipt Rule (%s) not found", d.Id())
 			d.SetId("")
 			return nil
 		} else {
@@ -549,7 +583,7 @@ func resourceAwsSesReceiptRuleDelete(d *schema.ResourceData, meta interface{}) e
 	conn := meta.(*AWSClient).sesConn
 
 	deleteOpts := &ses.DeleteReceiptRuleInput{
-		RuleName:    aws.String(d.Get("name").(string)),
+		RuleName:    aws.String(d.Id()),
 		RuleSetName: aws.String(d.Get("rule_set_name").(string)),
 	}
 

@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ses"
@@ -10,7 +11,7 @@ import (
 
 func resourceAwsSesActiveReceiptRuleSet() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsSesActiveReceiptRuleSetCreate,
+		Create: resourceAwsSesActiveReceiptRuleSetUpdate,
 		Update: resourceAwsSesActiveReceiptRuleSetUpdate,
 		Read:   resourceAwsSesActiveReceiptRuleSetRead,
 		Delete: resourceAwsSesActiveReceiptRuleSetDelete,
@@ -22,10 +23,6 @@ func resourceAwsSesActiveReceiptRuleSet() *schema.Resource {
 			},
 		},
 	}
-}
-
-func resourceAwsSesActiveReceiptRuleSetCreate(d *schema.ResourceData, meta interface{}) error {
-	return resourceAwsSesActiveReceiptRuleSetUpdate(d, meta)
 }
 
 func resourceAwsSesActiveReceiptRuleSetUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -60,6 +57,7 @@ func resourceAwsSesActiveReceiptRuleSetRead(d *schema.ResourceData, meta interfa
 	if response.Metadata != nil {
 		d.Set("rule_set_name", response.Metadata.Name)
 	} else {
+		log.Print("[WARN] No active Receipt Rule Set found")
 		d.SetId("")
 	}
 

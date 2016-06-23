@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ses"
@@ -81,6 +82,7 @@ func resourceAwsSesReceiptFilterRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if !found {
+		log.Printf("[WARN] SES Receipt Filter (%s) not found", d.Id())
 		d.SetId("")
 	}
 

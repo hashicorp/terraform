@@ -48,6 +48,7 @@ func resourceAwsSesReceiptRuleSetRead(d *schema.ResourceData, meta interface{}) 
 	ruleSetExists, err := findRuleSet(d.Id(), nil, meta)
 
 	if !ruleSetExists {
+		log.Printf("[WARN] SES Receipt Rule Set (%s) not found", d.Id())
 		d.SetId("")
 	}
 
