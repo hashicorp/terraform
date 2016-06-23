@@ -18,6 +18,9 @@ func resourceAwsVpnGateway() *schema.Resource {
 		Read:   resourceAwsVpnGatewayRead,
 		Update: resourceAwsVpnGatewayUpdate,
 		Delete: resourceAwsVpnGatewayDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"availability_zone": &schema.Schema{
