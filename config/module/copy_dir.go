@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
 
 // copyDir copies the src directory contents into dst. Both directories
@@ -39,13 +38,7 @@ func copyDir(dst, src string) error {
 		dstPath := filepath.Join(dst, path[len(src):])
 
 		// we don't want to try and copy the same file over itself.
-		if path == dstPath {
-			return nil
-		}
-
-		// We still might have the same file through a link, so check the
-		// inode if we can
-		if eq, err := sameInode(path, dstPath); eq {
+		if eq, err := sameFile(path, dstPath); eq {
 			return nil
 		} else if err != nil {
 			return err
@@ -90,30 +83,27 @@ func copyDir(dst, src string) error {
 	return filepath.Walk(src, walkFn)
 }
 
-// sameInode looks up the inode for paths a and b and returns if they are
-// equal. On windows this will always return false.
-func sameInode(a, b string) (bool, error) {
-	var aIno, bIno uint64
-	aStat, err := os.Stat(a)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	if st, ok := aStat.Sys().(*syscall.Stat_t); ok {
-		aIno = st.Ino
+// sameFile tried to determine if to paths are the same file.
+// If the paths don't match, we lookup the inode on supported systems.
+func sameFile(a, b string) (bool, error) {
+	if a == b {
+		return true, nil
 	}
 
-	bStat, err := os.Stat(b)
+	aIno, err := inode(a)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
 		}
 		return false, err
 	}
-	if st, ok := bStat.Sys().(*syscall.Stat_t); ok {
-		bIno = st.Ino
+
+	bIno, err := inode(b)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
 	}
 
 	if aIno > 0 && aIno == bIno {
