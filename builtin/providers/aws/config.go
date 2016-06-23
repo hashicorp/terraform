@@ -57,23 +57,23 @@ import (
 )
 
 type Config struct {
-	AccessKey     string
-	SecretKey     string
-	CredsFilename string
-	Profile       string
-	Token         string
-	Region        string
-	MaxRetries    int
+	AccessKey           string
+	SecretKey           string
+	CredsFilename       string
+	Profile             string
+	Token               string
+	Region              string
+	MaxRetries          int
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
 
-	DynamoDBEndpoint string
-	KinesisEndpoint  string
-	Ec2Endpoint      string
-	IamEndpoint      string
-	ElbEndpoint      string
-	Insecure         bool
+	DynamoDBEndpoint    string
+	KinesisEndpoint     string
+	Ec2Endpoint         string
+	IamEndpoint         string
+	ElbEndpoint         string
+	Insecure            bool
 }
 
 type AWSClient struct {
@@ -82,34 +82,34 @@ type AWSClient struct {
 	cloudtrailconn        *cloudtrail.CloudTrail
 	cloudwatchconn        *cloudwatch.CloudWatch
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
-	cloudwatcheventsconn *cloudwatchevents.CloudWatchEvents
-	dsconn               *directoryservice.DirectoryService
-	dynamodbconn         *dynamodb.DynamoDB
-	ec2conn              *ec2.EC2
-	ecrconn              *ecr.ECR
-	ecsconn              *ecs.ECS
-	efsconn              *efs.EFS
-	elbconn              *elb.ELB
-	emrconn              *emr.EMR
-	esconn               *elasticsearch.ElasticsearchService
-	apigateway           *apigateway.APIGateway
-	autoscalingconn      *autoscaling.AutoScaling
-	s3conn               *s3.S3
-	sesConn              *ses.SES
-	sqsconn              *sqs.SQS
-	snsconn              *sns.SNS
-	stsconn              *sts.STS
-	redshiftconn         *redshift.Redshift
-	r53conn              *route53.Route53
-	accountid            string
-	region               string
-	rdsconn              *rds.RDS
-	iamconn              *iam.IAM
-	kinesisconn          *kinesis.Kinesis
-	kmsconn              *kms.KMS
-	firehoseconn         *firehose.Firehose
-	elasticacheconn      *elasticache.ElastiCache
-	elasticbeanstalkconn *elasticbeanstalk.ElasticBeanstalk
+	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
+	dsconn                *directoryservice.DirectoryService
+	dynamodbconn          *dynamodb.DynamoDB
+	ec2conn               *ec2.EC2
+	ecrconn               *ecr.ECR
+	ecsconn               *ecs.ECS
+	efsconn               *efs.EFS
+	elbconn               *elb.ELB
+	emrconn               *emr.EMR
+	esconn                *elasticsearch.ElasticsearchService
+	apigateway            *apigateway.APIGateway
+	autoscalingconn       *autoscaling.AutoScaling
+	s3conn                *s3.S3
+	sesConn               *ses.SES
+	sqsconn               *sqs.SQS
+	snsconn               *sns.SNS
+	stsconn               *sts.STS
+	redshiftconn          *redshift.Redshift
+	r53conn               *route53.Route53
+	accountid             string
+	region                string
+	rdsconn               *rds.RDS
+	iamconn               *iam.IAM
+	kinesisconn           *kinesis.Kinesis
+	kmsconn               *kms.KMS
+	firehoseconn          *firehose.Firehose
+	elasticacheconn       *elasticache.ElastiCache
+	elasticbeanstalkconn  *elasticbeanstalk.ElasticBeanstalk
 	elastictranscoderconn *elastictranscoder.ElasticTranscoder
 	lambdaconn            *lambda.Lambda
 	opsworksconn          *opsworks.OpsWorks
