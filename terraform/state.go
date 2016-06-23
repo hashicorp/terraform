@@ -635,8 +635,7 @@ type OutputState struct {
 }
 
 func (s *OutputState) String() string {
-	// This is a v0.6.x implementation only
-	return fmt.Sprintf("%s", s.Value.(string))
+	return fmt.Sprintf("%#v", s.Value)
 }
 
 // Equal compares two OutputState structures for equality. nil values are
