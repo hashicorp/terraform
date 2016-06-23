@@ -21,6 +21,9 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 		Read:   resourceAwsDbSubnetGroupRead,
 		Update: resourceAwsDbSubnetGroupUpdate,
 		Delete: resourceAwsDbSubnetGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
