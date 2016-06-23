@@ -44,6 +44,7 @@ FEATURES:
  * **New Resource:** `aws_iam_role_policy_attachment` [GH-6858]
  * **New Resource:** `aws_iam_user_policy_attachment` [GH-6858]
  * **New Resource:** `aws_rds_cluster_parameter_group` [GH-5269]
+ * **New Resource:** `aws_spot_fleet_request` [GH-7243]
  * **New Resource:** `openstack_blockstorage_volume_v2` [GH-6693]
  * **New Resource:** `openstack_lb_loadbalancer_v2` [GH-7012]
  * **New Resource:** `openstack_lb_listener_v2` [GH-7012]
