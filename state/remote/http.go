@@ -18,7 +18,7 @@ func httpFactory(conf map[string]string) (Client, error) {
 	if !ok {
 		return nil, fmt.Errorf("missing 'address' configuration")
 	}
-	
+
 	url, err := url.Parse(address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse HTTP URL: %s", err)
@@ -26,20 +26,20 @@ func httpFactory(conf map[string]string) (Client, error) {
 	if url.Scheme != "http" && url.Scheme != "https" {
 		return nil, fmt.Errorf("address must be HTTP or HTTPS")
 	}
-	
+
 	client := &http.Client{}
 	auth, ok := conf["http_auth"]
 	if ok {
 		var username, password string
 		if strings.Contains(auth, ":") {
- 			split := strings.SplitN(auth, ":", 2)
- 			username = split[0]
- 			password = split[1]
+			split := strings.SplitN(auth, ":", 2)
+			username = split[0]
+			password = split[1]
 		} else {
 			username = auth
 		}
-		
-		client.SetBasicAuth(username, password)	
+
+		client.SetBasicAuth(username, password)
 	}
 	if skipRaw, ok := conf["skip_cert_verification"]; ok {
 		skip, err := strconv.ParseBool(skipRaw)
