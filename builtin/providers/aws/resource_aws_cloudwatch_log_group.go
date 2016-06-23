@@ -16,6 +16,9 @@ func resourceAwsCloudWatchLogGroup() *schema.Resource {
 		Read:   resourceAwsCloudWatchLogGroupRead,
 		Update: resourceAwsCloudWatchLogGroupUpdate,
 		Delete: resourceAwsCloudWatchLogGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -60,7 +63,7 @@ func resourceAwsCloudWatchLogGroupCreate(d *schema.ResourceData, meta interface{
 func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchlogsconn
 	log.Printf("[DEBUG] Reading CloudWatch Log Group: %q", d.Get("name").(string))
-	lg, err := lookupCloudWatchLogGroup(conn, d.Get("name").(string), nil)
+	lg, err := lookupCloudWatchLogGroup(conn, d.Id(), nil)
 	if err != nil {
 		return err
 	}
