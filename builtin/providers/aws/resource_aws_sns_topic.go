@@ -30,6 +30,9 @@ func resourceAwsSnsTopic() *schema.Resource {
 		Read:   resourceAwsSnsTopicRead,
 		Update: resourceAwsSnsTopicUpdate,
 		Delete: resourceAwsSnsTopicDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
