@@ -57,23 +57,23 @@ import (
 )
 
 type Config struct {
-	AccessKey           string
-	SecretKey           string
-	CredsFilename       string
-	Profile             string
-	Token               string
-	Region              string
-	MaxRetries          int
+	AccessKey     string
+	SecretKey     string
+	CredsFilename string
+	Profile       string
+	Token         string
+	Region        string
+	MaxRetries    int
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
 
-	DynamoDBEndpoint    string
-	KinesisEndpoint     string
-	Ec2Endpoint         string
-	IamEndpoint         string
-	ElbEndpoint         string
-	Insecure            bool
+	DynamoDBEndpoint string
+	KinesisEndpoint  string
+	Ec2Endpoint      string
+	IamEndpoint      string
+	ElbEndpoint      string
+	Insecure         bool
 }
 
 type AWSClient struct {
