@@ -952,6 +952,7 @@ func TestInterpolateFuncElement(t *testing.T) {
 		Vars: map[string]ast.Variable{
 			"var.a_list":       interfaceToVariableSwallowError([]string{"foo", "baz"}),
 			"var.a_short_list": interfaceToVariableSwallowError([]string{"foo"}),
+			"var.empty_list":   interfaceToVariableSwallowError([]interface{}{}),
 		},
 		Cases: []testFunctionCase{
 			{
@@ -976,6 +977,13 @@ func TestInterpolateFuncElement(t *testing.T) {
 			// Negative number should fail
 			{
 				`${element(var.a_short_list, "-1")}`,
+				nil,
+				true,
+			},
+
+			// Empty list should fail
+			{
+				`${element(var.empty_list, 0)}`,
 				nil,
 				true,
 			},
