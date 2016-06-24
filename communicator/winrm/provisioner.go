@@ -40,12 +40,18 @@ type connectionInfo struct {
 	Timeout    string
 	ScriptPath string        `mapstructure:"script_path"`
 	TimeoutVal time.Duration `mapstructure:"-"`
+	CACertFile string
 }
 
 // parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
 // a ConnectionInfo struct
 func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	connInfo := &connectionInfo{}
+
+	var cabyte = []byte(connInfo.CACertFile)
+	cabyteptr := &cabyte
+	connInfo.CACert = cabyteptr
+
 	decConf := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
 		Result:           connInfo,
