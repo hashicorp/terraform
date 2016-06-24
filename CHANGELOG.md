@@ -19,6 +19,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * Outputs on `terraform_remote_state` resources are now top level attributes rather than inside the `output` map. In order to access outputs, use the syntax: `terraform_remote_state.name.outputname`. Currently outputs cannot be named `config` or `backend`.
  * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
  * `aws_db_instance` now defaults `publicly_accessible` to false
+ * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
 
 FEATURES:
 
@@ -153,6 +154,7 @@ BUG FIXES:
  * provider/openstack: Reassociate Floating IP on network changes [GH-6579]
  * provider/openstack: Ensure CIDRs Are Lower Case [GH-6864]
  * provider/openstack: Rebuild Instances On Network Changes [GH-6844]
+ * provider/openstack: Firewall rules are applied in the correct order [GH-7194]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
  * provider/vsphere: adding a `vsphere_virtual_machine` migration [GH-7023]
