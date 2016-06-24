@@ -25,7 +25,7 @@ var (
 type Options struct {
 	List  bool // list files whose formatting differs
 	Write bool // write result to (source) file instead of stdout
-	Diff  bool // display diffs instead of rewriting files
+	Diff  bool // display diffs of formatting changes
 }
 
 func isValidFile(f os.FileInfo, extensions []string) bool {
