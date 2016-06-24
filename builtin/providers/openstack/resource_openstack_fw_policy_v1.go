@@ -49,10 +49,9 @@ func resourceFWPolicyV1() *schema.Resource {
 				Computed: true,
 			},
 			"rules": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
 			},
 		},
 	}
@@ -66,13 +65,13 @@ func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	v := d.Get("rules").(*schema.Set)
+	v := d.Get("rules").([]interface{})
 
 	log.Printf("[DEBUG] Rules found : %#v", v)
-	log.Printf("[DEBUG] Rules count : %d", v.Len())
+	log.Printf("[DEBUG] Rules count : %d", len(v))
 
-	rules := make([]string, v.Len())
-	for i, v := range v.List() {
+	rules := make([]string, len(v))
+	for i, v := range v {
 		rules[i] = v.(string)
 	}
 
@@ -144,13 +143,13 @@ func resourceFWPolicyV1Update(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("rules") {
-		v := d.Get("rules").(*schema.Set)
+		v := d.Get("rules").([]interface{})
 
 		log.Printf("[DEBUG] Rules found : %#v", v)
-		log.Printf("[DEBUG] Rules count : %d", v.Len())
+		log.Printf("[DEBUG] Rules count : %d", len(v))
 
-		rules := make([]string, v.Len())
-		for i, v := range v.List() {
+		rules := make([]string, len(v))
+		for i, v := range v {
 			rules[i] = v.(string)
 		}
 		opts.Rules = rules
