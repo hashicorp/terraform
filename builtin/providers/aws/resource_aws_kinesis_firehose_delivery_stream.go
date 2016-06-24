@@ -276,7 +276,7 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 	}
 
 	var lastError error
-	err := resource.Retry(1*time.Minute, func() error {
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := conn.CreateDeliveryStream(createInput)
 		if err != nil {
 			log.Printf("[DEBUG] Error creating Firehose Delivery Stream: %s", err)
@@ -287,11 +287,11 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 				// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 				if awsErr.Code() == "InvalidArgumentException" && strings.Contains(awsErr.Message(), "Firehose is unable to assume role") {
 					log.Printf("[DEBUG] Firehose could not assume role referenced, retrying...")
-					return awsErr
+					return resource.RetryableError(awsErr)
 				}
 			}
 			// Not retryable
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		return nil
