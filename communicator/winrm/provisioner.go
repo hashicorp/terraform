@@ -48,12 +48,6 @@ type connectionInfo struct {
 func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	connInfo := &connectionInfo{}
 
-	if connInfo.CACertFile != "" {
-		var cabyte = []byte(connInfo.CACertFile)
-		cabyteptr := &cabyte
-		connInfo.CACert = cabyteptr
-	}
-
 	decConf := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
 		Result:           connInfo,
@@ -90,6 +84,11 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		connInfo.TimeoutVal = safeDuration(connInfo.Timeout, DefaultTimeout)
 	} else {
 		connInfo.TimeoutVal = DefaultTimeout
+	}
+	if connInfo.CACertFile != "" {
+		var cabyte = []byte(connInfo.CACertFile)
+		cabyteptr := &cabyte
+		connInfo.CACert = cabyteptr
 	}
 
 	return connInfo, nil
