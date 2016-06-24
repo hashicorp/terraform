@@ -11,7 +11,26 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
+const none = "none"
+
 func resourceCloudStackNetwork() *schema.Resource {
+	aclidSchema := &schema.Schema{
+		Type:          schema.TypeString,
+		Optional:      true,
+		Default:       none,
+		ConflictsWith: []string{"aclid"},
+	}
+
+	aclidSchema.StateFunc = func(v interface{}) string {
+		value := v.(string)
+
+		if value == none {
+			aclidSchema.ForceNew = true
+		}
+
+		return value
+	}
+
 	return &schema.Resource{
 		Create: resourceCloudStackNetworkCreate,
 		Read:   resourceCloudStackNetworkRead,
@@ -82,12 +101,7 @@ func resourceCloudStackNetwork() *schema.Resource {
 				Deprecated: "Please use the `vpc_id` field instead",
 			},
 
-			"acl_id": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"aclid"},
-			},
+			"acl_id": aclidSchema,
 
 			"aclid": &schema.Schema{
 				Type:       schema.TypeString,
@@ -177,7 +191,7 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 		if !ok {
 			aclid, ok = d.GetOk("acl")
 		}
-		if ok {
+		if ok && aclid != none {
 			// Set the acl ID
 			p.SetAclid(aclid.(string))
 		}
@@ -232,11 +246,12 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	_, vpc := d.GetOk("vpc")
 	if vpcID || vpc {
 		d.Set("vpc_id", n.Vpcid)
-	}
 
-	_, aclID := d.GetOk("acl_id")
-	_, acl := d.GetOk("aclid")
-	if aclID || acl {
+		// Since we're in a VPC, also update the ACL ID. If we don't
+		// have an ACL ID make sure we set the default value instead.
+		if n.Aclid == "" {
+			n.Aclid = none
+		}
 		d.Set("acl_id", n.Aclid)
 	}
 
