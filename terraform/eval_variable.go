@@ -175,9 +175,9 @@ func hclTypeName(i interface{}) string {
 		reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64:
 		return "number"
 	case reflect.Array, reflect.Slice:
-		return "array"
+		return "list"
 	case reflect.Map:
-		return "object"
+		return "map"
 	case reflect.String:
 		return "string"
 	default:
