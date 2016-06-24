@@ -95,7 +95,9 @@ AWS account and region the Stream is created in.
 * `destination` – (Required) This is the destination to where the data is delivered. The only options are `s3` & `redshift`.
 * `s3_configuration` - (Required) Configuration options for the s3 destination (or the intermediate bucket if the destination
 is redshift). More details are given below.
-* `redshift_configuration` - (Optional) Configuration options if redshift is the destination. More details are given below.
+* `redshift_configuration` - (Optional) Configuration options if redshift is the destination. 
+Using `redshift_configuration` requires the user to also specify a
+`s3_configuration` block. More details are given below.
 
 The `s3_configuration` object supports the following:
 
