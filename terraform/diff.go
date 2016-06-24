@@ -483,7 +483,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			// Similarly, in a RequiresNew scenario, a list that shows up in the plan
 			// diff can disappear from the apply diff, which is calculated from an
 			// empty state.
-			if d.RequiresNew() && strings.HasSuffix(k, ".#") {
+			if d.RequiresNew() && (strings.HasSuffix(k, ".#") || strings.HasSuffix(k, ".%")) {
 				ok = true
 			}
 
