@@ -19,15 +19,13 @@ func TestAccSoftLayerVirtualIpAddress_Basic(t *testing.T) {
 				Config: testAccCheckSoftLayerVirtualIpAddressConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"softlayer_network_loadbalancer_virtualipaddress.testacc_vip", "load_balancing_method", "lc"),
+						"softlayer_lb_vpx_vip.testacc_vip", "load_balancing_method", "lc"),
 					resource.TestCheckResourceAttr(
-						"softlayer_network_loadbalancer_virtualipaddress.testacc_vip", "name", "test_load_balancer_vip"),
+						"softlayer_lb_vpx_vip.testacc_vip", "name", "test_load_balancer_vip"),
 					resource.TestCheckResourceAttr(
-						"softlayer_network_loadbalancer_virtualipaddress.testacc_vip", "source_port", "80"),
+						"softlayer_lb_vpx_vip.testacc_vip", "source_port", "80"),
 					resource.TestCheckResourceAttr(
-						"softlayer_network_loadbalancer_virtualipaddress.testacc_vip", "type", "HTTP"),
-					resource.TestCheckResourceAttr(
-						"softlayer_network_loadbalancer_virtualipaddress.testacc_vip", "virtual_ip_address", "23.246.204.65"),
+						"softlayer_lb_vpx_vip.testacc_vip", "type", "HTTP"),
 				),
 			},
 		},
@@ -38,7 +36,7 @@ func testAccCheckSoftLayerVirtualIpAddressDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*Client).networkApplicationDeliveryControllerService
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "softlayer_network_loadbalancer_virtualipaddress" {
+		if rs.Type != "softlayer_lb_vpx_vip" {
 			continue
 		}
 
@@ -77,7 +75,7 @@ resource "softlayer_virtual_guest" "terraform-acceptance-test-1" {
     local_disk = false
 }
 
-resource "softlayer_network_application_delivery_controller" "testacc_foobar_nadc" {
+resource "softlayer_lb_vpx" "testacc_foobar_nadc" {
     datacenter = "DALLAS05"
     speed = 10
     version = "10.1"
@@ -85,9 +83,9 @@ resource "softlayer_network_application_delivery_controller" "testacc_foobar_nad
     ip_count = 2
 }
 
-resource "softlayer_network_loadbalancer_virtualipaddress" "testacc_vip" {
+resource "softlayer_lb_vpx_vip" "testacc_vip" {
     name = "test_load_balancer_vip"
-    nad_controller_id = "${softlayer_network_application_delivery_controller.testacc_foobar_nadc.id}"
+    nad_controller_id = "${softlayer_lb_vpx.testacc_foobar_nadc.id}"
     load_balancing_method = "lc"
     source_port = 80
     type = "HTTP"

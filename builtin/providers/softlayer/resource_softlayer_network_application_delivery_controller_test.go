@@ -20,17 +20,19 @@ func TestAccSoftLayerNetworkApplicationDeliveryController_Basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCheckSoftLayerNetworkApplicationDeliveryControllerConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckSoftLayerNetworkApplicationDeliveryControllerExists("softlayer_network_application_delivery_controller.testacc_foobar_nadc", &nadc),
+					testAccCheckSoftLayerNetworkApplicationDeliveryControllerExists("softlayer_lb_vpx.testacc_foobar_vpx", &nadc),
 					resource.TestCheckResourceAttr(
-						"softlayer_network_application_delivery_controller.testacc_foobar_nadc", "type", "Netscaler VPX"),
+						"softlayer_lb_vpx.testacc_foobar_vpx", "type", "NetScaler VPX"),
 					resource.TestCheckResourceAttr(
-						"softlayer_network_application_delivery_controller.testacc_foobar_nadc", "datacenter", "DALLAS06"),
+						"softlayer_lb_vpx.testacc_foobar_vpx", "datacenter", "DALLAS06"),
 					resource.TestCheckResourceAttr(
-						"softlayer_network_application_delivery_controller.testacc_foobar_nadc", "speed", "10"),
+						"softlayer_lb_vpx.testacc_foobar_vpx", "speed", "10"),
 					resource.TestCheckResourceAttr(
-						"softlayer_network_application_delivery_controller.testacc_foobar_nadc", "plan", "Standard"),
+						"softlayer_lb_vpx.testacc_foobar_vpx", "plan", "Standard"),
 					resource.TestCheckResourceAttr(
-						"softlayer_network_application_delivery_controller.testacc_foobar_nadc", "ip_count", "2"),
+						"softlayer_lb_vpx.testacc_foobar_vpx", "ip_count", "2"),
+					resource.TestCheckResourceAttr(
+						"softlayer_lb_vpx.testacc_foobar_vpx", "version", "10.1"),
 				),
 			},
 		},
@@ -69,7 +71,7 @@ func testAccCheckSoftLayerNetworkApplicationDeliveryControllerExists(n string, n
 }
 
 const testAccCheckSoftLayerNetworkApplicationDeliveryControllerConfig_basic = `
-resource "softlayer_network_application_delivery_controller" "testacc_foobar_nadc" {
+resource "softlayer_lb_vpx" "testacc_foobar_vpx" {
     datacenter = "DALLAS06"
     speed = 10
     version = "10.1"
