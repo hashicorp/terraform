@@ -36,7 +36,7 @@ The following arguments are supported:
 The following arguments are maintained for backwards compatibility and may be
 removed in a future version:
 
-* `filename` - __Deprecated, please use `template` instead_. The filename for
+* `filename` - _Deprecated, please use `template` instead_. The filename for
   the template. Use [path variables](/docs/configuration/interpolation.html#path-variables) to make
   this path relative to different path roots.
 
