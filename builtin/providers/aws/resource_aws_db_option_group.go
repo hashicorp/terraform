@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -274,11 +276,22 @@ func resourceAwsDbOptionGroupDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	log.Printf("[DEBUG] Delete DB Option Group: %#v", deleteOpts)
-	_, err := rdsconn.DeleteOptionGroup(deleteOpts)
-	if err != nil {
-		return fmt.Errorf("Error Deleting DB Option Group: %s", err)
+	ret := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		_, err := rdsconn.DeleteOptionGroup(deleteOpts)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "InvalidOptionGroupStateFault" {
+					log.Printf("[DEBUG] AWS believes the RDS Option Group is still in use, retrying")
+					return resource.RetryableError(awsErr)
+				}
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	if ret != nil {
+		return fmt.Errorf("Error Deleting DB Option Group: %s", ret)
 	}
-
 	return nil
 }
 
