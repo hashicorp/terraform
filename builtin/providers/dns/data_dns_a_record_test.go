@@ -14,7 +14,6 @@ func TestAccDnsARecord_Basic(t *testing.T) {
 			`
 			data "dns_a_record" "foo" {
 			  host = "127.0.0.1.xip.io"
-			  ipv4 = true
 			}
 			`,
 			[]string{

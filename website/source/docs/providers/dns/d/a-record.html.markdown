@@ -28,8 +28,6 @@ The following arguments are supported:
 
  * `host` - (required): Host to look up
 
- * `ipv4` - (optional) A flag to only use IPv4 records. By default, `ipv4 = false`.
-
  * `sort` - (optional) A flag to sort IPv4 records or allow round-robin retrieval. By default, `sort = true`,
 
 ## Attributes Reference
