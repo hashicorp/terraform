@@ -20,6 +20,9 @@ func resourceAwsCloudWatchEventRule() *schema.Resource {
 		Read:   resourceAwsCloudWatchEventRuleRead,
 		Update: resourceAwsCloudWatchEventRuleUpdate,
 		Delete: resourceAwsCloudWatchEventRuleDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
