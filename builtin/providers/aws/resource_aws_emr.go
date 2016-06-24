@@ -48,6 +48,15 @@ func resourceAwsEMR() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+			"group_type_to_resize": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"resize_count": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  0,
+			},
 			"ec2_attributes": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -141,9 +150,17 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 	fmt.Println(respGrps)
 
 	instanceGroups := respGrps.InstanceGroups
-	oneInst := findGroup(instanceGroups, "CORE")
+	var groupInstanceType string = "CORE"
+	if v, ok := d.GetOk("group_type_to_resize"); ok {
+		groupInstanceType = v.(string)
+	}
 
-	fmt.Println(instanceGroups)
+	var resizeCount int = 0
+	if v, ok := d.GetOk("resize_count"); ok {
+		resizeCount = v.(int)
+	}
+
+	oneInst := findGroup(instanceGroups, groupInstanceType)
 
 	if oneInst == nil {
 		return fmt.Errorf("Error EMR cluster has only MASTER?")
@@ -153,7 +170,7 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 		InstanceGroups: []*emr.InstanceGroupModifyConfig{
 			{
 				InstanceGroupId: aws.String(*oneInst.Id),
-				InstanceCount:   aws.Int64(int64(d.Get("instance_count").(int))),
+				InstanceCount:   aws.Int64(int64(resizeCount)),
 			},
 		},
 	}
