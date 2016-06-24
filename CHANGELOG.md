@@ -147,6 +147,7 @@ BUG FIXES:
  * provider/azurerm: Fix `azurerm_virtual_machine` windows_config [GH-7123]
  * provider/azurerm: `azurerm_dns_cname_record` can create CNAME records again [GH-7113]
  * provider/azurerm: `azurerm_network_security_group` now waits for the provisioning state of `ready` before proceeding [GH-7307]
+ * provider/azurerm: `computer_name` is now required for `azurerm_virtual_machine` resources [GH-7308]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
