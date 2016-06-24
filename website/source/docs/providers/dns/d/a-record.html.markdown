@@ -28,12 +28,10 @@ The following arguments are supported:
 
  * `host` - (required): Host to look up
 
- * `sort` - (optional) A flag to sort IPv4 records or allow round-robin retrieval. By default, `sort = true`,
-
 ## Attributes Reference
 
 The following attributes are exported:
 
  * `id` - Set to `host`.
 
- * `addrs` - A list of IP addresses.
+ * `addrs` - A list of IP addresses. IP addresses are always sorted to avoid constant changing plans.

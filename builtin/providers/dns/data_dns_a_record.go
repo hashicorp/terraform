@@ -14,18 +14,6 @@ func dataSourceDnsARecord() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			// Optionally sort A records in alphabetical order.
-			// This is helpful when a name uses round-robin DNS, which may
-			// sort records with multiple addresses in a non-deterministic order.
-			// This random sorting can cause flapping in terraform plans, where
-			// the changes in sort order cause dependent resources to update
-			// despite having no real change in the set of addresses.
-			"sort": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
-			},
-
 			"addrs": &schema.Schema{
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -44,7 +32,6 @@ func dataSourceDnsARecordRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	addrs := make([]string, 0)
-	sortingEnabled := d.Get("sort").(bool)
 
 	for _, ip := range records {
 		// LookupIP returns A (IPv4) and AAAA (IPv6) records
@@ -54,9 +41,7 @@ func dataSourceDnsARecordRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if sortingEnabled {
-		sort.Strings(addrs)
-	}
+	sort.Strings(addrs)
 
 	d.Set("addrs", addrs)
 	d.SetId(host)
