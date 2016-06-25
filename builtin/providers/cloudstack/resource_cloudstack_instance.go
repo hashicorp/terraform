@@ -124,6 +124,12 @@ func resourceCloudStackInstance() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"root_disk_size": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -250,6 +256,11 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	// If there is a group supplied, add it to the parameter struct
 	if group, ok := d.GetOk("group"); ok {
 		p.SetGroup(group.(string))
+	}
+
+	// If there is a root_disk_size supplied, add it to the parameter struct
+	if rootdisksize, ok := d.GetOk("root_disk_size"); ok {
+		p.SetRootdisksize(int64(rootdisksize.(int)))
 	}
 
 	// Create the new instance
