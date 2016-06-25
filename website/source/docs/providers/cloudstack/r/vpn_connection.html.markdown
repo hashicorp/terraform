@@ -28,14 +28,8 @@ The following arguments are supported:
 * `customer_gateway_id` - (Required) The Customer Gateway ID to connect.
     Changing this forces a new resource to be created.
 
-* `customergatewayid` - (Required, Deprecated) The Customer Gateway ID
-    to connect. Changing this forces a new resource to be created.
-
 * `vpn_gateway_id` - (Required) The VPN Gateway ID to connect. Changing
     this forces a new resource to be created.
-
-* `vpngatewayid` - (Required, Deprecated) The VPN Gateway ID to connect.
-    Changing this forces a new resource to be created.
 
 ## Attributes Reference
 

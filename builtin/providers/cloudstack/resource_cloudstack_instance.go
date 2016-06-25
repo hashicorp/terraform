@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -41,15 +40,7 @@ func resourceCloudStackInstance() *schema.Resource {
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
-			},
-
-			"network": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `network_id` field instead",
 			},
 
 			"ip_address": &schema.Schema{
@@ -59,18 +50,22 @@ func resourceCloudStackInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipaddress": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				Computed:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `ip_address` field instead",
-			},
-
 			"template": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"root_disk_size": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 
 			"affinity_group_ids": &schema.Schema{
@@ -144,18 +139,6 @@ func resourceCloudStackInstance() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-
-			"group": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
-			"root_disk_size": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-			},
 		},
 	}
 }
@@ -203,40 +186,27 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetDisplayname(name.(string))
 	}
 
+	// If there is a root_disk_size supplied, add it to the parameter struct
+	if rootdisksize, ok := d.GetOk("root_disk_size"); ok {
+		p.SetRootdisksize(int64(rootdisksize.(int)))
+	}
+
 	if zone.Networktype == "Advanced" {
-		network, ok := d.GetOk("network_id")
-		if !ok {
-			network, ok = d.GetOk("network")
-		}
-		if !ok {
-			return errors.New(
-				"Either `network_id` or [deprecated] `network` must be provided when using a zone with network type `advanced`.")
-		}
-
-		// Retrieve the network ID
-		networkid, e := retrieveID(
-			cs,
-			"network",
-			network.(string),
-			cloudstack.WithProject(d.Get("project").(string)),
-		)
-		if e != nil {
-			return e.Error()
-		}
-
 		// Set the default network ID
-		p.SetNetworkids([]string{networkid})
+		p.SetNetworkids([]string{d.Get("network_id").(string)})
 	}
 
 	// If there is a ipaddres supplied, add it to the parameter struct
-	ipaddress, ok := d.GetOk("ip_address")
-	if !ok {
-		ipaddress, ok = d.GetOk("ipaddress")
-	}
-	if ok {
+	if ipaddress, ok := d.GetOk("ip_address"); ok {
 		p.SetIpaddress(ipaddress.(string))
 	}
 
+	// If there is a group supplied, add it to the parameter struct
+	if group, ok := d.GetOk("group"); ok {
+		p.SetGroup(group.(string))
+	}
+
+	// If there are affinity group IDs supplied, add them to the parameter struct
 	if ags := d.Get("affinity_group_ids").(*schema.Set); ags.Len() > 0 {
 		var groups []string
 
@@ -310,16 +280,6 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		}
 
 		p.SetUserdata(ud)
-	}
-
-	// If there is a group supplied, add it to the parameter struct
-	if group, ok := d.GetOk("group"); ok {
-		p.SetGroup(group.(string))
-	}
-
-	// If there is a root_disk_size supplied, add it to the parameter struct
-	if rootdisksize, ok := d.GetOk("root_disk_size"); ok {
-		p.SetRootdisksize(int64(rootdisksize.(int)))
 	}
 
 	// Create the new instance

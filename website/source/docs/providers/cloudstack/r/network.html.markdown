@@ -50,19 +50,13 @@ The following arguments are supported:
     required by the Network Offering if specifyVlan=true is set. Only the ROOT 
     admin can set this value.
 
-* `vpc_id` - (Optional) The ID of the VPC to create this network for. Changing
+* `vpc_id` - (Optional) The VPC ID in which to create this network. Changing
     this forces a new resource to be created.
-
-* `vpc` - (Optional, Deprecated) The name or ID of the VPC to create this network
-    for. Changing this forces a new resource to be created.
 
 * `acl_id` - (Optional) The ACL ID that should be attached to the network or
     `none` if you do not want to attach an ACL. You can dynamically attach and
     swap ACL's, but if you want to detach an attached ACL and revert to using
-    `none`, this will force a new resource to be created. Defaults to `none`.
-
-* `aclid` - (Optional, Deprecated) The ID of a ACL that should be attached
-    to the network.
+    `none`, this will force a new resource to be created. (defaults `none`)
 
 * `project` - (Optional) The name or ID of the project to deploy this
     instance to. Changing this forces a new resource to be created.
