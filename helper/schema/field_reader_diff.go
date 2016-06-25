@@ -59,7 +59,7 @@ func (r *DiffFieldReader) ReadField(address []string) (FieldReadResult, error) {
 func (r *DiffFieldReader) readMap(
 	address []string, schema *Schema) (FieldReadResult, error) {
 	result := make(map[string]interface{})
-	resultSet := false
+	exists := false
 
 	// First read the map from the underlying source
 	source, err := r.Source.ReadField(address)
@@ -68,7 +68,7 @@ func (r *DiffFieldReader) readMap(
 	}
 	if source.Exists {
 		result = source.Value.(map[string]interface{})
-		resultSet = true
+		exists = true
 	}
 
 	// Next, read all the elements we have in our diff, and apply
@@ -83,7 +83,7 @@ func (r *DiffFieldReader) readMap(
 			continue
 		}
 
-		resultSet = true
+		exists = true
 
 		k = k[len(prefix):]
 		if v.NewRemoved {
@@ -95,13 +95,13 @@ func (r *DiffFieldReader) readMap(
 	}
 
 	var resultVal interface{}
-	if resultSet {
+	if exists {
 		resultVal = result
 	}
 
 	return FieldReadResult{
 		Value:  resultVal,
-		Exists: resultSet,
+		Exists: exists,
 	}, nil
 }
 
