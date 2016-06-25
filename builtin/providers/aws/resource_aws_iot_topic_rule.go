@@ -340,6 +340,8 @@ func resourceAwsIotTopicRuleCreate(d *schema.ResourceData, meta interface{}) err
 	// Add DynamoDB actions
 	for _, a := range dynamoDbActions {
 		raw := a.(map[string]interface{})
+		// TODO: add hash_key_type
+		// TODO: add range_key_type
 		actions[i] = &iot.Action{
 			DynamoDB: &iot.DynamoDBAction{
 				HashKeyField:  aws.String(raw["hash_key_field"].(string)),
