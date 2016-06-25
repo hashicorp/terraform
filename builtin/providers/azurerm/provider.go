@@ -60,6 +60,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_storage_blob":              resourceArmStorageBlob(),
 			"azurerm_storage_container":         resourceArmStorageContainer(),
 			"azurerm_storage_queue":             resourceArmStorageQueue(),
+			"azurerm_storage_table":             resourceArmStorageTable(),
 			"azurerm_subnet":                    resourceArmSubnet(),
 			"azurerm_template_deployment":       resourceArmTemplateDeployment(),
 			"azurerm_virtual_machine":           resourceArmVirtualMachine(),
