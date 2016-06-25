@@ -15,6 +15,10 @@ func resourceAwsIotPolicyAttachment() *schema.Resource {
 		Update: resourceAwsIotPolicyAttachmentUpdate,
 		Delete: resourceAwsIotPolicyAttachmentDelete,
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"principal": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -45,6 +49,9 @@ func resourceAwsIotPolicyAttachmentCreate(d *schema.ResourceData, meta interface
 		}
 	}
 
+	d.SetId(d.Get("name").(string))
+	d.Set("principal", d.Get("principal").(string))
+	d.Set("policies", d.Get("policies").(*schema.Set).List())
 	return nil
 }
 
@@ -60,12 +67,13 @@ func resourceAwsIotPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	length := len(out.Policies)
-	policies := make([]string, length)
+	policies := make([]string, len(out.Policies))
 	for i, p := range out.Policies {
 		policies[i] = *p.PolicyName
 	}
 
+	d.SetId(d.Get("name").(string))
+	d.Set("principal", d.Get("principal").(string))
 	d.Set("policies", policies)
 
 	return nil
@@ -80,6 +88,7 @@ func resourceAwsIotPolicyAttachmentDelete(d *schema.ResourceData, meta interface
 	conn := meta.(*AWSClient).iotconn
 
 	for _, p := range d.Get("policies").(*schema.Set).List() {
+		log.Printf("[INFO] %+v", p)
 		_, err := conn.DetachPrincipalPolicy(&iot.DetachPrincipalPolicyInput{
 			Principal:  aws.String(d.Get("principal").(string)),
 			PolicyName: aws.String(p.(string)),
