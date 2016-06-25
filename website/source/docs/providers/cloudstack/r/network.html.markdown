@@ -56,9 +56,12 @@ The following arguments are supported:
 * `vpc` - (Optional, Deprecated) The name or ID of the VPC to create this network
     for. Changing this forces a new resource to be created.
 
-* `acl_id` - (Optional) The network ACL ID that should be attached to the network.
+* `acl_id` - (Optional) The ACL ID that should be attached to the network or
+    `none` if you do not want to attach an ACL. You can dynamically attach and
+    swap ACL's, but if you want to detach an attached ACL and revert to using
+    `none`, this will force a new resource to be created. Defaults to `none`.
 
-* `aclid` - (Optional, Deprecated) The ID of a network ACL that should be attached
+* `aclid` - (Optional, Deprecated) The ID of a ACL that should be attached
     to the network.
 
 * `project` - (Optional) The name or ID of the project to deploy this
