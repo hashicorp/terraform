@@ -90,6 +90,7 @@ IMPROVEMENTS:
  * provider/clc: Fix optional server password [GH-6414]
  * provider/cloudstack: Add support for affinity groups to `cloudstack_instance` [GH-6898]
  * provider/cloudstack: Enable swapping of ACLs without having to rebuild the network tier [GH-6741]
+ * provider/cloudstack: Improve ACL swapping [GH-7315]
  * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/fastly: Add support for Cache Settings [GH-6781]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
