@@ -109,13 +109,14 @@ IMPROVEMENTS:
  * provider/openstack: Enforce `ForceNew` on Instance Block Device [GH-6921]
  * provider/openstack: Can now stop instances before destroying them [GH-7184]
  * provider/openstack: Disassociate LBaaS v1 Monitors from Pool Before Deletion [GH-6997]
+ * provider/triton: add `triton_machine` `domain names` [GH-7149]
  * provider/vsphere: Add support for `controller_type` to `vsphere_virtual_machine` [GH-6785]
  * provider/vsphere: Fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
  * provider/vsphere: Virtual machine update disk [GH-6619]
  * provider/vsphere: `vsphere_virtual_machine` adding controller creation logic [GH-6853]
  * provider/vsphere: `vsphere_virtual_machine` added support for `mac address` on `network_interface` [GH-6966]
  * provider/vsphere: Enhanced `vsphere` logging capabilities [GH-6893]
- * provider/vSphere: Add DiskEnableUUID option to `vsphere_virtual_machine` [GH-7088]
+ * provider/vsphere: Add DiskEnableUUID option to `vsphere_virtual_machine` [GH-7088]
  * provider/vsphere: Virtual Machine and File resources handle Read errors properley [GH-7220]
  
 BUG FIXES:
