@@ -2,6 +2,7 @@ package triton
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -28,6 +29,35 @@ func TestAccTritonMachine_basic(t *testing.T) {
 						time.Sleep(10 * time.Second)
 						return nil
 					},
+				),
+			},
+		},
+	})
+}
+
+func TestAccTritonMachine_dns(t *testing.T) {
+	machineName := fmt.Sprintf("acctest-%d", acctest.RandInt())
+	dns_output := fmt.Sprintf(testAccTritonMachine_dns, machineName)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckTritonMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: dns_output,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckTritonMachineExists("triton_machine.test"),
+					func(*terraform.State) error {
+						time.Sleep(10 * time.Second)
+						return nil
+					},
+				),
+			},
+			resource.TestStep{
+				Config: dns_output,
+				Check: resource.TestMatchOutput(
+					"domain_names", regexp.MustCompile(".*acctest-.*"),
 				),
 			},
 		},
@@ -367,5 +397,19 @@ resource "triton_machine" "test" {
   tags = {
     test = "hello!"
 	}
+}
+`
+
+var testAccTritonMachine_dns = `
+provider "triton" {
+}
+
+resource "triton_machine" "test" {
+  name = "%s"
+  package = "g4-highcpu-128M"
+  image = "e1faace4-e19b-11e5-928b-83849e2fd94a"
+}
+output "domain_names" {
+  value = "${join(", ", triton_machine.test.domain_names)}"
 }
 `
