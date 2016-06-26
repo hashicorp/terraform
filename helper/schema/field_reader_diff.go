@@ -238,10 +238,60 @@ func (r *DiffFieldReader) readSet(
 	// Create the set that will be our result
 	set := schema.ZeroValue().(*Set)
 
+	// Check if we're supposed to remove it
+	v, ok := r.Diff.Attributes[prefix+"#"]
+	if ok && v.New == "0" {
+		// I'm not entirely sure what's the point of
+		// returning empty set w/ Exists: true
+		return FieldReadResult{
+			Value:  set,
+			Exists: true,
+		}, nil
+	}
+
+	// Compose list of all keys (diff + source)
+	var keys []string
+
+	// Add keys from diff
+	diffContainsField := false
+	for k, _ := range r.Diff.Attributes {
+		if strings.HasPrefix(k, address[0]+".") {
+			diffContainsField = true
+		}
+		keys = append(keys, k)
+	}
+	// Bail out if diff doesn't contain the given field at all
+	if !diffContainsField {
+		return FieldReadResult{
+			Value:  set,
+			Exists: false,
+		}, nil
+	}
+	// Add keys from source
+	sourceResult, err := r.Source.ReadField(address)
+	if err == nil && sourceResult.Exists {
+		sourceSet := sourceResult.Value.(*Set)
+		sourceMap := sourceSet.Map()
+
+		for k, _ := range sourceMap {
+			key := prefix + k
+			_, ok := r.Diff.Attributes[key]
+			if !ok {
+				keys = append(keys, key)
+			}
+		}
+	}
+
+	// Keep the order consistent for hashing functions
+	sort.Strings(keys)
+
 	// Go through the map and find all the set items
-	for k, d := range r.Diff.Attributes {
-		if d.NewRemoved {
-			// If the field is removed, we always ignore it
+	// We are not iterating over the diff directly as some indexes
+	// may be missing and we expect the whole set to be returned.
+	for _, k := range keys {
+		d, ok := r.Diff.Attributes[k]
+		if ok && d.NewRemoved {
+			// If the field is being removed, we ignore it
 			continue
 		}
 		if !strings.HasPrefix(k, prefix) {
