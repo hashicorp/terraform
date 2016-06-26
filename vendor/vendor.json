@@ -950,8 +950,10 @@
 			"revision": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
 		},
 		{
+			"checksumSHA1": "PDzjpRNeytdYU39/PByzwCMvKQ8=",
 			"path": "github.com/joyent/gosdc/cloudapi",
-			"revision": "0697a5c4f39a71a4f9e3b154380b47dbfcc3da6e"
+			"revision": "042c6e9de2b48a646d310e70cc0050c83fe18200",
+			"revisionTime": "2016-04-26T05:09:12Z"
 		},
 		{
 			"checksumSHA1": "N0NRIcJF7aj1wd56DA1N9GpYq/4=",
