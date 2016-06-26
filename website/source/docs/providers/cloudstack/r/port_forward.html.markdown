@@ -54,4 +54,5 @@ The `forward` block supports:
 
 The following attributes are exported:
 
-* `ip_address` - The IP address for which the port forwards are created.
+* `id` - The ID of the IP address for which the port forwards are created.
+
