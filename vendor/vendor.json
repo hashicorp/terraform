@@ -1119,16 +1119,16 @@
 			"revision": "42fa80f2ac6ed17a977ce826074bd3009593fa9d"
 		},
 		{
-			"checksumSHA1": "9y6a4i+MNtKDGCbRLtZUCCgra5o=",
+			"checksumSHA1": "4Q/JrLYYcwGRPVpd6sJ5yW/E9GQ=",
 			"path": "github.com/rackspace/gophercloud",
-			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
-			"revisionTime": "2016-06-03T22:34:01Z"
+			"revision": "985a863d6dd5f928b485dbc8ef440813aafa39ad",
+			"revisionTime": "2016-06-23T23:57:31Z"
 		},
 		{
-			"checksumSHA1": "NGUTP3ljMt7yrbec44cS1snPtTo=",
+			"checksumSHA1": "dh2tsaicjrx9LgR6uuSeilSFzAY=",
 			"path": "github.com/rackspace/gophercloud/openstack",
-			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
-			"revisionTime": "2016-06-03T22:34:01Z"
+			"revision": "985a863d6dd5f928b485dbc8ef440813aafa39ad",
+			"revisionTime": "2016-06-23T23:57:31Z"
 		},
 		{
 			"checksumSHA1": "KXOy+EDMJgyZT0MoTXMhcFZVgNM=",
@@ -1149,10 +1149,10 @@
 			"revisionTime": "2016-06-03T22:34:01Z"
 		},
 		{
-			"checksumSHA1": "GCDblO2RKSQRRQQFCUPVG3Okjg8=",
+			"checksumSHA1": "pQOpY/k5Gh8pUDmsf8ntH6mtGYQ=",
 			"path": "github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume",
-			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
-			"revisionTime": "2016-06-03T22:34:01Z"
+			"revision": "985a863d6dd5f928b485dbc8ef440813aafa39ad",
+			"revisionTime": "2016-06-23T23:57:31Z"
 		},
 		{
 			"checksumSHA1": "Jpju6sEOCeMRL9SP+zy86ydhPDo=",
@@ -1239,10 +1239,10 @@
 			"revisionTime": "2016-06-03T22:34:01Z"
 		},
 		{
-			"checksumSHA1": "mGcd8xg4aongnWHTgjR7kkbyOeQ=",
+			"checksumSHA1": "yQG3tZgPMFBw2kIp4TR+9E4QH78=",
 			"path": "github.com/rackspace/gophercloud/openstack/identity/v3/tokens",
-			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
-			"revisionTime": "2016-06-03T22:34:01Z"
+			"revision": "985a863d6dd5f928b485dbc8ef440813aafa39ad",
+			"revisionTime": "2016-06-23T23:57:31Z"
 		},
 		{
 			"checksumSHA1": "EMdUpMYV9vQAEtBkpUdSqYaYBVc=",
