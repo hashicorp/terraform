@@ -37,4 +37,9 @@ provider "influxdb" {
 resource "influxdb_database" "metrics" {
     name = "awesome_app"
 }
+
+resource "influxdb_user" "paul" {
+    name = "paul"
+    password = "super-secret"
+}
 ```

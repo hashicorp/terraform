@@ -16,7 +16,8 @@ var quoteReplacer = strings.NewReplacer(`"`, `\"`)
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
-			"influxdb_database": ResourceDatabase(),
+			"influxdb_database": resourceDatabase(),
+			"influxdb_user":     resourceUser(),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -39,11 +40,11 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
-		ConfigureFunc: Configure,
+		ConfigureFunc: configure,
 	}
 }
 
-func Configure(d *schema.ResourceData) (interface{}, error) {
+func configure(d *schema.ResourceData) (interface{}, error) {
 	url, err := url.Parse(d.Get("url").(string))
 	if err != nil {
 		return nil, fmt.Errorf("invalid InfluxDB URL: %s", err)
@@ -69,5 +70,5 @@ func Configure(d *schema.ResourceData) (interface{}, error) {
 }
 
 func quoteIdentifier(ident string) string {
-	return fmt.Sprintf(`"%s"`, quoteReplacer.Replace(ident))
+	return fmt.Sprintf(`%q`, quoteReplacer.Replace(ident))
 }
