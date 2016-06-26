@@ -678,7 +678,9 @@ resource "aws_iam_role" "foo_role" {
 			"Sid": "",
 			"Effect": "Allow",
 			"Principal": {
-				"Service": "codedeploy.amazonaws.com"
+				"Service": [
+				  "codedeploy.amazonaws.com"
+				]
 			},
 			"Action": "sts:AssumeRole"
 		}
