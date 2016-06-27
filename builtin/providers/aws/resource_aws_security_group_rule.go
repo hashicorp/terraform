@@ -198,10 +198,13 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).ec2conn
 	sg_id := d.Get("security_group_id").(string)
 	sg, err := findResourceSecurityGroup(conn, sg_id)
-	if err != nil {
-		log.Printf("[DEBUG] Error finding Secuirty Group (%s) for Rule (%s): %s", sg_id, d.Id(), err)
+	if _, notFound := err.(securityGroupNotFound); notFound {
+		// The security group containing this rule no longer exists.
 		d.SetId("")
 		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("Error finding security group (%s) for rule (%s): %s", sg_id, d.Id(), err)
 	}
 
 	isVPC := sg.VpcId != nil && *sg.VpcId != ""
@@ -305,17 +308,33 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 		GroupIds: []*string{aws.String(id)},
 	}
 	resp, err := conn.DescribeSecurityGroups(req)
+	if err, ok := err.(awserr.Error); ok && err.Code() == "InvalidGroup.NotFound" {
+		return nil, securityGroupNotFound{id, nil}
+	}
 	if err != nil {
 		return nil, err
 	}
-
-	if resp == nil || len(resp.SecurityGroups) != 1 || resp.SecurityGroups[0] == nil {
-		return nil, fmt.Errorf(
-			"Expected to find one security group with ID %q, got: %#v",
-			id, resp.SecurityGroups)
+	if resp == nil {
+		return nil, securityGroupNotFound{id, nil}
+	}
+	if len(resp.SecurityGroups) != 1 || resp.SecurityGroups[0] == nil {
+		return nil, securityGroupNotFound{id, resp.SecurityGroups}
 	}
 
 	return resp.SecurityGroups[0], nil
+}
+
+type securityGroupNotFound struct {
+	id             string
+	securityGroups []*ec2.SecurityGroup
+}
+
+func (err securityGroupNotFound) Error() string {
+	if err.securityGroups == nil {
+		return fmt.Sprintf("No security group with ID %q", err.id)
+	}
+	return fmt.Sprintf("Expected to find one security group with ID %q, got: %#v",
+		err.id, err.securityGroups)
 }
 
 // ByGroupPair implements sort.Interface for []*ec2.UserIDGroupPairs based on
