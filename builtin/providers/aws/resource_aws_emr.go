@@ -7,6 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/schema"
+	"strconv"
+	"strings"
 )
 
 func resourceAwsEMR() *schema.Resource {
@@ -56,6 +58,13 @@ func resourceAwsEMR() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  0,
+			},
+			"instance_groups": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 			"ec2_attributes": &schema.Schema{
 				Type:     schema.TypeList,
@@ -150,39 +159,31 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 	fmt.Println(respGrps)
 
 	instanceGroups := respGrps.InstanceGroups
-	var groupInstanceType string = "CORE"
-	if v, ok := d.GetOk("group_type_to_resize"); ok {
-		groupInstanceType = v.(string)
-	}
 
-	var resizeCount int = 0
-	if v, ok := d.GetOk("resize_count"); ok {
-		resizeCount = v.(int)
-	}
-
-	oneInst := findGroup(instanceGroups, groupInstanceType)
-
-	if oneInst == nil {
-		return fmt.Errorf("Error EMR cluster has only MASTER?")
-	}
+	grpsTF := d.Get("instance_groups").(*schema.Set).List()
+	mdConf, newConf := expandInstanceGrps(grpsTF, instanceGroups, d.Get("instance_type").(string))
 
 	params := &emr.ModifyInstanceGroupsInput{
-		InstanceGroups: []*emr.InstanceGroupModifyConfig{
-			{
-				InstanceGroupId: aws.String(*oneInst.Id),
-				InstanceCount:   aws.Int64(int64(resizeCount)),
-			},
-		},
+		InstanceGroups: mdConf,
 	}
-
 	respModify, errModify := conn.ModifyInstanceGroups(params)
 	if errModify != nil {
 		log.Printf("[ERROR] %s", errModify)
 		return errModify
 	}
 
+	newParams := &emr.AddInstanceGroupsInput{
+		InstanceGroups: newConf,
+	}
+	respNew, errNew := conn.AddInstanceGroups(newParams)
+	if errNew != nil {
+		log.Printf("[ERROR] %s", errNew)
+		return errNew
+	}
+
 	log.Printf("[DEBUG] Modify EMR Cluster done...")
 	fmt.Println(respModify)
+	fmt.Println(respNew)
 
 	return nil
 }
@@ -218,12 +219,47 @@ func expandApplications(apps []interface{}) []*emr.Application {
 	return appOut
 }
 
-func findGroup(grps []*emr.InstanceGroup, grpType string) *emr.InstanceGroup {
+func findGroup(grps []*emr.InstanceGroup, name string) *emr.InstanceGroup {
 	for _, grp := range grps {
-		if *grp.InstanceGroupType == grpType {
+		if *grp.Name == name {
 			return grp
 		}
 	}
 	return nil
+}
 
+func expandInstanceGrps(grpsTF []interface{},
+	grpsEmr []*emr.InstanceGroup, instanceType string) ([]*emr.InstanceGroupModifyConfig,
+	[]*emr.InstanceGroupConfig) {
+	var modiConfOut []*emr.InstanceGroupModifyConfig
+	var newConfOut []*emr.InstanceGroupConfig
+
+	for _, grp := range expandStringList(grpsTF) {
+		s := strings.Split(*grp, ":")
+		name := s[0]
+		count, _ := strconv.Atoi(s[1])
+
+		oneGrp := findGroup(grpsEmr, name)
+
+		if oneGrp == nil {
+			//New TASK group
+			conf := &emr.InstanceGroupConfig{
+				InstanceRole:  aws.String("TASK"),
+				InstanceCount: aws.Int64(int64(count)),
+				InstanceType:  aws.String(instanceType),
+				Name:          aws.String(name),
+			}
+			newConfOut = append(newConfOut, conf)
+
+		} else {
+			//Existed group
+			conf := &emr.InstanceGroupModifyConfig{
+				InstanceGroupId: aws.String(*oneGrp.Id),
+				InstanceCount:   aws.Int64(int64(count)),
+			}
+			modiConfOut = append(modiConfOut, conf)
+
+		}
+	}
+	return modiConfOut, newConfOut
 }
