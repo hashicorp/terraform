@@ -174,6 +174,7 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	newParams := &emr.AddInstanceGroupsInput{
 		InstanceGroups: newConf,
+		JobFlowId:      aws.String(d.Id()),
 	}
 	respNew, errNew := conn.AddInstanceGroups(newParams)
 	if errNew != nil {
@@ -241,23 +242,25 @@ func expandInstanceGrps(grpsTF []interface{},
 
 		oneGrp := findGroup(grpsEmr, name)
 
-		if oneGrp == nil {
+		fmt.Println(oneGrp)
+
+		if oneGrp == nil && name != "CORE" {
 			//New TASK group
-			conf := &emr.InstanceGroupConfig{
+			confNew := &emr.InstanceGroupConfig{
 				InstanceRole:  aws.String("TASK"),
 				InstanceCount: aws.Int64(int64(count)),
 				InstanceType:  aws.String(instanceType),
 				Name:          aws.String(name),
 			}
-			newConfOut = append(newConfOut, conf)
+			newConfOut = append(newConfOut, confNew)
 
-		} else {
+		} else if oneGrp != nil {
 			//Existed group
-			conf := &emr.InstanceGroupModifyConfig{
+			confModi := &emr.InstanceGroupModifyConfig{
 				InstanceGroupId: aws.String(*oneGrp.Id),
 				InstanceCount:   aws.Int64(int64(count)),
 			}
-			modiConfOut = append(modiConfOut, conf)
+			modiConfOut = append(modiConfOut, confModi)
 
 		}
 	}
