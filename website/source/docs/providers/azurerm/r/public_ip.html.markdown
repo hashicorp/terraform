@@ -34,11 +34,11 @@ resource "azurerm_public_ip" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) Specifies the name of the availability set. Changing this forces a
+* `name` - (Required) Specifies the name of the Public IP resource . Changing this forces a
     new resource to be created.
 
 * `resource_group_name` - (Required) The name of the resource group in which to
-    create the availability set.
+    create the public ip.
 
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 
