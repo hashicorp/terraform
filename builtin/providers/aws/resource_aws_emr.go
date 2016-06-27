@@ -50,16 +50,7 @@ func resourceAwsEMR() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"group_type_to_resize": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"resize_count": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  0,
-			},
-			"instance_groups": &schema.Schema{
+			"resize_instance_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: false,
@@ -160,7 +151,7 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	instanceGroups := respGrps.InstanceGroups
 
-	grpsTF := d.Get("instance_groups").(*schema.Set).List()
+	grpsTF := d.Get("resize_instance_groups").(*schema.Set).List()
 	mdConf, newConf := expandInstanceGrps(grpsTF, instanceGroups, d.Get("instance_type").(string))
 
 	if len(mdConf) > 0 {
