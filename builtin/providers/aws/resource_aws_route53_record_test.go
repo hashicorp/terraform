@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -214,6 +215,8 @@ func TestAccAWSRoute53Record_weighted_basic(t *testing.T) {
 }
 
 func TestAccAWSRoute53Record_alias(t *testing.T) {
+	rs := acctest.RandString(10)
+	config := fmt.Sprintf(testAccRoute53ElbAliasRecord, rs)
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_route53_record.alias",
@@ -221,7 +224,7 @@ func TestAccAWSRoute53Record_alias(t *testing.T) {
 		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRoute53ElbAliasRecord,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53RecordExists("aws_route53_record.alias"),
 				),
@@ -758,7 +761,7 @@ resource "aws_route53_record" "alias" {
 }
 
 resource "aws_elb" "main" {
-  name = "foobar-terraform-elb"
+  name = "foobar-terraform-elb-%s"
   availability_zones = ["us-west-2a"]
 
   listener {
