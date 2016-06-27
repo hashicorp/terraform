@@ -186,7 +186,7 @@ resource "cloudstack_disk" "foo" {
   attach = true
   device = "/dev/xvde"
   disk_offering = "%s"
-  virtual_machine = "${cloudstack_instance.foobar.name}"
+  virtual_machine_id = "${cloudstack_instance.foobar.id}"
   zone = "${cloudstack_instance.foobar.zone}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -210,7 +210,7 @@ resource "cloudstack_disk" "foo" {
   name = "terraform-disk"
   attach = true
   disk_offering = "%s"
-  virtual_machine = "${cloudstack_instance.foobar.name}"
+  virtual_machine_id = "${cloudstack_instance.foobar.id}"
   zone = "${cloudstack_instance.foobar.zone}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -234,7 +234,7 @@ resource "cloudstack_disk" "foo" {
   name = "terraform-disk"
   attach = true
   disk_offering = "%s"
-  virtual_machine = "${cloudstack_instance.foobar.name}"
+	virtual_machine_id = "${cloudstack_instance.foobar.id}"
   zone = "${cloudstack_instance.foobar.zone}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,

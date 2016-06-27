@@ -29,21 +29,11 @@ The following arguments are supported:
 * `network_id` - (Required) The ID of the network to plug the NIC into. Changing
     this forces a new resource to be created.
 
-* `network` - (Required, Deprecated) The name or ID of the network to plug the
-    NIC into. Changing this forces a new resource to be created.
-
 * `ip_address` - (Optional) The IP address to assign to the NIC. Changing this
     forces a new resource to be created.
 
-* `ipaddress` - (Optional, Deprecated) The IP address to assign to the NIC.
-    Changing this forces a new resource to be created.
-
 * `virtual_machine_id` - (Required) The ID of the virtual machine to which to
     attach the NIC. Changing this forces a new resource to be created.
-
-* `virtual_machine` - (Required, Deprecated) The name or ID of the virtual
-    machine to which to attach the NIC. Changing this forces a new resource to
-    be created.
 
 ## Attributes Reference
 

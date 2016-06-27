@@ -15,10 +15,9 @@ const none = "none"
 
 func resourceCloudStackNetwork() *schema.Resource {
 	aclidSchema := &schema.Schema{
-		Type:          schema.TypeString,
-		Optional:      true,
-		Default:       none,
-		ConflictsWith: []string{"aclid"},
+		Type:     schema.TypeString,
+		Optional: true,
+		Default:  none,
 	}
 
 	aclidSchema.StateFunc = func(v interface{}) string {
@@ -90,24 +89,10 @@ func resourceCloudStackNetwork() *schema.Resource {
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
 			},
 
-			"vpc": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `vpc_id` field instead",
-			},
-
 			"acl_id": aclidSchema,
-
-			"aclid": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				Deprecated: "Please use the `acl_id` field instead",
-			},
 
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
@@ -167,31 +152,12 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Check is this network needs to be created in a VPC
-	vpc, ok := d.GetOk("vpc_id")
-	if !ok {
-		vpc, ok = d.GetOk("vpc")
-	}
-	if ok {
-		// Retrieve the vpc ID
-		vpcid, e := retrieveID(
-			cs,
-			"vpc",
-			vpc.(string),
-			cloudstack.WithProject(d.Get("project").(string)),
-		)
-		if e != nil {
-			return e.Error()
-		}
-
-		// Set the vpcid
-		p.SetVpcid(vpcid)
+	if vpcid, ok := d.GetOk("vpc_id"); ok {
+		// Set the vpc id
+		p.SetVpcid(vpcid.(string))
 
 		// Since we're in a VPC, check if we want to assiciate an ACL list
-		aclid, ok := d.GetOk("acl_id")
-		if !ok {
-			aclid, ok = d.GetOk("acl")
-		}
-		if ok && aclid != none {
+		if aclid, ok := d.GetOk("acl_id"); ok && aclid.(string) != none {
 			// Set the acl ID
 			p.SetAclid(aclid.(string))
 		}
@@ -241,19 +207,12 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("display_text", n.Displaytext)
 	d.Set("cidr", n.Cidr)
 	d.Set("gateway", n.Gateway)
+	d.Set("vpc_id", n.Vpcid)
 
-	_, vpcID := d.GetOk("vpc_id")
-	_, vpc := d.GetOk("vpc")
-	if vpcID || vpc {
-		d.Set("vpc_id", n.Vpcid)
-
-		// Since we're in a VPC, also update the ACL ID. If we don't
-		// have an ACL ID make sure we set the default value instead.
-		if n.Aclid == "" {
-			n.Aclid = none
-		}
-		d.Set("acl_id", n.Aclid)
+	if n.Aclid == "" {
+		n.Aclid = none
 	}
+	d.Set("acl_id", n.Aclid)
 
 	// Read the tags and store them in a map
 	tags := make(map[string]interface{})
@@ -312,16 +271,8 @@ func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Replace the ACL if the ID has changed
-	if d.HasChange("acl_id") || d.HasChange("acl") {
-		aclid, ok := d.GetOk("acl_id")
-		if !ok {
-			aclid, ok = d.GetOk("acl")
-		}
-		if !ok {
-			return fmt.Errorf("Replacing the ACL requires a valid ACL ID")
-		}
-
-		p := cs.NetworkACL.NewReplaceNetworkACLListParams(aclid.(string))
+	if d.HasChange("acl_id") {
+		p := cs.NetworkACL.NewReplaceNetworkACLListParams(d.Get("acl_id").(string))
 		p.SetNetworkid(d.Id())
 
 		_, err := cs.NetworkACL.ReplaceNetworkACLList(p)
