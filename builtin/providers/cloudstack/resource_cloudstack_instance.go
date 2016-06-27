@@ -92,7 +92,6 @@ func resourceCloudStackInstance() *schema.Resource {
 			"security_group_ids": &schema.Schema{
 				Type:          schema.TypeSet,
 				Optional:      true,
-				Computed:      true,
 				ForceNew:      true,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Set:           schema.HashString,
@@ -102,7 +101,6 @@ func resourceCloudStackInstance() *schema.Resource {
 			"security_group_names": &schema.Schema{
 				Type:          schema.TypeSet,
 				Optional:      true,
-				Computed:      true,
 				ForceNew:      true,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Set:           schema.HashString,
