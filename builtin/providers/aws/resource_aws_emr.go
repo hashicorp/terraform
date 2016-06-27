@@ -62,7 +62,7 @@ func resourceAwsEMR() *schema.Resource {
 			"instance_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
+				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
