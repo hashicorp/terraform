@@ -91,29 +91,33 @@ func createUser(d *schema.ResourceData, meta interface{}) error {
 	return readUser(d, meta)
 }
 
-func grantPrivilegeOn(conn *client.Client, privilege, database, user string) error {
-	return changePrivilegeOn(conn, "GRANT", "TO", privilege, database, user)
-}
-
-func revokePrivilegeOn(conn *client.Client, privilege, database, user string) error {
-	return changePrivilegeOn(conn, "REVOKE", "FROM", privilege, database, user)
-}
-
-func changePrivilegeOn(conn *client.Client, method, target, privilege, database, user string) error {
-	queryStr := fmt.Sprintf("%s %s ON %s %s %s", method, privilege, quoteIdentifier(database), target, user)
-	query := client.Query{
-		Command: queryStr,
-	}
-
-	resp, err := conn.Query(query)
+func exec(conn *client.Client, query string) error {
+	resp, err := conn.Query(client.Query{
+		Command: query,
+	})
 	if err != nil {
 		return err
 	}
 	if resp.Err != nil {
 		return resp.Err
 	}
-
 	return nil
+}
+
+func grantPrivilegeOn(conn *client.Client, privilege, database, user string) error {
+	return exec(conn, fmt.Sprintf("GRANT %s ON %s TO %s", privilege, quoteIdentifier(database), user))
+}
+
+func revokePrivilegeOn(conn *client.Client, privilege, database, user string) error {
+	return exec(conn, fmt.Sprintf("REVOKE %s ON %s FROM %s", privilege, quoteIdentifier(database), user))
+}
+
+func grantAllOn(conn *client.Client, user string) error {
+	return exec(conn, fmt.Sprintf("GRANT ALL PRIVILEGES TO %s", user))
+}
+
+func revokeAllOn(conn *client.Client, user string) error {
+	return exec(conn, fmt.Sprintf("REVOKE ALL PRIVILEGES FROM %s", user))
 }
 
 func readUser(d *schema.ResourceData, meta interface{}) error {
@@ -188,6 +192,14 @@ func readGrants(d *schema.ResourceData, meta interface{}) error {
 func updateUser(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*client.Client)
 	name := d.Id()
+
+	if d.HasChange("admin") {
+		if !d.Get("admin").(bool) {
+			revokeAllOn(conn, name)
+		} else {
+			grantAllOn(conn, name)
+		}
+	}
 
 	if d.HasChange("grant") {
 		oldGrantV, newGrantV := d.GetChange("grant")
