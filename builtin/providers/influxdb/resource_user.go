@@ -76,7 +76,7 @@ func createUser(d *schema.ResourceData, meta interface{}) error {
 		return resp.Err
 	}
 
-	d.SetId(name)
+	d.SetId(fmt.Sprintf("influxdb-user:%s", name))
 
 	if v, ok := d.GetOk("grant"); ok {
 		grants := v.([]interface{})
@@ -122,7 +122,7 @@ func revokeAllOn(conn *client.Client, user string) error {
 
 func readUser(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*client.Client)
-	name := d.Id()
+	name := d.Get("name").(string)
 
 	// InfluxDB doesn't have a command to check the existence of a single
 	// User, so we instead must read the list of all Users and see
@@ -160,7 +160,7 @@ func readUser(d *schema.ResourceData, meta interface{}) error {
 
 func readGrants(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*client.Client)
-	name := d.Id()
+	name := d.Get("name").(string)
 
 	query := client.Query{
 		Command: fmt.Sprintf("SHOW GRANTS FOR %s", name),
@@ -191,7 +191,7 @@ func readGrants(d *schema.ResourceData, meta interface{}) error {
 
 func updateUser(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*client.Client)
-	name := d.Id()
+	name := d.Get("name").(string)
 
 	if d.HasChange("admin") {
 		if !d.Get("admin").(bool) {
@@ -250,7 +250,7 @@ func updateUser(d *schema.ResourceData, meta interface{}) error {
 
 func deleteUser(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*client.Client)
-	name := d.Id()
+	name := d.Get("name").(string)
 
 	queryStr := fmt.Sprintf("DROP USER %s", name)
 	query := client.Query{
