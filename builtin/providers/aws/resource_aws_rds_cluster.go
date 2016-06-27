@@ -20,6 +20,9 @@ func resourceAwsRDSCluster() *schema.Resource {
 		Read:   resourceAwsRDSClusterRead,
 		Update: resourceAwsRDSClusterUpdate,
 		Delete: resourceAwsRDSClusterDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsRdsClusterImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 
@@ -194,6 +197,15 @@ func resourceAwsRDSCluster() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceAwsRdsClusterImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// Neither skip_final_snapshot nor final_snapshot_identifier can be fetched
+	// from any API call, so we need to default skip_final_snapshot to true so
+	// that final_snapshot_identifier is not required
+	d.Set("skip_final_snapshot", true)
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error {
@@ -402,6 +414,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("database_name", dbc.DatabaseName)
 	}
 
+	d.Set("cluster_identifier", dbc.DBClusterIdentifier)
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
 	d.Set("parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("db_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
