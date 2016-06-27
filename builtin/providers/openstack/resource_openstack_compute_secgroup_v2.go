@@ -20,6 +20,9 @@ func resourceComputeSecGroupV2() *schema.Resource {
 		Read:   resourceComputeSecGroupV2Read,
 		Update: resourceComputeSecGroupV2Update,
 		Delete: resourceComputeSecGroupV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
