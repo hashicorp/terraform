@@ -2,6 +2,8 @@ package schema
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -12,8 +14,8 @@ import (
 //
 // It also requires access to a Reader that reads fields from the structure
 // that the diff was derived from. This is usually the state. This is required
-// because a diff on its own doesn't have complete data about full objects
-// such as maps.
+// because a diff on its own doesn't have complete data about non-primitive
+// objects such as maps, lists and sets.
 //
 // The Source MUST be the data that the diff was derived from. If it isn't,
 // the behavior of this struct is undefined.
@@ -42,7 +44,7 @@ func (r *DiffFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	case TypeBool, TypeInt, TypeFloat, TypeString:
 		return r.readPrimitive(address, schema)
 	case TypeList:
-		return readListField(r, address, schema)
+		return r.readList(address, schema)
 	case TypeMap:
 		return r.readMap(address, schema)
 	case TypeSet:
@@ -134,6 +136,99 @@ func (r *DiffFieldReader) readPrimitive(
 	}
 
 	return result, nil
+}
+
+func (r *DiffFieldReader) readList(
+	address []string, schema *Schema) (FieldReadResult, error) {
+	prefix := strings.Join(address, ".") + "."
+
+	addrPadded := make([]string, len(address)+1)
+	copy(addrPadded, address)
+
+	// Get the number of elements in the list
+	addrPadded[len(addrPadded)-1] = "#"
+	countResult, err := r.readPrimitive(addrPadded, &Schema{Type: TypeInt})
+	if err != nil {
+		return FieldReadResult{}, err
+	}
+	if !countResult.Exists {
+		// No count, means we have no list
+		countResult.Value = 0
+	}
+	// If we have an empty list, then return an empty list
+	if countResult.Computed || countResult.Value.(int) == 0 {
+		return FieldReadResult{
+			Value:    []interface{}{},
+			Exists:   countResult.Exists,
+			Computed: countResult.Computed,
+		}, nil
+	}
+
+	// Bail out if diff doesn't contain the given field at all
+	// This has to be a separate loop because we're only
+	// iterating over raw list items (list.idx).
+	// Other fields (list.idx.*) are left for other read* methods
+	// which can deal with these fields appropriately.
+	diffContainsField := false
+	for k, _ := range r.Diff.Attributes {
+		if strings.HasPrefix(k, address[0]+".") {
+			diffContainsField = true
+		}
+	}
+	if !diffContainsField {
+		return FieldReadResult{
+			Value:  []interface{}{},
+			Exists: false,
+		}, nil
+	}
+
+	// Create the list that will be our result
+	list := []interface{}{}
+
+	// Go through the diff and find all the list items
+	// We are not iterating over the diff directly as some indexes
+	// may be missing and we expect the whole list to be returned.
+	for i := 0; i < countResult.Value.(int); i++ {
+		idx := strconv.Itoa(i)
+		addrString := prefix + idx
+
+		d, ok := r.Diff.Attributes[addrString]
+		if ok && d.NewRemoved {
+			// If the field is being removed, we ignore it
+			continue
+		}
+
+		addrPadded[len(addrPadded)-1] = idx
+		raw, err := r.ReadField(addrPadded)
+		if err != nil {
+			return FieldReadResult{}, err
+		}
+		if !raw.Exists {
+			// This should never happen, because by the time the data
+			// gets to the FieldReaders, all the defaults should be set by
+			// Schema.
+			panic("missing field in set: " + addrString + "." + idx)
+		}
+		list = append(list, raw.Value)
+	}
+
+	// Determine if the list "exists". It exists if there are items or if
+	// the diff explicitly wanted it empty.
+	exists := len(list) > 0
+	if !exists {
+		// We could check if the diff value is "0" here but I think the
+		// existence of "#" on its own is enough to show it existed. This
+		// protects us in the future from the zero value changing from
+		// "0" to "" breaking us (if that were to happen).
+		if _, ok := r.Diff.Attributes[prefix+"#"]; ok {
+			exists = true
+		}
+	}
+
+	return FieldReadResult{
+		Value:  list,
+		Exists: exists,
+	}, nil
 }
 
 func (r *DiffFieldReader) readSet(
