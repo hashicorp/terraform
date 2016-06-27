@@ -37,8 +37,45 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 				},
 			},
 
+			// elements removed in v0.7.0
+			"role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+			},
+
+			"s3_bucket_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+			},
+
+			"s3_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+			},
+
+			"s3_buffer_size": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+			},
+
+			"s3_buffer_interval": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+			},
+
+			"s3_data_compression": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+			},
+
 			"s3_configuration": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -84,7 +121,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 			},
 
 			"redshift_configuration": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -153,7 +190,7 @@ func validateConfiguration(d *schema.ResourceData) error {
 		return fmt.Errorf("[ERROR] Destination must be s3 or redshift")
 	}
 
-	s3Configuration := d.Get("s3_configuration").(*schema.Set).List()
+	s3Configuration := d.Get("s3_configuration").([]interface{})
 	if len(s3Configuration) > 1 {
 		return fmt.Errorf("[ERROR] You can only define a single s3_configuration per delivery stream")
 	}
@@ -162,7 +199,7 @@ func validateConfiguration(d *schema.ResourceData) error {
 }
 
 func createS3Config(d *schema.ResourceData) *firehose.S3DestinationConfiguration {
-	s3 := d.Get("s3_configuration").(*schema.Set).List()[0].(map[string]interface{})
+	s3 := d.Get("s3_configuration").([]interface{})[0].(map[string]interface{})
 
 	return &firehose.S3DestinationConfiguration{
 		BucketARN: aws.String(s3["bucket_arn"].(string)),
@@ -178,7 +215,7 @@ func createS3Config(d *schema.ResourceData) *firehose.S3DestinationConfiguration
 }
 
 func updateS3Config(d *schema.ResourceData) *firehose.S3DestinationUpdate {
-	s3 := d.Get("s3_configuration").(*schema.Set).List()[0].(map[string]interface{})
+	s3 := d.Get("s3_configuration").([]interface{})[0].(map[string]interface{})
 
 	return &firehose.S3DestinationUpdate{
 		BucketARN: aws.String(s3["bucket_arn"].(string)),
@@ -216,7 +253,7 @@ func extractPrefixConfiguration(s3 map[string]interface{}) *string {
 }
 
 func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3DestinationConfiguration) *firehose.RedshiftDestinationConfiguration {
-	redshift := d.Get("redshift_configuration").(*schema.Set).List()[0].(map[string]interface{})
+	redshift := d.Get("redshift_configuration").([]interface{})[0].(map[string]interface{})
 
 	return &firehose.RedshiftDestinationConfiguration{
 		ClusterJDBCURL:  aws.String(redshift["cluster_jdbcurl"].(string)),
@@ -229,7 +266,7 @@ func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3Destinati
 }
 
 func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3DestinationUpdate) *firehose.RedshiftDestinationUpdate {
-	redshift := d.Get("redshift_configuration").(*schema.Set).List()[0].(map[string]interface{})
+	redshift := d.Get("redshift_configuration").([]interface{})[0].(map[string]interface{})
 
 	return &firehose.RedshiftDestinationUpdate{
 		ClusterJDBCURL: aws.String(redshift["cluster_jdbcurl"].(string)),
