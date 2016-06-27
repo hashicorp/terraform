@@ -13,6 +13,9 @@ func resourceComputeKeypairV2() *schema.Resource {
 		Create: resourceComputeKeypairV2Create,
 		Read:   resourceComputeKeypairV2Read,
 		Delete: resourceComputeKeypairV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
