@@ -514,47 +514,51 @@ resource "aws_db_parameter_group" "large" {
 	name = "%s"
 	family = "mysql5.6"
 	description = "RDS default parameter group: Excede default AWS parameter group limit of twenty"
-    parameter { name = "character_set_server"                value = "utf8"                                            }
-    parameter { name = "character_set_client"                value = "utf8"                                            }
-    parameter { name = "collation_server"                    value = "utf8_general_ci"                                 }
-    parameter { name = "collation_connection"                value = "utf8_general_ci"                                 }
-    parameter { name = "join_buffer_size"                    value = 16777216                                          }
-    parameter { name = "key_buffer_size"                     value = 67108864                                          }
-    parameter { name = "max_connections"                     value = 3200                                              }
-    parameter { name = "max_heap_table_size"                 value = 67108864                                          }
-    parameter { name = "performance_schema"                  value = 1                 apply_method = "pending-reboot" }
-    parameter { name = "query_cache_limit"                   value = 2097152                                           }
-    parameter { name = "query_cache_size"                    value = 67108864                                          }
-    parameter { name = "sort_buffer_size"                    value = 16777216                                          }
-    parameter { name = "table_open_cache"                    value = 4096                                              }
-    parameter { name = "tmp_table_size"                      value = 67108864                                          }
+
     parameter { name = "binlog_cache_size"                   value = 131072                                            }
-    parameter { name = "innodb_flush_log_at_trx_commit"      value = 0                                                 }
-    parameter { name = "innodb_open_files"                   value = 4000              apply_method = "pending-reboot" }
-    parameter { name = "innodb_read_io_threads"              value = 64                apply_method = "pending-reboot" }
-    parameter { name = "innodb_thread_concurrency"           value = 0                                                 }
-    parameter { name = "innodb_write_io_threads"             value = 64                apply_method = "pending-reboot" }
   # parameter { name = "binlog_format"                       value = "MIXED"                                           }
+
+
+
+    parameter { name = "character_set_client"                value = "utf8"                                            }
     parameter { name = "character_set_connection"            value = "utf8"                                            }
     parameter { name = "character_set_database"              value = "utf8"                                            }
     parameter { name = "character_set_filesystem"            value = "utf8"                                            }
     parameter { name = "character_set_results"               value = "utf8"                                            }
+    parameter { name = "character_set_server"                value = "utf8"                                            }
+    parameter { name = "collation_connection"                value = "utf8_general_ci"                                 }
+    parameter { name = "collation_server"                    value = "utf8_general_ci"                                 }
     parameter { name = "event_scheduler"                     value = "ON"                                              }
     parameter { name = "innodb_buffer_pool_dump_at_shutdown" value = 1                                                 }
     parameter { name = "innodb_file_format"                  value = "Barracuda"                                       }
   # parameter { name = "innodb_file_per_table"               value = 1                                                 }
+    parameter { name = "innodb_flush_log_at_trx_commit"      value = 0                                                 }
     parameter { name = "innodb_io_capacity"                  value = 2000                                              }
     parameter { name = "innodb_io_capacity_max"              value = 3000                                              }
     parameter { name = "innodb_lock_wait_timeout"            value = 120                                               }
     parameter { name = "innodb_max_dirty_pages_pct"          value = 90                                                }
+    parameter { name = "innodb_open_files"                   value = 4000              apply_method = "pending-reboot" }
+    parameter { name = "innodb_read_io_threads"              value = 64                apply_method = "pending-reboot" }
+    parameter { name = "innodb_thread_concurrency"           value = 0                                                 }
+    parameter { name = "innodb_write_io_threads"             value = 64                apply_method = "pending-reboot" }
+    parameter { name = "join_buffer_size"                    value = 16777216                                          }
+    parameter { name = "key_buffer_size"                     value = 67108864                                          }
     parameter { name = "log_bin_trust_function_creators"     value = 1                                                 }
     parameter { name = "log_warnings"                        value = 2                                                 }
     parameter { name = "log_output"                          value = "FILE"                                            }
     parameter { name = "max_allowed_packet"                  value = 1073741824                                        }
     parameter { name = "max_connect_errors"                  value = 100                                               }
+    parameter { name = "max_connections"                     value = 3200                                              }
+    parameter { name = "max_heap_table_size"                 value = 67108864                                          }
+    parameter { name = "performance_schema"                  value = 1                 apply_method = "pending-reboot" }
+    parameter { name = "query_cache_limit"                   value = 2097152                                           }
     parameter { name = "query_cache_min_res_unit"            value = 512                                               }
+    parameter { name = "query_cache_size"                    value = 67108864                                          }
     parameter { name = "slow_query_log"                      value = 1                                                 }
+    parameter { name = "sort_buffer_size"                    value = 16777216                                          }
     parameter { name = "sync_binlog"                         value = 0                                                 }
+    parameter { name = "table_open_cache"                    value = 4096                                              }
+    parameter { name = "tmp_table_size"                      value = 67108864                                          }
     parameter { name = "tx_isolation"                        value = "REPEATABLE-READ"                                 }
 }`, n)
 }
