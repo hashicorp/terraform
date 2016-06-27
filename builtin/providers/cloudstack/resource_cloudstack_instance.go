@@ -89,13 +89,24 @@ func resourceCloudStackInstance() *schema.Resource {
 				ConflictsWith: []string{"affinity_group_ids"},
 			},
 
+			"security_group_ids": &schema.Schema{
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Set:           schema.HashString,
+				ConflictsWith: []string{"security_group_names"},
+			},
+
 			"security_group_names": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Set:           schema.HashString,
+				ConflictsWith: []string{"security_group_ids"},
 			},
 
 			"project": &schema.Schema{
@@ -249,6 +260,17 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetAffinitygroupnames(groups)
 	}
 
+	// If there is a security_group_ids supplied, add it to the parameter struct
+	if sgids := d.Get("security_group_ids").(*schema.Set); sgids.Len() > 0 {
+		var groups []string
+
+		for _, group := range sgids.List() {
+			groups = append(groups, group.(string))
+		}
+
+		p.SetSecuritygroupids(groups)
+	}
+
 	// If there is a security_group_names supplied, add it to the parameter struct
 	if sgns := d.Get("security_group_names").(*schema.Set); sgns.Len() > 0 {
 		var groups []string
@@ -365,6 +387,15 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 
 	if agns.Len() > 0 {
 		d.Set("affinity_group_names", agns)
+	}
+
+	sgids := &schema.Set{F: schema.HashString}
+	for _, group := range vm.Securitygroup {
+		sgids.Add(group.Id)
+	}
+
+	if sgids.Len() > 0 {
+		d.Set("security_group_ids", sgids)
 	}
 
 	sgns := &schema.Set{F: schema.HashString}
