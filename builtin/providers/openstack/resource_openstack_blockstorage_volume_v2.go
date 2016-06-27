@@ -20,6 +20,9 @@ func resourceBlockStorageVolumeV2() *schema.Resource {
 		Read:   resourceBlockStorageVolumeV2Read,
 		Update: resourceBlockStorageVolumeV2Update,
 		Delete: resourceBlockStorageVolumeV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -189,17 +192,15 @@ func resourceBlockStorageVolumeV2Read(d *schema.ResourceData, meta interface{}) 
 	d.Set("volume_type", v.VolumeType)
 	d.Set("metadata", v.Metadata)
 
-	if len(v.Attachments) > 0 {
-		attachments := make([]map[string]interface{}, len(v.Attachments))
-		for i, attachment := range v.Attachments {
-			attachments[i] = make(map[string]interface{})
-			attachments[i]["id"] = attachment["id"]
-			attachments[i]["instance_id"] = attachment["server_id"]
-			attachments[i]["device"] = attachment["device"]
-			log.Printf("[DEBUG] attachment: %v", attachment)
-		}
-		d.Set("attachment", attachments)
+	attachments := make([]map[string]interface{}, len(v.Attachments))
+	for i, attachment := range v.Attachments {
+		attachments[i] = make(map[string]interface{})
+		attachments[i]["id"] = attachment["id"]
+		attachments[i]["instance_id"] = attachment["server_id"]
+		attachments[i]["device"] = attachment["device"]
+		log.Printf("[DEBUG] attachment: %v", attachment)
 	}
+	d.Set("attachment", attachments)
 
 	return nil
 }
