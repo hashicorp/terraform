@@ -18,6 +18,9 @@ func resourceAwsVpcPeeringConnection() *schema.Resource {
 		Read:   resourceAwsVPCPeeringRead,
 		Update: resourceAwsVPCPeeringUpdate,
 		Delete: resourceAwsVPCPeeringDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"peer_owner_id": &schema.Schema{
