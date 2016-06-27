@@ -163,28 +163,34 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 	grpsTF := d.Get("instance_groups").(*schema.Set).List()
 	mdConf, newConf := expandInstanceGrps(grpsTF, instanceGroups, d.Get("instance_type").(string))
 
-	params := &emr.ModifyInstanceGroupsInput{
-		InstanceGroups: mdConf,
-	}
-	respModify, errModify := conn.ModifyInstanceGroups(params)
-	if errModify != nil {
-		log.Printf("[ERROR] %s", errModify)
-		return errModify
+	if len(mdConf) > 0 {
+		params := &emr.ModifyInstanceGroupsInput{
+			InstanceGroups: mdConf,
+		}
+		respModify, errModify := conn.ModifyInstanceGroups(params)
+		if errModify != nil {
+			log.Printf("[ERROR] %s", errModify)
+			return errModify
+		}
+
+		fmt.Println(respModify)
 	}
 
-	newParams := &emr.AddInstanceGroupsInput{
-		InstanceGroups: newConf,
-		JobFlowId:      aws.String(d.Id()),
-	}
-	respNew, errNew := conn.AddInstanceGroups(newParams)
-	if errNew != nil {
-		log.Printf("[ERROR] %s", errNew)
-		return errNew
+	if len(newConf) > 0 {
+		newParams := &emr.AddInstanceGroupsInput{
+			InstanceGroups: newConf,
+			JobFlowId:      aws.String(d.Id()),
+		}
+		respNew, errNew := conn.AddInstanceGroups(newParams)
+		if errNew != nil {
+			log.Printf("[ERROR] %s", errNew)
+			return errNew
+		}
+
+		fmt.Println(respNew)
 	}
 
 	log.Printf("[DEBUG] Modify EMR Cluster done...")
-	fmt.Println(respModify)
-	fmt.Println(respNew)
 
 	return nil
 }
@@ -232,8 +238,8 @@ func findGroup(grps []*emr.InstanceGroup, name string) *emr.InstanceGroup {
 func expandInstanceGrps(grpsTF []interface{},
 	grpsEmr []*emr.InstanceGroup, instanceType string) ([]*emr.InstanceGroupModifyConfig,
 	[]*emr.InstanceGroupConfig) {
-	var modiConfOut []*emr.InstanceGroupModifyConfig
-	var newConfOut []*emr.InstanceGroupConfig
+	modiConfOut := []*emr.InstanceGroupModifyConfig{}
+	newConfOut := []*emr.InstanceGroupConfig{}
 
 	for _, grp := range expandStringList(grpsTF) {
 		s := strings.Split(*grp, ":")
@@ -244,7 +250,7 @@ func expandInstanceGrps(grpsTF []interface{},
 
 		fmt.Println(oneGrp)
 
-		if oneGrp == nil && name != "CORE" {
+		if oneGrp == nil {
 			//New TASK group
 			confNew := &emr.InstanceGroupConfig{
 				InstanceRole:  aws.String("TASK"),
