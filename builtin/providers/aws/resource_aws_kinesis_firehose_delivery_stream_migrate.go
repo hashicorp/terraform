@@ -24,7 +24,7 @@ func migrateKinesisFirehoseV0toV1(is *terraform.InstanceState) (*terraform.Insta
 		return is, nil
 	}
 
-	// log.Printf("[DEBUG] Attributes before migration: %#v", is.Attributes)
+	log.Printf("[DEBUG] Attributes before migration: %#v", is.Attributes)
 
 	// migrate flate S3 configuration to a s3_configuration block
 	// grab initial values
@@ -54,6 +54,6 @@ func migrateKinesisFirehoseV0toV1(is *terraform.InstanceState) (*terraform.Insta
 	delete(is.Attributes, "s3_buffer_interval")
 	delete(is.Attributes, "s3_prefix")
 
-	// log.Printf("[DEBUG] Attributes after migration: %#v", is.Attributes)
+	log.Printf("[DEBUG] Attributes after migration: %#v", is.Attributes)
 	return is, nil
 }
