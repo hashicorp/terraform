@@ -49,8 +49,6 @@ func retrieveID(cs *cloudstack.CloudStackClient, name string, value string, opts
 	switch name {
 	case "disk_offering":
 		id, err = cs.DiskOffering.GetDiskOfferingID(value)
-	case "virtual_machine":
-		id, err = cs.VirtualMachine.GetVirtualMachineID(value, opts...)
 	case "service_offering":
 		id, err = cs.ServiceOffering.GetServiceOfferingID(value)
 	case "network_offering":

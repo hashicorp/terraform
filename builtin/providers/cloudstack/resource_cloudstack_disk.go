@@ -51,7 +51,7 @@ func resourceCloudStackDisk() *schema.Resource {
 				Default:  false,
 			},
 
-			"virtual_machine": &schema.Schema{
+			"virtual_machine_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -119,7 +119,7 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	d.SetPartial("device")
 	d.SetPartial("disk_offering")
 	d.SetPartial("size")
-	d.SetPartial("virtual_machine")
+	d.SetPartial("virtual_machine_id")
 	d.SetPartial("project")
 	d.SetPartial("zone")
 
@@ -185,7 +185,7 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 		}
 
 		d.Set("device", retrieveDeviceName(v.Deviceid, c.Name))
-		setValueOrID(d, "virtual_machine", v.Vmname, v.Virtualmachineid)
+		d.Set("virtual_machine_id", v.Virtualmachineid)
 	}
 
 	return nil
@@ -254,7 +254,7 @@ func resourceCloudStackDiskUpdate(d *schema.ResourceData, meta interface{}) erro
 		// Set the additional partials
 		d.SetPartial("attach")
 		d.SetPartial("device")
-		d.SetPartial("virtual_machine")
+		d.SetPartial("virtual_machine_id")
 	} else {
 		// Detach the volume
 		if err := resourceCloudStackDiskDetach(d, meta); err != nil {
@@ -295,43 +295,34 @@ func resourceCloudStackDiskDelete(d *schema.ResourceData, meta interface{}) erro
 func resourceCloudStackDiskAttach(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// First check if the disk isn't already attached
-	if attached, err := isAttached(d, meta); err != nil || attached {
-		return err
-	}
-
-	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(
-		cs,
-		"virtual_machine",
-		d.Get("virtual_machine").(string),
-		cloudstack.WithProject(d.Get("project").(string)),
-	)
-	if e != nil {
-		return e.Error()
-	}
-
-	// Create a new parameter struct
-	p := cs.Volume.NewAttachVolumeParams(d.Id(), virtualmachineid)
-
-	if device, ok := d.GetOk("device"); ok {
-		// Retrieve the device ID
-		deviceid := retrieveDeviceID(device.(string))
-		if deviceid == -1 {
-			return fmt.Errorf("Device %s is not a valid device", device.(string))
+	if virtualmachineid, ok := d.GetOk("virtual_machine_id"); ok {
+		// First check if the disk isn't already attached
+		if attached, err := isAttached(d, meta); err != nil || attached {
+			return err
 		}
 
-		// Set the device ID
-		p.SetDeviceid(deviceid)
-	}
+		// Create a new parameter struct
+		p := cs.Volume.NewAttachVolumeParams(d.Id(), virtualmachineid.(string))
 
-	// Attach the new volume
-	r, err := Retry(4, retryableAttachVolumeFunc(cs, p))
-	if err != nil {
-		return err
-	}
+		if device, ok := d.GetOk("device"); ok {
+			// Retrieve the device ID
+			deviceid := retrieveDeviceID(device.(string))
+			if deviceid == -1 {
+				return fmt.Errorf("Device %s is not a valid device", device.(string))
+			}
 
-	d.SetId(r.(*cloudstack.AttachVolumeResponse).Id)
+			// Set the device ID
+			p.SetDeviceid(deviceid)
+		}
+
+		// Attach the new volume
+		r, err := Retry(4, retryableAttachVolumeFunc(cs, p))
+		if err != nil {
+			return err
+		}
+
+		d.SetId(r.(*cloudstack.AttachVolumeResponse).Id)
+	}
 
 	return nil
 }
@@ -351,41 +342,33 @@ func resourceCloudStackDiskDetach(d *schema.ResourceData, meta interface{}) erro
 	p.SetId(d.Id())
 
 	// Detach the currently attached volume
-	if _, err := cs.Volume.DetachVolume(p); err != nil {
-		// Retrieve the virtual_machine ID
-		virtualmachineid, e := retrieveID(
-			cs,
-			"virtual_machine",
-			d.Get("virtual_machine").(string),
-			cloudstack.WithProject(d.Get("project").(string)),
-		)
-		if e != nil {
-			return e.Error()
-		}
+	_, err := cs.Volume.DetachVolume(p)
+	if err != nil {
+		if virtualmachineid, ok := d.GetOk("virtual_machine_id"); ok {
+			// Create a new parameter struct
+			pd := cs.VirtualMachine.NewStopVirtualMachineParams(virtualmachineid.(string))
 
-		// Create a new parameter struct
-		pd := cs.VirtualMachine.NewStopVirtualMachineParams(virtualmachineid)
+			// Stop the virtual machine in order to be able to detach the disk
+			if _, err := cs.VirtualMachine.StopVirtualMachine(pd); err != nil {
+				return err
+			}
 
-		// Stop the virtual machine in order to be able to detach the disk
-		if _, err := cs.VirtualMachine.StopVirtualMachine(pd); err != nil {
-			return err
-		}
+			// Try again to detach the currently attached volume
+			if _, err := cs.Volume.DetachVolume(p); err != nil {
+				return err
+			}
 
-		// Try again to detach the currently attached volume
-		if _, err := cs.Volume.DetachVolume(p); err != nil {
-			return err
-		}
+			// Create a new parameter struct
+			pu := cs.VirtualMachine.NewStartVirtualMachineParams(virtualmachineid.(string))
 
-		// Create a new parameter struct
-		pu := cs.VirtualMachine.NewStartVirtualMachineParams(virtualmachineid)
-
-		// Start the virtual machine again
-		if _, err := cs.VirtualMachine.StartVirtualMachine(pu); err != nil {
-			return err
+			// Start the virtual machine again
+			if _, err := cs.VirtualMachine.StartVirtualMachine(pu); err != nil {
+				return err
+			}
 		}
 	}
 
-	return nil
+	return err
 }
 
 func isAttached(d *schema.ResourceData, meta interface{}) (bool, error) {

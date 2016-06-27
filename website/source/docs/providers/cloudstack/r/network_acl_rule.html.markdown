@@ -53,11 +53,11 @@ The `rule` block supports:
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp`, `icmp`, `all` or a valid protocol number.
 
-* `icmp_type` - (Optional) The ICMP type to allow. This can only be specified if
-    the protocol is ICMP.
+* `icmp_type` - (Optional) The ICMP type to allow, or `-1` to allow `any`. This
+    can only be specified if the protocol is ICMP. (defaults 0)
 
-* `icmp_code` - (Optional) The ICMP code to allow. This can only be specified if
-    the protocol is ICMP.
+* `icmp_code` - (Optional) The ICMP code to allow, or `-1` to allow `any`. This
+    can only be specified if the protocol is ICMP. (defaults 0)
 
 * `ports` - (Optional) List of ports and/or port ranges to allow. This can only
     be specified if the protocol is TCP, UDP, ALL or a valid protocol number.
