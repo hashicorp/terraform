@@ -70,6 +70,9 @@ The following arguments are supported:
     gigabytes. The root disk is resized on deploy. Only applies to
     template-based deployments.
 
+* `affinity_group_names` - (Optional) List of affinity groups to apply to this
+    instance. Changing this forces a new resource to be created.
+
 ## Attributes Reference
 
 The following attributes are exported:
