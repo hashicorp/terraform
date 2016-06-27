@@ -20,6 +20,8 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 		Update: resourceAwsKinesisFirehoseDeliveryStreamUpdate,
 		Delete: resourceAwsKinesisFirehoseDeliveryStreamDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsKinesisFirehoseMigrateState,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -41,31 +43,31 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 			"role_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+				Removed:  "role_arn has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
 			},
 
 			"s3_bucket_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+				Removed:  "s3_bucket_arn has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
 			},
 
 			"s3_prefix": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+				Removed:  "s3_prefix has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
 			},
 
 			"s3_buffer_size": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+				Removed:  "s3_buffer_size has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
 			},
 
 			"s3_buffer_interval": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
+				Removed:  "s3_buffer_interval has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
 			},
 
 			"s3_data_compression": &schema.Schema{
@@ -252,8 +254,17 @@ func extractPrefixConfiguration(s3 map[string]interface{}) *string {
 	return nil
 }
 
-func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3DestinationConfiguration) *firehose.RedshiftDestinationConfiguration {
-	redshift := d.Get("redshift_configuration").([]interface{})[0].(map[string]interface{})
+func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3DestinationConfiguration) (*firehose.RedshiftDestinationConfiguration, error) {
+	redshiftRaw, ok := d.GetOk("redshift_configuration")
+	if !ok {
+		return nil, fmt.Errorf("[ERR] Error loading Redshift Configuration for Kinesis Firehose: redshift_configuration not found")
+	}
+	rl := redshiftRaw.([]interface{})
+	if len(rl) == 0 || len(rl) > 1 {
+		return nil, fmt.Errorf("[ERR] You can only define a single s3_configuration per delivery stream")
+	}
+
+	redshift := rl[0].(map[string]interface{})
 
 	return &firehose.RedshiftDestinationConfiguration{
 		ClusterJDBCURL:  aws.String(redshift["cluster_jdbcurl"].(string)),
@@ -262,11 +273,20 @@ func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3Destinati
 		RoleARN:         aws.String(redshift["role_arn"].(string)),
 		CopyCommand:     extractCopyCommandConfiguration(redshift),
 		S3Configuration: s3Config,
-	}
+	}, nil
 }
 
-func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3DestinationUpdate) *firehose.RedshiftDestinationUpdate {
-	redshift := d.Get("redshift_configuration").([]interface{})[0].(map[string]interface{})
+func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3DestinationUpdate) (*firehose.RedshiftDestinationUpdate, error) {
+	redshiftRaw, ok := d.GetOk("redshift_configuration")
+	if !ok {
+		return nil, fmt.Errorf("[ERR] Error loading Redshift Configuration for Kinesis Firehose: redshift_configuration not found")
+	}
+	rl := redshiftRaw.([]interface{})
+	if len(rl) == 0 || len(rl) > 1 {
+		return nil, fmt.Errorf("[ERR] You can only define a single s3_configuration per delivery stream")
+	}
+
+	redshift := rl[0].(map[string]interface{})
 
 	return &firehose.RedshiftDestinationUpdate{
 		ClusterJDBCURL: aws.String(redshift["cluster_jdbcurl"].(string)),
@@ -275,7 +295,7 @@ func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3Destinati
 		RoleARN:        aws.String(redshift["role_arn"].(string)),
 		CopyCommand:    extractCopyCommandConfiguration(redshift),
 		S3Update:       s3Update,
-	}
+	}, nil
 }
 
 func extractCopyCommandConfiguration(redshift map[string]interface{}) *firehose.CopyCommand {
@@ -309,7 +329,11 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 	if d.Get("destination").(string) == "s3" {
 		createInput.S3DestinationConfiguration = s3Config
 	} else {
-		createInput.RedshiftDestinationConfiguration = createRedshiftConfig(d, s3Config)
+		rc, err := createRedshiftConfig(d, s3Config)
+		if err != nil {
+			return err
+		}
+		createInput.RedshiftDestinationConfiguration = rc
 	}
 
 	var lastError error
@@ -382,7 +406,11 @@ func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta
 	if d.Get("destination").(string) == "s3" {
 		updateInput.S3DestinationUpdate = s3Config
 	} else {
-		updateInput.RedshiftDestinationUpdate = updateRedshiftConfig(d, s3Config)
+		rc, err := updateRedshiftConfig(d, s3Config)
+		if err != nil {
+			return err
+		}
+		updateInput.RedshiftDestinationUpdate = rc
 	}
 
 	_, err := conn.UpdateDestination(updateInput)
