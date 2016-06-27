@@ -44,8 +44,8 @@ The following arguments are supported:
 * `shrink_ok` - (Optional) Verifies if the disk volume is allowed to shrink when
     resizing (defaults false).
 
-* `virtual_machine` - (Optional) The name or ID of the virtual machine to which you
-    want to attach the disk volume.
+* `virtual_machine_id` - (Optional) The ID of the virtual machine to which you want
+    to attach the disk volume.
 
 * `project` - (Optional) The name or ID of the project to deploy this
     instance to. Changing this forces a new resource to be created.

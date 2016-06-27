@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -41,15 +40,7 @@ func resourceCloudStackInstance() *schema.Resource {
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
-			},
-
-			"network": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `network_id` field instead",
 			},
 
 			"ip_address": &schema.Schema{
@@ -59,18 +50,22 @@ func resourceCloudStackInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipaddress": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				Computed:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `ip_address` field instead",
-			},
-
 			"template": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"root_disk_size": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 
 			"affinity_group_ids": &schema.Schema{
@@ -144,18 +139,6 @@ func resourceCloudStackInstance() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-
-			"group": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
-			"root_disk_size": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-			},
 		},
 	}
 }
@@ -203,80 +186,59 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetDisplayname(name.(string))
 	}
 
+	// If there is a root_disk_size supplied, add it to the parameter struct
+	if rootdisksize, ok := d.GetOk("root_disk_size"); ok {
+		p.SetRootdisksize(int64(rootdisksize.(int)))
+	}
+
 	if zone.Networktype == "Advanced" {
-		network, ok := d.GetOk("network_id")
-		if !ok {
-			network, ok = d.GetOk("network")
-		}
-		if !ok {
-			return errors.New(
-				"Either `network_id` or [deprecated] `network` must be provided when using a zone with network type `advanced`.")
-		}
-
-		// Retrieve the network ID
-		networkid, e := retrieveID(
-			cs,
-			"network",
-			network.(string),
-			cloudstack.WithProject(d.Get("project").(string)),
-		)
-		if e != nil {
-			return e.Error()
-		}
-
 		// Set the default network ID
-		p.SetNetworkids([]string{networkid})
+		p.SetNetworkids([]string{d.Get("network_id").(string)})
 	}
 
 	// If there is a ipaddres supplied, add it to the parameter struct
-	ipaddress, ok := d.GetOk("ip_address")
-	if !ok {
-		ipaddress, ok = d.GetOk("ipaddress")
-	}
-	if ok {
+	if ipaddress, ok := d.GetOk("ip_address"); ok {
 		p.SetIpaddress(ipaddress.(string))
 	}
 
-	if ags := d.Get("affinity_group_ids").(*schema.Set); ags.Len() > 0 {
-		var groups []string
+	// If there is a group supplied, add it to the parameter struct
+	if group, ok := d.GetOk("group"); ok {
+		p.SetGroup(group.(string))
+	}
 
-		for _, group := range ags.List() {
+	// If there are affinity group IDs supplied, add them to the parameter struct
+	if agIDs := d.Get("affinity_group_ids").(*schema.Set); agIDs.Len() > 0 {
+		var groups []string
+		for _, group := range agIDs.List() {
 			groups = append(groups, group.(string))
 		}
-
 		p.SetAffinitygroupids(groups)
 	}
 
-	// If there is a affinity_group_names supplied, add it to the parameter struct
-	if agns := d.Get("affinity_group_names").(*schema.Set); agns.Len() > 0 {
+	// If there are affinity group names supplied, add them to the parameter struct
+	if agNames := d.Get("affinity_group_names").(*schema.Set); agNames.Len() > 0 {
 		var groups []string
-
-		for _, group := range agns.List() {
+		for _, group := range agNames.List() {
 			groups = append(groups, group.(string))
 		}
-
 		p.SetAffinitygroupnames(groups)
 	}
 
-	// If there is a security_group_ids supplied, add it to the parameter struct
-	if sgids := d.Get("security_group_ids").(*schema.Set); sgids.Len() > 0 {
+	// If there are security group IDs supplied, add them to the parameter struct
+	if sgIDs := d.Get("security_group_ids").(*schema.Set); sgIDs.Len() > 0 {
 		var groups []string
-
-		for _, group := range sgids.List() {
+		for _, group := range sgIDs.List() {
 			groups = append(groups, group.(string))
 		}
-
 		p.SetSecuritygroupids(groups)
 	}
 
-	// If there is a security_group_names supplied, add it to the parameter struct
-	if sgns := d.Get("security_group_names").(*schema.Set); sgns.Len() > 0 {
+	// If there are security group names supplied, add them to the parameter struct
+	if sgNames := d.Get("security_group_names").(*schema.Set); sgNames.Len() > 0 {
 		var groups []string
-
-		for _, group := range sgns.List() {
+		for _, group := range sgNames.List() {
 			groups = append(groups, group.(string))
 		}
-
 		p.SetSecuritygroupnames(groups)
 	}
 
@@ -310,16 +272,6 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		}
 
 		p.SetUserdata(ud)
-	}
-
-	// If there is a group supplied, add it to the parameter struct
-	if group, ok := d.GetOk("group"); ok {
-		p.SetGroup(group.(string))
-	}
-
-	// If there is a root_disk_size supplied, add it to the parameter struct
-	if rootdisksize, ok := d.GetOk("root_disk_size"); ok {
-		p.SetRootdisksize(int64(rootdisksize.(int)))
 	}
 
 	// Create the new instance
@@ -364,46 +316,42 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("ip_address", vm.Nic[0].Ipaddress)
 	d.Set("group", vm.Group)
 
+	if _, ok := d.GetOk("affinity_group_ids"); ok {
+		groups := &schema.Set{F: schema.HashString}
+		for _, group := range vm.Affinitygroup {
+			groups.Add(group.Id)
+		}
+		d.Set("affinity_group_ids", groups)
+	}
+
+	if _, ok := d.GetOk("affinity_group_names"); ok {
+		groups := &schema.Set{F: schema.HashString}
+		for _, group := range vm.Affinitygroup {
+			groups.Add(group.Name)
+		}
+		d.Set("affinity_group_names", groups)
+	}
+
+	if _, ok := d.GetOk("security_group_ids"); ok {
+		groups := &schema.Set{F: schema.HashString}
+		for _, group := range vm.Securitygroup {
+			groups.Add(group.Id)
+		}
+		d.Set("security_group_ids", groups)
+	}
+
+	if _, ok := d.GetOk("security_group_names"); ok {
+		groups := &schema.Set{F: schema.HashString}
+		for _, group := range vm.Securitygroup {
+			groups.Add(group.Name)
+		}
+		d.Set("security_group_names", groups)
+	}
+
 	setValueOrID(d, "service_offering", vm.Serviceofferingname, vm.Serviceofferingid)
 	setValueOrID(d, "template", vm.Templatename, vm.Templateid)
 	setValueOrID(d, "project", vm.Project, vm.Projectid)
 	setValueOrID(d, "zone", vm.Zonename, vm.Zoneid)
-
-	groups := &schema.Set{F: schema.HashString}
-	for _, group := range vm.Affinitygroup {
-		groups.Add(group.Id)
-	}
-
-	if groups.Len() > 0 {
-		d.Set("affinity_group_ids", groups)
-	}
-
-	agns := &schema.Set{F: schema.HashString}
-	for _, group := range vm.Affinitygroup {
-		agns.Add(group.Name)
-	}
-
-	if agns.Len() > 0 {
-		d.Set("affinity_group_names", agns)
-	}
-
-	sgids := &schema.Set{F: schema.HashString}
-	for _, group := range vm.Securitygroup {
-		sgids.Add(group.Id)
-	}
-
-	if sgids.Len() > 0 {
-		d.Set("security_group_ids", sgids)
-	}
-
-	sgns := &schema.Set{F: schema.HashString}
-	for _, group := range vm.Securitygroup {
-		sgns.Add(group.Name)
-	}
-
-	if sgns.Len() > 0 {
-		d.Set("security_group_names", sgns)
-	}
 
 	return nil
 }
@@ -455,7 +403,7 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Attributes that require reboot to update
-	if d.HasChange("name") || d.HasChange("service_offering") || d.HasChange("affinity_group_ids") || d.HasChange("keypair") {
+	if d.HasChange("name") || d.HasChange("service_offering") || d.HasChange("affinity_group_ids") || d.HasChange("affinity_group_names") || d.HasChange("keypair") {
 		// Before we can actually make these changes, the virtual machine must be stopped
 		_, err := cs.VirtualMachine.StopVirtualMachine(
 			cs.VirtualMachine.NewStopVirtualMachineParams(d.Id()))
@@ -510,8 +458,21 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 			p := cs.AffinityGroup.NewUpdateVMAffinityGroupParams(d.Id())
 			groups := []string{}
 
-			if ags := d.Get("affinity_group_ids").(*schema.Set); ags.Len() > 0 {
-				for _, group := range ags.List() {
+			if agIDs := d.Get("affinity_group_ids").(*schema.Set); agIDs.Len() > 0 {
+				for _, group := range agIDs.List() {
+					groups = append(groups, group.(string))
+				}
+			}
+
+			p.SetAffinitygroupids(groups)
+		}
+
+		if d.HasChange("affinity_group_names") {
+			p := cs.AffinityGroup.NewUpdateVMAffinityGroupParams(d.Id())
+			groups := []string{}
+
+			if agNames := d.Get("affinity_group_names").(*schema.Set); agNames.Len() > 0 {
+				for _, group := range agNames.List() {
 					groups = append(groups, group.(string))
 				}
 			}

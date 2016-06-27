@@ -33,9 +33,6 @@ The following arguments are supported:
 * `acl_id` - (Required) The network ACL ID for which to create the rules.
     Changing this forces a new resource to be created.
 
-* `aclid` - (Required, Deprecated) The network ACL ID for which to create
-    the rules. Changing this forces a new resource to be created.
-
 * `managed` - (Optional) USE WITH CAUTION! If enabled all the firewall rules for
     this network ACL will be managed by this resource. This means it will delete
     all firewall rules that are not in your config! (defaults false)
@@ -53,17 +50,14 @@ The `rule` block supports:
 
 * `cidr_list` - (Required) A CIDR list to allow access to the given ports.
 
-* `source_cidr` - (Optional, Deprecated) The source CIDR to allow access to the
-    given ports. This attribute is deprecated, please use `cidr_list` instead.
-
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp`, `icmp`, `all` or a valid protocol number.
 
-* `icmp_type` - (Optional) The ICMP type to allow. This can only be specified if
-    the protocol is ICMP.
+* `icmp_type` - (Optional) The ICMP type to allow, or `-1` to allow `any`. This
+    can only be specified if the protocol is ICMP. (defaults 0)
 
-* `icmp_code` - (Optional) The ICMP code to allow. This can only be specified if
-    the protocol is ICMP.
+* `icmp_code` - (Optional) The ICMP code to allow, or `-1` to allow `any`. This
+    can only be specified if the protocol is ICMP. (defaults 0)
 
 * `ports` - (Optional) List of ports and/or port ranges to allow. This can only
     be specified if the protocol is TCP, UDP, ALL or a valid protocol number.
