@@ -534,6 +534,7 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "innodb_read_io_threads"              value = 64                apply_method = "pending-reboot" }
     parameter { name = "innodb_thread_concurrency"           value = 0                                                 }
     parameter { name = "innodb_write_io_threads"             value = 64                apply_method = "pending-reboot" }
+  # parameter { name = "binlog_format"                       value = "MIXED"                                           }
     parameter { name = "character_set_connection"            value = "utf8"                                            }
     parameter { name = "character_set_database"              value = "utf8"                                            }
     parameter { name = "character_set_filesystem"            value = "utf8"                                            }
@@ -541,6 +542,7 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "event_scheduler"                     value = "ON"                                              }
     parameter { name = "innodb_buffer_pool_dump_at_shutdown" value = 1                                                 }
     parameter { name = "innodb_file_format"                  value = "Barracuda"                                       }
+  # parameter { name = "innodb_file_per_table"               value = 1                                                 }
     parameter { name = "innodb_io_capacity"                  value = 2000                                              }
     parameter { name = "innodb_io_capacity_max"              value = 3000                                              }
     parameter { name = "innodb_lock_wait_timeout"            value = 120                                               }
@@ -583,6 +585,7 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "innodb_read_io_threads"              value = 64                apply_method = "pending-reboot" }
     parameter { name = "innodb_thread_concurrency"           value = 0                                                 }
     parameter { name = "innodb_write_io_threads"             value = 64                apply_method = "pending-reboot" }
+  # parameter { name = "binlog_format"                       value = "MIXED"                                           }
     parameter { name = "character_set_connection"            value = "utf8"                                            }
     parameter { name = "character_set_database"              value = "utf8"                                            }
     parameter { name = "character_set_filesystem"            value = "utf8"                                            }
@@ -590,6 +593,7 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "event_scheduler"                     value = "ON"                                              }
     parameter { name = "innodb_buffer_pool_dump_at_shutdown" value = 1                                                 }
     parameter { name = "innodb_file_format"                  value = "Barracuda"                                       }
+  # parameter { name = "innodb_file_per_table"               value = 1                                                 }
     parameter { name = "innodb_io_capacity"                  value = 2000                                              }
     parameter { name = "innodb_io_capacity_max"              value = 3000                                              }
     parameter { name = "innodb_lock_wait_timeout"            value = 120                                               }
