@@ -79,6 +79,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 			"s3_configuration": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"bucket_arn": &schema.Schema{
@@ -125,6 +126,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 			"redshift_configuration": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cluster_jdbcurl": &schema.Schema{
@@ -192,11 +194,6 @@ func validateConfiguration(d *schema.ResourceData) error {
 		return fmt.Errorf("[ERROR] Destination must be s3 or redshift")
 	}
 
-	s3Configuration := d.Get("s3_configuration").([]interface{})
-	if len(s3Configuration) > 1 {
-		return fmt.Errorf("[ERROR] You can only define a single s3_configuration per delivery stream")
-	}
-
 	return nil
 }
 
@@ -260,9 +257,6 @@ func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3Destinati
 		return nil, fmt.Errorf("[ERR] Error loading Redshift Configuration for Kinesis Firehose: redshift_configuration not found")
 	}
 	rl := redshiftRaw.([]interface{})
-	if len(rl) == 0 || len(rl) > 1 {
-		return nil, fmt.Errorf("[ERR] You can only define a single s3_configuration per delivery stream")
-	}
 
 	redshift := rl[0].(map[string]interface{})
 
@@ -282,9 +276,6 @@ func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3Destinati
 		return nil, fmt.Errorf("[ERR] Error loading Redshift Configuration for Kinesis Firehose: redshift_configuration not found")
 	}
 	rl := redshiftRaw.([]interface{})
-	if len(rl) == 0 || len(rl) > 1 {
-		return nil, fmt.Errorf("[ERR] You can only define a single s3_configuration per delivery stream")
-	}
 
 	redshift := rl[0].(map[string]interface{})
 
