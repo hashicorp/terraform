@@ -32,6 +32,10 @@ func resourceAwsElasticBeanstalkOptionSetting() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"resource": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -458,6 +462,10 @@ func fetchAwsElasticBeanstalkEnvironmentSettings(d *schema.ResourceData, meta in
 			return nil, fmt.Errorf("Error reading environment settings: option setting with no name: %v", optionSetting)
 		}
 
+		if optionSetting.ResourceName != nil {
+			m["resource"] = *optionSetting.ResourceName
+		}
+
 		if optionSetting.Value != nil {
 			switch *optionSetting.OptionName {
 			case "SecurityGroups":
@@ -600,8 +608,12 @@ func optionSettingValueHash(v interface{}) int {
 	rd := v.(map[string]interface{})
 	namespace := rd["namespace"].(string)
 	optionName := rd["name"].(string)
+	var resourceName string
+	if v, ok := rd["resource"].(string); ok {
+		resourceName = v
+	}
 	value, _ := rd["value"].(string)
-	hk := fmt.Sprintf("%s:%s=%s", namespace, optionName, sortValues(value))
+	hk := fmt.Sprintf("%s:%s%s=%s", namespace, optionName, resourceName, sortValues(value))
 	log.Printf("[DEBUG] Elastic Beanstalk optionSettingValueHash(%#v): %s: hk=%s,hc=%d", v, optionName, hk, hashcode.String(hk))
 	return hashcode.String(hk)
 }
@@ -610,7 +622,11 @@ func optionSettingKeyHash(v interface{}) int {
 	rd := v.(map[string]interface{})
 	namespace := rd["namespace"].(string)
 	optionName := rd["name"].(string)
-	hk := fmt.Sprintf("%s:%s", namespace, optionName)
+	var resourceName string
+	if v, ok := rd["resource"].(string); ok {
+		resourceName = v
+	}
+	hk := fmt.Sprintf("%s:%s%s", namespace, optionName, resourceName)
 	log.Printf("[DEBUG] Elastic Beanstalk optionSettingKeyHash(%#v): %s: hk=%s,hc=%d", v, optionName, hk, hashcode.String(hk))
 	return hashcode.String(hk)
 }
@@ -626,11 +642,15 @@ func extractOptionSettings(s *schema.Set) []*elasticbeanstalk.ConfigurationOptio
 
 	if s != nil {
 		for _, setting := range s.List() {
-			settings = append(settings, &elasticbeanstalk.ConfigurationOptionSetting{
+			optionSetting := elasticbeanstalk.ConfigurationOptionSetting{
 				Namespace:  aws.String(setting.(map[string]interface{})["namespace"].(string)),
 				OptionName: aws.String(setting.(map[string]interface{})["name"].(string)),
 				Value:      aws.String(setting.(map[string]interface{})["value"].(string)),
-			})
+			}
+			if v, ok := setting.(map[string]interface{})["resource"].(string); ok && v != "" {
+				optionSetting.ResourceName = aws.String(v)
+			}
+			settings = append(settings, &optionSetting)
 		}
 	}
 
