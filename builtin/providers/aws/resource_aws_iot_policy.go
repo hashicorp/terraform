@@ -23,6 +23,14 @@ func resourceAwsIotPolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"default_version_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }

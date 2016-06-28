@@ -32,3 +32,6 @@ EOF
 * `policy` - Policy document
 
 ## Attributes Reference
+
+* `arn` - The ARN of the policy
+* `default_version_id` - The default version ID
