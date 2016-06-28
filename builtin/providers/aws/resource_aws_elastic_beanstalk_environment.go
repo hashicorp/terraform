@@ -462,7 +462,7 @@ func fetchAwsElasticBeanstalkEnvironmentSettings(d *schema.ResourceData, meta in
 			return nil, fmt.Errorf("Error reading environment settings: option setting with no name: %v", optionSetting)
 		}
 
-		if optionSetting.ResourceName != nil {
+		if *optionSetting.Namespace == "aws:autoscaling:scheduledaction" && optionSetting.ResourceName != nil {
 			m["resource"] = *optionSetting.ResourceName
 		}
 
@@ -647,8 +647,10 @@ func extractOptionSettings(s *schema.Set) []*elasticbeanstalk.ConfigurationOptio
 				OptionName: aws.String(setting.(map[string]interface{})["name"].(string)),
 				Value:      aws.String(setting.(map[string]interface{})["value"].(string)),
 			}
-			if v, ok := setting.(map[string]interface{})["resource"].(string); ok && v != "" {
-				optionSetting.ResourceName = aws.String(v)
+			if *optionSetting.Namespace == "aws:autoscaling:scheduledaction" {
+				if v, ok := setting.(map[string]interface{})["resource"].(string); ok && v != "" {
+					optionSetting.ResourceName = aws.String(v)
+				}
 			}
 			settings = append(settings, &optionSetting)
 		}
