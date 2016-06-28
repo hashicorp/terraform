@@ -80,7 +80,55 @@ func resourceAwsIotPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceAwsIotPolicyAttachmentUpdate(d *schema.ResourceData, meta interface{}) error {
-	//TODO: implement
+	conn := meta.(*AWSClient).iotconn
+
+	if d.HasChange("policies") {
+		err := updatePolicies(conn, d)
+		if err != nil {
+			log.Printf("[ERROR] %v", err)
+			return err
+		}
+	}
+
+	return resourceAwsIotPolicyAttachmentRead(d, meta)
+}
+
+func updatePolicies(conn *iot.IoT, d *schema.ResourceData) error {
+	o, n := d.GetChange("policies")
+	if o == nil {
+		o = new(schema.Set)
+	}
+	if n == nil {
+		n = new(schema.Set)
+	}
+	os := o.(*schema.Set)
+	ns := n.(*schema.Set)
+
+	toBeDetached := expandStringList(os.Difference(ns).List())
+	toBeAttached := expandStringList(ns.Difference(os).List())
+
+	policyName := d.Get("policy").(string)
+	for _, p := range toBeDetached {
+		_, err := conn.DetachPrincipalPolicy(&iot.DetachPrincipalPolicyInput{
+			PolicyName: aws.String(policyName),
+			Principal:  aws.String(*p),
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, p := range toBeAttached {
+		_, err := conn.AttachPrincipalPolicy(&iot.AttachPrincipalPolicyInput{
+			PolicyName: aws.String(policyName),
+			Principal:  aws.String(*p),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
