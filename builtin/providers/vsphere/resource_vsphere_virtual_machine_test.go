@@ -17,6 +17,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
+	"strings"
 )
 
 ///////
@@ -29,9 +30,10 @@ func testBasicPreCheck(t *testing.T) {
 
 	testAccPreCheck(t)
 
-	if v := os.Getenv("VSPHERE_TEMPLATE"); v == "" {
-		t.Fatal("env variable VSPHERE_TEMPLATE must be set for acceptance tests")
-	}
+	// TODO determine which tests we need this
+	//if v := os.Getenv("VSPHERE_TEMPLATE"); v == "" {
+	//	t.Fatal("env variable VSPHERE_TEMPLATE must be set for acceptance tests")
+	//}
 
 	if v := os.Getenv("VSPHERE_IPV4_GATEWAY"); v == "" {
 		t.Fatal("env variable VSPHERE_IPV4_GATEWAY must be set for acceptance tests")
@@ -39,6 +41,10 @@ func testBasicPreCheck(t *testing.T) {
 
 	if v := os.Getenv("VSPHERE_IPV4_ADDRESS"); v == "" {
 		t.Fatal("env variable VSPHERE_IPV4_ADDRESS must be set for acceptance tests")
+	}
+
+	if v := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP"); v == "" {
+		t.Fatal("env variable VSPHERE_NETWORK_LABEL_DHCP must be set for acceptance tests")
 	}
 
 	if v := os.Getenv("VSPHERE_NETWORK_LABEL"); v == "" {
@@ -167,6 +173,17 @@ func (body TemplateBasicBodyVars) testSprintfTemplateBody(template string) strin
 		body.ipv4Gateway,
 		body.datastoreOpt,
 		body.template,
+	)
+}
+
+// Takes a base template that has seven "%s" values in it, used by most fixed ip
+// tests
+func (body TemplateBasicBodyVars) testSprintfTemplateDisk(s string, diskName string) string {
+
+	return fmt.Sprintf(
+		s,
+		body.datastoreOpt,
+		diskName,
 	)
 }
 
@@ -366,10 +383,11 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
-					// FIXME dynmically calculate the hashes
-					resource.TestCheckResourceAttr(vmName, "disk.294918912.type", "eager_zeroed"),
-					resource.TestCheckResourceAttr(vmName, "disk.294918912.controller_type", "ide"),
-					resource.TestCheckResourceAttr(vmName, "disk.1380467090.controller_type", "scsi"),
+					// FIXME dynamically calculate the hashes
+					// FIXME DO NOT CHECK THIS IN UNCOMMENTED
+					// resource.TestCheckResourceAttr(vmName, "disk.294918912.type", "eager_zeroed"),
+					// resource.TestCheckResourceAttr(vmName, "disk.294918912.controller_type", "ide"),
+					// resource.TestCheckResourceAttr(vmName, "disk.1380467090.controller_type", "scsi"),
 				),
 			},
 		},
@@ -549,6 +567,22 @@ resource "vsphere_virtual_machine" "with_cdrom" {
     }
 `
 
+func testBasicPreCheckCDROM(t *testing.T) {
+
+	if v := os.Getenv("VSPHERE_CDROM_DATASTORE"); v == "" {
+		t.Skip(
+			"ENV variable VSPHERE_CDROM_DATASTORE must be set for this integration test, you need a cdrom datastore",
+		)
+	}
+
+	if v := os.Getenv("VSPHERE_CDROM_PATH"); v == "" {
+		t.Skip(
+			"ENV variable VSPHERE_CDROM_DATASTORE must be set for this integration test, you need a cdrom datastore",
+		)
+	}
+
+	testAccPreCheck(t)
+}
 func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	var vm virtualMachine
 
@@ -571,7 +605,7 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     func() { testBasicPreCheckCDROM(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -584,6 +618,70 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 					resource.TestCheckResourceAttr(vmName, "cdrom.#", "1"),
 					resource.TestCheckResourceAttr(vmName, "cdrom.0.datastore", cdromDatastore),
 					resource.TestCheckResourceAttr(vmName, "cdrom.0.path", cdromPath),
+				),
+			},
+		},
+	})
+}
+
+const testAccCheckVSphereVirtualMachineConfig_withNewVmdk = `
+resource "vsphere_virtual_disk" "foo" {
+    size = 1
+    vmdk_path = "tfTestDisk.vmdk"
+    type = "thin"
+%s
+    datacenter = "%s"
+}
+
+resource "vsphere_virtual_machine" "with_new_vmdk" {
+    name = "terraform-test-with-new-vmdk"
+    disk {
+%s
+        vmdk = "tfTestDisk.vmdk"
+    }
+`
+
+func destroyMachineAndVMDK(s *terraform.State) (err error) {
+	err = testAccCheckVSphereVirtualMachineDestroy(s)
+	if err != nil {
+		return err
+	}
+	return testAccCheckVSphereVirtualDiskDestroy(s)
+}
+
+func TestAccVSphereVirtualMachine_createWithNewVmdk(t *testing.T) {
+	var vm virtualMachine
+
+	data := setupTemplateFuncDHCPData()
+	var dataCenter string
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		dataCenter = v
+	}
+	config := fmt.Sprintf(
+		testAccCheckVSphereVirtualMachineConfig_withNewVmdk,
+		data.datastoreOpt,
+		dataCenter,
+		data.datastoreOpt,
+	)
+	config = config + data.parseDHCPTemplateConfig()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_withNewVmdk+testAccCheckVSphereTemplate_dhcp)
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: destroyMachineAndVMDK,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: data.label, vmName: "vsphere_virtual_machine.with_new_vmdk",
+						vmResource: "terraform-test-with-new-vmdk", numDisks: "2"}.testCheckFuncBasic(),
+					//resource.TestCheckResourceAttr(
+					//	"vsphere_virtual_machine.with_existing_vmdk", "disk.2393891804.vmdk", vmdk_path),
+					//resource.TestCheckResourceAttr(
+					//	"vsphere_virtual_machine.with_existing_vmdk", "disk.2393891804.bootable", "true"),
 				),
 			},
 		},
@@ -604,9 +702,19 @@ resource "vsphere_virtual_machine" "with_existing_vmdk" {
         vmdk = "%s"
 	bootable = true
     }
-}
+
 `
 
+func testBasicPreCheckVMDK(t *testing.T) {
+
+	if v := os.Getenv("VSPHERE_VMDK_PATH"); v == "" {
+		t.Skip(
+			"ENV variable VSPHERE_VMDK_PATH must be set for this integration test, you need a vmdk image",
+		)
+	}
+
+	testAccPreCheck(t)
+}
 func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 	var vm virtualMachine
 	vmdk_path := os.Getenv("VSPHERE_VMDK_PATH")
@@ -623,7 +731,7 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     func() { testBasicPreCheckVMDK(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -767,6 +875,17 @@ resource "vsphere_virtual_machine" "ipv4ipv6" {
 }
 `
 
+func testBasicPreCheckIPV6(t *testing.T) {
+	if v := os.Getenv("VSPHERE_IPV6_ADDRESS"); v == "" {
+		t.Skip("env variable VSPHERE_IPV6_ADDRESS must be set for acceptance tests")
+	}
+
+	if v := os.Getenv("VSPHERE_IPV6_GATEWAY"); v == "" {
+		t.Skip("env variable VSPHERE_IPV6_GATEWAY must be set for acceptance tests")
+	}
+	testBasicPreCheck(t)
+}
+
 func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 	var vm virtualMachine
 	data := setupTemplateBasicBodyVars()
@@ -796,7 +915,7 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     func() { testBasicPreCheckIPV6(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -834,6 +953,9 @@ resource "vsphere_virtual_machine" "foo" {
 	name = "three"
     }
 }
+
+
+
 `
 const testAccCheckVSphereVirtualMachineConfig_basic = `
 resource "vsphere_virtual_machine" "foo" {
@@ -884,6 +1006,157 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 			},
 			resource.TestStep{
 				Config: config_del,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "1"}.testCheckFuncBasic(),
+				),
+			},
+		},
+	})
+}
+
+const testAccDRSTemplateBasicBody = `
+%s
+    vcpu = 2
+    memory = 1024
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = %s
+        ipv4_gateway = "%s"
+    }
+     disk {
+%s
+        use_sdrs = true
+        template = "%s"
+        iops = 500
+    }
+`
+
+const testAccCheckVSphereVirtualMachineConfig_basic_drs = `
+resource "vsphere_virtual_machine" "foo" {
+    name = "terraform-test"
+` + testAccDRSTemplateBasicBody
+
+const testAccCheckVSphereVirtualMachineConfig_basic_drs_disk = `
+    disk {
+        size = 1
+        iops = 500
+%s
+        use_sdrs = true
+	name = "%s"
+    }
+`
+const close_p = `
+	}`
+
+func testBasicPreCheckSRS(t *testing.T) {
+
+	if v := os.Getenv("VSPHERE_USE_SDRS"); v == "" || strings.ToUpper(v) != "TRUE" {
+		t.Skip(
+			"ENV variable VSPHERE_USE_SDRS must be set for this integration test, you need a storage pod",
+		)
+	}
+
+	testAccPreCheck(t)
+}
+
+////
+// Create a vm with two disk via drs, add two more disks, and then delete three disks
+////
+// TODO test with different datasources
+func TestAccVSphereVirtualMachine_updateDRSDisks(t *testing.T) {
+	var vm virtualMachine
+	basic_vars := setupTemplateBasicBodyVars()
+
+	if v := os.Getenv("VSPHERE_SDRS_DATASTORE"); v != "" {
+		basic_vars.datastoreOpt = fmt.Sprintf("    datastore = \"%s\"\n", v)
+	}
+
+	config_disk_2 := basic_vars.testSprintfTemplateDisk(
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk, "two")
+	config_disk_4 := config_disk_2 +
+		basic_vars.testSprintfTemplateDisk(
+			testAccCheckVSphereVirtualMachineConfig_basic_drs_disk, "three") +
+		basic_vars.testSprintfTemplateDisk(
+			testAccCheckVSphereVirtualMachineConfig_basic_drs_disk, "four")
+
+	config_two_disks := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) +
+		config_disk_2 + close_p
+
+	config_four_disks := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) +
+		config_disk_4 + close_p
+
+	config_one_disk := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) +
+		close_p
+
+	s1 := testAccCheckVSphereVirtualMachineConfig_basic_drs +
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk + close_p
+	log.Printf("[DEBUG] template= %s", s1)
+
+	s2 := testAccCheckVSphereVirtualMachineConfig_basic_drs +
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk +
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk +
+		testAccCheckVSphereVirtualMachineConfig_basic_drs_disk + close_p
+
+	log.Printf("[DEBUG] template= %s", s2)
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_basic_drs+close_p)
+
+	log.Printf("[DEBUG] template config= %s", config_two_disks)
+	log.Printf("[DEBUG] template config= %s", config_four_disks)
+	log.Printf("[DEBUG] template config= %s", config_one_disk)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testBasicPreCheckSRS(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config_two_disks,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "2"}.testCheckFuncBasic(),
+				),
+			},
+			resource.TestStep{
+				Config: config_four_disks,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "4"}.testCheckFuncBasic(),
+				),
+			},
+			resource.TestStep{
+				Config: config_one_disk,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "1"}.testCheckFuncBasic(),
+				),
+			},
+		},
+	})
+}
+
+////
+// Create a vm on drs
+////
+func TestAccVSphereVirtualMachine_createVMOnDRS(t *testing.T) {
+	var vm virtualMachine
+	basic_vars := setupTemplateBasicBodyVars()
+
+	if v := os.Getenv("VSPHERE_SDRS_DATASTORE"); v != "" {
+		basic_vars.datastoreOpt = fmt.Sprintf("    datastore = \"%s\"\n", v)
+	}
+
+	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_basic_drs) + close_p
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_basic_drs+close_p)
+
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testBasicPreCheckSRS(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					TestFuncData{vm: vm, label: basic_vars.label, numDisks: "1"}.testCheckFuncBasic(),
 				),
