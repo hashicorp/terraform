@@ -22,6 +22,8 @@ import (
 func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 	ri := acctest.RandInt()
 	testConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3Config, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
+	var distribution cloudfront.Distribution
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -32,6 +34,7 @@ func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.s3_distribution",
+						&distribution,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_cloudfront_distribution.s3_distribution",
@@ -45,6 +48,8 @@ func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 }
 
 func TestAccAWSCloudFrontDistribution_S3OriginWithTags(t *testing.T) {
+	var distribution cloudfront.Distribution
+	var distributionModified cloudfront.Distribution
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3ConfigWithTags, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
 	postConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3ConfigWithTagsUpdated, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
@@ -59,6 +64,7 @@ func TestAccAWSCloudFrontDistribution_S3OriginWithTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.s3_distribution",
+						&distribution,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_cloudfront_distribution.s3_distribution", "tags.%", "2"),
@@ -73,6 +79,7 @@ func TestAccAWSCloudFrontDistribution_S3OriginWithTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.s3_distribution",
+						&distributionModified,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_cloudfront_distribution.s3_distribution", "tags.%", "1"),
@@ -90,6 +97,7 @@ func TestAccAWSCloudFrontDistribution_S3OriginWithTags(t *testing.T) {
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_customOrigin(t *testing.T) {
+	var distribution cloudfront.Distribution
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -100,6 +108,7 @@ func TestAccAWSCloudFrontDistribution_customOrigin(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.custom_distribution",
+						&distribution,
 					),
 				),
 			},
@@ -113,6 +122,7 @@ func TestAccAWSCloudFrontDistribution_customOrigin(t *testing.T) {
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_multiOrigin(t *testing.T) {
+	var distribution cloudfront.Distribution
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -123,6 +133,7 @@ func TestAccAWSCloudFrontDistribution_multiOrigin(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.multi_origin_distribution",
+						&distribution,
 					),
 				),
 			},
@@ -136,6 +147,7 @@ func TestAccAWSCloudFrontDistribution_multiOrigin(t *testing.T) {
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
+	var distribution cloudfront.Distribution
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -146,6 +158,7 @@ func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.no_optional_items",
+						&distribution,
 					),
 				),
 			},
@@ -160,6 +173,7 @@ func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_HTTP11Config(t *testing.T) {
+	var distribution cloudfront.Distribution
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -170,6 +184,7 @@ func TestAccAWSCloudFrontDistribution_HTTP11Config(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.http_1_1",
+						&distribution,
 					),
 				),
 			},
@@ -178,6 +193,7 @@ func TestAccAWSCloudFrontDistribution_HTTP11Config(t *testing.T) {
 }
 
 func TestAccAWSCloudFrontDistribution_IsIPV6EnabledConfig(t *testing.T) {
+	var distribution cloudfront.Distribution
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -188,6 +204,7 @@ func TestAccAWSCloudFrontDistribution_IsIPV6EnabledConfig(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.is_ipv6_enabled",
+						&distribution,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_cloudfront_distribution.is_ipv6_enabled", "is_ipv6_enabled", "true"),
@@ -198,6 +215,7 @@ func TestAccAWSCloudFrontDistribution_IsIPV6EnabledConfig(t *testing.T) {
 }
 
 func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) {
+	var distribution cloudfront.Distribution
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -208,6 +226,7 @@ func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) 
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.no_custom_error_responses",
+						&distribution,
 					),
 				),
 			},
@@ -232,6 +251,79 @@ func TestResourceAWSCloudFrontDistribution_validateHTTP(t *testing.T) {
 	}
 }
 
+func TestAccAWSCloudFrontDistribution_cacheBehaviorPrecedence(t *testing.T) {
+	var distribution cloudfront.Distribution
+	var distributionModified cloudfront.Distribution
+
+	expectedPathPatternBefore1 := "/first/*"
+	expectedPathPatternBefore2 := "/second/*"
+
+	expectedPathPatternAfter1 := "/second/*"
+	expectedPathPatternAfter2 := "/first/*"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCloudFrontDistribution_cacheBehaviorPrecedence_before,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.cache_behavior_precedence",
+						&distribution,
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.cache_behavior_precedence",
+						"cache_behavior.0.path_pattern",
+						expectedPathPatternBefore1,
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.cache_behavior_precedence",
+						"cache_behavior.1.path_pattern",
+						expectedPathPatternBefore2,
+					),
+					testAccCheckCacheBehavior_pathPattern(&distribution, 0, expectedPathPatternBefore1),
+					testAccCheckCacheBehavior_pathPattern(&distribution, 1, expectedPathPatternBefore2),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCloudFrontDistribution_cacheBehaviorPrecedence_after,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.cache_behavior_precedence",
+						&distributionModified,
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.cache_behavior_precedence",
+						"cache_behavior.0.path_pattern",
+						expectedPathPatternAfter1,
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.cache_behavior_precedence",
+						"cache_behavior.1.path_pattern",
+						expectedPathPatternAfter2,
+					),
+					testAccCheckCacheBehavior_pathPattern(&distributionModified, 0, expectedPathPatternAfter1),
+					testAccCheckCacheBehavior_pathPattern(&distributionModified, 1, expectedPathPatternAfter2),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckCacheBehavior_pathPattern(distribution *cloudfront.Distribution, idx int, expectedPattern string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		items := distribution.DistributionConfig.CacheBehaviors.Items
+		cb := items[idx]
+		pp := *cb.PathPattern
+		if pp != expectedPattern {
+			return fmt.Errorf("Path pattern doesn't match. Given: %q, Expected: %q", pp, expectedPattern)
+		}
+		return nil
+	}
+}
+
 func testAccCheckCloudFrontDistributionDestroy(s *terraform.State) error {
 	for k, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_cloudfront_distribution" {
@@ -251,11 +343,15 @@ func testAccCheckCloudFrontDistributionDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckCloudFrontDistributionExistence(cloudFrontResource string) resource.TestCheckFunc {
+func testAccCheckCloudFrontDistributionExistence(cloudFrontResource string, out *cloudfront.Distribution) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		_, err := testAccAuxCloudFrontGetDistributionConfig(s, cloudFrontResource)
+		distribution, err := testAccAuxCloudFrontGetDistributionConfig(s, cloudFrontResource)
+		if err != nil {
+			return err
+		}
 
-		return err
+		*out = *distribution
+		return nil
 	}
 }
 
@@ -815,3 +911,165 @@ resource "aws_cloudfront_distribution" "is_ipv6_enabled" {
 	%s
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
+
+var testAccAWSCloudFrontDistribution_cacheBehaviorPrecedence_before = `
+resource "aws_cloudfront_distribution" "cache_behavior_precedence" {
+  origin {
+    domain_name = "mybucket.s3.amazonaws.com"
+    origin_id   = "myS3Origin"
+  }
+
+  enabled          = true
+
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "myS3Origin"
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  cache_behavior {
+    path_pattern = "/first/*"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "myS3Origin"
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 100
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  cache_behavior {
+    path_pattern = "/second/*"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "myS3Origin"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 200
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  price_class = "PriceClass_200"
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+`
+
+var testAccAWSCloudFrontDistribution_cacheBehaviorPrecedence_after = `
+resource "aws_cloudfront_distribution" "cache_behavior_precedence" {
+  origin {
+    domain_name = "mybucket.s3.amazonaws.com"
+    origin_id   = "myS3Origin"
+  }
+
+  enabled          = true
+
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "myS3Origin"
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  cache_behavior {
+    path_pattern = "/second/*"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "myS3Origin"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 200
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  cache_behavior {
+    path_pattern = "/first/*"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "myS3Origin"
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 100
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  price_class = "PriceClass_200"
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+`
