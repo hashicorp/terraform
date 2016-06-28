@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
@@ -915,12 +916,21 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	if state == types.VirtualMachinePowerStatePoweredOn {
-		// wait for interfaces to appear
-		_, err = vm.WaitForNetIP(context.TODO(), true)
-		if err != nil {
-			return err
-		}
+	// wait for interfaces to appear
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	func() {
+		defer cancel()
+		_, err = vm.WaitForNetIP(ctx, true)
+	}()
+	if err != context.DeadlineExceeded && err != nil {
+        if state == types.VirtualMachinePowerStatePoweredOn {
+            // wait for interfaces to appear
+            _, err = vm.WaitForNetIP(context.TODO(), true)
+            if err != nil {
+                return err
+            }
+        }
 	}
 
 	var mvm mo.VirtualMachine
