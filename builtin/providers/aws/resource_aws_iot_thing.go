@@ -140,7 +140,7 @@ func resourceAwsIotThingUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("principals") {
-		err := updatePrincipals(conn, d, meta)
+		err := updatePrincipals(conn, d)
 		if err != nil {
 			log.Printf("[ERROR] %v", err)
 			return err
