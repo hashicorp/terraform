@@ -918,7 +918,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	// wait for interfaces to appear
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	func() {
 		defer cancel()
 		_, err = vm.WaitForNetIP(ctx, true)
