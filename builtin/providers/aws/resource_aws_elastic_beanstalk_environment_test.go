@@ -140,6 +140,24 @@ func TestAccAWSBeanstalkEnv_config(t *testing.T) {
 	})
 }
 
+func TestAccAWSBeanstalkEnv_resource(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkResourceOptionSetting,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckBeanstalkEnvDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn
 
@@ -411,6 +429,39 @@ resource "aws_elastic_beanstalk_configuration_template" "tftest" {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "TEMPLATE"
     value     = "2"
+  }
+}
+`
+const testAccBeanstalkResourceOptionSetting = `
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "ScheduledAction01"
+    name = "MinSize"
+    value = "2"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "ScheduledAction01"
+    name = "MaxSize"
+    value = "6"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "ScheduledAction01"
+    name = "Recurrence"
+    value = "0 8 * * *"
   }
 }
 `
