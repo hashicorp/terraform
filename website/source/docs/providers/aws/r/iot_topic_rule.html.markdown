@@ -175,3 +175,5 @@ The `sqs` object takes the following arguments:
 * `use_base64` - Boolean to enable base64 encoding
 
 ## Attributes Reference
+
+* `arn` - The ARN of the topic rul
