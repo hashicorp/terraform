@@ -87,6 +87,7 @@ IMPROVEMENTS:
  * provider/aws: Rename parameter_group_name to db_cluster_parameter_group_name [GH-7083]
  * provider/aws: Retry RouteTable Route/Assocation creation [GH-7156]
  * provider/aws: `delegation_set_id` conflicts w/ `vpc_id` in `aws_route53_zone` as delegation sets can only be used for public zones [GH-7213]
+ * provider/aws: Support Elastic Beanstalk scheduledaction [GH-7376]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
