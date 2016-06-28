@@ -25,13 +25,13 @@ func TestAccAWSDBParameterGroup_limit(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDBParameterGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: createAwsDbParameterGroupsExcedeDefaultAwsLimit(groupName),
+				Config: createAwsDbParameterGroupsExceedDefaultAwsLimit(groupName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBParameterGroupExists("aws_db_parameter_group.large", &v),
 					testAccCheckAWSDBParameterGroupAttributes(&v, groupName),
 					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "name", groupName),
 					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "family", "mysql5.6"),
-					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "description", "RDS default parameter group: Excede default AWS parameter group limit of twenty"),
+					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "description", "RDS default parameter group: Exceed default AWS parameter group limit of twenty"),
 
 					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "parameter.2421266705.name", "character_set_server"),
 					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "parameter.2421266705.value", "utf8"),
@@ -116,13 +116,13 @@ func TestAccAWSDBParameterGroup_limit(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: updateAwsDbParameterGroupsExcedeDefaultAwsLimit(groupName),
+				Config: updateAwsDbParameterGroupsExceedDefaultAwsLimit(groupName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBParameterGroupExists("aws_db_parameter_group.large", &v),
 					testAccCheckAWSDBParameterGroupAttributes(&v, groupName),
 					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "name", groupName),
 					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "family", "mysql5.6"),
-					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "description", "Updated RDS default parameter group: Excede default AWS parameter group limit of twenty"),
+					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "description", "Updated RDS default parameter group: Exceed default AWS parameter group limit of twenty"),
 
 					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "parameter.2421266705.name", "character_set_server"),
 					resource.TestCheckResourceAttr("aws_db_parameter_group.large", "parameter.2421266705.value", "utf8"),
@@ -508,12 +508,12 @@ resource "aws_db_parameter_group" "bar" {
 }`, n)
 }
 
-func createAwsDbParameterGroupsExcedeDefaultAwsLimit(n string) string {
+func createAwsDbParameterGroupsExceedDefaultAwsLimit(n string) string {
 	return fmt.Sprintf(`
 resource "aws_db_parameter_group" "large" {
 	name = "%s"
 	family = "mysql5.6"
-	description = "RDS default parameter group: Excede default AWS parameter group limit of twenty"
+	description = "RDS default parameter group: Exceed default AWS parameter group limit of twenty"
 
     parameter { name = "binlog_cache_size"                   value = 131072                                            }
   # parameter { name = "binlog_format"                       value = "MIXED"                                           }
@@ -560,12 +560,12 @@ resource "aws_db_parameter_group" "large" {
 }`, n)
 }
 
-func updateAwsDbParameterGroupsExcedeDefaultAwsLimit(n string) string {
+func updateAwsDbParameterGroupsExceedDefaultAwsLimit(n string) string {
 	return fmt.Sprintf(`
 resource "aws_db_parameter_group" "large" {
 	name = "%s"
 	family = "mysql5.6"
-	description = "Updated RDS default parameter group: Excede default AWS parameter group limit of twenty"
+	description = "Updated RDS default parameter group: Exceed default AWS parameter group limit of twenty"
     parameter { name = "binlog_cache_size"                   value = 131072                                            }
   # parameter { name = "binlog_format"                       value = "MIXED"                                           }
     parameter { name = "character_set_client"                value = "utf8"                                            }
