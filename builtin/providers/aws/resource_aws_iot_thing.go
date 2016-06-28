@@ -21,11 +21,12 @@ func resourceAwsIotThing() *schema.Resource {
 				ForceNew: true,
 			},
 			"principals": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Set: schema.HashString,
 			},
 			"attributes": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -109,6 +110,8 @@ func resourceAwsIotThingUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	conn := meta.(*AWSClient).iotconn
 
+	thingName := d.Get("name").(string)
+
 	if d.HasChange("attributes") {
 		attributes := make(map[string]*string)
 
@@ -119,18 +122,66 @@ func resourceAwsIotThingUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 		params := &iot.UpdateThingInput{
-			AttributePayload: &iot.AttributePayload{ // Required
+			AttributePayload: &iot.AttributePayload{
 				Attributes: attributes,
 			},
-			ThingName: aws.String(d.Get("name").(string)), // Required
+			ThingName: aws.String(thingName),
 		}
 		_, err := conn.UpdateThing(params)
 
 		if err != nil {
+			log.Printf("[ERROR] %v", err)
 			return err
 		}
 	}
+
+	if d.HasChange("principals") {
+		err := updatePrincipals(conn, d, meta)
+		if err != nil {
+			log.Printf("[ERROR] %v", err)
+			return err
+		}
+	}
+
 	return nil
+}
+
+func updatePrincipals(conn *iot.IoT, d *schema.ResourceData, meta interface{}) error {
+	o, n := d.GetChange("principals")
+	if o == nil {
+		o = new(schema.Set)
+	}
+	if n == nil {
+		n = new(schema.Set)
+	}
+	os := o.(*schema.Set)
+	ns := n.(*schema.Set)
+
+	toBeDetached := expandStringList(os.Difference(ns).List())
+	toBeAttached := expandStringList(ns.Difference(os).List())
+
+	thingName := d.Get("name").(string)
+	for _, p := range toBeDetached {
+		_, err := conn.DetachThingPrincipal(&iot.DetachThingPrincipalInput{
+			Principal: aws.String(*p),
+			ThingName: aws.String(thingName),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, p := range toBeAttached {
+		_, err := conn.AttachThingPrincipal(&iot.AttachThingPrincipalInput{
+			Principal: aws.String(*p),
+			ThingName: aws.String(thingName),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return resourceAwsIotThingRead(d, meta)
 }
 
 func resourceAwsIotThingDelete(d *schema.ResourceData, meta interface{}) error {
