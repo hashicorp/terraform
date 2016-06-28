@@ -548,6 +548,7 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "max_connections"                     value = 3200                                              }
     parameter { name = "max_heap_table_size"                 value = 67108864                                          }
     parameter { name = "performance_schema"                  value = 1                 apply_method = "pending-reboot" }
+    parameter { name = "performance_schema_users_size"       value = 1048576           apply_method = "pending-reboot" }
     parameter { name = "query_cache_limit"                   value = 2097152                                           }
     parameter { name = "query_cache_min_res_unit"            value = 512                                               }
     parameter { name = "query_cache_size"                    value = 67108864                                          }
@@ -599,6 +600,7 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "max_connections"                     value = 3200                                              }
     parameter { name = "max_heap_table_size"                 value = 67108864                                          }
     parameter { name = "performance_schema"                  value = 1                 apply_method = "pending-reboot" }
+    parameter { name = "performance_schema_users_size"       value = 1048576           apply_method = "pending-reboot" }
     parameter { name = "query_cache_limit"                   value = 2097152                                           }
     parameter { name = "query_cache_min_res_unit"            value = 512                                               }
     parameter { name = "query_cache_size"                    value = 67108864                                          }
