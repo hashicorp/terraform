@@ -41,7 +41,7 @@ func testAccCheckAWSIoTPolicyAttachmentExists_basic(name string) resource.TestCh
 
 var testAccAWSIoTPolicyAttachment_basic = `
 resource "aws_iot_certificate" "cert" {
-	csr = "${file("/Users/joel/code/go/src/github.com/hashicorp/terraform/builtin/providers/aws/csr.pem")}"
+	csr = "${file("test-fixtures/csr.pem")}"
   active = true
 }
 

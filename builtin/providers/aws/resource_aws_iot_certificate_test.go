@@ -63,7 +63,7 @@ func testAccCheckAWSIoTCertificateExists_basic(name string) resource.TestCheckFu
 
 var testAccAWSIoTCertificate_basic = `
 resource "aws_iot_certificate" "foo_cert" {
-	csr = "${file("./csr.pem")}"
+	csr = "${file("test-fixtures/csr.pem")}"
   active = true
 }
 `
