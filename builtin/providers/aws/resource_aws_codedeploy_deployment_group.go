@@ -298,7 +298,37 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
-	_, err := conn.UpdateDeploymentGroup(&input)
+	// Retry to handle IAM role eventual consistency.
+	var resp *codedeploy.UpdateDeploymentGroupOutput
+	var err error
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		resp, err = conn.UpdateDeploymentGroup(&input)
+		if err != nil {
+			retry := false
+			codedeployErr, ok := err.(awserr.Error)
+			if !ok {
+				return resource.NonRetryableError(err)
+			}
+			if codedeployErr.Code() == "InvalidRoleException" {
+				retry = true
+			}
+			if codedeployErr.Code() == "InvalidTriggerConfigException" {
+				r := regexp.MustCompile("^Topic ARN .+ is not valid$")
+				if r.MatchString(codedeployErr.Message()) {
+					retry = true
+				}
+			}
+			if retry {
+				log.Printf("[DEBUG] Retrying Code Deployment Group Update: %q",
+					codedeployErr.Message())
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
