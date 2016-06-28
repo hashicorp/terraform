@@ -279,15 +279,15 @@ func resourceAwsIotTopicRule() *schema.Resource {
 					},
 				},
 			},
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
-func resourceAwsIotTopicRuleCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).iotconn
-
-	ruleName := d.Get("name").(string)
-
+func createTopicRulePayload(d *schema.ResourceData) *iot.TopicRulePayload {
 	cloudwatchAlarmActions := d.Get("cloudwatch_alarm").(*schema.Set).List()
 	cloudwatchMetricActions := d.Get("cloudwatch_metric").(*schema.Set).List()
 	dynamoDbActions := d.Get("dynamodb").(*schema.Set).List()
@@ -466,15 +466,23 @@ func resourceAwsIotTopicRuleCreate(d *schema.ResourceData, meta interface{}) err
 		i++
 	}
 
+	return &iot.TopicRulePayload{
+		Description:      aws.String(d.Get("description").(string)),
+		RuleDisabled:     aws.Bool(!d.Get("enabled").(bool)),
+		Sql:              aws.String(d.Get("sql").(string)),
+		AwsIotSqlVersion: aws.String(d.Get("sql_version").(string)),
+		Actions:          actions,
+	}
+}
+
+func resourceAwsIotTopicRuleCreate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).iotconn
+
+	ruleName := d.Get("name").(string)
+
 	_, err := conn.CreateTopicRule(&iot.CreateTopicRuleInput{
-		RuleName: aws.String(ruleName),
-		TopicRulePayload: &iot.TopicRulePayload{
-			Description:      aws.String(d.Get("description").(string)),
-			RuleDisabled:     aws.Bool(!d.Get("enabled").(bool)),
-			Sql:              aws.String(d.Get("sql").(string)),
-			AwsIotSqlVersion: aws.String(d.Get("sql_version").(string)),
-			Actions:          actions,
-		},
+		RuleName:         aws.String(ruleName),
+		TopicRulePayload: createTopicRulePayload(d),
 	})
 
 	if err != nil {
@@ -483,7 +491,7 @@ func resourceAwsIotTopicRuleCreate(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId(ruleName)
 
-	return nil
+	return resourceAwsIotTopicRuleRead(d, meta)
 }
 
 func resourceAwsIotTopicRuleRead(d *schema.ResourceData, meta interface{}) error {
@@ -504,8 +512,14 @@ func resourceAwsIotTopicRuleRead(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsIotTopicRuleUpdate(d *schema.ResourceData, meta interface{}) error {
-	//TODO: implement
-	return nil
+	conn := meta.(*AWSClient).iotconn
+
+	conn.ReplaceTopicRule(&iot.ReplaceTopicRuleInput{
+		RuleName:         aws.String(d.Get("name").(string)),
+		TopicRulePayload: createTopicRulePayload(d),
+	})
+
+	return resourceAwsIotTopicRuleRead(d, meta)
 }
 
 func resourceAwsIotTopicRuleDelete(d *schema.ResourceData, meta interface{}) error {
