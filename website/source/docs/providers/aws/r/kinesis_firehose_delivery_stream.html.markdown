@@ -6,7 +6,7 @@ description: |-
   Provides a AWS Kinesis Firehose Delivery Stream
 ---
 
-# aws\_kinesis\_stream
+# aws\_kinesis\_firehose\_delivery\_stream
 
 Provides a Kinesis Firehose Delivery Stream resource. Amazon Kinesis Firehose is a fully managed, elastic service to easily deliver real-time data streams to destinations such as Amazon S3 and Amazon Redshift.
 
