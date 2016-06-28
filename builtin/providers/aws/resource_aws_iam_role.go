@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -78,8 +79,9 @@ func resourceAwsIamRole() *schema.Resource {
 			},
 
 			"assume_role_policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:      schema.TypeString,
+				Required:  true,
+				StateFunc: normalizeJson,
 			},
 		},
 	}
@@ -163,6 +165,15 @@ func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error 
 	if err := d.Set("unique_id", role.RoleId); err != nil {
 		return err
 	}
+	// Remove HTML character codes from policy
+	policy, err := url.QueryUnescape(*role.AssumeRolePolicyDocument)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("assume_role_policy", normalizeJson(policy)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
