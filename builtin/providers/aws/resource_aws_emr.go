@@ -34,7 +34,7 @@ func resourceAwsEMR() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"instance_count": &schema.Schema{
+			"initial_instance_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  60,
@@ -98,7 +98,7 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		Instances: &emr.JobFlowInstancesConfig{
 			Ec2KeyName:                  aws.String(userKey),
 			Ec2SubnetId:                 aws.String(subnet),
-			InstanceCount:               aws.Int64(int64(d.Get("instance_count").(int))),
+			InstanceCount:               aws.Int64(int64(d.Get("initial_instance_count").(int))),
 			KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
 			MasterInstanceType:          aws.String(d.Get("instance_type").(string)),
 			SlaveInstanceType:           aws.String(d.Get("instance_type").(string)),
