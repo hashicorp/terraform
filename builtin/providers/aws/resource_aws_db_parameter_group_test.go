@@ -520,7 +520,6 @@ resource "aws_db_parameter_group" "large" {
 	description = "RDS default parameter group: Exceed default AWS parameter group limit of twenty"
 
     parameter { name = "binlog_cache_size"                   value = 131072                                            }
-  # parameter { name = "binlog_format"                       value = "MIXED"                                           }
     parameter { name = "character_set_client"                value = "utf8"                                            }
     parameter { name = "character_set_connection"            value = "utf8"                                            }
     parameter { name = "character_set_database"              value = "utf8"                                            }
@@ -532,7 +531,6 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "event_scheduler"                     value = "ON"                                              }
     parameter { name = "innodb_buffer_pool_dump_at_shutdown" value = 1                                                 }
     parameter { name = "innodb_file_format"                  value = "Barracuda"                                       }
-  # parameter { name = "innodb_file_per_table"               value = 1                                                 }
     parameter { name = "innodb_flush_log_at_trx_commit"      value = 0                                                 }
     parameter { name = "innodb_io_capacity"                  value = 2000                                              }
     parameter { name = "innodb_io_capacity_max"              value = 3000                                              }
@@ -572,7 +570,6 @@ resource "aws_db_parameter_group" "large" {
 	family = "mysql5.6"
 	description = "Updated RDS default parameter group: Exceed default AWS parameter group limit of twenty"
     parameter { name = "binlog_cache_size"                   value = 131072                                            }
-  # parameter { name = "binlog_format"                       value = "MIXED"                                           }
     parameter { name = "character_set_client"                value = "utf8"                                            }
     parameter { name = "character_set_connection"            value = "utf8"                                            }
     parameter { name = "character_set_database"              value = "utf8"                                            }
@@ -584,7 +581,6 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "event_scheduler"                     value = "ON"                                              }
     parameter { name = "innodb_buffer_pool_dump_at_shutdown" value = 1                                                 }
     parameter { name = "innodb_file_format"                  value = "Barracuda"                                       }
-  # parameter { name = "innodb_file_per_table"               value = 1                                                 }
     parameter { name = "innodb_flush_log_at_trx_commit"      value = 0                                                 }
     parameter { name = "innodb_io_capacity"                  value = 2000                                              }
     parameter { name = "innodb_io_capacity_max"              value = 3000                                              }
