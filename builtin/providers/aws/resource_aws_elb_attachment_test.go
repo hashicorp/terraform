@@ -75,7 +75,7 @@ func TestAccAWSELBAttachment_drift(t *testing.T) {
 			Instances:        conf.Instances,
 		}
 
-		log.Printf("[DEBUG] deregistering instance %s from ELB", conf.Instances[0].InstanceId)
+		log.Printf("[DEBUG] deregistering instance %v from ELB", *conf.Instances[0].InstanceId)
 
 		_, err := conn.DeregisterInstancesFromLoadBalancer(&deRegisterInstancesOpts)
 		if err != nil {
