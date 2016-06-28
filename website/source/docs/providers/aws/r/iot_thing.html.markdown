@@ -32,4 +32,5 @@ resource "aws_iot_thing" "device3" {
 
 ## Attributes Reference
 
-* `id` - The ID of the created IoT thing
+* `id` - The name of the created IoT thing
+* `arn` - The ARN of the IoT thing

@@ -32,6 +32,10 @@ func resourceAwsIotThing() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -80,6 +84,7 @@ func resourceAwsIotThingCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(*out.ThingName)
 	d.Set("name", *out.ThingName)
+	d.Set("arn", *out.ThingArn)
 
 	return nil
 }
@@ -100,7 +105,6 @@ func resourceAwsIotThingRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Received IoT thing: %s", out.ThingName)
 
 	d.SetId(*out.ThingName)
-	d.Set("default_client_id", *out.DefaultClientId)
 	d.Set("attributes", aws.StringValueMap(out.Attributes))
 
 	return nil
