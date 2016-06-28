@@ -328,9 +328,21 @@ func (c *Config) Client() (interface{}, error) {
 // ValidateRegion returns an error if the configured region is not a
 // valid aws region and nil otherwise.
 func (c *Config) ValidateRegion() error {
-	var regions = [12]string{"us-east-1", "us-west-2", "us-west-1", "eu-west-1",
-		"eu-central-1", "ap-southeast-1", "ap-southeast-2", "ap-northeast-1",
-		"ap-northeast-2", "sa-east-1", "cn-north-1", "us-gov-west-1"}
+	var regions = [13]string{
+		"ap-northeast-1",
+		"ap-northeast-2",
+		"ap-south-1",
+		"ap-southeast-1",
+		"ap-southeast-2",
+		"cn-north-1",
+		"eu-central-1",
+		"eu-west-1",
+		"sa-east-1",
+		"us-east-1",
+		"us-gov-west-1",
+		"us-west-1",
+		"us-west-2",
+	}
 
 	for _, valid := range regions {
 		if c.Region == valid {
