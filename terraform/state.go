@@ -1474,6 +1474,8 @@ func ReadState(src io.Reader) (*State, error) {
 			return nil, err
 		}
 
+		// increment the Serial whenever we upgrade state
+		v3State.Serial++
 		return v3State, nil
 	case 2:
 		v2State, err := ReadStateV2(jsonBytes)
@@ -1485,6 +1487,7 @@ func ReadState(src io.Reader) (*State, error) {
 			return nil, err
 		}
 
+		v3State.Serial++
 		return v3State, nil
 	case 3:
 		v3State, err := ReadStateV3(jsonBytes)
