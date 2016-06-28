@@ -147,10 +147,10 @@ func resourceAwsIotThingUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return nil
+	return resourceAwsIotThingRead(d, meta)
 }
 
-func updatePrincipals(conn *iot.IoT, d *schema.ResourceData, meta interface{}) error {
+func updatePrincipals(conn *iot.IoT, d *schema.ResourceData) error {
 	o, n := d.GetChange("principals")
 	if o == nil {
 		o = new(schema.Set)
@@ -185,7 +185,7 @@ func updatePrincipals(conn *iot.IoT, d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	return resourceAwsIotThingRead(d, meta)
+	return nil
 }
 
 func resourceAwsIotThingDelete(d *schema.ResourceData, meta interface{}) error {
