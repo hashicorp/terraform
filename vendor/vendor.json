@@ -3,114 +3,11 @@
 	"ignore": "appengine test",
 	"package": [
 		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/arm/cdn",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/arm/compute",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/arm/network",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/arm/resources/resources",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/arm/scheduler",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/arm/storage",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/core/http",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/core/tls",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/affinitygroup",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/hostedservice",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/location",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/networksecuritygroup",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/osimage",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/sql",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/storageservice",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/virtualmachine",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/virtualmachinedisk",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/virtualmachineimage",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/virtualnetwork",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/management/vmutils",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
-		},
-		{
-			"comment": "v2.1.1-beta-8-gca4d906",
-			"path": "github.com/Azure/azure-sdk-for-go/storage",
-			"revision": "ca4d906d1c0973ae3022588df7dfa13d53b5b476"
+			"checksumSHA1": "n2GjOBXJMtN6IfB/1zxEmZvZRjM=",
+			"path": "github.com/Azure/azure-sdk-for-go",
+			"revision": "11d0965ddf6466f1bf44a791b7530b7b1e1864a9",
+			"revisionTime": "2016-06-27T21:37:34Z",
+			"tree": true
 		},
 		{
 			"comment": "v7.0.5",
