@@ -162,7 +162,7 @@ type AWSClient struct {
 	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
-	iotconn              *iot.IoT
+	iotconn               *iot.IoT
 }
 
 func (c *AWSClient) S3() *s3.S3 {
