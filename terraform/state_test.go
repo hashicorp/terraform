@@ -1348,7 +1348,7 @@ func TestReadStateNewVersion(t *testing.T) {
 	if s != nil {
 		t.Fatalf("unexpected: %#v", s)
 	}
-	if !strings.Contains(err.Error(), "not supported") {
+	if !strings.Contains(err.Error(), "does not support state version") {
 		t.Fatalf("err: %v", err)
 	}
 }

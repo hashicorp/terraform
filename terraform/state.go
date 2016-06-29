@@ -1496,8 +1496,8 @@ func ReadState(src io.Reader) (*State, error) {
 		}
 		return v3State, nil
 	default:
-		return nil, fmt.Errorf("State version %d not supported, please update.",
-			versionIdentifier.Version)
+		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+			SemVersion.String(), versionIdentifier.Version)
 	}
 }
 
@@ -1524,8 +1524,8 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
 	if state.Version > StateVersion {
-		return nil, fmt.Errorf("State version %d not supported, please update.",
-			state.Version)
+		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+			SemVersion.String(), state.Version)
 	}
 
 	// Make sure the version is semantic
@@ -1556,8 +1556,8 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
 	if state.Version > StateVersion {
-		return nil, fmt.Errorf("State version %d not supported, please update.",
-			state.Version)
+		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+			SemVersion.String(), state.Version)
 	}
 
 	// Make sure the version is semantic
