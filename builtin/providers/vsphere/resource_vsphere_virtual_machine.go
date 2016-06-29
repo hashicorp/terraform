@@ -218,6 +218,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Default:  false,
 			},
 
+			"uuid": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"custom_configuration_parameters": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -1070,6 +1075,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("memory_reservation", mvm.Summary.Config.MemoryReservation)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 	d.Set("datastore", rootDatastore)
+	d.Set("uuid", mvm.Summary.Config.Uuid)
 
 	return nil
 }
