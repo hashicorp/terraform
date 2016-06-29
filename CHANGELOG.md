@@ -176,6 +176,7 @@ BUG FIXES:
  * provider/vsphere: Don't require vsphere debug paths to be set [GH-7027]
  * provider/vsphere: Fix bug where `enable_disk_uuid` was not set on `vsphere_virtual_machine` resources [GH-7275]
  * provider/vsphere: Make `vsphere_virtual_machine` `product_key` optional [GH-7410]
+ * provider/vsphere: Refreshing devices list after adding a disk or cdrom controller [GH-7167]
  * provisioner/remote-exec: Properly seed random script paths so they are not deterministic across runs [GH-7413]
 
 ## 0.6.16 (May 9, 2016)
