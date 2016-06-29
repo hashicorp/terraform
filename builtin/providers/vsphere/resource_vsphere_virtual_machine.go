@@ -232,7 +232,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"product_key": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 							ForceNew: true,
 						},
 
