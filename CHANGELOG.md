@@ -163,6 +163,7 @@ BUG FIXES:
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
+ * provider/digitalocean: Reassign Floating IP when droplet changes [GH-7411]
  * provider/google: Fix a bug causing an error attempting to delete an already-deleted `google_compute_disk` [GH-6689]
  * provider/mysql: Specifying empty provider credentials no longer causes a panic [GH-7211]
  * provider/openstack: Reassociate Floating IP on network changes [GH-6579]
