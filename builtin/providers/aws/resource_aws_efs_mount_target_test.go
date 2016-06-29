@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -24,6 +25,11 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
 					),
+					resource.TestMatchResourceAttr(
+						"aws_efs_mount_target.alpha",
+						"dns_name",
+						regexp.MustCompile("^us-west-2a.[^.]+.efs.us-west-2.amazonaws.com$"),
+					),
 				),
 			},
 			resource.TestStep{
@@ -32,8 +38,18 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
 					),
+					resource.TestMatchResourceAttr(
+						"aws_efs_mount_target.alpha",
+						"dns_name",
+						regexp.MustCompile("^us-west-2a.[^.]+.efs.us-west-2.amazonaws.com$"),
+					),
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.beta",
+					),
+					resource.TestMatchResourceAttr(
+						"aws_efs_mount_target.beta",
+						"dns_name",
+						regexp.MustCompile("^us-west-2b.[^.]+.efs.us-west-2.amazonaws.com$"),
 					),
 				),
 			},

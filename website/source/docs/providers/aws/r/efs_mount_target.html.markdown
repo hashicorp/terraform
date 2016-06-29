@@ -41,7 +41,10 @@ The following arguments are supported:
 
 ## Attributes Reference
 
+~> **Note:** The `dns_name` attribute is only useful if the mount target is in a VPC with `enable_dns_hostnames = true`.
+
 The following attributes are exported:
 
 * `id` - The ID of the mount target
+* `dns_name` - The DNS name for the given subnet/AZ per [documented convention](http://docs.aws.amazon.com/efs/latest/ug/mounting-fs-mount-cmd-dns-name.html)
 * `network_interface_id` - The ID of the network interface that Amazon EFS created when it created the mount target.
