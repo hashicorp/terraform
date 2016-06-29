@@ -30,11 +30,15 @@ func resourceAwsEMR() *schema.Resource {
 				Type:     schema.TypeBool,
 				Required: true,
 			},
-			"instance_type": &schema.Schema{
+			"master_instance_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"initial_instance_count": &schema.Schema{
+			"core_instance_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"core_instance_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  60,
@@ -85,6 +89,10 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
 	log.Printf("[DEBUG] Creating EMR cluster")
+	masterInstanceType := d.Get("master_instance_type").(string)
+	coreInstanceType := d.Get("core_instance_type").(string)
+	coreInstanceCount := d.Get("core_instance_count").(int)
+
 	applications := d.Get("applications").(*schema.Set).List()
 	ec2Attributes := d.Get("ec2_attributes").([]interface{})
 	attributes := ec2Attributes[0].(map[string]interface{})
@@ -98,10 +106,10 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		Instances: &emr.JobFlowInstancesConfig{
 			Ec2KeyName:                  aws.String(userKey),
 			Ec2SubnetId:                 aws.String(subnet),
-			InstanceCount:               aws.Int64(int64(d.Get("initial_instance_count").(int))),
+			InstanceCount:               aws.Int64(int64(coreInstanceCount + 1)),
 			KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
-			MasterInstanceType:          aws.String(d.Get("instance_type").(string)),
-			SlaveInstanceType:           aws.String(d.Get("instance_type").(string)),
+			MasterInstanceType:          aws.String(masterInstanceType),
+			SlaveInstanceType:           aws.String(coreInstanceType),
 			TerminationProtected:        aws.Bool(false),
 			AdditionalMasterSecurityGroups: []*string{
 				aws.String(secGrp),
