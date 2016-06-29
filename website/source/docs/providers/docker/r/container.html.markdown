@@ -70,7 +70,7 @@ The following arguments are supported:
 * `volumes` - (Optional, block) See [Volumes](#volumes) below for details.
 * `memory` - (Optional, int) The memory limit for the container in MBs.
 * `memory_swap` - (Optional, int) The total memory limit (memory + swap) for the
-  container in MBs. This setting may compute to '-1' on after 'terraform apply' if the target host doesn't support memory swap when that is the case docker will use a soft limitation.
+  container in MBs. This setting may compute to '-1' after 'terraform apply' if the target host doesn't support memory swapm, when that is the case docker will use a soft limitation.
 * `cpu_shares` - (Optional, int) CPU shares (relative weight) for the container.
 * `log_driver` - (Optional, string) The logging driver to use for the container.
   Defaults to "json-file".
