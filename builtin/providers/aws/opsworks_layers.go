@@ -39,8 +39,8 @@ type opsworksLayerType struct {
 }
 
 var (
-	opsworksTrueString  = "1"
-	opsworksFalseString = "0"
+	opsworksTrueString  = "true"
+	opsworksFalseString = "false"
 )
 
 func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
