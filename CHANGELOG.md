@@ -122,6 +122,7 @@ IMPROVEMENTS:
  * provider/vsphere: Enhanced `vsphere` logging capabilities [GH-6893]
  * provider/vsphere: Add DiskEnableUUID option to `vsphere_virtual_machine` [GH-7088]
  * provider/vsphere: Virtual Machine and File resources handle Read errors properley [GH-7220]
+ * provider/vsphere: set uuid as `vsphere_virtual_machine` output [GH-4382]
  
 BUG FIXES:
 
