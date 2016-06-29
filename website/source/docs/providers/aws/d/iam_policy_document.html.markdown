@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_iam_policy_document"
-sidebar_current: "docs-aws-resource-iam-policy-document"
+sidebar_current: "docs-aws-datasource-iam-policy-document"
 description: |-
   Generates an IAM policy document in JSON format
 ---
