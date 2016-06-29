@@ -92,7 +92,7 @@ func resourceAwsEMRTaskGroupUpdate(d *schema.ResourceData, meta interface{}) err
 	instanceGroups := respGrps.InstanceGroups
 
 	grpsTF := d.Get("resize_instance_groups").(*schema.Set).List()
-	mdConf, newConf := expandInstanceGrps(grpsTF, instanceGroups, d.Get("instance_type").(string))
+	mdConf, newConf := expandTaskGrps(grpsTF, instanceGroups, d.Get("instance_type").(string))
 
 	if len(mdConf) > 0 {
 		params := &emr.ModifyInstanceGroupsInput{
@@ -177,7 +177,7 @@ func expandTaskGrps(grpsTF []interface{},
 		name := s[0]
 		count, _ := strconv.Atoi(s[1])
 
-		oneGrp := findGroup(grpsEmr, name)
+		oneGrp := findTaskGroup(grpsEmr, name)
 
 		fmt.Println(oneGrp)
 
