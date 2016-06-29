@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"testing"
 
 	"path/filepath"
@@ -212,7 +213,7 @@ type TestFuncData struct {
 // vmName defaults to "vsphere_virtual_machine.foo
 func (test TestFuncData) testCheckFuncBasic() (
 	resource.TestCheckFunc, resource.TestCheckFunc, resource.TestCheckFunc, resource.TestCheckFunc,
-	resource.TestCheckFunc, resource.TestCheckFunc, resource.TestCheckFunc) {
+	resource.TestCheckFunc, resource.TestCheckFunc, resource.TestCheckFunc, resource.TestCheckFunc) {
 	// log.Printf("[DEBUG] data= %v", test)
 	mem := test.mem
 	if mem == "" {
@@ -237,6 +238,7 @@ func (test TestFuncData) testCheckFuncBasic() (
 	return testAccCheckVSphereVirtualMachineExists(vmName, &test.vm),
 		resource.TestCheckResourceAttr(vmName, "name", res),
 		resource.TestCheckResourceAttr(vmName, "vcpu", cpu),
+		resource.TestMatchResourceAttr(vmName, "uuid", regexp.MustCompile("[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}")),
 		resource.TestCheckResourceAttr(vmName, "memory", mem),
 		resource.TestCheckResourceAttr(vmName, "disk.#", disks),
 		resource.TestCheckResourceAttr(vmName, "network_interface.#", "1"),
@@ -307,7 +309,7 @@ func TestAccVSphereVirtualMachine_client_debug(t *testing.T) {
 	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_debug)
 	log.Printf("[DEBUG] template config= %s", config)
 
-	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: basic_vars.label}.testCheckFuncBasic()
 
 	resource.Test(t, resource.TestCase{
@@ -318,7 +320,7 @@ func TestAccVSphereVirtualMachine_client_debug(t *testing.T) {
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					testAccCheckDebugExists(),
 				),
 			},
@@ -351,7 +353,8 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_initType)
 
 	vmName := "vsphere_virtual_machine.thin"
-	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: basic_vars.label, vmName: vmName, numDisks: "3"}.testCheckFuncBasic()
 
 	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_initType)
@@ -365,7 +368,7 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					// FIXME dynmically calculate the hashes
 					resource.TestCheckResourceAttr(vmName, "disk.294918912.type", "eager_zeroed"),
 					resource.TestCheckResourceAttr(vmName, "disk.294918912.controller_type", "ide"),
@@ -421,7 +424,8 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 	config := testAccCheckVSphereVirtualMachineConfig_custom_configs + data.parseDHCPTemplateConfigWithTemplate(testAccCheckVSphereTemplate_dhcp)
 	vmName := "vsphere_virtual_machine.car"
 	res := "terraform-test-custom"
-	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: data.label, vmName: vmName, vmResource: res}.testCheckFuncBasic()
 
 	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_custom_configs+testAccCheckVSphereTemplate_dhcp)
@@ -435,7 +439,7 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					testAccCheckVSphereVirtualMachineExistsHasCustomConfig(vmName, &vm),
 					resource.TestCheckResourceAttr(vmName, "custom_configuration_parameters.foo", "bar"),
 					resource.TestCheckResourceAttr(vmName, "custom_configuration_parameters.car", "ferrari"),
@@ -509,7 +513,7 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 
 	data := setupTemplateFuncDHCPData()
 	vmName := "vsphere_virtual_machine.with_folder"
-	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: data.label, vmName: vmName, vmResource: "terraform-test-with-folder"}.testCheckFuncBasic()
 
 	config := fmt.Sprintf(testAccCheckVSphereVirtualMachineConfig_createWithFolder,
@@ -531,7 +535,7 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					testAccCheckVSphereFolderExists(vmName, &f),
 					resource.TestCheckResourceAttr(vmName, "folder", folder),
 				),
@@ -558,7 +562,7 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	vmName := "vsphere_virtual_machine.with_cdrom"
 
 	data := setupTemplateFuncDHCPData()
-	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: data.label, vmName: vmName, vmResource: "terraform-test-with-cdrom"}.testCheckFuncBasic()
 
 	config := fmt.Sprintf(
@@ -578,7 +582,7 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					//resource.TestCheckResourceAttr(
 					//	"vsphere_virtual_machine.with_cdrom", "disk.4088143748.template", template),
 					resource.TestCheckResourceAttr(vmName, "cdrom.#", "1"),
@@ -773,7 +777,8 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_ipv4Andipv6)
 
 	vmName := "vsphere_virtual_machine.ipv4ipv6"
-	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "2", vmResource: "terraform-test-ipv4-ipv6"}.testCheckFuncBasic()
 
 	// FIXME test for this or warn??
@@ -803,7 +808,7 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv4_address", data.ipv4IpAddress),
 					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv4_gateway", data.ipv4Gateway),
 					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv6_address", ipv6Address),
@@ -942,7 +947,7 @@ func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
 	)
 	log.Printf("[DEBUG] template config= %s", config)
 
-	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "1", vmResource: "terraform-mac-address"}.testCheckFuncBasic()
 
 	resource.Test(t, resource.TestCase{
@@ -953,7 +958,7 @@ func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					resource.TestCheckResourceAttr(vmName, "network_interface.0.mac_address", macAddress),
 				),
 			},
