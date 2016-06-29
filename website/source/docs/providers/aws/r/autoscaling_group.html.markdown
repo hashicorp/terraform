@@ -86,6 +86,9 @@ The following arguments are supported:
   on both create and update operations. (Takes precedence over
   `min_elb_capacity` behavior.)
   (See also [Waiting for Capacity](#waiting-for-capacity) below.)
+* `protect_from_scale_in` (Optional) Allows setting instance protection. The
+   autoscaling group will not select instances with this setting for terminination
+   during scale in events.
 
 Tags support the following:
 
