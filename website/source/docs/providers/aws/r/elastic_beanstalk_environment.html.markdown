@@ -27,7 +27,7 @@ resource "aws_elastic_beanstalk_application" "tftest" {
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
   name = "tf-test-name"
   application = "${aws_elastic_beanstalk_application.tftest.name}"
-  solution_stack_name = "64bit Amazon Linux 2015.03 v2.0.3 running Go 1.4"
+  solution_stack_name = "64bit Amazon Linux 2016.03 v2.1.0 running Go 1.4"
 }
 ```
 

@@ -581,7 +581,7 @@ resource "aws_elastic_beanstalk_environment" "default" {
   name = "tf-test-name"
   application = "${aws_elastic_beanstalk_application.default.name}"
   version_label = "${aws_elastic_beanstalk_application_version.default.name}"
-  solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.4 running Go 1.4"
+  solution_stack_name = "64bit Amazon Linux 2016.03 v2.1.0 running Go 1.4"
 }
 `, randInt)
 }
