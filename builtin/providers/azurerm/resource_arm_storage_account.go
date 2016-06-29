@@ -114,12 +114,14 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	location := d.Get("location").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
+	sku := storage.Sku{
+		Name: storage.SkuName(accountType),
+	}
+
 	opts := storage.AccountCreateParameters{
 		Location: &location,
-		Properties: &storage.AccountPropertiesCreateParameters{
-			AccountType: storage.AccountType(accountType),
-		},
-		Tags: expandTags(tags),
+		Sku:      &sku,
+		Tags:     expandTags(tags),
 	}
 
 	_, err := client.Create(resourceGroupName, storageAccountName, opts, make(chan struct{}))
@@ -159,10 +161,12 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 	if d.HasChange("account_type") {
 		accountType := d.Get("account_type").(string)
 
+		sku := storage.Sku{
+			Name: storage.SkuName(accountType),
+		}
+
 		opts := storage.AccountUpdateParameters{
-			Properties: &storage.AccountPropertiesUpdateParameters{
-				AccountType: storage.AccountType(accountType),
-			},
+			Sku: &sku,
 		}
 		_, err := client.Update(resourceGroupName, storageAccountName, opts)
 		if err != nil {
@@ -215,10 +219,11 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	d.Set("primary_access_key", keys.Key1)
-	d.Set("secondary_access_key", keys.Key2)
+	accessKeys := *keys.Keys
+	d.Set("primary_access_key", accessKeys[0].KeyName)
+	d.Set("secondary_access_key", accessKeys[1].KeyName)
 	d.Set("location", resp.Location)
-	d.Set("account_type", resp.Properties.AccountType)
+	d.Set("account_type", resp.Sku.Name)
 	d.Set("primary_location", resp.Properties.PrimaryLocation)
 	d.Set("secondary_location", resp.Properties.SecondaryLocation)
 
