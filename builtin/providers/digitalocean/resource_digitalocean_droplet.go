@@ -18,6 +18,9 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 		Read:   resourceDigitalOceanDropletRead,
 		Update: resourceDigitalOceanDropletUpdate,
 		Delete: resourceDigitalOceanDropletDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"image": &schema.Schema{
