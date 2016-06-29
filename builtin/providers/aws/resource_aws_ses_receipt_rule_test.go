@@ -120,7 +120,7 @@ func testAccCheckAwsSESReceiptRuleExists(n string) resource.TestCheckFunc {
 		}
 
 		if !*response.Rule.Enabled {
-			return fmt.Errorf("Enabled (%s) was not set to true", *response.Rule.Enabled)
+			return fmt.Errorf("Enabled (%v) was not set to true", *response.Rule.Enabled)
 		}
 
 		if !reflect.DeepEqual(response.Rule.Recipients, []*string{aws.String("test@example.com")}) {
@@ -128,7 +128,7 @@ func testAccCheckAwsSESReceiptRuleExists(n string) resource.TestCheckFunc {
 		}
 
 		if !*response.Rule.ScanEnabled {
-			return fmt.Errorf("ScanEnabled (%s) was not set to true", *response.Rule.ScanEnabled)
+			return fmt.Errorf("ScanEnabled (%v) was not set to true", *response.Rule.ScanEnabled)
 		}
 
 		if *response.Rule.TlsPolicy != "Require" {
@@ -162,7 +162,7 @@ func testAccCheckAwsSESReceiptRuleOrder(n string) resource.TestCheckFunc {
 		}
 
 		if len(response.Rules) != 2 {
-			return fmt.Errorf("Number of rules (%s) was not equal to 2", len(response.Rules))
+			return fmt.Errorf("Number of rules (%d) was not equal to 2", len(response.Rules))
 		} else if *response.Rules[0].Name != "first" || *response.Rules[1].Name != "second" {
 			return fmt.Errorf("Order of rules (%v) was incorrect", response.Rules)
 		}

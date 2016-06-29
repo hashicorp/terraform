@@ -221,7 +221,7 @@ func resourceAwsElasticTranscoderPipelineCreate(d *schema.ResourceData, meta int
 	d.SetId(*resp.Pipeline.Id)
 
 	for _, w := range resp.Warnings {
-		log.Printf("[WARN] Elastic Transcoder Pipeline %s: %s", w.Code, w.Message)
+		log.Printf("[WARN] Elastic Transcoder Pipeline %v: %v", *w.Code, *w.Message)
 	}
 
 	return resourceAwsElasticTranscoderPipelineRead(d, meta)
@@ -383,7 +383,7 @@ func resourceAwsElasticTranscoderPipelineUpdate(d *schema.ResourceData, meta int
 	}
 
 	for _, w := range output.Warnings {
-		log.Printf("[WARN] Elastic Transcoder Pipeline %s: %s", w.Code, w.Message)
+		log.Printf("[WARN] Elastic Transcoder Pipeline %v: %v", *w.Code, *w.Message)
 	}
 
 	return resourceAwsElasticTranscoderPipelineRead(d, meta)

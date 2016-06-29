@@ -128,6 +128,14 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		hostConfig.DNS = stringSetToStringSlice(v.(*schema.Set))
 	}
 
+	if v, ok := d.GetOk("dns_opts"); ok {
+		hostConfig.DNSOptions = stringSetToStringSlice(v.(*schema.Set))
+	}
+
+	if v, ok := d.GetOk("dns_search"); ok {
+		hostConfig.DNSSearch = stringSetToStringSlice(v.(*schema.Set))
+	}
+
 	if v, ok := d.GetOk("links"); ok {
 		hostConfig.Links = stringSetToStringSlice(v.(*schema.Set))
 	}

@@ -102,6 +102,38 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
 		}
 
+		if len(c.HostConfig.DNS) != 1 {
+			return fmt.Errorf("Container does not have the correct number of dns entries: %d", len(c.HostConfig.DNS))
+		}
+
+		if c.HostConfig.DNS[0] != "8.8.8.8" {
+			return fmt.Errorf("Container has wrong dns setting: %v", c.HostConfig.DNS[0])
+		}
+
+		if len(c.HostConfig.DNSOptions) != 1 {
+			return fmt.Errorf("Container does not have the correct number of dns option entries: %d", len(c.HostConfig.DNS))
+		}
+
+		if c.HostConfig.DNSOptions[0] != "rotate" {
+			return fmt.Errorf("Container has wrong dns option setting: %v", c.HostConfig.DNS[0])
+		}
+
+		if len(c.HostConfig.DNSSearch) != 1 {
+			return fmt.Errorf("Container does not have the correct number of dns search entries: %d", len(c.HostConfig.DNS))
+		}
+
+		if c.HostConfig.DNSSearch[0] != "example.com" {
+			return fmt.Errorf("Container has wrong dns search setting: %v", c.HostConfig.DNS[0])
+		}
+
+		if c.HostConfig.CPUShares != 32 {
+			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
+		}
+
+		if c.HostConfig.CPUShares != 32 {
+			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
+		}
+
 		if c.Config.Labels["env"] != "prod" || c.Config.Labels["role"] != "test" {
 			return fmt.Errorf("Container does not have the correct labels")
 		}
@@ -227,6 +259,9 @@ resource "docker_container" "foo" {
 	memory = 512
 	memory_swap = 2048
 	cpu_shares = 32
+	dns = ["8.8.8.8"]
+	dns_opts = ["rotate"]
+	dns_search = ["example.com"]
 	labels {
 		env = "prod"
 		role = "test"
