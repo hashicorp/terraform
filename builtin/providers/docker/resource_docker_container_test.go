@@ -102,7 +102,7 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
 		}
 
-		if len(c.HostConfig.DNS) == 1 {
+		if len(c.HostConfig.DNS) != 1 {
 			return fmt.Errorf("Container does not have the correct number of dns entries: %d", len(c.HostConfig.DNS))
 		}
 
@@ -110,7 +110,7 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container has wrong dns setting: %v", c.HostConfig.DNS[0])
 		}
 
-		if len(c.HostConfig.DNSOptions) == 1 {
+		if len(c.HostConfig.DNSOptions) != 1 {
 			return fmt.Errorf("Container does not have the correct number of dns option entries: %d", len(c.HostConfig.DNS))
 		}
 
@@ -118,7 +118,7 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container has wrong dns option setting: %v", c.HostConfig.DNS[0])
 		}
 
-		if len(c.HostConfig.DNSSearch) == 1 {
+		if len(c.HostConfig.DNSSearch) != 1 {
 			return fmt.Errorf("Container does not have the correct number of dns search entries: %d", len(c.HostConfig.DNS))
 		}
 
