@@ -131,7 +131,18 @@ func TestScriptPath(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		comm := &Communicator{connInfo: &connectionInfo{ScriptPath: tc.Input}}
+		r := &terraform.InstanceState{
+			Ephemeral: terraform.EphemeralState{
+				ConnInfo: map[string]string{
+					"type":        "winrm",
+					"script_path": tc.Input,
+				},
+			},
+		}
+		comm, err := New(r)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
 		output := comm.ScriptPath()
 
 		match, err := regexp.Match(tc.Pattern, []byte(output))
@@ -141,5 +152,19 @@ func TestScriptPath(t *testing.T) {
 		if !match {
 			t.Fatalf("bad: %s\n\n%s", tc.Input, output)
 		}
+	}
+}
+
+func TestScriptPath_randSeed(t *testing.T) {
+	// Pre GH-4186 fix, this value was the deterministic start the pseudorandom
+	// chain of unseeded math/rand values for Int31().
+	staticSeedPath := "C:/Temp/terraform_1298498081.cmd"
+	c, err := New(&terraform.InstanceState{})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	path := c.ScriptPath()
+	if path == staticSeedPath {
+		t.Fatalf("rand not seeded! got: %s", path)
 	}
 }
