@@ -95,7 +95,7 @@ func TestAccDockerContainer_customized(t *testing.T) {
 		}
 
 		if c.HostConfig.MemorySwap != (2048 * 1024 * 1024) {
-			return fmt.Errorf("Container has wrong memory swap setting: %d", c.HostConfig.MemorySwap)
+			return fmt.Errorf("Container has wrong memory swap setting: %d\n\r\tPlease check that you machine supports memory swap (you can do that by running 'docker info' command).", c.HostConfig.MemorySwap)
 		}
 
 		if c.HostConfig.CPUShares != 32 {
