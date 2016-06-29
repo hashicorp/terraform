@@ -46,6 +46,8 @@ The following arguments are supported:
     `user` or `user:group` which user and group can be passed literraly or
     by name.
 * `dns` - (Optional, set of strings) Set of DNS servers.
+* `dns_opts` - (Optional, set of strings) Set of DNS options used by the DNS provider(s), see `resolv.conf` documentation for valid list of options.
+* `dns_search` - (Optional, set of strings) Set of DNS search domains that are used when bare unqualified hostnames are used inside of the container.
 * `env` - (Optional, set of strings) Environmental variables to set.
 * `labels` - (Optional, map of strings) Key/value pairs to set as labels on the
   container.
@@ -68,7 +70,7 @@ The following arguments are supported:
 * `volumes` - (Optional, block) See [Volumes](#volumes) below for details.
 * `memory` - (Optional, int) The memory limit for the container in MBs.
 * `memory_swap` - (Optional, int) The total memory limit (memory + swap) for the
-  container in MBs.
+  container in MBs. This setting may compute to `-1` after `terraform apply` if the target host doesn't support memory swap, when that is the case docker will use a soft limitation.
 * `cpu_shares` - (Optional, int) CPU shares (relative weight) for the container.
 * `log_driver` - (Optional, string) The logging driver to use for the container.
   Defaults to "json-file".
