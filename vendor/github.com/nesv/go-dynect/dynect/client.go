@@ -14,11 +14,6 @@ const (
 	DynAPIPrefix = "https://api.dynect.net/REST"
 )
 
-func init() {
-	// Set the logging prefix.
-	log.SetPrefix("go-dynect ")
-}
-
 // A client for use with DynECT's REST API.
 type Client struct {
 	Token        string

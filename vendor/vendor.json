@@ -1087,9 +1087,11 @@
 			"revision": "eecf4c70c626c7cfbb95c90195bc34d386c74ac6"
 		},
 		{
+			"checksumSHA1": "/iig5lYSPCL3C8J7e4nTAevYNDE=",
 			"comment": "v0.2.0-8-g841842b",
 			"path": "github.com/nesv/go-dynect/dynect",
-			"revision": "841842b16b39cf2b5007278956976d7d909bd98b"
+			"revision": "2dc6a86cf75ce4b33516d2a13c9c0c378310cf3b",
+			"revisionTime": "2016-04-25T23:31:34Z"
 		},
 		{
 			"path": "github.com/nu7hatch/gouuid",
