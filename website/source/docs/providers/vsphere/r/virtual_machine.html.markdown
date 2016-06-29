@@ -135,6 +135,7 @@ The `cdrom` block supports:
 The following attributes are exported:
 
 * `id` - The instance ID.
+* `uuid` - The instance UUID.
 * `name` - See Argument Reference above.
 * `vcpu` - See Argument Reference above.
 * `memory` - See Argument Reference above.
