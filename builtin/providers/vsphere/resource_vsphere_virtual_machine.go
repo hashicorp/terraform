@@ -414,7 +414,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "scsi",
-							ForceNew: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
 								if value != "scsi" && value != "ide" {
@@ -540,7 +539,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					size = int64(disk["size"].(int))
 				}
 				iops := int64(disk["iops"].(int))
-				controller_type := disk["controller"].(string)
+				controller_type := disk["controller_type"].(string)
 
 				var mo mo.VirtualMachine
 				vm.Properties(context.TODO(), vm.Reference(), []string{"summary", "config"}, &mo)
@@ -1153,9 +1152,15 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		}
 
 		vm.AddDevice(context.TODO(), c)
+		// Update our devices list
+		devices, err := vm.Device(context.TODO())
+		if err != nil {
+			return err
+		}
 		controller, err = devices.FindDiskController(controller_type)
 		if err != nil {
-			return fmt.Errorf("[ERROR] Could not find the controller we just created")
+			log.Printf("[ERROR] Could not find the new %v controller: %v", controller_type, err)
+			return err
 		}
 	}
 
@@ -1229,9 +1234,15 @@ func addCdrom(vm *object.VirtualMachine, datastore, path string) error {
 			return fmt.Errorf("[ERROR] Controller type could not be asserted")
 		}
 		vm.AddDevice(context.TODO(), c)
+		// Update our devices list
+		devices, err := vm.Device(context.TODO())
+		if err != nil {
+			return err
+		}
 		controller, err = devices.FindIDEController("")
 		if err != nil {
-			return fmt.Errorf("[ERROR] Could not find the controller we just created")
+			log.Printf("[ERROR] Could not find the new disk IDE controller: %v", err)
+			return err
 		}
 	}
 	log.Printf("[DEBUG] ide controller: %#v", controller)
