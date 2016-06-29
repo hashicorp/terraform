@@ -98,6 +98,10 @@ func (s *Set) List() []interface{} {
 	return result
 }
 
+func (s *Set) Map() map[string]interface{} {
+	return s.m
+}
+
 // Difference performs a set difference of the two sets, returning
 // a new third set that has only the elements unique to this set.
 func (s *Set) Difference(other *Set) *Set {
