@@ -228,7 +228,7 @@ func TestScriptPath(t *testing.T) {
 		r := &terraform.InstanceState{
 			Ephemeral: terraform.EphemeralState{
 				ConnInfo: map[string]string{
-					"type":        "winrm",
+					"type":        "ssh",
 					"script_path": tc.Input,
 				},
 			},
