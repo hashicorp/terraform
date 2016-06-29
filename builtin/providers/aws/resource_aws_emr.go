@@ -52,13 +52,6 @@ func resourceAwsEMR() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"resize_instance_groups": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: false,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
-			},
 			"ec2_attributes": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,

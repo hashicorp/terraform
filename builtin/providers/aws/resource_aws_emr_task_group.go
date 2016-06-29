@@ -7,8 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strconv"
-	"strings"
 )
 
 func resourceAwsEMRTaskGroup() *schema.Resource {
@@ -78,128 +76,31 @@ func resourceAwsEMRTaskGroupRead(d *schema.ResourceData, meta interface{}) error
 func resourceAwsEMRTaskGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
-	log.Printf("[DEBUG] Modify EMR cluster")
-	req := &emr.ListInstanceGroupsInput{
-		ClusterId: aws.String(d.Id()),
+	log.Printf("[DEBUG] Modify EMR task group")
+	instanceCount := d.Get("instance_count").(int)
+
+	params := &emr.ModifyInstanceGroupsInput{
+		InstanceGroups: []*emr.InstanceGroupModifyConfig{
+			{
+				InstanceGroupId: aws.String(d.Id()),
+				InstanceCount:   aws.Int64(int64(instanceCount)),
+			},
+		},
+	}
+	respModify, errModify := conn.ModifyInstanceGroups(params)
+	if errModify != nil {
+		log.Printf("[ERROR] %s", errModify)
+		return errModify
 	}
 
-	respGrps, errGrps := conn.ListInstanceGroups(req)
-	if errGrps != nil {
-		return fmt.Errorf("Error reading EMR cluster: %s", errGrps)
-	}
-	fmt.Println(respGrps)
+	fmt.Println(respModify)
 
-	instanceGroups := respGrps.InstanceGroups
-
-	grpsTF := d.Get("resize_instance_groups").(*schema.Set).List()
-	mdConf, newConf := expandTaskGrps(grpsTF, instanceGroups, d.Get("instance_type").(string))
-
-	if len(mdConf) > 0 {
-		params := &emr.ModifyInstanceGroupsInput{
-			InstanceGroups: mdConf,
-		}
-		respModify, errModify := conn.ModifyInstanceGroups(params)
-		if errModify != nil {
-			log.Printf("[ERROR] %s", errModify)
-			return errModify
-		}
-
-		fmt.Println(respModify)
-	}
-
-	if len(newConf) > 0 {
-		newParams := &emr.AddInstanceGroupsInput{
-			InstanceGroups: newConf,
-			JobFlowId:      aws.String(d.Id()),
-		}
-		respNew, errNew := conn.AddInstanceGroups(newParams)
-		if errNew != nil {
-			log.Printf("[ERROR] %s", errNew)
-			return errNew
-		}
-
-		fmt.Println(respNew)
-	}
-
-	log.Printf("[DEBUG] Modify EMR Cluster done...")
+	log.Printf("[DEBUG] Modify EMR task group done...")
 
 	return nil
 }
 
 func resourceAwsEMRTaskGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).emrconn
 
-	req := &emr.TerminateJobFlowsInput{
-		JobFlowIds: []*string{
-			aws.String(d.Id()),
-		},
-	}
-
-	_, err := conn.TerminateJobFlows(req)
-	if err != nil {
-		log.Printf("[ERROR], %s", err)
-		return err
-	}
-
-	d.SetId("")
 	return nil
-}
-
-func expandApps(apps []interface{}) []*emr.Application {
-	appOut := make([]*emr.Application, 0, len(apps))
-
-	for _, appName := range expandStringList(apps) {
-		app := &emr.Application{
-			Name: appName,
-		}
-		appOut = append(appOut, app)
-	}
-	return appOut
-}
-
-func findTaskGroup(grps []*emr.InstanceGroup, name string) *emr.InstanceGroup {
-	for _, grp := range grps {
-		if *grp.Name == name {
-			return grp
-		}
-	}
-	return nil
-}
-
-func expandTaskGrps(grpsTF []interface{},
-	grpsEmr []*emr.InstanceGroup, instanceType string) ([]*emr.InstanceGroupModifyConfig,
-	[]*emr.InstanceGroupConfig) {
-	modiConfOut := []*emr.InstanceGroupModifyConfig{}
-	newConfOut := []*emr.InstanceGroupConfig{}
-
-	for _, grp := range expandStringList(grpsTF) {
-		s := strings.Split(*grp, ":")
-		name := s[0]
-		count, _ := strconv.Atoi(s[1])
-
-		oneGrp := findTaskGroup(grpsEmr, name)
-
-		fmt.Println(oneGrp)
-
-		if oneGrp == nil {
-			//New TASK group
-			confNew := &emr.InstanceGroupConfig{
-				InstanceRole:  aws.String("TASK"),
-				InstanceCount: aws.Int64(int64(count)),
-				InstanceType:  aws.String(instanceType),
-				Name:          aws.String(name),
-			}
-			newConfOut = append(newConfOut, confNew)
-
-		} else if oneGrp != nil {
-			//Existed group
-			confModi := &emr.InstanceGroupModifyConfig{
-				InstanceGroupId: aws.String(*oneGrp.Id),
-				InstanceCount:   aws.Int64(int64(count)),
-			}
-			modiConfOut = append(modiConfOut, confModi)
-
-		}
-	}
-	return modiConfOut, newConfOut
 }
