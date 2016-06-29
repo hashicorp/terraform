@@ -29,8 +29,8 @@ func TestAccDockerContainer_volume(t *testing.T) {
 	var c dc.Container
 
 	testCheck := func(*terraform.State) error {
-		if len(c.Mounts) != 2 {
-			return fmt.Errorf("Incorrect number of mounts: expected 2, got %d", len(c.Mounts))
+		if len(c.Mounts) != 1 {
+			return fmt.Errorf("Incorrect number of mounts: expected 1, got %d", len(c.Mounts))
 		}
 
 		for _, v := range c.Mounts {
