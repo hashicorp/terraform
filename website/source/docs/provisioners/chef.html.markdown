@@ -58,6 +58,10 @@ The following arguments are supported:
   for the new node. These can also be loaded from a file on disk using the [`file()`
   interpolation function](/docs/configuration/interpolation.html#file_path_).
 
+* `bootstrap (boolean)` - (Optional) Use `knife bootstrap` method to install and configure
+  Chef on the node.  Allows use of `vaults` and `vaults_json`.  Not currently supported
+  on Windows. (defaults to false)
+
 * `client_options (array)` - (Optional) A list of optional Chef Client configuration
   options. See the [Chef Client ](https://docs.chef.io/config_rb_client.html) documentation for all available options.
 
@@ -121,6 +125,9 @@ The following arguments are supported:
   by the node to register itself with the Chef Server. The key will be uploaded to the remote
   machine. These can be loaded from a file on disk using the [`file()`
   interpolation function](/docs/configuration/interpolation.html#file_path_).
+
+* `vaults_json (string)` - (Optional) A raw JSON string with chef vaults to give
+  the new node access to.  Can only be used if `bootstrap` is set to `true`.
 
 * `version (string)` - (Optional) The Chef Client version to install on the remote machine.
   If not set the latest available version will be installed.
