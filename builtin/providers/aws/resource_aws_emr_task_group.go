@@ -46,7 +46,7 @@ func resourceAwsEMRTaskGroupCreate(d *schema.ResourceData, meta interface{}) err
 	instanceCount := d.Get("instance_count").(int)
 	groupName := d.Get("name").(string)
 
-	log.Printf("[DEBUG] Creating EMR cluster task group")
+	log.Printf("[DEBUG] Creating EMR task group")
 	params := &emr.AddInstanceGroupsInput{
 		InstanceGroups: []*emr.InstanceGroupConfig{
 			{
@@ -66,7 +66,7 @@ func resourceAwsEMRTaskGroupCreate(d *schema.ResourceData, meta interface{}) err
 
 	fmt.Println(resp)
 
-	log.Printf("[DEBUG] Created EMR Cluster task group done...")
+	log.Printf("[DEBUG] Created EMR task group done...")
 	d.SetId(*resp.InstanceGroupIds[0])
 
 	return nil
@@ -91,13 +91,13 @@ func resourceAwsEMRTaskGroupUpdate(d *schema.ResourceData, meta interface{}) err
 			},
 		},
 	}
-	respModify, errModify := conn.ModifyInstanceGroups(params)
-	if errModify != nil {
-		log.Printf("[ERROR] %s", errModify)
-		return errModify
+	resp, err := conn.ModifyInstanceGroups(params)
+	if err != nil {
+		log.Printf("[ERROR] %s", err)
+		return err
 	}
 
-	fmt.Println(respModify)
+	fmt.Println(resp)
 
 	log.Printf("[DEBUG] Modify EMR task group done...")
 
