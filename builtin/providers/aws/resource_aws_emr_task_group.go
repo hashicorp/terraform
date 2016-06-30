@@ -64,9 +64,7 @@ func resourceAwsEMRTaskGroupCreate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	fmt.Println(resp)
-
-	log.Printf("[DEBUG] Created EMR task group done...")
+	log.Printf("[DEBUG] Created EMR task group finished: %#v", resp)
 	d.SetId(*resp.InstanceGroupIds[0])
 
 	return nil
@@ -99,7 +97,7 @@ func resourceAwsEMRTaskGroupUpdate(d *schema.ResourceData, meta interface{}) err
 
 	fmt.Println(resp)
 
-	log.Printf("[DEBUG] Modify EMR task group done...")
+	log.Printf("[DEBUG] Modify EMR task group finished: %#v", resp)
 
 	return nil
 }
