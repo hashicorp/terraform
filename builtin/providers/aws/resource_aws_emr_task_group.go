@@ -66,7 +66,7 @@ func resourceAwsEMRTaskGroupCreate(d *schema.ResourceData, meta interface{}) err
 
 	fmt.Println(resp)
 
-	log.Printf("[DEBUG] Created EMR Cluster done...")
+	log.Printf("[DEBUG] Created EMR Cluster task group done...")
 	d.SetId(*resp.InstanceGroupIds[0])
 
 	return nil
