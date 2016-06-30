@@ -109,14 +109,18 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		f.Close()
 		if err == nil {
 			// Setup our state
-			state, statePath, err := StateFromPlan(m.statePath, plan)
+			state, statePath, err := StateFromPlan(m.statePath, m.stateOutPath, plan)
 			if err != nil {
 				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
 
 			// Set our state
 			m.state = state
-			m.stateOutPath = statePath
+
+			// this is used for printing the saved location later
+			if m.stateOutPath == "" {
+				m.stateOutPath = statePath
+			}
 
 			if len(m.variables) > 0 {
 				return nil, false, fmt.Errorf(
