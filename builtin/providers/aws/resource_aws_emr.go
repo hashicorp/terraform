@@ -147,7 +147,6 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error reading EMR cluster: %s", errGrps)
 	}
 	fmt.Println(respGrps)
-
 	instanceGroups := respGrps.InstanceGroups
 
 	coreInstanceCount := d.Get("core_instance_count").(int)
@@ -168,7 +167,6 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	fmt.Println(respModify)
-
 	log.Printf("[DEBUG] Modify EMR Cluster done...")
 
 	return nil
