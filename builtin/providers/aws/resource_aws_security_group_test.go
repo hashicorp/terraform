@@ -1594,3 +1594,38 @@ resource "aws_security_group" "nat" {
   }
 }
 `
+const testAccAWSSecurityGroupConfig_importSelf = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+
+  tags {
+    Name = "tf_sg_import_test"
+  }
+}
+
+resource "aws_security_group" "allow_all" {
+  name        = "allow_all"
+  description = "Allow all inbound traffic"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "allow_all" {
+  type        = "ingress"
+  from_port   = 0
+  to_port     = 65535
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+
+  security_group_id = "${aws_security_group.allow_all.id}"
+}
+
+resource "aws_security_group_rule" "allow_all-1" {
+  type      = "ingress"
+  from_port = 65534
+  to_port   = 65535
+  protocol  = "tcp"
+
+  self              = true
+  security_group_id = "${aws_security_group.allow_all.id}"
+}
+`
