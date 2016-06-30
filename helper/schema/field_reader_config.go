@@ -83,7 +83,7 @@ func (r *ConfigFieldReader) readField(
 	case TypeBool, TypeFloat, TypeInt, TypeString:
 		return r.readPrimitive(k, schema)
 	case TypeList:
-		return r.readList(address, schema)
+		return readListField(&nestedConfigFieldReader{r}, address, schema)
 	case TypeMap:
 		return r.readMap(k)
 	case TypeSet:
@@ -216,65 +216,13 @@ func (r *ConfigFieldReader) readPrimitive(
 	}, nil
 }
 
-func (r *ConfigFieldReader) readList(
-	address []string, schema *Schema) (FieldReadResult, error) {
-
-	addrPadded := make([]string, len(address)+1)
-	copy(addrPadded, address)
-
-	// Get the number of elements in the list
-	addrPadded[len(addrPadded)-1] = "#"
-	countResult, err := r.readPrimitive(
-		strings.Join(addrPadded, "."), &Schema{Type: TypeInt})
-	if err != nil {
-		return FieldReadResult{}, err
-	}
-	if !countResult.Exists {
-		// No count, means we have no list
-		countResult.Value = 0
-	}
-
-	// If we have an empty list, then return an empty list
-	if countResult.Computed || countResult.Value.(int) == 0 {
-		return FieldReadResult{
-			Value:    []interface{}{},
-			Exists:   countResult.Exists,
-			Computed: countResult.Computed,
-		}, nil
-	}
-
-	// Go through each count, and get the item value out of it
-	result := make([]interface{}, countResult.Value.(int))
-	for i, _ := range result {
-		idx := strconv.Itoa(i)
-		addrPadded[len(addrPadded)-1] = idx
-		rawResult, err := r.readField(addrPadded, true)
-		if err != nil {
-			return FieldReadResult{}, err
-		}
-		if !rawResult.Exists {
-			// This should never happen, because by the time the data
-			// gets to the FieldReaders, all the defaults should be set by
-			// Schema.
-			panic("missing field in list: " + strings.Join(addrPadded, "."))
-		}
-
-		result[i] = rawResult.Value
-	}
-
-	return FieldReadResult{
-		Value:  result,
-		Exists: true,
-	}, nil
-}
-
 func (r *ConfigFieldReader) readSet(
 	address []string, schema *Schema) (FieldReadResult, error) {
 	indexMap := make(map[string]int)
 	// Create the set that will be our result
 	set := schema.ZeroValue().(*Set)
 
-	raw, err := r.readList(address, schema)
+	raw, err := readListField(&nestedConfigFieldReader{r}, address, schema)
 	if err != nil {
 		return FieldReadResult{}, err
 	}
