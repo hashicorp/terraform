@@ -30,6 +30,10 @@ func resourceAwsEMRTaskGroup() *schema.Resource {
 				Optional: true,
 				Default:  60,
 			},
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -40,6 +44,7 @@ func resourceAwsEMRTaskGroupCreate(d *schema.ResourceData, meta interface{}) err
 	clusterId := d.Get("cluster_id").(string)
 	instanceType := d.Get("instance_type").(string)
 	instanceCount := d.Get("instance_count").(int)
+	groupName := d.Get("name").(string)
 
 	log.Printf("[DEBUG] Creating EMR cluster task group")
 	params := &emr.AddInstanceGroupsInput{
@@ -48,8 +53,7 @@ func resourceAwsEMRTaskGroupCreate(d *schema.ResourceData, meta interface{}) err
 				InstanceRole:  aws.String("TASK"),
 				InstanceCount: aws.Int64(int64(instanceCount)),
 				InstanceType:  aws.String(instanceType),
-
-				//Name:   aws.String("XmlStringMaxLen256"),
+				Name:          aws.String(groupName),
 			},
 		},
 		JobFlowId: aws.String(clusterId),
