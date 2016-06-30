@@ -11,20 +11,20 @@ const (
 
 // Environment represents a set of endpoints for each of Azure's Clouds.
 type Environment struct {
-	Name                      string
-	ManagementPortalURL       string
-	PublishSettingsURL        string
-	ServiceManagementEndpoint string
-	ResourceManagerEndpoint   string
-	ActiveDirectoryEndpoint   string
-	GalleryEndpoint           string
-	KeyVaultEndpoint          string
-	GraphEndpoint             string
-	StorageEndpointSuffix     string
-	SQLDatabaseDNSSuffix      string
-	TrafficManagerDNSSuffix   string
-	KeyVaultDNSSuffix         string
-	ServiceBusEndpointSuffix  string
+	Name                      string `json:"name"`
+	ManagementPortalURL       string `json:"managementPortalURL"`
+	PublishSettingsURL        string `json:"publishSettingsURL"`
+	ServiceManagementEndpoint string `json:"serviceManagementEndpoint"`
+	ResourceManagerEndpoint   string `json:"resourceManagerEndpoint"`
+	ActiveDirectoryEndpoint   string `json:"activeDirectoryEndpoint"`
+	GalleryEndpoint           string `json:"galleryEndpoint"`
+	KeyVaultEndpoint          string `json:"keyVaultEndpoint"`
+	GraphEndpoint             string `json:"graphEndpoint"`
+	StorageEndpointSuffix     string `json:"storageEndpointSuffix"`
+	SQLDatabaseDNSSuffix      string `json:"sqlDatabaseDNSSuffix"`
+	TrafficManagerDNSSuffix   string `json:"trafficManagerDNSSuffix"`
+	KeyVaultDNSSuffix         string `json:"keyVaultDNSSuffix"`
+	ServiceBusEndpointSuffix  string `json:"serviceBusEndpointSuffix"`
 }
 
 var (
@@ -55,12 +55,12 @@ var (
 		ResourceManagerEndpoint:   "https://management.usgovcloudapi.net",
 		ActiveDirectoryEndpoint:   "https://login.microsoftonline.com/",
 		GalleryEndpoint:           "https://gallery.usgovcloudapi.net/",
-		KeyVaultEndpoint:          "https://vault.azure.net/",
+		KeyVaultEndpoint:          "https://vault.usgovcloudapi.net/",
 		GraphEndpoint:             "https://graph.usgovcloudapi.net/",
 		StorageEndpointSuffix:     "core.usgovcloudapi.net",
 		SQLDatabaseDNSSuffix:      "database.usgovcloudapi.net",
-		TrafficManagerDNSSuffix:   "trafficmanager.net",
-		KeyVaultDNSSuffix:         "vault.azure.net",
+		TrafficManagerDNSSuffix:   "usgovtrafficmanager.net",
+		KeyVaultDNSSuffix:         "vault.usgovcloudapi.net",
 		ServiceBusEndpointSuffix:  "servicebus.usgovcloudapi.net",
 	}
 
@@ -73,13 +73,31 @@ var (
 		ResourceManagerEndpoint:   "https://management.chinacloudapi.cn/",
 		ActiveDirectoryEndpoint:   "https://login.chinacloudapi.cn/?api-version=1.0",
 		GalleryEndpoint:           "https://gallery.chinacloudapi.cn/",
-		KeyVaultEndpoint:          "https://vault.azure.net/",
+		KeyVaultEndpoint:          "https://vault.azure.cn/",
 		GraphEndpoint:             "https://graph.chinacloudapi.cn/",
 		StorageEndpointSuffix:     "core.chinacloudapi.cn",
 		SQLDatabaseDNSSuffix:      "database.chinacloudapi.cn",
 		TrafficManagerDNSSuffix:   "trafficmanager.cn",
-		KeyVaultDNSSuffix:         "vault.azure.net",
+		KeyVaultDNSSuffix:         "vault.azure.cn",
 		ServiceBusEndpointSuffix:  "servicebus.chinacloudapi.net",
+	}
+
+	// GermanCloud is the cloud environment operated in Germany
+	GermanCloud = Environment{
+		Name:                      "AzureGermanCloud",
+		ManagementPortalURL:       "http://portal.microsoftazure.de/",
+		PublishSettingsURL:        "https://manage.microsoftazure.de/publishsettings/index",
+		ServiceManagementEndpoint: "https://management.core.cloudapi.de",
+		ResourceManagerEndpoint:   "https://management.microsoftazure.de",
+		ActiveDirectoryEndpoint:   "https://login.microsoftonline.de/",
+		GalleryEndpoint:           "https://gallery.cloudapi.de/",
+		KeyVaultEndpoint:          "https://vault.microsoftazure.de/",
+		GraphEndpoint:             "https://graph.cloudapi.de/",
+		StorageEndpointSuffix:     "core.cloudapi.de",
+		SQLDatabaseDNSSuffix:      "database.cloudapi.de",
+		TrafficManagerDNSSuffix:   "azuretrafficmanager.de",
+		KeyVaultDNSSuffix:         "vault.microsoftazure.de",
+		ServiceBusEndpointSuffix:  "servicebus.cloudapi.de",
 	}
 )
 

@@ -62,8 +62,9 @@ func DoPollForAsynchronous(delay time.Duration) autorest.SendDecorator {
 					return resp, err
 				}
 
+				delay = autorest.GetRetryAfter(resp, delay)
 				resp, err = autorest.SendWithSender(s, r,
-					autorest.AfterDelay(autorest.GetRetryAfter(resp, delay)))
+					autorest.AfterDelay(delay))
 			}
 
 			return resp, err
