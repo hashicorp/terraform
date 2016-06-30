@@ -22,7 +22,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acceptanceTestCdnProfile1"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 
     tags {
 	environment = "Production"
@@ -43,7 +43,7 @@ The following arguments are supported:
 
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 
-* `sku` - (Required) The pricing related information of current CDN profile. Accepted values are `Standard` or `Premium`.
+* `sku` - (Required) The pricing related information of current CDN profile. Accepted values are `Standard_Verizon`, `Standard_Akamai` or `Premium_Verizon`.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource. 
 

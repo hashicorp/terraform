@@ -321,8 +321,8 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 }
 
 func (armClient *ArmClient) getKeyForStorageAccount(resourceGroupName, storageAccountName string) (string, bool, error) {
-	keys, err := armClient.storageServiceClient.ListKeys(resourceGroupName, storageAccountName)
-	if keys.StatusCode == http.StatusNotFound {
+	accountKeys, err := armClient.storageServiceClient.ListKeys(resourceGroupName, storageAccountName)
+	if accountKeys.StatusCode == http.StatusNotFound {
 		return "", false, nil
 	}
 	if err != nil {
@@ -331,11 +331,12 @@ func (armClient *ArmClient) getKeyForStorageAccount(resourceGroupName, storageAc
 		return "", true, fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
 	}
 
-	if keys.Key1 == nil {
+	if accountKeys.Keys == nil {
 		return "", false, fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
 	}
 
-	return *keys.Key1, true, nil
+	keys := *accountKeys.Keys
+	return *keys[0].Value, true, nil
 }
 
 func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.BlobStorageClient, bool, error) {

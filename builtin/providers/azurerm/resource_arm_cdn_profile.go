@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
@@ -61,16 +62,12 @@ func resourceArmCdnProfileCreate(d *schema.ResourceData, meta interface{}) error
 	sku := d.Get("sku").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
-	properties := cdn.ProfilePropertiesCreateParameters{
+	cdnProfile := cdn.ProfileCreateParameters{
+		Location: &location,
+		Tags:     expandTags(tags),
 		Sku: &cdn.Sku{
 			Name: cdn.SkuName(sku),
 		},
-	}
-
-	cdnProfile := cdn.ProfileCreateParameters{
-		Location:   &location,
-		Properties: &properties,
-		Tags:       expandTags(tags),
 	}
 
 	_, err := cdnProfilesClient.Create(name, cdnProfile, resGroup, make(chan struct{}))
@@ -110,8 +107,8 @@ func resourceArmCdnProfileRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error making Read request on Azure CDN Profile %s: %s", name, err)
 	}
 
-	if resp.Properties != nil && resp.Properties.Sku != nil {
-		d.Set("sku", string(resp.Properties.Sku.Name))
+	if resp.Sku != nil {
+		d.Set("sku", string(resp.Sku.Name))
 	}
 
 	flattenAndSetTags(d, resp.Tags)
@@ -134,7 +131,7 @@ func resourceArmCdnProfileUpdate(d *schema.ResourceData, meta interface{}) error
 		Tags: expandTags(newTags),
 	}
 
-	_, err := cdnProfilesClient.Update(name, props, resGroup)
+	_, err := cdnProfilesClient.Update(name, props, resGroup, make(chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM update request to update CDN Profile %q: %s", name, err)
 	}
@@ -160,12 +157,13 @@ func resourceArmCdnProfileDelete(d *schema.ResourceData, meta interface{}) error
 func validateCdnProfileSku(v interface{}, k string) (ws []string, errors []error) {
 	value := strings.ToLower(v.(string))
 	skus := map[string]bool{
-		"standard": true,
-		"premium":  true,
+		"standard_akamai":  true,
+		"premium_verizon":  true,
+		"standard_verizon": true,
 	}
 
 	if !skus[value] {
-		errors = append(errors, fmt.Errorf("CDN Profile SKU can only be Standard or Premium"))
+		errors = append(errors, fmt.Errorf("CDN Profile SKU can only be Premium_Verizon, Standard_Verizon or Standard_Akamai"))
 	}
 	return
 }

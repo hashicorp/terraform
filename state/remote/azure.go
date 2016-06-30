@@ -81,11 +81,12 @@ func getStorageAccountAccessKey(conf map[string]string, resourceGroupName, stora
 		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
 	}
 
-	if keys.Key1 == nil {
+	if keys.Keys == nil {
 		return "", fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
 	}
 
-	return *keys.Key1, nil
+	accessKeys := *keys.Keys
+	return *accessKeys[0].KeyName, nil
 }
 
 func getCredentialsFromConf(conf map[string]string) (*riviera.AzureResourceManagerCredentials, error) {
