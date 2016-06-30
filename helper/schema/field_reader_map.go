@@ -2,7 +2,6 @@ package schema
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -25,7 +24,7 @@ func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	case TypeBool, TypeInt, TypeFloat, TypeString:
 		return r.readPrimitive(address, schema)
 	case TypeList:
-		return r.readList(address, schema)
+		return readListField(r, address, schema)
 	case TypeMap:
 		return r.readMap(k)
 	case TypeSet:
@@ -88,57 +87,6 @@ func (r *MapFieldReader) readPrimitive(
 
 	return FieldReadResult{
 		Value:  returnVal,
-		Exists: true,
-	}, nil
-}
-
-func (r *MapFieldReader) readList(
-	address []string, schema *Schema) (FieldReadResult, error) {
-
-	addrPadded := make([]string, len(address)+1)
-	copy(addrPadded, address)
-
-	// Get the number of elements in the list
-	addrPadded[len(addrPadded)-1] = "#"
-	countResult, err := r.readPrimitive(addrPadded, &Schema{Type: TypeInt})
-	if err != nil {
-		return FieldReadResult{}, err
-	}
-	if !countResult.Exists {
-		// No count, means we have no list
-		countResult.Value = 0
-	}
-
-	// If we have an empty list, then return an empty list
-	if countResult.Computed || countResult.Value.(int) == 0 {
-		return FieldReadResult{
-			Value:    []interface{}{},
-			Exists:   countResult.Exists,
-			Computed: countResult.Computed,
-		}, nil
-	}
-
-	// Go through each count, and get the item value out of it
-	result := make([]interface{}, countResult.Value.(int))
-	for i, _ := range result {
-		idx := strconv.Itoa(i)
-		addrPadded[len(addrPadded)-1] = idx
-		rawResult, err := r.ReadField(addrPadded)
-		if err != nil {
-			return FieldReadResult{}, err
-		}
-		if !rawResult.Exists {
-			// This should never happen, because by the time the data
-			// gets to the FieldReaders, all the defaults should be set by
-			// Schema.
-			panic("missing field in list: " + strings.Join(addrPadded, "."))
-		}
-
-		result[i] = rawResult.Value
-	}
-
-	return FieldReadResult{
-		Value:  result,
 		Exists: true,
 	}, nil
 }
