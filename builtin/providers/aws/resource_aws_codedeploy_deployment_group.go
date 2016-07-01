@@ -299,10 +299,8 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
 	// Retry to handle IAM role eventual consistency.
-	var resp *codedeploy.UpdateDeploymentGroupOutput
-	var err error
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		resp, err = conn.UpdateDeploymentGroup(&input)
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := conn.UpdateDeploymentGroup(&input)
 		if err != nil {
 			retry := false
 			codedeployErr, ok := err.(awserr.Error)
