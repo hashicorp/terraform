@@ -31,6 +31,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"atlas_artifact": dataSourceAtlasArtifact(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"atlas_artifact": resourceArtifact(),
 		},

@@ -2,30 +2,20 @@ package atlas
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/hashicorp/atlas-go/v1"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-var (
-	// saneMetaKey is used to sanitize the metadata keys so that
-	// they can be accessed as a variable interpolation from TF
-	saneMetaKey = regexp.MustCompile("[^a-zA-Z0-9-_]")
-)
-
-func resourceArtifact() *schema.Resource {
+func dataSourceAtlasArtifact() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArtifactRead,
-		Read:   resourceArtifactRead,
-		Delete: resourceArtifactDelete,
+		Read: dataSourceArtifactRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:       schema.TypeString,
-				Required:   true,
-				ForceNew:   true,
-				Deprecated: `atlas_artifact is now deprecated. Use the Atlas Artifact Data Source instead. See https://terraform.io/docs/providers/atlas/d/artifact.html`,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"type": &schema.Schema{
@@ -83,7 +73,7 @@ func resourceArtifact() *schema.Resource {
 	}
 }
 
-func resourceArtifactRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceArtifactRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*atlas.Client)
 
 	// Parse the slug from the name given of the artifact since the API
@@ -156,21 +146,4 @@ func resourceArtifactRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-func resourceArtifactDelete(d *schema.ResourceData, meta interface{}) error {
-	// This just always succeeds since this is a readonly element.
-	d.SetId("")
-	return nil
-}
-
-// cleanMetadata is used to ensure the metadata is accessible as
-// a variable by doing a simple re-write.
-func cleanMetadata(in map[string]string) map[string]string {
-	out := make(map[string]string, len(in))
-	for k, v := range in {
-		sane := saneMetaKey.ReplaceAllString(k, "-")
-		out[sane] = v
-	}
-	return out
 }

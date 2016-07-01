@@ -8,90 +8,90 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccArtifact_basic(t *testing.T) {
+func TestAccDataSourceArtifact_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccArtifact_basic,
+				Config: testAccDataArtifact_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckArtifactState("name", "hashicorp/tf-provider-test"),
+					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccArtifact_metadata(t *testing.T) {
+func TestAccDataSourceArtifact_metadata(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccArtifact_metadata,
+				Config: testAccDataArtifact_metadata,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckArtifactState("name", "hashicorp/tf-provider-test"),
-					testAccCheckArtifactState("id", "x86"),
-					testAccCheckArtifactState("metadata_full.arch", "x86"),
+					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),
+					testAccCheckDataArtifactState("id", "x86"),
+					testAccCheckDataArtifactState("metadata_full.arch", "x86"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccArtifact_metadataSet(t *testing.T) {
+func TestAccDataSourceArtifact_metadataSet(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccArtifact_metadataSet,
+				Config: testAccDataArtifact_metadataSet,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckArtifactState("name", "hashicorp/tf-provider-test"),
-					testAccCheckArtifactState("id", "x64"),
-					testAccCheckArtifactState("metadata_full.arch", "x64"),
+					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),
+					testAccCheckDataArtifactState("id", "x64"),
+					testAccCheckDataArtifactState("metadata_full.arch", "x64"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccArtifact_buildLatest(t *testing.T) {
+func TestAccDataSourceArtifact_buildLatest(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccArtifact_buildLatest,
+				Config: testAccDataArtifact_buildLatest,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckArtifactState("name", "hashicorp/tf-provider-test"),
+					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccArtifact_versionAny(t *testing.T) {
+func TestAccDataSourceArtifact_versionAny(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccArtifact_versionAny,
+				Config: testAccDataArtifact_versionAny,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckArtifactState("name", "hashicorp/tf-provider-test"),
+					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckArtifactState(key, value string) resource.TestCheckFunc {
+func testAccCheckDataArtifactState(key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["atlas_artifact.foobar"]
+		rs, ok := s.RootModule().Resources["data.atlas_artifact.foobar"]
 		if !ok {
-			return fmt.Errorf("Not found: %s", "atlas_artifact.foobar")
+			return fmt.Errorf("Not found: %s", "data.atlas_artifact.foobar")
 		}
 
 		if rs.Primary.ID == "" {
@@ -108,14 +108,14 @@ func testAccCheckArtifactState(key, value string) resource.TestCheckFunc {
 	}
 }
 
-const testAccArtifact_basic = `
-resource "atlas_artifact" "foobar" {
+const testAccDataArtifact_basic = `
+data "atlas_artifact" "foobar" {
 	name = "hashicorp/tf-provider-test"
 	type = "foo"
 }`
 
-const testAccArtifact_metadata = `
-resource "atlas_artifact" "foobar" {
+const testAccDataArtifact_metadata = `
+data "atlas_artifact" "foobar" {
 	name = "hashicorp/tf-provider-test"
 	type = "foo"
 	metadata {
@@ -124,16 +124,16 @@ resource "atlas_artifact" "foobar" {
 	version = "any"
 }`
 
-const testAccArtifact_metadataSet = `
-resource "atlas_artifact" "foobar" {
+const testAccDataArtifact_metadataSet = `
+data "atlas_artifact" "foobar" {
 	name = "hashicorp/tf-provider-test"
 	type = "foo"
 	metadata_keys = ["arch"]
 	version = "any"
 }`
 
-const testAccArtifact_buildLatest = `
-resource "atlas_artifact" "foobar" {
+const testAccDataArtifact_buildLatest = `
+data "atlas_artifact" "foobar" {
 	name = "hashicorp/tf-provider-test"
 	type = "foo"
 	build = "latest"
@@ -142,8 +142,8 @@ resource "atlas_artifact" "foobar" {
 	}
 }`
 
-const testAccArtifact_versionAny = `
-resource "atlas_artifact" "foobar" {
+const testAccDataArtifact_versionAny = `
+data "atlas_artifact" "foobar" {
 	name = "hashicorp/tf-provider-test"
 	type = "foo"
 	version = "any"
