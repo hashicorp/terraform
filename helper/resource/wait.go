@@ -36,12 +36,20 @@ func Retry(timeout time.Duration, f RetryFunc) error {
 		},
 	}
 
-	c.WaitForState()
+	_, waitErr := c.WaitForState()
 
 	// Need to acquire the lock here to be able to avoid race using resultErr as
 	// the return value
 	resultErrMu.Lock()
 	defer resultErrMu.Unlock()
+
+	// resultErr may be nil because the wait timed out and resultErr was never
+	// set; this is still an error
+	if resultErr == nil {
+		return waitErr
+	}
+	// resultErr takes precedence over waitErr if both are set because it is
+	// more likely to be useful
 	return resultErr
 }
 
