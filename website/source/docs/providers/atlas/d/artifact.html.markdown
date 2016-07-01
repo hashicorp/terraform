@@ -1,21 +1,18 @@
 ---
 layout: "atlas"
 page_title: "Atlas: atlas_artifact"
-sidebar_current: "docs-atlas-resource-artifact"
+sidebar_current: "docs-atlas-data-artifact"
 description: |-
-  Provides access to deployment artifacts managed by Atlas. This can
+  Provides a data source to deployment artifacts managed by Atlas. This can
   be used to dynamically configure instantiation and provisioning
   of resources.
 ---
 
 # atlas\_artifact
 
-Provides access to deployment artifacts managed by Atlas. This can
-be used to dynamically configure instantiation and provisioning
-of resources.
-
-~> **NOTE: This resource is deprecated.**  
-Please use the [Atlas Artifact Data Source](/docs/providers/atlas/d/artifact.html)
+Provides a [Data Source](/docs/configuration/data-sources.html) to access to deployment 
+artifacts managed by Atlas. This can be used to dynamically configure instantiation 
+and provisioning of resources.
 
 ## Example Usage
 
@@ -25,7 +22,7 @@ to this artifact will trigger a change to that instance.
 
 ```
 # Read the AMI
-resource "atlas_artifact" "web" {
+data "atlas_artifact" "web" {
     name = "hashicorp/web"
     type = "amazon.image"
     build = "latest"
@@ -37,7 +34,7 @@ resource "atlas_artifact" "web" {
 # Start our instance with the dynamic ami value
 # Remember to include the AWS region as it is part of the full ID
 resource "aws_instance" "app" {
-    ami = "${atlas_artifact.web.metadata_full.region-us-east-1}"
+    ami = "${data.atlas_artifact.web.metadata_full.region-us-east-1}"
     ...
 }
 ```
