@@ -155,6 +155,7 @@ BUG FIXES:
  * provider/aws: Fix issue where aws_app_cookie_stickiness_policy fails on destroy if LoadBalancer doesn't exist [GH-7166]
  * provider/aws: Stickiness Policy exists, but isn't assigned to the ELB [GH-7188]
  * provider/aws: Fix issue with `manage_bundler` on `aws_opsworks_layers` [GH-7219]
+ * provider/aws: Set Elastic Beanstalk stack name back to state [GH-7445]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
