@@ -404,6 +404,10 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		}
 	}
 
+	if err := d.Set("solution_stack_name", *env.SolutionStackName); err != nil {
+		return err
+	}
+
 	if err := d.Set("autoscaling_groups", flattenBeanstalkAsg(resources.EnvironmentResources.AutoScalingGroups)); err != nil {
 		return err
 	}
