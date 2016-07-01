@@ -730,7 +730,10 @@ func flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(config *compute.W
 			c["pass"] = i.PassName
 			c["component"] = i.ComponentName
 			c["setting_name"] = i.SettingName
-			c["content"] = *i.Content
+
+			if i.Content != nil {
+				c["content"] = *i.Content
+			}
 
 			content = append(content, c)
 		}
