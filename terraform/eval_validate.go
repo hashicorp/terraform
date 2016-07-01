@@ -108,11 +108,13 @@ type EvalValidateResource struct {
 	ResourceName string
 	ResourceType string
 	ResourceMode config.ResourceMode
+
+	// IgnoreWarnings means that warnings will not be passed through. This allows
+	// "just-in-time" passes of validation to continue execution through warnings.
+	IgnoreWarnings bool
 }
 
 func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
-	// TODO: test
-
 	provider := *n.Provider
 	cfg := *n.Config
 	var warns []string
@@ -127,16 +129,15 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		warns, errs = provider.ValidateDataSource(n.ResourceType, cfg)
 	}
 
-	// If the resouce name doesn't match the name regular
-	// expression, show a warning.
+	// If the resource name doesn't match the name regular
+	// expression, show an error.
 	if !config.NameRegexp.Match([]byte(n.ResourceName)) {
 		errs = append(errs, fmt.Errorf(
 			"%s: resource name can only contain letters, numbers, "+
-				"dashes, and underscores."+
-				n.ResourceName))
+				"dashes, and underscores.", n.ResourceName))
 	}
 
-	if len(warns) == 0 && len(errs) == 0 {
+	if (len(warns) == 0 || n.IgnoreWarnings) && len(errs) == 0 {
 		return nil, nil
 	}
 

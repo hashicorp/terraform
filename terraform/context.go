@@ -313,10 +313,15 @@ func (c *Context) Apply() (*State, error) {
 	}
 
 	// Do the walk
+	var walker *ContextGraphWalker
 	if c.destroy {
-		_, err = c.walk(graph, walkDestroy)
+		walker, err = c.walk(graph, walkDestroy)
 	} else {
-		_, err = c.walk(graph, walkApply)
+		walker, err = c.walk(graph, walkApply)
+	}
+
+	if len(walker.ValidationErrors) > 0 {
+		err = multierror.Append(err, walker.ValidationErrors...)
 	}
 
 	// Clean out any unused things
@@ -377,7 +382,8 @@ func (c *Context) Plan() (*Plan, error) {
 	}
 
 	// Do the walk
-	if _, err := c.walk(graph, operation); err != nil {
+	walker, err := c.walk(graph, operation)
+	if err != nil {
 		return nil, err
 	}
 	p.Diff = c.diff
@@ -387,8 +393,11 @@ func (c *Context) Plan() (*Plan, error) {
 	if _, err := c.Graph(&ContextGraphOpts{Validate: true}); err != nil {
 		return nil, err
 	}
-
-	return p, nil
+	var errs error
+	if len(walker.ValidationErrors) > 0 {
+		errs = multierror.Append(errs, walker.ValidationErrors...)
+	}
+	return p, errs
 }
 
 // Refresh goes through all the resources in the state and refreshes them
