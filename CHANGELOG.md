@@ -21,6 +21,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
  * `aws_db_instance` now defaults `publicly_accessible` to false
  * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
+ * `atlas_artifact` resource has be depracated. Please use the new `atlas_artifact` Data Source
 
 FEATURES:
 
@@ -34,6 +35,7 @@ FEATURES:
  * **New Data Source:** `aws_availability_zones` [GH-6805]
  * **New Data Source:** `aws_iam_policy_document` [GH-6881]
  * **New Data Source:** `aws_s3_bucket_object` [GH-6946]
+ * **New Data Source:** `atlas_artifact` [GH-7419]
  * **New Interpolation Function:** `sort` [GH-7128]
  * **New Interpolation Function:** `distinct` [GH-7174]
  * **New Provider:** `grafana` [GH-6206]
