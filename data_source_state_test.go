@@ -9,10 +9,9 @@ import (
 )
 
 func TestState_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		OverrideEnvVar: true,
-		PreCheck:       func() { testAccPreCheck(t) },
-		Providers:      testAccProviders,
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccState_basic,
@@ -26,10 +25,9 @@ func TestState_basic(t *testing.T) {
 }
 
 func TestState_complexOutputs(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		OverrideEnvVar: true,
-		PreCheck:       func() { testAccPreCheck(t) },
-		Providers:      testAccProviders,
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccState_complexOutputs,
