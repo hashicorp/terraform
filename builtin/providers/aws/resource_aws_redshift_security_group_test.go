@@ -94,7 +94,7 @@ func TestAccAWSRedshiftSecurityGroup_ingressSecurityGroup(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_redshift_security_group.bar", "ingress.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_redshift_security_group.bar", "ingress.220863.security_group_name", "terraform_redshift_acceptance_test"),
+						"aws_redshift_security_group.bar", "ingress.2230908922.security_group_name", "terraform_redshift_acceptance_test"),
 				),
 			},
 		},
@@ -333,7 +333,7 @@ resource "aws_security_group" "redshift" {
 		protocol = "tcp"
 		from_port = 22
 		to_port = 22
-		cidr_blocks = ["10.0.0.0/8"]
+		cidr_blocks = ["10.0.0.0/16"]
 	}
 }
 
@@ -345,7 +345,7 @@ resource "aws_security_group" "redshift2" {
 		protocol = "tcp"
 		from_port = 22
 		to_port = 22
-		cidr_blocks = ["10.0.10.0/8"]
+		cidr_blocks = ["10.1.0.0/16"]
 	}
 }
 
@@ -357,7 +357,7 @@ resource "aws_security_group" "redshift3" {
 		protocol = "tcp"
 		from_port = 22
 		to_port = 22
-		cidr_blocks = ["10.0.20.0/8"]
+		cidr_blocks = ["10.2.0.0/16"]
 	}
 }
 
@@ -394,7 +394,7 @@ resource "aws_security_group" "redshift" {
 		protocol = "tcp"
 		from_port = 22
 		to_port = 22
-		cidr_blocks = ["10.0.0.0/8"]
+		cidr_blocks = ["10.0.0.0/16"]
 	}
 }
 
@@ -406,7 +406,7 @@ resource "aws_security_group" "redshift2" {
 		protocol = "tcp"
 		from_port = 22
 		to_port = 22
-		cidr_blocks = ["10.0.10.0/8"]
+		cidr_blocks = ["10.1.0.0/16"]
 	}
 }
 
