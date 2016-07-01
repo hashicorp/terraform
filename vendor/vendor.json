@@ -951,32 +951,32 @@
 		{
 			"checksumSHA1": "oPpOfZn11Ef6DWOoETxSW9Venzs=",
 			"path": "github.com/jen20/riviera/azure",
-			"revision": "2f01b8f5b09bbc20a591b1dc4b48af0665106b3f",
-			"revisionTime": "2016-06-10T12:18:12Z"
+			"revision": "1159d86fc8144abafeb29ee7c5a3e2e85af336ba",
+			"revisionTime": "2016-06-30T14:11:29Z"
 		},
 		{
-			"checksumSHA1": "A2Ycn6MySifUKTHOnsG9oLwjitE=",
+			"checksumSHA1": "ncdT+1PFEF5ly0niXuQc9/pKzT0=",
 			"path": "github.com/jen20/riviera/dns",
-			"revision": "2f01b8f5b09bbc20a591b1dc4b48af0665106b3f",
-			"revisionTime": "2016-06-10T12:18:12Z"
+			"revision": "1159d86fc8144abafeb29ee7c5a3e2e85af336ba",
+			"revisionTime": "2016-06-30T14:11:29Z"
 		},
 		{
 			"checksumSHA1": "zVXx6ha3bt0N4ukRbRHXjSl91S4=",
 			"path": "github.com/jen20/riviera/search",
-			"revision": "2f01b8f5b09bbc20a591b1dc4b48af0665106b3f",
-			"revisionTime": "2016-06-10T12:18:12Z"
+			"revision": "1159d86fc8144abafeb29ee7c5a3e2e85af336ba",
+			"revisionTime": "2016-06-30T14:11:29Z"
 		},
 		{
 			"checksumSHA1": "KfquDaeBPGchw92QnojlJFsJKgk=",
 			"path": "github.com/jen20/riviera/sql",
-			"revision": "2f01b8f5b09bbc20a591b1dc4b48af0665106b3f",
-			"revisionTime": "2016-06-10T12:18:12Z"
+			"revision": "1159d86fc8144abafeb29ee7c5a3e2e85af336ba",
+			"revisionTime": "2016-06-30T14:11:29Z"
 		},
 		{
 			"checksumSHA1": "nKUCquNpJ9ifHgkXoT4K3Xar6R8=",
 			"path": "github.com/jen20/riviera/storage",
-			"revision": "64de55fa8cdd0c52f7d59494c1b03c1b583c52b4",
-			"revisionTime": "2016-02-18T23:50:40Z"
+			"revision": "1159d86fc8144abafeb29ee7c5a3e2e85af336ba",
+			"revisionTime": "2016-06-30T14:11:29Z"
 		},
 		{
 			"comment": "0.2.2-2-gc01cf91",
