@@ -94,6 +94,7 @@ IMPROVEMENTS:
  * provider/aws: Added support for `snapshot_identifier` parameter in aws_rds_cluster [GH-7158]
  * provider/aws: Add inplace edit/update DB Security Group Rule Ingress [GH-7245]
  * provider/aws: Added support for redshift destination to firehose delivery streams [GH-7375]
+ * provider/aws: Allow `aws_redshift_security_group` ingress rules to change [GH-5939]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
