@@ -756,6 +756,23 @@ func TestFlattenAttachment(t *testing.T) {
 	}
 }
 
+func TestFlattenAttachmentWhenNoInstanceId(t *testing.T) {
+	expanded := &ec2.NetworkInterfaceAttachment{
+		DeviceIndex:  aws.Int64(int64(1)),
+		AttachmentId: aws.String("at-002"),
+	}
+
+	result := flattenAttachment(expanded)
+
+	if result == nil {
+		t.Fatal("expected result to have value, but got nil")
+	}
+
+	if result["instance"] != nil {
+		t.Fatalf("expected instance to be nil, but got %s", result["instance"])
+	}
+}
+
 func TestflattenStepAdjustments(t *testing.T) {
 	expanded := []*autoscaling.StepAdjustment{
 		&autoscaling.StepAdjustment{
