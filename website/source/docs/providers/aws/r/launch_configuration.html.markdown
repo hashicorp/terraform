@@ -95,6 +95,8 @@ The following arguments are supported:
 * `key_name` - (Optional) The key name that should be used for the instance.
 * `security_groups` - (Optional) A list of associated security group IDS.
 * `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
+* `vpc_classic_link_id` - (Optional) The ID of a ClassicLink-enabled VPC. Only applies to EC2-Classic instances. (eg. `vpc-2730681a`)
+* `vpc_classic_link_security_groups` - (Optional) The IDs of one or more security groups for the specified ClassicLink-enabled VPC (eg. `sg-46ae3d11`).
 * `user_data` - (Optional) The user data to provide when launching the instance.
 * `enable_monitoring` - (Optional) Enables/disables detailed monitoring. This is enabled by default.
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be EBS-optimized.
