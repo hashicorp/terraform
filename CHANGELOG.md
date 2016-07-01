@@ -151,6 +151,7 @@ BUG FIXES:
  * provider/aws: `aws_opsworks_application.app_source` SSH key is write-only [GH-6649]
  * provider/aws: fix Elastic Beanstalk `cname_prefix` continual plans [GH-6653]
  * provider/aws: Bundle IOPs and Allocated Storage update for DB Instances [GH-7203]
+ * provider/aws: Fix case when instanceId is absent in network interfaces [GH-6851]
  * provider/aws: fix aws_security_group_rule refresh [GH-6730]
  * provider/aws: Fix issue with Elastic Beanstalk and invalid settings [GH-7222]
  * provider/aws: Fix issue where aws_app_cookie_stickiness_policy fails on destroy if LoadBalancer doesn't exist [GH-7166]
