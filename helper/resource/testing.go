@@ -21,10 +21,6 @@ import (
 
 const TestEnvVar = "TF_ACC"
 
-// UnitTestOverride is a value that when set in TestEnvVar indicates that this
-// is a unit test borrowing the acceptance testing framework.
-const UnitTestOverride = "UnitTestOverride"
-
 // TestCheckFunc is the callback type used with acceptance tests to check
 // the state of a resource. The state passed in is the latest state known,
 // or in the case of being after a destroy, it is the last known state when
@@ -40,12 +36,12 @@ type ImportStateCheckFunc func([]*terraform.InstanceState) error
 // When the destroy plan is executed, the config from the last TestStep
 // is used to plan it.
 type TestCase struct {
-	// OverrideEnvVar allows a test to run regardless of the TF_ACC
+	// IsUnitTest allows a test to run regardless of the TF_ACC
 	// environment variable. This should be used with care - only for
 	// fast tests on local resources (e.g. remote state with a local
 	// backend) but can be used to increase confidence in correct
 	// operation of Terraform without waiting for a full acctest run.
-	OverrideEnvVar bool
+	IsUnitTest bool
 
 	// PreCheck, if non-nil, will be called before any test steps are
 	// executed. It will only be executed in the case that the steps
@@ -190,14 +186,12 @@ func Test(t TestT, c TestCase) {
 	// We only run acceptance tests if an env var is set because they're
 	// slow and generally require some outside configuration. You can opt out
 	// of this with OverrideEnvVar on individual TestCases.
-	if os.Getenv(TestEnvVar) == "" && !c.OverrideEnvVar {
+	if os.Getenv(TestEnvVar) == "" && !c.IsUnitTest {
 		t.Skip(fmt.Sprintf(
 			"Acceptance tests skipped unless env '%s' set",
 			TestEnvVar))
 		return
 	}
-
-	isUnitTest := (os.Getenv(TestEnvVar) == UnitTestOverride)
 
 	logWriter, err := logging.LogOutput()
 	if err != nil {
@@ -206,7 +200,7 @@ func Test(t TestT, c TestCase) {
 	log.SetOutput(logWriter)
 
 	// We require verbose mode so that the user knows what is going on.
-	if !testTesting && !testing.Verbose() && !isUnitTest && !c.OverrideEnvVar {
+	if !testTesting && !testing.Verbose() && !c.IsUnitTest {
 		t.Fatal("Acceptance tests must be run with the -v flag on tests")
 		return
 	}
@@ -326,15 +320,7 @@ func Test(t TestT, c TestCase) {
 // normal unit test suite. This should only be used for resource that don't
 // have any external dependencies.
 func UnitTest(t TestT, c TestCase) {
-	oldEnv := os.Getenv(TestEnvVar)
-	if err := os.Setenv(TestEnvVar, UnitTestOverride); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := os.Setenv(TestEnvVar, oldEnv); err != nil {
-			t.Fatal(err)
-		}
-	}()
+	c.IsUnitTest = true
 	Test(t, c)
 }
 
