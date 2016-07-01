@@ -1,6 +1,7 @@
 package test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -82,7 +83,7 @@ resource "test_resource" "foo" {
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	required           = "yep"
-	required_map = {
+	required_map {
 	    key = "value"
 	}
 	optional_force_new = "two"
@@ -108,7 +109,7 @@ func TestResource_ignoreChangesForceNew(t *testing.T) {
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	required           = "yep"
-	required_map = {
+	required_map {
 	    key = "value"
 	}
 	optional_force_new = "one"
@@ -181,6 +182,61 @@ resource "test_resource" "foo" {
   }
 }
 				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
+// Reproduces plan-time panic described in GH-7170
+func TestResource_dataSourceListPlanPanic(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+data "test_data_source" "foo" {}
+resource "test_resource" "foo" {
+  required = "${data.test_data_source.foo.list}"
+  required_map = {
+    key = "value"
+  }
+}
+				`),
+				ExpectError: regexp.MustCompile(`must be a single value, not a list`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
+// Reproduces apply-time panic described in GH-7170
+func TestResource_dataSourceListApplyPanic(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required = "ok"
+  required_map = {
+    key = "value"
+  }
+}
+resource "test_resource" "bar" {
+  required = "${test_resource.foo.computed_list}"
+  required_map = {
+    key = "value"
+  }
+}
+				`),
+				ExpectError: regexp.MustCompile(`must be a single value, not a list`),
 				Check: func(s *terraform.State) error {
 					return nil
 				},

@@ -911,6 +911,73 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 	}
 }
 
+// Higher level test at TestResource_dataSourceListPlanPanic
+func TestContext2Plan_dataSourceTypeMismatch(t *testing.T) {
+	m := testModule(t, "plan-data-source-type-mismatch")
+	p := testProvider("aws")
+	p.ValidateResourceFn = func(t string, c *ResourceConfig) (ws []string, es []error) {
+		// Emulate the type checking behavior of helper/schema based validation
+		if t == "aws_instance" {
+			ami, _ := c.Get("ami")
+			switch a := ami.(type) {
+			case string:
+				// ok
+			default:
+				es = append(es, fmt.Errorf("Expected ami to be string, got %T", a))
+			}
+		}
+		return
+	}
+	p.DiffFn = func(
+		info *InstanceInfo,
+		state *InstanceState,
+		c *ResourceConfig) (*InstanceDiff, error) {
+		if info.Type == "aws_instance" {
+			// If we get to the diff, we should be able to assume types
+			ami, _ := c.Get("ami")
+			_ = ami.(string)
+		}
+		return nil, nil
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		// Pretend like we ran a Refresh and the AZs data source was populated.
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"data.aws_availability_zones.azs": &ResourceState{
+							Type: "aws_availability_zones",
+							Primary: &InstanceState{
+								ID: "i-abc123",
+								Attributes: map[string]string{
+									"names.#": "2",
+									"names.0": "us-east-1a",
+									"names.1": "us-east-1b",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan()
+
+	if err == nil {
+		t.Fatalf("Expected err, got none!")
+	}
+	expected := "Expected ami to be string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected:\n\n%s\n\nto contain:\n\n%s", err, expected)
+	}
+}
+
 func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	m := testModule(t, "plan-data-resource-becomes-computed")
 	p := testProvider("aws")

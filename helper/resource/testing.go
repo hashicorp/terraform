@@ -138,6 +138,11 @@ type TestStep struct {
 	// looking to verify that a diff occurs
 	ExpectNonEmptyPlan bool
 
+	// ExpectError allows the construction of test cases that we expect to fail
+	// with an error. The specified regexp must match against the error for the
+	// test to pass.
+	ExpectError *regexp.Regexp
+
 	// PreventPostDestroyRefresh can be set to true for cases where data sources
 	// are tested alongside real resources
 	PreventPostDestroyRefresh bool
@@ -244,10 +249,21 @@ func Test(t TestT, c TestCase) {
 
 		// If there was an error, exit
 		if err != nil {
-			errored = true
-			t.Error(fmt.Sprintf(
-				"Step %d error: %s", i, err))
-			break
+			// Perhaps we expected an error? Check if it matches
+			if step.ExpectError != nil {
+				if !step.ExpectError.MatchString(err.Error()) {
+					errored = true
+					t.Error(fmt.Sprintf(
+						"Step %d, expected error:\n\n%s\n\nTo match:\n\n%s\n\n",
+						i, err, step.ExpectError))
+					break
+				}
+			} else {
+				errored = true
+				t.Error(fmt.Sprintf(
+					"Step %d error: %s", i, err))
+				break
+			}
 		}
 
 		// If we've never checked an id-only refresh and our state isn't
