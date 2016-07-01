@@ -97,6 +97,7 @@ IMPROVEMENTS:
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
+ * provider/azurerm: `azurerm_dns_zone` now returns `name_servers` [GH-7434]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * provider/clc: Fix optional server password [GH-6414]
  * provider/cloudstack: Add support for affinity groups to `cloudstack_instance` [GH-6898]
