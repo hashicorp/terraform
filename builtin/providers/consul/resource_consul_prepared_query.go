@@ -56,20 +56,37 @@ func resourceConsulPreparedQuery() *schema.Resource {
 				Optional: true,
 			},
 
-			"failover_nearest_n": &schema.Schema{
-				Type:     schema.TypeInt,
+			"failover": &schema.Schema{
+				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"nearest_n": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"datacenters": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
 			},
 
-			"failover_datacenters": &schema.Schema{
-				Type:     schema.TypeSet,
+			"dns": &schema.Schema{
+				Type:     schema.TypeList,
 				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-
-			"dns_ttl": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ttl": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 
 			"template": &schema.Schema{
@@ -143,9 +160,17 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("near", pq.Service.Near)
 	d.Set("only_passing", pq.Service.OnlyPassing)
 	d.Set("tags", pq.Service.Tags)
-	d.Set("failover_nearest_n", pq.Service.Failover.NearestN)
-	d.Set("failover_datacenters", pq.Service.Failover.Datacenters)
-	d.Set("dns_ttl", pq.DNS.TTL)
+
+	if pq.Service.Failover.NearestN > 0 {
+		d.Set("failover.0.nearest_n", pq.Service.Failover.NearestN)
+	}
+	if len(pq.Service.Failover.Datacenters) > 0 {
+		d.Set("failover.0.datacenters", pq.Service.Failover.Datacenters)
+	}
+
+	if pq.DNS.TTL != "" {
+		d.Set("dns.0.ttl", pq.DNS.TTL)
+	}
 
 	if pq.Template.Type != "" {
 		d.Set("template.0.type", pq.Template.Type)
@@ -176,12 +201,6 @@ func preparedQueryDefinitionFromResourceData(d *schema.ResourceData) *consulapi.
 			Service:     d.Get("service").(string),
 			Near:        d.Get("near").(string),
 			OnlyPassing: d.Get("only_passing").(bool),
-			Failover: consulapi.QueryDatacenterOptions{
-				NearestN: d.Get("failover_nearest_n").(int),
-			},
-		},
-		DNS: consulapi.QueryDNSOptions{
-			TTL: d.Get("dns_ttl").(string),
 		},
 	}
 
@@ -191,17 +210,30 @@ func preparedQueryDefinitionFromResourceData(d *schema.ResourceData) *consulapi.
 		pq.Service.Tags[i] = v.(string)
 	}
 
-	failoverDatacenters := d.Get("failover_datacenters").(*schema.Set).List()
-	pq.Service.Failover.Datacenters = make([]string, len(failoverDatacenters))
-	for i, v := range failoverDatacenters {
-		pq.Service.Failover.Datacenters[i] = v.(string)
+	if _, ok := d.GetOk("failover.0"); ok {
+		failover := consulapi.QueryDatacenterOptions{
+			NearestN: d.Get("failover.0.nearest_n").(int),
+		}
+
+		dcs := d.Get("failover.0.datacenters").(*schema.Set).List()
+		failover.Datacenters = make([]string, len(dcs))
+		for i, v := range dcs {
+			failover.Datacenters[i] = v.(string)
+		}
+
+		pq.Service.Failover = failover
 	}
 
-	if v, ok := d.GetOk("template"); ok {
-		tpl := v.([]interface{})[0].(map[string]interface{})
+	if _, ok := d.GetOk("template.0"); ok {
 		pq.Template = consulapi.QueryTemplate{
-			Type:   tpl["type"].(string),
-			Regexp: tpl["regexp"].(string),
+			Type:   d.Get("template.0.type").(string),
+			Regexp: d.Get("template.0.regexp").(string),
+		}
+	}
+
+	if _, ok := d.GetOk("dns.0"); ok {
+		pq.DNS = consulapi.QueryDNSOptions{
+			TTL: d.Get("dns.0.ttl").(string),
 		}
 	}
 

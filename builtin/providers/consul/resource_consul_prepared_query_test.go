@@ -25,9 +25,11 @@ func TestAccConsulPreparedQuery_basic(t *testing.T) {
 					testAccCheckConsulPreparedQueryAttrValue("near", "_agent"),
 					testAccCheckConsulPreparedQueryAttrValue("tags.#", "1"),
 					testAccCheckConsulPreparedQueryAttrValue("only_passing", "true"),
-					testAccCheckConsulPreparedQueryAttrValue("failover_nearest_n", "3"),
-					testAccCheckConsulPreparedQueryAttrValue("failover_datacenters.#", "2"),
-					testAccCheckConsulPreparedQueryAttrValue("dns_ttl", "8m"),
+					testAccCheckConsulPreparedQueryAttrValue("failover.0.nearest_n", "3"),
+					testAccCheckConsulPreparedQueryAttrValue("failover.0.datacenters.#", "2"),
+					testAccCheckConsulPreparedQueryAttrValue("template.0.type", "name_prefix_match"),
+					testAccCheckConsulPreparedQueryAttrValue("template.0.regexp", "hello"),
+					testAccCheckConsulPreparedQueryAttrValue("dns.0.ttl", "8m"),
 				),
 			},
 			resource.TestStep{
@@ -40,9 +42,10 @@ func TestAccConsulPreparedQuery_basic(t *testing.T) {
 					testAccCheckConsulPreparedQueryAttrValue("near", "node1"),
 					testAccCheckConsulPreparedQueryAttrValue("tags.#", "2"),
 					testAccCheckConsulPreparedQueryAttrValue("only_passing", "false"),
-					testAccCheckConsulPreparedQueryAttrValue("failover_nearest_n", "2"),
-					testAccCheckConsulPreparedQueryAttrValue("failover_datacenters.#", "1"),
-					testAccCheckConsulPreparedQueryAttrValue("dns_ttl", "16m"),
+					testAccCheckConsulPreparedQueryAttrValue("failover.0.nearest_n", "2"),
+					testAccCheckConsulPreparedQueryAttrValue("failover.0.datacenters.#", "1"),
+					testAccCheckConsulPreparedQueryAttrValue("template.0.regexp", "goodbye"),
+					testAccCheckConsulPreparedQueryAttrValue("dns.0.ttl", "16m"),
 				),
 			},
 			resource.TestStep{
@@ -52,9 +55,9 @@ func TestAccConsulPreparedQuery_basic(t *testing.T) {
 					testAccCheckConsulPreparedQueryAttrValue("token", ""),
 					testAccCheckConsulPreparedQueryAttrValue("near", ""),
 					testAccCheckConsulPreparedQueryAttrValue("tags.#", "0"),
-					testAccCheckConsulPreparedQueryAttrValue("failover_nearest_n", "0"),
-					testAccCheckConsulPreparedQueryAttrValue("failover_datacenters.#", "0"),
-					testAccCheckConsulPreparedQueryAttrValue("dns_ttl", ""),
+					testAccCheckConsulPreparedQueryAttrValue("failover.#", "0"),
+					testAccCheckConsulPreparedQueryAttrValue("template.#", "0"),
+					testAccCheckConsulPreparedQueryAttrValue("dns.#", "0"),
 				),
 			},
 		},
@@ -115,9 +118,20 @@ resource "consul_prepared_query" "foo" {
 	tags = ["prod"]
 	near = "_agent"
 	only_passing = true
-	failover_nearest_n = 3
-	failover_datacenters = ["dc1", "dc2"]
-	dns_ttl = "8m"
+
+	failover {
+		nearest_n = 3
+		datacenters = ["dc1", "dc2"]
+	}
+
+	template {
+		type = "name_prefix_match"
+		regexp = "hello"
+	}
+
+	dns {
+		ttl = "8m"
+	}
 }
 `
 
@@ -129,9 +143,20 @@ resource "consul_prepared_query" "foo" {
 	tags = ["prod","sup"]
 	near = "node1"
 	only_passing = false
-	failover_nearest_n = 2
-	failover_datacenters = ["dc2"]
-	dns_ttl = "16m"
+
+	failover {
+		nearest_n = 2
+		datacenters = ["dc2"]
+	}
+
+	template {
+		type = "name_prefix_match"
+		regexp = "goodbye"
+	}
+
+	dns {
+		ttl = "16m"
+	}
 }
 `
 
