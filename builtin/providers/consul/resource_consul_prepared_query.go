@@ -40,11 +40,6 @@ func resourceConsulPreparedQuery() *schema.Resource {
 				Optional: true,
 			},
 
-			"store_token": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-
 			"service": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -174,15 +169,11 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("name", pq.Name)
 	d.Set("session", pq.Session)
-	d.Set("store_token", (pq.Token != ""))
+	d.Set("token", pq.Token)
 	d.Set("service", pq.Service.Service)
 	d.Set("near", pq.Service.Near)
 	d.Set("only_passing", pq.Service.OnlyPassing)
 	d.Set("tags", pq.Service.Tags)
-
-	if d.Get("store_token").(bool) {
-		d.Set("token", pq.Token)
-	}
 
 	if pq.Service.Failover.NearestN > 0 {
 		d.Set("failover.0.nearest_n", pq.Service.Failover.NearestN)
@@ -223,16 +214,12 @@ func preparedQueryDefinitionFromResourceData(d *schema.ResourceData) *consulapi.
 		ID:      d.Id(),
 		Name:    d.Get("name").(string),
 		Session: d.Get("session").(string),
+		Token:   d.Get("token").(string),
 		Service: consulapi.ServiceQuery{
 			Service:     d.Get("service").(string),
 			Near:        d.Get("near").(string),
 			OnlyPassing: d.Get("only_passing").(bool),
 		},
-	}
-
-	// Only store the token if the user requested so.
-	if d.Get("store_token").(bool) {
-		pq.Token = d.Get("token").(string)
 	}
 
 	tags := d.Get("tags").(*schema.Set).List()
