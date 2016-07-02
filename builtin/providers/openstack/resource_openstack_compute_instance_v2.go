@@ -622,28 +622,28 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 		for _, g := range secgroupsToRemove.List() {
 			err := secgroups.RemoveServerFromGroup(computeClient, d.Id(), g.(string)).ExtractErr()
-			if err != nil {
+			if err != nil && err.Error() != "EOF" {
 				errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 				if !ok {
-					return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
+					return fmt.Errorf("Error removing security group (%s) from OpenStack server (%s): %s", g, d.Id(), err)
 				}
 				if errCode.Actual == 404 {
 					continue
 				} else {
-					return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
+					return fmt.Errorf("Error removing security group (%s) from OpenStack server (%s): %s", g, d.Id(), err)
 				}
 			} else {
-				log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g.(string), d.Id())
+				log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g, d.Id())
 			}
-		}
-		for _, g := range secgroupsToAdd.List() {
-			err := secgroups.AddServerToGroup(computeClient, d.Id(), g.(string)).ExtractErr()
-			if err != nil {
-				return fmt.Errorf("Error adding security group to OpenStack server (%s): %s", d.Id(), err)
-			}
-			log.Printf("[DEBUG] Added security group (%s) to instance (%s)", g.(string), d.Id())
 		}
 
+		for _, g := range secgroupsToAdd.List() {
+			err := secgroups.AddServerToGroup(computeClient, d.Id(), g.(string)).ExtractErr()
+			if err != nil && err.Error() != "EOF" {
+				return fmt.Errorf("Error adding security group (%s) to OpenStack server (%s): %s", g, d.Id(), err)
+			}
+			log.Printf("[DEBUG] Added security group (%s) to instance (%s)", g, d.Id())
+		}
 	}
 
 	if d.HasChange("admin_pass") {
