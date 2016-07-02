@@ -89,6 +89,43 @@ func TestAccAWSLaunchConfiguration_withSpotPrice(t *testing.T) {
 	})
 }
 
+func TestAccAWSLaunchConfiguration_withVpcClassicLink(t *testing.T) {
+	var conf autoscaling.LaunchConfiguration
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSLaunchConfigurationConfig_withVpcClassicLink,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_launch_configuration.foo", "vpc_classic_link_id", "vpc-65814701"),
+					resource.TestCheckResourceAttr(
+						"aws_launch_configuration.foo", "vpc_classic_link_security_groups.#", "1"),
+					testAccCheckAWSLaunchConfigurationWithVPCClassicLink(&conf),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckAWSLaunchConfigurationWithVPCClassicLink(conf *autoscaling.LaunchConfiguration) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *conf.ClassicLinkVPCId != "vpc-65814701" {
+			return fmt.Errorf("Bad vpc_classic_link_id: %s", *conf.ClassicLinkVPCId)
+		}
+
+		if *conf.ClassicLinkVPCSecurityGroups[0] != "sg-6a4d2f0d" {
+			return fmt.Errorf("Bad vpc_classic_link_security_groups: %s", *conf.ClassicLinkVPCSecurityGroups[0])
+		}
+
+		return nil
+	}
+}
+
 func TestAccAWSLaunchConfiguration_withIAMProfile(t *testing.T) {
 	var conf autoscaling.LaunchConfiguration
 
@@ -353,6 +390,17 @@ resource "aws_launch_configuration" "baz" {
 		volume_size = 9
 		encrypted = true
 	}
+}
+`
+
+const testAccAWSLaunchConfigurationConfig_withVpcClassicLink = `
+resource "aws_launch_configuration" "foo" {
+   name = "TestAccAWSLaunchConfiguration_withVpcClassicLink"
+   image_id = "ami-21f78e11"
+   instance_type = "t1.micro"
+
+   vpc_classic_link_id = "vpc-65814701"
+   vpc_classic_link_security_groups = ["sg-6a4d2f0d"]
 }
 `
 

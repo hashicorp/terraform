@@ -110,13 +110,13 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"vpc_classiclink": &schema.Schema{
+			"vpc_classic_link_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"vpc_classiclink_security_groups": &schema.Schema{
+			"vpc_classic_link_security_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
