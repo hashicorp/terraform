@@ -71,6 +71,24 @@ func resourceConsulPreparedQuery() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
+			"template": &schema.Schema{
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"regexp": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -129,6 +147,11 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("failover_datacenters", pq.Service.Failover.Datacenters)
 	d.Set("dns_ttl", pq.DNS.TTL)
 
+	if pq.Template.Type != "" {
+		d.Set("template.0.type", pq.Template.Type)
+		d.Set("template.0.regexp", pq.Template.Regexp)
+	}
+
 	return nil
 }
 
@@ -172,6 +195,14 @@ func preparedQueryDefinitionFromResourceData(d *schema.ResourceData) *consulapi.
 	pq.Service.Failover.Datacenters = make([]string, len(failoverDatacenters))
 	for i, v := range failoverDatacenters {
 		pq.Service.Failover.Datacenters[i] = v.(string)
+	}
+
+	if v, ok := d.GetOk("template"); ok {
+		tpl := v.([]interface{})[0].(map[string]interface{})
+		pq.Template = consulapi.QueryTemplate{
+			Type:   tpl["type"].(string),
+			Regexp: tpl["regexp"].(string),
+		}
 	}
 
 	return pq
