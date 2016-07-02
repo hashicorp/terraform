@@ -22,6 +22,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `aws_db_instance` now defaults `publicly_accessible` to false
  * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
  * `atlas_artifact` resource has be depracated. Please use the new `atlas_artifact` Data Source
+ * The `member` attribute of `openstack_lb_pool_v1` has been deprecated. Please ue the new `openstack_lb_member_v1` resource.
 
 FEATURES:
 
