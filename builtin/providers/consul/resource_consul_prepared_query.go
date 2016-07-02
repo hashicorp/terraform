@@ -114,6 +114,7 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 
 	if len(queries) != 1 {
 		d.SetId("")
+		return nil
 	}
 	pq := queries[0]
 
@@ -132,6 +133,13 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceConsulPreparedQueryDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*consulapi.Client)
+	qo := &consulapi.QueryOptions{Token: d.Get("token").(string)}
+	if _, err := client.PreparedQuery().Delete(d.Id(), qo); err != nil {
+		return err
+	}
+
+	d.SetId("")
 	return nil
 }
 
