@@ -36,83 +36,40 @@ func resourceConsulPreparedQuery() *schema.Resource {
 			},
 
 			"service": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeString,
 				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"service": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"near": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-
-						"failover": &schema.Schema{
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"nearest_n": &schema.Schema{
-										Type:     schema.TypeInt,
-										Optional: true,
-									},
-
-									"datacenters": &schema.Schema{
-										Type:     schema.TypeSet,
-										Optional: true,
-										Elem:     &schema.Schema{Type: schema.TypeString},
-										Set:      schema.HashString,
-									},
-								},
-							},
-						},
-
-						"only_passing": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
-
-						"tags": &schema.Schema{
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set:      schema.HashString,
-						},
-					},
-				},
 			},
 
-			"dns": &schema.Schema{
+			"tags": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"ttl": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-					},
-				},
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"template": &schema.Schema{
+			"near": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"only_passing": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"failover_nearest_n": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
+			"failover_datacenters": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"regexp": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-					},
-				},
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"dns_ttl": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
@@ -127,22 +84,28 @@ func resourceConsulPreparedQueryCreate(d *schema.ResourceData, meta interface{})
 		Session: d.Get("session").(string),
 		Token:   token,
 		Service: consulapi.ServiceQuery{
-			Service:     d.Get("service.service").(string),
-			Near:        d.Get("service.near").(string),
-			OnlyPassing: d.Get("service.only_passing").(bool),
-			Tags:        d.Get("service.tags").([]string),
+			Service:     d.Get("service").(string),
+			Near:        d.Get("near").(string),
+			OnlyPassing: d.Get("only_passing").(bool),
+			Failover: consulapi.QueryDatacenterOptions{
+				NearestN: d.Get("failover_nearest_n").(int),
+			},
+		},
+		DNS: consulapi.QueryDNSOptions{
+			TTL: d.Get("dns_ttl").(string),
 		},
 	}
 
-	if _, ok := d.GetOk("service.failover"); ok {
-		pq.Service.Failover.NearestN = d.Get("service.failover.nearest_n").(int)
-		pq.Service.Failover.Datacenters = d.Get("service.failover.datacenters").([]string)
+	tags := d.Get("tags").(*schema.Set).List()
+	pq.Service.Tags = make([]string, len(tags))
+	for i, v := range tags {
+		pq.Service.Tags[i] = v.(string)
 	}
 
-	if _, ok := d.GetOk("dns"); ok {
-		if v, ok := d.GetOk("dns.ttl"); ok {
-			pq.DNS.TTL = v.(string)
-		}
+	failoverDatacenters := d.Get("failover_datacenters").(*schema.Set).List()
+	pq.Service.Failover.Datacenters = make([]string, len(failoverDatacenters))
+	for i, v := range failoverDatacenters {
+		pq.Service.Failover.Datacenters[i] = v.(string)
 	}
 
 	id, _, err := client.PreparedQuery().Create(pq, &consulapi.WriteOptions{Token: token})
@@ -176,13 +139,13 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", pq.Name)
 	d.Set("session", pq.Session)
 	d.Set("token", token)
-	d.Set("service.service", pq.Service.Service)
-	d.Set("service.near", pq.Service.Near)
-	d.Set("service.only_passing", pq.Service.OnlyPassing)
-	d.Set("service.tags", pq.Service.Tags)
-	d.Set("service.failover.nearest_n", pq.Service.Failover.NearestN)
-	d.Set("service.failover.datacenters", pq.Service.Failover.Datacenters)
-	d.Set("dns.ttl", pq.DNS.TTL)
+	d.Set("service", pq.Service.Service)
+	d.Set("near", pq.Service.Near)
+	d.Set("only_passing", pq.Service.OnlyPassing)
+	d.Set("tags", pq.Service.Tags)
+	d.Set("failover_nearest_n", pq.Service.Failover.NearestN)
+	d.Set("failover_datacenters", pq.Service.Failover.Datacenters)
+	d.Set("dns_ttl", pq.DNS.TTL)
 
 	return nil
 }
