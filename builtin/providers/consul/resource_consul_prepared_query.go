@@ -40,6 +40,11 @@ func resourceConsulPreparedQuery() *schema.Resource {
 				Optional: true,
 			},
 
+			"stored_token": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"service": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -169,7 +174,7 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("name", pq.Name)
 	d.Set("session", pq.Session)
-	d.Set("token", pq.Token)
+	d.Set("stored_token", pq.Token)
 	d.Set("service", pq.Service.Service)
 	d.Set("near", pq.Service.Near)
 	d.Set("only_passing", pq.Service.OnlyPassing)
@@ -214,7 +219,7 @@ func preparedQueryDefinitionFromResourceData(d *schema.ResourceData) *consulapi.
 		ID:      d.Id(),
 		Name:    d.Get("name").(string),
 		Session: d.Get("session").(string),
-		Token:   d.Get("token").(string),
+		Token:   d.Get("stored_token").(string),
 		Service: consulapi.ServiceQuery{
 			Service:     d.Get("service").(string),
 			Near:        d.Get("near").(string),

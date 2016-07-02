@@ -20,7 +20,7 @@ func TestAccConsulPreparedQuery_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulPreparedQueryExists(),
 					testAccCheckConsulPreparedQueryAttrValue("name", "foo"),
-					testAccCheckConsulPreparedQueryAttrValue("token", "bar"),
+					testAccCheckConsulPreparedQueryAttrValue("stored_token", "pq-token"),
 					testAccCheckConsulPreparedQueryAttrValue("service", "redis"),
 					testAccCheckConsulPreparedQueryAttrValue("near", "_agent"),
 					testAccCheckConsulPreparedQueryAttrValue("tags.#", "1"),
@@ -37,7 +37,7 @@ func TestAccConsulPreparedQuery_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulPreparedQueryExists(),
 					testAccCheckConsulPreparedQueryAttrValue("name", "baz"),
-					testAccCheckConsulPreparedQueryAttrValue("token", "zip"),
+					testAccCheckConsulPreparedQueryAttrValue("stored_token", "pq-token-updated"),
 					testAccCheckConsulPreparedQueryAttrValue("service", "memcached"),
 					testAccCheckConsulPreparedQueryAttrValue("near", "node1"),
 					testAccCheckConsulPreparedQueryAttrValue("tags.#", "2"),
@@ -52,7 +52,7 @@ func TestAccConsulPreparedQuery_basic(t *testing.T) {
 				Config: testAccConsulPreparedQueryConfigUpdate2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulPreparedQueryExists(),
-					testAccCheckConsulPreparedQueryAttrValue("token", ""),
+					testAccCheckConsulPreparedQueryAttrValue("stored_token", ""),
 					testAccCheckConsulPreparedQueryAttrValue("near", ""),
 					testAccCheckConsulPreparedQueryAttrValue("tags.#", "0"),
 					testAccCheckConsulPreparedQueryAttrValue("failover.#", "0"),
@@ -113,7 +113,8 @@ func testAccCheckConsulPreparedQueryAttrValue(attr, val string) resource.TestChe
 const testAccConsulPreparedQueryConfig = `
 resource "consul_prepared_query" "foo" {
 	name = "foo"
-	token = "bar"
+	token = "client-token"
+	stored_token = "pq-token"
 	service = "redis"
 	tags = ["prod"]
 	near = "_agent"
@@ -138,7 +139,8 @@ resource "consul_prepared_query" "foo" {
 const testAccConsulPreparedQueryConfigUpdate1 = `
 resource "consul_prepared_query" "foo" {
 	name = "baz"
-	token = "zip"
+	token = "client-token"
+	stored_token = "pq-token-updated"
 	service = "memcached"
 	tags = ["prod","sup"]
 	near = "node1"
@@ -164,5 +166,6 @@ const testAccConsulPreparedQueryConfigUpdate2 = `
 resource "consul_prepared_query" "foo" {
 	name = "baz"
 	service = "memcached"
+	token = "client-token"
 }
 `
