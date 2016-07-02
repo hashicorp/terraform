@@ -77,49 +77,30 @@ func resourceConsulPreparedQuery() *schema.Resource {
 
 func resourceConsulPreparedQueryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
-	token := d.Get("token").(string)
+	wo := &consulapi.WriteOptions{Token: d.Get("token").(string)}
 
-	pq := &consulapi.PreparedQueryDefinition{
-		Name:    d.Get("name").(string),
-		Session: d.Get("session").(string),
-		Token:   token,
-		Service: consulapi.ServiceQuery{
-			Service:     d.Get("service").(string),
-			Near:        d.Get("near").(string),
-			OnlyPassing: d.Get("only_passing").(bool),
-			Failover: consulapi.QueryDatacenterOptions{
-				NearestN: d.Get("failover_nearest_n").(int),
-			},
-		},
-		DNS: consulapi.QueryDNSOptions{
-			TTL: d.Get("dns_ttl").(string),
-		},
-	}
+	pq := preparedQueryDefinitionFromResourceData(d)
 
-	tags := d.Get("tags").(*schema.Set).List()
-	pq.Service.Tags = make([]string, len(tags))
-	for i, v := range tags {
-		pq.Service.Tags[i] = v.(string)
-	}
-
-	failoverDatacenters := d.Get("failover_datacenters").(*schema.Set).List()
-	pq.Service.Failover.Datacenters = make([]string, len(failoverDatacenters))
-	for i, v := range failoverDatacenters {
-		pq.Service.Failover.Datacenters[i] = v.(string)
-	}
-
-	id, _, err := client.PreparedQuery().Create(pq, &consulapi.WriteOptions{Token: token})
+	id, _, err := client.PreparedQuery().Create(pq, wo)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(id)
-
 	return resourceConsulPreparedQueryRead(d, meta)
 }
 
 func resourceConsulPreparedQueryUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	client := meta.(*consulapi.Client)
+	wo := &consulapi.WriteOptions{Token: d.Get("token").(string)}
+
+	pq := preparedQueryDefinitionFromResourceData(d)
+
+	if _, err := client.PreparedQuery().Update(pq, wo); err != nil {
+		return err
+	}
+
+	return resourceConsulPreparedQueryRead(d, meta)
 }
 
 func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) error {
@@ -152,4 +133,38 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceConsulPreparedQueryDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
+}
+
+func preparedQueryDefinitionFromResourceData(d *schema.ResourceData) *consulapi.PreparedQueryDefinition {
+	pq := &consulapi.PreparedQueryDefinition{
+		ID:      d.Id(),
+		Name:    d.Get("name").(string),
+		Session: d.Get("session").(string),
+		Token:   d.Get("token").(string),
+		Service: consulapi.ServiceQuery{
+			Service:     d.Get("service").(string),
+			Near:        d.Get("near").(string),
+			OnlyPassing: d.Get("only_passing").(bool),
+			Failover: consulapi.QueryDatacenterOptions{
+				NearestN: d.Get("failover_nearest_n").(int),
+			},
+		},
+		DNS: consulapi.QueryDNSOptions{
+			TTL: d.Get("dns_ttl").(string),
+		},
+	}
+
+	tags := d.Get("tags").(*schema.Set).List()
+	pq.Service.Tags = make([]string, len(tags))
+	for i, v := range tags {
+		pq.Service.Tags[i] = v.(string)
+	}
+
+	failoverDatacenters := d.Get("failover_datacenters").(*schema.Set).List()
+	pq.Service.Failover.Datacenters = make([]string, len(failoverDatacenters))
+	for i, v := range failoverDatacenters {
+		pq.Service.Failover.Datacenters[i] = v.(string)
+	}
+
+	return pq
 }
