@@ -12,11 +12,9 @@ import (
 
 const pemCertReqType = "CERTIFICATE REQUEST"
 
-func resourceCertRequest() *schema.Resource {
+func dataSourceCertRequest() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateCertRequest,
-		Delete: DeleteCertRequest,
-		Read:   ReadCertRequest,
+		Read: ReadCertRequest,
 
 		Schema: map[string]*schema.Schema{
 
@@ -24,7 +22,6 @@ func resourceCertRequest() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "List of DNS names to use as subjects of the certificate",
-				ForceNew:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -34,7 +31,6 @@ func resourceCertRequest() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "List of IP addresses to use as subjects of the certificate",
-				ForceNew:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -44,14 +40,12 @@ func resourceCertRequest() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the algorithm to use to generate the certificate's private key",
-				ForceNew:    true,
 			},
 
 			"private_key_pem": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "PEM-encoded private key that the certificate will belong to",
-				ForceNew:    true,
 				StateFunc: func(v interface{}) string {
 					return hashForState(v.(string))
 				},
@@ -61,7 +55,6 @@ func resourceCertRequest() *schema.Resource {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem:     nameSchema,
-				ForceNew: true,
 			},
 
 			"cert_request_pem": &schema.Schema{
@@ -72,7 +65,7 @@ func resourceCertRequest() *schema.Resource {
 	}
 }
 
-func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
+func ReadCertRequest(d *schema.ResourceData, meta interface{}) error {
 	key, err := parsePrivateKey(d, "private_key_pem", "key_algorithm")
 	if err != nil {
 		return err
@@ -114,14 +107,5 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(hashForState(string(certReqBytes)))
 	d.Set("cert_request_pem", certReqPem)
 
-	return nil
-}
-
-func DeleteCertRequest(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
-func ReadCertRequest(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
