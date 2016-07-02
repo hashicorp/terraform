@@ -20,6 +20,11 @@ func resourceConsulPreparedQuery() *schema.Resource {
 				Computed: true,
 			},
 
+			"datacenter": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -32,6 +37,11 @@ func resourceConsulPreparedQuery() *schema.Resource {
 
 			"token": &schema.Schema{
 				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"store_token": &schema.Schema{
+				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
@@ -112,7 +122,10 @@ func resourceConsulPreparedQuery() *schema.Resource {
 
 func resourceConsulPreparedQueryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
-	wo := &consulapi.WriteOptions{Token: d.Get("token").(string)}
+	wo := &consulapi.WriteOptions{
+		Datacenter: d.Get("datacenter").(string),
+		Token:      d.Get("token").(string),
+	}
 
 	pq := preparedQueryDefinitionFromResourceData(d)
 
@@ -127,7 +140,10 @@ func resourceConsulPreparedQueryCreate(d *schema.ResourceData, meta interface{})
 
 func resourceConsulPreparedQueryUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
-	wo := &consulapi.WriteOptions{Token: d.Get("token").(string)}
+	wo := &consulapi.WriteOptions{
+		Datacenter: d.Get("datacenter").(string),
+		Token:      d.Get("token").(string),
+	}
 
 	pq := preparedQueryDefinitionFromResourceData(d)
 
@@ -140,9 +156,12 @@ func resourceConsulPreparedQueryUpdate(d *schema.ResourceData, meta interface{})
 
 func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
-	token := d.Get("token").(string)
+	qo := &consulapi.QueryOptions{
+		Datacenter: d.Get("datacenter").(string),
+		Token:      d.Get("token").(string),
+	}
 
-	queries, _, err := client.PreparedQuery().Get(d.Id(), &consulapi.QueryOptions{Token: token})
+	queries, _, err := client.PreparedQuery().Get(d.Id(), qo)
 	if err != nil {
 		return err
 	}
@@ -155,11 +174,15 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("name", pq.Name)
 	d.Set("session", pq.Session)
-	d.Set("token", token)
+	d.Set("store_token", (pq.Token != ""))
 	d.Set("service", pq.Service.Service)
 	d.Set("near", pq.Service.Near)
 	d.Set("only_passing", pq.Service.OnlyPassing)
 	d.Set("tags", pq.Service.Tags)
+
+	if d.Get("store_token").(bool) {
+		d.Set("token", pq.Token)
+	}
 
 	if pq.Service.Failover.NearestN > 0 {
 		d.Set("failover.0.nearest_n", pq.Service.Failover.NearestN)
@@ -182,7 +205,11 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceConsulPreparedQueryDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
-	qo := &consulapi.QueryOptions{Token: d.Get("token").(string)}
+	qo := &consulapi.QueryOptions{
+		Datacenter: d.Get("datacenter").(string),
+		Token:      d.Get("token").(string),
+	}
+
 	if _, err := client.PreparedQuery().Delete(d.Id(), qo); err != nil {
 		return err
 	}
@@ -196,12 +223,16 @@ func preparedQueryDefinitionFromResourceData(d *schema.ResourceData) *consulapi.
 		ID:      d.Id(),
 		Name:    d.Get("name").(string),
 		Session: d.Get("session").(string),
-		Token:   d.Get("token").(string),
 		Service: consulapi.ServiceQuery{
 			Service:     d.Get("service").(string),
 			Near:        d.Get("near").(string),
 			OnlyPassing: d.Get("only_passing").(bool),
 		},
+	}
+
+	// Only store the token if the user requested so.
+	if d.Get("store_token").(bool) {
+		pq.Token = d.Get("token").(string)
 	}
 
 	tags := d.Get("tags").(*schema.Set).List()
