@@ -1,10 +1,14 @@
 package schema
 
 import (
+	"bytes"
+	"fmt"
 	"math"
 	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -3224,6 +3228,150 @@ func TestResourceDataSetType(t *testing.T) {
 	actual := d.State()
 	if v := actual.Ephemeral.Type; v != "bar" {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceDataGet_setItemRemoved(t *testing.T) {
+	resourceAwsElbListenerHash := func(v interface{}) int {
+		var buf bytes.Buffer
+		m := v.(map[string]interface{})
+		buf.WriteString(fmt.Sprintf("%d-", m["instance_port"].(int)))
+		buf.WriteString(fmt.Sprintf("%s-",
+			strings.ToLower(m["instance_protocol"].(string))))
+		buf.WriteString(fmt.Sprintf("%d-", m["lb_port"].(int)))
+		buf.WriteString(fmt.Sprintf("%s-",
+			strings.ToLower(m["lb_protocol"].(string))))
+
+		if v, ok := m["ssl_certificate_id"]; ok {
+			buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+		}
+
+		return hashcode.String(buf.String())
+	}
+
+	schema := map[string]*Schema{
+		"listener": &Schema{
+			Type:     TypeSet,
+			Required: true,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"instance_port": &Schema{
+						Type:     TypeInt,
+						Required: true,
+					},
+
+					"instance_protocol": &Schema{
+						Type:     TypeString,
+						Required: true,
+					},
+
+					"lb_port": &Schema{
+						Type:     TypeInt,
+						Required: true,
+					},
+
+					"lb_protocol": &Schema{
+						Type:     TypeString,
+						Required: true,
+					},
+
+					"ssl_certificate_id": &Schema{
+						Type:     TypeString,
+						Optional: true,
+					},
+				},
+			},
+			Set: resourceAwsElbListenerHash,
+		},
+
+		"tags": &Schema{
+			Type:     TypeMap,
+			Optional: true,
+		},
+	}
+
+	existingState := &terraform.InstanceState{
+		ID: "tf-lb-viox4pkvmfd5dbjf2qwiqmxtaq",
+		Attributes: map[string]string{
+			"id":                                    "tf-lb-t77qtnbbm5dczcnker4c7boj7m",
+			"listener.#":                            "1",
+			"listener.206423021.instance_port":      "8000",
+			"listener.206423021.instance_protocol":  "http",
+			"listener.206423021.lb_port":            "80",
+			"listener.206423021.lb_protocol":        "http",
+			"listener.206423021.ssl_certificate_id": "",
+			"tags.%":   "1",
+			"tags.bar": "baz",
+		},
+	}
+
+	suggestedDiff := &terraform.InstanceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"listener.3931999347.ssl_certificate_id": &terraform.ResourceAttrDiff{
+				Old: "", New: "", NewRemoved: false,
+			},
+			"tags.bar": &terraform.ResourceAttrDiff{
+				Old: "baz", New: "", NewRemoved: true,
+			},
+			"listener.206423021.instance_port": &terraform.ResourceAttrDiff{
+				Old: "8000", New: "0", NewRemoved: true,
+			},
+			"listener.206423021.lb_port": &terraform.ResourceAttrDiff{
+				Old: "80", New: "0", NewRemoved: true,
+			},
+			"listener.206423021.lb_protocol": &terraform.ResourceAttrDiff{
+				Old: "http", New: "", NewRemoved: true,
+			},
+			"listener.206423021.ssl_certificate_id": &terraform.ResourceAttrDiff{
+				Old: "", New: "", NewRemoved: true,
+			},
+			"listener.3931999347.instance_protocol": &terraform.ResourceAttrDiff{
+				Old: "", New: "http", NewRemoved: false,
+			},
+			"listener.206423021.instance_protocol": &terraform.ResourceAttrDiff{
+				Old: "http", New: "", NewRemoved: true,
+			},
+			"listener.3931999347.instance_port": &terraform.ResourceAttrDiff{
+				Old: "", New: "8080", NewRemoved: false,
+			},
+			"listener.3931999347.lb_port": &terraform.ResourceAttrDiff{
+				Old: "", New: "80", NewRemoved: false,
+			},
+			"listener.3931999347.lb_protocol": &terraform.ResourceAttrDiff{
+				Old: "", New: "http", NewRemoved: false,
+			},
+			"tags.%": &terraform.ResourceAttrDiff{
+				Old: "1", New: "0", NewRemoved: false,
+			},
+		},
+	}
+
+	d := &ResourceData{
+		schema: schema,
+		state:  existingState,
+		diff:   suggestedDiff,
+	}
+
+	set := d.Get("listener").(*Set)
+	if len(set.List()) != 1 {
+		t.Fatalf("Expected exactly 1 instance of listener, got %d", len(set.List()))
+	}
+	if set.List()[0] == nil {
+		t.Fatalf("Expected listener to be not nil: %#v", set.List())
+	}
+
+	expectedSet := NewSet(resourceAwsElbListenerHash, []interface{}{
+		map[string]interface{}{
+			"lb_port":            80,
+			"lb_protocol":        "http",
+			"ssl_certificate_id": "",
+			"instance_port":      8080,
+			"instance_protocol":  "http",
+		},
+	})
+
+	if !expectedSet.Equal(set) {
+		t.Fatalf("Given: %#v\n\nExpected: %#v", set, expectedSet.List())
 	}
 }
 

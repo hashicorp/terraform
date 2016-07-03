@@ -273,10 +273,42 @@ func (r *DiffFieldReader) readSet(
 		sourceSet := sourceResult.Value.(*Set)
 		sourceMap := sourceSet.Map()
 
-		for k, _ := range sourceMap {
+		// Doesn't this belong to readObjectField?
+		res, rOk := schema.Elem.(*Resource)
+
+		for k, v := range sourceMap {
 			key := prefix + k
-			_, ok := r.Diff.Attributes[key]
-			if !ok {
+
+			// If ResourceAttrDiff of a set item which only contains
+			// NewRemoved: true fields also had NewRemoved: true itself
+			// then we wouldn't have to do this ugly thing
+			sourceFields, fieldsOk := v.(map[string]interface{})
+			if fieldsOk {
+				for fieldKey, _ := range sourceFields {
+					fa, fieldOk := r.Diff.Attributes[key+"."+fieldKey]
+					if fieldOk && fa.NewRemoved {
+						delete(sourceFields, fieldKey)
+					}
+
+					// Delete computed fields
+					if !fieldOk && rOk && res.Schema[fieldKey].Computed {
+						delete(sourceFields, fieldKey)
+					}
+
+					countField, cFieldOk := r.Diff.Attributes[key+"."+fieldKey+".#"]
+					if cFieldOk && countField.New == "0" {
+						delete(sourceFields, fieldKey)
+						delete(sourceFields, fieldKey+".#")
+					}
+				}
+			}
+
+			_, parentOk := r.Diff.Attributes[key]
+
+			// Only bother processing set items which either
+			// have at least 1 field left (not NewRemoved) or
+			// aren't in the diff at all
+			if (!parentOk && len(sourceFields) > 0) || !fieldsOk {
 				keys = append(keys, key)
 			}
 		}
@@ -305,6 +337,12 @@ func (r *DiffFieldReader) readSet(
 		// Split the key, since it might be a sub-object like "idx.field"
 		parts := strings.Split(k[len(prefix):], ".")
 		idx := parts[0]
+
+		kD, ok := r.Diff.Attributes[prefix+parts[0]]
+		if ok && kD.NewRemoved {
+			// Skip any sub-objects that are being removed
+			continue
+		}
 
 		raw, err := r.ReadField(append(address, idx))
 		if err != nil {
