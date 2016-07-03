@@ -22,7 +22,7 @@ resource "consul_prepared_query" "service-near-self" {
     token = "abcd"
     stored_token = "wxyz"
     name = ""
-    service = "${match(1)}"
+    service = "$${match(1)}"
     only_passing = true
     near = "_agent"
 
