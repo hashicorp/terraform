@@ -46,6 +46,9 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 		Read:   resourceAwsElasticBeanstalkEnvironmentRead,
 		Update: resourceAwsElasticBeanstalkEnvironmentUpdate,
 		Delete: resourceAwsElasticBeanstalkEnvironmentDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsElasticBeanstalkEnvironmentMigrateState,
@@ -339,15 +342,12 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
-	app := d.Get("application").(string)
 	envId := d.Id()
-	tier := d.Get("tier").(string)
 
 	log.Printf("[DEBUG] Elastic Beanstalk environment read %s: id %s", d.Get("name").(string), d.Id())
 
 	resp, err := conn.DescribeEnvironments(&elasticbeanstalk.DescribeEnvironmentsInput{
-		ApplicationName: aws.String(app),
-		EnvironmentIds:  []*string{aws.String(envId)},
+		EnvironmentIds: []*string{aws.String(envId)},
 	})
 
 	if err != nil {
@@ -380,6 +380,14 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		return err
 	}
 
+	if err := d.Set("name", env.EnvironmentName); err != nil {
+		return err
+	}
+
+	if err := d.Set("application", env.ApplicationName); err != nil {
+		return err
+	}
+
 	if err := d.Set("description", env.Description); err != nil {
 		return err
 	}
@@ -388,8 +396,12 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		return err
 	}
 
-	if tier == "WebServer" && env.CNAME != nil {
-		beanstalkCnamePrefixRegexp := regexp.MustCompile(`(^[^.]+).\w{2}-\w{4,9}-\d.elasticbeanstalk.com$`)
+	if err := d.Set("tier", *env.Tier.Name); err != nil {
+		return err
+	}
+
+	if env.CNAME != nil {
+		beanstalkCnamePrefixRegexp := regexp.MustCompile(`(^[^.]+)(.\w{2}-\w{4,9}-\d)?.elasticbeanstalk.com$`)
 		var cnamePrefix string
 		cnamePrefixMatch := beanstalkCnamePrefixRegexp.FindStringSubmatch(*env.CNAME)
 
@@ -400,6 +412,10 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		}
 
 		if err := d.Set("cname_prefix", cnamePrefix); err != nil {
+			return err
+		}
+	} else {
+		if err := d.Set("cname_prefix", ""); err != nil {
 			return err
 		}
 	}
