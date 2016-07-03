@@ -17,6 +17,9 @@ func resourceFWFirewallV1() *schema.Resource {
 		Read:   resourceFWFirewallV1Read,
 		Update: resourceFWFirewallV1Update,
 		Delete: resourceFWFirewallV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -105,10 +108,11 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	firewall, err := firewalls.Get(networkingClient, d.Id()).Extract()
-
 	if err != nil {
 		return CheckDeleted(d, err, "firewall")
 	}
+
+	log.Printf("[DEBUG] Read OpenStack Firewall %s: %#v", d.Id(), firewall)
 
 	d.Set("name", firewall.Name)
 	d.Set("description", firewall.Description)
