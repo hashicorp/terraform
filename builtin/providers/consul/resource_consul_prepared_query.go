@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"strings"
+
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -163,6 +165,11 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 
 	queries, _, err := client.PreparedQuery().Get(d.Id(), qo)
 	if err != nil {
+		// Check for a 404/not found, these are returned as errors.
+		if strings.Contains(err.Error(), "not found") {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
