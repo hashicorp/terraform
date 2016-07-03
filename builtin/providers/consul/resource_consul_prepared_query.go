@@ -79,7 +79,7 @@ func resourceConsulPreparedQuery() *schema.Resource {
 							Optional: true,
 						},
 						"datacenters": &schema.Schema{
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
@@ -245,7 +245,7 @@ func preparedQueryDefinitionFromResourceData(d *schema.ResourceData) *consulapi.
 			NearestN: d.Get("failover.0.nearest_n").(int),
 		}
 
-		dcs := d.Get("failover.0.datacenters").(*schema.Set).List()
+		dcs := d.Get("failover.0.datacenters").([]interface{})
 		failover.Datacenters = make([]string, len(dcs))
 		for i, v := range dcs {
 			failover.Datacenters[i] = v.(string)
