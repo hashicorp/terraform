@@ -69,6 +69,18 @@ func resourceAwsEMR() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"additional_slave_security_groups": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"emr_managed_master_security_group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"emr_managed_slave_security_group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -89,7 +101,10 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	attributes := ec2Attributes[0].(map[string]interface{})
 	userKey := attributes["key_name"].(string)
 	subnet := attributes["subnet_id"].(string)
-	secGrp := attributes["additional_master_security_groups"].(string)
+	extraMasterSecGrp := attributes["additional_master_security_groups"].(string)
+	extraSlaveSecGrp := attributes["additional_slave_security_groups"].(string)
+	emrMasterSecGrp := attributes["emr_managed_master_security_group"].(string)
+	emrSlaveSecGrp := attributes["emr_managed_slave_security_group"].(string)
 
 	emrApps := expandApplications(applications)
 
@@ -103,8 +118,13 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 			SlaveInstanceType:           aws.String(coreInstanceType),
 			TerminationProtected:        aws.Bool(false),
 			AdditionalMasterSecurityGroups: []*string{
-				aws.String(secGrp),
+				aws.String(extraMasterSecGrp),
 			},
+			AdditionalSlaveSecurityGroups: []*string{
+				aws.String(extraSlaveSecGrp),
+			},
+			EmrManagedMasterSecurityGroup: aws.String(emrMasterSecGrp),
+			EmrManagedSlaveSecurityGroup:  aws.String(emrSlaveSecGrp),
 		},
 		Name:         aws.String(d.Get("name").(string)),
 		Applications: emrApps,
