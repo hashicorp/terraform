@@ -128,12 +128,6 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 
 	emrApps := expandApplications(applications)
 
-	bootstrapActions := d.Get("bootstrap_actions").([]interface{})
-	actionAttributes := bootstrapActions[0].(map[string]interface{})
-	actionName := actionAttributes["name"].(string)
-	actionPath := actionAttributes["path"].(string)
-	actionArgs := actionAttributes["args"].(string)
-
 	params := &emr.RunJobFlowInput{
 		Instances: &emr.JobFlowInstancesConfig{
 			Ec2KeyName:                  aws.String(userKey),
@@ -155,26 +149,33 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		Name:         aws.String(d.Get("name").(string)),
 		Applications: emrApps,
 
-		BootstrapActions: []*emr.BootstrapActionConfig{
-			{ // Required
-				Name: aws.String(actionName), // Required
-				ScriptBootstrapAction: &emr.ScriptBootstrapActionConfig{ // Required
-					Path: aws.String(actionPath), // Required
-					Args: []*string{
-						aws.String(actionArgs), // Required
-						// More values...
-					},
-				},
-			},
-			// More values...
-		},
-
 		JobFlowRole:       aws.String("EMR_EC2_DefaultRole"),
 		LogUri:            aws.String(d.Get("log_uri").(string)),
 		ReleaseLabel:      aws.String(d.Get("release_label").(string)),
 		ServiceRole:       aws.String("EMR_DefaultRole"),
 		VisibleToAllUsers: aws.Bool(true),
 	}
+
+	if v, ok := d.GetOk("bootstrap_actions"); ok {
+		bootstrapActions := v.([]interface{})
+		actionAttributes := bootstrapActions[0].(map[string]interface{})
+		actionName := actionAttributes["name"].(string)
+		actionPath := actionAttributes["path"].(string)
+		actionArgs := actionAttributes["args"].(string)
+
+		params.BootstrapActions = []*emr.BootstrapActionConfig{
+			{
+				Name: aws.String(actionName),
+				ScriptBootstrapAction: &emr.ScriptBootstrapActionConfig{
+					Path: aws.String(actionPath),
+					Args: []*string{
+						aws.String(actionArgs),
+					},
+				},
+			},
+		}
+	}
+
 	resp, err := conn.RunJobFlow(params)
 
 	if err != nil {
