@@ -963,6 +963,12 @@
 			"revision": "8ad2b298cadd691a77015666a5372eae5dbfac8f"
 		},
 		{
+			"checksumSHA1": "KoB26db2df078Y2UClT7twI+dxg=",
+			"path": "github.com/logentries/le_goclient",
+			"revision": "f6d02e2fca401d3550e08a292f54b0efb6a578f0",
+			"revisionTime": "2016-07-04T14:48:39Z"
+		},
+		{
 			"path": "github.com/lusis/go-artifactory/src/artifactory.v401",
 			"revision": "7e4ce345df825841661d1b3ffbb1327083d4a22f"
 		},
