@@ -63,7 +63,7 @@ func resourceAwsEMR() *schema.Resource {
 						},
 						"subnet_id": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 						},
 						"additional_master_security_groups": &schema.Schema{
 							Type:     schema.TypeString,
@@ -78,6 +78,26 @@ func resourceAwsEMR() *schema.Resource {
 							Optional: true,
 						},
 						"emr_managed_slave_security_group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+			"bootstrap_actions": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"path": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"args": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -108,6 +128,12 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 
 	emrApps := expandApplications(applications)
 
+	bootstrapActions := d.Get("bootstrap_actions").([]interface{})
+	actionAttributes := bootstrapActions[0].(map[string]interface{})
+	actionName := actionAttributes["name"].(string)
+	actionPath := actionAttributes["path"].(string)
+	actionArgs := actionAttributes["args"].(string)
+
 	params := &emr.RunJobFlowInput{
 		Instances: &emr.JobFlowInstancesConfig{
 			Ec2KeyName:                  aws.String(userKey),
@@ -128,6 +154,20 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		},
 		Name:         aws.String(d.Get("name").(string)),
 		Applications: emrApps,
+
+		BootstrapActions: []*emr.BootstrapActionConfig{
+			{ // Required
+				Name: aws.String(actionName), // Required
+				ScriptBootstrapAction: &emr.ScriptBootstrapActionConfig{ // Required
+					Path: aws.String(actionPath), // Required
+					Args: []*string{
+						aws.String(actionArgs), // Required
+						// More values...
+					},
+				},
+			},
+			// More values...
+		},
 
 		JobFlowRole:       aws.String("EMR_EC2_DefaultRole"),
 		LogUri:            aws.String(d.Get("log_uri").(string)),
