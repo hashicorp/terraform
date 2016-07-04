@@ -22,9 +22,15 @@ resource "consul_prepared_query" "service-near-self" {
     token = "abcd"
     stored_token = "wxyz"
     name = ""
-    service = "$${match(1)}"
     only_passing = true
     near = "_agent"
+
+    template {
+        type = "name_prefix_match"
+        regexp = "^(.*)-near-self$"
+    }
+
+    service = "$${match(1)}"
 
     failover {
         nearest_n = 3
@@ -35,10 +41,6 @@ resource "consul_prepared_query" "service-near-self" {
         ttl = "5m"
     }
 
-    template {
-        type = "name_prefix_match"
-        regexp = "^(.*)-near-self$"
-    }
 }
 ```
 
