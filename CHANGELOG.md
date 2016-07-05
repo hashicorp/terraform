@@ -78,6 +78,7 @@ IMPROVEMENTS:
  * provider/aws: Add more explicit support for Skipping Final Snapshot in RDS Cluster [GH-6795]
  * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
  * provider/aws: Add support for `kms_key_id` to `aws_db_instance` [GH-6651]
+ * provider/aws: Specifying more than one health check on an `aws_elb` fails with an error prior to making an API request [GH-7489]
  * provider/aws: Add support to `aws_redshift_cluster` for `iam_roles` [GH-6647]
  * provider/aws: SQS use raw policy string if compact fails [GH-6724]
  * provider/aws: Set default description to "Managed by Terraform" [GH-6104]
