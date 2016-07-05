@@ -31,6 +31,7 @@ func resourceAwsOpsworksUserProfile() *schema.Resource {
 			"allow_self_management": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 
 			"ssh_username": &schema.Schema{
