@@ -2,9 +2,12 @@ package remote
 
 import (
 	"bytes"
+	"errors"
 
 	"github.com/hashicorp/terraform/terraform"
 )
+
+var ErrRemoteStateNotFound = errors.New("no remote state found")
 
 // State implements the State interfaces in the state package to handle
 // reading and writing the remote state. This State on its own does no
@@ -34,12 +37,13 @@ func (s *State) RefreshState() error {
 		return err
 	}
 
-	var state *terraform.State
-	if payload != nil {
-		state, err = terraform.ReadState(bytes.NewReader(payload.Data))
-		if err != nil {
-			return err
-		}
+	if payload == nil {
+		return ErrRemoteStateNotFound
+	}
+
+	state, err := terraform.ReadState(bytes.NewReader(payload.Data))
+	if err != nil {
+		return err
 	}
 
 	s.state = state
