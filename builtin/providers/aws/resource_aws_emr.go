@@ -99,8 +99,10 @@ func resourceAwsEMR() *schema.Resource {
 							Required: true,
 						},
 						"args": &schema.Schema{
-							Type:     schema.TypeString,
+							Type:     schema.TypeSet,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 					},
 				},
@@ -296,15 +298,13 @@ func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActi
 	actionAttributes := bootstrapActions[0].(map[string]interface{})
 	actionName := actionAttributes["name"].(string)
 	actionPath := actionAttributes["path"].(string)
-	actionArgs := actionAttributes["args"].(string)
+	actionArgs := actionAttributes["args"].(*schema.Set).List()
 
 	action := &emr.BootstrapActionConfig{
 		Name: aws.String(actionName),
 		ScriptBootstrapAction: &emr.ScriptBootstrapActionConfig{
 			Path: aws.String(actionPath),
-			Args: []*string{
-				aws.String(actionArgs),
-			},
+			Args: expandStringList(actionArgs),
 		},
 	}
 	actionsOut = append(actionsOut, action)
