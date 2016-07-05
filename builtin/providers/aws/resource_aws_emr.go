@@ -166,22 +166,7 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if v, ok := d.GetOk("bootstrap_actions"); ok {
 		bootstrapActions := v.([]interface{})
-		actionAttributes := bootstrapActions[0].(map[string]interface{})
-		actionName := actionAttributes["name"].(string)
-		actionPath := actionAttributes["path"].(string)
-		actionArgs := actionAttributes["args"].(string)
-
-		params.BootstrapActions = []*emr.BootstrapActionConfig{
-			{
-				Name: aws.String(actionName),
-				ScriptBootstrapAction: &emr.ScriptBootstrapActionConfig{
-					Path: aws.String(actionPath),
-					Args: []*string{
-						aws.String(actionArgs),
-					},
-				},
-			},
-		}
+		params.BootstrapActions = expandBootstrapActions(bootstrapActions)
 	}
 	if v, ok := d.GetOk("tags"); ok {
 		tagsIn := v.([]interface{})
@@ -299,4 +284,26 @@ func expandTags(tagsIn []interface{}) []*emr.Tag {
 		tagsOut = append(tagsOut, tag)
 	}
 	return tagsOut
+}
+
+func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActionConfig {
+	actionsOut := []*emr.BootstrapActionConfig{}
+
+	actionAttributes := bootstrapActions[0].(map[string]interface{})
+	actionName := actionAttributes["name"].(string)
+	actionPath := actionAttributes["path"].(string)
+	actionArgs := actionAttributes["args"].(string)
+
+	action := &emr.BootstrapActionConfig{
+		Name: aws.String(actionName),
+		ScriptBootstrapAction: &emr.ScriptBootstrapActionConfig{
+			Path: aws.String(actionPath),
+			Args: []*string{
+				aws.String(actionArgs),
+			},
+		},
+	}
+	actionsOut = append(actionsOut, action)
+
+	return actionsOut
 }
