@@ -169,7 +169,7 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		params.BootstrapActions = expandBootstrapActions(bootstrapActions)
 	}
 	if v, ok := d.GetOk("tags"); ok {
-		tagsIn := v.([]interface{})
+		tagsIn := v.(*schema.Set).List()
 		params.Tags = expandTags(tagsIn)
 	}
 
@@ -275,13 +275,15 @@ func expandTags(tagsIn []interface{}) []*emr.Tag {
 
 	for _, tagStr := range expandStringList(tagsIn) {
 		s := strings.Split(*tagStr, ":")
-		key := s[0]
-		value := s[1]
-		tag := &emr.Tag{
-			Key:   aws.String(key),
-			Value: aws.String(value),
+		if len(s) > 1 {
+			key := s[0]
+			value := s[1]
+			tag := &emr.Tag{
+				Key:   aws.String(key),
+				Value: aws.String(value),
+			}
+			tagsOut = append(tagsOut, tag)
 		}
-		tagsOut = append(tagsOut, tag)
 	}
 	return tagsOut
 }
