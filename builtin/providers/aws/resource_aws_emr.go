@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/schema"
+	"strings"
 )
 
 func resourceAwsEMR() *schema.Resource {
@@ -104,6 +105,13 @@ func resourceAwsEMR() *schema.Resource {
 					},
 				},
 			},
+			"tags": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: false,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
 		},
 	}
 }
@@ -174,6 +182,10 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 				},
 			},
 		}
+	}
+	if v, ok := d.GetOk("tags"); ok {
+		tagsIn := v.([]interface{})
+		params.Tags = expandTags(tagsIn)
 	}
 
 	resp, err := conn.RunJobFlow(params)
@@ -271,4 +283,20 @@ func findGroup(grps []*emr.InstanceGroup, typ string) *emr.InstanceGroup {
 		}
 	}
 	return nil
+}
+
+func expandTags(tagsIn []interface{}) []*emr.Tag {
+	tagsOut := []*emr.Tag{}
+
+	for _, tagStr := range expandStringList(tagsIn) {
+		s := strings.Split(*tagStr, ":")
+		key := s[0]
+		value := s[1]
+		tag := &emr.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		}
+		tagsOut = append(tagsOut, tag)
+	}
+	return tagsOut
 }
