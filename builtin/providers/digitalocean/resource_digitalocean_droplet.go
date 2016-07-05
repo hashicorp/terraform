@@ -104,6 +104,12 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"tags": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"user_data": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -181,6 +187,12 @@ func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{})
 			"Error waiting for droplet (%s) to become ready: %s", d.Id(), err)
 	}
 
+	// droplet needs to be active in order to set tags
+	err = setTags(client, d)
+	if err != nil {
+		return fmt.Errorf("Error setting tags: %s", err)
+	}
+
 	return resourceDigitalOceanDropletRead(d, meta)
 }
 
@@ -235,6 +247,8 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 		"type": "ssh",
 		"host": findIPv4AddrByType(droplet, "public"),
 	})
+
+	d.Set("tags", droplet.Tags)
 
 	return nil
 }
@@ -376,6 +390,13 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			return fmt.Errorf(
 				"Error waiting for ipv6 to be turned on for droplet (%s): %s", d.Id(), err)
+		}
+	}
+
+	if d.HasChange("tags") {
+		err = setTags(client, d)
+		if err != nil {
+			return fmt.Errorf("Error updating tags: %s", err)
 		}
 	}
 
