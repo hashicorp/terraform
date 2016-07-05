@@ -274,7 +274,9 @@ func expandTags(tagsIn []interface{}) []*emr.Tag {
 	tagsOut := []*emr.Tag{}
 
 	for _, tagStr := range expandStringList(tagsIn) {
-		s := strings.Split(*tagStr, ":")
+		s := strings.FieldsFunc(*tagStr, func(r rune) bool {
+			return r == ':' || r == '='
+		})
 		if len(s) > 1 {
 			key := s[0]
 			value := s[1]
