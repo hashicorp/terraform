@@ -1227,6 +1227,18 @@ func TestInterpolateFuncUUID(t *testing.T) {
 	}
 }
 
+func TestInterpolateFuncURLEncode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${urlencode("foo:bar@localhost?foo=bar&bar=baz")}`,
+				"foo%3Abar%40localhost%3Ffoo%3Dbar%26bar%3Dbaz",
+				false,
+			},
+		},
+	})
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
