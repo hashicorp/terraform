@@ -390,6 +390,12 @@
 			"revision": "2cc71659118a868dc7544a7ef0808eb42d487011"
 		},
 		{
+			"checksumSHA1": "F6mth+G7dXN1GI+nktaGo8Lx8aE=",
+			"path": "github.com/aws/aws-sdk-go/private/signer/v2",
+			"revision": "333fcdc9874ea63fbdb3176e12ffa04b5ec44f5a",
+			"revisionTime": "2016-07-05T22:03:21Z"
+		},
+		{
 			"comment": "v1.1.23",
 			"path": "github.com/aws/aws-sdk-go/private/signer/v4",
 			"revision": "2cc71659118a868dc7544a7ef0808eb42d487011"
@@ -564,6 +570,12 @@
 			"comment": "v1.1.23",
 			"path": "github.com/aws/aws-sdk-go/service/s3",
 			"revision": "2cc71659118a868dc7544a7ef0808eb42d487011"
+		},
+		{
+			"checksumSHA1": "DW5kDRWLA2yAgYh9vsI+0uVqq/Q=",
+			"path": "github.com/aws/aws-sdk-go/service/simpledb",
+			"revision": "333fcdc9874ea63fbdb3176e12ffa04b5ec44f5a",
+			"revisionTime": "2016-07-05T22:03:21Z"
 		},
 		{
 			"comment": "v1.1.23",
