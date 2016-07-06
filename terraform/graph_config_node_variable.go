@@ -176,6 +176,12 @@ func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 				VariableValues: variables,
 			},
 
+			&EvalCoerceMapVariable{
+				Variables:  variables,
+				ModulePath: n.ModulePath,
+				ModuleTree: n.ModuleTree,
+			},
+
 			&EvalTypeCheckVariable{
 				Variables:  variables,
 				ModulePath: n.ModulePath,
