@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/hashstructure"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -323,6 +324,16 @@ func init() {
 	}
 }
 
+// cachedClient holds references to already-initialized AWSClient instances (so
+// the interface{} type is *AWSClient) after they have been configured once.
+// Since the client set up process involves a few remote API calls, this allows
+// us to prevent calling those APIs multiple times.
+var cachedClients map[uint64]interface{}
+
+func init() {
+	cachedClients = make(map[uint64]interface{})
+}
+
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		AccessKey:        d.Get("access_key").(string),
@@ -335,6 +346,14 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
 		KinesisEndpoint:  d.Get("kinesis_endpoint").(string),
 		Insecure:         d.Get("insecure").(bool),
+	}
+
+	hash, err := hashstructure.Hash(config, nil)
+	if err != nil {
+		return nil, err
+	}
+	if client, ok := cachedClients[hash]; ok {
+		return client, nil
 	}
 
 	endpointsSet := d.Get("endpoints").(*schema.Set)
@@ -354,7 +373,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.ForbiddenAccountIds = v.(*schema.Set).List()
 	}
 
-	return config.Client()
+	client, err := config.Client()
+	if err != nil {
+		return nil, err
+	}
+	cachedClients[hash] = client
+	return client, nil
 }
 
 // This is a global MutexKV for use within this plugin.
