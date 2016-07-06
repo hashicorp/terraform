@@ -76,7 +76,7 @@ type memoryAllocation struct {
 	reservation int64
 }
 
-type virtualMachine struct{
+type virtualMachine struct {
 	name                  string
 	folder                string
 	datacenter            string
@@ -87,7 +87,7 @@ type virtualMachine struct{
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
 	template              string
-	guestID		      types.VirtualMachineGuestOsIdentifier
+	guestID               types.VirtualMachineGuestOsIdentifier
 	networkInterfaces     []networkInterface
 	hardDisks             []hardDisk
 	cdroms                []cdrom
