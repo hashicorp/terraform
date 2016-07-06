@@ -22,7 +22,6 @@ func TestAccAWSCloudFrontOriginAccessIdentity_importBasic(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
-				//ImportStateVerifyIgnore: []string{"enable_log_file_validation", "is_multi_region_trail", "include_global_service_events", "enable_logging"},
 			},
 		},
 	})
