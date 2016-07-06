@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -55,6 +56,54 @@ func testModule(t *testing.T, name string) *module.Tree {
 	s := &getter.FolderStorage{StorageDir: tempDir(t)}
 	if err := mod.Load(s, module.GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	return mod
+}
+
+// testModuleInline takes a map of path -> config strings and yields a config
+// structure with those files loaded from disk
+func testModuleInline(t *testing.T, config map[string]string) *module.Tree {
+	cfgPath, err := ioutil.TempDir("", "tf-test")
+	if err != nil {
+		t.Errorf("Error creating temporary directory for config: %s", err)
+	}
+	defer os.RemoveAll(cfgPath)
+
+	for path, configStr := range config {
+		dir := filepath.Dir(path)
+		if dir != "." {
+			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
+			if err != nil {
+				t.Fatalf("Error creating subdir: %s", err)
+			}
+		}
+		// Write the configuration
+		cfgF, err := os.Create(filepath.Join(cfgPath, path))
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+
+		_, err = io.Copy(cfgF, strings.NewReader(configStr))
+		cfgF.Close()
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+	}
+
+	// Parse the configuration
+	mod, err := module.NewTreeModule("", cfgPath)
+	if err != nil {
+		t.Fatalf("Error loading configuration: %s", err)
+	}
+
+	// Load the modules
+	modStorage := &getter.FolderStorage{
+		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
+	}
+	err = mod.Load(modStorage, module.GetModeGet)
+	if err != nil {
+		t.Errorf("Error downloading modules: %s", err)
 	}
 
 	return mod
