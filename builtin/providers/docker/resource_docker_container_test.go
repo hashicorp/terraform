@@ -255,6 +255,7 @@ resource "docker_container" "foo" {
 	entrypoint = ["/bin/bash", "-c", "ping localhost"]
 	user = "root:root"
 	restart = "on-failure"
+	destroy_grace_seconds = 10
 	max_retry_count = 5
 	memory = 512
 	memory_swap = 2048
