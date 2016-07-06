@@ -34,14 +34,14 @@ The following arguments are supported:
 * `cidr` - (Required) The CIDR block for the network. Changing this forces a new
     resource to be created.
 
+* `gateway` - (Optional) Gateway that will be provided to the instances in this
+    network. Defaults to the first usable IP in the range.
+
 * `startip` - (Optional) Start of the IP block that will be available on the 
     network. Defaults to the second available IP in the range.
 
 * `endip` - (Optional) End of the IP block that will be available on the 
     network. Defaults to the last available IP in the range.
-
-* `gateway` - (Optional) Gateway that will be provided to the instances in this
-    network. Defaults to the first usable IP in the range.
 
 * `network_offering` - (Required) The name or ID of the network offering to use
     for this network.
