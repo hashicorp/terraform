@@ -130,6 +130,7 @@ func (n *GraphNodeConfigVariable) hasDestroyEdgeInPath(opts *NoopOpts, vertex da
 	if vertex == nil {
 		vertex = opts.Vertex
 	}
+
 	log.Printf("[DEBUG] hasDestroyEdgeInPath: Looking for destroy edge: %s - %T", dag.VertexName(vertex), vertex)
 	for _, v := range opts.Graph.UpEdges(vertex).List() {
 		if len(opts.Graph.UpEdges(v).List()) > 1 {
@@ -137,10 +138,12 @@ func (n *GraphNodeConfigVariable) hasDestroyEdgeInPath(opts *NoopOpts, vertex da
 				return true
 			}
 		}
+
 		// Here we borrow the implementation of DestroyEdgeInclude, whose logic
-		// and semantics are exactly what we want here.
+		// and semantics are exactly what we want here. We add a check for the
+		// the root node, since we have to always depend on its existance.
 		if cv, ok := vertex.(*GraphNodeConfigVariableFlat); ok {
-			if cv.DestroyEdgeInclude(v) {
+			if dag.VertexName(v) == rootNodeName || cv.DestroyEdgeInclude(v) {
 				return true
 			}
 		}
