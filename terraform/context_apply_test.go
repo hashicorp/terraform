@@ -4704,3 +4704,83 @@ aws_instance.foo:
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
+
+// https://github.com/hashicorp/terraform/issues/7378
+func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testing.T) {
+	m := testModule(t, "apply-destroy-nested-module-with-attrs")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	var state *State
+	var err error
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"null": testProviderFuncFixed(p),
+			},
+		})
+
+		// First plan and apply a create operation
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("plan err: %s", err)
+		}
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("apply err: %s", err)
+		}
+	}
+
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Destroy: true,
+			Module:  m,
+			State:   state,
+			Providers: map[string]ResourceProviderFactory{
+				"null": testProviderFuncFixed(p),
+			},
+		})
+
+		plan, err := ctx.Plan()
+		if err != nil {
+			t.Fatalf("destroy plan err: %s", err)
+		}
+
+		var buf bytes.Buffer
+		if err := WritePlan(plan, &buf); err != nil {
+			t.Fatalf("plan write err: %s", err)
+		}
+
+		planFromFile, err := ReadPlan(&buf)
+		if err != nil {
+			t.Fatalf("plan read err: %s", err)
+		}
+
+		ctx, err = planFromFile.Context(&ContextOpts{
+			Providers: map[string]ResourceProviderFactory{
+				"null": testProviderFuncFixed(p),
+			},
+		})
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("destroy apply err: %s", err)
+		}
+	}
+
+	//Test that things were destroyed
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+<no state>
+module.middle:
+  <no state>
+		`)
+	if actual != expected {
+		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
+	}
+}
