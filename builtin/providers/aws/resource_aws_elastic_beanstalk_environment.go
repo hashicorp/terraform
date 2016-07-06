@@ -249,7 +249,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
 		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+                MinTimeout: 20 * time.Second,
 	}
 
 	_, err = stateConf.WaitForState()
@@ -321,7 +321,7 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
 		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+                MinTimeout: 20 * time.Second,
 	}
 
 	_, err = stateConf.WaitForState()
@@ -567,7 +567,7 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
 		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+                MinTimeout: 20 * time.Second,
 	}
 
 	_, err = stateConf.WaitForState()
