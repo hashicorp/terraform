@@ -418,6 +418,42 @@ func TestAccAWSSecurityGroupRule_Race(t *testing.T) {
 
 func TestAccAWSSecurityGroupRule_PrefixListEgress(t *testing.T) {
 	var group ec2.SecurityGroup
+	var endpoint ec2.VpcEndpoint
+	var p ec2.IpPermission
+
+	// This function creates the expected IPPermission with the prefix list ID from
+	// the VPC Endpoint created in the test
+	setupSG := func(*terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		prefixListInput := &ec2.DescribePrefixListsInput{
+			Filters: []*ec2.Filter{
+				{Name: aws.String("prefix-list-name"), Values: []*string{endpoint.ServiceName}},
+			},
+		}
+
+		log.Printf("[DEBUG] Reading VPC Endpoint prefix list: %s", prefixListInput)
+		prefixListsOutput, err := conn.DescribePrefixLists(prefixListInput)
+
+		if err != nil {
+			_, ok := err.(awserr.Error)
+			if !ok {
+				return fmt.Errorf("Error reading VPC Endpoint prefix list: %s", err.Error())
+			}
+		}
+
+		if len(prefixListsOutput.PrefixLists) != 1 {
+			return fmt.Errorf("There are multiple prefix lists associated with the service name '%s'. Unexpected", prefixListsOutput)
+		}
+
+		p = ec2.IpPermission{
+			IpProtocol: aws.String("-1"),
+			PrefixListIds: []*ec2.PrefixListId{
+				&ec2.PrefixListId{PrefixListId: prefixListsOutput.PrefixLists[0].PrefixListId},
+			},
+		}
+
+		return nil
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -428,7 +464,11 @@ func TestAccAWSSecurityGroupRule_PrefixListEgress(t *testing.T) {
 				Config: testAccAWSSecurityGroupRulePrefixListEgressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.egress", &group),
-					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.egress_1", &group, nil, "egress"),
+					// lookup info on the VPC Endpoint created, to populate the expected
+					// IP Perm
+					testAccCheckVpcEndpointExists("aws_vpc_endpoint.s3-us-west-2", &endpoint),
+					setupSG,
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.egress_1", &group, &p, "egress"),
 				),
 			},
 		},
@@ -568,6 +608,20 @@ func testAccCheckAWSSecurityGroupRuleAttributes(n string, group *ec2.SecurityGro
 			if remaining > 0 {
 				continue
 			}
+
+			remaining = len(p.PrefixListIds)
+			for _, pip := range p.PrefixListIds {
+				for _, rpip := range r.PrefixListIds {
+					if *pip.PrefixListId == *rpip.PrefixListId {
+						remaining--
+					}
+				}
+			}
+
+			if remaining > 0 {
+				continue
+			}
+
 			matchingRule = r
 		}
 
