@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+        "log"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -25,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
+        "github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -1003,6 +1006,21 @@ func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
 		}
 	}
 	return strs
+}
+
+func flattenApiGatewayStageKeys(keys []*string) []map[string]interface{} {
+        stageKeys := make([]map[string]interface{}, 0, len(keys))
+        log.Printf("[INFO] THERE %s", spew.Sdump(keys))
+        for _, o := range keys {
+                key := make(map[string]interface{})
+                parts := strings.Split(*o, "/")
+                key["stage_name"] = parts[1]
+                key["rest_api_id"] = parts[0]
+
+                stageKeys = append(stageKeys, key)
+        }
+        log.Printf("[INFO] HERE %s", spew.Sdump(stageKeys))
+        return stageKeys
 }
 
 func expandApiGatewayStageKeys(d *schema.ResourceData) []*apigateway.StageKey {
