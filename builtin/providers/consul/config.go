@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Datacenter string `mapstructure:"datacenter"`
 	Address    string `mapstructure:"address"`
+	Token      string `mapstructure:"token"`
 	Scheme     string `mapstructure:"scheme"`
 }
 
@@ -24,6 +25,9 @@ func (c *Config) Client() (*consulapi.Client, error) {
 	}
 	if c.Scheme != "" {
 		config.Scheme = c.Scheme
+	}
+	if c.Token != "" {
+		config.Token = c.Token
 	}
 	client, err := consulapi.NewClient(config)
 
