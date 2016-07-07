@@ -171,11 +171,9 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if l.Count != 1 {
-		return fmt.Errorf("Unexpected number (%d) of source NAT IPs returned", l.Count)
+	if l.Count == 1 {
+		d.Set("source_nat_ip", l.PublicIpAddresses[0].Ipaddress)
 	}
-
-	d.Set("source_nat_ip", l.PublicIpAddresses[0].Ipaddress)
 
 	return nil
 }
