@@ -326,16 +326,16 @@ func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActi
 func expandConfigures(url string) []*emr.Configuration {
 	configsOut := []*emr.Configuration{}
 	if strings.HasPrefix(url, "http") {
-		getJson(url, &configsOut)
+		readHttpJson(url, &configsOut)
 	} else {
-		readJson(url, &configsOut)
+		readLocalJson(url, &configsOut)
 	}
 	log.Printf("[DEBUG] %v\n", configsOut)
 
 	return configsOut
 }
 
-func getJson(url string, target interface{}) error {
+func readHttpJson(url string, target interface{}) error {
 	r, err := http.Get(url)
 	if err != nil {
 		return err
@@ -345,7 +345,7 @@ func getJson(url string, target interface{}) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
 
-func readJson(localFile string, target interface{}) error {
+func readLocalJson(localFile string, target interface{}) error {
 	file, e := ioutil.ReadFile(localFile)
 	if e != nil {
 		fmt.Printf("File error: %v\n", e)
