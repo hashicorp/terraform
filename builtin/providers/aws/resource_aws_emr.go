@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/schema"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -324,7 +325,12 @@ func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActi
 
 func expandConfigures(url string) []*emr.Configuration {
 	configsOut := []*emr.Configuration{}
-	getJson(url, &configsOut)
+	if strings.HasPrefix(url, "http") {
+		getJson(url, &configsOut)
+	} else {
+		readJson(url, &configsOut)
+	}
+	log.Printf("[DEBUG] %v\n", configsOut)
 
 	return configsOut
 }
@@ -337,4 +343,16 @@ func getJson(url string, target interface{}) error {
 	defer r.Body.Close()
 
 	return json.NewDecoder(r.Body).Decode(target)
+}
+
+func readJson(localFile string, target interface{}) error {
+	file, e := ioutil.ReadFile(localFile)
+	if e != nil {
+		fmt.Printf("File error: %v\n", e)
+		log.Printf("[ERROR] %s", e)
+		return e
+	}
+	log.Printf("[DEBUG] %s\n", string(file))
+
+	return json.Unmarshal(file, target)
 }
