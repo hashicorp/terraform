@@ -57,6 +57,13 @@ func resourceLoadBalancerV2() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"vip_port_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -90,6 +97,7 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		Name:         d.Get("name").(string),
 		Description:  d.Get("description").(string),
 		VipSubnetID:  d.Get("vip_subnet_id").(string),
+		VipPortID:	  d.Get("vip_port_id").(string),
 		TenantID:     d.Get("tenant_id").(string),
 		VipAddress:   d.Get("vip_address").(string),
 		AdminStateUp: &adminStateUp,
@@ -142,6 +150,7 @@ func resourceLoadBalancerV2Read(d *schema.ResourceData, meta interface{}) error 
 	d.Set("name", lb.Name)
 	d.Set("description", lb.Description)
 	d.Set("vip_subnet_id", lb.VipSubnetID)
+	d.Set("vip_port_id", lb.VipPortID)
 	d.Set("tenant_id", lb.TenantID)
 	d.Set("vip_address", lb.VipAddress)
 	d.Set("admin_state_up", lb.AdminStateUp)
