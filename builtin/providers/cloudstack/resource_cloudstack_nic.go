@@ -53,13 +53,13 @@ func resourceCloudStackNICCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Create and attach the new NIC
-	r, err := cs.VirtualMachine.AddNicToVirtualMachine(p)
+	r, err := Retry(10, retryableAddNicFunc(cs, p))
 	if err != nil {
 		return fmt.Errorf("Error creating the new NIC: %s", err)
 	}
 
 	found := false
-	for _, n := range r.Nic {
+	for _, n := range r.(*cloudstack.AddNicToVirtualMachineResponse).Nic {
 		if n.Networkid == d.Get("network_id").(string) {
 			d.SetId(n.Id)
 			found = true
@@ -132,4 +132,14 @@ func resourceCloudStackNICDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	return nil
+}
+
+func retryableAddNicFunc(cs *cloudstack.CloudStackClient, p *cloudstack.AddNicToVirtualMachineParams) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		r, err := cs.VirtualMachine.AddNicToVirtualMachine(p)
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
+	}
 }
