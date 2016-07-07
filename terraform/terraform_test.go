@@ -1355,3 +1355,19 @@ aws_instance.foo:
   ID = bar
   ami = ami-abcd1234
 `
+
+const testTerraformPlanComputedValueInMap = `
+DIFF:
+
+CREATE: aws_computed_source.intermediates
+  computed_read_only: "" => "<computed>"
+
+module.test_mod:
+  CREATE: aws_instance.inner2
+    looked_up: "" => "<computed>"
+    type:      "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
