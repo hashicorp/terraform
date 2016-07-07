@@ -100,6 +100,7 @@ IMPROVEMENTS:
  * provider/aws: Added support for redshift destination to firehose delivery streams [GH-7375]
  * provider/aws: Allow `aws_redshift_security_group` ingress rules to change [GH-5939]
  * provider/aws: Add support for `encryption` and `kms_key_id` to `aws_ami` [GH-7181]
+ * provider/aws: AWS prefix lists to enable security group egress to a VPC Endpoint [GH-7511]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
