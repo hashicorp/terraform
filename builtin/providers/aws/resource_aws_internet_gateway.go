@@ -201,7 +201,7 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 		Pending: []string{"detached", "attaching"},
 		Target:  []string{"available"},
 		Refresh: IGAttachStateRefreshFunc(conn, d.Id(), "available"),
-		Timeout: 2 * time.Minute,
+		Timeout: 4 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
