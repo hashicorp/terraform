@@ -2,7 +2,6 @@ package remote
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -74,18 +73,7 @@ func TestRemoteClient_stateInit(t *testing.T) {
 	// remote state.
 	localStateFile.Close()
 	os.Remove(localStateFile.Name())
-	//defer os.Remove(localStateFile.Name())
-	fmt.Println("LOCAL:", localStateFile.Name())
-
-	local := &state.LocalState{
-		Path: localStateFile.Name(),
-	}
-	if err := local.RefreshState(); err != nil {
-		t.Fatal(err)
-	}
-	localState := local.State()
-
-	fmt.Println("localState.Empty():", localState.Empty())
+	defer os.Remove(localStateFile.Name())
 
 	remoteStateFile, err := ioutil.TempFile("", "tf")
 	if err != nil {
@@ -93,41 +81,55 @@ func TestRemoteClient_stateInit(t *testing.T) {
 	}
 	remoteStateFile.Close()
 	os.Remove(remoteStateFile.Name())
-	//defer os.Remove(remoteStateFile.Name()
-	fmt.Println("LOCAL:", localStateFile.Name())
-	fmt.Println("REMOTE:", remoteStateFile.Name())
+	defer os.Remove(remoteStateFile.Name())
+
+	// Now we need an empty state to initialize the state files.
+	newState := terraform.NewState()
+	newState.Remote = &terraform.RemoteState{
+		Type:   "_local",
+		Config: map[string]string{"path": remoteStateFile.Name()},
+	}
 
 	remoteClient := &FileClient{
 		Path: remoteStateFile.Name(),
 	}
 
-	durable := &State{
-		Client: remoteClient,
-	}
-
 	cache := &state.CacheState{
-		Cache:   local,
-		Durable: durable,
+		Cache: &state.LocalState{
+			Path: localStateFile.Name(),
+		},
+		Durable: &State{
+			Client: remoteClient,
+		},
 	}
 
-	if err := cache.RefreshState(); err != nil {
+	// This will write the local state file, and set the state field in the CacheState
+	err = cache.WriteState(newState)
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	switch cache.RefreshResult() {
-
-	// we should be "refreshing" the remote state to initialize it
-	case state.CacheRefreshLocalNewer:
-		// Write our local state out to the durable storage to start.
-		if err := cache.WriteState(localState); err != nil {
-			t.Fatal("Error preparing remote state:", err)
-		}
-		if err := cache.PersistState(); err != nil {
-			t.Fatal("Error preparing remote state:", err)
-		}
-	default:
-
-		t.Fatal("unexpected refresh result:", cache.RefreshResult())
+	// This will persist the local state we just wrote to the remote state file
+	err = cache.PersistState()
+	if err != nil {
+		t.Fatal(err)
 	}
 
+	// now compare the two state files just to be sure
+	localData, err := ioutil.ReadFile(localStateFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	remoteData, err := ioutil.ReadFile(remoteStateFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(localData, remoteData) {
+		t.Log("state files don't match")
+		t.Log("Local:\n", string(localData))
+		t.Log("Remote:\n", string(remoteData))
+		t.Fatal("failed to initialize remote state")
+	}
 }
