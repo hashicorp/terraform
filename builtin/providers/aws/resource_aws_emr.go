@@ -3,10 +3,12 @@ package aws
 import (
 	"log"
 
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/schema"
+	"net/http"
 	"strings"
 )
 
@@ -114,6 +116,10 @@ func resourceAwsEMR() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+			"configurations": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -173,6 +179,10 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("tags"); ok {
 		tagsIn := v.(*schema.Set).List()
 		params.Tags = expandTags(tagsIn)
+	}
+	if v, ok := d.GetOk("configurations"); ok {
+		confUrl := v.(string)
+		params.Configurations = expandConfigures(confUrl)
 	}
 
 	resp, err := conn.RunJobFlow(params)
@@ -310,4 +320,21 @@ func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActi
 	actionsOut = append(actionsOut, action)
 
 	return actionsOut
+}
+
+func expandConfigures(url string) []*emr.Configuration {
+	configsOut := []*emr.Configuration{}
+	getJson(url, &configsOut)
+
+	return configsOut
+}
+
+func getJson(url string, target interface{}) error {
+	r, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	return json.NewDecoder(r.Body).Decode(target)
 }
