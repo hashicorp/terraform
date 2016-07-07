@@ -55,7 +55,14 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(time.Now().UTC().String())
 
 	outputMap := make(map[string]interface{})
-	for key, val := range state.State().RootModule().Outputs {
+
+	remoteState := state.State()
+	if remoteState.Empty() {
+		log.Println("[DEBUG] empty remote state")
+		return nil
+	}
+
+	for key, val := range remoteState.RootModule().Outputs {
 		outputMap[key] = val.Value
 	}
 
