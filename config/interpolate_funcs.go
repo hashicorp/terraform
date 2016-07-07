@@ -69,6 +69,7 @@ func Funcs() map[string]ast.Function {
 		"join":         interpolationFuncJoin(),
 		"jsonencode":   interpolationFuncJSONEncode(),
 		"length":       interpolationFuncLength(),
+		"list":         interpolationFuncList(),
 		"lower":        interpolationFuncLower(),
 		"md5":          interpolationFuncMd5(),
 		"uuid":         interpolationFuncUUID(),
@@ -80,6 +81,26 @@ func Funcs() map[string]ast.Function {
 		"split":        interpolationFuncSplit(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
+	}
+}
+
+// interpolationFuncList creates a list from the parameters passed
+// to it.
+func interpolationFuncList() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{},
+		ReturnType:   ast.TypeList,
+		Variadic:     true,
+		VariadicType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var outputList []string
+
+			for _, val := range args {
+				outputList = append(outputList, val.(string))
+			}
+
+			return stringSliceToVariableValue(outputList), nil
+		},
 	}
 }
 

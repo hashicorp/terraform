@@ -12,6 +12,55 @@ import (
 	"github.com/hashicorp/hil/ast"
 )
 
+func TestInterpolateFuncList(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// empty input returns empty list
+			{
+				`${list()}`,
+				[]interface{}{},
+				false,
+			},
+
+			// single input returns list of length 1
+			{
+				`${list("hello")}`,
+				[]interface{}{"hello"},
+				false,
+			},
+
+			// two inputs returns list of length 2
+			{
+				`${list("hello", "world")}`,
+				[]interface{}{"hello", "world"},
+				false,
+			},
+
+			// not a string input gives error
+			{
+				`${list("hello", "${var.list}")}`,
+				nil,
+				true,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.list": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "Hello",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "World",
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncCompact(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
