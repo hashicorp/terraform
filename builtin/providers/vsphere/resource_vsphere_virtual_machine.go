@@ -1329,6 +1329,10 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		} else if diskType == "thin" {
 			// thin provisioned virtual disk
 			backing.ThinProvisioned = types.NewBool(true)
+		} else if diskType == "lazy" {
+			// thin provisioned virtual disk
+			backing.ThinProvisioned = types.NewBool(false)
+			backing.EagerlyScrub = types.NewBool(false)
 		}
 
 		log.Printf("[DEBUG] addHardDisk: %#v\n", disk)
