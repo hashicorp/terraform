@@ -59,6 +59,13 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"prefix_list_ids": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"security_group_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -363,6 +370,19 @@ func findRuleMatch(p *ec2.IpPermission, rules []*ec2.IpPermission, isVPC bool) *
 			continue
 		}
 
+		remaining = len(p.PrefixListIds)
+		for _, pl := range p.PrefixListIds {
+			for _, rpl := range r.PrefixListIds {
+				if *pl.PrefixListId == *rpl.PrefixListId {
+					remaining--
+				}
+			}
+		}
+
+		if remaining > 0 {
+			continue
+		}
+
 		remaining = len(p.UserIdGroupPairs)
 		for _, ip := range p.UserIdGroupPairs {
 			for _, rip := range r.UserIdGroupPairs {
@@ -405,6 +425,18 @@ func ipPermissionIDHash(sg_id, ruleType string, ip *ec2.IpPermission) string {
 		s := make([]string, len(ip.IpRanges))
 		for i, r := range ip.IpRanges {
 			s[i] = *r.CidrIp
+		}
+		sort.Strings(s)
+
+		for _, v := range s {
+			buf.WriteString(fmt.Sprintf("%s-", v))
+		}
+	}
+
+	if len(ip.PrefixListIds) > 0 {
+		s := make([]string, len(ip.PrefixListIds))
+		for i, pl := range ip.PrefixListIds {
+			s[i] = *pl.PrefixListId
 		}
 		sort.Strings(s)
 
@@ -494,6 +526,18 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermiss
 		}
 	}
 
+	if raw, ok := d.GetOk("prefix_list_ids"); ok {
+		list := raw.([]interface{})
+		perm.PrefixListIds = make([]*ec2.PrefixListId, len(list))
+		for i, v := range list {
+			prefixListID, ok := v.(string)
+			if !ok {
+				return nil, fmt.Errorf("empty element found in prefix_list_ids - consider using the compact function")
+			}
+			perm.PrefixListIds[i] = &ec2.PrefixListId{PrefixListId: aws.String(prefixListID)}
+		}
+	}
+
 	return &perm, nil
 }
 
@@ -514,6 +558,13 @@ func setFromIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup, rule *ec2.IpPe
 	// 'self' is false by default. Below, we range over the group ids and set true
 	// if the parent sg id is found
 	d.Set("self", false)
+
+	var pl []string
+	for _, p := range rule.PrefixListIds {
+		pl = append(pl, *p.PrefixListId)
+	}
+	d.Set("prefix_list_ids", pl)
+
 	if len(rule.UserIdGroupPairs) > 0 {
 		s := rule.UserIdGroupPairs[0]
 
