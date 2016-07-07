@@ -387,9 +387,9 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Default:  "eager_zeroed",
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
-								if value != "thin" && value != "eager_zeroed" {
+								if value != "thin" && value != "eager_zeroed" && value != "thick_lazy" {
 									errors = append(errors, fmt.Errorf(
-										"only 'thin' and 'eager_zeroed' are supported values for 'type'"))
+										"only 'thin', 'thick_lazy' and 'eager_zeroed' are supported values for 'type'"))
 								}
 								return
 							},
@@ -1300,6 +1300,10 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		} else if diskType == "thin" {
 			// thin provisioned virtual disk
 			backing.ThinProvisioned = types.NewBool(true)
+		} else if diskType == "thick_lazy" {
+			// thin provisioned virtual disk
+			backing.ThinProvisioned = types.NewBool(false)
+			backing.EagerlyScrub = types.NewBool(false)
 		}
 
 		log.Printf("[DEBUG] addHardDisk: %#v\n", disk)
