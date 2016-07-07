@@ -972,3 +972,17 @@ resource "aws_route53_record" "sample" {
   records = ["127.0.0.1", "8.8.8.8"]
 }
 `
+
+const testAccRoute53RecordConfigEmptyName = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "empty" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = ""
+	type = "A"
+	ttl = "30"
+	records = ["127.0.0.1"]
+}
+`
