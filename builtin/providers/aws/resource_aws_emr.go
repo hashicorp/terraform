@@ -88,8 +88,8 @@ func resourceAwsEMR() *schema.Resource {
 					},
 				},
 			},
-			"bootstrap_actions": &schema.Schema{
-				Type:     schema.TypeList,
+			"bootstrap_action": &schema.Schema{
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -173,8 +173,9 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		VisibleToAllUsers: aws.Bool(true),
 	}
 
-	if v, ok := d.GetOk("bootstrap_actions"); ok {
-		bootstrapActions := v.([]interface{})
+	if v, ok := d.GetOk("bootstrap_action"); ok {
+		bootstrapActions := v.(*schema.Set).List()
+		log.Printf("[DEBUG] %v\n", bootstrapActions)
 		params.BootstrapActions = expandBootstrapActions(bootstrapActions)
 	}
 	if v, ok := d.GetOk("tags"); ok {
@@ -306,19 +307,21 @@ func expandTags(tagsIn []interface{}) []*emr.Tag {
 func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActionConfig {
 	actionsOut := []*emr.BootstrapActionConfig{}
 
-	actionAttributes := bootstrapActions[0].(map[string]interface{})
-	actionName := actionAttributes["name"].(string)
-	actionPath := actionAttributes["path"].(string)
-	actionArgs := actionAttributes["args"].(*schema.Set).List()
+	for _, raw := range bootstrapActions {
+		actionAttributes := raw.(map[string]interface{})
+		actionName := actionAttributes["name"].(string)
+		actionPath := actionAttributes["path"].(string)
+		actionArgs := actionAttributes["args"].(*schema.Set).List()
 
-	action := &emr.BootstrapActionConfig{
-		Name: aws.String(actionName),
-		ScriptBootstrapAction: &emr.ScriptBootstrapActionConfig{
-			Path: aws.String(actionPath),
-			Args: expandStringList(actionArgs),
-		},
+		action := &emr.BootstrapActionConfig{
+			Name: aws.String(actionName),
+			ScriptBootstrapAction: &emr.ScriptBootstrapActionConfig{
+				Path: aws.String(actionPath),
+				Args: expandStringList(actionArgs),
+			},
+		}
+		actionsOut = append(actionsOut, action)
 	}
-	actionsOut = append(actionsOut, action)
 
 	return actionsOut
 }
