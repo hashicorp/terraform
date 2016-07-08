@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -102,6 +103,27 @@ func TestAccAWSCodeDeployDeploymentGroup_onPremiseTag(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "on_premises_instance_tag_filter.2916377465.value", "filtervalue"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_disappears(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroup(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo", &group),
+					testAccAWSCodeDeployDeploymentGroupDisappears(&group),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -405,6 +427,36 @@ func testAccCheckAWSCodeDeployDeploymentGroupDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccAWSCodeDeployDeploymentGroupDisappears(group *codedeploy.DeploymentGroupInfo) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).codedeployconn
+		opts := &codedeploy.DeleteDeploymentGroupInput{
+			ApplicationName:     group.ApplicationName,
+			DeploymentGroupName: group.DeploymentGroupName,
+		}
+		if _, err := conn.DeleteDeploymentGroup(opts); err != nil {
+			return err
+		}
+		return resource.Retry(40*time.Minute, func() *resource.RetryError {
+			opts := &codedeploy.GetDeploymentGroupInput{
+				ApplicationName:     group.ApplicationName,
+				DeploymentGroupName: group.DeploymentGroupName,
+			}
+			_, err := conn.GetDeploymentGroup(opts)
+			if err != nil {
+				codedeploy, ok := err.(awserr.Error)
+				if ok && codedeploy.Code() == "DeploymentGroupDoesNotExistException" {
+					return nil
+				}
+				return resource.NonRetryableError(
+					fmt.Errorf("Error retrieving CodeDeploy Deployment Group: %s", err))
+			}
+			return resource.RetryableError(fmt.Errorf(
+				"Waiting for CodeDeploy Deployment Group: %v", group.DeploymentGroupName))
+		})
+	}
 }
 
 func testAccCheckAWSCodeDeployDeploymentGroupExists(name string, group *codedeploy.DeploymentGroupInfo) resource.TestCheckFunc {
