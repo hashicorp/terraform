@@ -149,6 +149,7 @@ BUG FIXES:
  * core: Fix a crash during eval when we're upgrading an empty state [GH-7403]
  * core: Honor the `-state-out` flag when applying with a plan file [GH-7443]
  * core: Fix a panic when a `terraform_remote_state` data source doesn't exist [GH-7464]
+ * provider/aws: Manual changes to `aws_codedeploy_deployment_group` resources are now detected [GH-7530]
  * provider/aws: Changing keys in `aws_dynamodb_table` correctly force new resources [GH-6829]
  * provider/aws: Fix a bug where CloudWatch alarms are created repeatedly if the user does not have permission to use the the DescribeAlarms operation [GH-7227]
  * provider/aws: Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
