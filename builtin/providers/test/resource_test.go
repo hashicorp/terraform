@@ -293,6 +293,106 @@ resource "test_resource" "foo" {
 	})
 }
 
+func TestResource_ignoreChangesDependent(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	count = 2
+	required = "yep"
+	required_map { key = "value" }
+
+	optional_force_new = "one"
+	lifecycle {
+		ignore_changes = ["optional_force_new"]
+	}
+}
+resource "test_resource" "bar" {
+	count = 2
+	required = "yep"
+	required_map { key = "value" }
+	optional = "${element(test_resource.foo.*.id, count.index)}"
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	count = 2
+	required = "yep"
+	required_map { key = "value" }
+
+	optional_force_new = "two"
+	lifecycle {
+		ignore_changes = ["optional_force_new"]
+	}
+}
+resource "test_resource" "bar" {
+	count = 2
+	required = "yep"
+	required_map { key = "value" }
+	optional = "${element(test_resource.foo.*.id, count.index)}"
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
+func TestResource_ignoreChangesStillReplaced(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "yep"
+  required_map = {
+    key = "value"
+  }
+  optional_force_new = "one"
+  optional_bool      = true
+  lifecycle {
+    ignore_changes = ["optional_bool"]
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "yep"
+  required_map = {
+    key = "value"
+  }
+  optional_force_new = "two"
+  optional_bool      = false
+  lifecycle {
+    ignore_changes = ["optional_bool"]
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func testAccCheckResourceDestroy(s *terraform.State) error {
 	return nil
 }
