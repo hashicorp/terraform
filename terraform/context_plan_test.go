@@ -2286,3 +2286,42 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }
+
+func TestContext2Plan_moduleMapLiteral(t *testing.T) {
+	m := testModule(t, "plan-module-map-literal")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = func(i *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		// Here we verify that both the populated and empty map literals made it
+		// through to the resource attributes
+		val, _ := c.Get("tags")
+		m, ok := val.(map[string]interface{})
+		if !ok {
+			t.Fatalf("Tags attr not map: %#v", val)
+		}
+		if m["foo"] != "bar" {
+			t.Fatalf("Bad value in tags attr: %#v", m)
+		}
+		{
+			val, _ := c.Get("meta")
+			m, ok := val.(map[string]interface{})
+			if !ok {
+				t.Fatalf("Meta attr not map: %#v", val)
+			}
+			if len(m) != 0 {
+				t.Fatalf("Meta attr not empty: %#v", val)
+			}
+		}
+		return nil, nil
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}

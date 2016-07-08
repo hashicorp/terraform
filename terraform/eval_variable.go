@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 
@@ -21,10 +22,6 @@ import (
 //       declared
 //     - the path to the module (so we know which part of the tree to
 //       compare the values against).
-//
-// Currently since the type system is simple, we currently do not make
-// use of the values since it is only valid to pass string values. The
-// structure is in place for extension of the type system, however.
 type EvalTypeCheckVariable struct {
 	Variables  map[string]interface{}
 	ModulePath []string
@@ -50,10 +47,6 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	for name, declaredType := range prototypes {
-		// This is only necessary when we _actually_ check. It is left as a reminder
-		// that at the current time we are dealing with a type system consisting only
-		// of strings and maps - where the only valid inter-module variable type is
-		// string.
 		proposedValue, ok := n.Variables[name]
 		if !ok {
 			// This means the default value should be used as no overriding value
@@ -67,8 +60,6 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 
 		switch declaredType {
 		case config.VariableTypeString:
-			// This will need actual verification once we aren't dealing with
-			// a map[string]string but this is sufficient for now.
 			switch proposedValue.(type) {
 			case string:
 				continue
@@ -93,8 +84,6 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
 			}
 		default:
-			// This will need the actual type substituting when we have more than
-			// just strings and maps.
 			return nil, fmt.Errorf("variable %s%s should be type %s, got type string",
 				name, modulePathDescription, declaredType.Printable())
 		}
@@ -157,6 +146,54 @@ func (n *EvalVariableBlock) Eval(ctx EvalContext) (interface{}, error) {
 	for k, _ := range rc.Raw {
 		if _, ok := n.VariableValues[k]; !ok {
 			n.VariableValues[k] = config.UnknownVariableValue
+		}
+	}
+
+	return nil, nil
+}
+
+// EvalCoerceMapVariable is an EvalNode implementation that recognizes a
+// specific ambiguous HCL parsing situation and resolves it. In HCL parsing, a
+// bare map literal is indistinguishable from a list of maps w/ one element.
+//
+// We take all the same inputs as EvalTypeCheckVariable above, since we need
+// both the target type and the proposed value in order to properly coerce.
+type EvalCoerceMapVariable struct {
+	Variables  map[string]interface{}
+	ModulePath []string
+	ModuleTree *module.Tree
+}
+
+// Eval implements the EvalNode interface. See EvalCoerceMapVariable for
+// details.
+func (n *EvalCoerceMapVariable) Eval(ctx EvalContext) (interface{}, error) {
+	currentTree := n.ModuleTree
+	for _, pathComponent := range n.ModulePath[1:] {
+		currentTree = currentTree.Children()[pathComponent]
+	}
+	targetConfig := currentTree.Config()
+
+	prototypes := make(map[string]config.VariableType)
+	for _, variable := range targetConfig.Variables {
+		prototypes[variable.Name] = variable.Type()
+	}
+
+	for name, declaredType := range prototypes {
+		if declaredType != config.VariableTypeMap {
+			continue
+		}
+
+		proposedValue, ok := n.Variables[name]
+		if !ok {
+			continue
+		}
+
+		if list, ok := proposedValue.([]interface{}); ok && len(list) == 1 {
+			if m, ok := list[0].(map[string]interface{}); ok {
+				log.Printf("[DEBUG] EvalCoerceMapVariable: "+
+					"Coercing single element list into map: %#v", m)
+				n.Variables[name] = m
+			}
 		}
 	}
 
