@@ -23,6 +23,10 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 		Read:   resourceAwsDbParameterGroupRead,
 		Update: resourceAwsDbParameterGroupUpdate,
 		Delete: resourceAwsDbParameterGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,

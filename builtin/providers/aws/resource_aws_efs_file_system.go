@@ -100,6 +100,11 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 		FileSystemId: aws.String(d.Id()),
 	})
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "FileSystemNotFound" {
+			log.Printf("[WARN] EFS File System (%s) not found, error code (404)", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 	if len(resp.FileSystems) < 1 {

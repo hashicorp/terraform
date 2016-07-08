@@ -62,6 +62,10 @@ and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
 Default `false`. See the documentation on [Creating DB Instances][6] for more
 details on controlling this property.
 * `db_subnet_group_name` - (Required if `publicly_accessible = false`, Optional otherwise) A DB subnet group to associate with this DB instance. **NOTE:** This must match the `db_subnet_group_name` of the attached [`aws_rds_cluster`](/docs/providers/aws/r/rds_cluster.html).
+* `db_parameter_group_name` - (Optional) The name of the DB parameter group to associate with this instance.
+* `apply_immediately` - (Optional) Specifies whether any database modifications
+     are applied immediately, or during the next maintenance window. Default is`false`.
+* `tags` - (Optional) A mapping of tags to assign to the instance.
 
 ## Attributes Reference
 
