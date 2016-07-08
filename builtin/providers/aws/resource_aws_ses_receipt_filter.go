@@ -14,6 +14,9 @@ func resourceAwsSesReceiptFilter() *schema.Resource {
 		Create: resourceAwsSesReceiptFilterCreate,
 		Read:   resourceAwsSesReceiptFilterRead,
 		Delete: resourceAwsSesReceiptFilterDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -77,6 +80,7 @@ func resourceAwsSesReceiptFilterRead(d *schema.ResourceData, meta interface{}) e
 		if *element.Name == d.Id() {
 			d.Set("cidr", element.IpFilter.Cidr)
 			d.Set("policy", element.IpFilter.Policy)
+			d.Set("name", element.Name)
 			found = true
 		}
 	}
