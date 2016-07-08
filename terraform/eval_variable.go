@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -143,13 +144,58 @@ func (n *EvalVariableBlock) Eval(ctx EvalContext) (interface{}, error) {
 
 		return nil, fmt.Errorf("Variable value for %s is not a string, list or map type", k)
 	}
-	for k, _ := range rc.Raw {
-		if _, ok := n.VariableValues[k]; !ok {
-			n.VariableValues[k] = config.UnknownVariableValue
+
+	for _, path := range rc.ComputedKeys {
+		log.Printf("[DEBUG] Setting Unknown Variable Value for computed key: %s", path)
+		err := n.setUnknownVariableValueForPath(path)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return nil, nil
+}
+
+func (n *EvalVariableBlock) setUnknownVariableValueForPath(path string) error {
+	pathComponents := strings.Split(path, ".")
+
+	if len(pathComponents) < 1 {
+		return fmt.Errorf("No path comoponents in %s", path)
+	}
+
+	if len(pathComponents) == 1 {
+		// Special case the "top level" since we know the type
+		if _, ok := n.VariableValues[pathComponents[0]]; !ok {
+			n.VariableValues[pathComponents[0]] = config.UnknownVariableValue
+		}
+		return nil
+	}
+
+	// Otherwise find the correct point in the tree and then set to unknown
+	var current interface{} = n.VariableValues[pathComponents[0]]
+	for i := 1; i < len(pathComponents); i++ {
+		switch current.(type) {
+		case []interface{}, []map[string]interface{}:
+			tCurrent := current.([]interface{})
+			index, err := strconv.Atoi(pathComponents[i])
+			if err != nil {
+				return fmt.Errorf("Cannot convert %s to slice index in path %s",
+					pathComponents[i], path)
+			}
+			current = tCurrent[index]
+		case map[string]interface{}:
+			tCurrent := current.(map[string]interface{})
+			if val, hasVal := tCurrent[pathComponents[i]]; hasVal {
+				current = val
+				continue
+			}
+
+			tCurrent[pathComponents[i]] = config.UnknownVariableValue
+			break
+		}
+	}
+
+	return nil
 }
 
 // EvalCoerceMapVariable is an EvalNode implementation that recognizes a
