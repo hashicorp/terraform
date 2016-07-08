@@ -22,6 +22,9 @@ func resourceAwsDbInstance() *schema.Resource {
 		Read:   resourceAwsDbInstanceRead,
 		Update: resourceAwsDbInstanceUpdate,
 		Delete: resourceAwsDbInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -633,6 +636,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("name", v.DBName)
+	d.Set("identifier", v.DBInstanceIdentifier)
 	d.Set("username", v.MasterUsername)
 	d.Set("engine", v.Engine)
 	d.Set("engine_version", v.EngineVersion)
@@ -753,10 +757,13 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 
 	opts := rds.DeleteDBInstanceInput{DBInstanceIdentifier: aws.String(d.Id())}
 
-	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
-	opts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot)
+	skipFinalSnapshot, exists := d.GetOk("skip_final_snapshot")
+	if !exists {
+		skipFinalSnapshot = true
+	}
+	opts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot.(bool))
 
-	if !skipFinalSnapshot {
+	if skipFinalSnapshot == false {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
 			opts.FinalDBSnapshotIdentifier = aws.String(name.(string))
 		} else {
