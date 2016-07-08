@@ -13,13 +13,11 @@ typical format used to request a certificate from a certificate authority.
 
 This resource is intended to be used in conjunction with a Terraform provider
 for a particular certificate authority in order to provision a new certificate.
-This is a *logical resource*, so it contributes only to the current Terraform
-state and does not create any external managed resources.
 
 ## Example Usage
 
 ```
-resource "tls_cert_request" "example" {
+data "tls_cert_request" "example" {
     key_algorithm = "ECDSA"
     private_key_pem = "${file(\"private_key.pem\")}"
 
