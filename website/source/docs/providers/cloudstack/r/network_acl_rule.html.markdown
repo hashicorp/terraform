@@ -40,6 +40,9 @@ The following arguments are supported:
 * `rule` - (Optional) Can be specified multiple times. Each rule block supports
     fields documented below. If `managed = false` at least one rule is required!
 
+* `project` - (Optional) The name or ID of the project to deploy this
+    instance to. Changing this forces a new resource to be created.
+
 * `parallelism` (Optional) Specifies how much rules will be created or deleted
     concurrently. (defaults 2)
     

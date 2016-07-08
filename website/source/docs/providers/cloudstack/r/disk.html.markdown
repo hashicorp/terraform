@@ -34,7 +34,7 @@ The following arguments are supported:
 * `attach` - (Optional) Determines whether or not to attach the disk volume to a
     virtual machine (defaults false).
 
-* `device` - (Optional) The device to map the disk volume to within the guest OS.
+* `device_id` - (Optional) The device ID to map the disk volume to within the guest OS.
 
 * `disk_offering` - (Required) The name or ID of the disk offering to use for
     this disk volume.
@@ -58,4 +58,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the disk volume.
-* `device` - The device the disk volume is mapped to within the guest OS.
+* `device_id` - The device ID the disk volume is mapped to within the guest OS.
