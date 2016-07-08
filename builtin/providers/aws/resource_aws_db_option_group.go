@@ -19,6 +19,9 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 		Read:   resourceAwsDbOptionGroupRead,
 		Update: resourceAwsDbOptionGroupUpdate,
 		Delete: resourceAwsDbOptionGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -125,7 +128,7 @@ func resourceAwsDbOptionGroupCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 	params := &rds.DescribeOptionGroupsInput{
-		OptionGroupName: aws.String(d.Get("name").(string)),
+		OptionGroupName: aws.String(d.Id()),
 	}
 
 	log.Printf("[DEBUG] Describe DB Option Group: %#v", params)
@@ -143,7 +146,7 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	var option *rds.OptionGroup
 	for _, ogl := range options.OptionGroupsList {
-		if *ogl.OptionGroupName == d.Get("name").(string) {
+		if *ogl.OptionGroupName == d.Id() {
 			option = ogl
 			break
 		}
@@ -153,6 +156,7 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Unable to find Option Group: %#v", options.OptionGroupsList)
 	}
 
+	d.Set("name", option.OptionGroupName)
 	d.Set("major_engine_version", option.MajorEngineVersion)
 	d.Set("engine_name", option.EngineName)
 	d.Set("option_group_description", option.OptionGroupDescription)
