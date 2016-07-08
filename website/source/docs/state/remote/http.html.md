@@ -19,6 +19,14 @@ terraform remote config \
 	-backend=http \
 	-backend-config="address=http://my.rest.api.com"
 ```
+## Example Usage with Headers (Optional)
+
+```
+terraform remote config \
+	-backend=http \
+	-backend-config="address=http://my.rest.api.com" \
+	-backend-config="headers=X-HEADER:myValue,X-ANOTHER:myValue"
+```
 
 ## Example Referencing
 
@@ -36,5 +44,6 @@ resource "terraform_remote_state" "foo" {
 The following configuration options are supported:
 
  * `address` - (Required) The address of the REST endpoint
+ * `headers` - (Optional) Add headers in the form of `key1:value1,key2:value2,...`
  * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
    Defaults to `false`.

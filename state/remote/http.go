@@ -60,8 +60,8 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 
 	return &HTTPClient{
-		URL:    url,
-		Client: client,
+		URL:     url,
+		Client:  client,
 		Headers: headers,
 	}, nil
 }
@@ -74,7 +74,14 @@ type HTTPClient struct {
 }
 
 func (c *HTTPClient) Get() (*Payload, error) {
-	resp, err := c.Client.Get(c.URL.String())
+	req, err := http.NewRequest("GET", c.URL.String(), nil)
+
+	// Prepare the request
+	for headerKey, headerValue := range c.Headers {
+		req.Header.Set(headerKey, headerValue)
+	}
+
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +162,9 @@ func (c *HTTPClient) Put(data []byte) error {
 	}
 
 	// Prepare the request
-	for headerKey, headerValue := range c.Headers { req.Header.Set(headerKey, headerValue) }
+	for headerKey, headerValue := range c.Headers {
+		req.Header.Set(headerKey, headerValue)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-MD5", b64)
 
@@ -181,6 +190,11 @@ func (c *HTTPClient) Delete() error {
 	req, err := http.NewRequest("DELETE", c.URL.String(), nil)
 	if err != nil {
 		return fmt.Errorf("Failed to make HTTP request: %s", err)
+	}
+
+	// Prepare the request
+	for headerKey, headerValue := range c.Headers {
+		req.Header.Set(headerKey, headerValue)
 	}
 
 	// Make the request
