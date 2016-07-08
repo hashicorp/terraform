@@ -130,7 +130,7 @@ func TestShow_noArgsRemoteState(t *testing.T) {
 	defer testFixCwd(t, tmp, cwd)
 
 	// Pretend like we have a local cache of remote state
-	remoteStatePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	remoteStatePath := filepath.Join(tmp, DefaultDataDirectory, DefaultStateFilename)
 	if err := os.MkdirAll(filepath.Dir(remoteStatePath), 0755); err != nil {
 		t.Fatalf("err: %s", err)
 	}

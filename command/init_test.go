@@ -174,7 +174,7 @@ func TestInit_remoteState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)); err != nil {
+	if _, err := os.Stat(filepath.Join(tmp, DefaultDataDirectory, DefaultStateFilename)); err != nil {
 		t.Fatalf("missing state: %s", err)
 	}
 }
@@ -210,7 +210,7 @@ func TestInit_remoteStateSubdir(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(subdir, DefaultDataDir, DefaultStateFilename)); err != nil {
+	if _, err := os.Stat(filepath.Join(subdir, DefaultDataDirectory, DefaultStateFilename)); err != nil {
 		t.Fatalf("missing state: %s", err)
 	}
 }
@@ -254,7 +254,7 @@ func TestInit_remoteStateWithRemote(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	statePath := filepath.Join(tmp, DefaultDataDirectory, DefaultStateFilename)
 	if err := os.MkdirAll(filepath.Dir(statePath), 0755); err != nil {
 		t.Fatalf("err: %s", err)
 	}

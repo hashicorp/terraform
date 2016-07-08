@@ -47,7 +47,7 @@ func TestRemotePull_local(t *testing.T) {
 	defer srv.Close()
 
 	// Store the local state
-	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	statePath := filepath.Join(tmp, DefaultDataDirectory, DefaultStateFilename)
 	if err := os.MkdirAll(filepath.Dir(statePath), 0755); err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -29,7 +29,7 @@ func TestRemoteConfig_disable(t *testing.T) {
 	s.Remote = conf
 
 	// Write the state
-	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	statePath := filepath.Join(tmp, DefaultDataDirectory, DefaultStateFilename)
 	state := &state.LocalState{Path: statePath}
 	if err := state.WriteState(s); err != nil {
 		t.Fatalf("err: %s", err)
@@ -84,7 +84,7 @@ func TestRemoteConfig_disable_noPull(t *testing.T) {
 	s.Remote = conf
 
 	// Write the state
-	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	statePath := filepath.Join(tmp, DefaultDataDirectory, DefaultStateFilename)
 	state := &state.LocalState{Path: statePath}
 	if err := state.WriteState(s); err != nil {
 		t.Fatalf("err: %s", err)
@@ -150,7 +150,7 @@ func TestRemoteConfig_disable_otherState(t *testing.T) {
 	s.Serial = 5
 
 	// Write the state
-	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	statePath := filepath.Join(tmp, DefaultDataDirectory, DefaultStateFilename)
 	state := &state.LocalState{Path: statePath}
 	if err := state.WriteState(s); err != nil {
 		t.Fatalf("err: %s", err)
@@ -194,7 +194,7 @@ func TestRemoteConfig_managedAndNonManaged(t *testing.T) {
 	s.Serial = 5
 
 	// Write the state
-	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	statePath := filepath.Join(tmp, DefaultDataDirectory, DefaultStateFilename)
 	state := &state.LocalState{Path: statePath}
 	if err := state.WriteState(s); err != nil {
 		t.Fatalf("err: %s", err)
@@ -251,7 +251,7 @@ func TestRemoteConfig_initBlank(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
+	remotePath := filepath.Join(DefaultDataDirectory, DefaultStateFilename)
 	ls := &state.LocalState{Path: remotePath}
 	if err := ls.RefreshState(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -301,7 +301,7 @@ func TestRemoteConfig_updateRemote(t *testing.T) {
 	}
 
 	// Write the state
-	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	statePath := filepath.Join(tmp, DefaultDataDirectory, DefaultStateFilename)
 	ls := &state.LocalState{Path: statePath}
 	if err := ls.WriteState(s); err != nil {
 		t.Fatalf("err: %s", err)
@@ -328,7 +328,7 @@ func TestRemoteConfig_updateRemote(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
+	remotePath := filepath.Join(DefaultDataDirectory, DefaultStateFilename)
 	ls = &state.LocalState{Path: remotePath}
 	if err := ls.RefreshState(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -384,7 +384,7 @@ func TestRemoteConfig_enableRemote(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
+	remotePath := filepath.Join(DefaultDataDirectory, DefaultStateFilename)
 	ls := &state.LocalState{Path: remotePath}
 	if err := ls.RefreshState(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -434,7 +434,7 @@ func testRemoteLocalBackup(t *testing.T, exists bool) {
 }
 
 func testRemoteLocalCache(t *testing.T, exists bool) {
-	_, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename))
+	_, err := os.Stat(filepath.Join(DefaultDataDirectory, DefaultStateFilename))
 	if os.IsNotExist(err) && !exists {
 		return
 	}

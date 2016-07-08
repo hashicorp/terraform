@@ -179,7 +179,7 @@ func StateFromPlan(
 
 		// It looks like we have a remote state in the plan, so
 		// we have to initialize that.
-		resultPath = filepath.Join(DefaultDataDir, DefaultStateFilename)
+		resultPath = filepath.Join(DefaultDataDirectory, DefaultStateFilename)
 		result, err = remoteState(plan.State, resultPath, false)
 		if err != nil {
 			return nil, "", err
