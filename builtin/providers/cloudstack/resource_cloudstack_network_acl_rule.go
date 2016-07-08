@@ -2,6 +2,7 @@ package cloudstack
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -86,6 +87,12 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 						},
 					},
 				},
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"parallelism": &schema.Schema{
@@ -264,6 +271,22 @@ func createNetworkACLRule(d *schema.ResourceData, meta interface{}, rule map[str
 
 func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
+
+	// First check if the ACL itself still exists
+	_, count, err := cs.NetworkACL.GetNetworkACLListByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
+	if err != nil {
+		if count == 0 {
+			log.Printf(
+				"[DEBUG] Network ACL list %s does no longer exist", d.Id())
+			d.SetId("")
+			return nil
+		}
+
+		return err
+	}
 
 	// Get all the rules from the running environment
 	p := cs.NetworkACL.NewListNetworkACLsParams()
