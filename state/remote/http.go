@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 func httpFactory(conf map[string]string) (Client, error) {
@@ -24,6 +25,20 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 	if url.Scheme != "http" && url.Scheme != "https" {
 		return nil, fmt.Errorf("address must be HTTP or HTTPS")
+	}
+
+	// headers is a map of HTTP headers to pass along with each request
+	var headers map[string]string
+	headers = make(map[string]string)
+	if headerString, ok := conf["headers"]; ok {
+		for _, h := range strings.Split(headerString, ",") {
+			var hs []string
+			hs = strings.Split(h, ":")
+			if len(hs) != 2 {
+				return nil, fmt.Errorf("headers are malformed - use k:v,k:v...")
+			}
+			headers[hs[0]] = hs[1]
+		}
 	}
 
 	client := &http.Client{}
@@ -47,13 +62,15 @@ func httpFactory(conf map[string]string) (Client, error) {
 	return &HTTPClient{
 		URL:    url,
 		Client: client,
+		Headers: headers,
 	}, nil
 }
 
 // HTTPClient is a remote client that stores data in Consul or HTTP REST.
 type HTTPClient struct {
-	URL    *url.URL
-	Client *http.Client
+	URL     *url.URL
+	Client  *http.Client
+	Headers map[string]string
 }
 
 func (c *HTTPClient) Get() (*Payload, error) {
@@ -138,8 +155,10 @@ func (c *HTTPClient) Put(data []byte) error {
 	}
 
 	// Prepare the request
+	for headerKey, headerValue := range c.Headers { req.Header.Set(headerKey, headerValue) }
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-MD5", b64)
+
 	req.ContentLength = int64(len(data))
 
 	// Make the request
