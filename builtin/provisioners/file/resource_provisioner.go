@@ -27,9 +27,12 @@ func (p *ResourceProvisioner) Apply(
 	}
 
 	// Get the source
-	src, err := p.getSrc(c)
+	src, deleteSource, err := p.getSrc(c)
 	if err != nil {
 		return err
+	}
+	if deleteSource {
+		defer os.Remove(src)
 	}
 
 	// Get destination
@@ -62,13 +65,13 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 }
 
 // getSrc returns the file to use as source
-func (p *ResourceProvisioner) getSrc(c *terraform.ResourceConfig) (string, error) {
+func (p *ResourceProvisioner) getSrc(c *terraform.ResourceConfig) (string, bool, error) {
 	var src string
 
 	sRaw, ok := c.Config["source"]
 	if ok {
 		if src, ok = sRaw.(string); !ok {
-			return "", fmt.Errorf("Unsupported 'source' type! Must be string.")
+			return "", false, fmt.Errorf("Unsupported 'source' type! Must be string.")
 		}
 	}
 
@@ -76,19 +79,22 @@ func (p *ResourceProvisioner) getSrc(c *terraform.ResourceConfig) (string, error
 	if ok {
 		file, err := ioutil.TempFile("", "tf-file-content")
 		if err != nil {
-			return "", err
+			return "", true, err
 		}
+
 		contentStr, ok := content.(string)
 		if !ok {
-			return "", fmt.Errorf("Unsupported 'content' type! Must be string.")
+			return "", true, fmt.Errorf("Unsupported 'content' type! Must be string.")
 		}
 		if _, err = file.WriteString(contentStr); err != nil {
-			return "", err
+			return "", true, err
 		}
-		src = file.Name()
+
+		return file.Name(), true, nil
 	}
 
-	return homedir.Expand(src)
+	expansion, err := homedir.Expand(src)
+	return expansion, false, err
 }
 
 // copyFiles is used to copy the files from a source to a destination
