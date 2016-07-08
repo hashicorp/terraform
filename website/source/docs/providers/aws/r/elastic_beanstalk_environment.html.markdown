@@ -51,10 +51,13 @@ The following arguments are supported:
 off of. Example stacks can be found in the [Amazon API documentation][1]
 * `template_name` – (Optional) The name of the Elastic Beanstalk Configuration
   template to use in deployment
-* `wait_for_ready_timeout` - (Default: "10m") The maximum
+* `wait_for_ready_timeout` - (Default: `10m`) The maximum
   [duration](https://golang.org/pkg/time/#ParseDuration) that Terraform should
   wait for an Elastic Beanstalk Environment to be in a ready state before timing
   out.
+* `poll_interval` – (Default: `10s`) The time between polling the AWS API to
+check if changes have been applied. Use this to adjust the rate of API calls
+for any `create` or `update` action. Minimum `10s`, maximum `60s`
 * `tags` – (Optional) A set of tags to apply to the Environment. **Note:** at
 this time the Elastic Beanstalk API does not provide a programatic way of
 changing these tags after initial application

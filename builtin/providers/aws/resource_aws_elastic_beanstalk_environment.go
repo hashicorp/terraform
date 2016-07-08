@@ -134,6 +134,24 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 					return
 				},
 			},
+			"poll_interval": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "10s",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					duration, err := time.ParseDuration(value)
+					if err != nil {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be parsed as a duration: %s", k, err))
+					}
+					if duration < 10*time.Second || duration > 60*time.Second {
+						errors = append(errors, fmt.Errorf(
+							"%q must be between 10s and 60s", k))
+					}
+					return
+				},
+			},
 			"autoscaling_groups": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
@@ -182,10 +200,6 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	settings := d.Get("setting").(*schema.Set)
 	solutionStack := d.Get("solution_stack_name").(string)
 	templateName := d.Get("template_name").(string)
-	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
-	if err != nil {
-		return err
-	}
 
 	// TODO set tags
 	// Note: at time of writing, you cannot view or edit Tags after creation
@@ -243,13 +257,22 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	// Assign the application name as the resource ID
 	d.SetId(*resp.EnvironmentId)
 
+	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+	if err != nil {
+		return err
+	}
+	pollInterval, err := time.ParseDuration(d.Get("poll_interval").(string))
+	if err != nil {
+		return err
+	}
+
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"Launching", "Updating"},
 		Target:     []string{"Ready"},
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
 		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
-                MinTimeout: 20 * time.Second,
+		MinTimeout: pollInterval,
 	}
 
 	_, err = stateConf.WaitForState()
@@ -271,10 +294,6 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
 	envId := d.Id()
-	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
-	if err != nil {
-		return err
-	}
 
 	updateOpts := elasticbeanstalk.UpdateEnvironmentInput{
 		EnvironmentId: aws.String(envId),
@@ -310,7 +329,16 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 	// Get the current time to filter describeBeanstalkEvents messages
 	t := time.Now()
 	log.Printf("[DEBUG] Elastic Beanstalk Environment update opts: %s", updateOpts)
-	_, err = conn.UpdateEnvironment(&updateOpts)
+	_, err := conn.UpdateEnvironment(&updateOpts)
+	if err != nil {
+		return err
+	}
+
+	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+	if err != nil {
+		return err
+	}
+	pollInterval, err := time.ParseDuration(d.Get("poll_interval").(string))
 	if err != nil {
 		return err
 	}
@@ -321,7 +349,7 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
 		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
-                MinTimeout: 20 * time.Second,
+		MinTimeout: pollInterval,
 	}
 
 	_, err = stateConf.WaitForState()
@@ -542,11 +570,6 @@ func resourceAwsElasticBeanstalkEnvironmentSettingsRead(d *schema.ResourceData, 
 func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
-	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
-	if err != nil {
-		return err
-	}
-
 	opts := elasticbeanstalk.TerminateEnvironmentInput{
 		EnvironmentId:      aws.String(d.Id()),
 		TerminateResources: aws.Bool(true),
@@ -555,8 +578,17 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 	// Get the current time to filter describeBeanstalkEvents messages
 	t := time.Now()
 	log.Printf("[DEBUG] Elastic Beanstalk Environment terminate opts: %s", opts)
-	_, err = conn.TerminateEnvironment(&opts)
+	_, err := conn.TerminateEnvironment(&opts)
 
+	if err != nil {
+		return err
+	}
+
+	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+	if err != nil {
+		return err
+	}
+	pollInterval, err := time.ParseDuration(d.Get("poll_interval").(string))
 	if err != nil {
 		return err
 	}
@@ -567,7 +599,7 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
 		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
-                MinTimeout: 20 * time.Second,
+		MinTimeout: pollInterval,
 	}
 
 	_, err = stateConf.WaitForState()
