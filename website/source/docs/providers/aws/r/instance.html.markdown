@@ -14,12 +14,12 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 ## Example Usage
 
 ```
-# Create a new instance of the `ami-408c7f28` (Ubuntu 14.04) on an 
+# Create a new instance of the `ami-408c7f28` (Ubuntu 14.04) on an
 # t1.micro node with an AWS Tag naming it "HelloWorld"
 provider "aws" {
     region = "us-east-1"
 }
-    
+
 resource "aws_instance" "web" {
     ami = "ami-408c7f28"
     instance_type = "t1.micro"
@@ -41,9 +41,9 @@ The following arguments are supported:
      EBS-optimized.
 * `disable_api_termination` - (Optional) If true, enables [EC2 Instance
      Termination Protection](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html#Using_ChangingDisableAPITermination)
-* `instance_initiated_shutdown_behavior` - (Optional) Shutdown behavior for the 
-instance. Amazon defaults this to `stop` for EBS-backed instances and 
-`terminate` for instance-store instances. Cannot be set on instance-store 
+* `instance_initiated_shutdown_behavior` - (Optional) Shutdown behavior for the
+instance. Amazon defaults this to `stop` for EBS-backed instances and
+`terminate` for instance-store instances. Cannot be set on instance-store
 instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html#Using_ChangingInstanceInitiatedShutdownBehavior) for more information.
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
@@ -52,9 +52,11 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
    If you are creating Instances in a VPC, use `vpc_security_group_ids` instead.
 * `vpc_security_group_ids` - (Optional) A list of security group IDs to associate with.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
-* `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.  Boolean value. 
-* `private_ip` - (Optional) Private IP address to associate with the
-     instance in a VPC.
+* `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.  Boolean value.
+* `private_ip` - (Optional, Deprecated) Private IP address to associate with the
+     instance in a VPC. This
+     attribute is deprecated, please use the `private_ips` attribute instead.
+* `private_ips` - (Optional) A list of private IP addresses to accociate with the instance's first network interface in a VPC.
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
   the destination address does not match the instance. Used for NAT or VPNs. Defaults true.
 * `user_data` - (Optional) The user data to provide when launching the instance.
@@ -136,13 +138,14 @@ The following attributes are exported:
 * `availability_zone` - The availability zone of the instance.
 * `placement_group` - The placement group of the instance.
 * `key_name` - The key name of the instance
-* `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this 
+* `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this
   is only available if you've enabled DNS hostnames for your VPC
 * `public_ip` - The public IP address assigned to the instance, if applicable. **NOTE**: If you are using an [`aws_eip`](/docs/providers/aws/r/eip.html) with your instance, you should refer to the EIP's address directly and not use `public_ip`, as this field will change after the EIP is attached.
-* `private_dns` - The private DNS name assigned to the instance. Can only be 
-  used inside the Amazon EC2, and only available if you've enabled DNS hostnames 
+* `private_dns` - The private DNS name assigned to the instance. Can only be
+  used inside the Amazon EC2, and only available if you've enabled DNS hostnames
   for your VPC
 * `private_ip` - The private IP address assigned to the instance
+* `private_ips` - A list of private IP addresses assigned to the instance's first network interface.
 * `security_groups` - The associated security groups.
 * `vpc_security_group_ids` - The associated security groups in non-default VPC
 * `subnet_id` - The VPC subnet ID.

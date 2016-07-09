@@ -452,6 +452,50 @@ func TestAccAWSInstance_privateIP(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_privateIPs(t *testing.T) {
+	var v ec2.Instance
+
+	testCheckPrivateIPs := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if l := len(v.NetworkInterfaces); l != 1 {
+				return fmt.Errorf("expected 1 eni, got %s", l)
+			}
+
+			privateIps := flattenInstancePrivateIpAddresses(v.NetworkInterfaces[0].PrivateIpAddresses)
+			if l := len(privateIps); l != 2 {
+				return fmt.Errorf("expected 2 private IPs, got %s", l)
+			}
+
+			ip1 := privateIps[0]
+			ip2 := privateIps[1]
+			if ip1 != "10.1.1.42" && ip2 != "10.1.1.42" {
+				return fmt.Errorf("expected private IP 10.1.1.42 to be set")
+			}
+			if ip1 != "10.1.1.43" && ip2 != "10.1.1.43" {
+				return fmt.Errorf("expected private IP 10.1.1.43 to be set")
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigPrivateIPs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckPrivateIPs(),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 	var v ec2.Instance
 
@@ -700,6 +744,31 @@ func driftTags(instance *ec2.Instance) resource.TestCheckFunc {
 	}
 }
 
+func TestFlattenInstancePrivateIpAddresses(t *testing.T) {
+	expanded := []*ec2.InstancePrivateIpAddress{
+		&ec2.InstancePrivateIpAddress{PrivateIpAddress: aws.String("192.168.0.1")},
+		&ec2.InstancePrivateIpAddress{PrivateIpAddress: aws.String("192.168.0.2")},
+	}
+
+	result := flattenInstancePrivateIpAddresses(expanded)
+
+	if result == nil {
+		t.Fatal("result was nil")
+	}
+
+	if len(result) != 2 {
+		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
+	}
+
+	if result[0] != "192.168.0.1" {
+		t.Fatalf("expected ip to be 192.168.0.1, but was %s", result[0])
+	}
+
+	if result[1] != "192.168.0.2" {
+		t.Fatalf("expected ip to be 192.168.0.2, but was %s", result[1])
+	}
+}
+
 const testAccInstanceConfig_pre = `
 resource "aws_security_group" "tf_test_foo" {
 	name = "tf_test_foo"
@@ -918,6 +987,24 @@ resource "aws_instance" "foo" {
 	instance_type = "t2.micro"
 	subnet_id = "${aws_subnet.foo.id}"
 	private_ip = "10.1.1.42"
+}
+`
+
+const testAccInstanceConfigPrivateIPs = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	private_ips = ["10.1.1.42","10.1.1.43"]
 }
 `
 
