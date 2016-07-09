@@ -79,6 +79,7 @@ The following arguments are supported:
 * `network_mode` - (Optional, string) Network mode of the container.
 * `networks` - (Optional, set of strings) Id of the networks in which the
   container is.
+* `uploads` - (Optional) See [Uploads](#uploads) below for details.
 
 <a id="ports"></a>
 ### Ports
@@ -101,7 +102,7 @@ the extra host mappings for the container. Each `host_entry` block supports
 the following:
 
 * `host` - (Required, int) Hostname to add.
-* `ip` - (Required, int) IP address this hostname should resolve to..
+* `ip` - (Required, int) IP address this hostname should resolve to.
 
 This is equivalent to using the `--add-host` option when using the `run`
 command of the Docker CLI.
@@ -125,6 +126,17 @@ the following:
   Defaults to false.
 
 One of `from_container`, `host_path` or `volume_name` must be set.
+
+<a id="uploads"></a>
+### Uploads
+
+`uploads` is a block within the configuration that can be repeated to specify
+files and directories to upload to the container before starting it.
+Each `uploads` supports the following
+
+* `local_path` - (Required, string) local path to a file or directory to upload.
+* `remote_path` - (Required, string) path to a file or directory in the
+  container.
 
 ## Attributes Reference
 
