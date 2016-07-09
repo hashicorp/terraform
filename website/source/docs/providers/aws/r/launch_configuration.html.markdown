@@ -13,9 +13,22 @@ Provides a resource to create a new launch configuration, used for autoscaling g
 ## Example Usage
 
 ```
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name = "name"
+    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["paravirtual"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
 resource "aws_launch_configuration" "as_conf" {
     name = "web_config"
-    image_id = "ami-408c7f28"
+    image_id = "${data.aws_ami.ubuntu.id}"
     instance_type = "t1.micro"
 }
 ```
@@ -31,9 +44,22 @@ Either omit the Launch Configuration `name` attribute, or specify a partial name
 with `name_prefix`.  Example:
 
 ```
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name = "name"
+    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["paravirtual"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
 resource "aws_launch_configuration" "as_conf" {
     name_prefix = "terraform-lc-example-"
-    image_id = "ami-408c7f28"
+    image_id = "${data.aws_ami.ubuntu.id}"
     instance_type = "t1.micro"
 
     lifecycle {
@@ -65,8 +91,21 @@ documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-in
 for more information or how to launch [Spot Instances][3] with Terraform.
 
 ```
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name = "name"
+    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["paravirtual"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
 resource "aws_launch_configuration" "as_conf" {
-    image_id = "ami-408c7f28"
+    image_id = "${data.aws_ami.ubuntu.id}"
     instance_type = "t1.micro"
     spot_price = "0.001"
     lifecycle {
