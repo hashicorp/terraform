@@ -16,6 +16,9 @@ func resourceArmAvailabilitySet() *schema.Resource {
 		Read:   resourceArmAvailabilitySetRead,
 		Update: resourceArmAvailabilitySetCreate,
 		Delete: resourceArmAvailabilitySetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -125,6 +128,8 @@ func resourceArmAvailabilitySetRead(d *schema.ResourceData, meta interface{}) er
 	availSet := *resp.Properties
 	d.Set("platform_update_domain_count", availSet.PlatformUpdateDomainCount)
 	d.Set("platform_fault_domain_count", availSet.PlatformFaultDomainCount)
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
 
 	flattenAndSetTags(d, resp.Tags)
 
