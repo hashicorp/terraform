@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"regexp"
@@ -18,6 +19,10 @@ func resourceAwsGlacierVault() *schema.Resource {
 		Read:   resourceAwsGlacierVaultRead,
 		Update: resourceAwsGlacierVaultUpdate,
 		Delete: resourceAwsGlacierVaultDelete,
+
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -130,7 +135,15 @@ func resourceAwsGlacierVaultRead(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error reading Glacier Vault: %s", err.Error())
 	}
 
-	d.Set("arn", *out.VaultARN)
+	awsClient := meta.(*AWSClient)
+	d.Set("name", out.VaultName)
+	d.Set("arn", out.VaultARN)
+
+	location, err := buildGlacierVaultLocation(awsClient.accountid, d.Id())
+	if err != nil {
+		return err
+	}
+	d.Set("location", location)
 
 	tags, err := getGlacierVaultTags(glacierconn, d.Id())
 	if err != nil {
@@ -364,6 +377,13 @@ func glacierPointersToStringList(pointers []*string) []interface{} {
 		list[i] = *v
 	}
 	return list
+}
+
+func buildGlacierVaultLocation(accountId, vaultName string) (string, error) {
+	if accountId == "" {
+		return "", errors.New("AWS account ID unavailable - failed to construct Vault location")
+	}
+	return fmt.Sprintf("/" + accountId + "/vaults/" + vaultName), nil
 }
 
 func getGlacierVaultNotification(glacierconn *glacier.Glacier, vaultName string) ([]map[string]interface{}, error) {
