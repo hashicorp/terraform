@@ -892,16 +892,16 @@
 			"revisionTime": "2016-07-11T23:17:52Z"
 		},
 		{
-			"checksumSHA1": "o5JhQCQpoSRFcMwD8LxqP8iJ04o=",
+			"checksumSHA1": "kqCMCHy2b+RBMKC+ER+OPqp8C3E=",
 			"path": "github.com/hashicorp/hil",
-			"revision": "79fc9230647576201673b35c724c58ec034bd21d",
-			"revisionTime": "2016-07-11T16:29:56Z"
+			"revision": "1e86c6b523c55d1fa6c6e930ce80b548664c95c2",
+			"revisionTime": "2016-07-11T23:18:37Z"
 		},
 		{
 			"checksumSHA1": "UICubs001+Q4MsUf9zl2vcMzWQQ=",
 			"path": "github.com/hashicorp/hil/ast",
-			"revision": "7130f7330953adacbfb4ca0ad4b14b806bce3762",
-			"revisionTime": "2016-06-12T11:49:46Z"
+			"revision": "1e86c6b523c55d1fa6c6e930ce80b548664c95c2",
+			"revisionTime": "2016-07-11T23:18:37Z"
 		},
 		{
 			"path": "github.com/hashicorp/logutils",
