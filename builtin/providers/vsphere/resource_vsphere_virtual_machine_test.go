@@ -1183,7 +1183,7 @@ func TestAccVSphereVirtualMachine_keepOnRemove(t *testing.T) {
 	}
 
 	vmName := "vsphere_virtual_machine.keep_disk"
-	test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: basic_vars.label, vmName: vmName, numDisks: "2"}.testCheckFuncBasic()
 
 	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_keepOnRemove)
@@ -1197,7 +1197,7 @@ func TestAccVSphereVirtualMachine_keepOnRemove(t *testing.T) {
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					test_exists, test_name, test_cpu, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 				),
 			},
 			resource.TestStep{
