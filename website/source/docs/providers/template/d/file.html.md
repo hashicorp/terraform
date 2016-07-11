@@ -31,7 +31,9 @@ The following arguments are supported:
   from a file on disk using the [`file()` interpolation
   function](/docs/configuration/interpolation.html#file_path_).
 
-* `vars` - (Optional) Variables for interpolation within the template.
+* `vars` - (Optional) Variables for interpolation within the template. Note
+  that variables must all be primitives. Direct references to lists or maps
+  will cause a validation error.
 
 The following arguments are maintained for backwards compatibility and may be
 removed in a future version:
