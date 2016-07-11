@@ -20,6 +20,10 @@ func resourceAwsEfsMountTarget() *schema.Resource {
 		Update: resourceAwsEfsMountTargetUpdate,
 		Delete: resourceAwsEfsMountTargetDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"file_system_id": &schema.Schema{
 				Type:     schema.TypeString,
