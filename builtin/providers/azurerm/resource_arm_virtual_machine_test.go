@@ -167,6 +167,29 @@ func TestAccAzureRMVirtualMachine_winRMConfig(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMVirtualMachine_deleteVHD(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroyVHD,
+		Steps: []resource.TestStep{
+			{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+				),
+			},
+			{
+				Config: postConfig,
+				Check:  nil,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMVirtualMachineExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -215,6 +238,34 @@ func testCheckAzureRMVirtualMachineDestroy(s *terraform.State) error {
 
 		if resp.StatusCode != http.StatusNotFound {
 			return fmt.Errorf("Virtual Machine still exists:\n%#v", resp.Properties)
+		}
+	}
+
+	return nil
+}
+
+func testCheckAzureRMVirtualMachineDestroyVHD(s *terraform.State) error {
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "azurerm_storage_container" {
+			continue
+		}
+
+		// fetch storage account and container name
+		resourceGroup := rs.Primary.Attributes["resource_group_name"]
+		storageAccountName := rs.Primary.Attributes["storage_account_name"]
+		containerName := rs.Primary.Attributes["name"]
+		storageClient, _, err := testAccProvider.Meta().(*ArmClient).getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
+		if err != nil {
+			return fmt.Errorf("Error creating Blob storage client: %s", err)
+		}
+
+		exists, err := storageClient.BlobExists(containerName, "myosdisk1.vhd")
+		if err != nil {
+			return fmt.Errorf("Error checking if OS Disk VHD Blob exists: %s", err)
+		}
+
+		if exists {
+			return fmt.Errorf("OS Disk VHD Blob still exists")
 		}
 	}
 
@@ -306,6 +357,57 @@ resource "azurerm_virtual_machine" "test" {
     	environment = "Production"
     	cost-center = "Ops"
     }
+}
+`
+
+var testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestrg-%d"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_storage_account" "test" {
+    name = "accsa%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "westus"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "staging"
+    }
+}
+
+resource "azurerm_storage_container" "test" {
+    name = "vhds"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_storage_account.test.name}"
+    container_access_type = "private"
 }
 `
 

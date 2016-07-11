@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
@@ -550,9 +551,43 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualMachines"]
 
-	_, err = vmClient.Delete(resGroup, name, make(chan struct{}))
+	if _, err = vmClient.Delete(resGroup, name, make(chan struct{})); err != nil {
+		return err
+	}
 
-	return err
+	osDisk, err := expandAzureRmVirtualMachineOsDisk(d)
+	if err != nil {
+		return fmt.Errorf("Error expanding OS Disk")
+	}
+
+	vhdURL, err := url.Parse(*osDisk.Vhd.URI)
+	if err != nil {
+		return fmt.Errorf("Cannot parse OS Disk VHD URI: %s", err)
+	}
+
+	// VHD URI is in the form: https://storageAccountName.blob.core.windows.net/containerName/blobName
+	storageAccountName := strings.Split(vhdURL.Host, ".")[0]
+	path := strings.Split(strings.TrimPrefix(vhdURL.Path, "/"), "/")
+	containerName := path[0]
+	blobName := path[1]
+
+	blobClient, storageAccountExists, err := meta.(*ArmClient).getBlobStorageClientForStorageAccount(id.ResourceGroup, storageAccountName)
+	if err != nil {
+		return fmt.Errorf("Error creating blob store account for VHD deletion: %s", err)
+	}
+
+	if !storageAccountExists {
+		log.Printf("[INFO] Storage Account %q doesn't exist so the VHD blob won't exist", storageAccountName)
+		return nil
+	}
+
+	log.Printf("[INFO] Deleting VHD blob %s", blobName)
+	_, err = blobClient.DeleteBlobIfExists(containerName, blobName, nil)
+	if err != nil {
+		return fmt.Errorf("Error deleting VHD blob: %s", err)
+	}
+
+	return nil
 }
 
 func resourceArmVirtualMachinePlanHash(v interface{}) int {
