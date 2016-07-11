@@ -59,7 +59,7 @@ The command-line flags are all optional. The list of available flags are:
   send the local value to Atlas. This flag can be repeated multiple times.
 
 * `-token=<token>` - Atlas API token to use to authorize the upload.
-  If blank or unspecified, the `ATLAS_TOKEN` environmental variable
+  If blank or unspecified, the `ATLAS_TOKEN` environment variable
   will be used.
 
 * `-var='foo=bar'` - Set the value of a variable for the Terraform configuration.
