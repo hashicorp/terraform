@@ -509,8 +509,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				virtualDisk := devices.FindByKey(int32(disk["key"].(int)))
 
 				keep := false
-				if v, ok := d.GetOk("keep_on_remove"); ok {
-					keep = v.(bool)
+				if v, ok := disk["keep_on_remove"].(bool); ok {
+					keep = v
 				}
 
 				err = vm.RemoveDevice(context.TODO(), keep, virtualDisk)
@@ -1093,6 +1093,11 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return err
 	}
+	devices, err := vm.Device(context.TODO())
+	if err != nil {
+		log.Printf("[DEBUG] resourceVSphereVirtualMachineDelete - Failed to get device list: %v", err)
+		return err
+	}
 
 	log.Printf("[INFO] Deleting virtual machine: %s", d.Id())
 	state, err := vm.PowerState(context.TODO())
@@ -1109,6 +1114,26 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 		err = task.Wait(context.TODO())
 		if err != nil {
 			return err
+		}
+	}
+
+	// Safely eject any disks the user marked as keep_on_remove
+	if vL, ok := d.GetOk("disk"); ok {
+		if diskSet, ok := vL.(*schema.Set); ok {
+
+			for _, value := range diskSet.List() {
+				disk := value.(map[string]interface{})
+
+				if v, ok := disk["keep_on_remove"].(bool); ok && v == true {
+					log.Printf("[DEBUG] not destroying %v", disk["name"])
+					virtualDisk := devices.FindByKey(int32(disk["key"].(int)))
+					err = vm.RemoveDevice(context.TODO(), true, virtualDisk)
+					if err != nil {
+						log.Printf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
+						return err
+					}
+				}
+			}
 		}
 	}
 
