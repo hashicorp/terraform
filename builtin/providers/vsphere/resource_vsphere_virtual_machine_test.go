@@ -1,5 +1,49 @@
 package vsphere
 
+/*
+
+How to run the tests:
+
+	1) Set all the required environment variables in your shell.
+	2) Run the whole test suite or individual tests from the Terraform root folder.
+
+Environment variables - example:
+
+	export VSPHERE_USER="administrator"
+	export VSPHERE_PASSWORD="h4x0r"
+	export VSPHERE_SERVER="172.17.90.1"
+	export VSPHERE_DATACENTER="h4x0r-DC"
+	export VSPHERE_NETWORK_LABEL="vlan 90"
+	export VSPHERE_NETWORK_LABEL_DHCP="vlan 90"
+	export VSPHERE_DATASTORE="h4x0r-DS"
+	export VSPHERE_CLONE_SOURCE="terraform-test-template"
+	export VSPHERE_ALLOW_UNVERIFIED_SSL=true # In case of locally running environment utilizing self signed certs.
+	export VSPHERE_CDROM_DATASTORE="cdrom-DS"
+	export VSPHERE_CDROM_PATH="/Appliances/config.iso"
+	export VSPHERE_SNAPSHOT="Some fancy snapshot name to clone from"
+	export VSPHERE_IPV4_ADDRESS="172.17.90.248"
+	export VSPHERE_IPV4_GATEWAY="172.17.90.254"
+	export VSPHERE_IPV6_ADDRESS="fd00:ffff:a:93:172:17:90:248"
+	export VSPHERE_IPV6_GATEWAY="fd00:ffff:a:93:172:17:90:254"
+
+Run the whole test suite without debugging output - run this from the Terraform root folder:
+
+	make testacc TEST=./builtin/providers/vsphere
+
+Run the whole test suite with debugging output - run this from the Terraform root folder:
+
+	TF_LOG=DEBUG make testacc TEST=./builtin/providers/vsphere
+
+Run certain acceptance tests without debugging output (the test case name is matched using regex, so you can run either a single test case or multiple ones) - run this from the Terraform root folder:
+
+	make testacc TEST=./builtin/providers/vsphere TESTARGS='-run=TestAccVSphereVirtualMachine_linkedCurrentSnapshotWithExtraDisk'
+
+Run certain acceptance tests with debugging output (the test case name is matched using regex, so you can run either a single test case or multiple ones) - run this from the Terraform root folder:
+
+	TF_LOG=DEBUG make testacc TEST=./builtin/providers/vsphere TESTARGS='-run=TestAccVSphereVirtualMachine_linkedCurrentSnapshotWithExtraDisk'
+
+*/
+
 import (
 	"fmt"
 	"log"
@@ -24,14 +68,14 @@ import (
 // Various ENV vars are used to setup these tests. Look for `os.Getenv`
 ///////
 
-// Base setup function to check that a template, and nic information is set
+// Base setup function to check that a clone source, and nic information is set
 // TODO needs some TLC - determine exactly how we want to do this
 func testBasicPreCheck(t *testing.T) {
 
 	testAccPreCheck(t)
 
-	if v := os.Getenv("VSPHERE_TEMPLATE"); v == "" {
-		t.Fatal("env variable VSPHERE_TEMPLATE must be set for acceptance tests")
+	if v := os.Getenv("VSPHERE_CLONE_SOURCE"); v == "" {
+		t.Fatal("env variable VSPHERE_CLONE_SOURCE must be set for acceptance tests")
 	}
 
 	if v := os.Getenv("VSPHERE_IPV4_GATEWAY"); v == "" {
@@ -71,10 +115,10 @@ func setupBaseVars() (string, string) {
 }
 
 ////
-// Structs and funcs used with DHCP data template
+// Structs and funcs used with DHCP data clone source
 ////
 type TestDHCPBodyData struct {
-	template     string
+	cloneSource  string
 	locationOpt  string
 	datastoreOpt string
 	label        string
@@ -86,7 +130,7 @@ func (body TestDHCPBodyData) parseDHCPTemplateConfigWithTemplate(template string
 		body.locationOpt,
 		body.label,
 		body.datastoreOpt,
-		body.template,
+		body.cloneSource,
 	)
 
 }
@@ -100,7 +144,9 @@ const testAccCheckVSphereTemplate_dhcp = `
   }
   disk {
 %s
-    template = "%s"
+    clone {
+	  source = "%s"
+    }
   }
 }
 `
@@ -112,7 +158,7 @@ func (body TestDHCPBodyData) parseDHCPTemplateConfig() string {
 		body.locationOpt,
 		body.label,
 		body.datastoreOpt,
-		body.template,
+		body.cloneSource,
 	)
 }
 
@@ -123,7 +169,7 @@ func (body TestDHCPBodyData) testSprintfDHCPTemplateBodySecondArgDynamic(templat
 		arg,
 		body.label,
 		body.datastoreOpt,
-		body.template,
+		body.cloneSource,
 	)
 }
 
@@ -132,7 +178,7 @@ func setupTemplateFuncDHCPData() TestDHCPBodyData {
 
 	locationOpt, datastoreOpt := setupBaseVars()
 	data := TestDHCPBodyData{
-		template:     os.Getenv("VSPHERE_TEMPLATE"),
+		cloneSource:  os.Getenv("VSPHERE_CLONE_SOURCE"),
 		label:        os.Getenv("VSPHERE_NETWORK_LABEL_DHCP"),
 		locationOpt:  locationOpt,
 		datastoreOpt: datastoreOpt,
@@ -152,7 +198,7 @@ type TemplateBasicBodyVars struct {
 	ipv4Prefix    string
 	ipv4Gateway   string
 	datastoreOpt  string
-	template      string
+	cloneSource   string
 }
 
 // Takes a base template that has seven "%s" values in it, used by most fixed ip
@@ -167,7 +213,7 @@ func (body TemplateBasicBodyVars) testSprintfTemplateBody(template string) strin
 		body.ipv4Prefix,
 		body.ipv4Gateway,
 		body.datastoreOpt,
-		body.template,
+		body.cloneSource,
 	)
 }
 
@@ -180,7 +226,7 @@ func setupTemplateBasicBodyVars() TemplateBasicBodyVars {
 		prefix = "24"
 	}
 	data := TemplateBasicBodyVars{
-		template:      os.Getenv("VSPHERE_TEMPLATE"),
+		cloneSource:   os.Getenv("VSPHERE_CLONE_SOURCE"),
 		ipv4Gateway:   os.Getenv("VSPHERE_IPV4_GATEWAY"),
 		label:         os.Getenv("VSPHERE_NETWORK_LABEL"),
 		ipv4IpAddress: os.Getenv("VSPHERE_IPV4_ADDRESS"),
@@ -264,7 +310,9 @@ const testAccTemplateBasicBody = `
     }
      disk {
 %s
-        template = "%s"
+        clone {
+            source = "%s"
+        }
         iops = 500
     }
 `
@@ -280,7 +328,10 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testBasicPreCheck(t) },
+		PreCheck: func() {
+			testBasicPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_IPV4_ADDRESS", "VSPHERE_IPV4_GATEWAY", "VSPHERE_NETWORK_LABEL")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -313,7 +364,10 @@ func TestAccVSphereVirtualMachine_client_debug(t *testing.T) {
 		TestFuncData{vm: vm, label: basic_vars.label}.testCheckFuncBasic()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testBasicPreCheck(t) },
+		PreCheck: func() {
+			testBasicPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_IPV4_ADDRESS", "VSPHERE_IPV4_GATEWAY", "VSPHERE_NETWORK_LABEL")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -431,7 +485,10 @@ func TestAccVSphereVirtualMachine_diskInitTypeEager(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_IPV4_ADDRESS", "VSPHERE_IPV4_GATEWAY", "VSPHERE_NETWORK_LABEL")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -513,7 +570,10 @@ func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 	log.Printf("[DEBUG] config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -553,7 +613,10 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 	log.Printf("[DEBUG] config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -593,7 +656,10 @@ func TestAccVSphereVirtualMachine_createInExistingFolder(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
 		Providers: testAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCheckVSphereVirtualMachineDestroy,
@@ -646,7 +712,10 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
 		Providers: testAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCheckVSphereVirtualMachineDestroy,
@@ -696,7 +765,10 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP", "VSPHERE_CDROM_DATASTORE", "VSPHERE_CDROM_PATH")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -753,7 +825,10 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_VMDK_PATH", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -783,7 +858,9 @@ resource "vsphere_virtual_machine" "bar" {
     }
     disk {
 %s
-      template = "%s"
+        clone {
+            source = "%s"
+        }
     }
 }
 `
@@ -801,7 +878,10 @@ func TestAccVSphereVirtualMachine_updateMemory(t *testing.T) {
 	log.Printf("[DEBUG] template configUpdate= %s", configUpdate)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -832,7 +912,9 @@ resource "vsphere_virtual_machine" "bar" {
     }
     disk {
 %s
-        template = "%s"
+        clone {
+            source = "%s"
+        }
     }
 }
 `
@@ -849,7 +931,10 @@ func TestAccVSphereVirtualMachine_updateVcpu(t *testing.T) {
 	log.Printf("[DEBUG] template configUpdate= %s", configUpdate)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -884,7 +969,9 @@ resource "vsphere_virtual_machine" "ipv6" {
     }
     disk {
 %s
-        template = "%s"
+        clone {
+            source = "%s"
+        }
         iops = 500
     }
     disk {
@@ -923,13 +1010,16 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 		ipv6Address,
 		ipv6Gateway,
 		data.datastoreOpt,
-		data.template,
+		data.cloneSource,
 	)
 
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL", "VSPHERE_IPV4_ADDRESS", "VSPHERE_IPV4_GATEWAY", "VSPHERE_IPV6_ADDRESS", "VSPHERE_IPV6_GATEWAY")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -969,7 +1059,7 @@ func TestAccVSphereVirtualMachine_ipv6Only(t *testing.T) {
 		ipv6Address,
 		ipv6Gateway,
 		data.datastoreOpt,
-		data.template,
+		data.cloneSource,
 	)
 
 	log.Printf("[DEBUG] template config= %s", config)
@@ -1043,7 +1133,7 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 		basic_vars.ipv4Prefix,
 		basic_vars.ipv4Gateway,
 		basic_vars.datastoreOpt,
-		basic_vars.template,
+		basic_vars.cloneSource,
 		basic_vars.datastoreOpt,
 		basic_vars.datastoreOpt,
 		basic_vars.datastoreOpt,
@@ -1058,7 +1148,10 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 	log.Printf("[DEBUG] template config= %s", config_del)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL", "VSPHERE_IPV4_ADDRESS", "VSPHERE_IPV4_GATEWAY")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -1096,7 +1189,9 @@ resource "vsphere_virtual_machine" "mac_address" {
     }
     disk {
 %s
-        template = "%s"
+        clone {
+            source = "%s"
+        }
     }
 }
 `
@@ -1130,7 +1225,7 @@ func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
 		data.label,
 		macAddress,
 		data.datastoreOpt,
-		data.template,
+		data.cloneSource,
 	)
 	log.Printf("[DEBUG] template config= %s", config)
 
@@ -1138,7 +1233,10 @@ func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
 		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "1", vmResource: "terraform-mac-address"}.testCheckFuncBasic()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testMacPreCheck(t) },
+		PreCheck: func() {
+			testMacPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
 		Steps: []resource.TestStep{
@@ -1147,6 +1245,243 @@ func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					resource.TestCheckResourceAttr(vmName, "network_interface.0.mac_address", macAddress),
+				),
+			},
+		},
+	})
+}
+
+type TestCloneBodyData struct {
+	cloneSource  string
+	linked       bool
+	snapshot     string
+	extraDisk    bool
+	locationOpt  string
+	datastoreOpt string
+	label        string
+}
+
+const testAccCheckVsphereTemplate_clone = `
+resource "vsphere_virtual_machine" "clone_vm" {
+    name = "terraform-clone-test"
+%s
+	vcpu = 2
+	memory = 1024
+	network_interface {
+		label = "%s"
+	}
+	disk {
+%s
+		clone {
+			source = "%s"
+			%s
+			%s
+		}
+	}
+
+%s
+}
+`
+
+func (body TestCloneBodyData) parseCloneTemplateConfig() string {
+	linked := ""
+	if body.linked {
+		linked = "linked = true"
+	}
+
+	snapshot := ""
+	if body.snapshot != "" {
+		snapshot = fmt.Sprintf("snapshot = %q", body.snapshot)
+	}
+
+	extraDisk := ""
+	if body.extraDisk {
+		extraDisk = fmt.Sprintf(`
+			disk {
+				%s
+				name = "terraform-test-extra-disk"
+				size = 1
+				type = "thin"
+			}`,
+			body.datastoreOpt,
+		)
+	}
+
+	log.Printf("[DEBUG] linked: %s", linked)
+	log.Printf("[DEBUG] snapshot: %s", snapshot)
+	log.Printf("[DEBUG] extraDisk: %s", extraDisk)
+
+	templ := fmt.Sprintf(
+		testAccCheckVsphereTemplate_clone,
+		body.locationOpt,
+		body.label,
+		body.datastoreOpt,
+		body.cloneSource,
+		linked,
+		snapshot,
+		extraDisk,
+	)
+
+	log.Printf("[DEBUG] template: %s", templ)
+
+	return templ
+}
+
+func setupTemplateFuncCloneData() TestCloneBodyData {
+	locationOpt, datastoreOpt := setupBaseVars()
+	data := TestCloneBodyData{
+		cloneSource:  os.Getenv("VSPHERE_CLONE_SOURCE"),
+		label:        os.Getenv("VSPHERE_NETWORK_LABEL_DHCP"),
+		locationOpt:  locationOpt,
+		datastoreOpt: datastoreOpt,
+	}
+
+	return data
+}
+
+// TestAccVSphereVirtualMachine_nonLinkedClone tests if it works to create a non-linked clone.
+func TestAccVSphereVirtualMachine_nonLinkedClone(t *testing.T) {
+	var vm virtualMachine
+	vmName := "vsphere_virtual_machine.clone_vm"
+
+	data := setupTemplateFuncCloneData()
+
+	config := data.parseCloneTemplateConfig()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVsphereTemplate_clone)
+	log.Printf("[DEBUG] config= %s", config)
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "1", vmResource: "terraform-clone-test"}.testCheckFuncBasic()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.source", data.cloneSource),
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.linked", ""),
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.snapshot", ""),
+				),
+			},
+		},
+	})
+}
+
+// TestAccVSphereVirtualMachine_linkedCloneCurrentSnapshot tests if it works to create a linked clone.
+func TestAccVSphereVirtualMachine_linkedCloneCurrentSnapshot(t *testing.T) {
+	var vm virtualMachine
+	vmName := "vsphere_virtual_machine.clone_vm"
+
+	data := setupTemplateFuncCloneData()
+	data.linked = true
+
+	config := data.parseCloneTemplateConfig()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVsphereTemplate_clone)
+	log.Printf("[DEBUG] config= %s", config)
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "1", vmResource: "terraform-clone-test"}.testCheckFuncBasic()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.source", data.cloneSource),
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.linked", "1"),
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.snapshot", ""),
+				),
+			},
+		},
+	})
+}
+
+// TestAccVSphereVirtualMachine_linkedCloneNamedSnapshot tests if it works to create a linked clone.
+func TestAccVSphereVirtualMachine_linkedCloneNamedSnapshot(t *testing.T) {
+	var vm virtualMachine
+	vmName := "vsphere_virtual_machine.clone_vm"
+
+	data := setupTemplateFuncCloneData()
+	data.linked = true
+	data.snapshot = os.Getenv("VSPHERE_SNAPSHOT")
+
+	config := data.parseCloneTemplateConfig()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVsphereTemplate_clone)
+	log.Printf("[DEBUG] config= %s", config)
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "1", vmResource: "terraform-clone-test"}.testCheckFuncBasic()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP", "VSPHERE_SNAPSHOT")
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.source", data.cloneSource),
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.linked", "1"),
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.snapshot", data.snapshot),
+				),
+			},
+		},
+	})
+}
+
+// TestAccVSphereVirtualMachine_linkedCloneCurrentSnapshotWithExtraDisk tests if it works to create a linked clone.
+func TestAccVSphereVirtualMachine_linkedCloneCurrentSnapshotWithExtraDisk(t *testing.T) {
+	var vm virtualMachine
+	vmName := "vsphere_virtual_machine.clone_vm"
+
+	data := setupTemplateFuncCloneData()
+	data.linked = true
+	data.extraDisk = true
+
+	config := data.parseCloneTemplateConfig()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVsphereTemplate_clone)
+	log.Printf("[DEBUG] config= %s", config)
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "2", vmResource: "terraform-clone-test"}.testCheckFuncBasic()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			validateEnvArgs(t, "VSPHERE_CLONE_SOURCE", "VSPHERE_NETWORK_LABEL_DHCP")
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.source", data.cloneSource),
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.linked", "1"),
+					//resource.TestCheckResourceAttr(vmName, "disk.0.clone.snapshot", ""),
 				),
 			},
 		},

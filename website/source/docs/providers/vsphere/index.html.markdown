@@ -62,7 +62,9 @@ resource "vsphere_virtual_machine" "web" {
   }
 
   disk {
-    template = "centos-7"
+	clone {
+		source = "centos-7"
+	}
   }
 }
 ```
@@ -168,7 +170,8 @@ set to valid values for your VMware vSphere environment:
  * VSPHERE\_IPV6\_ADDRESS
  * VSPHERE\_NETWORK\_LABEL
  * VSPHERE\_NETWORK\_LABEL\_DHCP
- * VSPHERE\_TEMPLATE
+ * VSPHERE\_CLONE\_SOURCE
+ * VSPHERE\_SNAPSHOT
  * VSPHERE\_MAC\_ADDRESS
 
 The following environment variables depend on your vSphere environment:

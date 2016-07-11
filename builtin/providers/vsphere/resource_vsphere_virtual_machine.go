@@ -86,7 +86,7 @@ type virtualMachine struct {
 	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
-	template              string
+	clone                 *virtualMachineClone
 	networkInterfaces     []networkInterface
 	hardDisks             []hardDisk
 	cdroms                []cdrom
@@ -95,11 +95,17 @@ type virtualMachine struct {
 	dnsSuffixes           []string
 	dnsServers            []string
 	hasBootableVmdk       bool
-	linkedClone           bool
 	skipCustomization     bool
 	enableDiskUUID        bool
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
+}
+
+// virtualMachineClone stores information about the cloning source, and if it should be a linked clone or not.
+type virtualMachineClone struct {
+	source   string
+	linked   bool
+	snapshot string
 }
 
 func (v virtualMachine) Path() string {
@@ -173,10 +179,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			},
 
 			"linked_clone": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				ForceNew: true,
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Default:    false,
+				ForceNew:   true,
+				Deprecated: "Please use disk.clone.linked",
 			},
 			"gateway": &schema.Schema{
 				Type:       schema.TypeString,
@@ -369,9 +376,36 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Computed: true,
 						},
 
-						"template": &schema.Schema{
-							Type:     schema.TypeString,
+						"clone": &schema.Schema{
+							Type:     schema.TypeMap,
 							Optional: true,
+							ForceNew: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"source": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+										ForceNew: true,
+									},
+									"linked": &schema.Schema{
+										Type:     schema.TypeBool,
+										Optional: true,
+										Default:  false,
+										ForceNew: true,
+									},
+									"snapshot": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+										ForceNew: true,
+									},
+								},
+							},
+						},
+
+						"template": &schema.Schema{
+							Type:       schema.TypeString,
+							Optional:   true,
+							Deprecated: "Please use disk.clone",
 						},
 
 						"type": &schema.Schema{
@@ -684,10 +718,6 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		vm.timeZone = v.(string)
 	}
 
-	if v, ok := d.GetOk("linked_clone"); ok {
-		vm.linkedClone = v.(bool)
-	}
-
 	if v, ok := d.GetOk("skip_customization"); ok {
 		vm.skipCustomization = v.(bool)
 	}
@@ -800,15 +830,48 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				disk := value.(map[string]interface{})
 				newDisk := hardDisk{}
 
-				if v, ok := disk["template"].(string); ok && v != "" {
-					if v, ok := disk["name"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify name of a template")
-					}
-					vm.template = v
+				clonedDisk := false
+				diskClone, diskCloneOk := disk["clone"].(map[string]interface{})
+				diskTemplate, diskTemplateOk := disk["template"].(string)
+				if (diskCloneOk && len(diskClone) > 0 && diskClone["source"] != nil) || (diskTemplateOk && diskTemplate != "") {
 					if vm.hasBootableVmdk {
 						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
 					}
+
+					if diskCloneOk && len(diskClone) > 0 && diskClone["source"] != nil {
+						vm.clone = &virtualMachineClone{
+							source: diskClone["source"].(string),
+							linked: false,
+						}
+
+						if diskClone["linked"] != nil && diskClone["linked"].(string) != "" {
+							linked, err := stringToBool(diskClone["linked"].(string))
+							if err != nil {
+								return fmt.Errorf("Error when converting string to bool: %s", err)
+							}
+
+							vm.clone.linked = linked
+						}
+
+						if diskClone["snapshot"] != nil && diskClone["snapshot"].(string) != "" {
+							vm.clone.snapshot = diskClone["snapshot"].(string)
+						}
+					} else if diskTemplateOk && diskTemplate != "" {
+						if v, ok := disk["name"].(string); ok && v != "" {
+							return fmt.Errorf("Cannot specify name of a template")
+						}
+
+						vm.clone = &virtualMachineClone{
+							source: diskTemplate,
+						}
+					}
+
+					if deprecatedLinkedClone, ok := d.GetOk("linked_clone"); ok && deprecatedLinkedClone.(bool) && vm.clone != nil {
+						vm.clone.linked = true
+					}
+
 					vm.hasBootableVmdk = true
+					clonedDisk = true
 				}
 
 				if v, ok := disk["type"].(string); ok && v != "" {
@@ -820,8 +883,8 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				}
 
 				if v, ok := disk["size"].(int); ok && v != 0 {
-					if v, ok := disk["template"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify size of a template")
+					if clonedDisk {
+						return fmt.Errorf("Cannot specify size of a cloned disk")
 					}
 
 					if v, ok := disk["name"].(string); ok && v != "" {
@@ -842,8 +905,8 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				}
 
 				if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
-					if v, ok := disk["template"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify a vmdk for a template")
+					if clonedDisk {
+						return fmt.Errorf("Cannot specify a vmdk for a cloned disk")
 					}
 					if v, ok := disk["size"].(string); ok && v != "" {
 						return fmt.Errorf("Cannot specify size of a vmdk")
@@ -861,7 +924,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 					newDisk.vmdkPath = vVmdk
 				}
 				// Preserves order so bootable disk is first
-				if newDisk.bootable == true || disk["template"] != "" {
+				if newDisk.bootable == true || clonedDisk {
 					disks = append([]hardDisk{newDisk}, disks...)
 				} else {
 					disks = append(disks, newDisk)
@@ -947,7 +1010,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] mvm.Guest.Net - %#v", mvm.Guest.Net)
 
 	disks := make([]map[string]interface{}, 0)
-	templateDisk := make(map[string]interface{}, 1)
+	cloneDisk := make(map[string]interface{}, 1)
 	for _, device := range mvm.Config.Hardware.Device {
 		if vd, ok := device.(*types.VirtualDisk); ok {
 
@@ -982,11 +1045,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 					for _, v := range prevDiskSet.List() {
 						prevDisk := v.(map[string]interface{})
 
-						// We're guaranteed only one template disk.  Passing value directly through since templates should be immutable
-						if prevDisk["template"] != "" {
-							if len(templateDisk) == 0 {
-								templateDisk = prevDisk
-								disks = append(disks, templateDisk)
+						// We're guaranteed to have only maximum one cloned disk. Passing value directly through since cloned disks should be immutable.
+						if isDiskDefinedAsClone(prevDisk) {
+							if len(cloneDisk) == 0 {
+								cloneDisk = prevDisk
+								disks = append(disks, cloneDisk)
 								break
 							}
 						}
@@ -1315,6 +1378,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		} else if diskType == "thin" {
 			// thin provisioned virtual disk
 			backing.ThinProvisioned = types.NewBool(true)
+			backing.EagerlyScrub = types.NewBool(false)
 		}
 
 		log.Printf("[DEBUG] addHardDisk: %#v\n", disk)
@@ -1477,15 +1541,9 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress st
 }
 
 // buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
-func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
+func buildVMRelocateSpec(finder *find.Finder, rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linked bool, initType string) (types.VirtualMachineRelocateSpec, error) {
 	var key int32
-	var moveType string
-	if linkedClone {
-		moveType = "createNewChildDiskBacking"
-	} else {
-		moveType = "moveAllDiskBackingsAndDisallowSharing"
-	}
-	log.Printf("[DEBUG] relocate type: [%s]", moveType)
+	var parent *types.VirtualDiskFlatVer2BackingInfo
 
 	devices, err := vm.Device(context.TODO())
 	if err != nil {
@@ -1493,30 +1551,50 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 	}
 	for _, d := range devices {
 		if devices.Type(d) == "disk" {
-			key = int32(d.GetVirtualDevice().Key)
+			vd := d.GetVirtualDevice()
+			parent = vd.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+			key = vd.Key
 		}
 	}
 
 	isThin := initType == "thin"
-	eagerScrub := initType == "eager_zeroed"
 	rpr := rp.Reference()
-	dsr := ds.Reference()
-	return types.VirtualMachineRelocateSpec{
-		Datastore:    &dsr,
-		Pool:         &rpr,
-		DiskMoveType: moveType,
-		Disk: []types.VirtualMachineRelocateSpecDiskLocator{
-			{
-				Datastore: dsr,
-				DiskBackingInfo: &types.VirtualDiskFlatVer2BackingInfo{
-					DiskMode:        "persistent",
-					ThinProvisioned: types.NewBool(isThin),
-					EagerlyScrub:    types.NewBool(eagerScrub),
+	relocateSpec := types.VirtualMachineRelocateSpec{}
+	// Treat linked clones a bit differently.
+	if linked {
+		parentDs := strings.SplitN(parent.FileName[1:], "]", 2)
+		parentDsObj, err := finder.Datastore(context.TODO(), parentDs[0])
+		if err != nil {
+			return types.VirtualMachineRelocateSpec{}, err
+		}
+
+		parentDbObjRef := parentDsObj.Reference()
+		relocateSpec = types.VirtualMachineRelocateSpec{
+			Datastore:    &parentDbObjRef,
+			Pool:         &rpr,
+			DiskMoveType: "createNewChildDiskBacking",
+		}
+	} else {
+		dsr := ds.Reference()
+
+		relocateSpec = types.VirtualMachineRelocateSpec{
+			Datastore: &dsr,
+			Pool:      &rpr,
+			Disk: []types.VirtualMachineRelocateSpecDiskLocator{
+				{
+					Datastore: dsr,
+					DiskId:    key,
+					DiskBackingInfo: &types.VirtualDiskFlatVer2BackingInfo{
+						DiskMode:        "persistent",
+						ThinProvisioned: types.NewBool(isThin),
+						EagerlyScrub:    types.NewBool(!isThin),
+					},
 				},
-				DiskId: key,
 			},
-		},
-	}, nil
+		}
+	}
+
+	return relocateSpec, nil
 }
 
 // getDatastoreObject gets datastore object.
@@ -1647,17 +1725,17 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	finder := find.NewFinder(c.Client, true)
 	finder = finder.SetDatacenter(dc)
 
-	var template *object.VirtualMachine
-	var template_mo mo.VirtualMachine
+	var cloneSource *object.VirtualMachine
+	var cloneSourceMo mo.VirtualMachine
 	var vm_mo mo.VirtualMachine
-	if vm.template != "" {
-		template, err = finder.VirtualMachine(context.TODO(), vm.template)
+	if vm.clone != nil && vm.clone.source != "" {
+		cloneSource, err = finder.VirtualMachine(context.TODO(), vm.clone.source)
 		if err != nil {
 			return err
 		}
-		log.Printf("[DEBUG] template: %#v", template)
+		log.Printf("[DEBUG] cloneSource: %#v", cloneSource)
 
-		err = template.Properties(context.TODO(), template.Reference(), []string{"parent", "config.template", "config.guestId", "resourcePool", "snapshot", "guest.toolsVersionStatus2", "config.guestFullName"}, &template_mo)
+		err = cloneSource.Properties(context.TODO(), cloneSource.Reference(), []string{"parent", "config.template", "config.guestId", "resourcePool", "snapshot", "guest.toolsVersionStatus2", "config.guestFullName"}, &cloneSourceMo)
 		if err != nil {
 			return err
 		}
@@ -1717,7 +1795,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			DiskUuidEnabled: &vm.enableDiskUUID,
 		},
 	}
-	if vm.template == "" {
+	if vm.clone == nil || vm.clone.source == "" {
 		configSpec.GuestId = "otherLinux64Guest"
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
@@ -1761,8 +1839,8 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 				}
 
 				var sps types.StoragePlacementSpec
-				if vm.template != "" {
-					sps = buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
+				if vm.clone != nil && vm.clone.source != "" {
+					sps = buildStoragePlacementSpecClone(c, dcFolders, cloneSource, resourcePool, sp)
 				} else {
 					sps = buildStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
 				}
@@ -1785,7 +1863,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	for _, network := range vm.networkInterfaces {
 		// network device
 		var networkDeviceType string
-		if vm.template == "" {
+		if vm.clone == nil || vm.clone.source == "" {
 			networkDeviceType = "e1000"
 		} else {
 			networkDeviceType = "vmxnet3"
@@ -1797,7 +1875,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] network device: %+v", nd.Device)
 		networkDevices = append(networkDevices, nd)
 
-		if vm.template != "" {
+		if vm.clone != nil && vm.clone.source != "" {
 			var ipSetting types.CustomizationIPSettings
 			if network.ipv4Address == "" {
 				ipSetting.Ip = &types.CustomizationDhcpIpGenerator{}
@@ -1852,7 +1930,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	log.Printf("[DEBUG] network configs: %#v", networkConfigs)
 
 	var task *object.Task
-	if vm.template == "" {
+	if vm.clone == nil || vm.clone.source == "" {
 		var mds mo.Datastore
 		if err = datastore.Properties(context.TODO(), datastore.Reference(), []string{"name"}, &mds); err != nil {
 			return err
@@ -1879,10 +1957,8 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		if err != nil {
 			log.Printf("[ERROR] %s", err)
 		}
-
 	} else {
-
-		relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
+		relocateSpec, err := buildVMRelocateSpec(finder, resourcePool, datastore, cloneSource, vm.clone.linked, vm.hardDisks[0].initType)
 		if err != nil {
 			return err
 		}
@@ -1896,15 +1972,50 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			Config:   &configSpec,
 			PowerOn:  false,
 		}
-		if vm.linkedClone {
-			if template_mo.Snapshot == nil {
-				return fmt.Errorf("`linkedClone=true`, but image VM has no snapshots")
+
+		// We need to supply a snapshot if it's a linked clone.
+		if vm.clone.linked {
+			var mvm mo.VirtualMachine
+
+			collector := property.DefaultCollector(c.Client)
+			if err := collector.RetrieveOne(context.TODO(), cloneSource.Reference(), []string{"snapshot"}, &mvm); err != nil {
+				return err
 			}
-			cloneSpec.Snapshot = template_mo.Snapshot.CurrentSnapshot
+
+			if mvm.Snapshot == nil || mvm.Snapshot.CurrentSnapshot == nil {
+				return fmt.Errorf("The source of the linked clone must have at least one existing snapshot")
+			}
+
+			if vm.clone.snapshot == "" {
+				cloneSpec.Snapshot = mvm.Snapshot.CurrentSnapshot
+			} else {
+				// snapshotFinder is a helper function for searching for the requested snapshot.
+				var snapshotFinder func([]types.VirtualMachineSnapshotTree) (*types.VirtualMachineSnapshotTree, error)
+				snapshotFinder = func(snapshots []types.VirtualMachineSnapshotTree) (*types.VirtualMachineSnapshotTree, error) {
+					for i, s := range snapshots {
+						if s.Name == vm.clone.snapshot {
+							return &snapshots[i], nil
+						}
+
+						if len(s.ChildSnapshotList) > 0 {
+							return snapshotFinder(snapshots[i].ChildSnapshotList)
+						}
+					}
+
+					return nil, fmt.Errorf("Snapshot not found: %s\n", vm.clone.snapshot)
+				}
+
+				// Search for the requested snapshot. Error out if we can't find it.
+				snapshot, err := snapshotFinder(mvm.Snapshot.RootSnapshotList)
+				if err != nil {
+					return err
+				}
+				cloneSpec.Snapshot = &snapshot.Snapshot
+			}
 		}
 		log.Printf("[DEBUG] clone spec: %v", cloneSpec)
 
-		task, err = template.Clone(context.TODO(), folder, vm.name, cloneSpec)
+		task, err = cloneSource.Clone(context.TODO(), folder, vm.name, cloneSpec)
 		if err != nil {
 			return err
 		}
@@ -1923,7 +2034,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 	devices, err := newVM.Device(context.TODO())
 	if err != nil {
-		log.Printf("[DEBUG] Template devices can't be found")
+		log.Printf("[DEBUG] Clone devices can't be found")
 		return err
 	}
 
@@ -1952,7 +2063,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 	newVM.Properties(context.TODO(), newVM.Reference(), []string{"summary", "config"}, &vm_mo)
 	firstDisk := 0
-	if vm.template != "" {
+	if vm.clone != nil && vm.clone.source != "" {
 		firstDisk++
 	}
 	for i := firstDisk; i < len(vm.hardDisks); i++ {
@@ -1983,11 +2094,11 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		}
 	}
 
-	if vm.skipCustomization || vm.template == "" {
+	if vm.skipCustomization || vm.clone == nil || vm.clone.source == "" {
 		log.Printf("[DEBUG] VM customization skipped")
 	} else {
 		var identity_options types.BaseCustomizationIdentitySettings
-		if strings.HasPrefix(template_mo.Config.GuestId, "win") {
+		if strings.HasPrefix(cloneSourceMo.Config.GuestId, "win") {
 			var timeZone int
 			if vm.timeZone == "Etc/UTC" {
 				vm.timeZone = "085"
@@ -2069,7 +2180,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] VM customization finished")
 	}
 
-	if vm.hasBootableVmdk || vm.template != "" {
+	if vm.hasBootableVmdk || (vm.clone != nil && vm.clone.source != "") {
 		newVM.PowerOn(context.TODO())
 		err = newVM.WaitForPowerState(context.TODO(), types.VirtualMachinePowerStatePoweredOn)
 		if err != nil {
@@ -2077,4 +2188,24 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		}
 	}
 	return nil
+}
+
+// stringToBool is a helper function to convert a string to bool.
+func stringToBool(b string) (bool, error) {
+	// This is such an ugly hack. It's strange the TypeBool doesn't return bool.
+	if b == "1" {
+		return true, nil
+	} else if b == "0" {
+		return false, nil
+	}
+
+	return false, fmt.Errorf(fmt.Sprintf("Invalid string to bool value: %s", b))
+}
+
+// isDiskDefinedAsClone is a helper function for figuring out if a disk is cloned or not.
+func isDiskDefinedAsClone(disk map[string]interface{}) bool {
+	diskClone, diskCloneOk := disk["clone"].(map[string]interface{})
+	diskTemplate, diskTemplateOk := disk["template"].(string)
+
+	return (diskCloneOk && len(diskClone) > 0 && diskClone["source"] != nil) || (diskTemplateOk && diskTemplate != "")
 }

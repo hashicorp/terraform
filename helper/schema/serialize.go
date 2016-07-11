@@ -57,6 +57,12 @@ func SerializeValueForHash(buf *bytes.Buffer, val interface{}, schema *Schema) {
 				buf.WriteString(strconv.FormatFloat(innerVal, 'g', -1, 64))
 			case string:
 				buf.WriteString(innerVal)
+			case bool:
+				if innerVal {
+					buf.WriteRune('1')
+				} else {
+					buf.WriteRune('0')
+				}
 			default:
 				panic(fmt.Sprintf("unknown value type in TypeMap %T", innerVal))
 			}
