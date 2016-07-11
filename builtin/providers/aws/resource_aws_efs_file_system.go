@@ -19,6 +19,10 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 		Update: resourceAwsEfsFileSystemUpdate,
 		Delete: resourceAwsEfsFileSystemDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"reference_name": &schema.Schema{
 				Type:     schema.TypeString,
