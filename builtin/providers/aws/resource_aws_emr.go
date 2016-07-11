@@ -110,13 +110,7 @@ func resourceAwsEMR() *schema.Resource {
 					},
 				},
 			},
-			"tags": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: false,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
-			},
+			"tags": tagsSchema(),
 			"configurations": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -182,7 +176,7 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		params.BootstrapActions = expandBootstrapActions(bootstrapActions)
 	}
 	if v, ok := d.GetOk("tags"); ok {
-		tagsIn := v.(*schema.Set).List()
+		tagsIn := v.(map[string]interface{})
 		params.Tags = expandTags(tagsIn)
 	}
 	if v, ok := d.GetOk("configurations"); ok {
@@ -287,24 +281,16 @@ func findGroup(grps []*emr.InstanceGroup, typ string) *emr.InstanceGroup {
 	return nil
 }
 
-func expandTags(tagsIn []interface{}) []*emr.Tag {
-	tagsOut := []*emr.Tag{}
-
-	for _, tagStr := range expandStringList(tagsIn) {
-		s := strings.FieldsFunc(*tagStr, func(r rune) bool {
-			return r == ':' || r == '='
+func expandTags(m map[string]interface{}) []*emr.Tag {
+	var result []*emr.Tag
+	for k, v := range m {
+		result = append(result, &emr.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v.(string)),
 		})
-		if len(s) > 1 {
-			key := s[0]
-			value := s[1]
-			tag := &emr.Tag{
-				Key:   aws.String(key),
-				Value: aws.String(value),
-			}
-			tagsOut = append(tagsOut, tag)
-		}
 	}
-	return tagsOut
+
+	return result
 }
 
 func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActionConfig {
