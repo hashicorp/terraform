@@ -43,7 +43,7 @@ func resourceAwsEMR() *schema.Resource {
 			"core_instance_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  60,
+				Default:  0,
 			},
 			"log_uri": &schema.Schema{
 				Type:     schema.TypeString,
