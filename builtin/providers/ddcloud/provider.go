@@ -30,8 +30,8 @@ func Provider() terraform.ResourceProvider {
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "",
 				Sensitive:   true,
+				Default:     "",
 				Description: "The password used to authenticate to the Dimension Data CloudControl API (if not specified, then the DD_COMPUTE_PASSWORD environment variable will be used).",
 			},
 		},

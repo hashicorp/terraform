@@ -102,6 +102,45 @@ type deleteNetworkDomain struct {
 	ID string `json:"id"`
 }
 
+// ListNetworkDomains retrieves a list of all network domains.
+// TODO: Support filtering and sorting.
+func (client *Client) ListNetworkDomains() (domains *NetworkDomains, err error) {
+	organizationID, err := client.getOrganizationID()
+	if err != nil {
+		return nil, err
+	}
+
+	requestURI := fmt.Sprintf("%s/network/networkDomain", organizationID)
+	request, err := client.newRequestV22(requestURI, http.MethodGet, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	responseBody, statusCode, err := client.executeRequest(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if statusCode != http.StatusOK {
+		var apiResponse *APIResponse
+
+		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, apiResponse.ToError("Request failed with status code %d (%s): %s", statusCode, apiResponse.ResponseCode, apiResponse.Message)
+	}
+
+	domains = &NetworkDomains{}
+	err = json.Unmarshal(responseBody, domains)
+	if err != nil {
+		return nil, err
+	}
+
+	return domains, nil
+}
+
 // GetNetworkDomain retrieves the network domain with the specified Id.
 // id is the Id of the network domain to retrieve.
 // Returns nil if no network domain is found with the specified Id.
@@ -143,45 +182,6 @@ func (client *Client) GetNetworkDomain(id string) (domain *NetworkDomain, err er
 	}
 
 	return domain, nil
-}
-
-// ListNetworkDomains retrieves a list of all network domains.
-// TODO: Support filtering and sorting.
-func (client *Client) ListNetworkDomains() (domains *NetworkDomains, err error) {
-	organizationID, err := client.getOrganizationID()
-	if err != nil {
-		return nil, err
-	}
-
-	requestURI := fmt.Sprintf("%s/network/networkDomain", organizationID)
-	request, err := client.newRequestV22(requestURI, http.MethodGet, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	responseBody, statusCode, err := client.executeRequest(request)
-	if err != nil {
-		return nil, err
-	}
-
-	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
-
-		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
-		if err != nil {
-			return nil, err
-		}
-
-		return nil, apiResponse.ToError("Request failed with status code %d (%s): %s", statusCode, apiResponse.ResponseCode, apiResponse.Message)
-	}
-
-	domains = &NetworkDomains{}
-	err = json.Unmarshal(responseBody, domains)
-	if err != nil {
-		return nil, err
-	}
-
-	return domains, nil
 }
 
 // DeployNetworkDomain deploys a new network domain.

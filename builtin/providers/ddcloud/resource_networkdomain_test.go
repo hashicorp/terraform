@@ -22,7 +22,8 @@ func testAccDDCloudNetworkDomainBasic(name string, description string, datacente
 			name		= "%s"
 			description	= "%s"
 			datacenter	= "%s"
-		}`, name, description, datacenterID,
+		}`,
+		name, description, datacenterID,
 	)
 }
 

@@ -131,6 +131,8 @@ func resourceVLANRead(data *schema.ResourceData, provider interface{}) error {
 	if vlan != nil {
 		data.Set(resourceKeyVLANName, vlan.Name)
 		data.Set(resourceKeyVLANDescription, vlan.Description)
+		data.Set(resourceKeyVLANIPv4BaseAddress, vlan.IPv4Range.BaseAddress)
+		data.Set(resourceKeyVLANIPv4PrefixSize, vlan.IPv4Range.PrefixSize)
 		data.Set(resourceKeyVLANIPv6BaseAddress, vlan.IPv6Range.BaseAddress)
 		data.Set(resourceKeyVLANIPv6PrefixSize, vlan.IPv6Range.PrefixSize)
 	} else {

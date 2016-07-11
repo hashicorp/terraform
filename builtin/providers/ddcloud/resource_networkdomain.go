@@ -4,6 +4,7 @@ import (
 	"github.com/DimensionDataResearch/go-dd-cloud-compute/compute"
 	"github.com/hashicorp/terraform/helper/schema"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -38,6 +39,11 @@ func resourceNetworkDomain() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ESSENTIALS",
+				StateFunc: func(value interface{}) string {
+					plan := value.(string)
+
+					return strings.ToUpper(plan)
+				},
 			},
 			resourceKeyNetworkDomainDataCenter: &schema.Schema{
 				Type:     schema.TypeString,
@@ -104,9 +110,6 @@ func resourceNetworkDomainRead(data *schema.ResourceData, provider interface{}) 
 	if err != nil {
 		return err
 	}
-
-	log.Println("Found network domain: ", networkDomain)
-	log.Println("Network domain DCID is: ", networkDomain.DatacenterID)
 
 	if networkDomain != nil {
 		data.Set(resourceKeyNetworkDomainName, networkDomain.Name)
