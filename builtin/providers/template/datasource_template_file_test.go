@@ -71,6 +71,49 @@ func TestValidateTemplateAttribute(t *testing.T) {
 	}
 }
 
+func TestValidateVarsAttribute(t *testing.T) {
+	cases := map[string]struct {
+		Vars      map[string]interface{}
+		ExpectErr string
+	}{
+		"lists are invalid": {
+			map[string]interface{}{
+				"list": []interface{}{},
+			},
+			`vars: cannot contain non-primitives`,
+		},
+		"maps are invalid": {
+			map[string]interface{}{
+				"map": map[string]interface{}{},
+			},
+			`vars: cannot contain non-primitives`,
+		},
+		"strings, integers, floats, and bools are AOK": {
+			map[string]interface{}{
+				"string": "foo",
+				"int":    1,
+				"bool":   true,
+				"float":  float64(1.0),
+			},
+			``,
+		},
+	}
+
+	for tn, tc := range cases {
+		_, es := validateVarsAttribute(tc.Vars, "vars")
+		if len(es) > 0 {
+			if tc.ExpectErr == "" {
+				t.Fatalf("%s: expected no err, got: %#v", tn, es)
+			}
+			if !strings.Contains(es[0].Error(), tc.ExpectErr) {
+				t.Fatalf("%s: expected\n%s\nto contain\n%s", tn, es[0], tc.ExpectErr)
+			}
+		} else if tc.ExpectErr != "" {
+			t.Fatalf("%s: expected err containing %q, got none!", tn, tc.ExpectErr)
+		}
+	}
+}
+
 // This test covers a panic due to config.Func formerly being a
 // shared map, causing multiple template_file resources to try and
 // accessing it parallel during their lang.Eval() runs.
