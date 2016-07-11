@@ -114,6 +114,7 @@ IMPROVEMENTS:
  * provider/cloudstack: Improve ACL swapping [GH-7315]
  * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/docker: Docker Container DNS Setting Enhancements [GH-7392]
+ * provider/docker: Add `destroy_grace_seconds` option to stop container before delete [GH-7513]
  * provider/fastly: Add support for Cache Settings [GH-6781]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
  * provider/fastly: Add support for custom VCL configuration [GH-6662]
