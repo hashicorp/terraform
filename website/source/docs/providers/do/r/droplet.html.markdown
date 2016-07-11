@@ -44,6 +44,8 @@ The following arguments are supported:
    the format `[12345, 123456]`. To retrieve this info, use a tool such
    as `curl` with the [DigitalOcean API](https://developers.digitalocean.com/#keys),
    to retrieve them.
+* `tags` - (Optional) A list of the tags to label this droplet. A tag resource
+   must exist before it can be associated with a droplet.
 * `user_data` (Optional) - A string of the desired User Data for the Droplet.
    User Data is currently only available in regions with metadata
    listed in their features.
@@ -65,4 +67,4 @@ The following attributes are exported:
 * `private_networking` - Is private networking enabled
 * `size` - The instance size
 * `status` - The status of the droplet
-
+* `tags` - The tags associated with the droplet
