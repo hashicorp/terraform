@@ -449,11 +449,11 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 
 	// More than 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.name_servers",
-		interfaceToVariableSwallowError(name_servers[0:4]))
+		interfaceToVariableSwallowError(name_servers[:4]))
 
 	// More than 1 element in both
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.name_servers",
-		interfaceToVariableSwallowError(name_servers))
+		interfaceToVariableSwallowError([]interface{}{name_servers[:4], name_servers[4:]}))
 
 	// Exactly 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.listeners",
@@ -461,7 +461,7 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 
 	// Exactly 1 element in both
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.listeners",
-		interfaceToVariableSwallowError([]interface{}{"red", "blue"}))
+		interfaceToVariableSwallowError([]interface{}{[]interface{}{"red"}, []interface{}{"blue"}}))
 
 	// Zero elements
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.nothing",
@@ -469,7 +469,7 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 
 	// Zero + 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.special",
-		interfaceToVariableSwallowError([]interface{}{"extra"}))
+		interfaceToVariableSwallowError([]interface{}{[]interface{}{"extra"}}))
 
 	// Maps still need to work
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.tags.Name", ast.Variable{

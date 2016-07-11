@@ -63,15 +63,23 @@ func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 
 	switch outputType {
 	case ast.TypeList:
+		val, err := VariableToInterface(ast.Variable{
+			Type:  ast.TypeList,
+			Value: output,
+		})
 		return EvaluationResult{
 			Type:  TypeList,
-			Value: hilListToGoSlice(output.([]ast.Variable)),
-		}, nil
+			Value: val,
+		}, err
 	case ast.TypeMap:
+		val, err := VariableToInterface(ast.Variable{
+			Type:  ast.TypeMap,
+			Value: output,
+		})
 		return EvaluationResult{
-			Type:  TypeMap,
-			Value: hilMapToGoMap(output.(map[string]ast.Variable)),
-		}, nil
+			Type: TypeMap,
+			Value: val,
+		}, err
 	case ast.TypeString:
 		return EvaluationResult{
 			Type:  TypeString,
@@ -335,32 +343,6 @@ func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key in
 	}
 
 	return value.Value, value.Type, nil
-}
-
-// hilListToGoSlice converts an ast.Variable into a []interface{}. We assume that
-// the type checking is already done since this is internal and only used in output
-// evaluation.
-func hilListToGoSlice(variable []ast.Variable) []interface{} {
-	output := make([]interface{}, len(variable))
-
-	for index, element := range variable {
-		output[index] = element.Value
-	}
-
-	return output
-}
-
-// hilMapToGoMap converts an ast.Variable into a map[string]interface{}. We assume
-// that the type checking is already done since this is internal and only used in
-// output evaluation.
-func hilMapToGoMap(variable map[string]ast.Variable) map[string]interface{} {
-	output := make(map[string]interface{})
-
-	for key, element := range variable {
-		output[key] = element.Value
-	}
-
-	return output
 }
 
 type evalOutput struct{ *ast.Output }
