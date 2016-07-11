@@ -826,70 +826,70 @@
 			"revision": "7e3c02b30806fa5779d3bdfc152ce4c6f40e7b38"
 		},
 		{
-			"checksumSHA1": "SJIgBfV02h1fsqCAe5DHj/JbHoM=",
+			"checksumSHA1": "ydHBPi04mEh+Tir+2JkpSIMckcw=",
 			"path": "github.com/hashicorp/hcl",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
 			"checksumSHA1": "IxyvRpCFeoJBGl2obLKJV7RCGjg=",
 			"path": "github.com/hashicorp/hcl/hcl/ast",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
 			"checksumSHA1": "5HVecyfmcTm6OTffEi6LGayQf5M=",
 			"path": "github.com/hashicorp/hcl/hcl/fmtcmd",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
-			"checksumSHA1": "cO89nXP9rKQCcm0zKGbtBCWK2ok=",
+			"checksumSHA1": "l2oQxBsZRwn6eZjf+whXr8c9+8c=",
 			"path": "github.com/hashicorp/hcl/hcl/parser",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
 			"checksumSHA1": "CSmwxPOTz7GSpnWPF9aGkbVeR64=",
 			"path": "github.com/hashicorp/hcl/hcl/printer",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
-			"checksumSHA1": "WZM0q7Sya8PcGj607x1npgcEPa4=",
+			"checksumSHA1": "FHZ1IXjWHUyuMjy/wQChE4pSoPg=",
 			"path": "github.com/hashicorp/hcl/hcl/scanner",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
 			"checksumSHA1": "riN5acfVDm4j6LhWXauqiWH5n84=",
 			"path": "github.com/hashicorp/hcl/hcl/strconv",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
 			"checksumSHA1": "c6yprzj06ASwCo18TtbbNNBHljA=",
 			"path": "github.com/hashicorp/hcl/hcl/token",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
 			"checksumSHA1": "jQ45CCc1ed/nlV7bbSnx6z72q1M=",
 			"path": "github.com/hashicorp/hcl/json/parser",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
 			"checksumSHA1": "S1e0F9ZKSnqgOLfjDTYazRL28tA=",
 			"path": "github.com/hashicorp/hcl/json/scanner",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
 			"checksumSHA1": "fNlXQCQEnb+B3k5UDL/r15xtSJY=",
 			"path": "github.com/hashicorp/hcl/json/token",
-			"revision": "61f5143284c041681f76a5b63efcb232aaa94737",
-			"revisionTime": "2016-06-24T12:12:30Z"
+			"revision": "364df430845abef160a0bfb3a59979f746bf4956",
+			"revisionTime": "2016-07-08T14:13:38Z"
 		},
 		{
 			"checksumSHA1": "vWW3HXm7OTOMISuZPcCSJODRYkU=",
