@@ -961,32 +961,32 @@ func TestFlattenApiGatewayThrottleSettings(t *testing.T) {
 }
 
 func TestFlattenApiGatewayStageKeys(t *testing.T) {
-        cases := []struct {
-                Input  []*string
-                Output []map[string]interface{}
-        }{
-                {
-                        Input: []*string{
-                                aws.String("a1b2c3d4e5/dev"),
-                                aws.String("e5d4c3b2a1/test"),
-                        },
-                        Output: []map[string]interface{}{
-                                map[string]interface{}{
-                                        "stage_name":  "dev",
-                                        "rest_api_id": "a1b2c3d4e5",
-                                },
-                                map[string]interface{}{
-                                        "stage_name":  "test",
-                                        "rest_api_id": "e5d4c3b2a1",
-                                },
-                        },
-                },
-        }
+	cases := []struct {
+		Input  []*string
+		Output []map[string]interface{}
+	}{
+		{
+			Input: []*string{
+				aws.String("a1b2c3d4e5/dev"),
+				aws.String("e5d4c3b2a1/test"),
+			},
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"stage_name":  "dev",
+					"rest_api_id": "a1b2c3d4e5",
+				},
+				map[string]interface{}{
+					"stage_name":  "test",
+					"rest_api_id": "e5d4c3b2a1",
+				},
+			},
+		},
+	}
 
-        for _, tc := range cases {
-                output := flattenApiGatewayStageKeys(tc.Input)
-                if !reflect.DeepEqual(output, tc.Output) {
-                        t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
-                }
-        }
+	for _, tc := range cases {
+		output := flattenApiGatewayStageKeys(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
+	}
 }
