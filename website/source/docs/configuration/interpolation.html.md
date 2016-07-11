@@ -9,14 +9,13 @@ description: |-
 # Interpolation Syntax
 
 Embedded within strings in Terraform, whether you're using the
-Terraform syntax or JSON syntax, you can interpolate other values
-into strings. These interpolations are wrapped in `${}`, such as
-`${var.foo}`.
+Terraform syntax or JSON syntax, you can interpolate other values. These
+interpolations are wrapped in `${}`, such as `${var.foo}`.
 
 The interpolation syntax is powerful and allows you to reference
 variables, attributes of resources, call functions, etc.
 
-You can also perform simple math in interpolations, allowing
+You can also perform [simple math](#math) in interpolations, allowing
 you to write expressions such as `${count.index + 1}`.
 
 You can escape interpolation with double dollar signs: `$${foo}`
@@ -26,11 +25,11 @@ will be rendered as a literal `${foo}`.
 
 **To reference user variables**, use the `var.` prefix followed by the
 variable name. For example, `${var.foo}` will interpolate the
-`foo` variable value. If the variable is a mapping, then you
+`foo` variable value. If the variable is a map, then you
 can reference static keys in the map with the syntax
 `var.MAP.KEY`. For example, `${var.amis.us-east-1}` would
 get the value of the `us-east-1` key within the `amis` variable
-that is a mapping.
+that is a map.
 
 **To reference attributes of your own resource**, the syntax is
 `self.ATTRIBUTE`. For example `${self.private_ip_address}` will
@@ -177,7 +176,7 @@ The supported built-in functions are:
       * `${list("a", "b", "c")}` returns a list of `"a", "b", "c"`.
       * `${list()}` returns an empty list.
 
-  * `lookup(map, key [, default])` - Performs a dynamic lookup into a mapping
+  * `lookup(map, key [, default])` - Performs a dynamic lookup into a map
       variable. The `map` parameter should be another variable, such
       as `var.amis`. If `key` does not exist in `map`, the interpolation will
       fail unless you specify a third argument, `default`, which should be a
@@ -305,6 +304,8 @@ With this, we will build a list of `template_file.web_init` resources which we c
 use in combination with our list of `aws_instance.web` resources.
 
 ## Math
+
+<a id="math"></a>
 
 Simple math can be performed in interpolations:
 
