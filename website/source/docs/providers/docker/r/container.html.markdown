@@ -79,6 +79,7 @@ The following arguments are supported:
 * `network_mode` - (Optional, string) Network mode of the container.
 * `networks` - (Optional, set of strings) Id of the networks in which the
   container is.
+* `destroy_grace_seconds` - (Optional, int) If defined will attempt to stop the container before destroying. Container will be destroyed after `n` seconds or on successful stop.
 
 <a id="ports"></a>
 ### Ports

@@ -285,6 +285,11 @@ func resourceDockerContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"destroy_grace_seconds": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
 			"labels": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
