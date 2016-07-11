@@ -294,7 +294,7 @@ provider "triton" {
 
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-general-4G"
   image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
   tags = {
@@ -310,7 +310,7 @@ provider "triton" {
 
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-general-4G"
   image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
 	firewall_enabled = 0
@@ -323,7 +323,7 @@ provider "triton" {
 
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-general-4G"
   image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
 	firewall_enabled = 1
@@ -337,7 +337,7 @@ provider "triton" {
 
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-general-4G"
   image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
   user_data = "hello"
@@ -364,7 +364,7 @@ resource "triton_fabric" "test" {
 
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-general-4G"
   image = "842e6fa6-6e9b-11e5-8402-1b490459e334"
 
   tags = {
@@ -391,7 +391,7 @@ resource "triton_fabric" "test" {
 
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
+  package = "g4-general-4G"
   image = "842e6fa6-6e9b-11e5-8402-1b490459e334"
 
   tags = {
