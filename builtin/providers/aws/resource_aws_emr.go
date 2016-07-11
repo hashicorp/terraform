@@ -38,7 +38,7 @@ func resourceAwsEMR() *schema.Resource {
 			},
 			"core_instance_type": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"core_instance_count": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -130,7 +130,10 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Creating EMR cluster")
 	masterInstanceType := d.Get("master_instance_type").(string)
-	coreInstanceType := d.Get("core_instance_type").(string)
+	coreInstanceType := masterInstanceType
+	if v, ok := d.GetOk("core_instance_type"); ok {
+		coreInstanceType = v.(string)
+	}
 	coreInstanceCount := d.Get("core_instance_count").(int)
 
 	applications := d.Get("applications").(*schema.Set).List()
