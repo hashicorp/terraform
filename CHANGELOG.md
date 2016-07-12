@@ -40,6 +40,7 @@ FEATURES:
  * **New Interpolation Function:** `sort` [GH-7128]
  * **New Interpolation Function:** `distinct` [GH-7174]
  * **New Provider:** `grafana` [GH-6206]
+ * **New Provider:** `logentries` [GH-7067]
  * **New Provider:** `random` - allows generation of random values without constantly generating diffs [GH-6672]
  * **New Remote State Provider:** - `gcs` - Google Cloud Storage [GH-6814]
  * **New Remote State Provider:** - `azure` - Microsoft Azure Storage [GH-7064]
