@@ -47,7 +47,7 @@ func resourceAwsEMR() *schema.Resource {
 			},
 			"log_uri": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"applications": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -63,7 +63,7 @@ func resourceAwsEMR() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"key_name": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"subnet_id": &schema.Schema{
 							Type:     schema.TypeString,
@@ -164,12 +164,15 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		Applications: emrApps,
 
 		JobFlowRole:       aws.String("EMR_EC2_DefaultRole"),
-		LogUri:            aws.String(d.Get("log_uri").(string)),
 		ReleaseLabel:      aws.String(d.Get("release_label").(string)),
 		ServiceRole:       aws.String("EMR_DefaultRole"),
 		VisibleToAllUsers: aws.Bool(true),
 	}
 
+	if v, ok := d.GetOk("log_uri"); ok {
+		logUrl := v.(string)
+		params.LogUri = aws.String(logUrl)
+	}
 	if v, ok := d.GetOk("bootstrap_action"); ok {
 		bootstrapActions := v.(*schema.Set).List()
 		log.Printf("[DEBUG] %v\n", bootstrapActions)
