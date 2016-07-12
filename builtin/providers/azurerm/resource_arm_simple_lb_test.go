@@ -52,7 +52,7 @@ func TestAccAzureRMSimpleLB_updateTag(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSimpleLBExists("azurerm_simple_lb.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_simple_lb.test", "tags.#", "2"),
+						"azurerm_simple_lb.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_simple_lb.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -65,7 +65,7 @@ func TestAccAzureRMSimpleLB_updateTag(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSimpleLBExists("azurerm_simple_lb.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_simple_lb.test", "tags.#", "1"),
+						"azurerm_simple_lb.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_simple_lb.test", "tags.environment", "staging"),
 				),

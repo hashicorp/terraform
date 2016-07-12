@@ -445,7 +445,7 @@ func resourceArmSimpleLbCreate(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[resourceArmSimpleLb] ERROR LB retrieving load balancer %s", err.Error())
 		return fmt.Errorf("Error issuing Azure ARM get request for load balancer '%s': %s", name, err)
 	}
-
+	log.Printf("XXXXXX 2 %s", respLb.Tags)
 	return flattenAllOfLb(respLb, d, meta)
 }
 
@@ -610,6 +610,12 @@ func resourceArmSimpleLbUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[resourceArmSimpleLb] Set the rules on the LB.  Provision State %s", *respLb.Properties.ProvisioningState)
 
+	respLb, err = lbClient.Get(resGrp, name, "")
+	if err != nil {
+		log.Printf("[resourceArmSimpleLb] ERROR LB retrieving load balancer %s", err.Error())
+		return fmt.Errorf("Error issuing Azure ARM get request for load balancer '%s': %s", name, err)
+	}
+	log.Printf("XXXXXX 3 %s", respLb.Tags)
 	return flattenAllOfLb(respLb, d, meta)
 }
 
@@ -655,7 +661,7 @@ func resourceArmSimpleLbRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		return fmt.Errorf("Error reading the state of the load balancer off Azure: %s", err)
 	}
-
+	log.Printf("XXXXXX 1 %s", loadBalancer.Tags)
 	return flattenAllOfLb(loadBalancer, d, meta)
 }
 
