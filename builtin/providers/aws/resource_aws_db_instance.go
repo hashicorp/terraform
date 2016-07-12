@@ -22,6 +22,9 @@ func resourceAwsDbInstance() *schema.Resource {
 		Read:   resourceAwsDbInstanceRead,
 		Update: resourceAwsDbInstanceUpdate,
 		Delete: resourceAwsDbInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -157,7 +160,6 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"publicly_accessible": &schema.Schema{
@@ -633,6 +635,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("name", v.DBName)
+	d.Set("identifier", v.DBInstanceIdentifier)
 	d.Set("username", v.MasterUsername)
 	d.Set("engine", v.Engine)
 	d.Set("engine_version", v.EngineVersion)
@@ -650,6 +653,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("publicly_accessible", v.PubliclyAccessible)
 	d.Set("multi_az", v.MultiAZ)
 	d.Set("kms_key_id", v.KmsKeyId)
+	d.Set("port", v.DbInstancePort)
 	if v.DBSubnetGroup != nil {
 		d.Set("db_subnet_group_name", v.DBSubnetGroup.DBSubnetGroupName)
 	}
@@ -753,10 +757,13 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 
 	opts := rds.DeleteDBInstanceInput{DBInstanceIdentifier: aws.String(d.Id())}
 
-	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
-	opts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot)
+	skipFinalSnapshot, exists := d.GetOk("skip_final_snapshot")
+	if !exists {
+		skipFinalSnapshot = true
+	}
+	opts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot.(bool))
 
-	if !skipFinalSnapshot {
+	if skipFinalSnapshot == false {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
 			opts.FinalDBSnapshotIdentifier = aws.String(name.(string))
 		} else {
@@ -916,12 +923,36 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		requestUpdate = true
 	}
 
+	if d.HasChange("port") {
+		d.SetPartial("port")
+		req.DBPortNumber = aws.Int64(int64(d.Get("port").(int)))
+		requestUpdate = true
+	}
+
 	log.Printf("[DEBUG] Send DB Instance Modification request: %t", requestUpdate)
 	if requestUpdate {
 		log.Printf("[DEBUG] DB Instance Modification request: %s", req)
 		_, err := conn.ModifyDBInstance(req)
 		if err != nil {
 			return fmt.Errorf("Error modifying DB Instance %s: %s", d.Id(), err)
+		}
+
+		log.Println("[INFO] Waiting for DB Instance to be available")
+
+		stateConf := &resource.StateChangeConf{
+			Pending: []string{"creating", "backing-up", "modifying", "resetting-master-credentials",
+				"maintenance", "renaming", "rebooting", "upgrading"},
+			Target:     []string{"available"},
+			Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
+			Timeout:    80 * time.Minute,
+			MinTimeout: 10 * time.Second,
+			Delay:      30 * time.Second, // Wait 30 secs before starting
+		}
+
+		// Wait, catching any errors
+		_, dbStateErr := stateConf.WaitForState()
+		if dbStateErr != nil {
+			return dbStateErr
 		}
 	}
 

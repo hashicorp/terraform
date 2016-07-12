@@ -20,6 +20,9 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 		Read:   resourceAwsRedshiftClusterRead,
 		Update: resourceAwsRedshiftClusterUpdate,
 		Delete: resourceAwsRedshiftClusterDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"database_name": &schema.Schema{
@@ -334,7 +337,13 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 		return nil
 	}
 
+	d.Set("master_username", rsc.MasterUsername)
+	d.Set("node_type", rsc.NodeType)
+	d.Set("allow_version_upgrade", rsc.AllowVersionUpgrade)
 	d.Set("database_name", rsc.DBName)
+	d.Set("cluster_identifier", rsc.ClusterIdentifier)
+	d.Set("cluster_version", rsc.ClusterVersion)
+
 	d.Set("cluster_subnet_group_name", rsc.ClusterSubnetGroupName)
 	d.Set("availability_zone", rsc.AvailabilityZone)
 	d.Set("encrypted", rsc.Encrypted)
@@ -346,6 +355,7 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 		if rsc.Endpoint.Port != nil {
 			endpoint = fmt.Sprintf("%s:%d", endpoint, *rsc.Endpoint.Port)
 		}
+		d.Set("port", rsc.Endpoint.Port)
 		d.Set("endpoint", endpoint)
 	}
 	d.Set("cluster_parameter_group_name", rsc.ClusterParameterGroups[0].ParameterGroupName)
@@ -354,6 +364,8 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	} else {
 		d.Set("cluster_type", "single-node")
 	}
+	d.Set("number_of_nodes", len(rsc.ClusterNodes))
+	d.Set("publicly_accessible", rsc.PubliclyAccessible)
 
 	var vpcg []string
 	for _, g := range rsc.VpcSecurityGroups {
@@ -545,10 +557,13 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 		ClusterIdentifier: aws.String(d.Id()),
 	}
 
-	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
-	deleteOpts.SkipFinalClusterSnapshot = aws.Bool(skipFinalSnapshot)
+	skipFinalSnapshot, exists := d.GetOk("skip_final_snapshot")
+	if !exists {
+		skipFinalSnapshot = true
+	}
+	deleteOpts.SkipFinalClusterSnapshot = aws.Bool(skipFinalSnapshot.(bool))
 
-	if !skipFinalSnapshot {
+	if skipFinalSnapshot == false {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
 			deleteOpts.FinalClusterSnapshotIdentifier = aws.String(name.(string))
 		} else {

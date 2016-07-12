@@ -265,6 +265,14 @@ func resourceDockerContainerUpdate(d *schema.ResourceData, meta interface{}) err
 func resourceDockerContainerDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*dc.Client)
 
+	// Stop the container before removing if destroy_grace_seconds is defined
+	if d.Get("destroy_grace_seconds").(int) > 0 {
+		var timeout = uint(d.Get("destroy_grace_seconds").(int))
+		if err := client.StopContainer(d.Id(), timeout); err != nil {
+			return fmt.Errorf("Error stopping container %s: %s", d.Id(), err)
+		}
+	}
+
 	removeOpts := dc.RemoveContainerOptions{
 		ID:            d.Id(),
 		RemoveVolumes: true,

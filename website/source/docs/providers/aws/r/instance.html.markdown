@@ -14,14 +14,27 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 ## Example Usage
 
 ```
-# Create a new instance of the `ami-408c7f28` (Ubuntu 14.04) on an 
+# Create a new instance of the latest Ubuntu 14.04 on an
 # t1.micro node with an AWS Tag naming it "HelloWorld"
 provider "aws" {
     region = "us-east-1"
 }
-    
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name = "name"
+    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["paravirtual"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
 resource "aws_instance" "web" {
-    ami = "ami-408c7f28"
+    ami = "${data.aws_ami.ubuntu.id}"
     instance_type = "t1.micro"
     tags {
         Name = "HelloWorld"

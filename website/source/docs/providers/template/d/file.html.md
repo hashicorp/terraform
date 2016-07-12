@@ -1,7 +1,7 @@
 ---
 layout: "template"
 page_title: "Template: template_file"
-sidebar_current: "docs-template-resource-file"
+sidebar_current: "docs-template-datasource-file"
 description: |-
   Renders a template from a file.
 ---
@@ -13,7 +13,7 @@ Renders a template from a file.
 ## Example Usage
 
 ```
-resource "template_file" "init" {
+data "template_file" "init" {
     template = "${file("${path.module}/init.tpl")}"
 
     vars {

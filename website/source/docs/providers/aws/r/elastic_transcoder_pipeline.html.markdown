@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_elastictranscoder_pipeline"
-sidebar_current: "docs-aws-resource-elastic-transcoder"
+sidebar_current: "docs-aws-resource-elastic-transcoder-pipeline"
 description: |-
   Provides an Elastic Transcoder pipeline resource.
 ---
@@ -11,8 +11,6 @@ description: |-
 Provides an Elastic Transcoder pipeline resource.
 
 ## Example Usage
-
-### Elastic Transcoder Pipeline
 
 ```
 resource "aws_elastictranscoder_pipeline" "bar" {
@@ -34,7 +32,7 @@ resource "aws_elastictranscoder_pipeline" "bar" {
 
 ## Argument Reference
 
-See ["Create Pipeline"](http://docs.aws.amazon.com/elastictranscoder/latest/developerguide/create-pipeline.html) in the AWS docs for reference. 
+See ["Create Pipeline"](http://docs.aws.amazon.com/elastictranscoder/latest/developerguide/create-pipeline.html) in the AWS docs for reference.
 
 The following arguments are supported:
 
@@ -54,7 +52,7 @@ which you want Elastic Transcoder to save transcoded files and playlists: which
 bucket to use, and the storage class that you want to assign to the files. If
 you specify values for `content_config`, you must also specify values for
 `thumbnail_config`. If you specify values for `content_config` and
-`thumbnail_config`, omit the `output_bucket` object. 
+`thumbnail_config`, omit the `output_bucket` object.
 
 The `content_config` object supports the following:
 

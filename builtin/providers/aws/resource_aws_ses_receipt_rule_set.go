@@ -14,6 +14,9 @@ func resourceAwsSesReceiptRuleSet() *schema.Resource {
 		Create: resourceAwsSesReceiptRuleSetCreate,
 		Read:   resourceAwsSesReceiptRuleSetRead,
 		Delete: resourceAwsSesReceiptRuleSetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"rule_set_name": &schema.Schema{
@@ -50,11 +53,14 @@ func resourceAwsSesReceiptRuleSetRead(d *schema.ResourceData, meta interface{}) 
 	if !ruleSetExists {
 		log.Printf("[WARN] SES Receipt Rule Set (%s) not found", d.Id())
 		d.SetId("")
+		return nil
 	}
 
 	if err != nil {
 		return err
 	}
+
+	d.Set("rule_set_name", d.Id())
 
 	return nil
 }

@@ -12,12 +12,12 @@ import (
 )
 
 func TestCertRequest(t *testing.T) {
-	r.Test(t, r.TestCase{
+	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
 			r.TestStep{
 				Config: fmt.Sprintf(`
-                    resource "tls_cert_request" "test" {
+                    data "tls_cert_request" "test" {
                         subject {
                             common_name = "example.com"
                             organization = "Example, Inc"
@@ -46,7 +46,7 @@ func TestCertRequest(t *testing.T) {
 EOT
                     }
                     output "key_pem" {
-                        value = "${tls_cert_request.test.cert_request_pem}"
+                        value = "${data.tls_cert_request.test.cert_request_pem}"
                     }
                 `, testPrivateKey),
 				Check: func(s *terraform.State) error {

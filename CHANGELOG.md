@@ -65,6 +65,7 @@ FEATURES:
  * **New Resource:** `github_repository_collaborator` [GH-6861]
  * **New Resource:** `azurerm_virtual_machine_scale_set` [GH-6711]
  * **New Resource:** `datadog_timeboard` [GH-6900]
+ * **New Resource:** `digitalocean_tag` [GH-7500]
  * core: Tainted resources now show up in the plan and respect dependency ordering [GH-6600]
  * core: The `lookup` interpolation function can now have a default fall-back value specified [GH-6884]
  * core: The `terraform plan` command no longer persists state. [GH-6811]
@@ -102,6 +103,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for `encryption` and `kms_key_id` to `aws_ami` [GH-7181]
  * provider/aws: AWS prefix lists to enable security group egress to a VPC Endpoint [GH-7511]
  * provider/aws: Retry creation of IAM role depending on new IAM user [GH-7324]
+ * provider/aws: Allow `port` on `aws_db_instance` to be updated [GH-7441]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
@@ -113,6 +115,7 @@ IMPROVEMENTS:
  * provider/cloudstack: Improve ACL swapping [GH-7315]
  * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/docker: Docker Container DNS Setting Enhancements [GH-7392]
+ * provider/docker: Add `destroy_grace_seconds` option to stop container before delete [GH-7513]
  * provider/fastly: Add support for Cache Settings [GH-6781]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
  * provider/fastly: Add support for custom VCL configuration [GH-6662]
@@ -136,6 +139,9 @@ IMPROVEMENTS:
  * provider/vsphere: Add DiskEnableUUID option to `vsphere_virtual_machine` [GH-7088]
  * provider/vsphere: Virtual Machine and File resources handle Read errors properley [GH-7220]
  * provider/vsphere: set uuid as `vsphere_virtual_machine` output [GH-4382]
+ * provider/vsphere: Add support for `keep_on_remove` to `vsphere_virtual_machine` [GH-7169]
+ * provider/vsphere: Add support for additional `vsphere_virtial_machine` SCSI controller types [GH-7525]
+ * provisioner/file: File provisioners may now have file content set as an attribute [GH-7561]
  
 BUG FIXES:
 
@@ -149,6 +155,7 @@ BUG FIXES:
  * core: Fix a crash during eval when we're upgrading an empty state [GH-7403]
  * core: Honor the `-state-out` flag when applying with a plan file [GH-7443]
  * core: Fix a panic when a `terraform_remote_state` data source doesn't exist [GH-7464]
+ * provider/aws: Manual changes to `aws_codedeploy_deployment_group` resources are now detected [GH-7530]
  * provider/aws: Changing keys in `aws_dynamodb_table` correctly force new resources [GH-6829]
  * provider/aws: Fix a bug where CloudWatch alarms are created repeatedly if the user does not have permission to use the the DescribeAlarms operation [GH-7227]
  * provider/aws: Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
@@ -177,6 +184,7 @@ BUG FIXES:
  * provider/aws: Remove EFS File System from State when NotFound [GH-7437]
  * provider/aws: `aws_customer_gateway` refreshing from state on deleted state [GH-7482]
  * provider/aws: Retry finding `aws_route` after creating it [GH-7463]
+ * provider/aws: Refresh CloudWatch Group from state on 404 [GH-7576]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
@@ -205,6 +213,7 @@ BUG FIXES:
  * provider/vsphere: Fix bug where `enable_disk_uuid` was not set on `vsphere_virtual_machine` resources [GH-7275]
  * provider/vsphere: Make `vsphere_virtual_machine` `product_key` optional [GH-7410]
  * provider/vsphere: Refreshing devices list after adding a disk or cdrom controller [GH-7167]
+ * provider/vsphere: `vsphere_virtual_machine` no longer has to be powered on to delete [GH-7206]
  * provisioner/remote-exec: Properly seed random script paths so they are not deterministic across runs [GH-7413]
 
 ## 0.6.16 (May 9, 2016)
