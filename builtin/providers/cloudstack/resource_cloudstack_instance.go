@@ -252,9 +252,12 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetKeypair(keypair.(string))
 	}
 
-	if ud, err := getUserData(d, cs); err != nil {
-		return err
-	} else if len(ud) > 0 {
+	if userData, ok := d.GetOk("user_data"); ok {
+		ud, err := getUserData(userData.(string), cs.HTTPGETOnly)
+		if err != nil {
+			return err
+		}
+
 		p.SetUserdata(ud)
 	}
 
@@ -438,6 +441,7 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 			d.SetPartial("service_offering")
 		}
 
+		// Check if the affinity group IDs have changed and if so, update the IDs
 		if d.HasChange("affinity_group_ids") {
 			p := cs.AffinityGroup.NewUpdateVMAffinityGroupParams(d.Id())
 			groups := []string{}
@@ -451,6 +455,7 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 			p.SetAffinitygroupids(groups)
 		}
 
+		// Check if the affinity group names have changed and if so, update the names
 		if d.HasChange("affinity_group_names") {
 			p := cs.AffinityGroup.NewUpdateVMAffinityGroupParams(d.Id())
 			groups := []string{}
@@ -464,6 +469,7 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 			p.SetAffinitygroupids(groups)
 		}
 
+		// Check if the keypair has changed and if so, update the keypair
 		if d.HasChange("keypair") {
 			log.Printf("[DEBUG] SSH keypair changed for %s, starting update", name)
 
@@ -478,10 +484,11 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 			d.SetPartial("keypair")
 		}
 
+		// Check if the user data has changed and if so, update the user data
 		if d.HasChange("user_data") {
 			log.Printf("[DEBUG] user_data changed for %s, starting update", name)
 
-			ud, err := getUserData(d, cs)
+			ud, err := getUserData(d.Get("user_data").(string), cs.HTTPGETOnly)
 			if err != nil {
 				return err
 			}
@@ -534,28 +541,23 @@ func resourceCloudStackInstanceDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-// getUserData returns user_data as a base64 encoded string. An empty
-// string is returned if unset.
-func getUserData(d *schema.ResourceData, cs *cloudstack.CloudStackClient) (string, error) {
-	if userData, ok := d.GetOk("user_data"); ok {
-		ud := base64.StdEncoding.EncodeToString([]byte(userData.(string)))
+// getUserData returns the user data as a base64 encoded string
+func getUserData(userData string, httpGetOnly bool) (string, error) {
+	ud := base64.StdEncoding.EncodeToString([]byte(userData))
 
-		// deployVirtualMachine uses POST by default, so max userdata is 32K
-		maxUD := 32768
+	// deployVirtualMachine uses POST by default, so max userdata is 32K
+	maxUD := 32768
 
-		if cs.HTTPGETOnly {
-			// deployVirtualMachine using GET instead, so max userdata is 2K
-			maxUD = 2048
-		}
-
-		if len(ud) > maxUD {
-			return "", fmt.Errorf(
-				"The supplied user_data contains %d bytes after encoding, "+
-					"this exeeds the limit of %d bytes", len(ud), maxUD)
-		}
-
-		return ud, nil
+	if httpGetOnly {
+		// deployVirtualMachine using GET instead, so max userdata is 2K
+		maxUD = 2048
 	}
 
-	return "", nil
+	if len(ud) > maxUD {
+		return "", fmt.Errorf(
+			"The supplied user_data contains %d bytes after encoding, "+
+				"this exeeds the limit of %d bytes", len(ud), maxUD)
+	}
+
+	return ud, nil
 }
