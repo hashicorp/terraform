@@ -63,6 +63,7 @@ func resourceArmSimpleLb() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"frontend_allocation_method": &schema.Schema{
 				Type:         schema.TypeString,

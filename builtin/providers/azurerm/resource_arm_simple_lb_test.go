@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"testing"
 
+	"regexp"
+
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"regexp"
 )
 
 func TestAccARMSimpleLB_basic(t *testing.T) {
@@ -100,6 +101,28 @@ func TestAccARMSimpleLB_updateProbe(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azurerm_simple_lb.test", "probe.#", "1"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMSimpleLB_dynamicFrontEndIPAddress(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMSimpleLB_dynamicFrontEndIPAddress, ri, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckARMSimpleRMLBDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check:  testCheckARMSimpleLBExists("azurerm_simple_lb.test"),
+			},
+			{
+				Config: config,
+				// left here to make it explicit that we expect an empty plan
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -375,6 +398,53 @@ resource "azurerm_simple_lb" "test" {
 	backend_port = 22
 	name = "rule1"
 	probe_name = "testProbe1"
+    }
+}
+`
+
+const testAccAzureRMSimpleLB_dynamicFrontEndIPAddress = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestlbrg-%d"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctestnet%d"
+  address_space       = ["10.0.0.0/16"]
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "acctestsubnet%d"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
+  address_prefix       = "10.0.0.0/24"
+}
+
+resource "azurerm_simple_lb" "test" {
+    name = "acctestlb%d"
+    location = "West US"
+    type = "Microsoft.Network/loadBalancers"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    frontend_subnet = "${azurerm_subnet.test.id}"
+    frontend_allocation_method = "Dynamic"
+
+    probe {
+        name = "testProbe1"
+        protocol = "Tcp"
+        port = 22
+        interval = 5
+        number_of_probes = 16
+    }
+
+    rule {
+        protocol = "Tcp"
+        load_distribution = "Default"
+        frontend_port = 22
+        backend_port = 22
+        name = "rule1"
+        probe_name = "testProbe1"
     }
 }
 `
