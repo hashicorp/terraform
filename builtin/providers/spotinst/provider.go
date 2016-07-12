@@ -46,8 +46,9 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"spotinst_subscription": resourceSpotinstSubscription(),
 			"spotinst_aws_group":    resourceSpotinstAwsGroup(),
+			"spotinst_subscription": resourceSpotinstSubscription(),
+			"spotinst_healthcheck": resourceSpotinstHealthCheck(),
 		},
 
 		ConfigureFunc: providerConfigure,
