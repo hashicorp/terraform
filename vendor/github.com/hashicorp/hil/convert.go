@@ -144,5 +144,5 @@ func VariableToInterface(input ast.Variable) (interface{}, error) {
 		return result, nil
 	}
 
-	return nil, fmt.Errorf("Find")
+	return nil, fmt.Errorf("unknown input type: %s", input.Type)
 }

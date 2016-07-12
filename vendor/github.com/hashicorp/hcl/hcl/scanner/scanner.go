@@ -469,7 +469,7 @@ func (s *Scanner) scanString() {
 		// read character after quote
 		ch := s.next()
 
-		if ch == '\n' || ch < 0 || ch == eof {
+		if ch < 0 || ch == eof {
 			s.err("literal not terminated")
 			return
 		}
