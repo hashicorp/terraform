@@ -102,7 +102,7 @@ func resourceScalewaySecurityGroupUpdate(d *schema.ResourceData, m interface{}) 
 		return err
 	}
 
-	return nil
+	return resourceScalewaySecurityGroupRead(d, m)
 }
 
 func resourceScalewaySecurityGroupDelete(d *schema.ResourceData, m interface{}) error {

@@ -156,7 +156,7 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Failed patching scaleway server: %q", err)
 	}
 
-	return nil
+	return resourceScalewayServerRead(d, m)
 }
 
 func resourceScalewayServerDelete(d *schema.ResourceData, m interface{}) error {

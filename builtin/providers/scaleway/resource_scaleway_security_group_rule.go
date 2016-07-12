@@ -146,7 +146,7 @@ func resourceScalewaySecurityGroupRuleUpdate(d *schema.ResourceData, m interface
 		return err
 	}
 
-	return nil
+	return resourceScalewaySecurityGroupRuleRead(d, m)
 }
 
 func resourceScalewaySecurityGroupRuleDelete(d *schema.ResourceData, m interface{}) error {
