@@ -15,26 +15,6 @@ import (
 func TestAccBlockStorageV2Volume_basic(t *testing.T) {
 	var volume volumes.Volume
 
-	var testAccBlockStorageV2Volume_basic = fmt.Sprintf(`
-		resource "openstack_blockstorage_volume_v2" "volume_1" {
-			name = "volume_1"
-			description = "first test volume"
-			metadata {
-				foo = "bar"
-			}
-			size = 1
-		}`)
-
-	var testAccBlockStorageV2Volume_update = fmt.Sprintf(`
-		resource "openstack_blockstorage_volume_v2" "volume_1" {
-			name = "volume_1-updated"
-			description = "first test volume"
-			metadata {
-				foo = "bar"
-			}
-			size = 1
-		}`)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -186,3 +166,23 @@ func testAccCheckBlockStorageV2VolumeMetadata(
 		return fmt.Errorf("Metadata not found: %s", k)
 	}
 }
+
+var testAccBlockStorageV2Volume_basic = fmt.Sprintf(`
+	resource "openstack_blockstorage_volume_v2" "volume_1" {
+		name = "volume_1"
+		description = "first test volume"
+		metadata {
+			foo = "bar"
+		}
+		size = 1
+	}`)
+
+var testAccBlockStorageV2Volume_update = fmt.Sprintf(`
+	resource "openstack_blockstorage_volume_v2" "volume_1" {
+		name = "volume_1-updated"
+		description = "first test volume"
+		metadata {
+			foo = "bar"
+		}
+		size = 1
+	}`)

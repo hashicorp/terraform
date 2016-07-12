@@ -156,24 +156,20 @@ func testAccCheckBlockStorageV1VolumeMetadata(
 
 var testAccBlockStorageV1Volume_basic = fmt.Sprintf(`
 	resource "openstack_blockstorage_volume_v1" "volume_1" {
-		region = "%s"
 		name = "tf-test-volume"
 		description = "first test volume"
 		metadata{
 			foo = "bar"
 		}
 		size = 1
-	}`,
-	OS_REGION_NAME)
+	}`)
 
 var testAccBlockStorageV1Volume_update = fmt.Sprintf(`
 	resource "openstack_blockstorage_volume_v1" "volume_1" {
-		region = "%s"
 		name = "tf-test-volume-updated"
 		description = "first test volume"
 		metadata{
 			foo = "bar"
 		}
 		size = 1
-	}`,
-	OS_REGION_NAME)
+	}`)
