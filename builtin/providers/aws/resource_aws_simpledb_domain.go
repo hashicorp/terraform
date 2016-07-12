@@ -16,6 +16,9 @@ func resourceAwsSimpleDBDomain() *schema.Resource {
 		Create: resourceAwsSimpleDBDomainCreate,
 		Read:   resourceAwsSimpleDBDomainRead,
 		Delete: resourceAwsSimpleDBDomainDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
