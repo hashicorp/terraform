@@ -332,40 +332,40 @@ func pullOutFrontEndIps(d *schema.ResourceData) (*[]network.FrontendIPConfigurat
 
 	returnRules := []network.FrontendIPConfiguration{}
 
-	frontedIpName := fmt.Sprintf("%sfrontendip", d.Get("name").(string))
-	frontedIpAllocationMethod := network.IPAllocationMethod(d.Get("frontend_allocation_method").(string))
-	frontedIpSubnet := d.Get("frontend_subnet").(string)
-	frontedIpPublicIpAddress := d.Get("frontend_public_ip_address").(string)
-	frontedIpPrivateIpAddress := d.Get("frontend_private_ip_address").(string)
+	frontendIpName := fmt.Sprintf("%sfrontendip", d.Get("name").(string))
+	frontendIpAllocationMethod := network.IPAllocationMethod(d.Get("frontend_allocation_method").(string))
+	frontendIpSubnet := d.Get("frontend_subnet").(string)
+	frontendIpPublicIpAddress := d.Get("frontend_public_ip_address").(string)
+	frontendIpPrivateIpAddress := d.Get("frontend_private_ip_address").(string)
 
-	if frontedIpSubnet == "" && frontedIpPublicIpAddress == "" {
+	if frontendIpSubnet == "" && frontendIpPublicIpAddress == "" {
 		var logMsg = fmt.Sprintf("[ERROR] Either a subnet of a public ip address must be provided")
 		log.Printf("[resourceArmSimpleLb] %s", logMsg)
 		return nil, fmt.Errorf(logMsg)
 	}
 
-	if frontedIpPrivateIpAddress == "" && frontedIpAllocationMethod == network.Static {
+	if frontendIpPrivateIpAddress == "" && frontendIpAllocationMethod == network.Static {
 		var logMsg = fmt.Sprintf("An private IP address must be provided if static allocation is used.")
 		log.Printf("[resourceArmSimpleLb] %s", logMsg)
 		return nil, fmt.Errorf(logMsg)
 	}
 
 	ipProps := network.FrontendIPConfigurationPropertiesFormat{
-		PrivateIPAllocationMethod: frontedIpAllocationMethod}
+		PrivateIPAllocationMethod: frontendIpAllocationMethod}
 
-	if frontedIpSubnet != "" {
-		subnet := network.Subnet{ID: &frontedIpSubnet}
+	if frontendIpSubnet != "" {
+		subnet := network.Subnet{ID: &frontendIpSubnet}
 		ipProps.Subnet = &subnet
 	}
-	if frontedIpPublicIpAddress != "" {
-		pubIp := network.PublicIPAddress{ID: &frontedIpPublicIpAddress}
+	if frontendIpPublicIpAddress != "" {
+		pubIp := network.PublicIPAddress{ID: &frontendIpPublicIpAddress}
 		ipProps.PublicIPAddress = &pubIp
 	}
-	if frontedIpPrivateIpAddress != "" {
-		ipProps.PrivateIPAddress = &frontedIpPrivateIpAddress
+	if frontendIpPrivateIpAddress != "" {
+		ipProps.PrivateIPAddress = &frontendIpPrivateIpAddress
 	}
 
-	frontendIpConf := network.FrontendIPConfiguration{Name: &frontedIpName, Properties: &ipProps}
+	frontendIpConf := network.FrontendIPConfiguration{Name: &frontendIpName, Properties: &ipProps}
 	returnRules = append(returnRules, frontendIpConf)
 	return &returnRules, nil
 }
@@ -402,10 +402,10 @@ func resourceArmSimpleLbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	loadBalancer.Properties.Probes = probes
 
-	new_backend_pool_name := fmt.Sprintf("%sbackendpool", name)
-	backendpool := network.BackendAddressPool{Name: &new_backend_pool_name}
+	newBackendPoolName := fmt.Sprintf("%sbackendpool", name)
+	backendPool := network.BackendAddressPool{Name: &newBackendPoolName}
 	backendPoolConfs := []network.BackendAddressPool{}
-	backendPoolConfs = append(backendPoolConfs, backendpool)
+	backendPoolConfs = append(backendPoolConfs, backendPool)
 	loadBalancer.Properties.BackendAddressPools = &backendPoolConfs
 	loadBalancer.Properties.LoadBalancingRules = &[]network.LoadBalancingRule{}
 
@@ -449,28 +449,28 @@ func resourceArmSimpleLbCreate(d *schema.ResourceData, meta interface{}) error {
 	return flattenAllOfLb(respLb, d, meta)
 }
 
-func flattenAzureRmFrontendIp(frontenIpArray []network.FrontendIPConfiguration, d *schema.ResourceData) error {
+func flattenAzureRmFrontendIp(frontendIpArray []network.FrontendIPConfiguration, d *schema.ResourceData) error {
 	log.Printf("[resourceArmSimpleLb] flattenAzureRmFrontendIp[enter]")
 	defer log.Printf("[resourceArmSimpleLb] flattenAzureRmFrontendIp[exit]")
 
-	if len(frontenIpArray) < 1 {
+	if len(frontendIpArray) < 1 {
 		return nil
 	}
-	if len(frontenIpArray) > 1 {
+	if len(frontendIpArray) > 1 {
 		log.Printf("[WARN] More than 1 frontend ip was found.  The simpleLB resource will just use the first one.")
 	}
 
-	frontenIp := frontenIpArray[0]
+	frontendIp := frontendIpArray[0]
 
-	if frontenIp.Properties.PrivateIPAddress != nil {
-		d.Set("frontend_private_ip_address", *frontenIp.Properties.PrivateIPAddress)
+	if frontendIp.Properties.PrivateIPAddress != nil {
+		d.Set("frontend_private_ip_address", *frontendIp.Properties.PrivateIPAddress)
 	}
-	d.Set("frontend_allocation_method", strings.ToLower(string(frontenIp.Properties.PrivateIPAllocationMethod)))
-	if frontenIp.Properties.Subnet != nil {
-		d.Set("frontend_subnet", *frontenIp.Properties.Subnet.ID)
+	d.Set("frontend_allocation_method", strings.ToLower(string(frontendIp.Properties.PrivateIPAllocationMethod)))
+	if frontendIp.Properties.Subnet != nil {
+		d.Set("frontend_subnet", *frontendIp.Properties.Subnet.ID)
 	}
-	if frontenIp.Properties.PublicIPAddress != nil {
-		d.Set("frontend_public_ip_address", *frontenIp.Properties.PublicIPAddress.ID)
+	if frontendIp.Properties.PublicIPAddress != nil {
+		d.Set("frontend_public_ip_address", *frontendIp.Properties.PublicIPAddress.ID)
 	}
 
 	return nil
@@ -570,10 +570,10 @@ func resourceArmSimpleLbUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	loadBalancer.Properties.Probes = probes
 
-	new_backend_pool_name := fmt.Sprintf("%sbackendpool", name)
-	backendpool := network.BackendAddressPool{Name: &new_backend_pool_name}
+	newBackendPoolName := fmt.Sprintf("%sbackendpool", name)
+	backendPool := network.BackendAddressPool{Name: &newBackendPoolName}
 	backendPoolConfs := []network.BackendAddressPool{}
-	backendPoolConfs = append(backendPoolConfs, backendpool)
+	backendPoolConfs = append(backendPoolConfs, backendPool)
 	loadBalancer.Properties.BackendAddressPools = &backendPoolConfs
 	loadBalancer.Properties.LoadBalancingRules = &[]network.LoadBalancingRule{}
 
@@ -684,7 +684,7 @@ func flattenAllOfLb(loadBalancer network.LoadBalancer, d *schema.ResourceData, m
 	}
 	d.Set("backend_pool_id", (*loadBalancer.Properties.BackendAddressPools)[0].ID)
 	if loadBalancer.Properties.FrontendIPConfigurations == nil || len(*loadBalancer.Properties.FrontendIPConfigurations) != 1 {
-		return fmt.Errorf("There must be exactly 1 fronted to use this resource")
+		return fmt.Errorf("There must be exactly 1 frontend to use this resource")
 	}
 	d.Set("frontend_id", (*loadBalancer.Properties.FrontendIPConfigurations)[0].ID)
 	err = flattenAzureRmLoadBalancerRules(loadBalancer, d)

@@ -12,22 +12,22 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccARMSimpleLB_basic(t *testing.T) {
+func TestAccAzureRMSimpleLB_basic(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureSimpleLB_basic, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMSimpleLB_basic, ri, ri, ri)
 
 	justBeThere := regexp.MustCompile(".*")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckARMSimpleRMLBDestroy,
+		CheckDestroy: testCheckAzureRMSimpleRMLBDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckARMSimpleLBExists("azurerm_simple_lb.test"),
+					testCheckAzureRMSimpleLBExists("azurerm_simple_lb.test"),
 					resource.TestMatchResourceAttr("azurerm_simple_lb.test", "frontend_id", justBeThere),
 					resource.TestMatchResourceAttr("azurerm_simple_lb.test", "backend_pool_id", justBeThere),
 				),
@@ -36,21 +36,21 @@ func TestAccARMSimpleLB_basic(t *testing.T) {
 	})
 }
 
-func TestAccARMSimpleLB_updateTag(t *testing.T) {
+func TestAccAzureRMSimpleLB_updateTag(t *testing.T) {
 
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureSimpleLB_tags, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAzureSimpleLB_updateTags, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureRMSimpleLB_tags, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMSimpleLB_updateTags, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckARMSimpleRMLBDestroy,
+		CheckDestroy: testCheckAzureRMSimpleRMLBDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckARMSimpleLBExists("azurerm_simple_lb.test"),
+					testCheckAzureRMSimpleLBExists("azurerm_simple_lb.test"),
 					resource.TestCheckResourceAttr(
 						"azurerm_simple_lb.test", "tags.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -63,7 +63,7 @@ func TestAccARMSimpleLB_updateTag(t *testing.T) {
 			resource.TestStep{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckARMSimpleLBExists("azurerm_simple_lb.test"),
+					testCheckAzureRMSimpleLBExists("azurerm_simple_lb.test"),
 					resource.TestCheckResourceAttr(
 						"azurerm_simple_lb.test", "tags.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -74,21 +74,21 @@ func TestAccARMSimpleLB_updateTag(t *testing.T) {
 	})
 }
 
-func TestAccARMSimpleLB_updateProbe(t *testing.T) {
+func TestAccAzureRMSimpleLB_updateProbe(t *testing.T) {
 
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureSimpleLB_probe, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAzureSimpleLB_probeUpdate, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureRMSimpleLB_probe, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMSimpleLB_probeUpdate, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckARMSimpleRMLBDestroy,
+		CheckDestroy: testCheckAzureRMSimpleRMLBDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckARMSimpleLBExists("azurerm_simple_lb.test"),
+					testCheckAzureRMSimpleLBExists("azurerm_simple_lb.test"),
 					resource.TestCheckResourceAttr(
 						"azurerm_simple_lb.test", "probe.#", "2"),
 				),
@@ -97,7 +97,7 @@ func TestAccARMSimpleLB_updateProbe(t *testing.T) {
 			resource.TestStep{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckARMSimpleLBExists("azurerm_simple_lb.test"),
+					testCheckAzureRMSimpleLBExists("azurerm_simple_lb.test"),
 					resource.TestCheckResourceAttr(
 						"azurerm_simple_lb.test", "probe.#", "1"),
 				),
@@ -113,11 +113,11 @@ func TestAccAzureRMSimpleLB_dynamicFrontEndIPAddress(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckARMSimpleRMLBDestroy,
+		CheckDestroy: testCheckAzureRMSimpleRMLBDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
-				Check:  testCheckARMSimpleLBExists("azurerm_simple_lb.test"),
+				Check:  testCheckAzureRMSimpleLBExists("azurerm_simple_lb.test"),
 			},
 			{
 				Config: config,
@@ -128,7 +128,7 @@ func TestAccAzureRMSimpleLB_dynamicFrontEndIPAddress(t *testing.T) {
 	})
 }
 
-func testCheckARMSimpleLBExists(name string) resource.TestCheckFunc {
+func testCheckAzureRMSimpleLBExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
 		rs, ok := s.RootModule().Resources[name]
@@ -157,7 +157,7 @@ func testCheckARMSimpleLBExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testCheckARMSimpleRMLBDestroy(s *terraform.State) error {
+func testCheckAzureRMSimpleRMLBDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).loadBalancerClient
 
 	for _, rs := range s.RootModule().Resources {
@@ -182,7 +182,7 @@ func testCheckARMSimpleRMLBDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAzureSimpleLB_basic = `
+var testAccAzureRMSimpleLB_basic = `
 resource "azurerm_resource_group" "test" {
     name = "acctestlbrg-%d"
     location = "West US"
@@ -221,7 +221,7 @@ resource "azurerm_simple_lb" "test" {
 }
 `
 
-var testAccAzureSimpleLB_tags = `
+var testAccAzureRMSimpleLB_tags = `
 resource "azurerm_resource_group" "test" {
     name = "acctestlbrg-%d"
     location = "West US"
@@ -265,7 +265,7 @@ resource "azurerm_simple_lb" "test" {
 }
 `
 
-var testAccAzureSimpleLB_updateTags = `
+var testAccAzureRMSimpleLB_updateTags = `
 resource "azurerm_resource_group" "test" {
     name = "acctestlbrg-%d"
     location = "West US"
@@ -308,7 +308,7 @@ resource "azurerm_simple_lb" "test" {
 }
 `
 
-var testAccAzureSimpleLB_probe = `
+var testAccAzureRMSimpleLB_probe = `
 resource "azurerm_resource_group" "test" {
     name = "acctestlbrg-%d"
     location = "West US"
@@ -363,7 +363,7 @@ resource "azurerm_simple_lb" "test" {
 }
 `
 
-var testAccAzureSimpleLB_probeUpdate = `
+var testAccAzureRMSimpleLB_probeUpdate = `
 resource "azurerm_resource_group" "test" {
     name = "acctestlbrg-%d"
     location = "West US"
