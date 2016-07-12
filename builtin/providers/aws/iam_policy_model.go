@@ -5,8 +5,8 @@ import (
 )
 
 type IAMPolicyDoc struct {
-	Id         string                `json:",omitempty"`
 	Version    string                `json:",omitempty"`
+	Id         string                `json:",omitempty"`
 	Statements []*IAMPolicyStatement `json:"Statement"`
 }
 
