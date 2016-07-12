@@ -139,6 +139,7 @@ IMPROVEMENTS:
  * provider/vsphere: Virtual Machine and File resources handle Read errors properley [GH-7220]
  * provider/vsphere: set uuid as `vsphere_virtual_machine` output [GH-4382]
  * provider/vsphere: Add support for `keep_on_remove` to `vsphere_virtual_machine` [GH-7169]
+ * provider/vsphere: Add support for additional `vsphere_virtial_machine` SCSI controller types [GH-7525]
  * provisioner/file: File provisioners may now have file content set as an attribute [GH-7561]
  
 BUG FIXES:
