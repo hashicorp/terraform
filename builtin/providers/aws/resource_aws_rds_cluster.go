@@ -251,7 +251,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 				Pending:    []string{"creating", "backing-up", "modifying"},
 				Target:     []string{"available"},
 				Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-				Timeout:    5 * time.Minute,
+				Timeout:    15 * time.Minute,
 				MinTimeout: 3 * time.Second,
 				Delay:      30 * time.Second, // Wait 30 secs before starting
 			}
@@ -345,7 +345,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-		Timeout:    5 * time.Minute,
+		Timeout:    15 * time.Minute,
 		MinTimeout: 3 * time.Second,
 	}
 
@@ -509,7 +509,7 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 		Pending:    []string{"available", "deleting", "backing-up", "modifying"},
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-		Timeout:    5 * time.Minute,
+		Timeout:    15 * time.Minute,
 		MinTimeout: 3 * time.Second,
 	}
 
