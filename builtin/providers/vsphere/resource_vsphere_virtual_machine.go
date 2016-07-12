@@ -26,6 +26,15 @@ var DefaultDNSServers = []string{
 	"8.8.4.4",
 }
 
+var DiskControllerTypes = []string{
+	"scsi",
+	"scsi-lsi-parallel",
+	"scsi-buslogic",
+	"scsi-paravirtual",
+	"scsi-lsi-sas",
+	"ide",
+}
+
 type networkInterface struct {
 	deviceName       string
 	label            string
@@ -421,9 +430,15 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Default:  "scsi",
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
-								if value != "scsi" && value != "ide" {
+								found := false
+								for _, t := range DiskControllerTypes {
+									if t == value {
+										found = true
+									}
+								}
+								if !found {
 									errors = append(errors, fmt.Errorf(
-										"only 'scsi' and 'ide' are supported values for 'controller_type'"))
+										"Supported values for 'controller_type' are %v", strings.Join(DiskControllerTypes, ", ")))
 								}
 								return
 							},
@@ -1160,8 +1175,24 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	log.Printf("[DEBUG] vm devices: %#v\n", devices)
 
 	var controller types.BaseVirtualController
-	controller, err = devices.FindDiskController(controller_type)
-	if err != nil {
+	switch controller_type {
+	case "scsi":
+		controller, err = devices.FindDiskController(controller_type)
+	case "scsi-lsi-parallel":
+		controller = devices.PickController(&types.VirtualLsiLogicController{})
+	case "scsi-buslogic":
+		controller = devices.PickController(&types.VirtualBusLogicController{})
+	case "scsi-paravirtual":
+		controller = devices.PickController(&types.ParaVirtualSCSIController{})
+	case "scsi-lsi-sas":
+		controller = devices.PickController(&types.VirtualLsiLogicSASController{})
+	case "ide":
+		controller, err = devices.FindDiskController(controller_type)
+	default:
+		return fmt.Errorf("[ERROR] Unsupported disk controller provided: %v", controller_type)
+	}
+
+	if err != nil || controller == nil {
 		log.Printf("[DEBUG] Couldn't find a %v controller.  Creating one..", controller_type)
 
 		var c types.BaseVirtualDevice
@@ -1169,6 +1200,30 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		case "scsi":
 			// Create scsi controller
 			c, err = devices.CreateSCSIController("scsi")
+			if err != nil {
+				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
+			}
+		case "scsi-lsi-parallel":
+			// Create scsi controller
+			c, err = devices.CreateSCSIController("lsilogic")
+			if err != nil {
+				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
+			}
+		case "scsi-buslogic":
+			// Create scsi controller
+			c, err = devices.CreateSCSIController("buslogic")
+			if err != nil {
+				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
+			}
+		case "scsi-paravirtual":
+			// Create scsi controller
+			c, err = devices.CreateSCSIController("pvscsi")
+			if err != nil {
+				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
+			}
+		case "scsi-lsi-sas":
+			// Create scsi controller
+			c, err = devices.CreateSCSIController("lsilogic-sas")
 			if err != nil {
 				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
 			}
@@ -1188,10 +1243,10 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		if err != nil {
 			return err
 		}
-		controller, err = devices.FindDiskController(controller_type)
-		if err != nil {
-			log.Printf("[ERROR] Could not find the new %v controller: %v", controller_type, err)
-			return err
+		controller = devices.PickController(c.(types.BaseVirtualController))
+		if controller == nil {
+			log.Printf("[ERROR] Could not find the new %v controller", controller_type)
+			return fmt.Errorf("Could not find the new %v controller", controller_type)
 		}
 	}
 
