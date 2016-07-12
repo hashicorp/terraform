@@ -5,6 +5,7 @@ import (
 	"github.com/DimensionDataResearch/go-dd-cloud-compute/compute"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -120,16 +121,47 @@ func (state *providerState) Client() *compute.Client {
 	return state.apiClient
 }
 
-// GetDomainLock retrieves the Mutex that represents global lock for the specified network domain.
-func (state *providerState) GetDomainLock(id string) *sync.Mutex {
+// GetDomainLock retrieves the global lock for the specified network domain.
+func (state *providerState) GetDomainLock(id string, ownerNameOrFormat string, formatArgs ...interface{}) *providerDomainLock {
 	state.stateLock.Lock()
 	defer state.stateLock.Unlock()
 
-	domainLock, ok := state.domainLocks[id]
+	lock, ok := state.domainLocks[id]
 	if !ok {
-		domainLock = &sync.Mutex{}
-		state.domainLocks[id] = domainLock
+		lock = &sync.Mutex{}
+		state.domainLocks[id] = lock
 	}
 
-	return domainLock
+	var owner string
+	if len(formatArgs) > 0 {
+		owner = fmt.Sprintf(ownerNameOrFormat, formatArgs...)
+	} else {
+		owner = ownerNameOrFormat
+	}
+
+	return &providerDomainLock{
+		domainID:  id,
+		ownerName: owner,
+		lock:      lock,
+	}
+}
+
+type providerDomainLock struct {
+	domainID  string
+	ownerName string
+	lock      *sync.Mutex
+}
+
+// Acquire the network domain lock.
+func (domainLock *providerDomainLock) Lock() {
+	log.Printf("%s acquiring lock for domain '%s'...", domainLock.ownerName, domainLock.domainID)
+	domainLock.lock.Lock()
+	log.Printf("%s acquired lock for domain '%s'.", domainLock.ownerName, domainLock.domainID)
+}
+
+// Release the network domain lock.
+func (domainLock *providerDomainLock) Unlock() {
+	log.Printf("%s releasing lock for domain '%s'...", domainLock.ownerName, domainLock.domainID)
+	domainLock.lock.Unlock()
+	log.Printf("%s released lock for domain '%s'.", domainLock.ownerName, domainLock.domainID)
 }

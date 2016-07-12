@@ -87,8 +87,7 @@ func resourceVLANCreate(data *schema.ResourceData, provider interface{}) error {
 	providerState := provider.(*providerState)
 	apiClient := providerState.Client()
 
-	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
-	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID, "resourceVLANCreate(name = '%s')", name)
 	domainLock.Lock()
 	defer domainLock.Unlock()
 
@@ -159,8 +158,8 @@ func resourceVLANUpdate(data *schema.ResourceData, provider interface{}) error {
 	id = data.Id()
 	networkDomainID := data.Get(resourceKeyVLANNetworkDomainID).(string)
 
+	name = data.Get(resourceKeyVLANName).(string)
 	if data.HasChange(resourceKeyVLANName) {
-		name = data.Get(resourceKeyVLANName).(string)
 		newName = &name
 	}
 
@@ -174,20 +173,16 @@ func resourceVLANUpdate(data *schema.ResourceData, provider interface{}) error {
 	providerState := provider.(*providerState)
 	apiClient := providerState.Client()
 
-	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
-	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID, "resourceVLANUpdate(id = '%s', name = '%s')", id, name)
 	domainLock.Lock()
 	defer domainLock.Unlock()
 
-	// TODO: Handle RESOURCE_BUSY response (retry?)
-	if newName != nil || newDescription != nil {
-		err := apiClient.EditVLAN(id, newName, newDescription)
-		if err != nil {
-			return err
-		}
+	if newName == nil && newDescription == nil {
+		return nil
 	}
 
-	return nil
+	// TODO: Handle RESOURCE_BUSY response (retry?)
+	return apiClient.EditVLAN(id, newName, newDescription)
 }
 
 // Delete a VLAN resource.
@@ -201,8 +196,7 @@ func resourceVLANDelete(data *schema.ResourceData, provider interface{}) error {
 	providerState := provider.(*providerState)
 	apiClient := providerState.Client()
 
-	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
-	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID, "resourceVLANDelete(id = '%s', name = '%s')", id, name)
 	domainLock.Lock()
 	defer domainLock.Unlock()
 

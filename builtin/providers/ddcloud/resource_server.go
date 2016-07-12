@@ -337,7 +337,7 @@ func resourceServerRead(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("Read server '%s' (Id = '%s') in network domain '%s' (description = '%s').", name, id, networkDomainID, description)
 
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 	server, err := apiClient.GetServer(id)
 	if err != nil {
 		return err
@@ -385,7 +385,7 @@ func resourceServerUpdate(data *schema.ResourceData, provider interface{}) error
 
 	log.Printf("Update server '%s'.", serverID)
 
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 	server, err := apiClient.GetServer(serverID)
 	if err != nil {
 		return err
@@ -462,7 +462,7 @@ func resourceServerDelete(data *schema.ResourceData, provider interface{}) error
 
 	log.Printf("Delete server '%s' ('%s') in network domain '%s'.", id, name, networkDomainID)
 
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 	server, err := apiClient.GetServer(id)
 	if err != nil {
 		return err
