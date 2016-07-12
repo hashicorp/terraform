@@ -213,6 +213,37 @@ func TestAccAWSDBInstance_iops_update(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_portUpdate(t *testing.T) {
+	var v rds.DBInstance
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccSnapshotInstanceConfig_mysqlPort(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "port", "3306"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccSnapshotInstanceConfig_updateMysqlPort(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "port", "3305"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
@@ -700,4 +731,40 @@ resource "aws_db_instance" "bar" {
   allocated_storage = 200
   iops              = %d
 }`, rName, iops)
+}
+
+func testAccSnapshotInstanceConfig_mysqlPort(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  port = 3306
+  allocated_storage = 10
+
+  apply_immediately = true
+}`, rName)
+}
+
+func testAccSnapshotInstanceConfig_updateMysqlPort(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  port = 3305
+  allocated_storage = 10
+
+  apply_immediately = true
+}`, rName)
 }
