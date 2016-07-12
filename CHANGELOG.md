@@ -103,6 +103,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for `encryption` and `kms_key_id` to `aws_ami` [GH-7181]
  * provider/aws: AWS prefix lists to enable security group egress to a VPC Endpoint [GH-7511]
  * provider/aws: Retry creation of IAM role depending on new IAM user [GH-7324]
+ * provider/aws: Allow `port` on `aws_db_instance` to be updated [GH-7441]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
