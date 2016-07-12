@@ -144,7 +144,7 @@ func resourceSpotinstSubscriptionUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceSpotinstSubscriptionDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] Deleting subscription: %s\n", d.Id())
+	//log.Printf("[INFO] Deleting subscription: %s\n", d.Id())
 	//client := meta.(*spotinst.Client)
 	//subscription := &spotinst.Subscription{ID: d.Id()}
 	//_, err := client.Subscription.Delete(subscription)
