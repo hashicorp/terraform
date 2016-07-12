@@ -260,9 +260,8 @@ func pullOutLbRules(d *schema.ResourceData, loadBalancer network.LoadBalancer) (
 	log.Printf("[resourceArmSimpleLb] pullOutLbRules found %d rules in plan", rules.Len())
 	for _, rule := range rules.List() {
 		rule := rule.(map[string]interface{})
-		log.Printf("[resourceArmSimpleLb] pullOutLbRules %v", rule)
-
 		ruleName := rule["name"].(string)
+		log.Printf("[resourceArmSimpleLb] pullOutLbRules %s", ruleName)
 
 		existingRule, err := findRuleByName(loadBalancer.Properties.LoadBalancingRules, ruleName)
 		if err == nil {
@@ -438,6 +437,11 @@ func resourceArmSimpleLbCreate(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[resourceArmSimpleLb] ERROR When trying to set the rules.  LB got status %s", err.Error())
 		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
 	}
+	respLb, err = lbClient.Get(resGrp, name, "")
+	if err != nil {
+		log.Printf("[resourceArmSimpleLb] ERROR LB retrieving load balancer %s", err.Error())
+		return fmt.Errorf("Error issuing Azure ARM get request for load balancer '%s': %s", name, err)
+	}
 
 	return flattenAllOfLb(respLb, d, meta)
 }
@@ -496,9 +500,11 @@ func flattenAzureRmLoadBalancerRules(loadBalancer network.LoadBalancer, d *schem
 			ruleProbeID := *rule.Properties.Probe.ID
 			conf, err := findProbeById(loadBalancer.Properties.Probes, ruleProbeID)
 			if err != nil {
+				log.Printf("[resourceArmSimpleLb] Error reading %s", *rule.Name)
 				return err
 			}
 			r["probe_name"] = *conf.Name
+			log.Printf("[resourceArmSimpleLb] Successfully read rule %s", *rule.Name)
 		}
 		ruleSet.Add(r)
 	}
