@@ -122,7 +122,16 @@ func (c *OutputCommand) Run(args []string) int {
 			break
 		}
 
-		c.Ui.Output(fmt.Sprintf("%s", output[indexInt]))
+		outputVal := output[indexInt]
+		switch typedOutputVal := outputVal.(type) {
+		case string:
+			c.Ui.Output(fmt.Sprintf("%s", typedOutputVal))
+		case []interface{}:
+			c.Ui.Output(fmt.Sprintf("%s", formatNestedList("", typedOutputVal)))
+		case map[string]interface{}:
+			c.Ui.Output(fmt.Sprintf("%s", formatNestedMap("", typedOutputVal)))
+		}
+
 		return 0
 	case map[string]interface{}:
 		if index == "" {
@@ -131,7 +140,14 @@ func (c *OutputCommand) Run(args []string) int {
 		}
 
 		if value, ok := output[index]; ok {
-			c.Ui.Output(fmt.Sprintf("%s", value))
+			switch typedOutputVal := value.(type) {
+			case string:
+				c.Ui.Output(fmt.Sprintf("%s", typedOutputVal))
+			case []interface{}:
+				c.Ui.Output(fmt.Sprintf("%s", formatNestedList("", typedOutputVal)))
+			case map[string]interface{}:
+				c.Ui.Output(fmt.Sprintf("%s", formatNestedMap("", typedOutputVal)))
+			}
 			return 0
 		} else {
 			return 1
@@ -144,6 +160,23 @@ func (c *OutputCommand) Run(args []string) int {
 	return 0
 }
 
+func formatNestedList(indent string, outputList []interface{}) string {
+	outputBuf := new(bytes.Buffer)
+	outputBuf.WriteString(fmt.Sprintf("%s[", indent))
+
+	lastIdx := len(outputList) - 1
+
+	for i, value := range outputList {
+		outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, "    ", value))
+		if i != lastIdx {
+			outputBuf.WriteString(",")
+		}
+	}
+
+	outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
+	return strings.TrimPrefix(outputBuf.String(), "\n")
+}
+
 func formatListOutput(indent, outputName string, outputList []interface{}) string {
 	keyIndent := ""
 
@@ -151,11 +184,26 @@ func formatListOutput(indent, outputName string, outputList []interface{}) strin
 
 	if outputName != "" {
 		outputBuf.WriteString(fmt.Sprintf("%s%s = [", indent, outputName))
-		keyIndent = "  "
+		keyIndent = "    "
 	}
 
-	for _, value := range outputList {
-		outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, keyIndent, value))
+	lastIdx := len(outputList) - 1
+
+	for i, value := range outputList {
+		switch typedValue := value.(type) {
+		case string:
+			outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, keyIndent, value))
+		case []interface{}:
+			outputBuf.WriteString(fmt.Sprintf("\n%s%s", indent,
+				formatNestedList(indent+keyIndent, typedValue)))
+		case map[string]interface{}:
+			outputBuf.WriteString(fmt.Sprintf("\n%s%s", indent,
+				formatNestedMap(indent+keyIndent, typedValue)))
+		}
+
+		if lastIdx != i {
+			outputBuf.WriteString(",")
+		}
 	}
 
 	if outputName != "" {
@@ -169,6 +217,30 @@ func formatListOutput(indent, outputName string, outputList []interface{}) strin
 	return strings.TrimPrefix(outputBuf.String(), "\n")
 }
 
+func formatNestedMap(indent string, outputMap map[string]interface{}) string {
+	ks := make([]string, 0, len(outputMap))
+	for k, _ := range outputMap {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+
+	outputBuf := new(bytes.Buffer)
+	outputBuf.WriteString(fmt.Sprintf("%s{", indent))
+
+	lastIdx := len(outputMap) - 1
+	for i, k := range ks {
+		v := outputMap[k]
+		outputBuf.WriteString(fmt.Sprintf("\n%s%s = %v", indent+"    ", k, v))
+
+		if lastIdx != i {
+			outputBuf.WriteString(",")
+		}
+	}
+
+	outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
+
+	return strings.TrimPrefix(outputBuf.String(), "\n")
+}
 func formatMapOutput(indent, outputName string, outputMap map[string]interface{}) string {
 	ks := make([]string, 0, len(outputMap))
 	for k, _ := range outputMap {
