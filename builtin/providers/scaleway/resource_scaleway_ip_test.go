@@ -20,6 +20,24 @@ func TestAccScalewayIP_Basic(t *testing.T) {
 					testAccCheckScalewayIPExists("scaleway_ip.base"),
 				),
 			},
+			resource.TestStep{
+				Config: testAccCheckScalewayIPAttachConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalewayIPExists("scaleway_ip.base"),
+					testAccCheckScalewayIPAttachment("scaleway_ip.base", func(serverID string) bool {
+						return serverID != ""
+					}, "attachment failed"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCheckScalewayIPConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalewayIPExists("scaleway_ip.base"),
+					testAccCheckScalewayIPAttachment("scaleway_ip.base", func(serverID string) bool {
+						return serverID == ""
+					}, "detachment failed"),
+				),
+			},
 		},
 	})
 }
@@ -75,7 +93,48 @@ func testAccCheckScalewayIPExists(n string) resource.TestCheckFunc {
 	}
 }
 
+func testAccCheckScalewayIPAttachment(n string, check func(string) bool, msg string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No IP ID is set")
+		}
+
+		client := testAccProvider.Meta().(*Client).scaleway
+		ip, err := client.GetIP(rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+
+		if !check(ip.IP.Server.Identifier) {
+			return fmt.Errorf("IP check failed: %q", msg)
+		}
+
+		return nil
+	}
+}
+
 var testAccCheckScalewayIPConfig = `
 resource "scaleway_ip" "base" {
 }
 `
+
+var testAccCheckScalewayIPAttachConfig = fmt.Sprintf(`
+resource "scaleway_server" "base" {
+  name = "test"
+  # ubuntu 14.04
+  image = "%s"
+  type = "C1"
+  state = "stopped"
+}
+
+resource "scaleway_ip" "base" {
+  server = "${scaleway_server.base.id}"
+}
+`, armImageIdentifier)

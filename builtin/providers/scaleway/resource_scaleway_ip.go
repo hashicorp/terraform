@@ -39,6 +39,8 @@ func resourceScalewayIPCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceScalewayIPRead(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+	log.Printf("[DEBUG] Reading IP\n")
+
 	resp, err := scaleway.GetIP(d.Id())
 	if err != nil {
 		log.Printf("[DEBUG] Error reading ip: %q\n", err)
@@ -59,8 +61,14 @@ func resourceScalewayIPRead(d *schema.ResourceData, m interface{}) error {
 func resourceScalewayIPUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 	if d.HasChange("server") {
-		if err := scaleway.AttachIP(d.Id(), d.Get("server").(string)); err != nil {
-			return err
+		if d.Get("server").(string) != "" {
+			log.Printf("[DEBUG] Attaching IP %q to server %q\n", d.Id(), d.Get("server").(string))
+			if err := scaleway.AttachIP(d.Id(), d.Get("server").(string)); err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[DEBUG] Detaching IP %q\n", d.Id())
+			return DetachIP(scaleway, d.Id())
 		}
 	}
 
