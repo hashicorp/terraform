@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -91,6 +92,18 @@ type virtualMachine struct {
 	enableDiskUUID        bool
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
+}
+
+func NetInterfaceID(v interface{}) int {
+	device_key := v.(map[string]interface{})["device_key"].(string)
+	id, err := strconv.Atoi(device_key)
+	if err != nil {
+		log.Printf("[WARNING] using fallback hashing of network interface device id %s. %v", device_key, err)
+		// default hash method from  terraform/helper/schema/set.go
+		return hashcode.String(device_key)
+	} else {
+		return id
+	}
 }
 
 func (v virtualMachine) Path() string {
@@ -269,11 +282,18 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			},
 
 			"network_interface": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
+				Set:      NetInterfaceID,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"device_key": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+
 						"label": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -874,7 +894,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		log.Printf("[DEBUG] cdrom init: %v", cdroms)
 	}
 
-	err := vm.setupVirtualMachine(client)
+	err := vm.setupVirtualMachine(d, client)
 	if err != nil {
 		return err
 	}
@@ -913,6 +933,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore", "config"}, &mvm); err != nil {
 		return err
 	}
+
+	// 	device_list, err := vm.Device(context.TODO())
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
 	log.Printf("[DEBUG] Datacenter - %#v", dc)
 	log.Printf("[DEBUG] mvm.Summary.Config - %#v", mvm.Summary.Config)
@@ -987,11 +1012,14 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Invalid disks to set: %#v", disks)
 	}
 
-	networkInterfaces := make([]map[string]interface{}, 0)
+	networkInterfaces := make(map[string]map[string]interface{}, 0)
 	for _, v := range mvm.Guest.Net {
 		if v.DeviceConfigId >= 0 {
 			log.Printf("[DEBUG] v.Network - %#v", v.Network)
 			networkInterface := make(map[string]interface{})
+			log.Printf("[DEBUG] mvm.Config.Hardware.Device - %#v", mvm.Config.Hardware.Device)
+			device_key := strconv.Itoa(int(v.DeviceConfigId))
+			networkInterface["device_key"] = device_key
 			networkInterface["label"] = v.Network
 			networkInterface["mac_address"] = v.MacAddress
 			for _, ip := range v.IpConfig.IpAddress {
@@ -1010,9 +1038,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 				log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
 			}
 			log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
-			networkInterfaces = append(networkInterfaces, networkInterface)
+			networkInterfaces[device_key] = networkInterface
 		}
 	}
+
+	// IP for SetConnInfo
+	connect_ip := ""
+
 	if mvm.Guest.IpStack != nil {
 		for _, v := range mvm.Guest.IpStack {
 			if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
@@ -1029,8 +1061,12 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 							if err != nil {
 								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
 							} else {
-								log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, deviceID, route.Gateway.IpAddress)
-								networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
+								device_key := strconv.Itoa(int(mvm.Guest.Net[deviceID].DeviceConfigId))
+								log.Printf("[DEBUG] %s of device id %d (key %s): %s", gatewaySetting, deviceID, device_key, route.Gateway.IpAddress)
+								networkInterfaces[device_key][gatewaySetting] = route.Gateway.IpAddress
+								if gatewaySetting == "ipv4_gateway" {
+									connect_ip = networkInterfaces[device_key]["ipv4_address"].(string)
+								}
 							}
 						}
 					}
@@ -1038,16 +1074,21 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			}
 		}
 	}
+	networkInterfaces_slice := []map[string]interface{}{}
+	for _, value := range networkInterfaces {
+		networkInterfaces_slice = append(networkInterfaces_slice, value)
+	}
 	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
-	err = d.Set("network_interface", networkInterfaces)
+	log.Printf("[DEBUG] networkInterfaces_slice: %#v", networkInterfaces_slice)
+	err = d.Set("network_interface", networkInterfaces_slice)
 	if err != nil {
-		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
+		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces_slice)
 	}
 
-	log.Printf("[DEBUG] ip address: %v", networkInterfaces[0]["ipv4_address"].(string))
+	log.Printf("[DEBUG] ip address: %v", connect_ip)
 	d.SetConnInfo(map[string]string{
 		"type": "ssh",
-		"host": networkInterfaces[0]["ipv4_address"].(string),
+		"host": connect_ip,
 	})
 
 	var rootDatastore string
@@ -1504,7 +1545,7 @@ func createCdroms(vm *object.VirtualMachine, cdroms []cdrom) error {
 	return nil
 }
 
-func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
+func (vm *virtualMachine) setupVirtualMachine(d *schema.ResourceData, c *govmomi.Client) error {
 	dc, err := getDatacenter(c, vm.datacenter)
 
 	if err != nil {
@@ -1793,21 +1834,42 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		return err
 	}
 
+	var known_devices map[string]bool
+
 	for _, dvc := range devices {
 		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
+		// Also required to get a reliable mapping from vsphere device to device in config
 		if devices.Type(dvc) == "ethernet" {
 			err := newVM.RemoveDevice(context.TODO(), false, dvc)
 			if err != nil {
 				return err
 			}
+		} else {
+			known_devices[strconv.Itoa(int(dvc.GetVirtualDevice().Key))] = true
 		}
 	}
+
 	// Add Network devices
 	for _, dvc := range networkDevices {
 		err := newVM.AddDevice(
 			context.TODO(), dvc.GetVirtualDeviceConfigSpec().Device)
 		if err != nil {
 			return err
+		}
+		// get refreshed device list
+		refreshed_devices, err := newVM.Device(context.TODO())
+		if err != nil {
+			log.Printf("[ERROR] Getting new list of devices failed")
+			return err
+		}
+		// look for unknown device name => has to be added device
+		for _, new_dvc := range refreshed_devices {
+			device_key := strconv.Itoa(int(new_dvc.GetVirtualDevice().Key))
+			if !known_devices[device_key] {
+				key_name := fmt.Sprintf("network_interfaces.%v.device_key", device_key)
+				known_devices[device_key] = true
+				d.Set(key_name, device_key)
+			}
 		}
 	}
 
