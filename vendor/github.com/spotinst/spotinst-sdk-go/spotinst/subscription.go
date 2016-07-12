@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// SubscriptionService handles communication with the Subscriptio related
+// SubscriptionService handles communication with the Subscription related
 // methods of the Spotinst API.
 type SubscriptionService struct {
 	client *Client
@@ -31,7 +31,7 @@ type subscriptionWrapper struct {
 	Subscription Subscription `json:"subscription"`
 }
 
-// Get an existing subscription configuration.
+// Get an existing subscription.
 func (s *SubscriptionService) Get(args ...string) ([]*Subscription, *http.Response, error) {
 	var id string
 	if len(args) > 0 {

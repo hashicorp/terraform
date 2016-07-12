@@ -2495,10 +2495,10 @@
 			"revisionTime": "2015-01-08T08:49:52Z"
 		},
 		{
-			"checksumSHA1": "hUcShSO5kwMF/j4UGAW6DDNUgzI=",
+			"checksumSHA1": "4emwAdQgQJu7UavTFTkxNBzLKzE=",
 			"path": "github.com/spotinst/spotinst-sdk-go/spotinst",
-			"revision": "7cd0b59110589b6ab7736b987fd22fda446e18c3",
-			"revisionTime": "2016-05-19T12:11:05Z"
+			"revision": "807ee2ee7556ca27efc0c6d261c5e986bae7522b",
+			"revisionTime": "2016-07-12T09:18:11Z"
 		},
 		{
 			"path": "github.com/tent/http-link-go",

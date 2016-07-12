@@ -26,8 +26,9 @@ type Client struct {
 	RefreshToken string
 
 	// Services used for communicating with the API.
-	Subscription *SubscriptionService
 	AwsGroup     *AwsGroupService
+	Subscription *SubscriptionService
+	HealthCheck  *HealthCheckService
 }
 
 // NewClient returns a new Spotinst API client.
@@ -52,8 +53,9 @@ func NewClient(creds *Credentials) (*Client, error) {
 	}
 
 	// Spotinst services.
-	c.Subscription = &SubscriptionService{client: c}
 	c.AwsGroup = &AwsGroupService{client: c}
+	c.Subscription = &SubscriptionService{client: c}
+	c.HealthCheck = &HealthCheckService{client: c}
 
 	return c, nil
 }

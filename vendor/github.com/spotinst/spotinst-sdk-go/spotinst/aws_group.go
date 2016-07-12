@@ -186,7 +186,7 @@ type groupWrapper struct {
 	Group AwsGroup `json:"group"`
 }
 
-// Get an existing group configuration.
+// Get an existing group.
 func (s *AwsGroupService) Get(args ...string) ([]*AwsGroup, *http.Response, error) {
 	var gid string
 	if len(args) > 0 {
