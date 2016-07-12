@@ -32,7 +32,7 @@ Available commands are:
     output     Read an output from a state file
     plan       Generate and show an execution plan
     refresh    Update local state file against real resources
-    remote     Configure remote state storage
+    remote     Configure remote state storage, or read a remote state
     show       Inspect Terraform state or plan
     taint      Manually mark a resource for recreation
     validate   Validates the Terraform files

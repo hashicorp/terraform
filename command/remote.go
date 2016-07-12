@@ -24,6 +24,9 @@ func (c *RemoteCommand) Run(argsRaw []string) int {
 	case "config":
 		cmd := &RemoteConfigCommand{Meta: c.Meta}
 		return cmd.Run(args[1:])
+	case "output":
+		cmd := &RemoteOutputCommand{Meta: c.Meta}
+		return cmd.Run(args[1:])
 	case "pull":
 		cmd := &RemotePullCommand{Meta: c.Meta}
 		return cmd.Run(args[1:])
@@ -40,7 +43,7 @@ func (c *RemoteCommand) Help() string {
 	helpText := `
 Usage: terraform remote <subcommand> [options]
 
-  Configure remote state storage with Terraform.
+  Configure remote state storage with Terraform, or read a remote state.
 
 Options:
 
@@ -49,6 +52,7 @@ Options:
 Available subcommands:
 
   config      Configure the remote storage settings.
+  output      Reads any remote state (even if not currently configured).
   pull        Sync the remote storage by downloading to local storage.
   push        Sync the remote storage by uploading the local storage.
 
@@ -57,5 +61,5 @@ Available subcommands:
 }
 
 func (c *RemoteCommand) Synopsis() string {
-	return "Configure remote state storage"
+	return "Configure remote state storage, or read a remote state"
 }
