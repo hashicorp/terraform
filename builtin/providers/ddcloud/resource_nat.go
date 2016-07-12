@@ -77,8 +77,9 @@ func resourceNATCreate(data *schema.ResourceData, provider interface{}) error {
 	if err != nil {
 		return err
 	}
+	var blockAddresses []string
 	for _, block := range publicIPBlocks.Blocks {
-		blockAddresses, err := calculateBlockAddresses(block)
+		blockAddresses, err = calculateBlockAddresses(block)
 		if err != nil {
 			return err
 		}
@@ -104,12 +105,14 @@ func resourceNATCreate(data *schema.ResourceData, provider interface{}) error {
 	if freeIPs.Len() == 0 {
 		log.Printf("There are no free public IPv4 addresses in network domain '%s'; requesting allocation of a new address block...", networkDomainID)
 
-		blockID, err := apiClient.AddPublicIPBlock(networkDomainID)
+		var blockID string
+		blockID, err = apiClient.AddPublicIPBlock(networkDomainID)
 		if err != nil {
 			return err
 		}
 
-		block, err := apiClient.GetPublicIPBlock(blockID)
+		var block *compute.PublicIPBlock
+		block, err = apiClient.GetPublicIPBlock(blockID)
 		if err != nil {
 			return err
 		}

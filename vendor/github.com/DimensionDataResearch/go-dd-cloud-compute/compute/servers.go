@@ -72,11 +72,19 @@ type notifyServerIPAddressChange struct {
 	IPv6Address *string `json:"ipv6,omitempty"`
 }
 
-// ReconfigureServer represents the request body when updating a server's configuration (e.g. memory, CPU count).
+// reconfigureServer represents the request body when updating a server's configuration (e.g. memory, CPU count).
 type reconfigureServer struct {
 	ServerID string `json:"id"`
 	MemoryGB *int   `json:"memoryGb,omitempty"`
 	CPUCount *int   `json:"cpuCount,omitempty"`
+}
+
+// addDiskToServer represents the request body when adding a new disk to a server.
+type addDiskToServer struct {
+	ServerID   string `json:"id"`
+	SizeGB     int    `json:"sizeGb"`
+	Speed      string `json:"speed"`
+	SCSIUnitID int    `json:"scsiId"`
 }
 
 // ApplyImage applies the specified image (and its default values for CPU, memory, and disks) to the ServerDeploymentConfiguration.
@@ -180,6 +188,42 @@ func (client *Client) DeployServer(serverConfiguration ServerDeploymentConfigura
 	// Expected: "info" { "name": "serverId", "value": "the-Id-of-the-new-server" }
 	if len(apiResponse.FieldMessages) != 1 || apiResponse.FieldMessages[0].FieldName != "serverId" {
 		return "", apiResponse.ToError("Received an unexpected response (missing 'serverId') with status code %d (%s): %s", statusCode, apiResponse.ResponseCode, apiResponse.Message)
+	}
+
+	return apiResponse.FieldMessages[0].Message, nil
+}
+
+// AddDiskToServer adds a disk to an existing server.
+func (client *Client) AddDiskToServer(serverID string, scsiUnitID int, sizeGB int, speed string) (diskID string, err error) {
+	organizationID, err := client.getOrganizationID()
+	if err != nil {
+		return "", err
+	}
+
+	requestURI := fmt.Sprintf("%s/server/addDisk", organizationID)
+	request, err := client.newRequestV22(requestURI, http.MethodPost, &addDiskToServer{
+		ServerID: serverID,
+		SizeGB: sizeGB,
+		SCSIUnitID: scsiUnitID,
+		Speed: speed,
+	})
+	responseBody, statusCode, err := client.executeRequest(request)
+	if err != nil {
+		return "", err
+	}
+
+	apiResponse, err := readAPIResponseAsJSON(responseBody, statusCode)
+	if err != nil {
+		return "", err
+	}
+
+	if apiResponse.ResponseCode != ResponseCodeInProgress {
+		return "", apiResponse.ToError("Request to add disk with SCSI Unit ID %d to server '%s' failed with status code %d (%s): %s", scsiUnitID, serverID, statusCode, apiResponse.ResponseCode, apiResponse.Message)
+	}
+
+	// Expected: "info" { "name": "diskId", "value": "the-Id-of-the-new-disk" }
+	if len(apiResponse.FieldMessages) < 1 || apiResponse.FieldMessages[0].FieldName != "diskId" {
+		return "", apiResponse.ToError("Received an unexpected response (missing 'diskId') with status code %d (%s): %s", statusCode, apiResponse.ResponseCode, apiResponse.Message)
 	}
 
 	return apiResponse.FieldMessages[0].Message, nil

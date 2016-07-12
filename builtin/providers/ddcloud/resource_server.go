@@ -15,6 +15,11 @@ const (
 	resourceKeyServerNetworkDomainID = "networkdomain"
 	resourceKeyServerMemoryGB        = "memory_gb"
 	resourceKeyServerCPUCount        = "cpu_count"
+	resourceKeyServerAdditionalDisk  = "additional_disk"
+	resourceKeyServerDiskID          = "disk_id"
+	resourceKeyServerDiskSizeGB      = "size_gb"
+	resourceKeyServerDiskUnitID      = "scsi_unit_id"
+	resourceKeyServerDiskSpeed       = "speed"
 	resourceKeyServerOSImageID       = "osimage_id"
 	resourceKeyServerOSImageName     = "osimage_name"
 	resourceKeyServerPrimaryVLAN     = "primary_adapter_vlan"
@@ -62,6 +67,34 @@ func resourceServer() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				Default:  nil,
+			},
+			resourceKeyServerAdditionalDisk: &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Default:  nil,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						resourceKeyServerDiskID: &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						resourceKeyServerDiskSizeGB: &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						resourceKeyServerDiskUnitID: &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						resourceKeyServerDiskSpeed: &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "STANDARD",
+						},
+					},
+				},
+				Set: hashDiskUnitID,
 			},
 			resourceKeyServerNetworkDomainID: &schema.Schema{
 				Type:     schema.TypeString,
@@ -231,6 +264,8 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 
 	log.Printf("Server '%s' is being provisioned...", name)
 
+	data.Partial(true)
+
 	resource, err := apiClient.WaitForDeploy(compute.ResourceTypeServer, serverID, resourceCreateTimeoutServer)
 	if err != nil {
 		return err
@@ -238,10 +273,57 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 
 	// Capture additional properties that may only be available after deployment.
 	server := resource.(*compute.Server)
+
 	serverIPv4Address := server.Network.PrimaryAdapter.PrivateIPv4Address
 	data.Set(resourceKeyServerPrimaryIPv4, serverIPv4Address)
+	data.SetPartial(resourceKeyServerPrimaryIPv4)
+
 	serverIPv6Address := *server.Network.PrimaryAdapter.PrivateIPv6Address
 	data.Set(resourceKeyServerPrimaryIPv6, serverIPv6Address)
+	data.SetPartial(resourceKeyServerPrimaryIPv6)
+
+	// Additional disks
+	additionalDisks := propertyHelper.GetServerAdditionalDisks()
+	if len(additionalDisks) == 0 {
+		data.Partial(false)
+
+		return nil
+	}
+
+	addedDisks := additionalDisks[:0]
+	for index := range additionalDisks {
+		disk := &additionalDisks[index]
+
+		log.Printf("Adding disk with SCSI unit ID %d to server '%s'...", disk.SCSIUnitID, serverID)
+
+		var diskID string
+		diskID, err = apiClient.AddDiskToServer(serverID, disk.SCSIUnitID, disk.SizeGB, disk.Speed)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("Disk with SCSI unit ID %d in server '%s' will have Id '%s'.", disk.SCSIUnitID, serverID, diskID)
+
+		disk.ID = &diskID
+
+		addedDisks = append(addedDisks, *disk)
+		propertyHelper.SetServerAdditionalDisks(addedDisks)
+		data.SetPartial(resourceKeyServerAdditionalDisk)
+
+		_, err = apiClient.WaitForChange(
+			compute.ResourceTypeServer,
+			serverID,
+			"Add disk",
+			resourceUpdateTimeoutServer,
+		)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("Added disk with SCSI unit ID %d to server '%s' as disk '%s'.", disk.SCSIUnitID, serverID, diskID)
+	}
+
+	data.Partial(false)
 
 	return nil
 }
@@ -275,6 +357,10 @@ func resourceServerRead(data *schema.ResourceData, provider interface{}) error {
 	data.Set(resourceKeyServerOSImageID, server.SourceImageID)
 	data.Set(resourceKeyServerMemoryGB, server.MemoryGB)
 	data.Set(resourceKeyServerCPUCount, server.CPU.Count)
+
+	propertyHelper := propertyHelper(data)
+	propertyHelper.SetServerAdditionalDisks(server.Disks)
+
 	data.Set(resourceKeyServerPrimaryVLAN, *server.Network.PrimaryAdapter.VLANID)
 	data.Set(resourceKeyServerPrimaryIPv4, *server.Network.PrimaryAdapter.PrivateIPv4Address)
 	data.Set(resourceKeyServerPrimaryIPv6, *server.Network.PrimaryAdapter.PrivateIPv6Address)
@@ -333,6 +419,8 @@ func resourceServerUpdate(data *schema.ResourceData, provider interface{}) error
 			data.SetPartial(resourceKeyServerCPUCount)
 		}
 	}
+
+	// TODO: Handle disk changes.
 
 	var primaryIPv4, primaryIPv6 *string
 	if data.HasChange(resourceKeyServerPrimaryIPv4) {
@@ -452,14 +540,7 @@ func updateServerIPAddress(apiClient *compute.Client, server *compute.Server, pr
 
 // Parse and append additional disks to those specified by the image being deployed.
 func mergeDisks(imageDisks []compute.VirtualMachineDisk, additionalDisks []compute.VirtualMachineDisk) []compute.VirtualMachineDisk {
-	diskSet := schema.NewSet(
-		func(item interface{}) int {
-			disk := item.(compute.VirtualMachineDisk)
-
-			return disk.SCSIUnitID
-		},
-		[]interface{}{},
-	)
+	diskSet := schema.NewSet(hashDiskUnitID, []interface{}{})
 
 	for _, disk := range imageDisks {
 		log.Printf("Merge image disk with SCSI unit Id %d.", disk.SCSIUnitID)
@@ -477,4 +558,15 @@ func mergeDisks(imageDisks []compute.VirtualMachineDisk, additionalDisks []compu
 	}
 
 	return mergedDisks
+}
+
+func hashDiskUnitID(item interface{}) int {
+	disk, ok := item.(compute.VirtualMachineDisk)
+	if ok {
+		return disk.SCSIUnitID
+	}
+
+	diskData := item.(map[string]interface{})
+
+	return diskData[resourceKeyServerDiskUnitID].(int)
 }

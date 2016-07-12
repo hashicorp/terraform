@@ -14,6 +14,10 @@ func newStringSet() *schema.Set {
 	}
 }
 
+func intToPtr(value int) *int {
+	return &value
+}
+
 func stringToPtr(value string) *string {
 	return &value
 }
