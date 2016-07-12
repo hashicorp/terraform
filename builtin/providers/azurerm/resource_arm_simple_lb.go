@@ -70,6 +70,9 @@ func resourceArmSimpleLb() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validateAllocationMethod,
 				ForceNew:     true,
+				StateFunc: func(id interface{}) string {
+					return strings.ToLower(id.(string))
+				},
 			},
 			"frontend_subnet": &schema.Schema{
 				Type:     schema.TypeString,
@@ -462,7 +465,7 @@ func flattenAzureRmFrontendIp(frontenIpArray []network.FrontendIPConfiguration, 
 	if frontenIp.Properties.PrivateIPAddress != nil {
 		d.Set("frontend_private_ip_address", *frontenIp.Properties.PrivateIPAddress)
 	}
-	d.Set("frontend_allocation_method", string(frontenIp.Properties.PrivateIPAllocationMethod))
+	d.Set("frontend_allocation_method", strings.ToLower(string(frontenIp.Properties.PrivateIPAllocationMethod)))
 	if frontenIp.Properties.Subnet != nil {
 		d.Set("frontend_subnet", *frontenIp.Properties.Subnet.ID)
 	}
