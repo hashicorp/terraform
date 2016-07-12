@@ -187,6 +187,7 @@ BUG FIXES:
  * provider/aws: `aws_customer_gateway` refreshing from state on deleted state [GH-7482]
  * provider/aws: Retry finding `aws_route` after creating it [GH-7463]
  * provider/aws: Refresh CloudWatch Group from state on 404 [GH-7576]
+ * provider/aws: Adding in additional retry logic due to latency with delete of `db_option_group` [GH-7312]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
