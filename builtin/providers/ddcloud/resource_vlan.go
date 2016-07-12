@@ -84,7 +84,13 @@ func resourceVLANCreate(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("Create VLAN '%s' ('%s') in network domain '%s' (IPv4 network = '%s/%d').", name, description, networkDomainID, ipv4BaseAddress, ipv4PrefixSize)
 
-	apiClient := provider.(*compute.Client)
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
+
+	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
 
 	// TODO: Handle RESOURCE_BUSY response (retry?)
 	vlanID, err := apiClient.DeployVLAN(networkDomainID, name, description, ipv4BaseAddress, ipv4PrefixSize)
@@ -121,7 +127,7 @@ func resourceVLANRead(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("Read VLAN '%s' (Name = '%s', description = '%s') in network domain '%s' (IPv4 network = '%s/%d', IPv6 network = '%s/%d').", id, name, description, networkDomainID, ipv4BaseAddress, ipv4PrefixSize, ipv6BaseAddress, ipv6PrefixSize)
 
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 
 	vlan, err := apiClient.GetVLAN(id)
 	if err != nil {
@@ -151,6 +157,7 @@ func resourceVLANUpdate(data *schema.ResourceData, provider interface{}) error {
 	)
 
 	id = data.Id()
+	networkDomainID := data.Get(resourceKeyVLANNetworkDomainID).(string)
 
 	if data.HasChange(resourceKeyVLANName) {
 		name = data.Get(resourceKeyVLANName).(string)
@@ -164,7 +171,13 @@ func resourceVLANUpdate(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("Update VLAN '%s' (name = '%s', description = '%s', IPv4 network = '%s/%d').", id, name, description, ipv4BaseAddress, ipv4PrefixSize)
 
-	apiClient := provider.(*compute.Client)
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
+
+	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
 
 	// TODO: Handle RESOURCE_BUSY response (retry?)
 	if newName != nil || newDescription != nil {
@@ -185,7 +198,14 @@ func resourceVLANDelete(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("Delete VLAN '%s' ('%s') in network domain '%s'.", id, name, networkDomainID)
 
-	apiClient := provider.(*compute.Client)
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
+
+	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
+
 	err := apiClient.DeleteVLAN(id)
 	if err != nil {
 		return err

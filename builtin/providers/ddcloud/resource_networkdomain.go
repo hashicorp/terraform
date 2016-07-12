@@ -70,7 +70,7 @@ func resourceNetworkDomainCreate(data *schema.ResourceData, provider interface{}
 	log.Printf("Create network domain '%s' in data center '%s' (plan = '%s', description = '%s').", name, dataCenterID, plan, description)
 
 	// TODO: Handle RESOURCE_BUSY response (retry?)
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 	networkDomainID, err := apiClient.DeployNetworkDomain(name, description, plan, dataCenterID)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func resourceNetworkDomainRead(data *schema.ResourceData, provider interface{}) 
 
 	log.Printf("Read network domain '%s' (Id = '%s') in data center '%s' (plan = '%s', description = '%s').", name, id, dataCenterID, plan, description)
 
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 
 	networkDomain, err := apiClient.GetNetworkDomain(id)
 	if err != nil {
@@ -150,7 +150,7 @@ func resourceNetworkDomainUpdate(data *schema.ResourceData, provider interface{}
 
 	log.Printf("Update network domain '%s' (Name = '%s', Description = '%s', Plan = '%s').", data.Id(), name, description, plan)
 
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 
 	// TODO: Handle RESOURCE_BUSY response (retry?)
 	return apiClient.EditNetworkDomain(id, newName, newDescription, newPlan)
@@ -166,7 +166,7 @@ func resourceNetworkDomainDelete(data *schema.ResourceData, provider interface{}
 
 	log.Printf("Delete network domain '%s' ('%s') in data center '%s'.", networkDomainID, name, dataCenterID)
 
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 
 	// First, check if the network domain has any allocated public IP blocks.
 	publicIPBlocks, err := apiClient.ListPublicIPBlocks(networkDomainID)

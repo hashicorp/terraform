@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"os"
 	"strings"
+	"sync"
 )
 
 // Provider creates the Dimension Data Cloud resource provider.
@@ -67,6 +68,7 @@ func configureProvider(providerSettings *schema.ResourceData) (interface{}, erro
 		username string
 		password string
 		client   *compute.Client
+		provider *providerState
 	)
 
 	region = providerSettings.Get("region").(string)
@@ -89,6 +91,45 @@ func configureProvider(providerSettings *schema.ResourceData) (interface{}, erro
 	}
 
 	client = compute.NewClient(region, username, password)
+	provider = newProvider(client)
 
-	return client, nil
+	return provider, nil
+}
+
+type providerState struct {
+	// The CloudControl API client.
+	apiClient *compute.Client
+
+	// Global lock for provider state.
+	stateLock *sync.Mutex
+
+	// Lock per network domain (prevent parallel provisioning for some resource types).
+	domainLocks map[string]*sync.Mutex
+}
+
+func newProvider(client *compute.Client) *providerState {
+	return &providerState{
+		apiClient:   client,
+		stateLock:   &sync.Mutex{},
+		domainLocks: make(map[string]*sync.Mutex),
+	}
+}
+
+// Client retrieves the CloudControl API client from provider state.
+func (state *providerState) Client() *compute.Client {
+	return state.apiClient
+}
+
+// GetDomainLock retrieves the Mutex that represents global lock for the specified network domain.
+func (state *providerState) GetDomainLock(id string) *sync.Mutex {
+	state.stateLock.Lock()
+	defer state.stateLock.Unlock()
+
+	domainLock, ok := state.domainLocks[id]
+	if !ok {
+		domainLock = &sync.Mutex{}
+		state.domainLocks[id] = domainLock
+	}
+
+	return domainLock
 }

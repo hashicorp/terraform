@@ -171,7 +171,14 @@ func resourceFirewallRuleCreate(data *schema.ResourceData, provider interface{})
 	log.Printf("Create firewall rule '%s' in network domain '%s'.", configuration.Name, configuration.NetworkDomainID)
 	log.Printf("Firewall rule configuration: '%#v'", configuration)
 
-	apiClient := provider.(*compute.Client)
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
+
+	log.Printf("Acquiring lock for network domain '%s'...", configuration.NetworkDomainID)
+	domainLock := providerState.GetDomainLock(configuration.NetworkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
+
 	ruleID, err := apiClient.CreateFirewallRule(*configuration)
 	if err != nil {
 		return err
@@ -191,7 +198,14 @@ func resourceFirewallRuleRead(data *schema.ResourceData, provider interface{}) e
 
 	log.Printf("Read firewall rule '%s' in network domain '%s'.", id, networkDomainID)
 
-	apiClient := provider.(*compute.Client)
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
+
+	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
+
 	rule, err := apiClient.GetFirewallRule(id)
 	if err != nil {
 		return err
@@ -216,7 +230,13 @@ func resourceFirewallRuleUpdate(data *schema.ResourceData, provider interface{})
 
 	log.Printf("Update firewall rule '%s' in network domain '%s'.", id, networkDomainID)
 
-	apiClient := provider.(*compute.Client)
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
+
+	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
 
 	if data.HasChange(resourceKeyFirewallRuleEnabled) {
 		enable := data.Get(resourceKeyFirewallRuleEnabled).(bool)
@@ -245,7 +265,14 @@ func resourceFirewallRuleDelete(data *schema.ResourceData, provider interface{})
 
 	log.Printf("Delete firewall rule '%s' in network domain '%s'.", id, networkDomainID)
 
-	apiClient := provider.(*compute.Client)
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
+
+	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
+
 	err := apiClient.DeleteFirewallRule(id)
 	if err != nil {
 		return err

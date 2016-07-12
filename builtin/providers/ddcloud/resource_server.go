@@ -167,7 +167,7 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 
 	log.Printf("Create server '%s' in network domain '%s' (description = '%s').", name, networkDomainID, description)
 
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 
 	networkDomain, err := apiClient.GetNetworkDomain(networkDomainID)
 	if err != nil {

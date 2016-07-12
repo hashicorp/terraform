@@ -66,8 +66,13 @@ func resourceNATCreate(data *schema.ResourceData, provider interface{}) error {
 	}
 	log.Printf("Create NAT rule (from public IP '%s' to private IP '%s') in network domain '%s'.", publicIPDescription, privateIP, networkDomainID)
 
-	apiClient := provider.(*compute.Client)
-	apiClient.Reset() // TODO: Replace call to Reset with appropriate API call(s).
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
+
+	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
 
 	// First, work out if we have any free public IP addresses.
 	freeIPs := newStringSet()
@@ -155,7 +160,7 @@ func resourceNATRead(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("Read NAT '%s' (private IP = '%s', public IP = '%s') in network domain '%s'.", id, privateIP, publicIP, networkDomainID)
 
-	apiClient := provider.(*compute.Client)
+	apiClient := provider.(*providerState).Client()
 	apiClient.Reset() // TODO: Replace call to Reset with appropriate API call(s).
 
 	return nil
@@ -170,8 +175,14 @@ func resourceNATUpdate(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("Update NAT '%s' (private IP = '%s', public IP = '%s') in network domain '%s'.", id, privateIP, publicIP, networkDomainID)
 
-	apiClient := provider.(*compute.Client)
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
 	apiClient.Reset() // TODO: Replace call to Reset with appropriate API call(s).
+
+	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
 
 	return nil
 }
@@ -185,7 +196,13 @@ func resourceNATDelete(data *schema.ResourceData, provider interface{}) error {
 
 	log.Printf("Delete NAT '%s' (private IP = '%s', public IP = '%s') in network domain '%s'.", id, privateIP, publicIP, networkDomainID)
 
-	apiClient := provider.(*compute.Client)
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
+
+	log.Printf("Acquiring lock for network domain '%s'...", networkDomainID)
+	domainLock := providerState.GetDomainLock(networkDomainID)
+	domainLock.Lock()
+	defer domainLock.Unlock()
 
 	return apiClient.DeleteNATRule(id)
 }
