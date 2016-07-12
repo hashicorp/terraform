@@ -1,6 +1,11 @@
 package scaleway
 
-import "github.com/hashicorp/terraform/helper/schema"
+import (
+	"log"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/scaleway/scaleway-cli/pkg/api"
+)
 
 func resourceScalewayIP() *schema.Resource {
 	return &schema.Resource{
@@ -36,6 +41,13 @@ func resourceScalewayIPRead(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 	resp, err := scaleway.GetIP(d.Id())
 	if err != nil {
+		log.Printf("[DEBUG] Error reading ip: %q\n", err)
+		if serr, ok := err.(api.ScalewayAPIError); ok {
+			if serr.StatusCode == 404 {
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 

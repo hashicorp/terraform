@@ -109,7 +109,7 @@ func resourceScalewaySecurityGroupRuleRead(d *schema.ResourceData, m interface{}
 
 	if err != nil {
 		if serr, ok := err.(api.ScalewayAPIError); ok {
-			log.Printf("[DEBUG] error reading Security Group Rule: %q", serr.APIMessage)
+			log.Printf("[DEBUG] error reading Security Group Rule: %q\n", serr.APIMessage)
 
 			if serr.StatusCode == 404 {
 				d.SetId("")
