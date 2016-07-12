@@ -150,7 +150,8 @@ func resourceNetworkDomainUpdate(data *schema.ResourceData, provider interface{}
 
 	log.Printf("Update network domain '%s' (Name = '%s', Description = '%s', Plan = '%s').", data.Id(), name, description, plan)
 
-	apiClient := provider.(*providerState).Client()
+	providerState := provider.(*providerState)
+	apiClient := providerState.Client()
 
 	// TODO: Handle RESOURCE_BUSY response (retry?)
 	return apiClient.EditNetworkDomain(id, newName, newDescription, newPlan)

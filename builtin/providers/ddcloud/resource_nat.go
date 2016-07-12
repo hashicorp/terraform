@@ -69,7 +69,7 @@ func resourceNATCreate(data *schema.ResourceData, provider interface{}) error {
 	providerState := provider.(*providerState)
 	apiClient := providerState.Client()
 
-	domainLock := providerState.GetDomainLock(networkDomainID, "resourceNatCreate(%s -> %s)", privateIP, publicIP)
+	domainLock := providerState.GetDomainLock(networkDomainID, "resourceNATCreate(%s -> %s)", privateIP, publicIPDescription)
 	domainLock.Lock()
 	defer domainLock.Unlock()
 
@@ -178,7 +178,7 @@ func resourceNATUpdate(data *schema.ResourceData, provider interface{}) error {
 	apiClient := providerState.Client()
 	apiClient.Reset() // TODO: Replace call to Reset with appropriate API call(s).
 
-	domainLock := providerState.GetDomainLock(networkDomainID, "resourceNatUpdate(%s -> %s)", privateIP, publicIP)
+	domainLock := providerState.GetDomainLock(networkDomainID, "resourceNATUpdate(%s -> %s)", privateIP, publicIP)
 	domainLock.Lock()
 	defer domainLock.Unlock()
 
@@ -197,7 +197,7 @@ func resourceNATDelete(data *schema.ResourceData, provider interface{}) error {
 	providerState := provider.(*providerState)
 	apiClient := providerState.Client()
 
-	domainLock := providerState.GetDomainLock(networkDomainID, "resourceNatDelete(%s -> %s)", privateIP, publicIP)
+	domainLock := providerState.GetDomainLock(networkDomainID, "resourceNATDelete(%s -> %s)", privateIP, publicIP)
 	domainLock.Lock()
 	defer domainLock.Unlock()
 

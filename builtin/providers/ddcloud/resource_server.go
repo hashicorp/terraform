@@ -358,8 +358,7 @@ func resourceServerRead(data *schema.ResourceData, provider interface{}) error {
 	data.Set(resourceKeyServerMemoryGB, server.MemoryGB)
 	data.Set(resourceKeyServerCPUCount, server.CPU.Count)
 
-	propertyHelper := propertyHelper(data)
-	propertyHelper.SetServerAdditionalDisks(server.Disks)
+	// TODO: Update disks once we store both image and additional disks (until then we can't tell which disks are actually additional disks).
 
 	data.Set(resourceKeyServerPrimaryVLAN, *server.Network.PrimaryAdapter.VLANID)
 	data.Set(resourceKeyServerPrimaryIPv4, *server.Network.PrimaryAdapter.PrivateIPv4Address)

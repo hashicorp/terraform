@@ -132,16 +132,9 @@ func (state *providerState) GetDomainLock(id string, ownerNameOrFormat string, f
 		state.domainLocks[id] = lock
 	}
 
-	var owner string
-	if len(formatArgs) > 0 {
-		owner = fmt.Sprintf(ownerNameOrFormat, formatArgs...)
-	} else {
-		owner = ownerNameOrFormat
-	}
-
 	return &providerDomainLock{
 		domainID:  id,
-		ownerName: owner,
+		ownerName: fmt.Sprintf(ownerNameOrFormat, formatArgs...),
 		lock:      lock,
 	}
 }
