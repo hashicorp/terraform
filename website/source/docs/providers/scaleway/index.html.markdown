@@ -23,7 +23,7 @@ Here is an example that will setup the following:
 
 ```hcl
 provider "scaleway" {
-  api_key = ""
+  access_key = ""
   organization = ""
 }
 
@@ -75,7 +75,7 @@ resource "scaleway_security_group_rule" "https_accept" {
 
 ```
 
-You'll need to provide your Scaleway organization and Auth token,
+You'll need to provide your Scaleway organization and access key,
 so that Terraform can connect. If you don't want to put
 credentials in your configuration file, you can leave them
 out:
@@ -87,4 +87,4 @@ provider "scaleway" {}
 ...and instead set these environment variables:
 
 - **SCALEWAY_ORGANIZATION**: Your Scaleway organization
-- **SCALEWAY_API_KEY**: Your API key
+- **SCALEWAY_ACCESS_KEY**: Your API Access key

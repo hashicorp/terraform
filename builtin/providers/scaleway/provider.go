@@ -9,10 +9,10 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"api_key": &schema.Schema{
+			"access_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("SCALEWAY_API_KEY", nil),
+				DefaultFunc: schema.EnvDefaultFunc("SCALEWAY_ACCESS_KEY", nil),
 				Description: "The API key for Scaleway API operations.",
 			},
 			"organization": &schema.Schema{
@@ -39,7 +39,7 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Organization: d.Get("organization").(string),
-		APIKey:       d.Get("api_key").(string),
+		APIKey:       d.Get("access_key").(string),
 	}
 
 	return config.Client()
