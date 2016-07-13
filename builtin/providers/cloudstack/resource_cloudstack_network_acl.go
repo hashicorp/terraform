@@ -29,6 +29,12 @@ func resourceCloudStackNetworkACL() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -70,7 +76,7 @@ func resourceCloudStackNetworkACLRead(d *schema.ResourceData, meta interface{}) 
 	// Get the network ACL list details
 	f, count, err := cs.NetworkACL.GetNetworkACLListByID(
 		d.Id(),
-		cloudstack.WithVPCID(d.Get("vpc_id").(string)),
+		cloudstack.WithProject(d.Get("project").(string)),
 	)
 	if err != nil {
 		if count == 0 {

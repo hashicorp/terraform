@@ -2,6 +2,7 @@ package cloudstack
 
 import (
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -172,6 +173,22 @@ func createPortForward(d *schema.ResourceData, meta interface{}, forward map[str
 
 func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
+
+	// First check if the IP address is still associated
+	_, count, err := cs.Address.GetPublicIpAddressByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
+	if err != nil {
+		if count == 0 {
+			log.Printf(
+				"[DEBUG] IP address with ID %s is no longer associated", d.Id())
+			d.SetId("")
+			return nil
+		}
+
+		return err
+	}
 
 	// Get all the forwards from the running environment
 	p := cs.Firewall.NewListPortForwardingRulesParams()
