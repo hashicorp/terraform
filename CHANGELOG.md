@@ -32,6 +32,7 @@ FEATURES:
  * **State Import** allows a way to import existing resources into Terraform state for many types of resource. Initial coverage of AWS is quite high, and it is straightforward to add support for new resources.
  
  * **New Command:** `terraform state` to provide access to a variety of state manipulation functions [GH-5811]
+ * **New Option:** `terraform output` now supports the `-json` flag to print a machine-readable representation of outputs [GH-7608]
  * **New Data Source:** `aws_ami` [GH-6911]
  * **New Data Source:** `aws_availability_zones` [GH-6805]
  * **New Data Source:** `aws_iam_policy_document` [GH-6881]
