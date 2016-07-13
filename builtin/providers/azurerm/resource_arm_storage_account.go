@@ -16,6 +16,9 @@ func resourceArmStorageAccount() *schema.Resource {
 		Read:   resourceArmStorageAccountRead,
 		Update: resourceArmStorageAccountUpdate,
 		Delete: resourceArmStorageAccountDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -251,6 +254,8 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 			d.Set("secondary_table_endpoint", "")
 		}
 	}
+
+	d.Set("name", resp.Name)
 
 	flattenAndSetTags(d, resp.Tags)
 
