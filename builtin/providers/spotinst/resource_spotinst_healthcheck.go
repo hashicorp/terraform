@@ -257,7 +257,7 @@ func resourceSpotinstHealthCheckDelete(d *schema.ResourceData, meta interface{})
 // buildHealthCheckOpts builds the Spotinst HealthCheck options.
 func buildHealthCheckOpts(d *schema.ResourceData, meta interface{}) (*spotinst.HealthCheck, error) {
 	healthCheck := &spotinst.HealthCheck{
-		Name: spotinst.String(d.Get("name").(string)),
+		Name:       spotinst.String(d.Get("name").(string)),
 		ResourceID: spotinst.String(d.Get("resource_id").(string)),
 	}
 
