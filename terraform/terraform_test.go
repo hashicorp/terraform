@@ -1371,3 +1371,25 @@ STATE:
 
 <no state>
 `
+
+const testTerraformPlanModuleVariableFromSplat = `
+DIFF:
+
+module.mod1:
+  CREATE: aws_instance.test.0
+    thing: "" => "doesnt"
+    type:  "" => "aws_instance"
+  CREATE: aws_instance.test.1
+    thing: "" => "doesnt"
+    type:  "" => "aws_instance"
+module.mod2:
+  CREATE: aws_instance.test.0
+    thing: "" => "doesnt"
+    type:  "" => "aws_instance"
+  CREATE: aws_instance.test.1
+    thing: "" => "doesnt"
+    type:  "" => "aws_instance"
+
+STATE:
+
+<no state>`
