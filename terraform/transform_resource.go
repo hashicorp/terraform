@@ -303,6 +303,10 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					State:    &state,
 					Output:   &state,
 				},
+				&EvalHideIgnored{
+					Resource: n.Resource,
+					State:    &state,
+				},
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
@@ -357,6 +361,10 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 				&EvalIgnoreChanges{
 					Resource: n.Resource,
 					Diff:     &diff,
+				},
+				&EvalHideIgnored{
+					Resource: n.Resource,
+					State:    &state,
 				},
 				&EvalWriteState{
 					Name:         n.stateId(),
@@ -517,6 +525,10 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Output:    &state,
 					Error:     &err,
 					CreateNew: &createNew,
+				},
+				&EvalHideIgnored{
+					Resource: n.Resource,
+					State:    &state,
 				},
 				&EvalWriteState{
 					Name:         n.stateId(),
@@ -940,6 +952,10 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 						Output:   &state,
 						Error:    &err,
 					},
+				},
+				&EvalHideIgnored{
+					Resource: n.Resource,
+					State:    &state,
 				},
 				&EvalWriteState{
 					Name:         n.stateId(),

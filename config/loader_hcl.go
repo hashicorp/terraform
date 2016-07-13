@@ -675,7 +675,7 @@ func loadManagedResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 		var lifecycle ResourceLifecycle
 		if o := listVal.Filter("lifecycle"); len(o.Items) > 0 {
 			// Check for invalid keys
-			valid := []string{"create_before_destroy", "ignore_changes", "prevent_destroy"}
+			valid := []string{"create_before_destroy", "ignore_changes", "hide_ignored", "prevent_destroy"}
 			if err := checkHCLKeys(o.Items[0].Val, valid); err != nil {
 				return nil, multierror.Prefix(err, fmt.Sprintf(
 					"%s[%s]:", t, k))
