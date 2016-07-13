@@ -2,6 +2,7 @@ package scaleway
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -87,7 +88,7 @@ func waitForServerState(s *api.ScalewayAPI, serverID string, targetState string)
 			return err
 		}
 		if currentState != server.State {
-			fmt.Printf("Server changed state to %q\n", server.State)
+			log.Printf("[DEBUG] Server changed state to %q\n", server.State)
 			currentState = server.State
 		}
 		if server.State == targetState {
