@@ -21,10 +21,9 @@ func String(val string) *string {
 // DetachIP detaches an IP from a server
 func DetachIP(s *api.ScalewayAPI, ipID string) error {
 	var update struct {
-		Address      string  `json:"address"`
-		ID           string  `json:"id"`
-		Reverse      *string `json:"reverse"`
-		Organization string  `json:"organization"`
+		Address      string `json:"address"`
+		ID           string `json:"id"`
+		Organization string `json:"organization"`
 	}
 
 	ip, err := s.GetIP(ipID)
@@ -39,10 +38,10 @@ func DetachIP(s *api.ScalewayAPI, ipID string) error {
 	if err != nil {
 		return err
 	}
-
 	if resp.StatusCode != http.StatusOK {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
 
