@@ -97,6 +97,7 @@ func resourceCloudStackNetwork() *schema.Resource {
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -133,19 +134,34 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	if !ok {
 		displaytext = name
 	}
+
 	// Create a new parameter struct
 	p := cs.Network.NewCreateNetworkParams(displaytext.(string), name, networkofferingid, zoneid)
 
-	m, err := parseCIDR(d)
+	// Get the network offering to check if it supports specifying IP ranges
+	no, _, err := cs.NetworkOffering.GetNetworkOfferingByID(networkofferingid)
+	if err != nil {
+		return err
+	}
+
+	m, err := parseCIDR(d, no.Specifyipranges)
 	if err != nil {
 		return err
 	}
 
 	// Set the needed IP config
-	p.SetStartip(m["startip"])
 	p.SetGateway(m["gateway"])
-	p.SetEndip(m["endip"])
 	p.SetNetmask(m["netmask"])
+
+	// Only set the start IP if we have one
+	if startip, ok := m["startip"]; ok {
+		p.SetStartip(startip)
+	}
+
+	// Only set the end IP if we have one
+	if endip, ok := m["endip"]; ok {
+		p.SetEndip(endip)
+	}
 
 	if vlan, ok := d.GetOk("vlan"); ok {
 		p.SetVlan(strconv.Itoa(vlan.(int)))
@@ -313,7 +329,7 @@ func resourceCloudStackNetworkDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func parseCIDR(d *schema.ResourceData) (map[string]string, error) {
+func parseCIDR(d *schema.ResourceData, specifyiprange bool) (map[string]string, error) {
 	m := make(map[string]string, 4)
 
 	cidr := d.Get("cidr").(string)
@@ -335,13 +351,13 @@ func parseCIDR(d *schema.ResourceData) (map[string]string, error) {
 
 	if startip, ok := d.GetOk("startip"); ok {
 		m["startip"] = startip.(string)
-	} else {
+	} else if specifyiprange {
 		m["startip"] = fmt.Sprintf("%d.%d.%d.%d", sub[0], sub[1], sub[2], sub[3]+2)
 	}
 
 	if endip, ok := d.GetOk("endip"); ok {
 		m["endip"] = endip.(string)
-	} else {
+	} else if specifyiprange {
 		m["endip"] = fmt.Sprintf("%d.%d.%d.%d",
 			sub[0]+(0xff-msk[0]), sub[1]+(0xff-msk[1]), sub[2]+(0xff-msk[2]), sub[3]+(0xff-msk[3]-1))
 	}
