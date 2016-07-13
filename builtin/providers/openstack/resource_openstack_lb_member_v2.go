@@ -73,6 +73,7 @@ func resourceMemberV2() *schema.Resource {
 
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeBool,
+				Default:  true,
 				Optional: true,
 			},
 
