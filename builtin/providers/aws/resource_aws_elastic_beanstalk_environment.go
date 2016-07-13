@@ -263,6 +263,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	pollInterval, err := time.ParseDuration(d.Get("poll_interval").(string))
 	if err != nil {
+		pollInterval = 0
 		log.Printf("[WARN] Error parsing poll_interval, using default backoff")
 	}
 
@@ -348,6 +349,7 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		}
 		pollInterval, err := time.ParseDuration(d.Get("poll_interval").(string))
 		if err != nil {
+			pollInterval = 0
 			log.Printf("[WARN] Error parsing poll_interval, using default backoff")
 		}
 
@@ -600,6 +602,7 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 	}
 	pollInterval, err := time.ParseDuration(d.Get("poll_interval").(string))
 	if err != nil {
+		pollInterval = 0
 		log.Printf("[WARN] Error parsing poll_interval, using default backoff")
 	}
 
