@@ -67,7 +67,7 @@ func resourceAwsEMR() *schema.Resource {
 						},
 						"subnet_id": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"additional_master_security_groups": &schema.Schema{
 							Type:     schema.TypeString,
@@ -131,14 +131,17 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	coreInstanceCount := d.Get("core_instance_count").(int)
 
 	applications := d.Get("applications").(*schema.Set).List()
+	var userKey, subnet, extraMasterSecGrp, extraSlaveSecGrp, emrMasterSecGrp, emrSlaveSecGrp string
 	ec2Attributes := d.Get("ec2_attributes").([]interface{})
-	attributes := ec2Attributes[0].(map[string]interface{})
-	userKey := attributes["key_name"].(string)
-	subnet := attributes["subnet_id"].(string)
-	extraMasterSecGrp := attributes["additional_master_security_groups"].(string)
-	extraSlaveSecGrp := attributes["additional_slave_security_groups"].(string)
-	emrMasterSecGrp := attributes["emr_managed_master_security_group"].(string)
-	emrSlaveSecGrp := attributes["emr_managed_slave_security_group"].(string)
+	if len(ec2Attributes) == 1 {
+		attributes := ec2Attributes[0].(map[string]interface{})
+		userKey = attributes["key_name"].(string)
+		subnet = attributes["subnet_id"].(string)
+		extraMasterSecGrp = attributes["additional_master_security_groups"].(string)
+		extraSlaveSecGrp = attributes["additional_slave_security_groups"].(string)
+		emrMasterSecGrp = attributes["emr_managed_master_security_group"].(string)
+		emrSlaveSecGrp = attributes["emr_managed_slave_security_group"].(string)
+	}
 
 	emrApps := expandApplications(applications)
 
