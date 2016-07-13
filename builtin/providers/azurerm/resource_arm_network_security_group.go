@@ -19,6 +19,9 @@ func resourceArmNetworkSecurityGroup() *schema.Resource {
 		Read:   resourceArmNetworkSecurityGroupRead,
 		Update: resourceArmNetworkSecurityGroupCreate,
 		Delete: resourceArmNetworkSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -200,6 +203,8 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 		d.Set("security_rule", flattenNetworkSecurityRules(resp.Properties.SecurityRules))
 	}
 
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
 	flattenAndSetTags(d, resp.Tags)
 
 	return nil
