@@ -3,7 +3,7 @@ layout: "scaleway"
 page_title: "Provider: Scaleway"
 sidebar_current: "docs-scaleway-index"
 description: |-
-  The Docker provider is used to interact with Docker containers and images.
+  The Scaleway provider is used to interact with Scaleway ARM cloud provider.
 ---
 
 # Scaleway Provider
@@ -11,12 +11,6 @@ description: |-
 The Scaleway provider is used to manage Scaleway resources.
 
 Use the navigation to the left to read about the available resources.
-
-<div class="alert alert-block alert-info">
-<strong>Note:</strong> The Scaleway provider is new as of Terraform 0.X.
-It is ready to be used but many features are still being added. If there
-is a SoftLayer feature missing, please report it in the GitHub repo.
-</div>
 
 ## Example Usage
 
