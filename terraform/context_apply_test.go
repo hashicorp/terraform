@@ -4701,6 +4701,101 @@ aws_instance.foo:
   type = aws_instance
 `)
 	if actual != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
+	m := testModule(t, "apply-ignore-changes-dep")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = func(i *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		switch i.Type {
+		case "aws_instance":
+			newAmi, _ := c.Get("ami")
+			return &InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"ami": &ResourceAttrDiff{
+						Old:         s.Attributes["ami"],
+						New:         newAmi.(string),
+						RequiresNew: true,
+					},
+				},
+			}, nil
+		case "aws_eip":
+			return testDiffFn(i, s, c)
+		default:
+			t.Fatalf("Unexpected type: %s", i.Type)
+			return nil, nil
+		}
+	}
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Primary: &InstanceState{
+							ID: "i-abc123",
+							Attributes: map[string]string{
+								"ami": "ami-abcd1234",
+								"id":  "i-abc123",
+							},
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Primary: &InstanceState{
+							ID: "i-bcd234",
+							Attributes: map[string]string{
+								"ami": "ami-abcd1234",
+								"id":  "i-bcd234",
+							},
+						},
+					},
+					"aws_eip.foo.0": &ResourceState{
+						Primary: &InstanceState{
+							ID: "eip-abc123",
+							Attributes: map[string]string{
+								"id":       "eip-abc123",
+								"instance": "i-abc123",
+							},
+						},
+					},
+					"aws_eip.foo.1": &ResourceState{
+						Primary: &InstanceState{
+							ID: "eip-bcd234",
+							Attributes: map[string]string{
+								"id":       "eip-bcd234",
+								"instance": "i-bcd234",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(s.String())
+	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
