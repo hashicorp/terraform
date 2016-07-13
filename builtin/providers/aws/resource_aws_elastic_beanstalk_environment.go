@@ -146,7 +146,7 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 					}
 					if duration < 10*time.Second || duration > 60*time.Second {
 						errors = append(errors, fmt.Errorf(
-							"%q must be between 10s and 60s", k))
+							"%q must be between 10s and 180s", k))
 					}
 					return
 				},
