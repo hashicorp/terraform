@@ -122,7 +122,6 @@ func resourceCloudStackInstance() *schema.Resource {
 			"user_data": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				StateFunc: func(v interface{}) string {
 					switch v.(type) {
 					case string:
@@ -252,25 +251,9 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetKeypair(keypair.(string))
 	}
 
-	// If the user data contains any info, it needs to be base64 encoded and
-	// added to the parameter struct
-	if userData, ok := d.GetOk("user_data"); ok {
-		ud := base64.StdEncoding.EncodeToString([]byte(userData.(string)))
-
-		// deployVirtualMachine uses POST by default, so max userdata is 32K
-		maxUD := 32768
-
-		if cs.HTTPGETOnly {
-			// deployVirtualMachine using GET instead, so max userdata is 2K
-			maxUD = 2048
-		}
-
-		if len(ud) > maxUD {
-			return fmt.Errorf(
-				"The supplied user_data contains %d bytes after encoding, "+
-					"this exeeds the limit of %d bytes", len(ud), maxUD)
-		}
-
+	if ud, err := getUserData(d, cs); err != nil {
+		return err
+	} else if len(ud) > 0 {
 		p.SetUserdata(ud)
 	}
 
@@ -403,7 +386,7 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Attributes that require reboot to update
-	if d.HasChange("name") || d.HasChange("service_offering") || d.HasChange("affinity_group_ids") || d.HasChange("affinity_group_names") || d.HasChange("keypair") {
+	if d.HasChange("name") || d.HasChange("service_offering") || d.HasChange("affinity_group_ids") || d.HasChange("affinity_group_names") || d.HasChange("keypair") || d.HasChange("user_data") {
 		// Before we can actually make these changes, the virtual machine must be stopped
 		_, err := cs.VirtualMachine.StopVirtualMachine(
 			cs.VirtualMachine.NewStopVirtualMachineParams(d.Id()))
@@ -494,6 +477,24 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 			d.SetPartial("keypair")
 		}
 
+		if d.HasChange("user_data") {
+			log.Printf("[DEBUG] user_data changed for %s, starting update", name)
+
+			ud, err := getUserData(d, cs)
+			if err != nil {
+				return err
+			}
+
+			p := cs.VirtualMachine.NewUpdateVirtualMachineParams(d.Id())
+			p.SetUserdata(ud)
+			_, err = cs.VirtualMachine.UpdateVirtualMachine(p)
+			if err != nil {
+				return fmt.Errorf(
+					"Error updating user_data for instance %s: %s", name, err)
+			}
+			d.SetPartial("user_data")
+		}
+
 		// Start the virtual machine again
 		_, err = cs.VirtualMachine.StartVirtualMachine(
 			cs.VirtualMachine.NewStartVirtualMachineParams(d.Id()))
@@ -530,4 +531,30 @@ func resourceCloudStackInstanceDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	return nil
+}
+
+// getUserData returns user_data as a base64 encoded string. An empty
+// string is returned if unset.
+func getUserData(d *schema.ResourceData, cs *cloudstack.CloudStackClient) (string, error) {
+	if userData, ok := d.GetOk("user_data"); ok {
+		ud := base64.StdEncoding.EncodeToString([]byte(userData.(string)))
+
+		// deployVirtualMachine uses POST by default, so max userdata is 32K
+		maxUD := 32768
+
+		if cs.HTTPGETOnly {
+			// deployVirtualMachine using GET instead, so max userdata is 2K
+			maxUD = 2048
+		}
+
+		if len(ud) > maxUD {
+			return "", fmt.Errorf(
+				"The supplied user_data contains %d bytes after encoding, "+
+					"this exeeds the limit of %d bytes", len(ud), maxUD)
+		}
+
+		return ud, nil
+	}
+
+	return "", nil
 }

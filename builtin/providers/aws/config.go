@@ -51,6 +51,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/aws/aws-sdk-go/service/simpledb"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -96,6 +97,7 @@ type AWSClient struct {
 	autoscalingconn       *autoscaling.AutoScaling
 	s3conn                *s3.S3
 	sesConn               *ses.SES
+	simpledbconn          *simpledb.SimpleDB
 	sqsconn               *sqs.SQS
 	snsconn               *sns.SNS
 	stsconn               *sts.STS
@@ -218,6 +220,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing SES connection")
 		client.sesConn = ses.New(sess)
+
+		log.Println("[INFO] Initializing SimpleDB connection")
+		client.simpledbconn = simpledb.New(sess)
 
 		log.Println("[INFO] Initializing SQS connection")
 		client.sqsconn = sqs.New(sess)

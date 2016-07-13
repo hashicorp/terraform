@@ -390,6 +390,12 @@
 			"revision": "2cc71659118a868dc7544a7ef0808eb42d487011"
 		},
 		{
+			"checksumSHA1": "F6mth+G7dXN1GI+nktaGo8Lx8aE=",
+			"path": "github.com/aws/aws-sdk-go/private/signer/v2",
+			"revision": "333fcdc9874ea63fbdb3176e12ffa04b5ec44f5a",
+			"revisionTime": "2016-07-05T22:03:21Z"
+		},
+		{
 			"comment": "v1.1.23",
 			"path": "github.com/aws/aws-sdk-go/private/signer/v4",
 			"revision": "2cc71659118a868dc7544a7ef0808eb42d487011"
@@ -564,6 +570,12 @@
 			"comment": "v1.1.23",
 			"path": "github.com/aws/aws-sdk-go/service/s3",
 			"revision": "2cc71659118a868dc7544a7ef0808eb42d487011"
+		},
+		{
+			"checksumSHA1": "DW5kDRWLA2yAgYh9vsI+0uVqq/Q=",
+			"path": "github.com/aws/aws-sdk-go/service/simpledb",
+			"revision": "333fcdc9874ea63fbdb3176e12ffa04b5ec44f5a",
+			"revisionTime": "2016-07-05T22:03:21Z"
 		},
 		{
 			"comment": "v1.1.23",
@@ -1039,6 +1051,12 @@
 			"comment": "go1.0-cutoff-74-g8ad2b29",
 			"path": "github.com/lib/pq/oid",
 			"revision": "8ad2b298cadd691a77015666a5372eae5dbfac8f"
+		},
+		{
+			"checksumSHA1": "KoB26db2df078Y2UClT7twI+dxg=",
+			"path": "github.com/logentries/le_goclient",
+			"revision": "f6d02e2fca401d3550e08a292f54b0efb6a578f0",
+			"revisionTime": "2016-07-04T14:48:39Z"
 		},
 		{
 			"path": "github.com/lusis/go-artifactory/src/artifactory.v401",

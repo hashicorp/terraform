@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
@@ -49,10 +50,11 @@ func dataSourceFile() *schema.Resource {
 				ConflictsWith: []string{"template"},
 			},
 			"vars": &schema.Schema{
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Default:     make(map[string]interface{}),
-				Description: "variables to substitute",
+				Type:         schema.TypeMap,
+				Optional:     true,
+				Default:      make(map[string]interface{}),
+				Description:  "variables to substitute",
+				ValidateFunc: validateVarsAttribute,
 			},
 			"rendered": &schema.Schema{
 				Type:        schema.TypeString,
@@ -154,5 +156,24 @@ func validateTemplateAttribute(v interface{}, key string) (ws []string, es []err
 		ws = append(ws, fmt.Sprintf("%s: looks like you specified a path instead of file contents. Use `file()` to load this path. Specifying a path directly is deprecated and will be removed in a future version.", key))
 	}
 
+	return
+}
+
+func validateVarsAttribute(v interface{}, key string) (ws []string, es []error) {
+	// vars can only be primitives right now
+	var badVars []string
+	for k, v := range v.(map[string]interface{}) {
+		switch v.(type) {
+		case []interface{}:
+			badVars = append(badVars, fmt.Sprintf("%s (list)", k))
+		case map[string]interface{}:
+			badVars = append(badVars, fmt.Sprintf("%s (map)", k))
+		}
+	}
+	if len(badVars) > 0 {
+		es = append(es, fmt.Errorf(
+			"%s: cannot contain non-primitives; bad keys: %s",
+			key, strings.Join(badVars, ", ")))
+	}
 	return
 }
