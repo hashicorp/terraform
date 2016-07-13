@@ -14,6 +14,9 @@ func resourceArmDnsZone() *schema.Resource {
 		Read:   resourceArmDnsZoneRead,
 		Update: resourceArmDnsZoneCreate,
 		Delete: resourceArmDnsZoneDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -110,6 +113,7 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("number_of_record_sets", resp.NumberOfRecordSets)
 	d.Set("max_number_of_record_sets", resp.MaxNumberOfRecordSets)
+	d.Set("name", resp.Name)
 
 	nameServers := make([]string, 0, len(resp.NameServers))
 	for _, ns := range resp.NameServers {
