@@ -16,9 +16,18 @@ configuration via their ID or name.
 ## Example Usage
 
 ```
-# Create a new SSH key
-resource "digitalocean_tag" "default" {
+# Create a new tag
+resource "digitalocean_tag" "foobar" {
     name = "foobar"
+}
+
+# Create a new droplet in nyc3 with the foobar tag
+resource "digitalocean_droplet" "web" {
+    image  = "ubuntu-16-04-x64"
+    name   = "web-1"
+    region = "nyc3"
+    size   = "512mb"
+    tags   = ["${digitalocean_tag.foobar.id}"]
 }
 ```
 
