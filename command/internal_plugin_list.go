@@ -39,6 +39,7 @@ import (
 	powerdnsprovider "github.com/hashicorp/terraform/builtin/providers/powerdns"
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
+	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
 	softlayerprovider "github.com/hashicorp/terraform/builtin/providers/softlayer"
 	statuscakeprovider "github.com/hashicorp/terraform/builtin/providers/statuscake"
 	templateprovider "github.com/hashicorp/terraform/builtin/providers/template"
@@ -92,6 +93,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"powerdns":     powerdnsprovider.Provider,
 	"random":       randomprovider.Provider,
 	"rundeck":      rundeckprovider.Provider,
+	"scaleway":     scalewayprovider.Provider,
 	"softlayer":    softlayerprovider.Provider,
 	"statuscake":   statuscakeprovider.Provider,
 	"template":     templateprovider.Provider,
