@@ -3,19 +3,19 @@ layout: "digitalocean"
 page_title: "DigitalOcean: digitalocean_droplet"
 sidebar_current: "docs-do-resource-droplet"
 description: |-
-  Provides a DigitalOcean droplet resource. This can be used to create, modify, and delete droplets. Droplets also support provisioning.
+  Provides a DigitalOcean Droplet resource. This can be used to create, modify, and delete Droplets. Droplets also support provisioning.
 ---
 
 # digitalocean\_droplet
 
-Provides a DigitalOcean droplet resource. This can be used to create,
-modify, and delete droplets. Droplets also support
+Provides a DigitalOcean Droplet resource. This can be used to create,
+modify, and delete Droplets. Droplets also support
 [provisioning](/docs/provisioners/index.html).
 
 ## Example Usage
 
 ```
-# Create a new Web droplet in the nyc2 region
+# Create a new Web Droplet in the nyc2 region
 resource "digitalocean_droplet" "web" {
     image = "ubuntu-14-04-x64"
     name = "web-1"
@@ -28,12 +28,12 @@ resource "digitalocean_droplet" "web" {
 
 The following arguments are supported:
 
-* `image` - (Required) The droplet image ID or slug.
-* `name` - (Required) The droplet name
+* `image` - (Required) The Droplet image ID or slug.
+* `name` - (Required) The Droplet name
 * `region` - (Required) The region to start in
-* `size` - (Required) The instance size to start  
+* `size` - (Required) The instance size to start
 
--> **Note:** When resizing a droplet, only a bigger droplet size can be chosen.  
+-> **Note:** When resizing a Droplet, only a bigger Droplet size can be chosen.
 
 * `backups` - (Optional) Boolean controlling if backups are made. Defaults to
    false.
@@ -49,15 +49,16 @@ The following arguments are supported:
 * `user_data` (Optional) - A string of the desired User Data for the Droplet.
    User Data is currently only available in regions with metadata
    listed in their features.
+* `volume_ids` (Optional) - A list of the IDs of each [block storage volume](/docs/providers/do/r/volume.html) to be attached to the Droplet.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The ID of the droplet
-* `name`- The name of the droplet
-* `region` - The region of the droplet
-* `image` - The image of the droplet
+* `id` - The ID of the Droplet
+* `name`- The name of the Droplet
+* `region` - The region of the Droplet
+* `image` - The image of the Droplet
 * `ipv6` - Is IPv6 enabled
 * `ipv6_address` - The IPv6 address
 * `ipv6_address_private` - The private networking IPv6 address
@@ -68,3 +69,4 @@ The following attributes are exported:
 * `size` - The instance size
 * `status` - The status of the droplet
 * `tags` - The tags associated with the droplet
+* `volume_ids` - A list of the attached block storage volumes
