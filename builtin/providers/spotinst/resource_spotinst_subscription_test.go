@@ -63,7 +63,6 @@ func testAccCheckSpotinstSubscriptionDestroy(s *terraform.State) error {
 		}
 
 		_, _, err := client.Subscription.Get(rs.Primary.ID)
-
 		if err == nil {
 			return fmt.Errorf("Subscription still exists")
 		}
@@ -114,7 +113,6 @@ func testAccCheckSpotinstSubscriptionExists(n string, subscription *spotinst.Sub
 
 		client := testAccProvider.Meta().(*spotinst.Client)
 		foundSubscriptions, _, err := client.Subscription.Get(rs.Primary.ID)
-
 		if err != nil {
 			return err
 		}

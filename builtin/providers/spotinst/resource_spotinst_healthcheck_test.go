@@ -12,16 +12,15 @@ import (
 func TestAccSpotinstHealthCheck_Basic(t *testing.T) {
 	var healthCheck spotinst.HealthCheck
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		//CheckDestroy: testAccCheckSpotinstHealthCheckDestroy,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckSpotinstHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCheckSpotinstHealthCheckConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSpotinstHealthCheckExists("spotinst_healthcheck.foo", &healthCheck), testAccCheckSpotinstHealthCheckAttributes(&healthCheck),
-					resource.TestCheckResourceAttr("spotinst_healthcheck.foo", "protocol", "http"),
-					resource.TestCheckResourceAttr("spotinst_healthcheck.foo", "endpoint", "http://endpoint.com"),
+					resource.TestCheckResourceAttr("spotinst_healthcheck.foo", "name", "hc-foo"),
 				),
 			},
 		},
@@ -31,24 +30,22 @@ func TestAccSpotinstHealthCheck_Basic(t *testing.T) {
 func TestAccSpotinstHealthCheck_Updated(t *testing.T) {
 	var healthCheck spotinst.HealthCheck
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		//CheckDestroy: testAccCheckSpotinstHealthCheckDestroy,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckSpotinstHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCheckSpotinstHealthCheckConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSpotinstHealthCheckExists("spotinst_healthcheck.foo", &healthCheck), testAccCheckSpotinstHealthCheckAttributes(&healthCheck),
-					resource.TestCheckResourceAttr("spotinst_healthcheck.foo", "protocol", "http"),
-					resource.TestCheckResourceAttr("spotinst_healthcheck.foo", "endpoint", "http://endpoint.com"),
+					resource.TestCheckResourceAttr("spotinst_healthcheck.foo", "name", "hc-foo"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccCheckSpotinstHealthCheckConfigNewValue,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSpotinstHealthCheckExists("spotinst_healthcheck.foo", &healthCheck), testAccCheckSpotinstHealthCheckAttributesUpdated(&healthCheck),
-					resource.TestCheckResourceAttr("spotinst_healthcheck.foo", "protocol", "https"),
-					resource.TestCheckResourceAttr("spotinst_healthcheck.foo", "endpoint", "https://endpoint.com"),
+					resource.TestCheckResourceAttr("spotinst_healthcheck.foo", "name", "hc-bar"),
 				),
 			},
 		},
@@ -62,9 +59,8 @@ func testAccCheckSpotinstHealthCheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, _, err := client.HealthCheck.Get(rs.Primary.ID)
-
-		if err == nil {
+		healthChecks, _, err := client.HealthCheck.Get(rs.Primary.ID)
+		if err == nil && len(healthChecks) > 0 {
 			return fmt.Errorf("HealthCheck still exists")
 		}
 	}
@@ -114,7 +110,6 @@ func testAccCheckSpotinstHealthCheckExists(n string, healthCheck *spotinst.Healt
 
 		client := testAccProvider.Meta().(*spotinst.Client)
 		foundHealthChecks, _, err := client.HealthCheck.Get(rs.Primary.ID)
-
 		if err != nil {
 			return err
 		}
@@ -152,11 +147,11 @@ resource "spotinst_healthcheck" "foo" {
 
 const testAccCheckSpotinstHealthCheckConfigNewValue = `
 resource "spotinst_healthcheck" "foo" {
-	name = "hc-foo"
+	name = "hc-bar"
 	resource_id = "sig-foo"
 	check {
-		protocol = "http"
-		endpoint = "http://endpoint.com"
+		protocol = "https"
+		endpoint = "https://endpoint.com"
 		port = 3000
 		interval = 10
 		timeout = 10

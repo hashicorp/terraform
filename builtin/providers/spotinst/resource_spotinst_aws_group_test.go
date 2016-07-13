@@ -62,9 +62,8 @@ func testAccCheckSpotinstGroupDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, _, err := client.AwsGroup.Get(rs.Primary.ID)
-
-		if err == nil {
+		groups, _, err := client.AwsGroup.Get(rs.Primary.ID)
+		if err == nil && len(groups) > 0 {
 			return fmt.Errorf("Group still exists")
 		}
 	}
@@ -106,7 +105,6 @@ func testAccCheckSpotinstGroupExists(n string, group *spotinst.AwsGroup) resourc
 
 		client := testAccProvider.Meta().(*spotinst.Client)
 		foundGroups, _, err := client.AwsGroup.Get(rs.Primary.ID)
-
 		if err != nil {
 			return err
 		}
