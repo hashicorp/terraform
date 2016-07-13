@@ -159,6 +159,12 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Set: resourceArmVirtualMachineStorageOsDiskHash,
 			},
 
+			"delete_os_disk_on_termination": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"storage_data_disk": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -553,6 +559,11 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 
 	if _, err = vmClient.Delete(resGroup, name, make(chan struct{})); err != nil {
 		return err
+	}
+
+	if deleteOsDisk := d.Get("delete_os_disk_on_termination").(bool); !deleteOsDisk {
+		log.Printf("[INFO] delete_os_disk_on_termination is false, skipping delete")
+		return nil
 	}
 
 	osDisk, err := expandAzureRmVirtualMachineOsDisk(d)

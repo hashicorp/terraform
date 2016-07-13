@@ -14,9 +14,13 @@ func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testCheckAzureRMVirtualMachineDestroy,
+			// deletion of OS Disk VHD is opt in
+			testCheckAzureRMVirtualMachineOSDiskVHDExistance(true),
+		),
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -169,12 +173,12 @@ func TestAccAzureRMVirtualMachine_winRMConfig(t *testing.T) {
 
 func TestAccAzureRMVirtualMachine_deleteVHD(t *testing.T) {
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyOSDisk, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualMachineDestroyVHD,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -184,7 +188,7 @@ func TestAccAzureRMVirtualMachine_deleteVHD(t *testing.T) {
 			},
 			{
 				Config: postConfig,
-				Check:  nil,
+				Check:  testCheckAzureRMVirtualMachineOSDiskVHDExistance(false),
 			},
 		},
 	})
@@ -244,32 +248,34 @@ func testCheckAzureRMVirtualMachineDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testCheckAzureRMVirtualMachineDestroyVHD(s *terraform.State) error {
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "azurerm_storage_container" {
-			continue
+func testCheckAzureRMVirtualMachineOSDiskVHDExistance(shouldExist bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "azurerm_storage_container" {
+				continue
+			}
+
+			// fetch storage account and container name
+			resourceGroup := rs.Primary.Attributes["resource_group_name"]
+			storageAccountName := rs.Primary.Attributes["storage_account_name"]
+			containerName := rs.Primary.Attributes["name"]
+			storageClient, _, err := testAccProvider.Meta().(*ArmClient).getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
+			if err != nil {
+				return fmt.Errorf("Error creating Blob storage client: %s", err)
+			}
+
+			exists, err := storageClient.BlobExists(containerName, "myosdisk1.vhd")
+			if err != nil {
+				return fmt.Errorf("Error checking if OS Disk VHD Blob exists: %s", err)
+			}
+
+			if exists && !shouldExist {
+				return fmt.Errorf("OS Disk VHD Blob still exists")
+			}
 		}
 
-		// fetch storage account and container name
-		resourceGroup := rs.Primary.Attributes["resource_group_name"]
-		storageAccountName := rs.Primary.Attributes["storage_account_name"]
-		containerName := rs.Primary.Attributes["name"]
-		storageClient, _, err := testAccProvider.Meta().(*ArmClient).getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
-		if err != nil {
-			return fmt.Errorf("Error creating Blob storage client: %s", err)
-		}
-
-		exists, err := storageClient.BlobExists(containerName, "myosdisk1.vhd")
-		if err != nil {
-			return fmt.Errorf("Error checking if OS Disk VHD Blob exists: %s", err)
-		}
-
-		if exists {
-			return fmt.Errorf("OS Disk VHD Blob still exists")
-		}
+		return nil
 	}
-
-	return nil
 }
 
 var testAccAzureRMVirtualMachine_basicLinuxMachine = `
@@ -342,6 +348,96 @@ resource "azurerm_virtual_machine" "test" {
         caching = "ReadWrite"
         create_option = "FromImage"
     }
+
+    os_profile {
+	computer_name = "hostname%d"
+	admin_username = "testadmin"
+	admin_password = "Password1234!"
+    }
+
+    os_profile_linux_config {
+	disable_password_authentication = false
+    }
+
+    tags {
+    	environment = "Production"
+    	cost-center = "Ops"
+    }
+}
+`
+
+var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyOSDisk = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestrg-%d"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_storage_account" "test" {
+    name = "accsa%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "westus"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "staging"
+    }
+}
+
+resource "azurerm_storage_container" "test" {
+    name = "vhds"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_storage_account.test.name}"
+    container_access_type = "private"
+}
+
+resource "azurerm_virtual_machine" "test" {
+    name = "acctvm-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    network_interface_ids = ["${azurerm_network_interface.test.id}"]
+    vm_size = "Standard_A0"
+
+    storage_image_reference {
+	publisher = "Canonical"
+	offer = "UbuntuServer"
+	sku = "14.04.2-LTS"
+	version = "latest"
+    }
+
+    storage_os_disk {
+        name = "myosdisk1"
+        vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+        caching = "ReadWrite"
+        create_option = "FromImage"
+    }
+
+    delete_os_disk_on_termination = true
 
     os_profile {
 	computer_name = "hostname%d"
