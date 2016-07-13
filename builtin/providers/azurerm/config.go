@@ -16,6 +16,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
+	"io"
 )
 
 // ArmClient contains the handles to all the specific Azure Resource Manager
@@ -62,15 +63,43 @@ type ArmClient struct {
 	deploymentsClient resources.DeploymentsClient
 }
 
+type DebugBodyLogger struct {
+	Body          io.ReadCloser
+	HeaderMessage string
+}
+
+func (r DebugBodyLogger) Close() error {
+	return r.Body.Close()
+}
+
+func (r DebugBodyLogger) Read(p []byte) (int, error) {
+	n, err := r.Body.Read(p)
+	if n > 0 {
+		log.Printf("[TRACE] %s: %s\n", r.HeaderMessage, string(p[0:n]))
+	}
+	return n, err
+}
+
+func NewDebugBodyLogger(body io.ReadCloser, headerMsg string) DebugBodyLogger {
+	logger := DebugBodyLogger{Body: body, HeaderMessage: headerMsg}
+	return logger
+}
+
 func withRequestLogging() autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
-			log.Printf("[DEBUG] Sending Azure RM Request %q to %q\n", r.Method, r.URL)
+			log.Printf("[DEBUG] Sending Azure RM Request %q to %q with content length %d\n", r.Method, r.URL, r.ContentLength)
+			if r.ContentLength > 0 {
+				r.Body = NewDebugBodyLogger(r.Body, fmt.Sprintf("Message body for %q %q", r.Method, r.URL))
+			}
 			resp, err := s.Do(r)
 			if resp != nil {
-				log.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
+				log.Printf("[DEBUG] Received Azure RM Request status code %s for %s with content length %d\n", resp.Status, r.URL, resp.ContentLength)
+				if resp.ContentLength > 0 {
+					r.Body = NewDebugBodyLogger(resp.Body, fmt.Sprintf("Response body from call to %q %q", r.Method, r.URL))
+				}
 			} else {
-				log.Printf("[DEBUG] Request to %s completed with no response", r.URL)
+				log.Printf("[DEBUG] Request to %s completed with no response\n", r.URL)
 			}
 			return resp, err
 		})
