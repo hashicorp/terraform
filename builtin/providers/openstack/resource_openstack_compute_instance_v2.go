@@ -1436,12 +1436,25 @@ func getVolumeAttachments(computeClient *gophercloud.ServiceClient, d *schema.Re
 		return err
 	}
 
-	vols := make([]map[string]interface{}, len(attachments))
-	for i, attachment := range attachments {
-		vols[i] = make(map[string]interface{})
-		vols[i]["id"] = attachment.ID
-		vols[i]["volume_id"] = attachment.VolumeID
-		vols[i]["device"] = attachment.Device
+	var vols []map[string]interface{}
+	for _, attachment := range attachments {
+		// ignore the volume if it is attached as a root device
+		rootDevFound := false
+		for _, rootDev := range []string{"/dev/vda", "/dev/xda", "/dev/sda", "/dev/xvda"} {
+			if attachment.Device == rootDev {
+				rootDevFound = true
+			}
+		}
+
+		if rootDevFound {
+			continue
+		}
+
+		vol := make(map[string]interface{})
+		vol["id"] = attachment.ID
+		vol["volume_id"] = attachment.VolumeID
+		vol["device"] = attachment.Device
+		vols = append(vols, vol)
 	}
 	log.Printf("[INFO] Volume attachments: %v", vols)
 	d.Set("volume", vols)
