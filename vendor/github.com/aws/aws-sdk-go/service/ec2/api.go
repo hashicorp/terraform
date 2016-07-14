@@ -15,7 +15,28 @@ import (
 
 const opAcceptVpcPeeringConnection = "AcceptVpcPeeringConnection"
 
-// AcceptVpcPeeringConnectionRequest generates a request for the AcceptVpcPeeringConnection operation.
+// AcceptVpcPeeringConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the AcceptVpcPeeringConnection operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AcceptVpcPeeringConnection method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AcceptVpcPeeringConnectionRequest method.
+//    req, resp := client.AcceptVpcPeeringConnectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AcceptVpcPeeringConnectionRequest(input *AcceptVpcPeeringConnectionInput) (req *request.Request, output *AcceptVpcPeeringConnectionOutput) {
 	op := &request.Operation{
 		Name:       opAcceptVpcPeeringConnection,
@@ -45,7 +66,28 @@ func (c *EC2) AcceptVpcPeeringConnection(input *AcceptVpcPeeringConnectionInput)
 
 const opAllocateAddress = "AllocateAddress"
 
-// AllocateAddressRequest generates a request for the AllocateAddress operation.
+// AllocateAddressRequest generates a "aws/request.Request" representing the
+// client's request for the AllocateAddress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AllocateAddress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AllocateAddressRequest method.
+//    req, resp := client.AllocateAddressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AllocateAddressRequest(input *AllocateAddressInput) (req *request.Request, output *AllocateAddressOutput) {
 	op := &request.Operation{
 		Name:       opAllocateAddress,
@@ -76,7 +118,28 @@ func (c *EC2) AllocateAddress(input *AllocateAddressInput) (*AllocateAddressOutp
 
 const opAllocateHosts = "AllocateHosts"
 
-// AllocateHostsRequest generates a request for the AllocateHosts operation.
+// AllocateHostsRequest generates a "aws/request.Request" representing the
+// client's request for the AllocateHosts operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AllocateHosts method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AllocateHostsRequest method.
+//    req, resp := client.AllocateHostsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AllocateHostsRequest(input *AllocateHostsInput) (req *request.Request, output *AllocateHostsOutput) {
 	op := &request.Operation{
 		Name:       opAllocateHosts,
@@ -105,7 +168,28 @@ func (c *EC2) AllocateHosts(input *AllocateHostsInput) (*AllocateHostsOutput, er
 
 const opAssignPrivateIpAddresses = "AssignPrivateIpAddresses"
 
-// AssignPrivateIpAddressesRequest generates a request for the AssignPrivateIpAddresses operation.
+// AssignPrivateIpAddressesRequest generates a "aws/request.Request" representing the
+// client's request for the AssignPrivateIpAddresses operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssignPrivateIpAddresses method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssignPrivateIpAddressesRequest method.
+//    req, resp := client.AssignPrivateIpAddressesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AssignPrivateIpAddressesRequest(input *AssignPrivateIpAddressesInput) (req *request.Request, output *AssignPrivateIpAddressesOutput) {
 	op := &request.Operation{
 		Name:       opAssignPrivateIpAddresses,
@@ -144,7 +228,28 @@ func (c *EC2) AssignPrivateIpAddresses(input *AssignPrivateIpAddressesInput) (*A
 
 const opAssociateAddress = "AssociateAddress"
 
-// AssociateAddressRequest generates a request for the AssociateAddress operation.
+// AssociateAddressRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateAddress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateAddress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateAddressRequest method.
+//    req, resp := client.AssociateAddressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AssociateAddressRequest(input *AssociateAddressInput) (req *request.Request, output *AssociateAddressOutput) {
 	op := &request.Operation{
 		Name:       opAssociateAddress,
@@ -187,7 +292,28 @@ func (c *EC2) AssociateAddress(input *AssociateAddressInput) (*AssociateAddressO
 
 const opAssociateDhcpOptions = "AssociateDhcpOptions"
 
-// AssociateDhcpOptionsRequest generates a request for the AssociateDhcpOptions operation.
+// AssociateDhcpOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateDhcpOptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateDhcpOptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateDhcpOptionsRequest method.
+//    req, resp := client.AssociateDhcpOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AssociateDhcpOptionsRequest(input *AssociateDhcpOptionsInput) (req *request.Request, output *AssociateDhcpOptionsOutput) {
 	op := &request.Operation{
 		Name:       opAssociateDhcpOptions,
@@ -227,7 +353,28 @@ func (c *EC2) AssociateDhcpOptions(input *AssociateDhcpOptionsInput) (*Associate
 
 const opAssociateRouteTable = "AssociateRouteTable"
 
-// AssociateRouteTableRequest generates a request for the AssociateRouteTable operation.
+// AssociateRouteTableRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateRouteTable operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateRouteTable method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateRouteTableRequest method.
+//    req, resp := client.AssociateRouteTableRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AssociateRouteTableRequest(input *AssociateRouteTableInput) (req *request.Request, output *AssociateRouteTableOutput) {
 	op := &request.Operation{
 		Name:       opAssociateRouteTable,
@@ -261,7 +408,28 @@ func (c *EC2) AssociateRouteTable(input *AssociateRouteTableInput) (*AssociateRo
 
 const opAttachClassicLinkVpc = "AttachClassicLinkVpc"
 
-// AttachClassicLinkVpcRequest generates a request for the AttachClassicLinkVpc operation.
+// AttachClassicLinkVpcRequest generates a "aws/request.Request" representing the
+// client's request for the AttachClassicLinkVpc operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachClassicLinkVpc method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachClassicLinkVpcRequest method.
+//    req, resp := client.AttachClassicLinkVpcRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AttachClassicLinkVpcRequest(input *AttachClassicLinkVpcInput) (req *request.Request, output *AttachClassicLinkVpcOutput) {
 	op := &request.Operation{
 		Name:       opAttachClassicLinkVpc,
@@ -299,7 +467,28 @@ func (c *EC2) AttachClassicLinkVpc(input *AttachClassicLinkVpcInput) (*AttachCla
 
 const opAttachInternetGateway = "AttachInternetGateway"
 
-// AttachInternetGatewayRequest generates a request for the AttachInternetGateway operation.
+// AttachInternetGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the AttachInternetGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachInternetGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachInternetGatewayRequest method.
+//    req, resp := client.AttachInternetGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AttachInternetGatewayRequest(input *AttachInternetGatewayInput) (req *request.Request, output *AttachInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opAttachInternetGateway,
@@ -330,7 +519,28 @@ func (c *EC2) AttachInternetGateway(input *AttachInternetGatewayInput) (*AttachI
 
 const opAttachNetworkInterface = "AttachNetworkInterface"
 
-// AttachNetworkInterfaceRequest generates a request for the AttachNetworkInterface operation.
+// AttachNetworkInterfaceRequest generates a "aws/request.Request" representing the
+// client's request for the AttachNetworkInterface operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachNetworkInterface method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachNetworkInterfaceRequest method.
+//    req, resp := client.AttachNetworkInterfaceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AttachNetworkInterfaceRequest(input *AttachNetworkInterfaceInput) (req *request.Request, output *AttachNetworkInterfaceOutput) {
 	op := &request.Operation{
 		Name:       opAttachNetworkInterface,
@@ -357,7 +567,28 @@ func (c *EC2) AttachNetworkInterface(input *AttachNetworkInterfaceInput) (*Attac
 
 const opAttachVolume = "AttachVolume"
 
-// AttachVolumeRequest generates a request for the AttachVolume operation.
+// AttachVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the AttachVolume operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachVolume method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachVolumeRequest method.
+//    req, resp := client.AttachVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AttachVolumeRequest(input *AttachVolumeInput) (req *request.Request, output *VolumeAttachment) {
 	op := &request.Operation{
 		Name:       opAttachVolume,
@@ -414,7 +645,28 @@ func (c *EC2) AttachVolume(input *AttachVolumeInput) (*VolumeAttachment, error) 
 
 const opAttachVpnGateway = "AttachVpnGateway"
 
-// AttachVpnGatewayRequest generates a request for the AttachVpnGateway operation.
+// AttachVpnGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the AttachVpnGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachVpnGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachVpnGatewayRequest method.
+//    req, resp := client.AttachVpnGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AttachVpnGatewayRequest(input *AttachVpnGatewayInput) (req *request.Request, output *AttachVpnGatewayOutput) {
 	op := &request.Operation{
 		Name:       opAttachVpnGateway,
@@ -443,7 +695,28 @@ func (c *EC2) AttachVpnGateway(input *AttachVpnGatewayInput) (*AttachVpnGatewayO
 
 const opAuthorizeSecurityGroupEgress = "AuthorizeSecurityGroupEgress"
 
-// AuthorizeSecurityGroupEgressRequest generates a request for the AuthorizeSecurityGroupEgress operation.
+// AuthorizeSecurityGroupEgressRequest generates a "aws/request.Request" representing the
+// client's request for the AuthorizeSecurityGroupEgress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AuthorizeSecurityGroupEgress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AuthorizeSecurityGroupEgressRequest method.
+//    req, resp := client.AuthorizeSecurityGroupEgressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AuthorizeSecurityGroupEgressRequest(input *AuthorizeSecurityGroupEgressInput) (req *request.Request, output *AuthorizeSecurityGroupEgressOutput) {
 	op := &request.Operation{
 		Name:       opAuthorizeSecurityGroupEgress,
@@ -490,7 +763,28 @@ func (c *EC2) AuthorizeSecurityGroupEgress(input *AuthorizeSecurityGroupEgressIn
 
 const opAuthorizeSecurityGroupIngress = "AuthorizeSecurityGroupIngress"
 
-// AuthorizeSecurityGroupIngressRequest generates a request for the AuthorizeSecurityGroupIngress operation.
+// AuthorizeSecurityGroupIngressRequest generates a "aws/request.Request" representing the
+// client's request for the AuthorizeSecurityGroupIngress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AuthorizeSecurityGroupIngress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AuthorizeSecurityGroupIngressRequest method.
+//    req, resp := client.AuthorizeSecurityGroupIngressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) AuthorizeSecurityGroupIngressRequest(input *AuthorizeSecurityGroupIngressInput) (req *request.Request, output *AuthorizeSecurityGroupIngressOutput) {
 	op := &request.Operation{
 		Name:       opAuthorizeSecurityGroupIngress,
@@ -537,7 +831,28 @@ func (c *EC2) AuthorizeSecurityGroupIngress(input *AuthorizeSecurityGroupIngress
 
 const opBundleInstance = "BundleInstance"
 
-// BundleInstanceRequest generates a request for the BundleInstance operation.
+// BundleInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the BundleInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the BundleInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the BundleInstanceRequest method.
+//    req, resp := client.BundleInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) BundleInstanceRequest(input *BundleInstanceInput) (req *request.Request, output *BundleInstanceOutput) {
 	op := &request.Operation{
 		Name:       opBundleInstance,
@@ -573,7 +888,28 @@ func (c *EC2) BundleInstance(input *BundleInstanceInput) (*BundleInstanceOutput,
 
 const opCancelBundleTask = "CancelBundleTask"
 
-// CancelBundleTaskRequest generates a request for the CancelBundleTask operation.
+// CancelBundleTaskRequest generates a "aws/request.Request" representing the
+// client's request for the CancelBundleTask operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelBundleTask method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelBundleTaskRequest method.
+//    req, resp := client.CancelBundleTaskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CancelBundleTaskRequest(input *CancelBundleTaskInput) (req *request.Request, output *CancelBundleTaskOutput) {
 	op := &request.Operation{
 		Name:       opCancelBundleTask,
@@ -600,7 +936,28 @@ func (c *EC2) CancelBundleTask(input *CancelBundleTaskInput) (*CancelBundleTaskO
 
 const opCancelConversionTask = "CancelConversionTask"
 
-// CancelConversionTaskRequest generates a request for the CancelConversionTask operation.
+// CancelConversionTaskRequest generates a "aws/request.Request" representing the
+// client's request for the CancelConversionTask operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelConversionTask method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelConversionTaskRequest method.
+//    req, resp := client.CancelConversionTaskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CancelConversionTaskRequest(input *CancelConversionTaskInput) (req *request.Request, output *CancelConversionTaskOutput) {
 	op := &request.Operation{
 		Name:       opCancelConversionTask,
@@ -637,7 +994,28 @@ func (c *EC2) CancelConversionTask(input *CancelConversionTaskInput) (*CancelCon
 
 const opCancelExportTask = "CancelExportTask"
 
-// CancelExportTaskRequest generates a request for the CancelExportTask operation.
+// CancelExportTaskRequest generates a "aws/request.Request" representing the
+// client's request for the CancelExportTask operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelExportTask method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelExportTaskRequest method.
+//    req, resp := client.CancelExportTaskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CancelExportTaskRequest(input *CancelExportTaskInput) (req *request.Request, output *CancelExportTaskOutput) {
 	op := &request.Operation{
 		Name:       opCancelExportTask,
@@ -669,7 +1047,28 @@ func (c *EC2) CancelExportTask(input *CancelExportTaskInput) (*CancelExportTaskO
 
 const opCancelImportTask = "CancelImportTask"
 
-// CancelImportTaskRequest generates a request for the CancelImportTask operation.
+// CancelImportTaskRequest generates a "aws/request.Request" representing the
+// client's request for the CancelImportTask operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelImportTask method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelImportTaskRequest method.
+//    req, resp := client.CancelImportTaskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CancelImportTaskRequest(input *CancelImportTaskInput) (req *request.Request, output *CancelImportTaskOutput) {
 	op := &request.Operation{
 		Name:       opCancelImportTask,
@@ -696,7 +1095,28 @@ func (c *EC2) CancelImportTask(input *CancelImportTaskInput) (*CancelImportTaskO
 
 const opCancelReservedInstancesListing = "CancelReservedInstancesListing"
 
-// CancelReservedInstancesListingRequest generates a request for the CancelReservedInstancesListing operation.
+// CancelReservedInstancesListingRequest generates a "aws/request.Request" representing the
+// client's request for the CancelReservedInstancesListing operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelReservedInstancesListing method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelReservedInstancesListingRequest method.
+//    req, resp := client.CancelReservedInstancesListingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CancelReservedInstancesListingRequest(input *CancelReservedInstancesListingInput) (req *request.Request, output *CancelReservedInstancesListingOutput) {
 	op := &request.Operation{
 		Name:       opCancelReservedInstancesListing,
@@ -727,7 +1147,28 @@ func (c *EC2) CancelReservedInstancesListing(input *CancelReservedInstancesListi
 
 const opCancelSpotFleetRequests = "CancelSpotFleetRequests"
 
-// CancelSpotFleetRequestsRequest generates a request for the CancelSpotFleetRequests operation.
+// CancelSpotFleetRequestsRequest generates a "aws/request.Request" representing the
+// client's request for the CancelSpotFleetRequests operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelSpotFleetRequests method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelSpotFleetRequestsRequest method.
+//    req, resp := client.CancelSpotFleetRequestsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CancelSpotFleetRequestsRequest(input *CancelSpotFleetRequestsInput) (req *request.Request, output *CancelSpotFleetRequestsOutput) {
 	op := &request.Operation{
 		Name:       opCancelSpotFleetRequests,
@@ -761,7 +1202,28 @@ func (c *EC2) CancelSpotFleetRequests(input *CancelSpotFleetRequestsInput) (*Can
 
 const opCancelSpotInstanceRequests = "CancelSpotInstanceRequests"
 
-// CancelSpotInstanceRequestsRequest generates a request for the CancelSpotInstanceRequests operation.
+// CancelSpotInstanceRequestsRequest generates a "aws/request.Request" representing the
+// client's request for the CancelSpotInstanceRequests operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelSpotInstanceRequests method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelSpotInstanceRequestsRequest method.
+//    req, resp := client.CancelSpotInstanceRequestsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CancelSpotInstanceRequestsRequest(input *CancelSpotInstanceRequestsInput) (req *request.Request, output *CancelSpotInstanceRequestsOutput) {
 	op := &request.Operation{
 		Name:       opCancelSpotInstanceRequests,
@@ -796,7 +1258,28 @@ func (c *EC2) CancelSpotInstanceRequests(input *CancelSpotInstanceRequestsInput)
 
 const opConfirmProductInstance = "ConfirmProductInstance"
 
-// ConfirmProductInstanceRequest generates a request for the ConfirmProductInstance operation.
+// ConfirmProductInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the ConfirmProductInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ConfirmProductInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ConfirmProductInstanceRequest method.
+//    req, resp := client.ConfirmProductInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ConfirmProductInstanceRequest(input *ConfirmProductInstanceInput) (req *request.Request, output *ConfirmProductInstanceOutput) {
 	op := &request.Operation{
 		Name:       opConfirmProductInstance,
@@ -826,7 +1309,28 @@ func (c *EC2) ConfirmProductInstance(input *ConfirmProductInstanceInput) (*Confi
 
 const opCopyImage = "CopyImage"
 
-// CopyImageRequest generates a request for the CopyImage operation.
+// CopyImageRequest generates a "aws/request.Request" representing the
+// client's request for the CopyImage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CopyImage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CopyImageRequest method.
+//    req, resp := client.CopyImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CopyImageRequest(input *CopyImageInput) (req *request.Request, output *CopyImageOutput) {
 	op := &request.Operation{
 		Name:       opCopyImage,
@@ -858,7 +1362,28 @@ func (c *EC2) CopyImage(input *CopyImageInput) (*CopyImageOutput, error) {
 
 const opCopySnapshot = "CopySnapshot"
 
-// CopySnapshotRequest generates a request for the CopySnapshot operation.
+// CopySnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the CopySnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CopySnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CopySnapshotRequest method.
+//    req, resp := client.CopySnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Request, output *CopySnapshotOutput) {
 	op := &request.Operation{
 		Name:       opCopySnapshot,
@@ -888,7 +1413,10 @@ func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Reques
 // default AWS Key Management Service (AWS KMS) customer master key (CMK); however,
 // you can specify a non-default CMK with the KmsKeyId parameter.
 //
-// For more information, see Copying an Amazon EBS Snapshot (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-copy-snapshot.html)
+//  To copy an encrypted snapshot that has been shared from another account,
+// you must have permissions for the CMK used to encrypt the snapshot.
+//
+//  For more information, see Copying an Amazon EBS Snapshot (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-copy-snapshot.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) CopySnapshot(input *CopySnapshotInput) (*CopySnapshotOutput, error) {
 	req, out := c.CopySnapshotRequest(input)
@@ -898,7 +1426,28 @@ func (c *EC2) CopySnapshot(input *CopySnapshotInput) (*CopySnapshotOutput, error
 
 const opCreateCustomerGateway = "CreateCustomerGateway"
 
-// CreateCustomerGatewayRequest generates a request for the CreateCustomerGateway operation.
+// CreateCustomerGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the CreateCustomerGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateCustomerGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateCustomerGatewayRequest method.
+//    req, resp := client.CreateCustomerGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateCustomerGatewayRequest(input *CreateCustomerGatewayInput) (req *request.Request, output *CreateCustomerGatewayOutput) {
 	op := &request.Operation{
 		Name:       opCreateCustomerGateway,
@@ -949,7 +1498,28 @@ func (c *EC2) CreateCustomerGateway(input *CreateCustomerGatewayInput) (*CreateC
 
 const opCreateDhcpOptions = "CreateDhcpOptions"
 
-// CreateDhcpOptionsRequest generates a request for the CreateDhcpOptions operation.
+// CreateDhcpOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDhcpOptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateDhcpOptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateDhcpOptionsRequest method.
+//    req, resp := client.CreateDhcpOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *request.Request, output *CreateDhcpOptionsOutput) {
 	op := &request.Operation{
 		Name:       opCreateDhcpOptions,
@@ -973,12 +1543,12 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 // individual DHCP options you can specify. For more information about the options,
 // see RFC 2132 (http://www.ietf.org/rfc/rfc2132.txt).
 //
-//  domain-name-servers - The IP addresses of up to four domain name servers,
+//    domain-name-servers - The IP addresses of up to four domain name servers,
 // or AmazonProvidedDNS. The default DHCP option set specifies AmazonProvidedDNS.
 // If specifying more than one domain name server, specify the IP addresses
 // in a single parameter, separated by commas.
 //
-// domain-name - If you're using AmazonProvidedDNS in "us-east-1", specify
+//    domain-name - If you're using AmazonProvidedDNS in "us-east-1", specify
 // "ec2.internal". If you're using AmazonProvidedDNS in another region, specify
 // "region.compute.internal" (for example, "ap-northeast-1.compute.internal").
 // Otherwise, specify a domain name (for example, "MyCompany.com"). Important:
@@ -988,16 +1558,16 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 // associated with a VPC that has instances with multiple operating systems,
 // specify only one domain name.
 //
-// ntp-servers - The IP addresses of up to four Network Time Protocol (NTP)
+//    ntp-servers - The IP addresses of up to four Network Time Protocol (NTP)
 // servers.
 //
-// netbios-name-servers - The IP addresses of up to four NetBIOS name servers.
+//    netbios-name-servers - The IP addresses of up to four NetBIOS name servers.
 //
-// netbios-node-type - The NetBIOS node type (1, 2, 4, or 8). We recommend
+//    netbios-node-type - The NetBIOS node type (1, 2, 4, or 8). We recommend
 // that you specify 2 (broadcast and multicast are not currently supported).
 // For more information about these node types, see RFC 2132 (http://www.ietf.org/rfc/rfc2132.txt).
 //
-//  Your VPC automatically starts out with a set of DHCP options that includes
+//   Your VPC automatically starts out with a set of DHCP options that includes
 // only a DNS server that we provide (AmazonProvidedDNS). If you create a set
 // of options, and if your VPC has an Internet gateway, make sure to set the
 // domain-name-servers option either to AmazonProvidedDNS or to a domain name
@@ -1012,7 +1582,28 @@ func (c *EC2) CreateDhcpOptions(input *CreateDhcpOptionsInput) (*CreateDhcpOptio
 
 const opCreateFlowLogs = "CreateFlowLogs"
 
-// CreateFlowLogsRequest generates a request for the CreateFlowLogs operation.
+// CreateFlowLogsRequest generates a "aws/request.Request" representing the
+// client's request for the CreateFlowLogs operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateFlowLogs method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateFlowLogsRequest method.
+//    req, resp := client.CreateFlowLogsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateFlowLogsRequest(input *CreateFlowLogsInput) (req *request.Request, output *CreateFlowLogsOutput) {
 	op := &request.Operation{
 		Name:       opCreateFlowLogs,
@@ -1048,7 +1639,28 @@ func (c *EC2) CreateFlowLogs(input *CreateFlowLogsInput) (*CreateFlowLogsOutput,
 
 const opCreateImage = "CreateImage"
 
-// CreateImageRequest generates a request for the CreateImage operation.
+// CreateImageRequest generates a "aws/request.Request" representing the
+// client's request for the CreateImage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateImage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateImageRequest method.
+//    req, resp := client.CreateImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateImageRequest(input *CreateImageInput) (req *request.Request, output *CreateImageOutput) {
 	op := &request.Operation{
 		Name:       opCreateImage,
@@ -1084,7 +1696,28 @@ func (c *EC2) CreateImage(input *CreateImageInput) (*CreateImageOutput, error) {
 
 const opCreateInstanceExportTask = "CreateInstanceExportTask"
 
-// CreateInstanceExportTaskRequest generates a request for the CreateInstanceExportTask operation.
+// CreateInstanceExportTaskRequest generates a "aws/request.Request" representing the
+// client's request for the CreateInstanceExportTask operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateInstanceExportTask method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateInstanceExportTaskRequest method.
+//    req, resp := client.CreateInstanceExportTaskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateInstanceExportTaskRequest(input *CreateInstanceExportTaskInput) (req *request.Request, output *CreateInstanceExportTaskOutput) {
 	op := &request.Operation{
 		Name:       opCreateInstanceExportTask,
@@ -1116,7 +1749,28 @@ func (c *EC2) CreateInstanceExportTask(input *CreateInstanceExportTaskInput) (*C
 
 const opCreateInternetGateway = "CreateInternetGateway"
 
-// CreateInternetGatewayRequest generates a request for the CreateInternetGateway operation.
+// CreateInternetGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the CreateInternetGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateInternetGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateInternetGatewayRequest method.
+//    req, resp := client.CreateInternetGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateInternetGatewayRequest(input *CreateInternetGatewayInput) (req *request.Request, output *CreateInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opCreateInternetGateway,
@@ -1147,7 +1801,28 @@ func (c *EC2) CreateInternetGateway(input *CreateInternetGatewayInput) (*CreateI
 
 const opCreateKeyPair = "CreateKeyPair"
 
-// CreateKeyPairRequest generates a request for the CreateKeyPair operation.
+// CreateKeyPairRequest generates a "aws/request.Request" representing the
+// client's request for the CreateKeyPair operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateKeyPair method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateKeyPairRequest method.
+//    req, resp := client.CreateKeyPairRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateKeyPairRequest(input *CreateKeyPairInput) (req *request.Request, output *CreateKeyPairOutput) {
 	op := &request.Operation{
 		Name:       opCreateKeyPair,
@@ -1185,7 +1860,28 @@ func (c *EC2) CreateKeyPair(input *CreateKeyPairInput) (*CreateKeyPairOutput, er
 
 const opCreateNatGateway = "CreateNatGateway"
 
-// CreateNatGatewayRequest generates a request for the CreateNatGateway operation.
+// CreateNatGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the CreateNatGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateNatGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateNatGatewayRequest method.
+//    req, resp := client.CreateNatGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateNatGatewayRequest(input *CreateNatGatewayInput) (req *request.Request, output *CreateNatGatewayOutput) {
 	op := &request.Operation{
 		Name:       opCreateNatGateway,
@@ -1217,7 +1913,28 @@ func (c *EC2) CreateNatGateway(input *CreateNatGatewayInput) (*CreateNatGatewayO
 
 const opCreateNetworkAcl = "CreateNetworkAcl"
 
-// CreateNetworkAclRequest generates a request for the CreateNetworkAcl operation.
+// CreateNetworkAclRequest generates a "aws/request.Request" representing the
+// client's request for the CreateNetworkAcl operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateNetworkAcl method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateNetworkAclRequest method.
+//    req, resp := client.CreateNetworkAclRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateNetworkAclRequest(input *CreateNetworkAclInput) (req *request.Request, output *CreateNetworkAclOutput) {
 	op := &request.Operation{
 		Name:       opCreateNetworkAcl,
@@ -1248,7 +1965,28 @@ func (c *EC2) CreateNetworkAcl(input *CreateNetworkAclInput) (*CreateNetworkAclO
 
 const opCreateNetworkAclEntry = "CreateNetworkAclEntry"
 
-// CreateNetworkAclEntryRequest generates a request for the CreateNetworkAclEntry operation.
+// CreateNetworkAclEntryRequest generates a "aws/request.Request" representing the
+// client's request for the CreateNetworkAclEntry operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateNetworkAclEntry method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateNetworkAclEntryRequest method.
+//    req, resp := client.CreateNetworkAclEntryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateNetworkAclEntryRequest(input *CreateNetworkAclEntryInput) (req *request.Request, output *CreateNetworkAclEntryOutput) {
 	op := &request.Operation{
 		Name:       opCreateNetworkAclEntry,
@@ -1293,7 +2031,28 @@ func (c *EC2) CreateNetworkAclEntry(input *CreateNetworkAclEntryInput) (*CreateN
 
 const opCreateNetworkInterface = "CreateNetworkInterface"
 
-// CreateNetworkInterfaceRequest generates a request for the CreateNetworkInterface operation.
+// CreateNetworkInterfaceRequest generates a "aws/request.Request" representing the
+// client's request for the CreateNetworkInterface operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateNetworkInterface method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateNetworkInterfaceRequest method.
+//    req, resp := client.CreateNetworkInterfaceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateNetworkInterfaceRequest(input *CreateNetworkInterfaceInput) (req *request.Request, output *CreateNetworkInterfaceOutput) {
 	op := &request.Operation{
 		Name:       opCreateNetworkInterface,
@@ -1324,7 +2083,28 @@ func (c *EC2) CreateNetworkInterface(input *CreateNetworkInterfaceInput) (*Creat
 
 const opCreatePlacementGroup = "CreatePlacementGroup"
 
-// CreatePlacementGroupRequest generates a request for the CreatePlacementGroup operation.
+// CreatePlacementGroupRequest generates a "aws/request.Request" representing the
+// client's request for the CreatePlacementGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreatePlacementGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreatePlacementGroupRequest method.
+//    req, resp := client.CreatePlacementGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreatePlacementGroupRequest(input *CreatePlacementGroupInput) (req *request.Request, output *CreatePlacementGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreatePlacementGroup,
@@ -1358,7 +2138,28 @@ func (c *EC2) CreatePlacementGroup(input *CreatePlacementGroupInput) (*CreatePla
 
 const opCreateReservedInstancesListing = "CreateReservedInstancesListing"
 
-// CreateReservedInstancesListingRequest generates a request for the CreateReservedInstancesListing operation.
+// CreateReservedInstancesListingRequest generates a "aws/request.Request" representing the
+// client's request for the CreateReservedInstancesListing operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateReservedInstancesListing method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateReservedInstancesListingRequest method.
+//    req, resp := client.CreateReservedInstancesListingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstancesListingInput) (req *request.Request, output *CreateReservedInstancesListingOutput) {
 	op := &request.Operation{
 		Name:       opCreateReservedInstancesListing,
@@ -1404,7 +2205,28 @@ func (c *EC2) CreateReservedInstancesListing(input *CreateReservedInstancesListi
 
 const opCreateRoute = "CreateRoute"
 
-// CreateRouteRequest generates a request for the CreateRoute operation.
+// CreateRouteRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRoute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateRoute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateRouteRequest method.
+//    req, resp := client.CreateRouteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request, output *CreateRouteOutput) {
 	op := &request.Operation{
 		Name:       opCreateRoute,
@@ -1432,9 +2254,9 @@ func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request,
 // match. For example, let's say the traffic is destined for 192.0.2.3, and
 // the route table includes the following two routes:
 //
-//   192.0.2.0/24 (goes to some target A)
+//    192.0.2.0/24 (goes to some target A)
 //
-//   192.0.2.0/28 (goes to some target B)
+//    192.0.2.0/28 (goes to some target B)
 //
 //   Both routes apply to the traffic destined for 192.0.2.3. However, the
 // second route in the list covers a smaller number of IP addresses and is therefore
@@ -1450,7 +2272,28 @@ func (c *EC2) CreateRoute(input *CreateRouteInput) (*CreateRouteOutput, error) {
 
 const opCreateRouteTable = "CreateRouteTable"
 
-// CreateRouteTableRequest generates a request for the CreateRouteTable operation.
+// CreateRouteTableRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRouteTable operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateRouteTable method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateRouteTableRequest method.
+//    req, resp := client.CreateRouteTableRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateRouteTableRequest(input *CreateRouteTableInput) (req *request.Request, output *CreateRouteTableOutput) {
 	op := &request.Operation{
 		Name:       opCreateRouteTable,
@@ -1481,7 +2324,28 @@ func (c *EC2) CreateRouteTable(input *CreateRouteTableInput) (*CreateRouteTableO
 
 const opCreateSecurityGroup = "CreateSecurityGroup"
 
-// CreateSecurityGroupRequest generates a request for the CreateSecurityGroup operation.
+// CreateSecurityGroupRequest generates a "aws/request.Request" representing the
+// client's request for the CreateSecurityGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateSecurityGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateSecurityGroupRequest method.
+//    req, resp := client.CreateSecurityGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateSecurityGroupRequest(input *CreateSecurityGroupInput) (req *request.Request, output *CreateSecurityGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateSecurityGroup,
@@ -1534,7 +2398,28 @@ func (c *EC2) CreateSecurityGroup(input *CreateSecurityGroupInput) (*CreateSecur
 
 const opCreateSnapshot = "CreateSnapshot"
 
-// CreateSnapshotRequest generates a request for the CreateSnapshot operation.
+// CreateSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the CreateSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateSnapshotRequest method.
+//    req, resp := client.CreateSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateSnapshotRequest(input *CreateSnapshotInput) (req *request.Request, output *Snapshot) {
 	op := &request.Operation{
 		Name:       opCreateSnapshot,
@@ -1588,7 +2473,28 @@ func (c *EC2) CreateSnapshot(input *CreateSnapshotInput) (*Snapshot, error) {
 
 const opCreateSpotDatafeedSubscription = "CreateSpotDatafeedSubscription"
 
-// CreateSpotDatafeedSubscriptionRequest generates a request for the CreateSpotDatafeedSubscription operation.
+// CreateSpotDatafeedSubscriptionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateSpotDatafeedSubscription operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateSpotDatafeedSubscription method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateSpotDatafeedSubscriptionRequest method.
+//    req, resp := client.CreateSpotDatafeedSubscriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateSpotDatafeedSubscriptionRequest(input *CreateSpotDatafeedSubscriptionInput) (req *request.Request, output *CreateSpotDatafeedSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opCreateSpotDatafeedSubscription,
@@ -1618,7 +2524,28 @@ func (c *EC2) CreateSpotDatafeedSubscription(input *CreateSpotDatafeedSubscripti
 
 const opCreateSubnet = "CreateSubnet"
 
-// CreateSubnetRequest generates a request for the CreateSubnet operation.
+// CreateSubnetRequest generates a "aws/request.Request" representing the
+// client's request for the CreateSubnet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateSubnet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateSubnetRequest method.
+//    req, resp := client.CreateSubnetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Request, output *CreateSubnetOutput) {
 	op := &request.Operation{
 		Name:       opCreateSubnet,
@@ -1669,7 +2596,28 @@ func (c *EC2) CreateSubnet(input *CreateSubnetInput) (*CreateSubnetOutput, error
 
 const opCreateTags = "CreateTags"
 
-// CreateTagsRequest generates a request for the CreateTags operation.
+// CreateTagsRequest generates a "aws/request.Request" representing the
+// client's request for the CreateTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateTagsRequest method.
+//    req, resp := client.CreateTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, output *CreateTagsOutput) {
 	op := &request.Operation{
 		Name:       opCreateTags,
@@ -1706,7 +2654,28 @@ func (c *EC2) CreateTags(input *CreateTagsInput) (*CreateTagsOutput, error) {
 
 const opCreateVolume = "CreateVolume"
 
-// CreateVolumeRequest generates a request for the CreateVolume operation.
+// CreateVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the CreateVolume operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateVolume method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateVolumeRequest method.
+//    req, resp := client.CreateVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateVolumeRequest(input *CreateVolumeInput) (req *request.Request, output *Volume) {
 	op := &request.Operation{
 		Name:       opCreateVolume,
@@ -1748,7 +2717,28 @@ func (c *EC2) CreateVolume(input *CreateVolumeInput) (*Volume, error) {
 
 const opCreateVpc = "CreateVpc"
 
-// CreateVpcRequest generates a request for the CreateVpc operation.
+// CreateVpcRequest generates a "aws/request.Request" representing the
+// client's request for the CreateVpc operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateVpc method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateVpcRequest method.
+//    req, resp := client.CreateVpcRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, output *CreateVpcOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpc,
@@ -1790,7 +2780,28 @@ func (c *EC2) CreateVpc(input *CreateVpcInput) (*CreateVpcOutput, error) {
 
 const opCreateVpcEndpoint = "CreateVpcEndpoint"
 
-// CreateVpcEndpointRequest generates a request for the CreateVpcEndpoint operation.
+// CreateVpcEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the CreateVpcEndpoint operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateVpcEndpoint method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateVpcEndpointRequest method.
+//    req, resp := client.CreateVpcEndpointRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *request.Request, output *CreateVpcEndpointOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpcEndpoint,
@@ -1823,7 +2834,28 @@ func (c *EC2) CreateVpcEndpoint(input *CreateVpcEndpointInput) (*CreateVpcEndpoi
 
 const opCreateVpcPeeringConnection = "CreateVpcPeeringConnection"
 
-// CreateVpcPeeringConnectionRequest generates a request for the CreateVpcPeeringConnection operation.
+// CreateVpcPeeringConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateVpcPeeringConnection operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateVpcPeeringConnection method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateVpcPeeringConnectionRequest method.
+//    req, resp := client.CreateVpcPeeringConnectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConnectionInput) (req *request.Request, output *CreateVpcPeeringConnectionOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpcPeeringConnection,
@@ -1860,7 +2892,28 @@ func (c *EC2) CreateVpcPeeringConnection(input *CreateVpcPeeringConnectionInput)
 
 const opCreateVpnConnection = "CreateVpnConnection"
 
-// CreateVpnConnectionRequest generates a request for the CreateVpnConnection operation.
+// CreateVpnConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateVpnConnection operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateVpnConnection method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateVpnConnectionRequest method.
+//    req, resp := client.CreateVpnConnectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateVpnConnectionRequest(input *CreateVpnConnectionInput) (req *request.Request, output *CreateVpnConnectionOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpnConnection,
@@ -1906,7 +2959,28 @@ func (c *EC2) CreateVpnConnection(input *CreateVpnConnectionInput) (*CreateVpnCo
 
 const opCreateVpnConnectionRoute = "CreateVpnConnectionRoute"
 
-// CreateVpnConnectionRouteRequest generates a request for the CreateVpnConnectionRoute operation.
+// CreateVpnConnectionRouteRequest generates a "aws/request.Request" representing the
+// client's request for the CreateVpnConnectionRoute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateVpnConnectionRoute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateVpnConnectionRouteRequest method.
+//    req, resp := client.CreateVpnConnectionRouteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateVpnConnectionRouteRequest(input *CreateVpnConnectionRouteInput) (req *request.Request, output *CreateVpnConnectionRouteOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpnConnectionRoute,
@@ -1942,7 +3016,28 @@ func (c *EC2) CreateVpnConnectionRoute(input *CreateVpnConnectionRouteInput) (*C
 
 const opCreateVpnGateway = "CreateVpnGateway"
 
-// CreateVpnGatewayRequest generates a request for the CreateVpnGateway operation.
+// CreateVpnGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the CreateVpnGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateVpnGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateVpnGatewayRequest method.
+//    req, resp := client.CreateVpnGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) CreateVpnGatewayRequest(input *CreateVpnGatewayInput) (req *request.Request, output *CreateVpnGatewayOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpnGateway,
@@ -1975,7 +3070,28 @@ func (c *EC2) CreateVpnGateway(input *CreateVpnGatewayInput) (*CreateVpnGatewayO
 
 const opDeleteCustomerGateway = "DeleteCustomerGateway"
 
-// DeleteCustomerGatewayRequest generates a request for the DeleteCustomerGateway operation.
+// DeleteCustomerGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteCustomerGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteCustomerGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteCustomerGatewayRequest method.
+//    req, resp := client.DeleteCustomerGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteCustomerGatewayRequest(input *DeleteCustomerGatewayInput) (req *request.Request, output *DeleteCustomerGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCustomerGateway,
@@ -2005,7 +3121,28 @@ func (c *EC2) DeleteCustomerGateway(input *DeleteCustomerGatewayInput) (*DeleteC
 
 const opDeleteDhcpOptions = "DeleteDhcpOptions"
 
-// DeleteDhcpOptionsRequest generates a request for the DeleteDhcpOptions operation.
+// DeleteDhcpOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDhcpOptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteDhcpOptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteDhcpOptionsRequest method.
+//    req, resp := client.DeleteDhcpOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteDhcpOptionsRequest(input *DeleteDhcpOptionsInput) (req *request.Request, output *DeleteDhcpOptionsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDhcpOptions,
@@ -2037,7 +3174,28 @@ func (c *EC2) DeleteDhcpOptions(input *DeleteDhcpOptionsInput) (*DeleteDhcpOptio
 
 const opDeleteFlowLogs = "DeleteFlowLogs"
 
-// DeleteFlowLogsRequest generates a request for the DeleteFlowLogs operation.
+// DeleteFlowLogsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteFlowLogs operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteFlowLogs method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteFlowLogsRequest method.
+//    req, resp := client.DeleteFlowLogsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteFlowLogsRequest(input *DeleteFlowLogsInput) (req *request.Request, output *DeleteFlowLogsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteFlowLogs,
@@ -2064,7 +3222,28 @@ func (c *EC2) DeleteFlowLogs(input *DeleteFlowLogsInput) (*DeleteFlowLogsOutput,
 
 const opDeleteInternetGateway = "DeleteInternetGateway"
 
-// DeleteInternetGatewayRequest generates a request for the DeleteInternetGateway operation.
+// DeleteInternetGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteInternetGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteInternetGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteInternetGatewayRequest method.
+//    req, resp := client.DeleteInternetGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteInternetGatewayRequest(input *DeleteInternetGatewayInput) (req *request.Request, output *DeleteInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDeleteInternetGateway,
@@ -2094,7 +3273,28 @@ func (c *EC2) DeleteInternetGateway(input *DeleteInternetGatewayInput) (*DeleteI
 
 const opDeleteKeyPair = "DeleteKeyPair"
 
-// DeleteKeyPairRequest generates a request for the DeleteKeyPair operation.
+// DeleteKeyPairRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteKeyPair operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteKeyPair method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteKeyPairRequest method.
+//    req, resp := client.DeleteKeyPairRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteKeyPairRequest(input *DeleteKeyPairInput) (req *request.Request, output *DeleteKeyPairOutput) {
 	op := &request.Operation{
 		Name:       opDeleteKeyPair,
@@ -2123,7 +3323,28 @@ func (c *EC2) DeleteKeyPair(input *DeleteKeyPairInput) (*DeleteKeyPairOutput, er
 
 const opDeleteNatGateway = "DeleteNatGateway"
 
-// DeleteNatGatewayRequest generates a request for the DeleteNatGateway operation.
+// DeleteNatGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteNatGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteNatGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteNatGatewayRequest method.
+//    req, resp := client.DeleteNatGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteNatGatewayRequest(input *DeleteNatGatewayInput) (req *request.Request, output *DeleteNatGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDeleteNatGateway,
@@ -2152,7 +3373,28 @@ func (c *EC2) DeleteNatGateway(input *DeleteNatGatewayInput) (*DeleteNatGatewayO
 
 const opDeleteNetworkAcl = "DeleteNetworkAcl"
 
-// DeleteNetworkAclRequest generates a request for the DeleteNetworkAcl operation.
+// DeleteNetworkAclRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteNetworkAcl operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteNetworkAcl method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteNetworkAclRequest method.
+//    req, resp := client.DeleteNetworkAclRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteNetworkAclRequest(input *DeleteNetworkAclInput) (req *request.Request, output *DeleteNetworkAclOutput) {
 	op := &request.Operation{
 		Name:       opDeleteNetworkAcl,
@@ -2182,7 +3424,28 @@ func (c *EC2) DeleteNetworkAcl(input *DeleteNetworkAclInput) (*DeleteNetworkAclO
 
 const opDeleteNetworkAclEntry = "DeleteNetworkAclEntry"
 
-// DeleteNetworkAclEntryRequest generates a request for the DeleteNetworkAclEntry operation.
+// DeleteNetworkAclEntryRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteNetworkAclEntry operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteNetworkAclEntry method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteNetworkAclEntryRequest method.
+//    req, resp := client.DeleteNetworkAclEntryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteNetworkAclEntryRequest(input *DeleteNetworkAclEntryInput) (req *request.Request, output *DeleteNetworkAclEntryOutput) {
 	op := &request.Operation{
 		Name:       opDeleteNetworkAclEntry,
@@ -2212,7 +3475,28 @@ func (c *EC2) DeleteNetworkAclEntry(input *DeleteNetworkAclEntryInput) (*DeleteN
 
 const opDeleteNetworkInterface = "DeleteNetworkInterface"
 
-// DeleteNetworkInterfaceRequest generates a request for the DeleteNetworkInterface operation.
+// DeleteNetworkInterfaceRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteNetworkInterface operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteNetworkInterface method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteNetworkInterfaceRequest method.
+//    req, resp := client.DeleteNetworkInterfaceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteNetworkInterfaceRequest(input *DeleteNetworkInterfaceInput) (req *request.Request, output *DeleteNetworkInterfaceOutput) {
 	op := &request.Operation{
 		Name:       opDeleteNetworkInterface,
@@ -2242,7 +3526,28 @@ func (c *EC2) DeleteNetworkInterface(input *DeleteNetworkInterfaceInput) (*Delet
 
 const opDeletePlacementGroup = "DeletePlacementGroup"
 
-// DeletePlacementGroupRequest generates a request for the DeletePlacementGroup operation.
+// DeletePlacementGroupRequest generates a "aws/request.Request" representing the
+// client's request for the DeletePlacementGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeletePlacementGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeletePlacementGroupRequest method.
+//    req, resp := client.DeletePlacementGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeletePlacementGroupRequest(input *DeletePlacementGroupInput) (req *request.Request, output *DeletePlacementGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeletePlacementGroup,
@@ -2274,7 +3579,28 @@ func (c *EC2) DeletePlacementGroup(input *DeletePlacementGroupInput) (*DeletePla
 
 const opDeleteRoute = "DeleteRoute"
 
-// DeleteRouteRequest generates a request for the DeleteRoute operation.
+// DeleteRouteRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRoute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRoute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRouteRequest method.
+//    req, resp := client.DeleteRouteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteRouteRequest(input *DeleteRouteInput) (req *request.Request, output *DeleteRouteOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRoute,
@@ -2303,7 +3629,28 @@ func (c *EC2) DeleteRoute(input *DeleteRouteInput) (*DeleteRouteOutput, error) {
 
 const opDeleteRouteTable = "DeleteRouteTable"
 
-// DeleteRouteTableRequest generates a request for the DeleteRouteTable operation.
+// DeleteRouteTableRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRouteTable operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRouteTable method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRouteTableRequest method.
+//    req, resp := client.DeleteRouteTableRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteRouteTableRequest(input *DeleteRouteTableInput) (req *request.Request, output *DeleteRouteTableOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRouteTable,
@@ -2334,7 +3681,28 @@ func (c *EC2) DeleteRouteTable(input *DeleteRouteTableInput) (*DeleteRouteTableO
 
 const opDeleteSecurityGroup = "DeleteSecurityGroup"
 
-// DeleteSecurityGroupRequest generates a request for the DeleteSecurityGroup operation.
+// DeleteSecurityGroupRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSecurityGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteSecurityGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteSecurityGroupRequest method.
+//    req, resp := client.DeleteSecurityGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteSecurityGroupRequest(input *DeleteSecurityGroupInput) (req *request.Request, output *DeleteSecurityGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSecurityGroup,
@@ -2367,7 +3735,28 @@ func (c *EC2) DeleteSecurityGroup(input *DeleteSecurityGroupInput) (*DeleteSecur
 
 const opDeleteSnapshot = "DeleteSnapshot"
 
-// DeleteSnapshotRequest generates a request for the DeleteSnapshot operation.
+// DeleteSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteSnapshotRequest method.
+//    req, resp := client.DeleteSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *request.Request, output *DeleteSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSnapshot,
@@ -2410,7 +3799,28 @@ func (c *EC2) DeleteSnapshot(input *DeleteSnapshotInput) (*DeleteSnapshotOutput,
 
 const opDeleteSpotDatafeedSubscription = "DeleteSpotDatafeedSubscription"
 
-// DeleteSpotDatafeedSubscriptionRequest generates a request for the DeleteSpotDatafeedSubscription operation.
+// DeleteSpotDatafeedSubscriptionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSpotDatafeedSubscription operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteSpotDatafeedSubscription method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteSpotDatafeedSubscriptionRequest method.
+//    req, resp := client.DeleteSpotDatafeedSubscriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteSpotDatafeedSubscriptionRequest(input *DeleteSpotDatafeedSubscriptionInput) (req *request.Request, output *DeleteSpotDatafeedSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSpotDatafeedSubscription,
@@ -2439,7 +3849,28 @@ func (c *EC2) DeleteSpotDatafeedSubscription(input *DeleteSpotDatafeedSubscripti
 
 const opDeleteSubnet = "DeleteSubnet"
 
-// DeleteSubnetRequest generates a request for the DeleteSubnet operation.
+// DeleteSubnetRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSubnet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteSubnet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteSubnetRequest method.
+//    req, resp := client.DeleteSubnetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteSubnetRequest(input *DeleteSubnetInput) (req *request.Request, output *DeleteSubnetOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSubnet,
@@ -2469,7 +3900,28 @@ func (c *EC2) DeleteSubnet(input *DeleteSubnetInput) (*DeleteSubnetOutput, error
 
 const opDeleteTags = "DeleteTags"
 
-// DeleteTagsRequest generates a request for the DeleteTags operation.
+// DeleteTagsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteTagsRequest method.
+//    req, resp := client.DeleteTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, output *DeleteTagsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTags,
@@ -2502,7 +3954,28 @@ func (c *EC2) DeleteTags(input *DeleteTagsInput) (*DeleteTagsOutput, error) {
 
 const opDeleteVolume = "DeleteVolume"
 
-// DeleteVolumeRequest generates a request for the DeleteVolume operation.
+// DeleteVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVolume operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVolume method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVolumeRequest method.
+//    req, resp := client.DeleteVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteVolumeRequest(input *DeleteVolumeInput) (req *request.Request, output *DeleteVolumeOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVolume,
@@ -2537,7 +4010,28 @@ func (c *EC2) DeleteVolume(input *DeleteVolumeInput) (*DeleteVolumeOutput, error
 
 const opDeleteVpc = "DeleteVpc"
 
-// DeleteVpcRequest generates a request for the DeleteVpc operation.
+// DeleteVpcRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVpc operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVpc method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVpcRequest method.
+//    req, resp := client.DeleteVpcRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteVpcRequest(input *DeleteVpcInput) (req *request.Request, output *DeleteVpcOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpc,
@@ -2570,7 +4064,28 @@ func (c *EC2) DeleteVpc(input *DeleteVpcInput) (*DeleteVpcOutput, error) {
 
 const opDeleteVpcEndpoints = "DeleteVpcEndpoints"
 
-// DeleteVpcEndpointsRequest generates a request for the DeleteVpcEndpoints operation.
+// DeleteVpcEndpointsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVpcEndpoints operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVpcEndpoints method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVpcEndpointsRequest method.
+//    req, resp := client.DeleteVpcEndpointsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteVpcEndpointsRequest(input *DeleteVpcEndpointsInput) (req *request.Request, output *DeleteVpcEndpointsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpcEndpoints,
@@ -2598,7 +4113,28 @@ func (c *EC2) DeleteVpcEndpoints(input *DeleteVpcEndpointsInput) (*DeleteVpcEndp
 
 const opDeleteVpcPeeringConnection = "DeleteVpcPeeringConnection"
 
-// DeleteVpcPeeringConnectionRequest generates a request for the DeleteVpcPeeringConnection operation.
+// DeleteVpcPeeringConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVpcPeeringConnection operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVpcPeeringConnection method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVpcPeeringConnectionRequest method.
+//    req, resp := client.DeleteVpcPeeringConnectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteVpcPeeringConnectionRequest(input *DeleteVpcPeeringConnectionInput) (req *request.Request, output *DeleteVpcPeeringConnectionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpcPeeringConnection,
@@ -2628,7 +4164,28 @@ func (c *EC2) DeleteVpcPeeringConnection(input *DeleteVpcPeeringConnectionInput)
 
 const opDeleteVpnConnection = "DeleteVpnConnection"
 
-// DeleteVpnConnectionRequest generates a request for the DeleteVpnConnection operation.
+// DeleteVpnConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVpnConnection operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVpnConnection method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVpnConnectionRequest method.
+//    req, resp := client.DeleteVpnConnectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteVpnConnectionRequest(input *DeleteVpnConnectionInput) (req *request.Request, output *DeleteVpnConnectionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpnConnection,
@@ -2666,7 +4223,28 @@ func (c *EC2) DeleteVpnConnection(input *DeleteVpnConnectionInput) (*DeleteVpnCo
 
 const opDeleteVpnConnectionRoute = "DeleteVpnConnectionRoute"
 
-// DeleteVpnConnectionRouteRequest generates a request for the DeleteVpnConnectionRoute operation.
+// DeleteVpnConnectionRouteRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVpnConnectionRoute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVpnConnectionRoute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVpnConnectionRouteRequest method.
+//    req, resp := client.DeleteVpnConnectionRouteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteVpnConnectionRouteRequest(input *DeleteVpnConnectionRouteInput) (req *request.Request, output *DeleteVpnConnectionRouteOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpnConnectionRoute,
@@ -2698,7 +4276,28 @@ func (c *EC2) DeleteVpnConnectionRoute(input *DeleteVpnConnectionRouteInput) (*D
 
 const opDeleteVpnGateway = "DeleteVpnGateway"
 
-// DeleteVpnGatewayRequest generates a request for the DeleteVpnGateway operation.
+// DeleteVpnGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVpnGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVpnGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVpnGatewayRequest method.
+//    req, resp := client.DeleteVpnGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeleteVpnGatewayRequest(input *DeleteVpnGatewayInput) (req *request.Request, output *DeleteVpnGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpnGateway,
@@ -2731,7 +4330,28 @@ func (c *EC2) DeleteVpnGateway(input *DeleteVpnGatewayInput) (*DeleteVpnGatewayO
 
 const opDeregisterImage = "DeregisterImage"
 
-// DeregisterImageRequest generates a request for the DeregisterImage operation.
+// DeregisterImageRequest generates a "aws/request.Request" representing the
+// client's request for the DeregisterImage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeregisterImage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeregisterImageRequest method.
+//    req, resp := client.DeregisterImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DeregisterImageRequest(input *DeregisterImageInput) (req *request.Request, output *DeregisterImageOutput) {
 	op := &request.Operation{
 		Name:       opDeregisterImage,
@@ -2763,7 +4383,28 @@ func (c *EC2) DeregisterImage(input *DeregisterImageInput) (*DeregisterImageOutp
 
 const opDescribeAccountAttributes = "DescribeAccountAttributes"
 
-// DescribeAccountAttributesRequest generates a request for the DescribeAccountAttributes operation.
+// DescribeAccountAttributesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAccountAttributes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAccountAttributes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAccountAttributesRequest method.
+//    req, resp := client.DescribeAccountAttributesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeAccountAttributesRequest(input *DescribeAccountAttributesInput) (req *request.Request, output *DescribeAccountAttributesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAccountAttributes,
@@ -2784,22 +4425,22 @@ func (c *EC2) DescribeAccountAttributesRequest(input *DescribeAccountAttributesI
 // Describes attributes of your AWS account. The following are the supported
 // account attributes:
 //
-//   supported-platforms: Indicates whether your account can launch instances
+//    supported-platforms: Indicates whether your account can launch instances
 // into EC2-Classic and EC2-VPC, or only into EC2-VPC.
 //
-//   default-vpc: The ID of the default VPC for your account, or none.
+//    default-vpc: The ID of the default VPC for your account, or none.
 //
-//   max-instances: The maximum number of On-Demand instances that you can
+//    max-instances: The maximum number of On-Demand instances that you can
 // run.
 //
-//   vpc-max-security-groups-per-interface: The maximum number of security
+//    vpc-max-security-groups-per-interface: The maximum number of security
 // groups that you can assign to a network interface.
 //
-//   max-elastic-ips: The maximum number of Elastic IP addresses that you can
-// allocate for use with EC2-Classic.
+//    max-elastic-ips: The maximum number of Elastic IP addresses that you
+// can allocate for use with EC2-Classic.
 //
-//   vpc-max-elastic-ips: The maximum number of Elastic IP addresses that you
-// can allocate for use with EC2-VPC.
+//    vpc-max-elastic-ips: The maximum number of Elastic IP addresses that
+// you can allocate for use with EC2-VPC.
 func (c *EC2) DescribeAccountAttributes(input *DescribeAccountAttributesInput) (*DescribeAccountAttributesOutput, error) {
 	req, out := c.DescribeAccountAttributesRequest(input)
 	err := req.Send()
@@ -2808,7 +4449,28 @@ func (c *EC2) DescribeAccountAttributes(input *DescribeAccountAttributesInput) (
 
 const opDescribeAddresses = "DescribeAddresses"
 
-// DescribeAddressesRequest generates a request for the DescribeAddresses operation.
+// DescribeAddressesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAddresses operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAddresses method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAddressesRequest method.
+//    req, resp := client.DescribeAddressesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeAddressesRequest(input *DescribeAddressesInput) (req *request.Request, output *DescribeAddressesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAddresses,
@@ -2839,7 +4501,28 @@ func (c *EC2) DescribeAddresses(input *DescribeAddressesInput) (*DescribeAddress
 
 const opDescribeAvailabilityZones = "DescribeAvailabilityZones"
 
-// DescribeAvailabilityZonesRequest generates a request for the DescribeAvailabilityZones operation.
+// DescribeAvailabilityZonesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAvailabilityZones operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAvailabilityZones method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAvailabilityZonesRequest method.
+//    req, resp := client.DescribeAvailabilityZonesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeAvailabilityZonesRequest(input *DescribeAvailabilityZonesInput) (req *request.Request, output *DescribeAvailabilityZonesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAvailabilityZones,
@@ -2872,7 +4555,28 @@ func (c *EC2) DescribeAvailabilityZones(input *DescribeAvailabilityZonesInput) (
 
 const opDescribeBundleTasks = "DescribeBundleTasks"
 
-// DescribeBundleTasksRequest generates a request for the DescribeBundleTasks operation.
+// DescribeBundleTasksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeBundleTasks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeBundleTasks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeBundleTasksRequest method.
+//    req, resp := client.DescribeBundleTasksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeBundleTasksRequest(input *DescribeBundleTasksInput) (req *request.Request, output *DescribeBundleTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeBundleTasks,
@@ -2892,7 +4596,7 @@ func (c *EC2) DescribeBundleTasksRequest(input *DescribeBundleTasksInput) (req *
 
 // Describes one or more of your bundling tasks.
 //
-// Completed bundle tasks are listed for only a limited time. If your bundle
+//  Completed bundle tasks are listed for only a limited time. If your bundle
 // task is no longer in the list, you can still register an AMI from it. Just
 // use RegisterImage with the Amazon S3 bucket name and image manifest name
 // you provided to the bundle task.
@@ -2904,7 +4608,28 @@ func (c *EC2) DescribeBundleTasks(input *DescribeBundleTasksInput) (*DescribeBun
 
 const opDescribeClassicLinkInstances = "DescribeClassicLinkInstances"
 
-// DescribeClassicLinkInstancesRequest generates a request for the DescribeClassicLinkInstances operation.
+// DescribeClassicLinkInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClassicLinkInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeClassicLinkInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeClassicLinkInstancesRequest method.
+//    req, resp := client.DescribeClassicLinkInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeClassicLinkInstancesRequest(input *DescribeClassicLinkInstancesInput) (req *request.Request, output *DescribeClassicLinkInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeClassicLinkInstances,
@@ -2934,7 +4659,28 @@ func (c *EC2) DescribeClassicLinkInstances(input *DescribeClassicLinkInstancesIn
 
 const opDescribeConversionTasks = "DescribeConversionTasks"
 
-// DescribeConversionTasksRequest generates a request for the DescribeConversionTasks operation.
+// DescribeConversionTasksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeConversionTasks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeConversionTasks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeConversionTasksRequest method.
+//    req, resp := client.DescribeConversionTasksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeConversionTasksRequest(input *DescribeConversionTasksInput) (req *request.Request, output *DescribeConversionTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConversionTasks,
@@ -2967,7 +4713,28 @@ func (c *EC2) DescribeConversionTasks(input *DescribeConversionTasksInput) (*Des
 
 const opDescribeCustomerGateways = "DescribeCustomerGateways"
 
-// DescribeCustomerGatewaysRequest generates a request for the DescribeCustomerGateways operation.
+// DescribeCustomerGatewaysRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeCustomerGateways operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeCustomerGateways method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeCustomerGatewaysRequest method.
+//    req, resp := client.DescribeCustomerGatewaysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeCustomerGatewaysRequest(input *DescribeCustomerGatewaysInput) (req *request.Request, output *DescribeCustomerGatewaysOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCustomerGateways,
@@ -2998,7 +4765,28 @@ func (c *EC2) DescribeCustomerGateways(input *DescribeCustomerGatewaysInput) (*D
 
 const opDescribeDhcpOptions = "DescribeDhcpOptions"
 
-// DescribeDhcpOptionsRequest generates a request for the DescribeDhcpOptions operation.
+// DescribeDhcpOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDhcpOptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeDhcpOptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeDhcpOptionsRequest method.
+//    req, resp := client.DescribeDhcpOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeDhcpOptionsRequest(input *DescribeDhcpOptionsInput) (req *request.Request, output *DescribeDhcpOptionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDhcpOptions,
@@ -3028,7 +4816,28 @@ func (c *EC2) DescribeDhcpOptions(input *DescribeDhcpOptionsInput) (*DescribeDhc
 
 const opDescribeExportTasks = "DescribeExportTasks"
 
-// DescribeExportTasksRequest generates a request for the DescribeExportTasks operation.
+// DescribeExportTasksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeExportTasks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeExportTasks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeExportTasksRequest method.
+//    req, resp := client.DescribeExportTasksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *request.Request, output *DescribeExportTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeExportTasks,
@@ -3055,7 +4864,28 @@ func (c *EC2) DescribeExportTasks(input *DescribeExportTasksInput) (*DescribeExp
 
 const opDescribeFlowLogs = "DescribeFlowLogs"
 
-// DescribeFlowLogsRequest generates a request for the DescribeFlowLogs operation.
+// DescribeFlowLogsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeFlowLogs operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeFlowLogs method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeFlowLogsRequest method.
+//    req, resp := client.DescribeFlowLogsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeFlowLogsRequest(input *DescribeFlowLogsInput) (req *request.Request, output *DescribeFlowLogsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeFlowLogs,
@@ -3084,7 +4914,28 @@ func (c *EC2) DescribeFlowLogs(input *DescribeFlowLogsInput) (*DescribeFlowLogsO
 
 const opDescribeHosts = "DescribeHosts"
 
-// DescribeHostsRequest generates a request for the DescribeHosts operation.
+// DescribeHostsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeHosts operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeHosts method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeHostsRequest method.
+//    req, resp := client.DescribeHostsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeHostsRequest(input *DescribeHostsInput) (req *request.Request, output *DescribeHostsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeHosts,
@@ -3115,7 +4966,28 @@ func (c *EC2) DescribeHosts(input *DescribeHostsInput) (*DescribeHostsOutput, er
 
 const opDescribeIdFormat = "DescribeIdFormat"
 
-// DescribeIdFormatRequest generates a request for the DescribeIdFormat operation.
+// DescribeIdFormatRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeIdFormat operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeIdFormat method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeIdFormatRequest method.
+//    req, resp := client.DescribeIdFormatRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeIdFormatRequest(input *DescribeIdFormatInput) (req *request.Request, output *DescribeIdFormatOutput) {
 	op := &request.Operation{
 		Name:       opDescribeIdFormat,
@@ -3154,9 +5026,89 @@ func (c *EC2) DescribeIdFormat(input *DescribeIdFormatInput) (*DescribeIdFormatO
 	return out, err
 }
 
+const opDescribeIdentityIdFormat = "DescribeIdentityIdFormat"
+
+// DescribeIdentityIdFormatRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeIdentityIdFormat operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeIdentityIdFormat method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeIdentityIdFormatRequest method.
+//    req, resp := client.DescribeIdentityIdFormatRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) DescribeIdentityIdFormatRequest(input *DescribeIdentityIdFormatInput) (req *request.Request, output *DescribeIdentityIdFormatOutput) {
+	op := &request.Operation{
+		Name:       opDescribeIdentityIdFormat,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeIdentityIdFormatInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeIdentityIdFormatOutput{}
+	req.Data = output
+	return
+}
+
+// Describes the ID format settings for resources for the specified IAM user,
+// IAM role, or root user. For example, you can view the resource types that
+// are enabled for longer IDs. This request only returns information about resource
+// types whose ID formats can be modified; it does not return information about
+// other resource types. For more information, see Resource IDs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/resource-ids.html)
+// in the Amazon Elastic Compute Cloud User Guide.
+//
+// The following resource types support longer IDs: instance | reservation
+// | snapshot | volume.
+//
+// These settings apply to the principal specified in the request. They do
+// not apply to the principal that makes the request.
+func (c *EC2) DescribeIdentityIdFormat(input *DescribeIdentityIdFormatInput) (*DescribeIdentityIdFormatOutput, error) {
+	req, out := c.DescribeIdentityIdFormatRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeImageAttribute = "DescribeImageAttribute"
 
-// DescribeImageAttributeRequest generates a request for the DescribeImageAttribute operation.
+// DescribeImageAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeImageAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeImageAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeImageAttributeRequest method.
+//    req, resp := client.DescribeImageAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeImageAttributeRequest(input *DescribeImageAttributeInput) (req *request.Request, output *DescribeImageAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeImageAttribute,
@@ -3184,7 +5136,28 @@ func (c *EC2) DescribeImageAttribute(input *DescribeImageAttributeInput) (*Descr
 
 const opDescribeImages = "DescribeImages"
 
-// DescribeImagesRequest generates a request for the DescribeImages operation.
+// DescribeImagesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeImages operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeImages method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeImagesRequest method.
+//    req, resp := client.DescribeImagesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Request, output *DescribeImagesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeImages,
@@ -3207,7 +5180,7 @@ func (c *EC2) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 // and private images owned by other AWS accounts but for which you have explicit
 // launch permissions.
 //
-// Deregistered images are included in the returned results for an unspecified
+//  Deregistered images are included in the returned results for an unspecified
 // interval after deregistration.
 func (c *EC2) DescribeImages(input *DescribeImagesInput) (*DescribeImagesOutput, error) {
 	req, out := c.DescribeImagesRequest(input)
@@ -3217,7 +5190,28 @@ func (c *EC2) DescribeImages(input *DescribeImagesInput) (*DescribeImagesOutput,
 
 const opDescribeImportImageTasks = "DescribeImportImageTasks"
 
-// DescribeImportImageTasksRequest generates a request for the DescribeImportImageTasks operation.
+// DescribeImportImageTasksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeImportImageTasks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeImportImageTasks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeImportImageTasksRequest method.
+//    req, resp := client.DescribeImportImageTasksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeImportImageTasksRequest(input *DescribeImportImageTasksInput) (req *request.Request, output *DescribeImportImageTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeImportImageTasks,
@@ -3245,7 +5239,28 @@ func (c *EC2) DescribeImportImageTasks(input *DescribeImportImageTasksInput) (*D
 
 const opDescribeImportSnapshotTasks = "DescribeImportSnapshotTasks"
 
-// DescribeImportSnapshotTasksRequest generates a request for the DescribeImportSnapshotTasks operation.
+// DescribeImportSnapshotTasksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeImportSnapshotTasks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeImportSnapshotTasks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeImportSnapshotTasksRequest method.
+//    req, resp := client.DescribeImportSnapshotTasksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeImportSnapshotTasksRequest(input *DescribeImportSnapshotTasksInput) (req *request.Request, output *DescribeImportSnapshotTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeImportSnapshotTasks,
@@ -3272,7 +5287,28 @@ func (c *EC2) DescribeImportSnapshotTasks(input *DescribeImportSnapshotTasksInpu
 
 const opDescribeInstanceAttribute = "DescribeInstanceAttribute"
 
-// DescribeInstanceAttributeRequest generates a request for the DescribeInstanceAttribute operation.
+// DescribeInstanceAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInstanceAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInstanceAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInstanceAttributeRequest method.
+//    req, resp := client.DescribeInstanceAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeInstanceAttributeRequest(input *DescribeInstanceAttributeInput) (req *request.Request, output *DescribeInstanceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstanceAttribute,
@@ -3303,7 +5339,28 @@ func (c *EC2) DescribeInstanceAttribute(input *DescribeInstanceAttributeInput) (
 
 const opDescribeInstanceStatus = "DescribeInstanceStatus"
 
-// DescribeInstanceStatusRequest generates a request for the DescribeInstanceStatus operation.
+// DescribeInstanceStatusRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInstanceStatus operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInstanceStatus method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInstanceStatusRequest method.
+//    req, resp := client.DescribeInstanceStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeInstanceStatusRequest(input *DescribeInstanceStatusInput) (req *request.Request, output *DescribeInstanceStatusOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstanceStatus,
@@ -3332,19 +5389,19 @@ func (c *EC2) DescribeInstanceStatusRequest(input *DescribeInstanceStatusInput) 
 //
 // Instance status includes the following components:
 //
-//   Status checks - Amazon EC2 performs status checks on running EC2 instances
+//    Status checks - Amazon EC2 performs status checks on running EC2 instances
 // to identify hardware and software issues. For more information, see Status
 // Checks for Your Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-system-instance-status-check.html)
 // and Troubleshooting Instances with Failed Status Checks (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/TroubleshootingInstances.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
-//  Scheduled events - Amazon EC2 can schedule events (such as reboot, stop,
+//    Scheduled events - Amazon EC2 can schedule events (such as reboot, stop,
 // or terminate) for your instances related to hardware issues, software updates,
 // or system maintenance. For more information, see Scheduled Events for Your
 // Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-instances-status-check_sched.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
-//   Instance state - You can manage your instances from the moment you launch
+//    Instance state - You can manage your instances from the moment you launch
 // them through their termination. For more information, see Instance Lifecycle
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html)
 // in the Amazon Elastic Compute Cloud User Guide.
@@ -3354,6 +5411,23 @@ func (c *EC2) DescribeInstanceStatus(input *DescribeInstanceStatusInput) (*Descr
 	return out, err
 }
 
+// DescribeInstanceStatusPages iterates over the pages of a DescribeInstanceStatus operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeInstanceStatus method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeInstanceStatus operation.
+//    pageNum := 0
+//    err := client.DescribeInstanceStatusPages(params,
+//        func(page *DescribeInstanceStatusOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EC2) DescribeInstanceStatusPages(input *DescribeInstanceStatusInput, fn func(p *DescribeInstanceStatusOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeInstanceStatusRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -3364,7 +5438,28 @@ func (c *EC2) DescribeInstanceStatusPages(input *DescribeInstanceStatusInput, fn
 
 const opDescribeInstances = "DescribeInstances"
 
-// DescribeInstancesRequest generates a request for the DescribeInstances operation.
+// DescribeInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInstancesRequest method.
+//    req, resp := client.DescribeInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeInstancesRequest(input *DescribeInstancesInput) (req *request.Request, output *DescribeInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstances,
@@ -3398,12 +5493,35 @@ func (c *EC2) DescribeInstancesRequest(input *DescribeInstancesInput) (req *requ
 //
 // Recently terminated instances might appear in the returned results. This
 // interval is usually less than one hour.
+//
+// If you describe instances in the rare case where an Availability Zone is
+// experiencing a service disruption and you specify instance IDs that are in
+// the affected zone, or do not specify any instance IDs at all, the call fails.
+// If you describe instances and specify only instance IDs that are in an unaffected
+// zone, the call works normally.
 func (c *EC2) DescribeInstances(input *DescribeInstancesInput) (*DescribeInstancesOutput, error) {
 	req, out := c.DescribeInstancesRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// DescribeInstancesPages iterates over the pages of a DescribeInstances operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeInstances method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeInstances operation.
+//    pageNum := 0
+//    err := client.DescribeInstancesPages(params,
+//        func(page *DescribeInstancesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EC2) DescribeInstancesPages(input *DescribeInstancesInput, fn func(p *DescribeInstancesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeInstancesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -3414,7 +5532,28 @@ func (c *EC2) DescribeInstancesPages(input *DescribeInstancesInput, fn func(p *D
 
 const opDescribeInternetGateways = "DescribeInternetGateways"
 
-// DescribeInternetGatewaysRequest generates a request for the DescribeInternetGateways operation.
+// DescribeInternetGatewaysRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInternetGateways operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInternetGateways method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInternetGatewaysRequest method.
+//    req, resp := client.DescribeInternetGatewaysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeInternetGatewaysRequest(input *DescribeInternetGatewaysInput) (req *request.Request, output *DescribeInternetGatewaysOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInternetGateways,
@@ -3441,7 +5580,28 @@ func (c *EC2) DescribeInternetGateways(input *DescribeInternetGatewaysInput) (*D
 
 const opDescribeKeyPairs = "DescribeKeyPairs"
 
-// DescribeKeyPairsRequest generates a request for the DescribeKeyPairs operation.
+// DescribeKeyPairsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeKeyPairs operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeKeyPairs method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeKeyPairsRequest method.
+//    req, resp := client.DescribeKeyPairsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeKeyPairsRequest(input *DescribeKeyPairsInput) (req *request.Request, output *DescribeKeyPairsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeKeyPairs,
@@ -3471,7 +5631,28 @@ func (c *EC2) DescribeKeyPairs(input *DescribeKeyPairsInput) (*DescribeKeyPairsO
 
 const opDescribeMovingAddresses = "DescribeMovingAddresses"
 
-// DescribeMovingAddressesRequest generates a request for the DescribeMovingAddresses operation.
+// DescribeMovingAddressesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeMovingAddresses operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeMovingAddresses method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeMovingAddressesRequest method.
+//    req, resp := client.DescribeMovingAddressesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeMovingAddressesRequest(input *DescribeMovingAddressesInput) (req *request.Request, output *DescribeMovingAddressesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeMovingAddresses,
@@ -3500,7 +5681,28 @@ func (c *EC2) DescribeMovingAddresses(input *DescribeMovingAddressesInput) (*Des
 
 const opDescribeNatGateways = "DescribeNatGateways"
 
-// DescribeNatGatewaysRequest generates a request for the DescribeNatGateways operation.
+// DescribeNatGatewaysRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeNatGateways operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeNatGateways method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeNatGatewaysRequest method.
+//    req, resp := client.DescribeNatGatewaysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeNatGatewaysRequest(input *DescribeNatGatewaysInput) (req *request.Request, output *DescribeNatGatewaysOutput) {
 	op := &request.Operation{
 		Name:       opDescribeNatGateways,
@@ -3527,7 +5729,28 @@ func (c *EC2) DescribeNatGateways(input *DescribeNatGatewaysInput) (*DescribeNat
 
 const opDescribeNetworkAcls = "DescribeNetworkAcls"
 
-// DescribeNetworkAclsRequest generates a request for the DescribeNetworkAcls operation.
+// DescribeNetworkAclsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeNetworkAcls operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeNetworkAcls method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeNetworkAclsRequest method.
+//    req, resp := client.DescribeNetworkAclsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeNetworkAclsRequest(input *DescribeNetworkAclsInput) (req *request.Request, output *DescribeNetworkAclsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeNetworkAcls,
@@ -3557,7 +5780,28 @@ func (c *EC2) DescribeNetworkAcls(input *DescribeNetworkAclsInput) (*DescribeNet
 
 const opDescribeNetworkInterfaceAttribute = "DescribeNetworkInterfaceAttribute"
 
-// DescribeNetworkInterfaceAttributeRequest generates a request for the DescribeNetworkInterfaceAttribute operation.
+// DescribeNetworkInterfaceAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeNetworkInterfaceAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeNetworkInterfaceAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeNetworkInterfaceAttributeRequest method.
+//    req, resp := client.DescribeNetworkInterfaceAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeNetworkInterfaceAttributeRequest(input *DescribeNetworkInterfaceAttributeInput) (req *request.Request, output *DescribeNetworkInterfaceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeNetworkInterfaceAttribute,
@@ -3585,7 +5829,28 @@ func (c *EC2) DescribeNetworkInterfaceAttribute(input *DescribeNetworkInterfaceA
 
 const opDescribeNetworkInterfaces = "DescribeNetworkInterfaces"
 
-// DescribeNetworkInterfacesRequest generates a request for the DescribeNetworkInterfaces operation.
+// DescribeNetworkInterfacesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeNetworkInterfaces operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeNetworkInterfaces method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeNetworkInterfacesRequest method.
+//    req, resp := client.DescribeNetworkInterfacesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeNetworkInterfacesRequest(input *DescribeNetworkInterfacesInput) (req *request.Request, output *DescribeNetworkInterfacesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeNetworkInterfaces,
@@ -3612,7 +5877,28 @@ func (c *EC2) DescribeNetworkInterfaces(input *DescribeNetworkInterfacesInput) (
 
 const opDescribePlacementGroups = "DescribePlacementGroups"
 
-// DescribePlacementGroupsRequest generates a request for the DescribePlacementGroups operation.
+// DescribePlacementGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribePlacementGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribePlacementGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribePlacementGroupsRequest method.
+//    req, resp := client.DescribePlacementGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribePlacementGroupsRequest(input *DescribePlacementGroupsInput) (req *request.Request, output *DescribePlacementGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribePlacementGroups,
@@ -3641,7 +5927,28 @@ func (c *EC2) DescribePlacementGroups(input *DescribePlacementGroupsInput) (*Des
 
 const opDescribePrefixLists = "DescribePrefixLists"
 
-// DescribePrefixListsRequest generates a request for the DescribePrefixLists operation.
+// DescribePrefixListsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribePrefixLists operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribePrefixLists method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribePrefixListsRequest method.
+//    req, resp := client.DescribePrefixListsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribePrefixListsRequest(input *DescribePrefixListsInput) (req *request.Request, output *DescribePrefixListsOutput) {
 	op := &request.Operation{
 		Name:       opDescribePrefixLists,
@@ -3672,7 +5979,28 @@ func (c *EC2) DescribePrefixLists(input *DescribePrefixListsInput) (*DescribePre
 
 const opDescribeRegions = "DescribeRegions"
 
-// DescribeRegionsRequest generates a request for the DescribeRegions operation.
+// DescribeRegionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeRegions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeRegions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeRegionsRequest method.
+//    req, resp := client.DescribeRegionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeRegionsRequest(input *DescribeRegionsInput) (req *request.Request, output *DescribeRegionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRegions,
@@ -3702,7 +6030,28 @@ func (c *EC2) DescribeRegions(input *DescribeRegionsInput) (*DescribeRegionsOutp
 
 const opDescribeReservedInstances = "DescribeReservedInstances"
 
-// DescribeReservedInstancesRequest generates a request for the DescribeReservedInstances operation.
+// DescribeReservedInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReservedInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeReservedInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeReservedInstancesRequest method.
+//    req, resp := client.DescribeReservedInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeReservedInstancesRequest(input *DescribeReservedInstancesInput) (req *request.Request, output *DescribeReservedInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedInstances,
@@ -3732,7 +6081,28 @@ func (c *EC2) DescribeReservedInstances(input *DescribeReservedInstancesInput) (
 
 const opDescribeReservedInstancesListings = "DescribeReservedInstancesListings"
 
-// DescribeReservedInstancesListingsRequest generates a request for the DescribeReservedInstancesListings operation.
+// DescribeReservedInstancesListingsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReservedInstancesListings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeReservedInstancesListings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeReservedInstancesListingsRequest method.
+//    req, resp := client.DescribeReservedInstancesListingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeReservedInstancesListingsRequest(input *DescribeReservedInstancesListingsInput) (req *request.Request, output *DescribeReservedInstancesListingsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedInstancesListings,
@@ -3780,7 +6150,28 @@ func (c *EC2) DescribeReservedInstancesListings(input *DescribeReservedInstances
 
 const opDescribeReservedInstancesModifications = "DescribeReservedInstancesModifications"
 
-// DescribeReservedInstancesModificationsRequest generates a request for the DescribeReservedInstancesModifications operation.
+// DescribeReservedInstancesModificationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReservedInstancesModifications operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeReservedInstancesModifications method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeReservedInstancesModificationsRequest method.
+//    req, resp := client.DescribeReservedInstancesModificationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeReservedInstancesModificationsRequest(input *DescribeReservedInstancesModificationsInput) (req *request.Request, output *DescribeReservedInstancesModificationsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedInstancesModifications,
@@ -3817,6 +6208,23 @@ func (c *EC2) DescribeReservedInstancesModifications(input *DescribeReservedInst
 	return out, err
 }
 
+// DescribeReservedInstancesModificationsPages iterates over the pages of a DescribeReservedInstancesModifications operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeReservedInstancesModifications method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeReservedInstancesModifications operation.
+//    pageNum := 0
+//    err := client.DescribeReservedInstancesModificationsPages(params,
+//        func(page *DescribeReservedInstancesModificationsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EC2) DescribeReservedInstancesModificationsPages(input *DescribeReservedInstancesModificationsInput, fn func(p *DescribeReservedInstancesModificationsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeReservedInstancesModificationsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -3827,7 +6235,28 @@ func (c *EC2) DescribeReservedInstancesModificationsPages(input *DescribeReserve
 
 const opDescribeReservedInstancesOfferings = "DescribeReservedInstancesOfferings"
 
-// DescribeReservedInstancesOfferingsRequest generates a request for the DescribeReservedInstancesOfferings operation.
+// DescribeReservedInstancesOfferingsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReservedInstancesOfferings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeReservedInstancesOfferings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeReservedInstancesOfferingsRequest method.
+//    req, resp := client.DescribeReservedInstancesOfferingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeReservedInstancesOfferingsRequest(input *DescribeReservedInstancesOfferingsInput) (req *request.Request, output *DescribeReservedInstancesOfferingsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedInstancesOfferings,
@@ -3869,6 +6298,23 @@ func (c *EC2) DescribeReservedInstancesOfferings(input *DescribeReservedInstance
 	return out, err
 }
 
+// DescribeReservedInstancesOfferingsPages iterates over the pages of a DescribeReservedInstancesOfferings operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeReservedInstancesOfferings method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeReservedInstancesOfferings operation.
+//    pageNum := 0
+//    err := client.DescribeReservedInstancesOfferingsPages(params,
+//        func(page *DescribeReservedInstancesOfferingsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EC2) DescribeReservedInstancesOfferingsPages(input *DescribeReservedInstancesOfferingsInput, fn func(p *DescribeReservedInstancesOfferingsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeReservedInstancesOfferingsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -3879,7 +6325,28 @@ func (c *EC2) DescribeReservedInstancesOfferingsPages(input *DescribeReservedIns
 
 const opDescribeRouteTables = "DescribeRouteTables"
 
-// DescribeRouteTablesRequest generates a request for the DescribeRouteTables operation.
+// DescribeRouteTablesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeRouteTables operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeRouteTables method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeRouteTablesRequest method.
+//    req, resp := client.DescribeRouteTablesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeRouteTablesRequest(input *DescribeRouteTablesInput) (req *request.Request, output *DescribeRouteTablesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRouteTables,
@@ -3914,7 +6381,28 @@ func (c *EC2) DescribeRouteTables(input *DescribeRouteTablesInput) (*DescribeRou
 
 const opDescribeScheduledInstanceAvailability = "DescribeScheduledInstanceAvailability"
 
-// DescribeScheduledInstanceAvailabilityRequest generates a request for the DescribeScheduledInstanceAvailability operation.
+// DescribeScheduledInstanceAvailabilityRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeScheduledInstanceAvailability operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeScheduledInstanceAvailability method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeScheduledInstanceAvailabilityRequest method.
+//    req, resp := client.DescribeScheduledInstanceAvailabilityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeScheduledInstanceAvailabilityRequest(input *DescribeScheduledInstanceAvailabilityInput) (req *request.Request, output *DescribeScheduledInstanceAvailabilityOutput) {
 	op := &request.Operation{
 		Name:       opDescribeScheduledInstanceAvailability,
@@ -3949,7 +6437,28 @@ func (c *EC2) DescribeScheduledInstanceAvailability(input *DescribeScheduledInst
 
 const opDescribeScheduledInstances = "DescribeScheduledInstances"
 
-// DescribeScheduledInstancesRequest generates a request for the DescribeScheduledInstances operation.
+// DescribeScheduledInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeScheduledInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeScheduledInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeScheduledInstancesRequest method.
+//    req, resp := client.DescribeScheduledInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeScheduledInstancesRequest(input *DescribeScheduledInstancesInput) (req *request.Request, output *DescribeScheduledInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeScheduledInstances,
@@ -3974,9 +6483,79 @@ func (c *EC2) DescribeScheduledInstances(input *DescribeScheduledInstancesInput)
 	return out, err
 }
 
+const opDescribeSecurityGroupReferences = "DescribeSecurityGroupReferences"
+
+// DescribeSecurityGroupReferencesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSecurityGroupReferences operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSecurityGroupReferences method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSecurityGroupReferencesRequest method.
+//    req, resp := client.DescribeSecurityGroupReferencesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) DescribeSecurityGroupReferencesRequest(input *DescribeSecurityGroupReferencesInput) (req *request.Request, output *DescribeSecurityGroupReferencesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeSecurityGroupReferences,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeSecurityGroupReferencesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeSecurityGroupReferencesOutput{}
+	req.Data = output
+	return
+}
+
+// [EC2-VPC only] Describes the VPCs on the other side of a VPC peering connection
+// that are referencing the security groups you've specified in this request.
+func (c *EC2) DescribeSecurityGroupReferences(input *DescribeSecurityGroupReferencesInput) (*DescribeSecurityGroupReferencesOutput, error) {
+	req, out := c.DescribeSecurityGroupReferencesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeSecurityGroups = "DescribeSecurityGroups"
 
-// DescribeSecurityGroupsRequest generates a request for the DescribeSecurityGroups operation.
+// DescribeSecurityGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSecurityGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSecurityGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSecurityGroupsRequest method.
+//    req, resp := client.DescribeSecurityGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSecurityGroupsRequest(input *DescribeSecurityGroupsInput) (req *request.Request, output *DescribeSecurityGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSecurityGroups,
@@ -4010,7 +6589,28 @@ func (c *EC2) DescribeSecurityGroups(input *DescribeSecurityGroupsInput) (*Descr
 
 const opDescribeSnapshotAttribute = "DescribeSnapshotAttribute"
 
-// DescribeSnapshotAttributeRequest generates a request for the DescribeSnapshotAttribute operation.
+// DescribeSnapshotAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSnapshotAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSnapshotAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSnapshotAttributeRequest method.
+//    req, resp := client.DescribeSnapshotAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSnapshotAttributeRequest(input *DescribeSnapshotAttributeInput) (req *request.Request, output *DescribeSnapshotAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSnapshotAttribute,
@@ -4031,8 +6631,8 @@ func (c *EC2) DescribeSnapshotAttributeRequest(input *DescribeSnapshotAttributeI
 // Describes the specified attribute of the specified snapshot. You can specify
 // only one attribute at a time.
 //
-// For more information about EBS snapshots, see Amazon EBS Snapshots in the
-// Amazon Elastic Compute Cloud User Guide.
+// For more information about EBS snapshots, see Amazon EBS Snapshots (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html)
+// in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) DescribeSnapshotAttribute(input *DescribeSnapshotAttributeInput) (*DescribeSnapshotAttributeOutput, error) {
 	req, out := c.DescribeSnapshotAttributeRequest(input)
 	err := req.Send()
@@ -4041,7 +6641,28 @@ func (c *EC2) DescribeSnapshotAttribute(input *DescribeSnapshotAttributeInput) (
 
 const opDescribeSnapshots = "DescribeSnapshots"
 
-// DescribeSnapshotsRequest generates a request for the DescribeSnapshots operation.
+// DescribeSnapshotsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSnapshots operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSnapshots method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSnapshotsRequest method.
+//    req, resp := client.DescribeSnapshotsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *request.Request, output *DescribeSnapshotsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSnapshots,
@@ -4072,14 +6693,14 @@ func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *requ
 //
 // The create volume permissions fall into the following categories:
 //
-//   public: The owner of the snapshot granted create volume permissions for
+//    public: The owner of the snapshot granted create volume permissions for
 // the snapshot to the all group. All AWS accounts have create volume permissions
 // for these snapshots.
 //
-//   explicit: The owner of the snapshot granted create volume permissions
+//    explicit: The owner of the snapshot granted create volume permissions
 // to a specific AWS account.
 //
-//   implicit: An AWS account has implicit create volume permissions for all
+//    implicit: An AWS account has implicit create volume permissions for all
 // snapshots it owns.
 //
 //   The list of snapshots returned can be modified by specifying snapshot
@@ -4092,10 +6713,10 @@ func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *requ
 // If you specify a snapshot ID for which you do not have access, it is not
 // included in the returned results.
 //
-// If you specify one or more snapshot owners, only snapshots from the specified
-// owners and for which you have access are returned. The results can include
-// the AWS account IDs of the specified owners, amazon for snapshots owned by
-// Amazon, or self for snapshots that you own.
+// If you specify one or more snapshot owners using the OwnerIds option, only
+// snapshots from the specified owners and for which you have access are returned.
+// The results can include the AWS account IDs of the specified owners, amazon
+// for snapshots owned by Amazon, or self for snapshots that you own.
 //
 // If you specify a list of restorable users, only snapshots with create snapshot
 // permissions for those users are returned. You can specify AWS account IDs
@@ -4109,14 +6730,31 @@ func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *requ
 // a NextToken value that can be passed to a subsequent DescribeSnapshots request
 // to retrieve the remaining results.
 //
-// For more information about EBS snapshots, see Amazon EBS Snapshots in the
-// Amazon Elastic Compute Cloud User Guide.
+// For more information about EBS snapshots, see Amazon EBS Snapshots (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html)
+// in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) DescribeSnapshots(input *DescribeSnapshotsInput) (*DescribeSnapshotsOutput, error) {
 	req, out := c.DescribeSnapshotsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// DescribeSnapshotsPages iterates over the pages of a DescribeSnapshots operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeSnapshots method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeSnapshots operation.
+//    pageNum := 0
+//    err := client.DescribeSnapshotsPages(params,
+//        func(page *DescribeSnapshotsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EC2) DescribeSnapshotsPages(input *DescribeSnapshotsInput, fn func(p *DescribeSnapshotsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeSnapshotsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -4127,7 +6765,28 @@ func (c *EC2) DescribeSnapshotsPages(input *DescribeSnapshotsInput, fn func(p *D
 
 const opDescribeSpotDatafeedSubscription = "DescribeSpotDatafeedSubscription"
 
-// DescribeSpotDatafeedSubscriptionRequest generates a request for the DescribeSpotDatafeedSubscription operation.
+// DescribeSpotDatafeedSubscriptionRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSpotDatafeedSubscription operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSpotDatafeedSubscription method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSpotDatafeedSubscriptionRequest method.
+//    req, resp := client.DescribeSpotDatafeedSubscriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSpotDatafeedSubscriptionRequest(input *DescribeSpotDatafeedSubscriptionInput) (req *request.Request, output *DescribeSpotDatafeedSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotDatafeedSubscription,
@@ -4156,7 +6815,28 @@ func (c *EC2) DescribeSpotDatafeedSubscription(input *DescribeSpotDatafeedSubscr
 
 const opDescribeSpotFleetInstances = "DescribeSpotFleetInstances"
 
-// DescribeSpotFleetInstancesRequest generates a request for the DescribeSpotFleetInstances operation.
+// DescribeSpotFleetInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSpotFleetInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSpotFleetInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSpotFleetInstancesRequest method.
+//    req, resp := client.DescribeSpotFleetInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSpotFleetInstancesRequest(input *DescribeSpotFleetInstancesInput) (req *request.Request, output *DescribeSpotFleetInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotFleetInstances,
@@ -4183,7 +6863,28 @@ func (c *EC2) DescribeSpotFleetInstances(input *DescribeSpotFleetInstancesInput)
 
 const opDescribeSpotFleetRequestHistory = "DescribeSpotFleetRequestHistory"
 
-// DescribeSpotFleetRequestHistoryRequest generates a request for the DescribeSpotFleetRequestHistory operation.
+// DescribeSpotFleetRequestHistoryRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSpotFleetRequestHistory operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSpotFleetRequestHistory method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSpotFleetRequestHistoryRequest method.
+//    req, resp := client.DescribeSpotFleetRequestHistoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSpotFleetRequestHistoryRequest(input *DescribeSpotFleetRequestHistoryInput) (req *request.Request, output *DescribeSpotFleetRequestHistoryOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotFleetRequestHistory,
@@ -4215,12 +6916,39 @@ func (c *EC2) DescribeSpotFleetRequestHistory(input *DescribeSpotFleetRequestHis
 
 const opDescribeSpotFleetRequests = "DescribeSpotFleetRequests"
 
-// DescribeSpotFleetRequestsRequest generates a request for the DescribeSpotFleetRequests operation.
+// DescribeSpotFleetRequestsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSpotFleetRequests operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSpotFleetRequests method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSpotFleetRequestsRequest method.
+//    req, resp := client.DescribeSpotFleetRequestsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSpotFleetRequestsRequest(input *DescribeSpotFleetRequestsInput) (req *request.Request, output *DescribeSpotFleetRequestsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotFleetRequests,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -4240,9 +6968,55 @@ func (c *EC2) DescribeSpotFleetRequests(input *DescribeSpotFleetRequestsInput) (
 	return out, err
 }
 
+// DescribeSpotFleetRequestsPages iterates over the pages of a DescribeSpotFleetRequests operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeSpotFleetRequests method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeSpotFleetRequests operation.
+//    pageNum := 0
+//    err := client.DescribeSpotFleetRequestsPages(params,
+//        func(page *DescribeSpotFleetRequestsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *EC2) DescribeSpotFleetRequestsPages(input *DescribeSpotFleetRequestsInput, fn func(p *DescribeSpotFleetRequestsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.DescribeSpotFleetRequestsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*DescribeSpotFleetRequestsOutput), lastPage)
+	})
+}
+
 const opDescribeSpotInstanceRequests = "DescribeSpotInstanceRequests"
 
-// DescribeSpotInstanceRequestsRequest generates a request for the DescribeSpotInstanceRequests operation.
+// DescribeSpotInstanceRequestsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSpotInstanceRequests operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSpotInstanceRequests method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSpotInstanceRequestsRequest method.
+//    req, resp := client.DescribeSpotInstanceRequestsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceRequestsInput) (req *request.Request, output *DescribeSpotInstanceRequestsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotInstanceRequests,
@@ -4280,7 +7054,28 @@ func (c *EC2) DescribeSpotInstanceRequests(input *DescribeSpotInstanceRequestsIn
 
 const opDescribeSpotPriceHistory = "DescribeSpotPriceHistory"
 
-// DescribeSpotPriceHistoryRequest generates a request for the DescribeSpotPriceHistory operation.
+// DescribeSpotPriceHistoryRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSpotPriceHistory operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSpotPriceHistory method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSpotPriceHistoryRequest method.
+//    req, resp := client.DescribeSpotPriceHistoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInput) (req *request.Request, output *DescribeSpotPriceHistoryOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotPriceHistory,
@@ -4319,6 +7114,23 @@ func (c *EC2) DescribeSpotPriceHistory(input *DescribeSpotPriceHistoryInput) (*D
 	return out, err
 }
 
+// DescribeSpotPriceHistoryPages iterates over the pages of a DescribeSpotPriceHistory operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeSpotPriceHistory method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeSpotPriceHistory operation.
+//    pageNum := 0
+//    err := client.DescribeSpotPriceHistoryPages(params,
+//        func(page *DescribeSpotPriceHistoryOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EC2) DescribeSpotPriceHistoryPages(input *DescribeSpotPriceHistoryInput, fn func(p *DescribeSpotPriceHistoryOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeSpotPriceHistoryRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -4327,9 +7139,81 @@ func (c *EC2) DescribeSpotPriceHistoryPages(input *DescribeSpotPriceHistoryInput
 	})
 }
 
+const opDescribeStaleSecurityGroups = "DescribeStaleSecurityGroups"
+
+// DescribeStaleSecurityGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeStaleSecurityGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeStaleSecurityGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeStaleSecurityGroupsRequest method.
+//    req, resp := client.DescribeStaleSecurityGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) DescribeStaleSecurityGroupsRequest(input *DescribeStaleSecurityGroupsInput) (req *request.Request, output *DescribeStaleSecurityGroupsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeStaleSecurityGroups,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeStaleSecurityGroupsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeStaleSecurityGroupsOutput{}
+	req.Data = output
+	return
+}
+
+// [EC2-VPC only] Describes the stale security group rules for security groups
+// in a specified VPC. Rules are stale when they reference a deleted security
+// group in a peer VPC, or a security group in a peer VPC for which the VPC
+// peering connection has been deleted.
+func (c *EC2) DescribeStaleSecurityGroups(input *DescribeStaleSecurityGroupsInput) (*DescribeStaleSecurityGroupsOutput, error) {
+	req, out := c.DescribeStaleSecurityGroupsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeSubnets = "DescribeSubnets"
 
-// DescribeSubnetsRequest generates a request for the DescribeSubnets operation.
+// DescribeSubnetsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSubnets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSubnets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSubnetsRequest method.
+//    req, resp := client.DescribeSubnetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeSubnetsRequest(input *DescribeSubnetsInput) (req *request.Request, output *DescribeSubnetsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSubnets,
@@ -4359,7 +7243,28 @@ func (c *EC2) DescribeSubnets(input *DescribeSubnetsInput) (*DescribeSubnetsOutp
 
 const opDescribeTags = "DescribeTags"
 
-// DescribeTagsRequest generates a request for the DescribeTags operation.
+// DescribeTagsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeTagsRequest method.
+//    req, resp := client.DescribeTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Request, output *DescribeTagsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTags,
@@ -4393,6 +7298,23 @@ func (c *EC2) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, error
 	return out, err
 }
 
+// DescribeTagsPages iterates over the pages of a DescribeTags operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeTags method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeTags operation.
+//    pageNum := 0
+//    err := client.DescribeTagsPages(params,
+//        func(page *DescribeTagsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EC2) DescribeTagsPages(input *DescribeTagsInput, fn func(p *DescribeTagsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeTagsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -4403,7 +7325,28 @@ func (c *EC2) DescribeTagsPages(input *DescribeTagsInput, fn func(p *DescribeTag
 
 const opDescribeVolumeAttribute = "DescribeVolumeAttribute"
 
-// DescribeVolumeAttributeRequest generates a request for the DescribeVolumeAttribute operation.
+// DescribeVolumeAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVolumeAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVolumeAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVolumeAttributeRequest method.
+//    req, resp := client.DescribeVolumeAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVolumeAttributeRequest(input *DescribeVolumeAttributeInput) (req *request.Request, output *DescribeVolumeAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVolumeAttribute,
@@ -4424,8 +7367,8 @@ func (c *EC2) DescribeVolumeAttributeRequest(input *DescribeVolumeAttributeInput
 // Describes the specified attribute of the specified volume. You can specify
 // only one attribute at a time.
 //
-// For more information about EBS volumes, see Amazon EBS Volumes in the Amazon
-// Elastic Compute Cloud User Guide.
+// For more information about EBS volumes, see Amazon EBS Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumes.html)
+// in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) DescribeVolumeAttribute(input *DescribeVolumeAttributeInput) (*DescribeVolumeAttributeOutput, error) {
 	req, out := c.DescribeVolumeAttributeRequest(input)
 	err := req.Send()
@@ -4434,7 +7377,28 @@ func (c *EC2) DescribeVolumeAttribute(input *DescribeVolumeAttributeInput) (*Des
 
 const opDescribeVolumeStatus = "DescribeVolumeStatus"
 
-// DescribeVolumeStatusRequest generates a request for the DescribeVolumeStatus operation.
+// DescribeVolumeStatusRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVolumeStatus operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVolumeStatus method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVolumeStatusRequest method.
+//    req, resp := client.DescribeVolumeStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVolumeStatusRequest(input *DescribeVolumeStatusInput) (req *request.Request, output *DescribeVolumeStatusOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVolumeStatus,
@@ -4470,21 +7434,21 @@ func (c *EC2) DescribeVolumeStatusRequest(input *DescribeVolumeStatusInput) (req
 // The DescribeVolumeStatus operation provides the following information about
 // the specified volumes:
 //
-// Status: Reflects the current status of the volume. The possible values are
-// ok, impaired , warning, or insufficient-data. If all checks pass, the overall
-// status of the volume is ok. If the check fails, the overall status is impaired.
-// If the status is insufficient-data, then the checks may still be taking place
-// on your volume at the time. We recommend that you retry the request. For
-// more information on volume status, see Monitoring the Status of Your Volumes
-// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-volume-status.html).
+//  Status: Reflects the current status of the volume. The possible values
+// are ok, impaired , warning, or insufficient-data. If all checks pass, the
+// overall status of the volume is ok. If the check fails, the overall status
+// is impaired. If the status is insufficient-data, then the checks may still
+// be taking place on your volume at the time. We recommend that you retry the
+// request. For more information on volume status, see Monitoring the Status
+// of Your Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-volume-status.html).
 //
-// Events: Reflect the cause of a volume status and may require you to take
+//  Events: Reflect the cause of a volume status and may require you to take
 // action. For example, if your volume returns an impaired status, then the
 // volume event might be potential-data-inconsistency. This means that your
 // volume has been affected by an issue with the underlying host, has all I/O
 // operations disabled, and may have inconsistent data.
 //
-// Actions: Reflect the actions you may have to take in response to an event.
+//  Actions: Reflect the actions you may have to take in response to an event.
 // For example, if the status of the volume is impaired and the volume event
 // shows potential-data-inconsistency, then the action shows enable-volume-io.
 // This means that you may want to enable the I/O operations for the volume
@@ -4499,6 +7463,23 @@ func (c *EC2) DescribeVolumeStatus(input *DescribeVolumeStatusInput) (*DescribeV
 	return out, err
 }
 
+// DescribeVolumeStatusPages iterates over the pages of a DescribeVolumeStatus operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeVolumeStatus method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeVolumeStatus operation.
+//    pageNum := 0
+//    err := client.DescribeVolumeStatusPages(params,
+//        func(page *DescribeVolumeStatusOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EC2) DescribeVolumeStatusPages(input *DescribeVolumeStatusInput, fn func(p *DescribeVolumeStatusOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeVolumeStatusRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -4509,7 +7490,28 @@ func (c *EC2) DescribeVolumeStatusPages(input *DescribeVolumeStatusInput, fn fun
 
 const opDescribeVolumes = "DescribeVolumes"
 
-// DescribeVolumesRequest generates a request for the DescribeVolumes operation.
+// DescribeVolumesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVolumes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVolumes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVolumesRequest method.
+//    req, resp := client.DescribeVolumesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.Request, output *DescribeVolumesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVolumes,
@@ -4542,14 +7544,31 @@ func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.
 // a NextToken value that can be passed to a subsequent DescribeVolumes request
 // to retrieve the remaining results.
 //
-// For more information about EBS volumes, see Amazon EBS Volumes in the Amazon
-// Elastic Compute Cloud User Guide.
+// For more information about EBS volumes, see Amazon EBS Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumes.html)
+// in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) DescribeVolumes(input *DescribeVolumesInput) (*DescribeVolumesOutput, error) {
 	req, out := c.DescribeVolumesRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// DescribeVolumesPages iterates over the pages of a DescribeVolumes operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeVolumes method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeVolumes operation.
+//    pageNum := 0
+//    err := client.DescribeVolumesPages(params,
+//        func(page *DescribeVolumesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EC2) DescribeVolumesPages(input *DescribeVolumesInput, fn func(p *DescribeVolumesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeVolumesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -4560,7 +7579,28 @@ func (c *EC2) DescribeVolumesPages(input *DescribeVolumesInput, fn func(p *Descr
 
 const opDescribeVpcAttribute = "DescribeVpcAttribute"
 
-// DescribeVpcAttributeRequest generates a request for the DescribeVpcAttribute operation.
+// DescribeVpcAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVpcAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVpcAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVpcAttributeRequest method.
+//    req, resp := client.DescribeVpcAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVpcAttributeRequest(input *DescribeVpcAttributeInput) (req *request.Request, output *DescribeVpcAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcAttribute,
@@ -4588,7 +7628,28 @@ func (c *EC2) DescribeVpcAttribute(input *DescribeVpcAttributeInput) (*DescribeV
 
 const opDescribeVpcClassicLink = "DescribeVpcClassicLink"
 
-// DescribeVpcClassicLinkRequest generates a request for the DescribeVpcClassicLink operation.
+// DescribeVpcClassicLinkRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVpcClassicLink operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVpcClassicLink method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVpcClassicLinkRequest method.
+//    req, resp := client.DescribeVpcClassicLinkRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVpcClassicLinkRequest(input *DescribeVpcClassicLinkInput) (req *request.Request, output *DescribeVpcClassicLinkOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcClassicLink,
@@ -4615,7 +7676,28 @@ func (c *EC2) DescribeVpcClassicLink(input *DescribeVpcClassicLinkInput) (*Descr
 
 const opDescribeVpcClassicLinkDnsSupport = "DescribeVpcClassicLinkDnsSupport"
 
-// DescribeVpcClassicLinkDnsSupportRequest generates a request for the DescribeVpcClassicLinkDnsSupport operation.
+// DescribeVpcClassicLinkDnsSupportRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVpcClassicLinkDnsSupport operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVpcClassicLinkDnsSupport method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVpcClassicLinkDnsSupportRequest method.
+//    req, resp := client.DescribeVpcClassicLinkDnsSupportRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVpcClassicLinkDnsSupportRequest(input *DescribeVpcClassicLinkDnsSupportInput) (req *request.Request, output *DescribeVpcClassicLinkDnsSupportOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcClassicLinkDnsSupport,
@@ -4648,7 +7730,28 @@ func (c *EC2) DescribeVpcClassicLinkDnsSupport(input *DescribeVpcClassicLinkDnsS
 
 const opDescribeVpcEndpointServices = "DescribeVpcEndpointServices"
 
-// DescribeVpcEndpointServicesRequest generates a request for the DescribeVpcEndpointServices operation.
+// DescribeVpcEndpointServicesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVpcEndpointServices operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVpcEndpointServices method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVpcEndpointServicesRequest method.
+//    req, resp := client.DescribeVpcEndpointServicesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVpcEndpointServicesRequest(input *DescribeVpcEndpointServicesInput) (req *request.Request, output *DescribeVpcEndpointServicesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcEndpointServices,
@@ -4676,7 +7779,28 @@ func (c *EC2) DescribeVpcEndpointServices(input *DescribeVpcEndpointServicesInpu
 
 const opDescribeVpcEndpoints = "DescribeVpcEndpoints"
 
-// DescribeVpcEndpointsRequest generates a request for the DescribeVpcEndpoints operation.
+// DescribeVpcEndpointsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVpcEndpoints operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVpcEndpoints method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVpcEndpointsRequest method.
+//    req, resp := client.DescribeVpcEndpointsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVpcEndpointsRequest(input *DescribeVpcEndpointsInput) (req *request.Request, output *DescribeVpcEndpointsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcEndpoints,
@@ -4703,7 +7827,28 @@ func (c *EC2) DescribeVpcEndpoints(input *DescribeVpcEndpointsInput) (*DescribeV
 
 const opDescribeVpcPeeringConnections = "DescribeVpcPeeringConnections"
 
-// DescribeVpcPeeringConnectionsRequest generates a request for the DescribeVpcPeeringConnections operation.
+// DescribeVpcPeeringConnectionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVpcPeeringConnections operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVpcPeeringConnections method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVpcPeeringConnectionsRequest method.
+//    req, resp := client.DescribeVpcPeeringConnectionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVpcPeeringConnectionsRequest(input *DescribeVpcPeeringConnectionsInput) (req *request.Request, output *DescribeVpcPeeringConnectionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcPeeringConnections,
@@ -4730,7 +7875,28 @@ func (c *EC2) DescribeVpcPeeringConnections(input *DescribeVpcPeeringConnections
 
 const opDescribeVpcs = "DescribeVpcs"
 
-// DescribeVpcsRequest generates a request for the DescribeVpcs operation.
+// DescribeVpcsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVpcs operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVpcs method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVpcsRequest method.
+//    req, resp := client.DescribeVpcsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVpcsRequest(input *DescribeVpcsInput) (req *request.Request, output *DescribeVpcsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcs,
@@ -4757,7 +7923,28 @@ func (c *EC2) DescribeVpcs(input *DescribeVpcsInput) (*DescribeVpcsOutput, error
 
 const opDescribeVpnConnections = "DescribeVpnConnections"
 
-// DescribeVpnConnectionsRequest generates a request for the DescribeVpnConnections operation.
+// DescribeVpnConnectionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVpnConnections operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVpnConnections method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVpnConnectionsRequest method.
+//    req, resp := client.DescribeVpnConnectionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVpnConnectionsRequest(input *DescribeVpnConnectionsInput) (req *request.Request, output *DescribeVpnConnectionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpnConnections,
@@ -4788,7 +7975,28 @@ func (c *EC2) DescribeVpnConnections(input *DescribeVpnConnectionsInput) (*Descr
 
 const opDescribeVpnGateways = "DescribeVpnGateways"
 
-// DescribeVpnGatewaysRequest generates a request for the DescribeVpnGateways operation.
+// DescribeVpnGatewaysRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVpnGateways operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVpnGateways method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVpnGatewaysRequest method.
+//    req, resp := client.DescribeVpnGatewaysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DescribeVpnGatewaysRequest(input *DescribeVpnGatewaysInput) (req *request.Request, output *DescribeVpnGatewaysOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpnGateways,
@@ -4819,7 +8027,28 @@ func (c *EC2) DescribeVpnGateways(input *DescribeVpnGatewaysInput) (*DescribeVpn
 
 const opDetachClassicLinkVpc = "DetachClassicLinkVpc"
 
-// DetachClassicLinkVpcRequest generates a request for the DetachClassicLinkVpc operation.
+// DetachClassicLinkVpcRequest generates a "aws/request.Request" representing the
+// client's request for the DetachClassicLinkVpc operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachClassicLinkVpc method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachClassicLinkVpcRequest method.
+//    req, resp := client.DetachClassicLinkVpcRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DetachClassicLinkVpcRequest(input *DetachClassicLinkVpcInput) (req *request.Request, output *DetachClassicLinkVpcOutput) {
 	op := &request.Operation{
 		Name:       opDetachClassicLinkVpc,
@@ -4848,7 +8077,28 @@ func (c *EC2) DetachClassicLinkVpc(input *DetachClassicLinkVpcInput) (*DetachCla
 
 const opDetachInternetGateway = "DetachInternetGateway"
 
-// DetachInternetGatewayRequest generates a request for the DetachInternetGateway operation.
+// DetachInternetGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the DetachInternetGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachInternetGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachInternetGatewayRequest method.
+//    req, resp := client.DetachInternetGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DetachInternetGatewayRequest(input *DetachInternetGatewayInput) (req *request.Request, output *DetachInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDetachInternetGateway,
@@ -4879,7 +8129,28 @@ func (c *EC2) DetachInternetGateway(input *DetachInternetGatewayInput) (*DetachI
 
 const opDetachNetworkInterface = "DetachNetworkInterface"
 
-// DetachNetworkInterfaceRequest generates a request for the DetachNetworkInterface operation.
+// DetachNetworkInterfaceRequest generates a "aws/request.Request" representing the
+// client's request for the DetachNetworkInterface operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachNetworkInterface method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachNetworkInterfaceRequest method.
+//    req, resp := client.DetachNetworkInterfaceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DetachNetworkInterfaceRequest(input *DetachNetworkInterfaceInput) (req *request.Request, output *DetachNetworkInterfaceOutput) {
 	op := &request.Operation{
 		Name:       opDetachNetworkInterface,
@@ -4908,7 +8179,28 @@ func (c *EC2) DetachNetworkInterface(input *DetachNetworkInterfaceInput) (*Detac
 
 const opDetachVolume = "DetachVolume"
 
-// DetachVolumeRequest generates a request for the DetachVolume operation.
+// DetachVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the DetachVolume operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachVolume method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachVolumeRequest method.
+//    req, resp := client.DetachVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DetachVolumeRequest(input *DetachVolumeInput) (req *request.Request, output *VolumeAttachment) {
 	op := &request.Operation{
 		Name:       opDetachVolume,
@@ -4947,7 +8239,28 @@ func (c *EC2) DetachVolume(input *DetachVolumeInput) (*VolumeAttachment, error) 
 
 const opDetachVpnGateway = "DetachVpnGateway"
 
-// DetachVpnGatewayRequest generates a request for the DetachVpnGateway operation.
+// DetachVpnGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the DetachVpnGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachVpnGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachVpnGatewayRequest method.
+//    req, resp := client.DetachVpnGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DetachVpnGatewayRequest(input *DetachVpnGatewayInput) (req *request.Request, output *DetachVpnGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDetachVpnGateway,
@@ -4983,7 +8296,28 @@ func (c *EC2) DetachVpnGateway(input *DetachVpnGatewayInput) (*DetachVpnGatewayO
 
 const opDisableVgwRoutePropagation = "DisableVgwRoutePropagation"
 
-// DisableVgwRoutePropagationRequest generates a request for the DisableVgwRoutePropagation operation.
+// DisableVgwRoutePropagationRequest generates a "aws/request.Request" representing the
+// client's request for the DisableVgwRoutePropagation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableVgwRoutePropagation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableVgwRoutePropagationRequest method.
+//    req, resp := client.DisableVgwRoutePropagationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DisableVgwRoutePropagationRequest(input *DisableVgwRoutePropagationInput) (req *request.Request, output *DisableVgwRoutePropagationOutput) {
 	op := &request.Operation{
 		Name:       opDisableVgwRoutePropagation,
@@ -5013,7 +8347,28 @@ func (c *EC2) DisableVgwRoutePropagation(input *DisableVgwRoutePropagationInput)
 
 const opDisableVpcClassicLink = "DisableVpcClassicLink"
 
-// DisableVpcClassicLinkRequest generates a request for the DisableVpcClassicLink operation.
+// DisableVpcClassicLinkRequest generates a "aws/request.Request" representing the
+// client's request for the DisableVpcClassicLink operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableVpcClassicLink method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableVpcClassicLinkRequest method.
+//    req, resp := client.DisableVpcClassicLinkRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DisableVpcClassicLinkRequest(input *DisableVpcClassicLinkInput) (req *request.Request, output *DisableVpcClassicLinkOutput) {
 	op := &request.Operation{
 		Name:       opDisableVpcClassicLink,
@@ -5041,7 +8396,28 @@ func (c *EC2) DisableVpcClassicLink(input *DisableVpcClassicLinkInput) (*Disable
 
 const opDisableVpcClassicLinkDnsSupport = "DisableVpcClassicLinkDnsSupport"
 
-// DisableVpcClassicLinkDnsSupportRequest generates a request for the DisableVpcClassicLinkDnsSupport operation.
+// DisableVpcClassicLinkDnsSupportRequest generates a "aws/request.Request" representing the
+// client's request for the DisableVpcClassicLinkDnsSupport operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableVpcClassicLinkDnsSupport method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableVpcClassicLinkDnsSupportRequest method.
+//    req, resp := client.DisableVpcClassicLinkDnsSupportRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DisableVpcClassicLinkDnsSupportRequest(input *DisableVpcClassicLinkDnsSupportInput) (req *request.Request, output *DisableVpcClassicLinkDnsSupportOutput) {
 	op := &request.Operation{
 		Name:       opDisableVpcClassicLinkDnsSupport,
@@ -5072,7 +8448,28 @@ func (c *EC2) DisableVpcClassicLinkDnsSupport(input *DisableVpcClassicLinkDnsSup
 
 const opDisassociateAddress = "DisassociateAddress"
 
-// DisassociateAddressRequest generates a request for the DisassociateAddress operation.
+// DisassociateAddressRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateAddress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisassociateAddress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisassociateAddressRequest method.
+//    req, resp := client.DisassociateAddressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *request.Request, output *DisassociateAddressOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateAddress,
@@ -5109,7 +8506,28 @@ func (c *EC2) DisassociateAddress(input *DisassociateAddressInput) (*Disassociat
 
 const opDisassociateRouteTable = "DisassociateRouteTable"
 
-// DisassociateRouteTableRequest generates a request for the DisassociateRouteTable operation.
+// DisassociateRouteTableRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateRouteTable operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisassociateRouteTable method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisassociateRouteTableRequest method.
+//    req, resp := client.DisassociateRouteTableRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) DisassociateRouteTableRequest(input *DisassociateRouteTableInput) (req *request.Request, output *DisassociateRouteTableOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateRouteTable,
@@ -5143,7 +8561,28 @@ func (c *EC2) DisassociateRouteTable(input *DisassociateRouteTableInput) (*Disas
 
 const opEnableVgwRoutePropagation = "EnableVgwRoutePropagation"
 
-// EnableVgwRoutePropagationRequest generates a request for the EnableVgwRoutePropagation operation.
+// EnableVgwRoutePropagationRequest generates a "aws/request.Request" representing the
+// client's request for the EnableVgwRoutePropagation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableVgwRoutePropagation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableVgwRoutePropagationRequest method.
+//    req, resp := client.EnableVgwRoutePropagationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) EnableVgwRoutePropagationRequest(input *EnableVgwRoutePropagationInput) (req *request.Request, output *EnableVgwRoutePropagationOutput) {
 	op := &request.Operation{
 		Name:       opEnableVgwRoutePropagation,
@@ -5173,7 +8612,28 @@ func (c *EC2) EnableVgwRoutePropagation(input *EnableVgwRoutePropagationInput) (
 
 const opEnableVolumeIO = "EnableVolumeIO"
 
-// EnableVolumeIORequest generates a request for the EnableVolumeIO operation.
+// EnableVolumeIORequest generates a "aws/request.Request" representing the
+// client's request for the EnableVolumeIO operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableVolumeIO method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableVolumeIORequest method.
+//    req, resp := client.EnableVolumeIORequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) EnableVolumeIORequest(input *EnableVolumeIOInput) (req *request.Request, output *EnableVolumeIOOutput) {
 	op := &request.Operation{
 		Name:       opEnableVolumeIO,
@@ -5203,7 +8663,28 @@ func (c *EC2) EnableVolumeIO(input *EnableVolumeIOInput) (*EnableVolumeIOOutput,
 
 const opEnableVpcClassicLink = "EnableVpcClassicLink"
 
-// EnableVpcClassicLinkRequest generates a request for the EnableVpcClassicLink operation.
+// EnableVpcClassicLinkRequest generates a "aws/request.Request" representing the
+// client's request for the EnableVpcClassicLink operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableVpcClassicLink method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableVpcClassicLinkRequest method.
+//    req, resp := client.EnableVpcClassicLinkRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) EnableVpcClassicLinkRequest(input *EnableVpcClassicLinkInput) (req *request.Request, output *EnableVpcClassicLinkOutput) {
 	op := &request.Operation{
 		Name:       opEnableVpcClassicLink,
@@ -5236,7 +8717,28 @@ func (c *EC2) EnableVpcClassicLink(input *EnableVpcClassicLinkInput) (*EnableVpc
 
 const opEnableVpcClassicLinkDnsSupport = "EnableVpcClassicLinkDnsSupport"
 
-// EnableVpcClassicLinkDnsSupportRequest generates a request for the EnableVpcClassicLinkDnsSupport operation.
+// EnableVpcClassicLinkDnsSupportRequest generates a "aws/request.Request" representing the
+// client's request for the EnableVpcClassicLinkDnsSupport operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableVpcClassicLinkDnsSupport method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableVpcClassicLinkDnsSupportRequest method.
+//    req, resp := client.EnableVpcClassicLinkDnsSupportRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) EnableVpcClassicLinkDnsSupportRequest(input *EnableVpcClassicLinkDnsSupportInput) (req *request.Request, output *EnableVpcClassicLinkDnsSupportOutput) {
 	op := &request.Operation{
 		Name:       opEnableVpcClassicLinkDnsSupport,
@@ -5269,7 +8771,28 @@ func (c *EC2) EnableVpcClassicLinkDnsSupport(input *EnableVpcClassicLinkDnsSuppo
 
 const opGetConsoleOutput = "GetConsoleOutput"
 
-// GetConsoleOutputRequest generates a request for the GetConsoleOutput operation.
+// GetConsoleOutputRequest generates a "aws/request.Request" representing the
+// client's request for the GetConsoleOutput operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetConsoleOutput method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetConsoleOutputRequest method.
+//    req, resp := client.GetConsoleOutputRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) GetConsoleOutputRequest(input *GetConsoleOutputInput) (req *request.Request, output *GetConsoleOutputOutput) {
 	op := &request.Operation{
 		Name:       opGetConsoleOutput,
@@ -5311,9 +8834,80 @@ func (c *EC2) GetConsoleOutput(input *GetConsoleOutputInput) (*GetConsoleOutputO
 	return out, err
 }
 
+const opGetConsoleScreenshot = "GetConsoleScreenshot"
+
+// GetConsoleScreenshotRequest generates a "aws/request.Request" representing the
+// client's request for the GetConsoleScreenshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetConsoleScreenshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetConsoleScreenshotRequest method.
+//    req, resp := client.GetConsoleScreenshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) GetConsoleScreenshotRequest(input *GetConsoleScreenshotInput) (req *request.Request, output *GetConsoleScreenshotOutput) {
+	op := &request.Operation{
+		Name:       opGetConsoleScreenshot,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetConsoleScreenshotInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetConsoleScreenshotOutput{}
+	req.Data = output
+	return
+}
+
+// Retrieve a JPG-format screenshot of a running instance to help with troubleshooting.
+//
+// The returned content is Base64-encoded.
+func (c *EC2) GetConsoleScreenshot(input *GetConsoleScreenshotInput) (*GetConsoleScreenshotOutput, error) {
+	req, out := c.GetConsoleScreenshotRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opGetPasswordData = "GetPasswordData"
 
-// GetPasswordDataRequest generates a request for the GetPasswordData operation.
+// GetPasswordDataRequest generates a "aws/request.Request" representing the
+// client's request for the GetPasswordData operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetPasswordData method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetPasswordDataRequest method.
+//    req, resp := client.GetPasswordDataRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) GetPasswordDataRequest(input *GetPasswordDataInput) (req *request.Request, output *GetPasswordDataOutput) {
 	op := &request.Operation{
 		Name:       opGetPasswordData,
@@ -5353,7 +8947,28 @@ func (c *EC2) GetPasswordData(input *GetPasswordDataInput) (*GetPasswordDataOutp
 
 const opImportImage = "ImportImage"
 
-// ImportImageRequest generates a request for the ImportImage operation.
+// ImportImageRequest generates a "aws/request.Request" representing the
+// client's request for the ImportImage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportImage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportImageRequest method.
+//    req, resp := client.ImportImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ImportImageRequest(input *ImportImageInput) (req *request.Request, output *ImportImageOutput) {
 	op := &request.Operation{
 		Name:       opImportImage,
@@ -5381,7 +8996,28 @@ func (c *EC2) ImportImage(input *ImportImageInput) (*ImportImageOutput, error) {
 
 const opImportInstance = "ImportInstance"
 
-// ImportInstanceRequest generates a request for the ImportInstance operation.
+// ImportInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the ImportInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportInstanceRequest method.
+//    req, resp := client.ImportInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ImportInstanceRequest(input *ImportInstanceInput) (req *request.Request, output *ImportInstanceOutput) {
 	op := &request.Operation{
 		Name:       opImportInstance,
@@ -5417,7 +9053,28 @@ func (c *EC2) ImportInstance(input *ImportInstanceInput) (*ImportInstanceOutput,
 
 const opImportKeyPair = "ImportKeyPair"
 
-// ImportKeyPairRequest generates a request for the ImportKeyPair operation.
+// ImportKeyPairRequest generates a "aws/request.Request" representing the
+// client's request for the ImportKeyPair operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportKeyPair method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportKeyPairRequest method.
+//    req, resp := client.ImportKeyPairRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ImportKeyPairRequest(input *ImportKeyPairInput) (req *request.Request, output *ImportKeyPairOutput) {
 	op := &request.Operation{
 		Name:       opImportKeyPair,
@@ -5451,7 +9108,28 @@ func (c *EC2) ImportKeyPair(input *ImportKeyPairInput) (*ImportKeyPairOutput, er
 
 const opImportSnapshot = "ImportSnapshot"
 
-// ImportSnapshotRequest generates a request for the ImportSnapshot operation.
+// ImportSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the ImportSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportSnapshotRequest method.
+//    req, resp := client.ImportSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ImportSnapshotRequest(input *ImportSnapshotInput) (req *request.Request, output *ImportSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opImportSnapshot,
@@ -5478,7 +9156,28 @@ func (c *EC2) ImportSnapshot(input *ImportSnapshotInput) (*ImportSnapshotOutput,
 
 const opImportVolume = "ImportVolume"
 
-// ImportVolumeRequest generates a request for the ImportVolume operation.
+// ImportVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the ImportVolume operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportVolume method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportVolumeRequest method.
+//    req, resp := client.ImportVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ImportVolumeRequest(input *ImportVolumeInput) (req *request.Request, output *ImportVolumeOutput) {
 	op := &request.Operation{
 		Name:       opImportVolume,
@@ -5513,7 +9212,28 @@ func (c *EC2) ImportVolume(input *ImportVolumeInput) (*ImportVolumeOutput, error
 
 const opModifyHosts = "ModifyHosts"
 
-// ModifyHostsRequest generates a request for the ModifyHosts operation.
+// ModifyHostsRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyHosts operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyHosts method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyHostsRequest method.
+//    req, resp := client.ModifyHostsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyHostsRequest(input *ModifyHostsInput) (req *request.Request, output *ModifyHostsOutput) {
 	op := &request.Operation{
 		Name:       opModifyHosts,
@@ -5546,7 +9266,28 @@ func (c *EC2) ModifyHosts(input *ModifyHostsInput) (*ModifyHostsOutput, error) {
 
 const opModifyIdFormat = "ModifyIdFormat"
 
-// ModifyIdFormatRequest generates a request for the ModifyIdFormat operation.
+// ModifyIdFormatRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyIdFormat operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyIdFormat method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyIdFormatRequest method.
+//    req, resp := client.ModifyIdFormatRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Request, output *ModifyIdFormatOutput) {
 	op := &request.Operation{
 		Name:       opModifyIdFormat,
@@ -5573,25 +9314,107 @@ func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Re
 //
 // This setting applies to the IAM user who makes the request; it does not
 // apply to the entire AWS account. By default, an IAM user defaults to the
-// same settings as the root user. If you're using this action as the root user
-// or as an IAM role that has permission to use this action, then these settings
-// apply to the entire account, unless an IAM user explicitly overrides these
-// settings for themselves. For more information, see Controlling Access to
-// Longer ID Settings (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/resource-ids.html#resource-ids-access)
+// same settings as the root user. If you're using this action as the root user,
+// then these settings apply to the entire account, unless an IAM user explicitly
+// overrides these settings for themselves. For more information, see Resource
+// IDs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/resource-ids.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
-// Resources created with longer IDs are visible to all IAM users, regardless
-// of these settings and provided that they have permission to use the relevant
-// Describe command for the resource type.
+// Resources created with longer IDs are visible to all IAM roles and users,
+// regardless of these settings and provided that they have permission to use
+// the relevant Describe command for the resource type.
 func (c *EC2) ModifyIdFormat(input *ModifyIdFormatInput) (*ModifyIdFormatOutput, error) {
 	req, out := c.ModifyIdFormatRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+const opModifyIdentityIdFormat = "ModifyIdentityIdFormat"
+
+// ModifyIdentityIdFormatRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyIdentityIdFormat operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyIdentityIdFormat method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyIdentityIdFormatRequest method.
+//    req, resp := client.ModifyIdentityIdFormatRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) ModifyIdentityIdFormatRequest(input *ModifyIdentityIdFormatInput) (req *request.Request, output *ModifyIdentityIdFormatOutput) {
+	op := &request.Operation{
+		Name:       opModifyIdentityIdFormat,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyIdentityIdFormatInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &ModifyIdentityIdFormatOutput{}
+	req.Data = output
+	return
+}
+
+// Modifies the ID format of a resource for the specified IAM user, IAM role,
+// or root user. You can specify that resources should receive longer IDs (17-character
+// IDs) when they are created. The following resource types support longer IDs:
+// instance | reservation | snapshot | volume. For more information, see Resource
+// IDs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/resource-ids.html)
+// in the Amazon Elastic Compute Cloud User Guide.
+//
+// This setting applies to the principal specified in the request; it does
+// not apply to the principal that makes the request.
+//
+// Resources created with longer IDs are visible to all IAM roles and users,
+// regardless of these settings and provided that they have permission to use
+// the relevant Describe command for the resource type.
+func (c *EC2) ModifyIdentityIdFormat(input *ModifyIdentityIdFormatInput) (*ModifyIdentityIdFormatOutput, error) {
+	req, out := c.ModifyIdentityIdFormatRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opModifyImageAttribute = "ModifyImageAttribute"
 
-// ModifyImageAttributeRequest generates a request for the ModifyImageAttribute operation.
+// ModifyImageAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyImageAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyImageAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyImageAttributeRequest method.
+//    req, resp := client.ModifyImageAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req *request.Request, output *ModifyImageAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyImageAttribute,
@@ -5614,7 +9437,7 @@ func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req
 // Modifies the specified attribute of the specified AMI. You can specify only
 // one attribute at a time.
 //
-// AWS Marketplace product codes cannot be modified. Images with an AWS Marketplace
+//  AWS Marketplace product codes cannot be modified. Images with an AWS Marketplace
 // product code cannot be made public.
 func (c *EC2) ModifyImageAttribute(input *ModifyImageAttributeInput) (*ModifyImageAttributeOutput, error) {
 	req, out := c.ModifyImageAttributeRequest(input)
@@ -5624,7 +9447,28 @@ func (c *EC2) ModifyImageAttribute(input *ModifyImageAttributeInput) (*ModifyIma
 
 const opModifyInstanceAttribute = "ModifyInstanceAttribute"
 
-// ModifyInstanceAttributeRequest generates a request for the ModifyInstanceAttribute operation.
+// ModifyInstanceAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyInstanceAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyInstanceAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyInstanceAttributeRequest method.
+//    req, resp := client.ModifyInstanceAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyInstanceAttributeRequest(input *ModifyInstanceAttributeInput) (req *request.Request, output *ModifyInstanceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyInstanceAttribute,
@@ -5658,7 +9502,28 @@ func (c *EC2) ModifyInstanceAttribute(input *ModifyInstanceAttributeInput) (*Mod
 
 const opModifyInstancePlacement = "ModifyInstancePlacement"
 
-// ModifyInstancePlacementRequest generates a request for the ModifyInstancePlacement operation.
+// ModifyInstancePlacementRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyInstancePlacement operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyInstancePlacement method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyInstancePlacementRequest method.
+//    req, resp := client.ModifyInstancePlacementRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyInstancePlacementRequest(input *ModifyInstancePlacementInput) (req *request.Request, output *ModifyInstancePlacementOutput) {
 	op := &request.Operation{
 		Name:       opModifyInstancePlacement,
@@ -5703,7 +9568,28 @@ func (c *EC2) ModifyInstancePlacement(input *ModifyInstancePlacementInput) (*Mod
 
 const opModifyNetworkInterfaceAttribute = "ModifyNetworkInterfaceAttribute"
 
-// ModifyNetworkInterfaceAttributeRequest generates a request for the ModifyNetworkInterfaceAttribute operation.
+// ModifyNetworkInterfaceAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyNetworkInterfaceAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyNetworkInterfaceAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyNetworkInterfaceAttributeRequest method.
+//    req, resp := client.ModifyNetworkInterfaceAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyNetworkInterfaceAttributeRequest(input *ModifyNetworkInterfaceAttributeInput) (req *request.Request, output *ModifyNetworkInterfaceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyNetworkInterfaceAttribute,
@@ -5733,7 +9619,28 @@ func (c *EC2) ModifyNetworkInterfaceAttribute(input *ModifyNetworkInterfaceAttri
 
 const opModifyReservedInstances = "ModifyReservedInstances"
 
-// ModifyReservedInstancesRequest generates a request for the ModifyReservedInstances operation.
+// ModifyReservedInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyReservedInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyReservedInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyReservedInstancesRequest method.
+//    req, resp := client.ModifyReservedInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyReservedInstancesRequest(input *ModifyReservedInstancesInput) (req *request.Request, output *ModifyReservedInstancesOutput) {
 	op := &request.Operation{
 		Name:       opModifyReservedInstances,
@@ -5766,7 +9673,28 @@ func (c *EC2) ModifyReservedInstances(input *ModifyReservedInstancesInput) (*Mod
 
 const opModifySnapshotAttribute = "ModifySnapshotAttribute"
 
-// ModifySnapshotAttributeRequest generates a request for the ModifySnapshotAttribute operation.
+// ModifySnapshotAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifySnapshotAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifySnapshotAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifySnapshotAttributeRequest method.
+//    req, resp := client.ModifySnapshotAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifySnapshotAttributeRequest(input *ModifySnapshotAttributeInput) (req *request.Request, output *ModifySnapshotAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifySnapshotAttribute,
@@ -5792,11 +9720,13 @@ func (c *EC2) ModifySnapshotAttributeRequest(input *ModifySnapshotAttributeInput
 // both add and remove account IDs for a snapshot, you must use multiple API
 // calls.
 //
-// For more information on modifying snapshot permissions, see Sharing Snapshots
+//  Encrypted snapshots and snapshots with AWS Marketplace product codes cannot
+// be made public. Snapshots encrypted with your default CMK cannot be shared
+// with other accounts.
+//
+//  For more information on modifying snapshot permissions, see Sharing Snapshots
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modifying-snapshot-permissions.html)
 // in the Amazon Elastic Compute Cloud User Guide.
-//
-//  Snapshots with AWS Marketplace product codes cannot be made public.
 func (c *EC2) ModifySnapshotAttribute(input *ModifySnapshotAttributeInput) (*ModifySnapshotAttributeOutput, error) {
 	req, out := c.ModifySnapshotAttributeRequest(input)
 	err := req.Send()
@@ -5805,7 +9735,28 @@ func (c *EC2) ModifySnapshotAttribute(input *ModifySnapshotAttributeInput) (*Mod
 
 const opModifySpotFleetRequest = "ModifySpotFleetRequest"
 
-// ModifySpotFleetRequestRequest generates a request for the ModifySpotFleetRequest operation.
+// ModifySpotFleetRequestRequest generates a "aws/request.Request" representing the
+// client's request for the ModifySpotFleetRequest operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifySpotFleetRequest method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifySpotFleetRequestRequest method.
+//    req, resp := client.ModifySpotFleetRequestRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifySpotFleetRequestRequest(input *ModifySpotFleetRequestInput) (req *request.Request, output *ModifySpotFleetRequestOutput) {
 	op := &request.Operation{
 		Name:       opModifySpotFleetRequest,
@@ -5851,7 +9802,28 @@ func (c *EC2) ModifySpotFleetRequest(input *ModifySpotFleetRequestInput) (*Modif
 
 const opModifySubnetAttribute = "ModifySubnetAttribute"
 
-// ModifySubnetAttributeRequest generates a request for the ModifySubnetAttribute operation.
+// ModifySubnetAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifySubnetAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifySubnetAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifySubnetAttributeRequest method.
+//    req, resp := client.ModifySubnetAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifySubnetAttributeRequest(input *ModifySubnetAttributeInput) (req *request.Request, output *ModifySubnetAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifySubnetAttribute,
@@ -5880,7 +9852,28 @@ func (c *EC2) ModifySubnetAttribute(input *ModifySubnetAttributeInput) (*ModifyS
 
 const opModifyVolumeAttribute = "ModifyVolumeAttribute"
 
-// ModifyVolumeAttributeRequest generates a request for the ModifyVolumeAttribute operation.
+// ModifyVolumeAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyVolumeAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyVolumeAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyVolumeAttributeRequest method.
+//    req, resp := client.ModifyVolumeAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyVolumeAttributeRequest(input *ModifyVolumeAttributeInput) (req *request.Request, output *ModifyVolumeAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyVolumeAttribute,
@@ -5918,7 +9911,28 @@ func (c *EC2) ModifyVolumeAttribute(input *ModifyVolumeAttributeInput) (*ModifyV
 
 const opModifyVpcAttribute = "ModifyVpcAttribute"
 
-// ModifyVpcAttributeRequest generates a request for the ModifyVpcAttribute operation.
+// ModifyVpcAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyVpcAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyVpcAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyVpcAttributeRequest method.
+//    req, resp := client.ModifyVpcAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyVpcAttributeRequest(input *ModifyVpcAttributeInput) (req *request.Request, output *ModifyVpcAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyVpcAttribute,
@@ -5947,7 +9961,28 @@ func (c *EC2) ModifyVpcAttribute(input *ModifyVpcAttributeInput) (*ModifyVpcAttr
 
 const opModifyVpcEndpoint = "ModifyVpcEndpoint"
 
-// ModifyVpcEndpointRequest generates a request for the ModifyVpcEndpoint operation.
+// ModifyVpcEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyVpcEndpoint operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyVpcEndpoint method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyVpcEndpointRequest method.
+//    req, resp := client.ModifyVpcEndpointRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyVpcEndpointRequest(input *ModifyVpcEndpointInput) (req *request.Request, output *ModifyVpcEndpointOutput) {
 	op := &request.Operation{
 		Name:       opModifyVpcEndpoint,
@@ -5976,7 +10011,28 @@ func (c *EC2) ModifyVpcEndpoint(input *ModifyVpcEndpointInput) (*ModifyVpcEndpoi
 
 const opModifyVpcPeeringConnectionOptions = "ModifyVpcPeeringConnectionOptions"
 
-// ModifyVpcPeeringConnectionOptionsRequest generates a request for the ModifyVpcPeeringConnectionOptions operation.
+// ModifyVpcPeeringConnectionOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyVpcPeeringConnectionOptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyVpcPeeringConnectionOptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyVpcPeeringConnectionOptionsRequest method.
+//    req, resp := client.ModifyVpcPeeringConnectionOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringConnectionOptionsInput) (req *request.Request, output *ModifyVpcPeeringConnectionOptionsOutput) {
 	op := &request.Operation{
 		Name:       opModifyVpcPeeringConnectionOptions,
@@ -5997,14 +10053,14 @@ func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringCo
 // Modifies the VPC peering connection options on one side of a VPC peering
 // connection. You can do the following:
 //
-//  Enable/disable communication over the peering connection between an EC2-Classic
+//   Enable/disable communication over the peering connection between an EC2-Classic
 // instance that's linked to your VPC (using ClassicLink) and instances in the
 // peer VPC.
 //
-// Enable/disable communication over the peering connection between instances
+//   Enable/disable communication over the peering connection between instances
 // in your VPC and an EC2-Classic instance that's linked to the peer VPC.
 //
-//  If the peered VPCs are in different accounts, each owner must initiate
+//   If the peered VPCs are in different accounts, each owner must initiate
 // a separate request to enable or disable communication in either direction,
 // depending on whether their VPC was the requester or accepter for the VPC
 // peering connection. If the peered VPCs are in the same account, you can modify
@@ -6019,7 +10075,28 @@ func (c *EC2) ModifyVpcPeeringConnectionOptions(input *ModifyVpcPeeringConnectio
 
 const opMonitorInstances = "MonitorInstances"
 
-// MonitorInstancesRequest generates a request for the MonitorInstances operation.
+// MonitorInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the MonitorInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the MonitorInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the MonitorInstancesRequest method.
+//    req, resp := client.MonitorInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) MonitorInstancesRequest(input *MonitorInstancesInput) (req *request.Request, output *MonitorInstancesOutput) {
 	op := &request.Operation{
 		Name:       opMonitorInstances,
@@ -6048,7 +10125,28 @@ func (c *EC2) MonitorInstances(input *MonitorInstancesInput) (*MonitorInstancesO
 
 const opMoveAddressToVpc = "MoveAddressToVpc"
 
-// MoveAddressToVpcRequest generates a request for the MoveAddressToVpc operation.
+// MoveAddressToVpcRequest generates a "aws/request.Request" representing the
+// client's request for the MoveAddressToVpc operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the MoveAddressToVpc method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the MoveAddressToVpcRequest method.
+//    req, resp := client.MoveAddressToVpcRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) MoveAddressToVpcRequest(input *MoveAddressToVpcInput) (req *request.Request, output *MoveAddressToVpcOutput) {
 	op := &request.Operation{
 		Name:       opMoveAddressToVpc,
@@ -6072,9 +10170,7 @@ func (c *EC2) MoveAddressToVpcRequest(input *MoveAddressToVpcInput) (req *reques
 // Elastic IP address is moved, it is no longer available for use in the EC2-Classic
 // platform, unless you move it back using the RestoreAddressToClassic request.
 // You cannot move an Elastic IP address that was originally allocated for use
-// in the EC2-VPC platform to the EC2-Classic platform. You cannot migrate an
-// Elastic IP address that's associated with a reverse DNS record. Contact AWS
-// account and billing support to remove the reverse DNS record.
+// in the EC2-VPC platform to the EC2-Classic platform.
 func (c *EC2) MoveAddressToVpc(input *MoveAddressToVpcInput) (*MoveAddressToVpcOutput, error) {
 	req, out := c.MoveAddressToVpcRequest(input)
 	err := req.Send()
@@ -6083,7 +10179,28 @@ func (c *EC2) MoveAddressToVpc(input *MoveAddressToVpcInput) (*MoveAddressToVpcO
 
 const opPurchaseReservedInstancesOffering = "PurchaseReservedInstancesOffering"
 
-// PurchaseReservedInstancesOfferingRequest generates a request for the PurchaseReservedInstancesOffering operation.
+// PurchaseReservedInstancesOfferingRequest generates a "aws/request.Request" representing the
+// client's request for the PurchaseReservedInstancesOffering operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PurchaseReservedInstancesOffering method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PurchaseReservedInstancesOfferingRequest method.
+//    req, resp := client.PurchaseReservedInstancesOfferingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) PurchaseReservedInstancesOfferingRequest(input *PurchaseReservedInstancesOfferingInput) (req *request.Request, output *PurchaseReservedInstancesOfferingOutput) {
 	op := &request.Operation{
 		Name:       opPurchaseReservedInstancesOffering,
@@ -6121,7 +10238,28 @@ func (c *EC2) PurchaseReservedInstancesOffering(input *PurchaseReservedInstances
 
 const opPurchaseScheduledInstances = "PurchaseScheduledInstances"
 
-// PurchaseScheduledInstancesRequest generates a request for the PurchaseScheduledInstances operation.
+// PurchaseScheduledInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the PurchaseScheduledInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PurchaseScheduledInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PurchaseScheduledInstancesRequest method.
+//    req, resp := client.PurchaseScheduledInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) PurchaseScheduledInstancesRequest(input *PurchaseScheduledInstancesInput) (req *request.Request, output *PurchaseScheduledInstancesOutput) {
 	op := &request.Operation{
 		Name:       opPurchaseScheduledInstances,
@@ -6157,7 +10295,28 @@ func (c *EC2) PurchaseScheduledInstances(input *PurchaseScheduledInstancesInput)
 
 const opRebootInstances = "RebootInstances"
 
-// RebootInstancesRequest generates a request for the RebootInstances operation.
+// RebootInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the RebootInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RebootInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RebootInstancesRequest method.
+//    req, resp := client.RebootInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RebootInstancesRequest(input *RebootInstancesInput) (req *request.Request, output *RebootInstancesOutput) {
 	op := &request.Operation{
 		Name:       opRebootInstances,
@@ -6196,7 +10355,28 @@ func (c *EC2) RebootInstances(input *RebootInstancesInput) (*RebootInstancesOutp
 
 const opRegisterImage = "RegisterImage"
 
-// RegisterImageRequest generates a request for the RegisterImage operation.
+// RegisterImageRequest generates a "aws/request.Request" representing the
+// client's request for the RegisterImage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RegisterImage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RegisterImageRequest method.
+//    req, resp := client.RegisterImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Request, output *RegisterImageOutput) {
 	op := &request.Operation{
 		Name:       opRegisterImage,
@@ -6219,10 +10399,10 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 // about creating AMIs, see Creating Your Own AMIs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
-// For Amazon EBS-backed instances, CreateImage creates and registers the AMI
-// in a single request, so you don't have to register the AMI yourself.
+//  For Amazon EBS-backed instances, CreateImage creates and registers the
+// AMI in a single request, so you don't have to register the AMI yourself.
 //
-// You can also use RegisterImage to create an Amazon EBS-backed Linux AMI
+//  You can also use RegisterImage to create an Amazon EBS-backed Linux AMI
 // from a snapshot of a root device volume. For more information, see Launching
 // an Instance from a Snapshot (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_LaunchingInstanceFromSnapshot.html)
 // in the Amazon Elastic Compute Cloud User Guide.
@@ -6245,7 +10425,7 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 // If you make changes to an image, deregister the previous image and register
 // the new image.
 //
-// You can't register an image where a secondary (non-root) snapshot has AWS
+//  You can't register an image where a secondary (non-root) snapshot has AWS
 // Marketplace product codes.
 func (c *EC2) RegisterImage(input *RegisterImageInput) (*RegisterImageOutput, error) {
 	req, out := c.RegisterImageRequest(input)
@@ -6255,7 +10435,28 @@ func (c *EC2) RegisterImage(input *RegisterImageInput) (*RegisterImageOutput, er
 
 const opRejectVpcPeeringConnection = "RejectVpcPeeringConnection"
 
-// RejectVpcPeeringConnectionRequest generates a request for the RejectVpcPeeringConnection operation.
+// RejectVpcPeeringConnectionRequest generates a "aws/request.Request" representing the
+// client's request for the RejectVpcPeeringConnection operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RejectVpcPeeringConnection method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RejectVpcPeeringConnectionRequest method.
+//    req, resp := client.RejectVpcPeeringConnectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RejectVpcPeeringConnectionRequest(input *RejectVpcPeeringConnectionInput) (req *request.Request, output *RejectVpcPeeringConnectionOutput) {
 	op := &request.Operation{
 		Name:       opRejectVpcPeeringConnection,
@@ -6286,7 +10487,28 @@ func (c *EC2) RejectVpcPeeringConnection(input *RejectVpcPeeringConnectionInput)
 
 const opReleaseAddress = "ReleaseAddress"
 
-// ReleaseAddressRequest generates a request for the ReleaseAddress operation.
+// ReleaseAddressRequest generates a "aws/request.Request" representing the
+// client's request for the ReleaseAddress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReleaseAddress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReleaseAddressRequest method.
+//    req, resp := client.ReleaseAddressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ReleaseAddressRequest(input *ReleaseAddressInput) (req *request.Request, output *ReleaseAddressOutput) {
 	op := &request.Operation{
 		Name:       opReleaseAddress,
@@ -6329,7 +10551,28 @@ func (c *EC2) ReleaseAddress(input *ReleaseAddressInput) (*ReleaseAddressOutput,
 
 const opReleaseHosts = "ReleaseHosts"
 
-// ReleaseHostsRequest generates a request for the ReleaseHosts operation.
+// ReleaseHostsRequest generates a "aws/request.Request" representing the
+// client's request for the ReleaseHosts operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReleaseHosts method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReleaseHostsRequest method.
+//    req, resp := client.ReleaseHostsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Request, output *ReleaseHostsOutput) {
 	op := &request.Operation{
 		Name:       opReleaseHosts,
@@ -6367,7 +10610,28 @@ func (c *EC2) ReleaseHosts(input *ReleaseHostsInput) (*ReleaseHostsOutput, error
 
 const opReplaceNetworkAclAssociation = "ReplaceNetworkAclAssociation"
 
-// ReplaceNetworkAclAssociationRequest generates a request for the ReplaceNetworkAclAssociation operation.
+// ReplaceNetworkAclAssociationRequest generates a "aws/request.Request" representing the
+// client's request for the ReplaceNetworkAclAssociation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReplaceNetworkAclAssociation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReplaceNetworkAclAssociationRequest method.
+//    req, resp := client.ReplaceNetworkAclAssociationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ReplaceNetworkAclAssociationRequest(input *ReplaceNetworkAclAssociationInput) (req *request.Request, output *ReplaceNetworkAclAssociationOutput) {
 	op := &request.Operation{
 		Name:       opReplaceNetworkAclAssociation,
@@ -6397,7 +10661,28 @@ func (c *EC2) ReplaceNetworkAclAssociation(input *ReplaceNetworkAclAssociationIn
 
 const opReplaceNetworkAclEntry = "ReplaceNetworkAclEntry"
 
-// ReplaceNetworkAclEntryRequest generates a request for the ReplaceNetworkAclEntry operation.
+// ReplaceNetworkAclEntryRequest generates a "aws/request.Request" representing the
+// client's request for the ReplaceNetworkAclEntry operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReplaceNetworkAclEntry method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReplaceNetworkAclEntryRequest method.
+//    req, resp := client.ReplaceNetworkAclEntryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ReplaceNetworkAclEntryRequest(input *ReplaceNetworkAclEntryInput) (req *request.Request, output *ReplaceNetworkAclEntryOutput) {
 	op := &request.Operation{
 		Name:       opReplaceNetworkAclEntry,
@@ -6428,7 +10713,28 @@ func (c *EC2) ReplaceNetworkAclEntry(input *ReplaceNetworkAclEntryInput) (*Repla
 
 const opReplaceRoute = "ReplaceRoute"
 
-// ReplaceRouteRequest generates a request for the ReplaceRoute operation.
+// ReplaceRouteRequest generates a "aws/request.Request" representing the
+// client's request for the ReplaceRoute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReplaceRoute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReplaceRouteRequest method.
+//    req, resp := client.ReplaceRouteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ReplaceRouteRequest(input *ReplaceRouteInput) (req *request.Request, output *ReplaceRouteOutput) {
 	op := &request.Operation{
 		Name:       opReplaceRoute,
@@ -6462,7 +10768,28 @@ func (c *EC2) ReplaceRoute(input *ReplaceRouteInput) (*ReplaceRouteOutput, error
 
 const opReplaceRouteTableAssociation = "ReplaceRouteTableAssociation"
 
-// ReplaceRouteTableAssociationRequest generates a request for the ReplaceRouteTableAssociation operation.
+// ReplaceRouteTableAssociationRequest generates a "aws/request.Request" representing the
+// client's request for the ReplaceRouteTableAssociation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReplaceRouteTableAssociation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReplaceRouteTableAssociationRequest method.
+//    req, resp := client.ReplaceRouteTableAssociationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ReplaceRouteTableAssociationRequest(input *ReplaceRouteTableAssociationInput) (req *request.Request, output *ReplaceRouteTableAssociationOutput) {
 	op := &request.Operation{
 		Name:       opReplaceRouteTableAssociation,
@@ -6497,7 +10824,28 @@ func (c *EC2) ReplaceRouteTableAssociation(input *ReplaceRouteTableAssociationIn
 
 const opReportInstanceStatus = "ReportInstanceStatus"
 
-// ReportInstanceStatusRequest generates a request for the ReportInstanceStatus operation.
+// ReportInstanceStatusRequest generates a "aws/request.Request" representing the
+// client's request for the ReportInstanceStatus operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReportInstanceStatus method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReportInstanceStatusRequest method.
+//    req, resp := client.ReportInstanceStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ReportInstanceStatusRequest(input *ReportInstanceStatusInput) (req *request.Request, output *ReportInstanceStatusOutput) {
 	op := &request.Operation{
 		Name:       opReportInstanceStatus,
@@ -6532,7 +10880,28 @@ func (c *EC2) ReportInstanceStatus(input *ReportInstanceStatusInput) (*ReportIns
 
 const opRequestSpotFleet = "RequestSpotFleet"
 
-// RequestSpotFleetRequest generates a request for the RequestSpotFleet operation.
+// RequestSpotFleetRequest generates a "aws/request.Request" representing the
+// client's request for the RequestSpotFleet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RequestSpotFleet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RequestSpotFleetRequest method.
+//    req, resp := client.RequestSpotFleetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RequestSpotFleetRequest(input *RequestSpotFleetInput) (req *request.Request, output *RequestSpotFleetOutput) {
 	op := &request.Operation{
 		Name:       opRequestSpotFleet,
@@ -6575,7 +10944,28 @@ func (c *EC2) RequestSpotFleet(input *RequestSpotFleetInput) (*RequestSpotFleetO
 
 const opRequestSpotInstances = "RequestSpotInstances"
 
-// RequestSpotInstancesRequest generates a request for the RequestSpotInstances operation.
+// RequestSpotInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the RequestSpotInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RequestSpotInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RequestSpotInstancesRequest method.
+//    req, resp := client.RequestSpotInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RequestSpotInstancesRequest(input *RequestSpotInstancesInput) (req *request.Request, output *RequestSpotInstancesOutput) {
 	op := &request.Operation{
 		Name:       opRequestSpotInstances,
@@ -6607,7 +10997,28 @@ func (c *EC2) RequestSpotInstances(input *RequestSpotInstancesInput) (*RequestSp
 
 const opResetImageAttribute = "ResetImageAttribute"
 
-// ResetImageAttributeRequest generates a request for the ResetImageAttribute operation.
+// ResetImageAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ResetImageAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ResetImageAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ResetImageAttributeRequest method.
+//    req, resp := client.ResetImageAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ResetImageAttributeRequest(input *ResetImageAttributeInput) (req *request.Request, output *ResetImageAttributeOutput) {
 	op := &request.Operation{
 		Name:       opResetImageAttribute,
@@ -6638,7 +11049,28 @@ func (c *EC2) ResetImageAttribute(input *ResetImageAttributeInput) (*ResetImageA
 
 const opResetInstanceAttribute = "ResetInstanceAttribute"
 
-// ResetInstanceAttributeRequest generates a request for the ResetInstanceAttribute operation.
+// ResetInstanceAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ResetInstanceAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ResetInstanceAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ResetInstanceAttributeRequest method.
+//    req, resp := client.ResetInstanceAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ResetInstanceAttributeRequest(input *ResetInstanceAttributeInput) (req *request.Request, output *ResetInstanceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opResetInstanceAttribute,
@@ -6659,10 +11091,10 @@ func (c *EC2) ResetInstanceAttributeRequest(input *ResetInstanceAttributeInput) 
 }
 
 // Resets an attribute of an instance to its default value. To reset the kernel
-// or ramdisk, the instance must be in a stopped state. To reset the SourceDestCheck,
+// or ramdisk, the instance must be in a stopped state. To reset the sourceDestCheck,
 // the instance can be either running or stopped.
 //
-// The SourceDestCheck attribute controls whether source/destination checking
+// The sourceDestCheck attribute controls whether source/destination checking
 // is enabled. The default value is true, which means checking is enabled. This
 // value must be false for a NAT instance to perform NAT. For more information,
 // see NAT Instances (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_NAT_Instance.html)
@@ -6675,7 +11107,28 @@ func (c *EC2) ResetInstanceAttribute(input *ResetInstanceAttributeInput) (*Reset
 
 const opResetNetworkInterfaceAttribute = "ResetNetworkInterfaceAttribute"
 
-// ResetNetworkInterfaceAttributeRequest generates a request for the ResetNetworkInterfaceAttribute operation.
+// ResetNetworkInterfaceAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ResetNetworkInterfaceAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ResetNetworkInterfaceAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ResetNetworkInterfaceAttributeRequest method.
+//    req, resp := client.ResetNetworkInterfaceAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ResetNetworkInterfaceAttributeRequest(input *ResetNetworkInterfaceAttributeInput) (req *request.Request, output *ResetNetworkInterfaceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opResetNetworkInterfaceAttribute,
@@ -6705,7 +11158,28 @@ func (c *EC2) ResetNetworkInterfaceAttribute(input *ResetNetworkInterfaceAttribu
 
 const opResetSnapshotAttribute = "ResetSnapshotAttribute"
 
-// ResetSnapshotAttributeRequest generates a request for the ResetSnapshotAttribute operation.
+// ResetSnapshotAttributeRequest generates a "aws/request.Request" representing the
+// client's request for the ResetSnapshotAttribute operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ResetSnapshotAttribute method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ResetSnapshotAttributeRequest method.
+//    req, resp := client.ResetSnapshotAttributeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) ResetSnapshotAttributeRequest(input *ResetSnapshotAttributeInput) (req *request.Request, output *ResetSnapshotAttributeOutput) {
 	op := &request.Operation{
 		Name:       opResetSnapshotAttribute,
@@ -6738,7 +11212,28 @@ func (c *EC2) ResetSnapshotAttribute(input *ResetSnapshotAttributeInput) (*Reset
 
 const opRestoreAddressToClassic = "RestoreAddressToClassic"
 
-// RestoreAddressToClassicRequest generates a request for the RestoreAddressToClassic operation.
+// RestoreAddressToClassicRequest generates a "aws/request.Request" representing the
+// client's request for the RestoreAddressToClassic operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RestoreAddressToClassic method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RestoreAddressToClassicRequest method.
+//    req, resp := client.RestoreAddressToClassicRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RestoreAddressToClassicRequest(input *RestoreAddressToClassicInput) (req *request.Request, output *RestoreAddressToClassicOutput) {
 	op := &request.Operation{
 		Name:       opRestoreAddressToClassic,
@@ -6759,9 +11254,7 @@ func (c *EC2) RestoreAddressToClassicRequest(input *RestoreAddressToClassicInput
 // Restores an Elastic IP address that was previously moved to the EC2-VPC platform
 // back to the EC2-Classic platform. You cannot move an Elastic IP address that
 // was originally allocated for use in EC2-VPC. The Elastic IP address must
-// not be associated with an instance or network interface. You cannot restore
-// an Elastic IP address that's associated with a reverse DNS record. Contact
-// AWS account and billing support to remove the reverse DNS record.
+// not be associated with an instance or network interface.
 func (c *EC2) RestoreAddressToClassic(input *RestoreAddressToClassicInput) (*RestoreAddressToClassicOutput, error) {
 	req, out := c.RestoreAddressToClassicRequest(input)
 	err := req.Send()
@@ -6770,7 +11263,28 @@ func (c *EC2) RestoreAddressToClassic(input *RestoreAddressToClassicInput) (*Res
 
 const opRevokeSecurityGroupEgress = "RevokeSecurityGroupEgress"
 
-// RevokeSecurityGroupEgressRequest generates a request for the RevokeSecurityGroupEgress operation.
+// RevokeSecurityGroupEgressRequest generates a "aws/request.Request" representing the
+// client's request for the RevokeSecurityGroupEgress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RevokeSecurityGroupEgress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RevokeSecurityGroupEgressRequest method.
+//    req, resp := client.RevokeSecurityGroupEgressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RevokeSecurityGroupEgressRequest(input *RevokeSecurityGroupEgressInput) (req *request.Request, output *RevokeSecurityGroupEgressOutput) {
 	op := &request.Operation{
 		Name:       opRevokeSecurityGroupEgress,
@@ -6810,7 +11324,28 @@ func (c *EC2) RevokeSecurityGroupEgress(input *RevokeSecurityGroupEgressInput) (
 
 const opRevokeSecurityGroupIngress = "RevokeSecurityGroupIngress"
 
-// RevokeSecurityGroupIngressRequest generates a request for the RevokeSecurityGroupIngress operation.
+// RevokeSecurityGroupIngressRequest generates a "aws/request.Request" representing the
+// client's request for the RevokeSecurityGroupIngress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RevokeSecurityGroupIngress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RevokeSecurityGroupIngressRequest method.
+//    req, resp := client.RevokeSecurityGroupIngressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RevokeSecurityGroupIngressRequest(input *RevokeSecurityGroupIngressInput) (req *request.Request, output *RevokeSecurityGroupIngressOutput) {
 	op := &request.Operation{
 		Name:       opRevokeSecurityGroupIngress,
@@ -6849,7 +11384,28 @@ func (c *EC2) RevokeSecurityGroupIngress(input *RevokeSecurityGroupIngressInput)
 
 const opRunInstances = "RunInstances"
 
-// RunInstancesRequest generates a request for the RunInstances operation.
+// RunInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the RunInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RunInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RunInstancesRequest method.
+//    req, resp := client.RunInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Request, output *Reservation) {
 	op := &request.Operation{
 		Name:       opRunInstances,
@@ -6877,6 +11433,10 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 // To ensure faster instance launches, break up large requests into smaller
 // batches. For example, create five separate launch requests for 100 instances
 // each instead of one launch request for 500 instances.
+//
+// To tag your instance, ensure that it is running as CreateTags requires a
+// resource ID. For more information about tagging, see Tagging Your Amazon
+// EC2 Resources (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html).
 //
 // If you don't specify a security group when launching an instance, Amazon
 // EC2 uses the default security group. For more information, see Security Groups
@@ -6918,7 +11478,28 @@ func (c *EC2) RunInstances(input *RunInstancesInput) (*Reservation, error) {
 
 const opRunScheduledInstances = "RunScheduledInstances"
 
-// RunScheduledInstancesRequest generates a request for the RunScheduledInstances operation.
+// RunScheduledInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the RunScheduledInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RunScheduledInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RunScheduledInstancesRequest method.
+//    req, resp := client.RunScheduledInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) RunScheduledInstancesRequest(input *RunScheduledInstancesInput) (req *request.Request, output *RunScheduledInstancesOutput) {
 	op := &request.Operation{
 		Name:       opRunScheduledInstances,
@@ -6955,7 +11536,28 @@ func (c *EC2) RunScheduledInstances(input *RunScheduledInstancesInput) (*RunSche
 
 const opStartInstances = "StartInstances"
 
-// StartInstancesRequest generates a request for the StartInstances operation.
+// StartInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the StartInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the StartInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the StartInstancesRequest method.
+//    req, resp := client.StartInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) StartInstancesRequest(input *StartInstancesInput) (req *request.Request, output *StartInstancesOutput) {
 	op := &request.Operation{
 		Name:       opStartInstances,
@@ -7000,7 +11602,28 @@ func (c *EC2) StartInstances(input *StartInstancesInput) (*StartInstancesOutput,
 
 const opStopInstances = "StopInstances"
 
-// StopInstancesRequest generates a request for the StopInstances operation.
+// StopInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the StopInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the StopInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the StopInstancesRequest method.
+//    req, resp := client.StopInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) StopInstancesRequest(input *StopInstancesInput) (req *request.Request, output *StopInstancesOutput) {
 	op := &request.Operation{
 		Name:       opStopInstances,
@@ -7043,8 +11666,10 @@ func (c *EC2) StopInstancesRequest(input *StopInstancesInput) (req *request.Requ
 // and terminating instances, see Instance Lifecycle (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
-// For more information about troubleshooting, see Troubleshooting Stopping
-// Your Instance (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/TroubleshootingInstancesStopping.html)
+// When you stop an instance, we attempt to shut it down forcibly after a short
+// while. If your instance appears stuck in the stopping state after a period
+// of time, there may be an issue with the underlying host computer. For more
+// information, see Troubleshooting Stopping Your Instance (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/TroubleshootingInstancesStopping.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) StopInstances(input *StopInstancesInput) (*StopInstancesOutput, error) {
 	req, out := c.StopInstancesRequest(input)
@@ -7054,7 +11679,28 @@ func (c *EC2) StopInstances(input *StopInstancesInput) (*StopInstancesOutput, er
 
 const opTerminateInstances = "TerminateInstances"
 
-// TerminateInstancesRequest generates a request for the TerminateInstances operation.
+// TerminateInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the TerminateInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TerminateInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TerminateInstancesRequest method.
+//    req, resp := client.TerminateInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) TerminateInstancesRequest(input *TerminateInstancesInput) (req *request.Request, output *TerminateInstancesOutput) {
 	op := &request.Operation{
 		Name:       opTerminateInstances,
@@ -7102,7 +11748,28 @@ func (c *EC2) TerminateInstances(input *TerminateInstancesInput) (*TerminateInst
 
 const opUnassignPrivateIpAddresses = "UnassignPrivateIpAddresses"
 
-// UnassignPrivateIpAddressesRequest generates a request for the UnassignPrivateIpAddresses operation.
+// UnassignPrivateIpAddressesRequest generates a "aws/request.Request" representing the
+// client's request for the UnassignPrivateIpAddresses operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UnassignPrivateIpAddresses method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UnassignPrivateIpAddressesRequest method.
+//    req, resp := client.UnassignPrivateIpAddressesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) UnassignPrivateIpAddressesRequest(input *UnassignPrivateIpAddressesInput) (req *request.Request, output *UnassignPrivateIpAddressesOutput) {
 	op := &request.Operation{
 		Name:       opUnassignPrivateIpAddresses,
@@ -7131,7 +11798,28 @@ func (c *EC2) UnassignPrivateIpAddresses(input *UnassignPrivateIpAddressesInput)
 
 const opUnmonitorInstances = "UnmonitorInstances"
 
-// UnmonitorInstancesRequest generates a request for the UnmonitorInstances operation.
+// UnmonitorInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the UnmonitorInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UnmonitorInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UnmonitorInstancesRequest method.
+//    req, resp := client.UnmonitorInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EC2) UnmonitorInstancesRequest(input *UnmonitorInstancesInput) (req *request.Request, output *UnmonitorInstancesOutput) {
 	op := &request.Operation{
 		Name:       opUnmonitorInstances,
@@ -7985,11 +12673,11 @@ func (s AttachVpnGatewayOutput) GoString() string {
 	return s.String()
 }
 
-// The value to use when a resource attribute accepts a Boolean value.
+// Describes a value for a resource attribute that is a Boolean value.
 type AttributeBooleanValue struct {
 	_ struct{} `type:"structure"`
 
-	// Valid values are true or false.
+	// The attribute value. The valid values are true or false.
 	Value *bool `locationName:"value" type:"boolean"`
 }
 
@@ -8003,11 +12691,11 @@ func (s AttributeBooleanValue) GoString() string {
 	return s.String()
 }
 
-// The value to use for a resource attribute.
+// Describes a value for a resource attribute that is a String.
 type AttributeValue struct {
 	_ struct{} `type:"structure"`
 
-	// Valid values are case-sensitive and vary by action.
+	// The attribute value. Note that the value is case-sensitive.
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -9174,7 +13862,7 @@ type CopySnapshotInput struct {
 	// copy operation. This parameter is only valid for specifying the destination
 	// region in a PresignedUrl parameter, where it is required.
 	//
-	//  CopySnapshot sends the snapshot copy to the regional endpoint that you
+	//   CopySnapshot sends the snapshot copy to the regional endpoint that you
 	// send the HTTP request to, such as ec2.us-east-1.amazonaws.com (in the AWS
 	// CLI, this is specified with the --region parameter or the default region
 	// in your AWS configuration file).
@@ -9186,13 +13874,13 @@ type CopySnapshotInput struct {
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
-	// Specifies whether the destination snapshot should be encrypted. There is
-	// no way to create an unencrypted snapshot copy from an encrypted snapshot;
-	// however, you can encrypt a copy of an unencrypted snapshot with this flag.
-	// The default CMK for EBS is used unless a non-default AWS Key Management Service
-	// (AWS KMS) CMK is specified with KmsKeyId. For more information, see Amazon
-	// EBS Encryption (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html)
-	// in the Amazon Elastic Compute Cloud User Guide.
+	// Specifies whether the destination snapshot should be encrypted. You can encrypt
+	// a copy of an unencrypted snapshot using this flag, but you cannot use it
+	// to create an unencrypted copy from an encrypted snapshot. Your default CMK
+	// for EBS is used unless a non-default AWS Key Management Service (AWS KMS)
+	// CMK is specified with KmsKeyId. For more information, see Amazon EBS Encryption
+	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html) in
+	// the Amazon Elastic Compute Cloud User Guide.
 	Encrypted *bool `locationName:"encrypted" type:"boolean"`
 
 	// The full ARN of the AWS Key Management Service (AWS KMS) CMK to use when
@@ -9411,6 +14099,8 @@ type CreateFlowLogsInput struct {
 	LogGroupName *string `type:"string" required:"true"`
 
 	// One or more subnet, network interface, or VPC IDs.
+	//
+	// Constraints: Maximum of 1000 resources
 	ResourceIds []*string `locationName:"ResourceId" locationNameList:"item" type:"list" required:"true"`
 
 	// The type of resource on which to create the flow log.
@@ -9821,7 +14511,8 @@ type CreateNetworkAclEntryInput struct {
 	// The rule number for the entry (for example, 100). ACL entries are processed
 	// in ascending order by rule number.
 	//
-	// Constraints: Positive integer from 1 to 32766
+	// Constraints: Positive integer from 1 to 32766. The range 32767 to 65535
+	// is reserved for internal use.
 	RuleNumber *int64 `locationName:"ruleNumber" type:"integer" required:"true"`
 }
 
@@ -10299,7 +14990,7 @@ type CreateSecurityGroupInput struct {
 	//
 	// Constraints for EC2-Classic: ASCII characters
 	//
-	// Constraints for EC2-VPC: a-z, A-Z, 0-9, spaces, and ._-:/()#,@[]+=;{}!$*
+	// Constraints for EC2-VPC: a-z, A-Z, 0-9, spaces, and ._-:/()#,@[]+=&;{}!$*
 	Description *string `locationName:"GroupDescription" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -10314,7 +15005,7 @@ type CreateSecurityGroupInput struct {
 	//
 	// Constraints for EC2-Classic: ASCII characters
 	//
-	// Constraints for EC2-VPC: a-z, A-Z, 0-9, spaces, and ._-:/()#,@[]+=;{}!$*
+	// Constraints for EC2-VPC: a-z, A-Z, 0-9, spaces, and ._-:/()#,@[]+=&;{}!$*
 	GroupName *string `type:"string" required:"true"`
 
 	// [EC2-VPC] The ID of the VPC. Required for EC2-VPC.
@@ -10741,7 +15432,7 @@ type CreateVpcEndpointInput struct {
 	// One or more route table IDs.
 	RouteTableIds []*string `locationName:"RouteTableId" locationNameList:"item" type:"list"`
 
-	// The AWS service name, in the form com.amazonaws.region.service. To get a
+	// The AWS service name, in the form com.amazonaws.region.service . To get a
 	// list of available services, use the DescribeVpcEndpointServices request.
 	ServiceName *string `type:"string" required:"true"`
 
@@ -10816,7 +15507,7 @@ type CreateVpcInput struct {
 	// as dedicated tenancy instances by default. You can only launch instances
 	// with a tenancy of dedicated or host into a dedicated tenancy VPC.
 	//
-	// Important: The host value cannot be used with this parameter. Use the default
+	//  Important: The host value cannot be used with this parameter. Use the default
 	// or dedicated values only.
 	//
 	// Default: default
@@ -12470,25 +17161,25 @@ type DescribeAddressesInput struct {
 
 	// One or more filters. Filter names and values are case-sensitive.
 	//
-	//   allocation-id - [EC2-VPC] The allocation ID for the address.
+	//    allocation-id - [EC2-VPC] The allocation ID for the address.
 	//
-	//   association-id - [EC2-VPC] The association ID for the address.
+	//    association-id - [EC2-VPC] The association ID for the address.
 	//
-	//   domain - Indicates whether the address is for use in EC2-Classic (standard)
+	//    domain - Indicates whether the address is for use in EC2-Classic (standard)
 	// or in a VPC (vpc).
 	//
-	//   instance-id - The ID of the instance the address is associated with, if
-	// any.
+	//    instance-id - The ID of the instance the address is associated with,
+	// if any.
 	//
-	//   network-interface-id - [EC2-VPC] The ID of the network interface that
+	//    network-interface-id - [EC2-VPC] The ID of the network interface that
 	// the address is associated with, if any.
 	//
-	//   network-interface-owner-id - The AWS account ID of the owner.
+	//    network-interface-owner-id - The AWS account ID of the owner.
 	//
-	//   private-ip-address - [EC2-VPC] The private IP address associated with
+	//    private-ip-address - [EC2-VPC] The private IP address associated with
 	// the Elastic IP address.
 	//
-	//   public-ip - The Elastic IP address.
+	//    public-ip - The Elastic IP address.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// [EC2-Classic] One or more Elastic IP addresses.
@@ -12537,15 +17228,15 @@ type DescribeAvailabilityZonesInput struct {
 
 	// One or more filters.
 	//
-	//   message - Information about the Availability Zone.
+	//    message - Information about the Availability Zone.
 	//
-	//   region-name - The name of the region for the Availability Zone (for example,
+	//    region-name - The name of the region for the Availability Zone (for example,
 	// us-east-1).
 	//
-	//   state - The state of the Availability Zone (available | information |
+	//    state - The state of the Availability Zone (available | information |
 	// impaired | unavailable).
 	//
-	//   zone-name - The name of the Availability Zone (for example, us-east-1a).
+	//    zone-name - The name of the Availability Zone (for example, us-east-1a).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The names of one or more Availability Zones.
@@ -12597,27 +17288,27 @@ type DescribeBundleTasksInput struct {
 
 	// One or more filters.
 	//
-	//   bundle-id - The ID of the bundle task.
+	//    bundle-id - The ID of the bundle task.
 	//
-	//   error-code - If the task failed, the error code returned.
+	//    error-code - If the task failed, the error code returned.
 	//
-	//   error-message - If the task failed, the error message returned.
+	//    error-message - If the task failed, the error message returned.
 	//
-	//   instance-id - The ID of the instance.
+	//    instance-id - The ID of the instance.
 	//
-	//   progress - The level of task completion, as a percentage (for example,
+	//    progress - The level of task completion, as a percentage (for example,
 	// 20%).
 	//
-	//   s3-bucket - The Amazon S3 bucket to store the AMI.
+	//    s3-bucket - The Amazon S3 bucket to store the AMI.
 	//
-	//   s3-prefix - The beginning of the AMI name.
+	//    s3-prefix - The beginning of the AMI name.
 	//
-	//   start-time - The time the task started (for example, 2013-09-15T17:15:20.000Z).
+	//    start-time - The time the task started (for example, 2013-09-15T17:15:20.000Z).
 	//
-	//   state - The state of the task (pending | waiting-for-shutdown | bundling
+	//    state - The state of the task (pending | waiting-for-shutdown | bundling
 	// | storing | cancelling | complete | failed).
 	//
-	//   update-time - The time of the most recent update for the task.
+	//    update-time - The time of the most recent update for the task.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 }
 
@@ -12661,23 +17352,24 @@ type DescribeClassicLinkInstancesInput struct {
 
 	// One or more filters.
 	//
-	//  group-id - The ID of a VPC security group that's associated with the instance.
+	//    group-id - The ID of a VPC security group that's associated with the
+	// instance.
 	//
-	//  instance-id - The ID of the instance.
+	//    instance-id - The ID of the instance.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   vpc-id - The ID of the VPC that the instance is linked to.
+	//    vpc-id - The ID of the VPC that the instance is linked to.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more instance IDs. Must be instances linked to a VPC through ClassicLink.
@@ -12791,31 +17483,31 @@ type DescribeCustomerGatewaysInput struct {
 
 	// One or more filters.
 	//
-	//   bgp-asn - The customer gateway's Border Gateway Protocol (BGP) Autonomous
+	//    bgp-asn - The customer gateway's Border Gateway Protocol (BGP) Autonomous
 	// System Number (ASN).
 	//
-	//   customer-gateway-id - The ID of the customer gateway.
+	//    customer-gateway-id - The ID of the customer gateway.
 	//
-	//   ip-address - The IP address of the customer gateway's Internet-routable
+	//    ip-address - The IP address of the customer gateway's Internet-routable
 	// external interface.
 	//
-	//   state - The state of the customer gateway (pending | available | deleting
+	//    state - The state of the customer gateway (pending | available | deleting
 	// | deleted).
 	//
-	//   type - The type of customer gateway. Currently, the only supported type
+	//    type - The type of customer gateway. Currently, the only supported type
 	// is ipsec.1.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 }
 
@@ -12864,23 +17556,23 @@ type DescribeDhcpOptionsInput struct {
 
 	// One or more filters.
 	//
-	//   dhcp-options-id - The ID of a set of DHCP options.
+	//    dhcp-options-id - The ID of a set of DHCP options.
 	//
-	//   key - The key for one of the options (for example, domain-name).
+	//    key - The key for one of the options (for example, domain-name).
 	//
-	//   value - The value for one of the options.
+	//    value - The value for one of the options.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 }
 
@@ -12954,15 +17646,15 @@ type DescribeFlowLogsInput struct {
 
 	// One or more filters.
 	//
-	//  deliver-log-status - The status of the logs delivery (SUCCESS | FAILED).
+	//    deliver-log-status - The status of the logs delivery (SUCCESS | FAILED).
 	//
-	// flow-log-id - The ID of the flow log.
+	//    flow-log-id - The ID of the flow log.
 	//
-	// log-group-name - The name of the log group.
+	//    log-group-name - The name of the log group.
 	//
-	// resource-id - The ID of the VPC, subnet, or network interface.
+	//    resource-id - The ID of the VPC, subnet, or network interface.
 	//
-	// traffic-type - The type of traffic (ACCEPT | REJECT | ALL)
+	//    traffic-type - The type of traffic (ACCEPT | REJECT | ALL)
 	Filter []*Filter `locationNameList:"Filter" type:"list"`
 
 	// One or more flow log IDs.
@@ -13017,20 +17709,22 @@ type DescribeHostsInput struct {
 
 	// One or more filters.
 	//
-	//  instance-type - The instance type size that the Dedicated host is configured
+	//    instance-type - The instance type size that the Dedicated host is configured
 	// to support.
 	//
-	// auto-placement - Whether auto-placement is enabled or disabled (on | off).
+	//    auto-placement - Whether auto-placement is enabled or disabled (on |
+	// off).
 	//
-	// host-reservation-id - The ID of the reservation associated with this host.
+	//    host-reservation-id - The ID of the reservation associated with this
+	// host.
 	//
-	// client-token - The idempotency token you provided when you launched the
+	//    client-token - The idempotency token you provided when you launched the
 	// instance
 	//
-	// state- The allocation state of the Dedicated host (available | under-assessment
+	//    state- The allocation state of the Dedicated host (available | under-assessment
 	// | permanent-failure | released | released-permanent-failure).
 	//
-	// availability-zone - The Availability Zone of the host.
+	//    availability-zone - The Availability Zone of the host.
 	Filter []*Filter `locationName:"filter" locationNameList:"Filter" type:"list"`
 
 	// The IDs of the Dedicated hosts. The IDs are used for targeted instance launches.
@@ -13115,13 +17809,66 @@ func (s DescribeIdFormatOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeIdentityIdFormat.
+type DescribeIdentityIdFormatInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the principal, which can be an IAM role, IAM user, or the root
+	// user.
+	PrincipalArn *string `locationName:"principalArn" type:"string" required:"true"`
+
+	// The type of resource.
+	Resource *string `locationName:"resource" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeIdentityIdFormatInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIdentityIdFormatInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeIdentityIdFormatInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeIdentityIdFormatInput"}
+	if s.PrincipalArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("PrincipalArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Contains the output of DescribeIdentityIdFormat.
+type DescribeIdentityIdFormatOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the ID format for the resources.
+	Statuses []*IdFormat `locationName:"statusSet" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeIdentityIdFormatOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIdentityIdFormatOutput) GoString() string {
+	return s.String()
+}
+
 // Contains the parameters for DescribeImageAttribute.
 type DescribeImageAttributeInput struct {
 	_ struct{} `type:"structure"`
 
 	// The AMI attribute.
 	//
-	// Note: Depending on your account privileges, the blockDeviceMapping attribute
+	//  Note: Depending on your account privileges, the blockDeviceMapping attribute
 	// may return a Client.AuthFailure error. If this happens, use DescribeImages
 	// to get information about the block device mapping for the AMI.
 	Attribute *string `type:"string" required:"true" enum:"ImageAttributeName"`
@@ -13187,7 +17934,8 @@ type DescribeImageAttributeOutput struct {
 	// The RAM disk ID.
 	RamdiskId *AttributeValue `locationName:"ramdisk" type:"structure"`
 
-	// The value to use for a resource attribute.
+	// Indicates whether enhanced networking with the Intel 82599 Virtual Function
+	// interface is enabled.
 	SriovNetSupport *AttributeValue `locationName:"sriovNetSupport" type:"structure"`
 }
 
@@ -13217,74 +17965,74 @@ type DescribeImagesInput struct {
 
 	// One or more filters.
 	//
-	//   architecture - The image architecture (i386 | x86_64).
+	//    architecture - The image architecture (i386 | x86_64).
 	//
-	//   block-device-mapping.delete-on-termination - A Boolean value that indicates
+	//    block-device-mapping.delete-on-termination - A Boolean value that indicates
 	// whether the Amazon EBS volume is deleted on instance termination.
 	//
-	//   block-device-mapping.device-name - The device name for the EBS volume
+	//    block-device-mapping.device-name - The device name for the EBS volume
 	// (for example, /dev/sdh).
 	//
-	//   block-device-mapping.snapshot-id - The ID of the snapshot used for the
+	//    block-device-mapping.snapshot-id - The ID of the snapshot used for the
 	// EBS volume.
 	//
-	//   block-device-mapping.volume-size - The volume size of the EBS volume,
+	//    block-device-mapping.volume-size - The volume size of the EBS volume,
 	// in GiB.
 	//
-	//   block-device-mapping.volume-type - The volume type of the EBS volume (gp2
-	// | io1 | st1 | sc1 | standard).
+	//    block-device-mapping.volume-type - The volume type of the EBS volume
+	// (gp2 | io1 | st1 | sc1 | standard).
 	//
-	//   description - The description of the image (provided during image creation).
+	//    description - The description of the image (provided during image creation).
 	//
-	//   hypervisor - The hypervisor type (ovm | xen).
+	//    hypervisor - The hypervisor type (ovm | xen).
 	//
-	//   image-id - The ID of the image.
+	//    image-id - The ID of the image.
 	//
-	//   image-type - The image type (machine | kernel | ramdisk).
+	//    image-type - The image type (machine | kernel | ramdisk).
 	//
-	//   is-public - A Boolean that indicates whether the image is public.
+	//    is-public - A Boolean that indicates whether the image is public.
 	//
-	//   kernel-id - The kernel ID.
+	//    kernel-id - The kernel ID.
 	//
-	//   manifest-location - The location of the image manifest.
+	//    manifest-location - The location of the image manifest.
 	//
-	//   name - The name of the AMI (provided during image creation).
+	//    name - The name of the AMI (provided during image creation).
 	//
-	//   owner-alias - The AWS account alias (for example, amazon).
+	//    owner-alias - The AWS account alias (for example, amazon).
 	//
-	//   owner-id - The AWS account ID of the image owner.
+	//    owner-id - The AWS account ID of the image owner.
 	//
-	//   platform - The platform. To only list Windows-based AMIs, use windows.
+	//    platform - The platform. To only list Windows-based AMIs, use windows.
 	//
-	//   product-code - The product code.
+	//    product-code - The product code.
 	//
-	//   product-code.type - The type of the product code (devpay | marketplace).
+	//    product-code.type - The type of the product code (devpay | marketplace).
 	//
-	//   ramdisk-id - The RAM disk ID.
+	//    ramdisk-id - The RAM disk ID.
 	//
-	//   root-device-name - The name of the root device volume (for example, /dev/sda1).
+	//    root-device-name - The name of the root device volume (for example, /dev/sda1).
 	//
-	//   root-device-type - The type of the root device volume (ebs | instance-store).
+	//    root-device-type - The type of the root device volume (ebs | instance-store).
 	//
-	//   state - The state of the image (available | pending | failed).
+	//    state - The state of the image (available | pending | failed).
 	//
-	//   state-reason-code - The reason code for the state change.
+	//    state-reason-code - The reason code for the state change.
 	//
-	//   state-reason-message - The message for the state change.
+	//    state-reason-message - The message for the state change.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   virtualization-type - The virtualization type (paravirtual | hvm).
+	//    virtualization-type - The virtualization type (paravirtual | hvm).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more image IDs.
@@ -13447,6 +18195,8 @@ type DescribeInstanceAttributeInput struct {
 	_ struct{} `type:"structure"`
 
 	// The instance attribute.
+	//
+	// Note: The enaSupport attribute is not supported at this time.
 	Attribute *string `locationName:"attribute" type:"string" required:"true" enum:"InstanceAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -13499,6 +18249,9 @@ type DescribeInstanceAttributeOutput struct {
 	// Indicates whether the instance is optimized for EBS I/O.
 	EbsOptimized *AttributeBooleanValue `locationName:"ebsOptimized" type:"structure"`
 
+	// Indicates whether enhanced networking with ENA is enabled.
+	EnaSupport *AttributeBooleanValue `locationName:"enaSupport" type:"structure"`
+
 	// The security groups associated with the instance.
 	Groups []*GroupIdentifier `locationName:"groupSet" locationNameList:"item" type:"list"`
 
@@ -13529,10 +18282,11 @@ type DescribeInstanceAttributeOutput struct {
 	// must be false for a NAT instance to perform NAT.
 	SourceDestCheck *AttributeBooleanValue `locationName:"sourceDestCheck" type:"structure"`
 
-	// The value to use for a resource attribute.
+	// Indicates whether enhanced networking with the Intel 82599 Virtual Function
+	// interface is enabled.
 	SriovNetSupport *AttributeValue `locationName:"sriovNetSupport" type:"structure"`
 
-	// The Base64-encoded MIME user data.
+	// The user data.
 	UserData *AttributeValue `locationName:"userData" type:"structure"`
 }
 
@@ -13558,38 +18312,38 @@ type DescribeInstanceStatusInput struct {
 
 	// One or more filters.
 	//
-	//   availability-zone - The Availability Zone of the instance.
+	//    availability-zone - The Availability Zone of the instance.
 	//
-	//   event.code - The code for the scheduled event (instance-reboot | system-reboot
+	//    event.code - The code for the scheduled event (instance-reboot | system-reboot
 	// | system-maintenance | instance-retirement | instance-stop).
 	//
-	//   event.description - A description of the event.
+	//    event.description - A description of the event.
 	//
-	//   event.not-after - The latest end time for the scheduled event (for example,
+	//    event.not-after - The latest end time for the scheduled event (for example,
 	// 2014-09-15T17:15:20.000Z).
 	//
-	//   event.not-before - The earliest start time for the scheduled event (for
+	//    event.not-before - The earliest start time for the scheduled event (for
 	// example, 2014-09-15T17:15:20.000Z).
 	//
-	//   instance-state-code - The code for the instance state, as a 16-bit unsigned
+	//    instance-state-code - The code for the instance state, as a 16-bit unsigned
 	// integer. The high byte is an opaque internal value and should be ignored.
 	// The low byte is set based on the state represented. The valid values are
 	// 0 (pending), 16 (running), 32 (shutting-down), 48 (terminated), 64 (stopping),
 	// and 80 (stopped).
 	//
-	//   instance-state-name - The state of the instance (pending | running | shutting-down
-	// | terminated | stopping | stopped).
+	//    instance-state-name - The state of the instance (pending | running |
+	// shutting-down | terminated | stopping | stopped).
 	//
-	//   instance-status.reachability - Filters on instance status where the name
+	//    instance-status.reachability - Filters on instance status where the name
 	// is reachability (passed | failed | initializing | insufficient-data).
 	//
-	//   instance-status.status - The status of the instance (ok | impaired | initializing
-	// | insufficient-data | not-applicable).
+	//    instance-status.status - The status of the instance (ok | impaired |
+	// initializing | insufficient-data | not-applicable).
 	//
-	//   system-status.reachability - Filters on system status where the name is
-	// reachability (passed | failed | initializing | insufficient-data).
+	//    system-status.reachability - Filters on system status where the name
+	// is reachability (passed | failed | initializing | insufficient-data).
 	//
-	//   system-status.status - The system status of the instance (ok | impaired
+	//    system-status.status - The system status of the instance (ok | impaired
 	// | initializing | insufficient-data | not-applicable).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
@@ -13660,233 +18414,234 @@ type DescribeInstancesInput struct {
 
 	// One or more filters.
 	//
-	//   affinity - The affinity setting for an instance running on a Dedicated
+	//    affinity - The affinity setting for an instance running on a Dedicated
 	// host (default | host).
 	//
-	//   architecture - The instance architecture (i386 | x86_64).
+	//    architecture - The instance architecture (i386 | x86_64).
 	//
-	//   availability-zone - The Availability Zone of the instance.
+	//    availability-zone - The Availability Zone of the instance.
 	//
-	//   block-device-mapping.attach-time - The attach time for an EBS volume mapped
-	// to the instance, for example, 2010-09-15T17:15:20.000Z.
+	//    block-device-mapping.attach-time - The attach time for an EBS volume
+	// mapped to the instance, for example, 2010-09-15T17:15:20.000Z.
 	//
-	//   block-device-mapping.delete-on-termination - A Boolean that indicates
+	//    block-device-mapping.delete-on-termination - A Boolean that indicates
 	// whether the EBS volume is deleted on instance termination.
 	//
-	//   block-device-mapping.device-name - The device name for the EBS volume
+	//    block-device-mapping.device-name - The device name for the EBS volume
 	// (for example, /dev/sdh or xvdh).
 	//
-	//   block-device-mapping.status - The status for the EBS volume (attaching
+	//    block-device-mapping.status - The status for the EBS volume (attaching
 	// | attached | detaching | detached).
 	//
-	//   block-device-mapping.volume-id - The volume ID of the EBS volume.
+	//    block-device-mapping.volume-id - The volume ID of the EBS volume.
 	//
-	//   client-token - The idempotency token you provided when you launched the
+	//    client-token - The idempotency token you provided when you launched the
 	// instance.
 	//
-	//   dns-name - The public DNS name of the instance.
+	//    dns-name - The public DNS name of the instance.
 	//
-	//   group-id - The ID of the security group for the instance. EC2-Classic
+	//    group-id - The ID of the security group for the instance. EC2-Classic
 	// only.
 	//
-	//   group-name - The name of the security group for the instance. EC2-Classic
+	//    group-name - The name of the security group for the instance. EC2-Classic
 	// only.
 	//
-	//   host-Id - The ID of the Dedicated host on which the instance is running,
+	//    host-Id - The ID of the Dedicated host on which the instance is running,
 	// if applicable.
 	//
-	//   hypervisor - The hypervisor type of the instance (ovm | xen).
+	//    hypervisor - The hypervisor type of the instance (ovm | xen).
 	//
-	//   iam-instance-profile.arn - The instance profile associated with the instance.
+	//    iam-instance-profile.arn - The instance profile associated with the instance.
 	// Specified as an ARN.
 	//
-	//   image-id - The ID of the image used to launch the instance.
+	//    image-id - The ID of the image used to launch the instance.
 	//
-	//   instance-id - The ID of the instance.
+	//    instance-id - The ID of the instance.
 	//
-	//   instance-lifecycle - Indicates whether this is a Spot Instance or a Scheduled
+	//    instance-lifecycle - Indicates whether this is a Spot Instance or a Scheduled
 	// Instance (spot | scheduled).
 	//
-	//   instance-state-code - The state of the instance, as a 16-bit unsigned
+	//    instance-state-code - The state of the instance, as a 16-bit unsigned
 	// integer. The high byte is an opaque internal value and should be ignored.
 	// The low byte is set based on the state represented. The valid values are:
 	// 0 (pending), 16 (running), 32 (shutting-down), 48 (terminated), 64 (stopping),
 	// and 80 (stopped).
 	//
-	//   instance-state-name - The state of the instance (pending | running | shutting-down
-	// | terminated | stopping | stopped).
+	//    instance-state-name - The state of the instance (pending | running |
+	// shutting-down | terminated | stopping | stopped).
 	//
-	//   instance-type - The type of instance (for example, t2.micro).
+	//    instance-type - The type of instance (for example, t2.micro).
 	//
-	//   instance.group-id - The ID of the security group for the instance.
+	//    instance.group-id - The ID of the security group for the instance.
 	//
-	//   instance.group-name - The name of the security group for the instance.
+	//    instance.group-name - The name of the security group for the instance.
 	//
-	//   ip-address - The public IP address of the instance.
+	//    ip-address - The public IP address of the instance.
 	//
-	//   kernel-id - The kernel ID.
+	//    kernel-id - The kernel ID.
 	//
-	//   key-name - The name of the key pair used when the instance was launched.
+	//    key-name - The name of the key pair used when the instance was launched.
 	//
-	//   launch-index - When launching multiple instances, this is the index for
+	//    launch-index - When launching multiple instances, this is the index for
 	// the instance in the launch group (for example, 0, 1, 2, and so on).
 	//
-	//   launch-time - The time when the instance was launched.
+	//    launch-time - The time when the instance was launched.
 	//
-	//   monitoring-state - Indicates whether monitoring is enabled for the instance
+	//    monitoring-state - Indicates whether monitoring is enabled for the instance
 	// (disabled | enabled).
 	//
-	//   owner-id - The AWS account ID of the instance owner.
+	//    owner-id - The AWS account ID of the instance owner.
 	//
-	//   placement-group-name - The name of the placement group for the instance.
+	//    placement-group-name - The name of the placement group for the instance.
 	//
-	//   platform - The platform. Use windows if you have Windows instances; otherwise,
+	//    platform - The platform. Use windows if you have Windows instances; otherwise,
 	// leave blank.
 	//
-	//   private-dns-name - The private DNS name of the instance.
+	//    private-dns-name - The private DNS name of the instance.
 	//
-	//   private-ip-address - The private IP address of the instance.
+	//    private-ip-address - The private IP address of the instance.
 	//
-	//   product-code - The product code associated with the AMI used to launch
+	//    product-code - The product code associated with the AMI used to launch
 	// the instance.
 	//
-	//   product-code.type - The type of product code (devpay | marketplace).
+	//    product-code.type - The type of product code (devpay | marketplace).
 	//
-	//   ramdisk-id - The RAM disk ID.
+	//    ramdisk-id - The RAM disk ID.
 	//
-	//   reason - The reason for the current state of the instance (for example,
+	//    reason - The reason for the current state of the instance (for example,
 	// shows "User Initiated [date]" when you stop or terminate the instance). Similar
 	// to the state-reason-code filter.
 	//
-	//   requester-id - The ID of the entity that launched the instance on your
+	//    requester-id - The ID of the entity that launched the instance on your
 	// behalf (for example, AWS Management Console, Auto Scaling, and so on).
 	//
-	//   reservation-id - The ID of the instance's reservation. A reservation ID
-	// is created any time you launch an instance. A reservation ID has a one-to-one
+	//    reservation-id - The ID of the instance's reservation. A reservation
+	// ID is created any time you launch an instance. A reservation ID has a one-to-one
 	// relationship with an instance launch request, but can be associated with
 	// more than one instance if you launch multiple instances using the same launch
 	// request. For example, if you launch one instance, you'll get one reservation
 	// ID. If you launch ten instances using the same launch request, you'll also
 	// get one reservation ID.
 	//
-	//   root-device-name - The name of the root device for the instance (for example,
-	// /dev/sda1 or /dev/xvda).
+	//    root-device-name - The name of the root device for the instance (for
+	// example, /dev/sda1 or /dev/xvda).
 	//
-	//   root-device-type - The type of root device that the instance uses (ebs
+	//    root-device-type - The type of root device that the instance uses (ebs
 	// | instance-store).
 	//
-	//   source-dest-check - Indicates whether the instance performs source/destination
+	//    source-dest-check - Indicates whether the instance performs source/destination
 	// checking. A value of true means that checking is enabled, and false means
 	// checking is disabled. The value must be false for the instance to perform
 	// network address translation (NAT) in your VPC.
 	//
-	//   spot-instance-request-id - The ID of the Spot instance request.
+	//    spot-instance-request-id - The ID of the Spot instance request.
 	//
-	//   state-reason-code - The reason code for the state change.
+	//    state-reason-code - The reason code for the state change.
 	//
-	//   state-reason-message - A message that describes the state change.
+	//    state-reason-message - A message that describes the state change.
 	//
-	//   subnet-id - The ID of the subnet for the instance.
+	//    subnet-id - The ID of the subnet for the instance.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource,
+	//    tag:key=value - The key/value combination of a tag assigned to the resource,
 	// where tag:key is the tag's key.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   tenancy - The tenancy of an instance (dedicated | default | host).
+	//    tenancy - The tenancy of an instance (dedicated | default | host).
 	//
-	//   virtualization-type - The virtualization type of the instance (paravirtual
+	//    virtualization-type - The virtualization type of the instance (paravirtual
 	// | hvm).
 	//
-	//   vpc-id - The ID of the VPC that the instance is running in.
+	//    vpc-id - The ID of the VPC that the instance is running in.
 	//
-	//   network-interface.description - The description of the network interface.
+	//    network-interface.description - The description of the network interface.
 	//
-	//   network-interface.subnet-id - The ID of the subnet for the network interface.
+	//    network-interface.subnet-id - The ID of the subnet for the network interface.
 	//
-	//   network-interface.vpc-id - The ID of the VPC for the network interface.
+	//    network-interface.vpc-id - The ID of the VPC for the network interface.
 	//
-	//   network-interface.network-interface-id - The ID of the network interface.
+	//    network-interface.network-interface-id - The ID of the network interface.
 	//
-	//   network-interface.owner-id - The ID of the owner of the network interface.
+	//    network-interface.owner-id - The ID of the owner of the network interface.
 	//
-	//   network-interface.availability-zone - The Availability Zone for the network
+	//    network-interface.availability-zone - The Availability Zone for the network
 	// interface.
 	//
-	//   network-interface.requester-id - The requester ID for the network interface.
+	//    network-interface.requester-id - The requester ID for the network interface.
 	//
-	//   network-interface.requester-managed - Indicates whether the network interface
+	//    network-interface.requester-managed - Indicates whether the network interface
 	// is being managed by AWS.
 	//
-	//   network-interface.status - The status of the network interface (available)
+	//    network-interface.status - The status of the network interface (available)
 	// | in-use).
 	//
-	//   network-interface.mac-address - The MAC address of the network interface.
+	//    network-interface.mac-address - The MAC address of the network interface.
 	//
-	//   network-interface.private-dns-name - The private DNS name of the network
+	//    network-interface.private-dns-name - The private DNS name of the network
 	// interface.
 	//
-	//   network-interface.source-dest-check - Whether the network interface performs
+	//    network-interface.source-dest-check - Whether the network interface performs
 	// source/destination checking. A value of true means checking is enabled, and
 	// false means checking is disabled. The value must be false for the network
 	// interface to perform network address translation (NAT) in your VPC.
 	//
-	//   network-interface.group-id - The ID of a security group associated with
+	//    network-interface.group-id - The ID of a security group associated with
 	// the network interface.
 	//
-	//   network-interface.group-name - The name of a security group associated
+	//    network-interface.group-name - The name of a security group associated
 	// with the network interface.
 	//
-	//   network-interface.attachment.attachment-id - The ID of the interface attachment.
+	//    network-interface.attachment.attachment-id - The ID of the interface
+	// attachment.
 	//
-	//   network-interface.attachment.instance-id - The ID of the instance to which
-	// the network interface is attached.
+	//    network-interface.attachment.instance-id - The ID of the instance to
+	// which the network interface is attached.
 	//
-	//   network-interface.attachment.instance-owner-id - The owner ID of the instance
-	// to which the network interface is attached.
+	//    network-interface.attachment.instance-owner-id - The owner ID of the
+	// instance to which the network interface is attached.
 	//
-	//   network-interface.addresses.private-ip-address - The private IP address
+	//    network-interface.addresses.private-ip-address - The private IP address
 	// associated with the network interface.
 	//
-	//   network-interface.attachment.device-index - The device index to which
+	//    network-interface.attachment.device-index - The device index to which
 	// the network interface is attached.
 	//
-	//   network-interface.attachment.status - The status of the attachment (attaching
+	//    network-interface.attachment.status - The status of the attachment (attaching
 	// | attached | detaching | detached).
 	//
-	//   network-interface.attachment.attach-time - The time that the network interface
-	// was attached to an instance.
+	//    network-interface.attachment.attach-time - The time that the network
+	// interface was attached to an instance.
 	//
-	//   network-interface.attachment.delete-on-termination - Specifies whether
+	//    network-interface.attachment.delete-on-termination - Specifies whether
 	// the attachment is deleted when an instance is terminated.
 	//
-	//   network-interface.addresses.primary - Specifies whether the IP address
+	//    network-interface.addresses.primary - Specifies whether the IP address
 	// of the network interface is the primary private IP address.
 	//
-	//   network-interface.addresses.association.public-ip - The ID of the association
+	//    network-interface.addresses.association.public-ip - The ID of the association
 	// of an Elastic IP address with a network interface.
 	//
-	//   network-interface.addresses.association.ip-owner-id - The owner ID of
+	//    network-interface.addresses.association.ip-owner-id - The owner ID of
 	// the private IP address associated with the network interface.
 	//
-	//   association.public-ip - The address of the Elastic IP address bound to
+	//    association.public-ip - The address of the Elastic IP address bound to
 	// the network interface.
 	//
-	//   association.ip-owner-id - The owner of the Elastic IP address associated
+	//    association.ip-owner-id - The owner of the Elastic IP address associated
 	// with the network interface.
 	//
-	//   association.allocation-id - The allocation ID returned when you allocated
+	//    association.allocation-id - The allocation ID returned when you allocated
 	// the Elastic IP address for your network interface.
 	//
-	//   association.association-id - The association ID returned when the network
+	//    association.association-id - The association ID returned when the network
 	// interface was associated with an IP address.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
@@ -13898,7 +18653,7 @@ type DescribeInstancesInput struct {
 	// The maximum number of results to return in a single call. To retrieve the
 	// remaining results, make another call with the returned NextToken value. This
 	// value can be between 5 and 1000. You cannot specify this parameter and the
-	// instance IDs parameter in the same call.
+	// instance IDs parameter or tag filters in the same call.
 	MaxResults *int64 `locationName:"maxResults" type:"integer"`
 
 	// The token to request the next page of results.
@@ -13949,24 +18704,24 @@ type DescribeInternetGatewaysInput struct {
 
 	// One or more filters.
 	//
-	//   attachment.state - The current state of the attachment between the gateway
+	//    attachment.state - The current state of the attachment between the gateway
 	// and the VPC (available). Present only if a VPC is attached.
 	//
-	//   attachment.vpc-id - The ID of an attached VPC.
+	//    attachment.vpc-id - The ID of an attached VPC.
 	//
-	//   internet-gateway-id - The ID of the Internet gateway.
+	//    internet-gateway-id - The ID of the Internet gateway.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more Internet gateway IDs.
@@ -14015,9 +18770,9 @@ type DescribeKeyPairsInput struct {
 
 	// One or more filters.
 	//
-	//   fingerprint - The fingerprint of the key pair.
+	//    fingerprint - The fingerprint of the key pair.
 	//
-	//   key-name - The name of the key pair.
+	//    key-name - The name of the key pair.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more key pair names.
@@ -14066,7 +18821,7 @@ type DescribeMovingAddressesInput struct {
 
 	// One or more filters.
 	//
-	//   moving-status - The status of the Elastic IP address (MovingToVpc | RestoringToClassic).
+	//    moving-status - The status of the Elastic IP address (MovingToVpc | RestoringToClassic).
 	Filters []*Filter `locationName:"filter" locationNameList:"Filter" type:"list"`
 
 	// The maximum number of results to return for the request in a single page.
@@ -14122,14 +18877,14 @@ type DescribeNatGatewaysInput struct {
 
 	// One or more filters.
 	//
-	//   nat-gateway-id - The ID of the NAT gateway.
+	//    nat-gateway-id - The ID of the NAT gateway.
 	//
-	//   state - The state of the NAT gateway (pending | failed | available | deleting
-	// | deleted).
+	//    state - The state of the NAT gateway (pending | failed | available |
+	// deleting | deleted).
 	//
-	//   subnet-id - The ID of the subnet in which the NAT gateway resides.
+	//    subnet-id - The ID of the subnet in which the NAT gateway resides.
 	//
-	//   vpc-id - The ID of the VPC in which the NAT gateway resides.
+	//    vpc-id - The ID of the VPC in which the NAT gateway resides.
 	Filter []*Filter `locationNameList:"Filter" type:"list"`
 
 	// The maximum number of items to return for this request. The request returns
@@ -14191,51 +18946,52 @@ type DescribeNetworkAclsInput struct {
 
 	// One or more filters.
 	//
-	//   association.association-id - The ID of an association ID for the ACL.
+	//    association.association-id - The ID of an association ID for the ACL.
 	//
-	//   association.network-acl-id - The ID of the network ACL involved in the
+	//    association.network-acl-id - The ID of the network ACL involved in the
 	// association.
 	//
-	//   association.subnet-id - The ID of the subnet involved in the association.
+	//    association.subnet-id - The ID of the subnet involved in the association.
 	//
-	//   default - Indicates whether the ACL is the default network ACL for the
+	//    default - Indicates whether the ACL is the default network ACL for the
 	// VPC.
 	//
-	//   entry.cidr - The CIDR range specified in the entry.
+	//    entry.cidr - The CIDR range specified in the entry.
 	//
-	//   entry.egress - Indicates whether the entry applies to egress traffic.
+	//    entry.egress - Indicates whether the entry applies to egress traffic.
 	//
-	//   entry.icmp.code - The ICMP code specified in the entry, if any.
+	//    entry.icmp.code - The ICMP code specified in the entry, if any.
 	//
-	//   entry.icmp.type - The ICMP type specified in the entry, if any.
+	//    entry.icmp.type - The ICMP type specified in the entry, if any.
 	//
-	//   entry.port-range.from - The start of the port range specified in the entry.
+	//    entry.port-range.from - The start of the port range specified in the
+	// entry.
 	//
-	//   entry.port-range.to - The end of the port range specified in the entry.
+	//    entry.port-range.to - The end of the port range specified in the entry.
 	//
-	//   entry.protocol - The protocol specified in the entry (tcp | udp | icmp
+	//    entry.protocol - The protocol specified in the entry (tcp | udp | icmp
 	// or a protocol number).
 	//
-	//   entry.rule-action - Allows or denies the matching traffic (allow | deny).
+	//    entry.rule-action - Allows or denies the matching traffic (allow | deny).
 	//
-	//   entry.rule-number - The number of an entry (in other words, rule) in the
-	// ACL's set of entries.
+	//    entry.rule-number - The number of an entry (in other words, rule) in
+	// the ACL's set of entries.
 	//
-	//   network-acl-id - The ID of the network ACL.
+	//    network-acl-id - The ID of the network ACL.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   vpc-id - The ID of the VPC for the network ACL.
+	//    vpc-id - The ID of the VPC for the network ACL.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more network ACL IDs.
@@ -14354,106 +19110,106 @@ type DescribeNetworkInterfacesInput struct {
 
 	// One or more filters.
 	//
-	//   addresses.private-ip-address - The private IP addresses associated with
+	//    addresses.private-ip-address - The private IP addresses associated with
 	// the network interface.
 	//
-	//   addresses.primary - Whether the private IP address is the primary IP address
-	// associated with the network interface.
+	//    addresses.primary - Whether the private IP address is the primary IP
+	// address associated with the network interface.
 	//
-	//   addresses.association.public-ip - The association ID returned when the
+	//    addresses.association.public-ip - The association ID returned when the
 	// network interface was associated with the Elastic IP address.
 	//
-	//   addresses.association.owner-id - The owner ID of the addresses associated
+	//    addresses.association.owner-id - The owner ID of the addresses associated
 	// with the network interface.
 	//
-	//   association.association-id - The association ID returned when the network
+	//    association.association-id - The association ID returned when the network
 	// interface was associated with an IP address.
 	//
-	//   association.allocation-id - The allocation ID returned when you allocated
+	//    association.allocation-id - The allocation ID returned when you allocated
 	// the Elastic IP address for your network interface.
 	//
-	//   association.ip-owner-id - The owner of the Elastic IP address associated
+	//    association.ip-owner-id - The owner of the Elastic IP address associated
 	// with the network interface.
 	//
-	//   association.public-ip - The address of the Elastic IP address bound to
+	//    association.public-ip - The address of the Elastic IP address bound to
 	// the network interface.
 	//
-	//   association.public-dns-name - The public DNS name for the network interface.
+	//    association.public-dns-name - The public DNS name for the network interface.
 	//
-	//   attachment.attachment-id - The ID of the interface attachment.
+	//    attachment.attachment-id - The ID of the interface attachment.
 	//
-	//   attachment.attach.time - The time that the network interface was attached
+	//    attachment.attach.time - The time that the network interface was attached
 	// to an instance.
 	//
-	//   attachment.delete-on-termination - Indicates whether the attachment is
+	//    attachment.delete-on-termination - Indicates whether the attachment is
 	// deleted when an instance is terminated.
 	//
-	//   attachment.device-index - The device index to which the network interface
+	//    attachment.device-index - The device index to which the network interface
 	// is attached.
 	//
-	//   attachment.instance-id - The ID of the instance to which the network interface
-	// is attached.
-	//
-	//   attachment.instance-owner-id - The owner ID of the instance to which the
-	// network interface is attached.
-	//
-	//   attachment.nat-gateway-id - The ID of the NAT gateway to which the network
+	//    attachment.instance-id - The ID of the instance to which the network
 	// interface is attached.
 	//
-	//   attachment.status - The status of the attachment (attaching | attached
+	//    attachment.instance-owner-id - The owner ID of the instance to which
+	// the network interface is attached.
+	//
+	//    attachment.nat-gateway-id - The ID of the NAT gateway to which the network
+	// interface is attached.
+	//
+	//    attachment.status - The status of the attachment (attaching | attached
 	// | detaching | detached).
 	//
-	//   availability-zone - The Availability Zone of the network interface.
+	//    availability-zone - The Availability Zone of the network interface.
 	//
-	//   description - The description of the network interface.
+	//    description - The description of the network interface.
 	//
-	//   group-id - The ID of a security group associated with the network interface.
+	//    group-id - The ID of a security group associated with the network interface.
 	//
-	//   group-name - The name of a security group associated with the network
+	//    group-name - The name of a security group associated with the network
 	// interface.
 	//
-	//   mac-address - The MAC address of the network interface.
+	//    mac-address - The MAC address of the network interface.
 	//
-	//   network-interface-id - The ID of the network interface.
+	//    network-interface-id - The ID of the network interface.
 	//
-	//   owner-id - The AWS account ID of the network interface owner.
+	//    owner-id - The AWS account ID of the network interface owner.
 	//
-	//   private-ip-address - The private IP address or addresses of the network
+	//    private-ip-address - The private IP address or addresses of the network
 	// interface.
 	//
-	//   private-dns-name - The private DNS name of the network interface.
+	//    private-dns-name - The private DNS name of the network interface.
 	//
-	//   requester-id - The ID of the entity that launched the instance on your
+	//    requester-id - The ID of the entity that launched the instance on your
 	// behalf (for example, AWS Management Console, Auto Scaling, and so on).
 	//
-	//   requester-managed - Indicates whether the network interface is being managed
-	// by an AWS service (for example, AWS Management Console, Auto Scaling, and
-	// so on).
+	//    requester-managed - Indicates whether the network interface is being
+	// managed by an AWS service (for example, AWS Management Console, Auto Scaling,
+	// and so on).
 	//
-	//   source-desk-check - Indicates whether the network interface performs source/destination
-	// checking. A value of true means checking is enabled, and false means checking
-	// is disabled. The value must be false for the network interface to perform
-	// network address translation (NAT) in your VPC.
+	//    source-desk-check - Indicates whether the network interface performs
+	// source/destination checking. A value of true means checking is enabled, and
+	// false means checking is disabled. The value must be false for the network
+	// interface to perform network address translation (NAT) in your VPC.
 	//
-	//   status - The status of the network interface. If the network interface
+	//    status - The status of the network interface. If the network interface
 	// is not attached to an instance, the status is available; if a network interface
 	// is attached to an instance the status is in-use.
 	//
-	//   subnet-id - The ID of the subnet for the network interface.
+	//    subnet-id - The ID of the subnet for the network interface.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   vpc-id - The ID of the VPC for the network interface.
+	//    vpc-id - The ID of the VPC for the network interface.
 	Filters []*Filter `locationName:"filter" locationNameList:"Filter" type:"list"`
 
 	// One or more network interface IDs.
@@ -14502,12 +19258,12 @@ type DescribePlacementGroupsInput struct {
 
 	// One or more filters.
 	//
-	//   group-name - The name of the placement group.
+	//    group-name - The name of the placement group.
 	//
-	//   state - The state of the placement group (pending | available | deleting
+	//    state - The state of the placement group (pending | available | deleting
 	// | deleted).
 	//
-	//   strategy - The strategy of the placement group (cluster).
+	//    strategy - The strategy of the placement group (cluster).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more placement group names.
@@ -14556,9 +19312,9 @@ type DescribePrefixListsInput struct {
 
 	// One or more filters.
 	//
-	//   prefix-list-id: The ID of a prefix list.
+	//    prefix-list-id: The ID of a prefix list.
 	//
-	//   prefix-list-name: The name of a prefix list.
+	//    prefix-list-name: The name of a prefix list.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The maximum number of items to return for this request. The request returns
@@ -14621,9 +19377,9 @@ type DescribeRegionsInput struct {
 
 	// One or more filters.
 	//
-	//   endpoint - The endpoint of the region (for example, ec2.us-east-1.amazonaws.com).
+	//    endpoint - The endpoint of the region (for example, ec2.us-east-1.amazonaws.com).
 	//
-	//   region-name - The name of the region (for example, us-east-1).
+	//    region-name - The name of the region (for example, us-east-1).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The names of one or more regions.
@@ -14670,20 +19426,20 @@ type DescribeReservedInstancesInput struct {
 
 	// One or more filters.
 	//
-	//   availability-zone - The Availability Zone where the Reserved Instance
+	//    availability-zone - The Availability Zone where the Reserved Instance
 	// can be used.
 	//
-	//   duration - The duration of the Reserved Instance (one year or three years),
+	//    duration - The duration of the Reserved Instance (one year or three years),
 	// in seconds (31536000 | 94608000).
 	//
-	//   end - The time when the Reserved Instance expires (for example, 2015-08-07T11:54:42.000Z).
+	//    end - The time when the Reserved Instance expires (for example, 2015-08-07T11:54:42.000Z).
 	//
-	//   fixed-price - The purchase price of the Reserved Instance (for example,
+	//    fixed-price - The purchase price of the Reserved Instance (for example,
 	// 9800.0).
 	//
-	//   instance-type - The instance type that is covered by the reservation.
+	//    instance-type - The instance type that is covered by the reservation.
 	//
-	//   product-description - The Reserved Instance product platform description.
+	//    product-description - The Reserved Instance product platform description.
 	// Instances that include (Amazon VPC) in the product platform description will
 	// only be displayed to EC2-Classic account holders and are for use with Amazon
 	// VPC (Linux/UNIX | Linux/UNIX (Amazon VPC) | SUSE Linux | SUSE Linux (Amazon
@@ -14693,27 +19449,27 @@ type DescribeReservedInstancesInput struct {
 	// with SQL Server Web (Amazon VPC) | Windows with SQL Server Enterprise | Windows
 	// with SQL Server Enterprise (Amazon VPC)).
 	//
-	//   reserved-instances-id - The ID of the Reserved Instance.
+	//    reserved-instances-id - The ID of the Reserved Instance.
 	//
-	//   start - The time at which the Reserved Instance purchase request was placed
-	// (for example, 2014-08-07T11:54:42.000Z).
+	//    start - The time at which the Reserved Instance purchase request was
+	// placed (for example, 2014-08-07T11:54:42.000Z).
 	//
-	//   state - The state of the Reserved Instance (payment-pending | active |
-	// payment-failed | retired).
+	//    state - The state of the Reserved Instance (payment-pending | active
+	// | payment-failed | retired).
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   usage-price - The usage price of the Reserved Instance, per hour (for
+	//    usage-price - The usage price of the Reserved Instance, per hour (for
 	// example, 0.84).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
@@ -14745,14 +19501,14 @@ type DescribeReservedInstancesListingsInput struct {
 
 	// One or more filters.
 	//
-	//   reserved-instances-id - The ID of the Reserved Instances.
+	//    reserved-instances-id - The ID of the Reserved Instances.
 	//
-	//   reserved-instances-listing-id - The ID of the Reserved Instances listing.
+	//    reserved-instances-listing-id - The ID of the Reserved Instances listing.
 	//
-	//   status - The status of the Reserved Instance listing (pending | active
+	//    status - The status of the Reserved Instance listing (pending | active
 	// | cancelled | closed).
 	//
-	//   status-message - The reason for the status.
+	//    status-message - The reason for the status.
 	Filters []*Filter `locationName:"filters" locationNameList:"Filter" type:"list"`
 
 	// One or more Reserved Instance IDs.
@@ -14796,38 +19552,38 @@ type DescribeReservedInstancesModificationsInput struct {
 
 	// One or more filters.
 	//
-	//   client-token - The idempotency token for the modification request.
+	//    client-token - The idempotency token for the modification request.
 	//
-	//   create-date - The time when the modification request was created.
+	//    create-date - The time when the modification request was created.
 	//
-	//   effective-date - The time when the modification becomes effective.
+	//    effective-date - The time when the modification becomes effective.
 	//
-	//   modification-result.reserved-instances-id - The ID for the Reserved Instances
+	//    modification-result.reserved-instances-id - The ID for the Reserved Instances
 	// created as part of the modification request. This ID is only available when
 	// the status of the modification is fulfilled.
 	//
-	//   modification-result.target-configuration.availability-zone - The Availability
+	//    modification-result.target-configuration.availability-zone - The Availability
 	// Zone for the new Reserved Instances.
 	//
-	//   modification-result.target-configuration.instance-count  - The number
+	//    modification-result.target-configuration.instance-count  - The number
 	// of new Reserved Instances.
 	//
-	//   modification-result.target-configuration.instance-type - The instance
+	//    modification-result.target-configuration.instance-type - The instance
 	// type of the new Reserved Instances.
 	//
-	//   modification-result.target-configuration.platform - The network platform
+	//    modification-result.target-configuration.platform - The network platform
 	// of the new Reserved Instances (EC2-Classic | EC2-VPC).
 	//
-	//   reserved-instances-id - The ID of the Reserved Instances modified.
+	//    reserved-instances-id - The ID of the Reserved Instances modified.
 	//
-	//   reserved-instances-modification-id - The ID of the modification request.
+	//    reserved-instances-modification-id - The ID of the modification request.
 	//
-	//   status - The status of the Reserved Instances modification request (processing
+	//    status - The status of the Reserved Instances modification request (processing
 	// | fulfilled | failed).
 	//
-	//   status-message - The reason for the status.
+	//    status-message - The reason for the status.
 	//
-	//   update-date - The time when the modification request was last updated.
+	//    update-date - The time when the modification request was last updated.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The token to retrieve the next page of results.
@@ -14884,22 +19640,22 @@ type DescribeReservedInstancesOfferingsInput struct {
 
 	// One or more filters.
 	//
-	//   availability-zone - The Availability Zone where the Reserved Instance
+	//    availability-zone - The Availability Zone where the Reserved Instance
 	// can be used.
 	//
-	//   duration - The duration of the Reserved Instance (for example, one year
+	//    duration - The duration of the Reserved Instance (for example, one year
 	// or three years), in seconds (31536000 | 94608000).
 	//
-	//   fixed-price - The purchase price of the Reserved Instance (for example,
+	//    fixed-price - The purchase price of the Reserved Instance (for example,
 	// 9800.0).
 	//
-	//   instance-type - The instance type that is covered by the reservation.
+	//    instance-type - The instance type that is covered by the reservation.
 	//
-	//   marketplace - Set to true to show only Reserved Instance Marketplace offerings.
-	// When this filter is not used, which is the default behavior, all offerings
-	// from both AWS and the Reserved Instance Marketplace are listed.
+	//    marketplace - Set to true to show only Reserved Instance Marketplace
+	// offerings. When this filter is not used, which is the default behavior, all
+	// offerings from both AWS and the Reserved Instance Marketplace are listed.
 	//
-	//   product-description - The Reserved Instance product platform description.
+	//    product-description - The Reserved Instance product platform description.
 	// Instances that include (Amazon VPC) in the product platform description will
 	// only be displayed to EC2-Classic account holders and are for use with Amazon
 	// VPC. (Linux/UNIX | Linux/UNIX (Amazon VPC) | SUSE Linux | SUSE Linux (Amazon
@@ -14909,9 +19665,9 @@ type DescribeReservedInstancesOfferingsInput struct {
 	// with SQL Server Web (Amazon VPC) | Windows with SQL Server Enterprise | Windows
 	// with SQL Server Enterprise (Amazon VPC))
 	//
-	//   reserved-instances-offering-id - The Reserved Instances offering ID.
+	//    reserved-instances-offering-id - The Reserved Instances offering ID.
 	//
-	//   usage-price - The usage price of the Reserved Instance, per hour (for
+	//    usage-price - The usage price of the Reserved Instance, per hour (for
 	// example, 0.84).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
@@ -15030,59 +19786,59 @@ type DescribeRouteTablesInput struct {
 
 	// One or more filters.
 	//
-	//   association.route-table-association-id - The ID of an association ID for
-	// the route table.
+	//    association.route-table-association-id - The ID of an association ID
+	// for the route table.
 	//
-	//   association.route-table-id - The ID of the route table involved in the
+	//    association.route-table-id - The ID of the route table involved in the
 	// association.
 	//
-	//   association.subnet-id - The ID of the subnet involved in the association.
+	//    association.subnet-id - The ID of the subnet involved in the association.
 	//
-	//   association.main - Indicates whether the route table is the main route
+	//    association.main - Indicates whether the route table is the main route
 	// table for the VPC (true | false).
 	//
-	//   route-table-id - The ID of the route table.
+	//    route-table-id - The ID of the route table.
 	//
-	//   route.destination-cidr-block - The CIDR range specified in a route in
+	//    route.destination-cidr-block - The CIDR range specified in a route in
 	// the table.
 	//
-	//   route.destination-prefix-list-id - The ID (prefix) of the AWS service
+	//    route.destination-prefix-list-id - The ID (prefix) of the AWS service
 	// specified in a route in the table.
 	//
-	//   route.gateway-id - The ID of a gateway specified in a route in the table.
+	//    route.gateway-id - The ID of a gateway specified in a route in the table.
 	//
-	//   route.instance-id - The ID of an instance specified in a route in the
+	//    route.instance-id - The ID of an instance specified in a route in the
 	// table.
 	//
-	//   route.nat-gateway-id - The ID of a NAT gateway.
+	//    route.nat-gateway-id - The ID of a NAT gateway.
 	//
-	//   route.origin - Describes how the route was created. CreateRouteTable indicates
-	// that the route was automatically created when the route table was created;
-	// CreateRoute indicates that the route was manually added to the route table;
-	// EnableVgwRoutePropagation indicates that the route was propagated by route
-	// propagation.
+	//    route.origin - Describes how the route was created. CreateRouteTable
+	// indicates that the route was automatically created when the route table was
+	// created; CreateRoute indicates that the route was manually added to the route
+	// table; EnableVgwRoutePropagation indicates that the route was propagated
+	// by route propagation.
 	//
-	//   route.state - The state of a route in the route table (active | blackhole).
+	//    route.state - The state of a route in the route table (active | blackhole).
 	// The blackhole state indicates that the route's target isn't available (for
 	// example, the specified gateway isn't attached to the VPC, the specified NAT
 	// instance has been terminated, and so on).
 	//
-	//   route.vpc-peering-connection-id - The ID of a VPC peering connection specified
-	// in a route in the table.
+	//    route.vpc-peering-connection-id - The ID of a VPC peering connection
+	// specified in a route in the table.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   vpc-id - The ID of the VPC for the route table.
+	//    vpc-id - The ID of the VPC for the route table.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more route table IDs.
@@ -15131,13 +19887,13 @@ type DescribeScheduledInstanceAvailabilityInput struct {
 
 	// One or more filters.
 	//
-	//   availability-zone - The Availability Zone (for example, us-west-2a).
+	//    availability-zone - The Availability Zone (for example, us-west-2a).
 	//
-	//   instance-type - The instance type (for example, c4.large).
+	//    instance-type - The instance type (for example, c4.large).
 	//
-	//   network-platform - The network platform (EC2-Classic or EC2-VPC).
+	//    network-platform - The network platform (EC2-Classic or EC2-VPC).
 	//
-	//   platform - The platform (Linux/UNIX or Windows).
+	//    platform - The platform (Linux/UNIX or Windows).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The time period for the first schedule to start.
@@ -15230,13 +19986,13 @@ type DescribeScheduledInstancesInput struct {
 
 	// One or more filters.
 	//
-	//   availability-zone - The Availability Zone (for example, us-west-2a).
+	//    availability-zone - The Availability Zone (for example, us-west-2a).
 	//
-	//   instance-type - The instance type (for example, c4.large).
+	//    instance-type - The instance type (for example, c4.large).
 	//
-	//   network-platform - The network platform (EC2-Classic or EC2-VPC).
+	//    network-platform - The network platform (EC2-Classic or EC2-VPC).
 	//
-	//   platform - The platform (Linux/UNIX or Windows).
+	//    platform - The platform (Linux/UNIX or Windows).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The maximum number of results to return in a single call. This value can
@@ -15286,6 +20042,59 @@ func (s DescribeScheduledInstancesOutput) GoString() string {
 	return s.String()
 }
 
+type DescribeSecurityGroupReferencesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the operation, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more security group IDs in your account.
+	GroupId []*string `locationNameList:"item" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeSecurityGroupReferencesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeSecurityGroupReferencesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeSecurityGroupReferencesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeSecurityGroupReferencesInput"}
+	if s.GroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("GroupId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DescribeSecurityGroupReferencesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the VPCs with the referencing security groups.
+	SecurityGroupReferenceSet []*SecurityGroupReference `locationName:"securityGroupReferenceSet" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeSecurityGroupReferencesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeSecurityGroupReferencesOutput) GoString() string {
+	return s.String()
+}
+
 // Contains the parameters for DescribeSecurityGroups.
 type DescribeSecurityGroupsInput struct {
 	_ struct{} `type:"structure"`
@@ -15300,42 +20109,42 @@ type DescribeSecurityGroupsInput struct {
 	// security groups for which any combination of rules - not necessarily a single
 	// rule - match all filters.
 	//
-	//   description - The description of the security group.
+	//    description - The description of the security group.
 	//
-	//   egress.ip-permission.prefix-list-id - The ID (prefix) of the AWS service
+	//    egress.ip-permission.prefix-list-id - The ID (prefix) of the AWS service
 	// to which the security group allows access.
 	//
-	//   group-id - The ID of the security group.
+	//    group-id - The ID of the security group.
 	//
-	//   group-name - The name of the security group.
+	//    group-name - The name of the security group.
 	//
-	//   ip-permission.cidr - A CIDR range that has been granted permission.
+	//    ip-permission.cidr - A CIDR range that has been granted permission.
 	//
-	//   ip-permission.from-port - The start of port range for the TCP and UDP
+	//    ip-permission.from-port - The start of port range for the TCP and UDP
 	// protocols, or an ICMP type number.
 	//
-	//   ip-permission.group-id - The ID of a security group that has been granted
+	//    ip-permission.group-id - The ID of a security group that has been granted
 	// permission.
 	//
-	//   ip-permission.group-name - The name of a security group that has been
+	//    ip-permission.group-name - The name of a security group that has been
 	// granted permission.
 	//
-	//   ip-permission.protocol - The IP protocol for the permission (tcp | udp
+	//    ip-permission.protocol - The IP protocol for the permission (tcp | udp
 	// | icmp or a protocol number).
 	//
-	//   ip-permission.to-port - The end of port range for the TCP and UDP protocols,
+	//    ip-permission.to-port - The end of port range for the TCP and UDP protocols,
 	// or an ICMP code.
 	//
-	//   ip-permission.user-id - The ID of an AWS account that has been granted
+	//    ip-permission.user-id - The ID of an AWS account that has been granted
 	// permission.
 	//
-	//   owner-id - The AWS account ID of the owner of the security group.
+	//    owner-id - The AWS account ID of the owner of the security group.
 	//
-	//   tag-key - The key of a tag assigned to the security group.
+	//    tag-key - The key of a tag assigned to the security group.
 	//
-	//   tag-value - The value of a tag assigned to the security group.
+	//    tag-value - The value of a tag assigned to the security group.
 	//
-	//   vpc-id - The ID of the VPC specified when the security group was created.
+	//    vpc-id - The ID of the VPC specified when the security group was created.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more security group IDs. Required for security groups in a nondefault
@@ -15460,37 +20269,37 @@ type DescribeSnapshotsInput struct {
 
 	// One or more filters.
 	//
-	//   description - A description of the snapshot.
+	//    description - A description of the snapshot.
 	//
-	//   owner-alias - The AWS account alias (for example, amazon) that owns the
+	//    owner-alias - The AWS account alias (for example, amazon) that owns the
 	// snapshot.
 	//
-	//   owner-id - The ID of the AWS account that owns the snapshot.
+	//    owner-id - The ID of the AWS account that owns the snapshot.
 	//
-	//   progress - The progress of the snapshot, as a percentage (for example,
+	//    progress - The progress of the snapshot, as a percentage (for example,
 	// 80%).
 	//
-	//   snapshot-id - The snapshot ID.
+	//    snapshot-id - The snapshot ID.
 	//
-	//   start-time - The time stamp when the snapshot was initiated.
+	//    start-time - The time stamp when the snapshot was initiated.
 	//
-	//   status - The status of the snapshot (pending | completed | error).
+	//    status - The status of the snapshot (pending | completed | error).
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   volume-id - The ID of the volume the snapshot is for.
+	//    volume-id - The ID of the volume the snapshot is for.
 	//
-	//   volume-size - The size of the volume, in GiB.
+	//    volume-size - The size of the volume, in GiB.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The maximum number of snapshot results returned by DescribeSnapshots in paginated
@@ -15822,113 +20631,113 @@ type DescribeSpotInstanceRequestsInput struct {
 
 	// One or more filters.
 	//
-	//   availability-zone-group - The Availability Zone group.
+	//    availability-zone-group - The Availability Zone group.
 	//
-	//   create-time - The time stamp when the Spot instance request was created.
+	//    create-time - The time stamp when the Spot instance request was created.
 	//
-	//   fault-code - The fault code related to the request.
+	//    fault-code - The fault code related to the request.
 	//
-	//   fault-message - The fault message related to the request.
+	//    fault-message - The fault message related to the request.
 	//
-	//   instance-id - The ID of the instance that fulfilled the request.
+	//    instance-id - The ID of the instance that fulfilled the request.
 	//
-	//   launch-group - The Spot instance launch group.
+	//    launch-group - The Spot instance launch group.
 	//
-	//   launch.block-device-mapping.delete-on-termination - Indicates whether
+	//    launch.block-device-mapping.delete-on-termination - Indicates whether
 	// the Amazon EBS volume is deleted on instance termination.
 	//
-	//   launch.block-device-mapping.device-name - The device name for the Amazon
+	//    launch.block-device-mapping.device-name - The device name for the Amazon
 	// EBS volume (for example, /dev/sdh).
 	//
-	//   launch.block-device-mapping.snapshot-id - The ID of the snapshot used
+	//    launch.block-device-mapping.snapshot-id - The ID of the snapshot used
 	// for the Amazon EBS volume.
 	//
-	//   launch.block-device-mapping.volume-size - The size of the Amazon EBS volume,
-	// in GiB.
+	//    launch.block-device-mapping.volume-size - The size of the Amazon EBS
+	// volume, in GiB.
 	//
-	//   launch.block-device-mapping.volume-type - The type of the Amazon EBS volume:
-	// gp2 for General Purpose SSD, io1 for Provisioned IOPS SSD, st1 for Throughput
-	// Optimized HDD, sc1for Cold HDD, or standard for Magnetic.
+	//    launch.block-device-mapping.volume-type - The type of the Amazon EBS
+	// volume: gp2 for General Purpose SSD, io1 for Provisioned IOPS SSD, st1 for
+	// Throughput Optimized HDD, sc1for Cold HDD, or standard for Magnetic.
 	//
-	//   launch.group-id - The security group for the instance.
+	//    launch.group-id - The security group for the instance.
 	//
-	//   launch.image-id - The ID of the AMI.
+	//    launch.image-id - The ID of the AMI.
 	//
-	//   launch.instance-type - The type of instance (for example, m3.medium).
+	//    launch.instance-type - The type of instance (for example, m3.medium).
 	//
-	//   launch.kernel-id - The kernel ID.
+	//    launch.kernel-id - The kernel ID.
 	//
-	//   launch.key-name - The name of the key pair the instance launched with.
+	//    launch.key-name - The name of the key pair the instance launched with.
 	//
-	//   launch.monitoring-enabled - Whether monitoring is enabled for the Spot
+	//    launch.monitoring-enabled - Whether monitoring is enabled for the Spot
 	// instance.
 	//
-	//   launch.ramdisk-id - The RAM disk ID.
+	//    launch.ramdisk-id - The RAM disk ID.
 	//
-	//   network-interface.network-interface-id - The ID of the network interface.
+	//    network-interface.network-interface-id - The ID of the network interface.
 	//
-	//   network-interface.device-index - The index of the device for the network
+	//    network-interface.device-index - The index of the device for the network
 	// interface attachment on the instance.
 	//
-	//   network-interface.subnet-id - The ID of the subnet for the instance.
+	//    network-interface.subnet-id - The ID of the subnet for the instance.
 	//
-	//   network-interface.description - A description of the network interface.
+	//    network-interface.description - A description of the network interface.
 	//
-	//   network-interface.private-ip-address - The primary private IP address
+	//    network-interface.private-ip-address - The primary private IP address
 	// of the network interface.
 	//
-	//   network-interface.delete-on-termination - Indicates whether the network
+	//    network-interface.delete-on-termination - Indicates whether the network
 	// interface is deleted when the instance is terminated.
 	//
-	//   network-interface.group-id - The ID of the security group associated with
-	// the network interface.
-	//
-	//   network-interface.group-name - The name of the security group associated
+	//    network-interface.group-id - The ID of the security group associated
 	// with the network interface.
 	//
-	//   network-interface.addresses.primary - Indicates whether the IP address
+	//    network-interface.group-name - The name of the security group associated
+	// with the network interface.
+	//
+	//    network-interface.addresses.primary - Indicates whether the IP address
 	// is the primary private IP address.
 	//
-	//   product-description - The product description associated with the instance
+	//    product-description - The product description associated with the instance
 	// (Linux/UNIX | Windows).
 	//
-	//   spot-instance-request-id - The Spot instance request ID.
+	//    spot-instance-request-id - The Spot instance request ID.
 	//
-	//   spot-price - The maximum hourly price for any Spot instance launched to
-	// fulfill the request.
+	//    spot-price - The maximum hourly price for any Spot instance launched
+	// to fulfill the request.
 	//
-	//   state - The state of the Spot instance request (open | active | closed
+	//    state - The state of the Spot instance request (open | active | closed
 	// | cancelled | failed). Spot bid status information can help you track your
 	// Amazon EC2 Spot instance requests. For more information, see Spot Bid Status
 	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-bid-status.html)
 	// in the Amazon Elastic Compute Cloud User Guide.
 	//
-	//   status-code - The short code describing the most recent evaluation of
+	//    status-code - The short code describing the most recent evaluation of
 	// your Spot instance request.
 	//
-	//   status-message - The message explaining the status of the Spot instance
+	//    status-message - The message explaining the status of the Spot instance
 	// request.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   type - The type of Spot instance request (one-time | persistent).
+	//    type - The type of Spot instance request (one-time | persistent).
 	//
-	//   launched-availability-zone - The Availability Zone in which the bid is
+	//    launched-availability-zone - The Availability Zone in which the bid is
 	// launched.
 	//
-	//   valid-from - The start date of the request.
+	//    valid-from - The start date of the request.
 	//
-	//   valid-until - The end date of the request.
+	//    valid-until - The end date of the request.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more Spot instance request IDs.
@@ -15982,18 +20791,19 @@ type DescribeSpotPriceHistoryInput struct {
 
 	// One or more filters.
 	//
-	//   availability-zone - The Availability Zone for which prices should be returned.
+	//    availability-zone - The Availability Zone for which prices should be
+	// returned.
 	//
-	//   instance-type - The type of instance (for example, m3.medium).
+	//    instance-type - The type of instance (for example, m3.medium).
 	//
-	//   product-description - The product description for the Spot price (Linux/UNIX
+	//    product-description - The product description for the Spot price (Linux/UNIX
 	// | SUSE Linux | Windows | Linux/UNIX (Amazon VPC) | SUSE Linux (Amazon VPC)
 	// | Windows (Amazon VPC)).
 	//
-	//   spot-price - The Spot price. The value must match exactly (or use wildcards;
+	//    spot-price - The Spot price. The value must match exactly (or use wildcards;
 	// greater than or less than comparison is not supported).
 	//
-	//   timestamp - The timestamp of the Spot price history, in UTC format (for
+	//    timestamp - The timestamp of the Spot price history, in UTC format (for
 	// example, YYYY-MM-DDTHH:MM:SSZ). You can use wildcards (* and ?). Greater
 	// than or less than comparison is not supported.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
@@ -16049,6 +20859,78 @@ func (s DescribeSpotPriceHistoryOutput) GoString() string {
 	return s.String()
 }
 
+type DescribeStaleSecurityGroupsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the operation, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The maximum number of items to return for this request. The request returns
+	// a token that you can specify in a subsequent call to get the next set of
+	// results.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a prior call.)
+	NextToken *string `min:"1" type:"string"`
+
+	// The ID of the VPC.
+	VpcId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeStaleSecurityGroupsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeStaleSecurityGroupsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeStaleSecurityGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeStaleSecurityGroupsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.VpcId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VpcId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DescribeStaleSecurityGroupsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token to use when requesting the next set of items. If there are no additional
+	// items to return, the string is empty.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// Information about the stale security groups.
+	StaleSecurityGroupSet []*StaleSecurityGroup `locationName:"staleSecurityGroupSet" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeStaleSecurityGroupsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeStaleSecurityGroupsOutput) GoString() string {
+	return s.String()
+}
+
 // Contains the parameters for DescribeSubnets.
 type DescribeSubnetsInput struct {
 	_ struct{} `type:"structure"`
@@ -16061,36 +20943,36 @@ type DescribeSubnetsInput struct {
 
 	// One or more filters.
 	//
-	//   availabilityZone - The Availability Zone for the subnet. You can also
+	//    availabilityZone - The Availability Zone for the subnet. You can also
 	// use availability-zone as the filter name.
 	//
-	//   available-ip-address-count - The number of IP addresses in the subnet
+	//    available-ip-address-count - The number of IP addresses in the subnet
 	// that are available.
 	//
-	//   cidrBlock - The CIDR block of the subnet. The CIDR block you specify must
-	// exactly match the subnet's CIDR block for information to be returned for
-	// the subnet. You can also use cidr or cidr-block as the filter names.
+	//    cidrBlock - The CIDR block of the subnet. The CIDR block you specify
+	// must exactly match the subnet's CIDR block for information to be returned
+	// for the subnet. You can also use cidr or cidr-block as the filter names.
 	//
-	//   defaultForAz - Indicates whether this is the default subnet for the Availability
+	//    defaultForAz - Indicates whether this is the default subnet for the Availability
 	// Zone. You can also use default-for-az as the filter name.
 	//
-	//   state - The state of the subnet (pending | available).
+	//    state - The state of the subnet (pending | available).
 	//
-	//   subnet-id - The ID of the subnet.
+	//    subnet-id - The ID of the subnet.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   vpc-id - The ID of the VPC for the subnet.
+	//    vpc-id - The ID of the VPC for the subnet.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more subnet IDs.
@@ -16139,16 +21021,16 @@ type DescribeTagsInput struct {
 
 	// One or more filters.
 	//
-	//   key - The tag key.
+	//    key - The tag key.
 	//
-	//   resource-id - The resource ID.
+	//    resource-id - The resource ID.
 	//
-	//   resource-type - The resource type (customer-gateway | dhcp-options | image
-	// | instance | internet-gateway | network-acl | network-interface | reserved-instances
+	//    resource-type - The resource type (customer-gateway | dhcp-options |
+	// image | instance | internet-gateway | network-acl | network-interface | reserved-instances
 	// | route-table | security-group | snapshot | spot-instances-request | subnet
 	// | volume | vpc | vpn-connection | vpn-gateway).
 	//
-	//   value - The tag value.
+	//    value - The tag value.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The maximum number of results to return in a single call. This value can
@@ -16268,34 +21150,34 @@ type DescribeVolumeStatusInput struct {
 
 	// One or more filters.
 	//
-	//   action.code - The action code for the event (for example, enable-volume-io).
+	//    action.code - The action code for the event (for example, enable-volume-io).
 	//
-	//   action.description - A description of the action.
+	//    action.description - A description of the action.
 	//
-	//   action.event-id - The event ID associated with the action.
+	//    action.event-id - The event ID associated with the action.
 	//
-	//   availability-zone - The Availability Zone of the instance.
+	//    availability-zone - The Availability Zone of the instance.
 	//
-	//   event.description - A description of the event.
+	//    event.description - A description of the event.
 	//
-	//   event.event-id - The event ID.
+	//    event.event-id - The event ID.
 	//
-	//   event.event-type - The event type (for io-enabled: passed | failed; for
+	//    event.event-type - The event type (for io-enabled: passed | failed; for
 	// io-performance: io-performance:degraded | io-performance:severely-degraded
 	// | io-performance:stalled).
 	//
-	//   event.not-after - The latest end time for the event.
+	//    event.not-after - The latest end time for the event.
 	//
-	//   event.not-before - The earliest start time for the event.
+	//    event.not-before - The earliest start time for the event.
 	//
-	//   volume-status.details-name - The cause for volume-status.status (io-enabled
+	//    volume-status.details-name - The cause for volume-status.status (io-enabled
 	// | io-performance).
 	//
-	//   volume-status.details-status - The status of volume-status.details-name
+	//    volume-status.details-status - The status of volume-status.details-name
 	// (for io-enabled: passed | failed; for io-performance: normal | degraded |
 	// severely-degraded | stalled).
 	//
-	//   volume-status.status - The status of the volume (ok | impaired | warning
+	//    volume-status.status - The status of the volume (ok | impaired | warning
 	// | insufficient-data).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
@@ -16365,48 +21247,48 @@ type DescribeVolumesInput struct {
 
 	// One or more filters.
 	//
-	//   attachment.attach-time - The time stamp when the attachment initiated.
+	//    attachment.attach-time - The time stamp when the attachment initiated.
 	//
-	//   attachment.delete-on-termination - Whether the volume is deleted on instance
+	//    attachment.delete-on-termination - Whether the volume is deleted on instance
 	// termination.
 	//
-	//   attachment.device - The device name that is exposed to the instance (for
+	//    attachment.device - The device name that is exposed to the instance (for
 	// example, /dev/sda1).
 	//
-	//   attachment.instance-id - The ID of the instance the volume is attached
+	//    attachment.instance-id - The ID of the instance the volume is attached
 	// to.
 	//
-	//   attachment.status - The attachment state (attaching | attached | detaching
+	//    attachment.status - The attachment state (attaching | attached | detaching
 	// | detached).
 	//
-	//   availability-zone - The Availability Zone in which the volume was created.
+	//    availability-zone - The Availability Zone in which the volume was created.
 	//
-	//   create-time - The time stamp when the volume was created.
+	//    create-time - The time stamp when the volume was created.
 	//
-	//   encrypted - The encryption status of the volume.
+	//    encrypted - The encryption status of the volume.
 	//
-	//   size - The size of the volume, in GiB.
+	//    size - The size of the volume, in GiB.
 	//
-	//   snapshot-id - The snapshot from which the volume was created.
+	//    snapshot-id - The snapshot from which the volume was created.
 	//
-	//   status - The status of the volume (creating | available | in-use | deleting
+	//    status - The status of the volume (creating | available | in-use | deleting
 	// | deleted | error).
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   volume-id - The volume ID.
+	//    volume-id - The volume ID.
 	//
-	//   volume-type - The Amazon EBS volume type. This can be gp2 for General
+	//    volume-type - The Amazon EBS volume type. This can be gp2 for General
 	// Purpose SSD, io1 for Provisioned IOPS SSD, st1 for Throughput Optimized HDD,
 	// sc1 for Cold HDD, or standard for Magnetic volumes.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
@@ -16613,20 +21495,20 @@ type DescribeVpcClassicLinkInput struct {
 
 	// One or more filters.
 	//
-	//   is-classic-link-enabled - Whether the VPC is enabled for ClassicLink (true
-	// | false).
+	//    is-classic-link-enabled - Whether the VPC is enabled for ClassicLink
+	// (true | false).
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more VPCs for which you want to describe the ClassicLink status.
@@ -16727,13 +21609,13 @@ type DescribeVpcEndpointsInput struct {
 
 	// One or more filters.
 	//
-	//   service-name: The name of the AWS service.
+	//    service-name: The name of the AWS service.
 	//
-	//   vpc-id: The ID of the VPC in which the endpoint resides.
+	//    vpc-id: The ID of the VPC in which the endpoint resides.
 	//
-	//   vpc-endpoint-id: The ID of the endpoint.
+	//    vpc-endpoint-id: The ID of the endpoint.
 	//
-	//   vpc-endpoint-state: The state of the endpoint. (pending | available |
+	//    vpc-endpoint-state: The state of the endpoint. (pending | available |
 	// deleting | deleted)
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
@@ -16796,41 +21678,41 @@ type DescribeVpcPeeringConnectionsInput struct {
 
 	// One or more filters.
 	//
-	//   accepter-vpc-info.cidr-block - The CIDR block of the peer VPC.
+	//    accepter-vpc-info.cidr-block - The CIDR block of the peer VPC.
 	//
-	//   accepter-vpc-info.owner-id - The AWS account ID of the owner of the peer
+	//    accepter-vpc-info.owner-id - The AWS account ID of the owner of the peer
 	// VPC.
 	//
-	//   accepter-vpc-info.vpc-id - The ID of the peer VPC.
+	//    accepter-vpc-info.vpc-id - The ID of the peer VPC.
 	//
-	//   expiration-time - The expiration date and time for the VPC peering connection.
+	//    expiration-time - The expiration date and time for the VPC peering connection.
 	//
-	//   requester-vpc-info.cidr-block - The CIDR block of the requester's VPC.
+	//    requester-vpc-info.cidr-block - The CIDR block of the requester's VPC.
 	//
-	//   requester-vpc-info.owner-id - The AWS account ID of the owner of the requester
-	// VPC.
+	//    requester-vpc-info.owner-id - The AWS account ID of the owner of the
+	// requester VPC.
 	//
-	//   requester-vpc-info.vpc-id - The ID of the requester VPC.
+	//    requester-vpc-info.vpc-id - The ID of the requester VPC.
 	//
-	//   status-code - The status of the VPC peering connection (pending-acceptance
+	//    status-code - The status of the VPC peering connection (pending-acceptance
 	// | failed | expired | provisioning | active | deleted | rejected).
 	//
-	//   status-message - A message that provides more information about the status
+	//    status-message - A message that provides more information about the status
 	// of the VPC peering connection, if applicable.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   vpc-peering-connection-id - The ID of the VPC peering connection.
+	//    vpc-peering-connection-id - The ID of the VPC peering connection.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more VPC peering connection IDs.
@@ -16879,29 +21761,29 @@ type DescribeVpcsInput struct {
 
 	// One or more filters.
 	//
-	//   cidr - The CIDR block of the VPC. The CIDR block you specify must exactly
+	//    cidr - The CIDR block of the VPC. The CIDR block you specify must exactly
 	// match the VPC's CIDR block for information to be returned for the VPC. Must
 	// contain the slash followed by one or two digits (for example, /28).
 	//
-	//   dhcp-options-id - The ID of a set of DHCP options.
+	//    dhcp-options-id - The ID of a set of DHCP options.
 	//
-	//   isDefault - Indicates whether the VPC is the default VPC.
+	//    isDefault - Indicates whether the VPC is the default VPC.
 	//
-	//   state - The state of the VPC (pending | available).
+	//    state - The state of the VPC (pending | available).
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   vpc-id - The ID of the VPC.
+	//    vpc-id - The ID of the VPC.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more VPC IDs.
@@ -16950,44 +21832,44 @@ type DescribeVpnConnectionsInput struct {
 
 	// One or more filters.
 	//
-	//   customer-gateway-configuration - The configuration information for the
+	//    customer-gateway-configuration - The configuration information for the
 	// customer gateway.
 	//
-	//   customer-gateway-id - The ID of a customer gateway associated with the
+	//    customer-gateway-id - The ID of a customer gateway associated with the
 	// VPN connection.
 	//
-	//   state - The state of the VPN connection (pending | available | deleting
+	//    state - The state of the VPN connection (pending | available | deleting
 	// | deleted).
 	//
-	//   option.static-routes-only - Indicates whether the connection has static
+	//    option.static-routes-only - Indicates whether the connection has static
 	// routes only. Used for devices that do not support Border Gateway Protocol
 	// (BGP).
 	//
-	//   route.destination-cidr-block - The destination CIDR block. This corresponds
+	//    route.destination-cidr-block - The destination CIDR block. This corresponds
 	// to the subnet used in a customer data center.
 	//
-	//   bgp-asn - The BGP Autonomous System Number (ASN) associated with a BGP
+	//    bgp-asn - The BGP Autonomous System Number (ASN) associated with a BGP
 	// device.
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   type - The type of VPN connection. Currently the only supported type is
-	// ipsec.1.
+	//    type - The type of VPN connection. Currently the only supported type
+	// is ipsec.1.
 	//
-	//   vpn-connection-id - The ID of the VPN connection.
+	//    vpn-connection-id - The ID of the VPN connection.
 	//
-	//   vpn-gateway-id - The ID of a virtual private gateway associated with the
-	// VPN connection.
+	//    vpn-gateway-id - The ID of a virtual private gateway associated with
+	// the VPN connection.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more VPN connection IDs.
@@ -17036,33 +21918,33 @@ type DescribeVpnGatewaysInput struct {
 
 	// One or more filters.
 	//
-	//   attachment.state - The current state of the attachment between the gateway
+	//    attachment.state - The current state of the attachment between the gateway
 	// and the VPC (attaching | attached | detaching | detached).
 	//
-	//   attachment.vpc-id - The ID of an attached VPC.
+	//    attachment.vpc-id - The ID of an attached VPC.
 	//
-	//   availability-zone - The Availability Zone for the virtual private gateway
+	//    availability-zone - The Availability Zone for the virtual private gateway
 	// (if applicable).
 	//
-	//   state - The state of the virtual private gateway (pending | available
+	//    state - The state of the virtual private gateway (pending | available
 	// | deleting | deleted).
 	//
-	//   tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    tag:key=value - The key/value combination of a tag assigned to the resource.
 	//
-	//   tag-key - The key of a tag assigned to the resource. This filter is independent
+	//    tag-key - The key of a tag assigned to the resource. This filter is independent
 	// of the tag-value filter. For example, if you use both the filter "tag-key=Purpose"
 	// and the filter "tag-value=X", you get any resources assigned both the tag
 	// key Purpose (regardless of what the tag's value is), and the tag value X
 	// (regardless of what the tag's key is). If you want to list only resources
 	// where Purpose is X, see the tag:key=value filter.
 	//
-	//   tag-value - The value of a tag assigned to the resource. This filter is
-	// independent of the tag-key filter.
+	//    tag-value - The value of a tag assigned to the resource. This filter
+	// is independent of the tag-key filter.
 	//
-	//   type - The type of virtual private gateway. Currently the only supported
+	//    type - The type of virtual private gateway. Currently the only supported
 	// type is ipsec.1.
 	//
-	//   vpn-gateway-id - The ID of the virtual private gateway.
+	//    vpn-gateway-id - The ID of the virtual private gateway.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more virtual private gateway IDs.
@@ -17824,8 +22706,8 @@ type EbsBlockDevice struct {
 	// For io1, this represents the number of IOPS that are provisioned for the
 	// volume. For gp2, this represents the baseline performance of the volume and
 	// the rate at which the volume accumulates I/O credits for bursting. For more
-	// information on General Purpose SSD baseline performance, I/O credits, and
-	// bursting, see Amazon EBS Volume Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html)
+	// information about General Purpose SSD baseline performance, I/O credits,
+	// and bursting, see Amazon EBS Volume Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html)
 	// in the Amazon Elastic Compute Cloud User Guide.
 	//
 	// Constraint: Range is 100-20000 IOPS for io1 volumes and 100-10000 IOPS for
@@ -18119,54 +23001,54 @@ type EventInformation struct {
 	//
 	// The following are the error events.
 	//
-	//   iamFleetRoleInvalid - The Spot fleet did not have the required permissions
+	//    iamFleetRoleInvalid - The Spot fleet did not have the required permissions
 	// either to launch or terminate an instance.
 	//
-	//   launchSpecTemporarilyBlacklisted - The configuration is not valid and
+	//    launchSpecTemporarilyBlacklisted - The configuration is not valid and
 	// several attempts to launch instances have failed. For more information, see
 	// the description of the event.
 	//
-	//   spotFleetRequestConfigurationInvalid - The configuration is not valid.
+	//    spotFleetRequestConfigurationInvalid - The configuration is not valid.
 	// For more information, see the description of the event.
 	//
-	//   spotInstanceCountLimitExceeded - You've reached the limit on the number
+	//    spotInstanceCountLimitExceeded - You've reached the limit on the number
 	// of Spot instances that you can launch.
 	//
 	//   The following are the fleetRequestChange events.
 	//
-	//   active - The Spot fleet has been validated and Amazon EC2 is attempting
+	//    active - The Spot fleet has been validated and Amazon EC2 is attempting
 	// to maintain the target number of running Spot instances.
 	//
-	//   cancelled - The Spot fleet is canceled and has no running Spot instances.
+	//    cancelled - The Spot fleet is canceled and has no running Spot instances.
 	// The Spot fleet will be deleted two days after its instances were terminated.
 	//
-	//   cancelled_running - The Spot fleet is canceled and will not launch additional
+	//    cancelled_running - The Spot fleet is canceled and will not launch additional
 	// Spot instances, but its existing Spot instances continue to run until they
 	// are interrupted or terminated.
 	//
-	//   cancelled_terminating - The Spot fleet is canceled and its Spot instances
+	//    cancelled_terminating - The Spot fleet is canceled and its Spot instances
 	// are terminating.
 	//
-	//   expired - The Spot fleet request has expired. A subsequent event indicates
+	//    expired - The Spot fleet request has expired. A subsequent event indicates
 	// that the instances were terminated, if the request was created with TerminateInstancesWithExpiration
 	// set.
 	//
-	//   modify_in_progress - A request to modify the Spot fleet request was accepted
+	//    modify_in_progress - A request to modify the Spot fleet request was accepted
 	// and is in progress.
 	//
-	//   modify_successful - The Spot fleet request was modified.
+	//    modify_successful - The Spot fleet request was modified.
 	//
-	//   price_update - The bid price for a launch configuration was adjusted because
-	// it was too high. This change is permanent.
+	//    price_update - The bid price for a launch configuration was adjusted
+	// because it was too high. This change is permanent.
 	//
-	//   submitted - The Spot fleet request is being evaluated and Amazon EC2 is
-	// preparing to launch the target number of Spot instances.
+	//    submitted - The Spot fleet request is being evaluated and Amazon EC2
+	// is preparing to launch the target number of Spot instances.
 	//
 	//   The following are the instanceChange events.
 	//
-	//   launched - A bid was fulfilled and a new instance was launched.
+	//    launched - A bid was fulfilled and a new instance was launched.
 	//
-	//   terminated - An instance was terminated by the user.
+	//    terminated - An instance was terminated by the user.
 	EventSubType *string `locationName:"eventSubType" type:"string"`
 
 	// The ID of the instance. This information is available only for instanceChange
@@ -18390,8 +23272,8 @@ type GetConsoleOutputOutput struct {
 	// The ID of the instance.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
-	// The console output, Base64 encoded. If using a command line tool, the tools
-	// decode the output for you.
+	// The console output, Base64-encoded. If using a command line tool, the tool
+	// decodes the output for you.
 	Output *string `locationName:"output" type:"string"`
 
 	// The time the output was last updated.
@@ -18405,6 +23287,68 @@ func (s GetConsoleOutputOutput) String() string {
 
 // GoString returns the string representation
 func (s GetConsoleOutputOutput) GoString() string {
+	return s.String()
+}
+
+// Contains the parameters for the request.
+type GetConsoleScreenshotInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The ID of the instance.
+	InstanceId *string `type:"string" required:"true"`
+
+	// When set to true, acts as keystroke input and wakes up an instance that's
+	// in standby or "sleep" mode.
+	WakeUp *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s GetConsoleScreenshotInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetConsoleScreenshotInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetConsoleScreenshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetConsoleScreenshotInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Contains the output of the request.
+type GetConsoleScreenshotOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The data that comprises the image.
+	ImageData *string `locationName:"imageData" type:"string"`
+
+	// The ID of the instance.
+	InstanceId *string `locationName:"instanceId" type:"string"`
+}
+
+// String returns the string representation
+func (s GetConsoleScreenshotOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetConsoleScreenshotOutput) GoString() string {
 	return s.String()
 }
 
@@ -18499,12 +23443,12 @@ type HistoryRecord struct {
 
 	// The event type.
 	//
-	//   error - Indicates an error with the Spot fleet request.
+	//    error - Indicates an error with the Spot fleet request.
 	//
-	//   fleetRequestChange - Indicates a change in the status or configuration
+	//    fleetRequestChange - Indicates a change in the status or configuration
 	// of the Spot fleet request.
 	//
-	//   instanceChange - Indicates that an instance was launched or terminated.
+	//    instanceChange - Indicates that an instance was launched or terminated.
 	EventType *string `locationName:"eventType" type:"string" required:"true" enum:"EventType"`
 
 	// The date and time of the event, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
@@ -18719,6 +23663,9 @@ type Image struct {
 	// The description of the AMI that was provided during image creation.
 	Description *string `locationName:"description" type:"string"`
 
+	// Specifies whether enhanced networking with ENA is enabled.
+	EnaSupport *bool `locationName:"enaSupport" type:"boolean"`
+
 	// The hypervisor type of the image.
 	Hypervisor *string `locationName:"hypervisor" type:"string" enum:"HypervisorType"`
 
@@ -18767,7 +23714,8 @@ type Image struct {
 	// an instance store volume.
 	RootDeviceType *string `locationName:"rootDeviceType" type:"string" enum:"DeviceType"`
 
-	// Specifies whether enhanced networking is enabled.
+	// Specifies whether enhanced networking with the Intel 82599 Virtual Function
+	// interface is enabled.
 	SriovNetSupport *string `locationName:"sriovNetSupport" type:"string"`
 
 	// The current state of the AMI. If the state is available, the image is successfully
@@ -18864,7 +23812,7 @@ type ImportImageInput struct {
 
 	// The license type to be used for the Amazon Machine Image (AMI) after importing.
 	//
-	// Note: You may only use BYOL if you have existing licenses with rights to
+	//  Note: You may only use BYOL if you have existing licenses with rights to
 	// use these licenses in a third party cloud like AWS. For more information,
 	// see VM Import/Export Prerequisites (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/VMImportPrerequisites.html)
 	// in the Amazon Elastic Compute Cloud User Guide.
@@ -19084,7 +24032,9 @@ type ImportInstanceLaunchSpecification struct {
 	// [EC2-VPC] The ID of the subnet in which to launch the instance.
 	SubnetId *string `locationName:"subnetId" type:"string"`
 
-	// The Base64-encoded MIME user data to be made available to the instance.
+	// The user data to make available to the instance. If you are using an AWS
+	// SDK or command line tool, Base64-encoding is performed for you, and you can
+	// load the text from a file. Otherwise, you must provide Base64-encoded text.
 	UserData *UserData `locationName:"userData" type:"structure"`
 }
 
@@ -19464,6 +24414,9 @@ type Instance struct {
 	// Optimized instance.
 	EbsOptimized *bool `locationName:"ebsOptimized" type:"boolean"`
 
+	// Specifies whether enhanced networking with ENA is enabled.
+	EnaSupport *bool `locationName:"enaSupport" type:"boolean"`
+
 	// The hypervisor type of the instance.
 	Hypervisor *string `locationName:"hypervisor" type:"string" enum:"HypervisorType"`
 
@@ -19548,7 +24501,8 @@ type Instance struct {
 	// If the request is a Spot instance request, the ID of the request.
 	SpotInstanceRequestId *string `locationName:"spotInstanceRequestId" type:"string"`
 
-	// Specifies whether enhanced networking is enabled.
+	// Specifies whether enhanced networking with the Intel 82599 Virtual Function
+	// interface is enabled.
 	SriovNetSupport *string `locationName:"sriovNetSupport" type:"string"`
 
 	// The current state of the instance.
@@ -19947,17 +24901,17 @@ type InstanceState struct {
 	// The low byte represents the state. The high byte is an opaque internal value
 	// and should be ignored.
 	//
-	//   0 : pending
+	//    0 : pending
 	//
-	//   16 : running
+	//    16 : running
 	//
-	//   32 : shutting-down
+	//    32 : shutting-down
 	//
-	//   48 : terminated
+	//    48 : terminated
 	//
-	//   64 : stopping
+	//    64 : stopping
 	//
-	//   80 : stopped
+	//    80 : stopped
 	Code *int64 `locationName:"code" type:"integer"`
 
 	// The current state of the instance.
@@ -20342,7 +25296,9 @@ type LaunchSpecification struct {
 	// The ID of the subnet in which to launch the instance.
 	SubnetId *string `locationName:"subnetId" type:"string"`
 
-	// The Base64-encoded MIME user data to make available to the instances.
+	// The user data to make available to the instances. If you are using an AWS
+	// SDK or command line tool, Base64-encoding is performed for you, and you can
+	// load the text from a file. Otherwise, you must provide Base64-encoded text.
 	UserData *string `locationName:"userData" type:"string"`
 }
 
@@ -20466,6 +25422,64 @@ func (s ModifyIdFormatOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters of ModifyIdentityIdFormat.
+type ModifyIdentityIdFormatInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the principal, which can be an IAM user, IAM role, or the root
+	// user.
+	PrincipalArn *string `locationName:"principalArn" type:"string" required:"true"`
+
+	// The type of resource.
+	Resource *string `locationName:"resource" type:"string" required:"true"`
+
+	// Indicates whether the resource should use longer IDs (17-character IDs)
+	UseLongIds *bool `locationName:"useLongIds" type:"boolean" required:"true"`
+}
+
+// String returns the string representation
+func (s ModifyIdentityIdFormatInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyIdentityIdFormatInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyIdentityIdFormatInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyIdentityIdFormatInput"}
+	if s.PrincipalArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("PrincipalArn"))
+	}
+	if s.Resource == nil {
+		invalidParams.Add(request.NewErrParamRequired("Resource"))
+	}
+	if s.UseLongIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("UseLongIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type ModifyIdentityIdFormatOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyIdentityIdFormatOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyIdentityIdFormatOutput) GoString() string {
+	return s.String()
+}
+
 // Contains the parameters for ModifyImageAttribute.
 type ModifyImageAttributeInput struct {
 	_ struct{} `type:"structure"`
@@ -20581,6 +25595,12 @@ type ModifyInstanceAttributeInput struct {
 	// Optimized instance.
 	EbsOptimized *AttributeBooleanValue `locationName:"ebsOptimized" type:"structure"`
 
+	// Set to true to enable enhanced networking with ENA for the instance.
+	//
+	// This option is supported only for HVM instances. Specifying this option
+	// with a PV instance can make it unreachable.
+	EnaSupport *AttributeBooleanValue `locationName:"enaSupport" type:"structure"`
+
 	// [EC2-VPC] Changes the security groups of the instance. You must specify at
 	// least one security group, even if it's just the default security group for
 	// the VPC. You must specify the security group ID, not the security group name.
@@ -20613,16 +25633,20 @@ type ModifyInstanceAttributeInput struct {
 	// value must be false for a NAT instance to perform NAT.
 	SourceDestCheck *AttributeBooleanValue `type:"structure"`
 
-	// Set to simple to enable enhanced networking for the instance.
+	// Set to simple to enable enhanced networking with the Intel 82599 Virtual
+	// Function interface for the instance.
 	//
-	// There is no way to disable enhanced networking at this time.
+	// There is no way to disable enhanced networking with the Intel 82599 Virtual
+	// Function interface at this time.
 	//
 	// This option is supported only for HVM instances. Specifying this option
 	// with a PV instance can make it unreachable.
 	SriovNetSupport *AttributeValue `locationName:"sriovNetSupport" type:"structure"`
 
-	// Changes the instance's user data to the specified base64-encoded value. For
-	// command line tools, base64 encoding is performed for you.
+	// Changes the instance's user data to the specified value. If you are using
+	// an AWS SDK or command line tool, Base64-encoding is performed for you, and
+	// you can load the text from a file. Otherwise, you must provide Base64-encoded
+	// text.
 	UserData *BlobAttributeValue `locationName:"userData" type:"structure"`
 
 	// A new value for the attribute. Use only with the kernel, ramdisk, userData,
@@ -21458,21 +26482,22 @@ type NatGateway struct {
 	// If the NAT gateway could not be created, specifies the error message for
 	// the failure, that corresponds to the error code.
 	//
-	//  For InsufficientFreeAddressesInSubnet: "Subnet has insufficient free addresses
+	//   For InsufficientFreeAddressesInSubnet: "Subnet has insufficient free addresses
 	// to create this NAT gateway"
 	//
-	// For Gateway.NotAttached: "Network vpc-xxxxxxxx has no Internet gateway attached"
+	//   For Gateway.NotAttached: "Network vpc-xxxxxxxx has no Internet gateway
+	// attached"
 	//
-	// For InvalidAllocationID.NotFound: "Elastic IP address eipalloc-xxxxxxxx
+	//   For InvalidAllocationID.NotFound: "Elastic IP address eipalloc-xxxxxxxx
 	// could not be associated with this NAT gateway"
 	//
-	// For Resource.AlreadyAssociated: "Elastic IP address eipalloc-xxxxxxxx is
-	// already associated"
+	//   For Resource.AlreadyAssociated: "Elastic IP address eipalloc-xxxxxxxx
+	// is already associated"
 	//
-	// For InternalError: "Network interface eni-xxxxxxxx, created and used internally
+	//   For InternalError: "Network interface eni-xxxxxxxx, created and used internally
 	// by this NAT gateway is in an invalid state. Please try again."
 	//
-	// For InvalidSubnetID.NotFound: "The specified subnet subnet-xxxxxxxx does
+	//   For InvalidSubnetID.NotFound: "The specified subnet subnet-xxxxxxxx does
 	// not exist or could not be found."
 	FailureMessage *string `locationName:"failureMessage" type:"string"`
 
@@ -21483,7 +26508,28 @@ type NatGateway struct {
 	// The ID of the NAT gateway.
 	NatGatewayId *string `locationName:"natGatewayId" type:"string"`
 
+	// Reserved. If you need to sustain traffic greater than the documented limits
+	// (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html),
+	// contact us through the Support Center (https://console.aws.amazon.com/support/home?).
+	ProvisionedBandwidth *ProvisionedBandwidth `locationName:"provisionedBandwidth" type:"structure"`
+
 	// The state of the NAT gateway.
+	//
+	//    pending: The NAT gateway is being created and is not ready to process
+	// traffic.
+	//
+	//    failed: The NAT gateway could not be created. Check the failureCode and
+	// failureMessage fields for the reason.
+	//
+	//    available: The NAT gateway is able to process traffic. This status remains
+	// until you delete the NAT gateway, and does not indicate the health of the
+	// NAT gateway.
+	//
+	//    deleting: The NAT gateway is in the process of being terminated and may
+	// still be processing traffic.
+	//
+	//    deleted: The NAT gateway has been terminated and is no longer processing
+	// traffic.
 	State *string `locationName:"state" type:"string" enum:"NatGatewayState"`
 
 	// The ID of the subnet in which the NAT gateway is located.
@@ -22176,6 +27222,48 @@ func (s PropagatingVgw) GoString() string {
 	return s.String()
 }
 
+// Reserved. If you need to sustain traffic greater than the documented limits
+// (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html),
+// contact us through the Support Center (https://console.aws.amazon.com/support/home?).
+type ProvisionedBandwidth struct {
+	_ struct{} `type:"structure"`
+
+	// Reserved. If you need to sustain traffic greater than the documented limits
+	// (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html),
+	// contact us through the Support Center (https://console.aws.amazon.com/support/home?).
+	ProvisionTime *time.Time `locationName:"provisionTime" type:"timestamp" timestampFormat:"iso8601"`
+
+	// Reserved. If you need to sustain traffic greater than the documented limits
+	// (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html),
+	// contact us through the Support Center (https://console.aws.amazon.com/support/home?).
+	Provisioned *string `locationName:"provisioned" type:"string"`
+
+	// Reserved. If you need to sustain traffic greater than the documented limits
+	// (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html),
+	// contact us through the Support Center (https://console.aws.amazon.com/support/home?).
+	RequestTime *time.Time `locationName:"requestTime" type:"timestamp" timestampFormat:"iso8601"`
+
+	// Reserved. If you need to sustain traffic greater than the documented limits
+	// (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html),
+	// contact us through the Support Center (https://console.aws.amazon.com/support/home?).
+	Requested *string `locationName:"requested" type:"string"`
+
+	// Reserved. If you need to sustain traffic greater than the documented limits
+	// (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html),
+	// contact us through the Support Center (https://console.aws.amazon.com/support/home?).
+	Status *string `locationName:"status" type:"string"`
+}
+
+// String returns the string representation
+func (s ProvisionedBandwidth) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProvisionedBandwidth) GoString() string {
+	return s.String()
+}
+
 // Describes a request to purchase Scheduled Instances.
 type PurchaseRequest struct {
 	_ struct{} `type:"structure"`
@@ -22466,6 +27554,13 @@ type RegisterImageInput struct {
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
+	// Set to true to enable enhanced networking with ENA for the AMI and any instances
+	// that you launch from the AMI.
+	//
+	// This option is supported only for HVM AMIs. Specifying this option with
+	// a PV AMI can make instances launched from the AMI unreachable.
+	EnaSupport *bool `locationName:"enaSupport" type:"boolean"`
+
 	// The full path to your AMI manifest in Amazon S3 storage.
 	ImageLocation *string `type:"string"`
 
@@ -22485,10 +27580,11 @@ type RegisterImageInput struct {
 	// The name of the root device (for example, /dev/sda1, or /dev/xvda).
 	RootDeviceName *string `locationName:"rootDeviceName" type:"string"`
 
-	// Set to simple to enable enhanced networking for the AMI and any instances
-	// that you launch from the AMI.
+	// Set to simple to enable enhanced networking with the Intel 82599 Virtual
+	// Function interface for the AMI and any instances that you launch from the
+	// AMI.
 	//
-	// There is no way to disable enhanced networking at this time.
+	// There is no way to disable sriovNetSupport at this time.
 	//
 	// This option is supported only for HVM AMIs. Specifying this option with
 	// a PV AMI can make instances launched from the AMI unreachable.
@@ -22998,26 +28094,26 @@ type ReportInstanceStatusInput struct {
 
 	// One or more reason codes that describes the health state of your instance.
 	//
-	//   instance-stuck-in-state: My instance is stuck in a state.
+	//    instance-stuck-in-state: My instance is stuck in a state.
 	//
-	//   unresponsive: My instance is unresponsive.
+	//    unresponsive: My instance is unresponsive.
 	//
-	//   not-accepting-credentials: My instance is not accepting my credentials.
+	//    not-accepting-credentials: My instance is not accepting my credentials.
 	//
-	//   password-not-available: A password is not available for my instance.
+	//    password-not-available: A password is not available for my instance.
 	//
-	//   performance-network: My instance is experiencing performance problems
+	//    performance-network: My instance is experiencing performance problems
 	// which I believe are network related.
 	//
-	//   performance-instance-store: My instance is experiencing performance problems
+	//    performance-instance-store: My instance is experiencing performance problems
 	// which I believe are related to the instance stores.
 	//
-	//   performance-ebs-volume: My instance is experiencing performance problems
+	//    performance-ebs-volume: My instance is experiencing performance problems
 	// which I believe are related to an EBS volume.
 	//
-	//   performance-other: My instance is experiencing performance problems.
+	//    performance-other: My instance is experiencing performance problems.
 	//
-	//   other: [explain using the description parameter]
+	//    other: [explain using the description parameter]
 	ReasonCodes []*string `locationName:"reasonCode" locationNameList:"item" type:"list" required:"true"`
 
 	// The time at which the reported instance health state began.
@@ -23322,7 +28418,9 @@ type RequestSpotLaunchSpecification struct {
 	// The ID of the subnet in which to launch the instance.
 	SubnetId *string `locationName:"subnetId" type:"string"`
 
-	// The Base64-encoded MIME user data to make available to the instances.
+	// The user data to make available to the instances. If you are using an AWS
+	// SDK or command line tool, Base64-encoding is performed for you, and you can
+	// load the text from a file. Otherwise, you must provide Base64-encoded text.
 	UserData *string `locationName:"userData" type:"string"`
 }
 
@@ -23760,6 +28858,9 @@ type ResetInstanceAttributeInput struct {
 	_ struct{} `type:"structure"`
 
 	// The attribute to reset.
+	//
+	//  You can only reset the following attributes: kernel | ramdisk | sourceDestCheck.
+	// To change an instance attribute, use ModifyInstanceAttribute.
 	Attribute *string `locationName:"attribute" type:"string" required:"true" enum:"InstanceAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -24168,12 +29269,12 @@ type Route struct {
 
 	// Describes how the route was created.
 	//
-	//  CreateRouteTable - The route was automatically created when the route table
-	// was created.
+	//    CreateRouteTable - The route was automatically created when the route
+	// table was created.
 	//
-	// CreateRoute - The route was manually added to the route table.
+	//    CreateRoute - The route was manually added to the route table.
 	//
-	// EnableVgwRoutePropagation - The route was propagated by route propagation.
+	//    EnableVgwRoutePropagation - The route was propagated by route propagation.
 	Origin *string `locationName:"origin" type:"string" enum:"RouteOrigin"`
 
 	// The state of the route. The blackhole state indicates that the route's target
@@ -24389,13 +29490,12 @@ type RunInstancesInput struct {
 	// [EC2-VPC] The ID of the subnet to launch the instance into.
 	SubnetId *string `type:"string"`
 
-	// Data to configure the instance, or a script to run during instance launch.
-	// For more information, see Running Commands on Your Linux Instance at Launch
-	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) (Linux)
-	// and Adding User Data (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ec2-instance-metadata.html#instancedata-add-user-data)
-	// (Windows). For API calls, the text must be base64-encoded. For command line
-	// tools, the encoding is performed for you, and you can load the text from
-	// a file.
+	// The user data to make available to the instance. For more information, see
+	// Running Commands on Your Linux Instance at Launch (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html)
+	// (Linux) and Adding User Data (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ec2-instance-metadata.html#instancedata-add-user-data)
+	// (Windows). If you are using an AWS SDK or command line tool, Base64-encoding
+	// is performed for you, and you can load the text from a file. Otherwise, you
+	// must provide Base64-encoded text.
 	UserData *string `type:"string"`
 }
 
@@ -24567,14 +29667,13 @@ type S3Storage struct {
 	// The beginning of the file name of the AMI.
 	Prefix *string `locationName:"prefix" type:"string"`
 
-	// A base64-encoded Amazon S3 upload policy that gives Amazon EC2 permission
-	// to upload items into Amazon S3 on your behalf. For command line tools, base64
-	// encoding is performed for you.
+	// An Amazon S3 upload policy that gives Amazon EC2 permission to upload items
+	// into Amazon S3 on your behalf.
 	//
 	// UploadPolicy is automatically base64 encoded/decoded by the SDK.
 	UploadPolicy []byte `locationName:"uploadPolicy" type:"blob"`
 
-	// The signature of the Base64 encoded JSON document.
+	// The signature of the JSON document.
 	UploadPolicySignature *string `locationName:"uploadPolicySignature" type:"string"`
 }
 
@@ -25114,6 +30213,30 @@ func (s SecurityGroup) GoString() string {
 	return s.String()
 }
 
+// Describes a VPC with a security group that references your security group.
+type SecurityGroupReference struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of your security group.
+	GroupId *string `locationName:"groupId" type:"string" required:"true"`
+
+	// The ID of the VPC with the referencing security group.
+	ReferencingVpcId *string `locationName:"referencingVpcId" type:"string" required:"true"`
+
+	// The ID of the VPC peering connection.
+	VpcPeeringConnectionId *string `locationName:"vpcPeeringConnectionId" type:"string"`
+}
+
+// String returns the string representation
+func (s SecurityGroupReference) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SecurityGroupReference) GoString() string {
+	return s.String()
+}
+
 // Describes the time period for a Scheduled Instance to start its first schedule.
 // The time period must span less than one day.
 type SlotDateTimeRangeRequest struct {
@@ -25453,7 +30576,9 @@ type SpotFleetLaunchSpecification struct {
 	// subnets, separate them using commas; for example, "subnet-a61dafcf, subnet-65ea5f08".
 	SubnetId *string `locationName:"subnetId" type:"string"`
 
-	// The Base64-encoded MIME user data to make available to the instances.
+	// The user data to make available to the instances. If you are using an AWS
+	// SDK or command line tool, Base64-encoding is performed for you, and you can
+	// load the text from a file. Otherwise, you must provide Base64-encoded text.
 	UserData *string `locationName:"userData" type:"string"`
 
 	// The number of units provided by the specified instance type. These are the
@@ -25561,6 +30686,10 @@ type SpotFleetRequestConfigData struct {
 	// the Spot fleet.
 	ExcessCapacityTerminationPolicy *string `locationName:"excessCapacityTerminationPolicy" type:"string" enum:"ExcessCapacityTerminationPolicy"`
 
+	// The number of units fulfilled by this request compared to the set target
+	// capacity.
+	FulfilledCapacity *float64 `locationName:"fulfilledCapacity" type:"double"`
+
 	// Grants the Spot fleet permission to terminate Spot instances on your behalf
 	// when you cancel its Spot fleet request using CancelSpotFleetRequests or when
 	// the Spot fleet request expires, if you set terminateInstancesWithExpiration.
@@ -25580,6 +30709,16 @@ type SpotFleetRequestConfigData struct {
 	// Indicates whether running Spot instances should be terminated when the Spot
 	// fleet request expires.
 	TerminateInstancesWithExpiration *bool `locationName:"terminateInstancesWithExpiration" type:"boolean"`
+
+	// The type of request. Indicates whether the fleet will only request the target
+	// capacity or also attempt to maintain it. When you request a certain target
+	// capacity, the fleet will only place the required bids. It will not attempt
+	// to replenish Spot instances if capacity is diminished, nor will it submit
+	// bids in alternative Spot pools if capacity is not available. When you want
+	// to maintain a certain target capacity, fleet will place the required bids
+	// to meet this target capacity. It will also automatically replenish any interrupted
+	// instances. Default: maintain.
+	Type *string `locationName:"type" type:"string" enum:"FleetType"`
 
 	// The start date and time of the request, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
 	// The default is to start fulfilling the request immediately.
@@ -25821,6 +30960,77 @@ func (s SpotPrice) GoString() string {
 	return s.String()
 }
 
+// Describes a stale rule in a security group.
+type StaleIpPermission struct {
+	_ struct{} `type:"structure"`
+
+	// The start of the port range for the TCP and UDP protocols, or an ICMP type
+	// number. A value of -1 indicates all ICMP types.
+	FromPort *int64 `locationName:"fromPort" type:"integer"`
+
+	// The IP protocol name (for tcp, udp, and icmp) or number (see Protocol Numbers)
+	// (http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml).
+	IpProtocol *string `locationName:"ipProtocol" type:"string"`
+
+	// One or more IP ranges. Not applicable for stale security group rules.
+	IpRanges []*string `locationName:"ipRanges" locationNameList:"item" type:"list"`
+
+	// One or more prefix list IDs for an AWS service. Not applicable for stale
+	// security group rules.
+	PrefixListIds []*string `locationName:"prefixListIds" locationNameList:"item" type:"list"`
+
+	// The end of the port range for the TCP and UDP protocols, or an ICMP type
+	// number. A value of -1 indicates all ICMP types.
+	ToPort *int64 `locationName:"toPort" type:"integer"`
+
+	// One or more security group pairs. Returns the ID of the referenced security
+	// group and VPC, and the ID and status of the VPC peering connection.
+	UserIdGroupPairs []*UserIdGroupPair `locationName:"groups" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s StaleIpPermission) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StaleIpPermission) GoString() string {
+	return s.String()
+}
+
+// Describes a stale security group (a security group that contains stale rules).
+type StaleSecurityGroup struct {
+	_ struct{} `type:"structure"`
+
+	// The description of the security group.
+	Description *string `locationName:"description" type:"string"`
+
+	// The ID of the security group.
+	GroupId *string `locationName:"groupId" type:"string" required:"true"`
+
+	// The name of the security group.
+	GroupName *string `locationName:"groupName" type:"string"`
+
+	// Information about the stale inbound rules in the security group.
+	StaleIpPermissions []*StaleIpPermission `locationName:"staleIpPermissions" locationNameList:"item" type:"list"`
+
+	// Information about the stale outbound rules in the security group.
+	StaleIpPermissionsEgress []*StaleIpPermission `locationName:"staleIpPermissionsEgress" locationNameList:"item" type:"list"`
+
+	// The ID of the VPC for the security group.
+	VpcId *string `locationName:"vpcId" type:"string"`
+}
+
+// String returns the string representation
+func (s StaleSecurityGroup) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StaleSecurityGroup) GoString() string {
+	return s.String()
+}
+
 // Contains the parameters for StartInstances.
 type StartInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -25888,28 +31098,29 @@ type StateReason struct {
 
 	// The message for the state change.
 	//
-	//  Server.SpotInstanceTermination: A Spot instance was terminated due to an
-	// increase in the market price.
+	//    Server.SpotInstanceTermination: A Spot instance was terminated due to
+	// an increase in the market price.
 	//
-	// Server.InternalError: An internal error occurred during instance launch,
+	//    Server.InternalError: An internal error occurred during instance launch,
 	// resulting in termination.
 	//
-	// Server.InsufficientInstanceCapacity: There was insufficient instance capacity
-	// to satisfy the launch request.
+	//    Server.InsufficientInstanceCapacity: There was insufficient instance
+	// capacity to satisfy the launch request.
 	//
-	// Client.InternalError: A client error caused the instance to terminate on
-	// launch.
+	//    Client.InternalError: A client error caused the instance to terminate
+	// on launch.
 	//
-	// Client.InstanceInitiatedShutdown: The instance was shut down using the shutdown
-	// -h command from the instance.
+	//    Client.InstanceInitiatedShutdown: The instance was shut down using the
+	// shutdown -h command from the instance.
 	//
-	// Client.UserInitiatedShutdown: The instance was shut down using the Amazon
+	//    Client.UserInitiatedShutdown: The instance was shut down using the Amazon
 	// EC2 API.
 	//
-	// Client.VolumeLimitExceeded: The limit on the number of EBS volumes or total
-	// storage was exceeded. Decrease usage or request an increase in your limits.
+	//    Client.VolumeLimitExceeded: The limit on the number of EBS volumes or
+	// total storage was exceeded. Decrease usage or request an increase in your
+	// limits.
 	//
-	// Client.InvalidSnapshot.NotFound: The specified snapshot was not found.
+	//    Client.InvalidSnapshot.NotFound: The specified snapshot was not found.
 	Message *string `locationName:"message" type:"string"`
 }
 
@@ -26348,11 +31559,13 @@ func (s UserBucketDetails) GoString() string {
 	return s.String()
 }
 
-// Describes the user data to be made available to an instance.
+// Describes the user data for an instance.
 type UserData struct {
 	_ struct{} `type:"structure"`
 
-	// The Base64-encoded MIME user data for the instance.
+	// The user data. If you are using an AWS SDK or command line tool, Base64-encoding
+	// is performed for you, and you can load the text from a file. Otherwise, you
+	// must provide Base64-encoded text.
 	Data *string `locationName:"data" type:"string"`
 }
 
@@ -26381,7 +31594,8 @@ type UserIdGroupPair struct {
 	// The status of a VPC peering connection, if applicable.
 	PeeringStatus *string `locationName:"peeringStatus" type:"string"`
 
-	// The ID of an AWS account.
+	// The ID of an AWS account. For a referenced security group in another VPC,
+	// the account ID of the referenced security group is returned.
 	//
 	// [EC2-Classic] Required when adding or removing rules that reference a security
 	// group in another AWS account.
@@ -26816,9 +32030,9 @@ func (s VpcEndpoint) GoString() string {
 type VpcPeeringConnection struct {
 	_ struct{} `type:"structure"`
 
-	// Information about the peer VPC. CIDR block information is not returned when
-	// creating a VPC peering connection, or when describing a VPC peering connection
-	// that's in the initiating-request or pending-acceptance state.
+	// Information about the accepter VPC. CIDR block information is not returned
+	// when creating a VPC peering connection, or when describing a VPC peering
+	// connection that's in the initiating-request or pending-acceptance state.
 	AccepterVpcInfo *VpcPeeringConnectionVpcInfo `locationName:"accepterVpcInfo" type:"structure"`
 
 	// The time that an unaccepted VPC peering connection will expire.
@@ -27292,6 +32506,13 @@ const (
 )
 
 const (
+	// @enum FleetType
+	FleetTypeRequest = "request"
+	// @enum FleetType
+	FleetTypeMaintain = "maintain"
+)
+
+const (
 	// @enum FlowLogsResourceType
 	FlowLogsResourceTypeVpc = "VPC"
 	// @enum FlowLogsResourceType
@@ -27389,6 +32610,8 @@ const (
 	InstanceAttributeNameEbsOptimized = "ebsOptimized"
 	// @enum InstanceAttributeName
 	InstanceAttributeNameSriovNetSupport = "sriovNetSupport"
+	// @enum InstanceAttributeName
+	InstanceAttributeNameEnaSupport = "enaSupport"
 )
 
 const (
@@ -27417,6 +32640,16 @@ const (
 	// @enum InstanceType
 	InstanceTypeT1Micro = "t1.micro"
 	// @enum InstanceType
+	InstanceTypeT2Nano = "t2.nano"
+	// @enum InstanceType
+	InstanceTypeT2Micro = "t2.micro"
+	// @enum InstanceType
+	InstanceTypeT2Small = "t2.small"
+	// @enum InstanceType
+	InstanceTypeT2Medium = "t2.medium"
+	// @enum InstanceType
+	InstanceTypeT2Large = "t2.large"
+	// @enum InstanceType
 	InstanceTypeM1Small = "m1.small"
 	// @enum InstanceType
 	InstanceTypeM1Medium = "m1.medium"
@@ -27443,16 +32676,6 @@ const (
 	// @enum InstanceType
 	InstanceTypeM410xlarge = "m4.10xlarge"
 	// @enum InstanceType
-	InstanceTypeT2Nano = "t2.nano"
-	// @enum InstanceType
-	InstanceTypeT2Micro = "t2.micro"
-	// @enum InstanceType
-	InstanceTypeT2Small = "t2.small"
-	// @enum InstanceType
-	InstanceTypeT2Medium = "t2.medium"
-	// @enum InstanceType
-	InstanceTypeT2Large = "t2.large"
-	// @enum InstanceType
 	InstanceTypeM2Xlarge = "m2.xlarge"
 	// @enum InstanceType
 	InstanceTypeM22xlarge = "m2.2xlarge"
@@ -27460,6 +32683,24 @@ const (
 	InstanceTypeM24xlarge = "m2.4xlarge"
 	// @enum InstanceType
 	InstanceTypeCr18xlarge = "cr1.8xlarge"
+	// @enum InstanceType
+	InstanceTypeR3Large = "r3.large"
+	// @enum InstanceType
+	InstanceTypeR3Xlarge = "r3.xlarge"
+	// @enum InstanceType
+	InstanceTypeR32xlarge = "r3.2xlarge"
+	// @enum InstanceType
+	InstanceTypeR34xlarge = "r3.4xlarge"
+	// @enum InstanceType
+	InstanceTypeR38xlarge = "r3.8xlarge"
+	// @enum InstanceType
+	InstanceTypeX14xlarge = "x1.4xlarge"
+	// @enum InstanceType
+	InstanceTypeX18xlarge = "x1.8xlarge"
+	// @enum InstanceType
+	InstanceTypeX116xlarge = "x1.16xlarge"
+	// @enum InstanceType
+	InstanceTypeX132xlarge = "x1.32xlarge"
 	// @enum InstanceType
 	InstanceTypeI2Xlarge = "i2.xlarge"
 	// @enum InstanceType
@@ -27506,16 +32747,6 @@ const (
 	InstanceTypeG28xlarge = "g2.8xlarge"
 	// @enum InstanceType
 	InstanceTypeCg14xlarge = "cg1.4xlarge"
-	// @enum InstanceType
-	InstanceTypeR3Large = "r3.large"
-	// @enum InstanceType
-	InstanceTypeR3Xlarge = "r3.xlarge"
-	// @enum InstanceType
-	InstanceTypeR32xlarge = "r3.2xlarge"
-	// @enum InstanceType
-	InstanceTypeR34xlarge = "r3.4xlarge"
-	// @enum InstanceType
-	InstanceTypeR38xlarge = "r3.8xlarge"
 	// @enum InstanceType
 	InstanceTypeD2Xlarge = "d2.xlarge"
 	// @enum InstanceType

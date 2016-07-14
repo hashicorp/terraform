@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/query"
-	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // AWS Identity and Access Management (IAM) is a web service that you can use
@@ -17,17 +17,19 @@ import (
 // information about IAM, see AWS Identity and Access Management (IAM) (http://aws.amazon.com/iam/).
 // For the user guide for IAM, see Using IAM (http://docs.aws.amazon.com/IAM/latest/UserGuide/).
 //
-// AWS provides SDKs that consist of libraries and sample code for various
+//  AWS provides SDKs that consist of libraries and sample code for various
 // programming languages and platforms (Java, Ruby, .NET, iOS, Android, etc.).
 // The SDKs provide a convenient way to create programmatic access to IAM and
 // AWS. For example, the SDKs take care of tasks such as cryptographically signing
 // requests (see below), managing errors, and retrying requests automatically.
 // For information about the AWS SDKs, including how to download and install
 // them, see the Tools for Amazon Web Services (http://aws.amazon.com/tools/)
-// page.  We recommend that you use the AWS SDKs to make programmatic API calls
-// to IAM. However, you can also use the IAM Query API to make direct calls
-// to the IAM web service. To learn more about the IAM Query API, see Making
-// Query Requests (http://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
+// page.
+//
+//  We recommend that you use the AWS SDKs to make programmatic API calls to
+// IAM. However, you can also use the IAM Query API to make direct calls to
+// the IAM web service. To learn more about the IAM Query API, see Making Query
+// Requests (http://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
 // in the Using IAM guide. IAM supports GET and POST requests for all actions.
 // That is, the API does not require you to use GET for some actions and POST
 // for others. However, GET requests are subject to the limitation size of a
@@ -52,11 +54,15 @@ import (
 //
 // For more information, see the following:
 //
-//   AWS Security Credentials (http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html).
+//    AWS Security Credentials (http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html).
 // This topic provides general information about the types of credentials used
-// for accessing AWS.   IAM Best Practices (http://docs.aws.amazon.com/IAM/latest/UserGuide/IAMBestPractices.html).
+// for accessing AWS.
+//
+//    IAM Best Practices (http://docs.aws.amazon.com/IAM/latest/UserGuide/IAMBestPractices.html).
 // This topic presents a list of suggestions for using the IAM service to help
-// secure your AWS resources.   Signing AWS API Requests (http://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html).
+// secure your AWS resources.
+//
+//    Signing AWS API Requests (http://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html).
 // This set of topics walk you through the process of signing a request using
 // an access key ID and secret access key.
 //The service client's operations are safe to be used concurrently.
@@ -105,7 +111,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBack(v4.Sign)
+	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
 	svc.Handlers.Build.PushBackNamed(query.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(query.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(query.UnmarshalMetaHandler)
