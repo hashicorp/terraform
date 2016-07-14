@@ -76,6 +76,9 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 			"ipv6_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
 
 			"ipv6_address_private": &schema.Schema{
@@ -253,7 +256,7 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 
 	if publicIPv6 := findIPv6AddrByType(droplet, "public"); publicIPv6 != "" {
 		d.Set("ipv6", true)
-		d.Set("ipv6_address", publicIPv6)
+		d.Set("ipv6_address", strings.ToLower(publicIPv6))
 		d.Set("ipv6_address_private", findIPv6AddrByType(droplet, "private"))
 	}
 
