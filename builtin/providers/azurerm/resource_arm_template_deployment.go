@@ -101,7 +101,7 @@ func resourceArmTemplateDeploymentCreate(d *schema.ResourceData, meta interface{
 
 	_, err := deployClient.CreateOrUpdate(resGroup, name, deployment, make(chan struct{}))
 	if err != nil {
-		return nil
+		return fmt.Errorf("Error creating deployment: %s", err)
 	}
 
 	read, err := deployClient.Get(resGroup, name)
