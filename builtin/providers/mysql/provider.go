@@ -51,6 +51,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"mysql_database": resourceDatabase(),
 			"mysql_user":     resourceUser(),
+			"mysql_grant":    resourceGrant(),
 		},
 
 		ConfigureFunc: providerConfigure,
