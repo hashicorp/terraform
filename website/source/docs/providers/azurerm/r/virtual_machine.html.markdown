@@ -210,6 +210,7 @@ The following arguments are supported:
 * `vm_size` - (Required) Specifies the [size of the virtual machine](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-size-specs/).
 * `storage_image_reference` - (Optional) A Storage Image Reference block as documented below.
 * `storage_os_disk` - (Required) A Storage OS Disk block as referenced below.
+* `delete_os_disk_on_termination` - (Optional) Flag to enable deletion of the OS Disk VHD blob when the VM is deleted, defaults to `false`
 * `storage_data_disk` - (Optional) A list of Storage Data disk blocks as referenced below.
 * `os_profile` - (Required) An OS Profile block as documented below.
 * `os_profile_windows_config` - (Required, when a windows machine) A Windows config block as documented below.
