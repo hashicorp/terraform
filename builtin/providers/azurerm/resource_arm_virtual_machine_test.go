@@ -18,8 +18,6 @@ func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
 		Providers: testAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testCheckAzureRMVirtualMachineDestroy,
-			// deletion of OS Disk VHD is opt in
-			testCheckAzureRMVirtualMachineOSDiskVHDExistance(true),
 		),
 		Steps: []resource.TestStep{
 			{
@@ -171,29 +169,6 @@ func TestAccAzureRMVirtualMachine_winRMConfig(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMVirtualMachine_deleteVHD(t *testing.T) {
-	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyOSDisk, ri, ri, ri, ri, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: preConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
-				),
-			},
-			{
-				Config: postConfig,
-				Check:  testCheckAzureRMVirtualMachineOSDiskVHDExistance(false),
-			},
-		},
-	})
-}
-
 func testCheckAzureRMVirtualMachineExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -246,36 +221,6 @@ func testCheckAzureRMVirtualMachineDestroy(s *terraform.State) error {
 	}
 
 	return nil
-}
-
-func testCheckAzureRMVirtualMachineOSDiskVHDExistance(shouldExist bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		for _, rs := range s.RootModule().Resources {
-			if rs.Type != "azurerm_storage_container" {
-				continue
-			}
-
-			// fetch storage account and container name
-			resourceGroup := rs.Primary.Attributes["resource_group_name"]
-			storageAccountName := rs.Primary.Attributes["storage_account_name"]
-			containerName := rs.Primary.Attributes["name"]
-			storageClient, _, err := testAccProvider.Meta().(*ArmClient).getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
-			if err != nil {
-				return fmt.Errorf("Error creating Blob storage client: %s", err)
-			}
-
-			exists, err := storageClient.BlobExists(containerName, "myosdisk1.vhd")
-			if err != nil {
-				return fmt.Errorf("Error checking if OS Disk VHD Blob exists: %s", err)
-			}
-
-			if exists && !shouldExist {
-				return fmt.Errorf("OS Disk VHD Blob still exists")
-			}
-		}
-
-		return nil
-	}
 }
 
 var testAccAzureRMVirtualMachine_basicLinuxMachine = `
