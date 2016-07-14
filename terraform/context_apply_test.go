@@ -4874,6 +4874,8 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 <no state>
 module.middle:
   <no state>
+module.middle.bottom:
+  <no state>
 		`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
