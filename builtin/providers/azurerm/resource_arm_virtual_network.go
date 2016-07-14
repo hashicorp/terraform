@@ -17,6 +17,9 @@ func resourceArmVirtualNetwork() *schema.Resource {
 		Read:   resourceArmVirtualNetworkRead,
 		Update: resourceArmVirtualNetworkCreate,
 		Delete: resourceArmVirtualNetworkDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -139,6 +142,8 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 	vnet := *resp.Properties
 
 	// update appropriate values
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
 	d.Set("address_space", vnet.AddressSpace.AddressPrefixes)
 
 	subnets := &schema.Set{

@@ -345,16 +345,13 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 				&EvalDiff{
 					Info:        info,
 					Config:      &resourceConfig,
+					Resource:    n.Resource,
 					Provider:    &provider,
 					State:       &state,
 					OutputDiff:  &diff,
 					OutputState: &state,
 				},
 				&EvalCheckPreventDestroy{
-					Resource: n.Resource,
-					Diff:     &diff,
-				},
-				&EvalIgnoreChanges{
 					Resource: n.Resource,
 					Diff:     &diff,
 				},
@@ -404,7 +401,6 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 	var err error
 	var createNew bool
 	var createBeforeDestroyEnabled bool
-	var wasChangeType DiffChangeType
 	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
@@ -426,7 +422,6 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 							return true, EvalEarlyExitError{}
 						}
 
-						wasChangeType = diffApply.ChangeType()
 						diffApply.Destroy = false
 						return true, nil
 					},
@@ -477,15 +472,11 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 				&EvalDiff{
 					Info:       info,
 					Config:     &resourceConfig,
+					Resource:   n.Resource,
 					Provider:   &provider,
 					Diff:       &diffApply,
 					State:      &state,
 					OutputDiff: &diffApply,
-				},
-				&EvalIgnoreChanges{
-					Resource:      n.Resource,
-					Diff:          &diffApply,
-					WasChangeType: &wasChangeType,
 				},
 
 				// Get the saved diff

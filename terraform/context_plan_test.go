@@ -2365,3 +2365,30 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }
+
+func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
+	m := testModule(t, "plan-module-variable-from-splat")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanModuleVariableFromSplat)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	}
+}
