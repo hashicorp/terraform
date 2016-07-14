@@ -15,6 +15,7 @@ const (
 	resourceKeyServerNetworkDomainID = "networkdomain"
 	resourceKeyServerMemoryGB        = "memory_gb"
 	resourceKeyServerCPUCount        = "cpu_count"
+	resourceKeyServerImageDisk       = "image_disk"
 	resourceKeyServerAdditionalDisk  = "additional_disk"
 	resourceKeyServerDiskID          = "disk_id"
 	resourceKeyServerDiskSizeGB      = "size_gb"
@@ -68,34 +69,8 @@ func resourceServer() *schema.Resource {
 				Computed: true,
 				Default:  nil,
 			},
-			resourceKeyServerAdditionalDisk: &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				Default:  nil,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						resourceKeyServerDiskID: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						resourceKeyServerDiskSizeGB: &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
-						},
-						resourceKeyServerDiskUnitID: &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
-						},
-						resourceKeyServerDiskSpeed: &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "STANDARD",
-						},
-					},
-				},
-				Set: hashDiskUnitID,
-			},
+			resourceKeyServerImageDisk: schemaServerDisk(true),
+			resourceKeyServerAdditionalDisk: schemaServerDisk(false),
 			resourceKeyServerNetworkDomainID: &schema.Schema{
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -223,6 +198,9 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 		return err
 	}
 
+	// Update the image disks to reflect current state.
+	propertyHelper.SetServerDisks(resourceKeyServerImageDisk, deploymentConfiguration.Disks)
+
 	// Memory and CPU
 	memoryGB := propertyHelper.GetOptionalInt(resourceKeyServerMemoryGB, false)
 	if memoryGB != nil {
@@ -283,7 +261,7 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 	data.SetPartial(resourceKeyServerPrimaryIPv6)
 
 	// Additional disks
-	additionalDisks := propertyHelper.GetServerAdditionalDisks()
+	additionalDisks := propertyHelper.GetServerDisks(resourceKeyServerAdditionalDisk)
 	if len(additionalDisks) == 0 {
 		data.Partial(false)
 
@@ -307,7 +285,7 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 		disk.ID = &diskID
 
 		addedDisks = append(addedDisks, *disk)
-		propertyHelper.SetServerAdditionalDisks(addedDisks)
+		propertyHelper.SetServerDisks(resourceKeyServerAdditionalDisk, addedDisks)
 		data.SetPartial(resourceKeyServerAdditionalDisk)
 
 		_, err = apiClient.WaitForChange(
@@ -474,14 +452,14 @@ func resourceServerDelete(data *schema.ResourceData, provider interface{}) error
 	}
 
 	if server.Started {
-		log.Printf("Server '%s' is currently running. The server will be shut down.", id)
+		log.Printf("Server '%s' is currently running. The server will be powered off.", id)
 
-		err = apiClient.ShutdownServer(id)
+		err = apiClient.PowerOffServer(id)
 		if err != nil {
 			return err
 		}
 
-		_, err = apiClient.WaitForChange(compute.ResourceTypeServer, id, "Shut down server", serverShutdownTimeout)
+		_, err = apiClient.WaitForChange(compute.ResourceTypeServer, id, "Power off server", serverShutdownTimeout)
 		if err != nil {
 			return err
 		}
@@ -568,4 +546,35 @@ func hashDiskUnitID(item interface{}) int {
 	diskData := item.(map[string]interface{})
 
 	return diskData[resourceKeyServerDiskUnitID].(int)
+}
+
+func schemaServerDisk(readonly bool) *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: !readonly,
+		Computed: true,
+		Default:  nil,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				resourceKeyServerDiskID: &schema.Schema{
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+				resourceKeyServerDiskSizeGB: &schema.Schema{
+					Type:     schema.TypeInt,
+					Required: true,
+				},
+				resourceKeyServerDiskUnitID: &schema.Schema{
+					Type:     schema.TypeInt,
+					Required: true,
+				},
+				resourceKeyServerDiskSpeed: &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "STANDARD",
+				},
+			},
+		},
+		Set: hashDiskUnitID,
+	}
 }

@@ -133,6 +133,9 @@ func resourceNATCreate(data *schema.ResourceData, provider interface{}) error {
 		return err
 	}
 
+	data.SetId(natRuleID)
+	log.Printf("Successfully created NAT rule '%s'.", natRuleID)
+
 	natRule, err := apiClient.GetNATRule(natRuleID)
 	if err != nil {
 		return err
@@ -142,9 +145,6 @@ func resourceNATCreate(data *schema.ResourceData, provider interface{}) error {
 		return fmt.Errorf("Cannot find newly-added NAT rule '%s'.", natRuleID)
 	}
 
-	log.Printf("Successfully created NAT rule '%s'.", natRuleID)
-
-	data.SetId(natRuleID)
 	data.Set(resourceKeyNATPublicAddress, natRule.ExternalIPAddress)
 
 	return nil

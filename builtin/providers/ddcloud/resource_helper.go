@@ -48,15 +48,15 @@ func (helper resourcePropertyHelper) GetOptionalBool(key string) *bool {
 	}
 }
 
-func (helper resourcePropertyHelper) GetServerAdditionalDisks() (disks []compute.VirtualMachineDisk) {
-	value, ok := helper.data.GetOk(resourceKeyServerAdditionalDisk)
+func (helper resourcePropertyHelper) GetServerDisks(key string) (disks []compute.VirtualMachineDisk) {
+	value, ok := helper.data.GetOk(key)
 	if !ok {
 		return
 	}
-	additionalDisks := value.(*schema.Set).List()
+	serverDisks := value.(*schema.Set).List()
 
-	disks = make([]compute.VirtualMachineDisk, len(additionalDisks))
-	for index, item := range additionalDisks {
+	disks = make([]compute.VirtualMachineDisk, len(serverDisks))
+	for index, item := range serverDisks {
 		diskProperties := item.(map[string]interface{})
 		disk := &compute.VirtualMachineDisk{}
 
@@ -86,7 +86,7 @@ func (helper resourcePropertyHelper) GetServerAdditionalDisks() (disks []compute
 	return
 }
 
-func (helper resourcePropertyHelper) SetServerAdditionalDisks(disks []compute.VirtualMachineDisk) {
+func (helper resourcePropertyHelper) SetServerDisks(key string, disks []compute.VirtualMachineDisk) {
 	diskProperties := &schema.Set{F: hashDiskUnitID}
 
 	for _, disk := range disks {
@@ -97,5 +97,5 @@ func (helper resourcePropertyHelper) SetServerAdditionalDisks(disks []compute.Vi
 			resourceKeyServerDiskSpeed:  disk.Speed,
 		})
 	}
-	helper.data.Set(resourceKeyServerAdditionalDisk, diskProperties)
+	helper.data.Set(key, diskProperties)
 }
