@@ -23,7 +23,7 @@ func resourceAwsDbInstance() *schema.Resource {
 		Update: resourceAwsDbInstanceUpdate,
 		Delete: resourceAwsDbInstanceDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsDbInstanceImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -757,11 +757,8 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 
 	opts := rds.DeleteDBInstanceInput{DBInstanceIdentifier: aws.String(d.Id())}
 
-	skipFinalSnapshot, exists := d.GetOk("skip_final_snapshot")
-	if !exists {
-		skipFinalSnapshot = true
-	}
-	opts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot.(bool))
+	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
+	opts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot)
 
 	if skipFinalSnapshot == false {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
@@ -1021,6 +1018,15 @@ func resourceAwsDbInstanceRetrieve(
 	}
 
 	return resp.DBInstances[0], nil
+}
+
+func resourceAwsDbInstanceImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// Neither skip_final_snapshot nor final_snapshot_identifier can be fetched
+	// from any API call, so we need to default skip_final_snapshot to true so
+	// that final_snapshot_identifier is not required
+	d.Set("skip_final_snapshot", true)
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceAwsDbInstanceStateRefreshFunc(
