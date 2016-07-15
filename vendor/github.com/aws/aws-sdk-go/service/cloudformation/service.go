@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/query"
-	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // AWS CloudFormation enables you to create and manage AWS infrastructure deployments
@@ -28,7 +28,7 @@ import (
 //
 // Amazon CloudFormation makes use of other AWS products. If you need additional
 // technical information about a specific AWS product, you can find the product's
-// technical documentation at http://docs.aws.amazon.com/documentation/ (http://docs.aws.amazon.com/documentation/).
+// technical documentation at http://docs.aws.amazon.com/ (http://docs.aws.amazon.com/).
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type CloudFormation struct {
@@ -75,7 +75,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBack(v4.Sign)
+	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
 	svc.Handlers.Build.PushBackNamed(query.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(query.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(query.UnmarshalMetaHandler)

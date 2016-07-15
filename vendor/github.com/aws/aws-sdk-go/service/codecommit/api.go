@@ -14,7 +14,28 @@ import (
 
 const opBatchGetRepositories = "BatchGetRepositories"
 
-// BatchGetRepositoriesRequest generates a request for the BatchGetRepositories operation.
+// BatchGetRepositoriesRequest generates a "aws/request.Request" representing the
+// client's request for the BatchGetRepositories operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the BatchGetRepositories method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the BatchGetRepositoriesRequest method.
+//    req, resp := client.BatchGetRepositoriesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) BatchGetRepositoriesRequest(input *BatchGetRepositoriesInput) (req *request.Request, output *BatchGetRepositoriesOutput) {
 	op := &request.Operation{
 		Name:       opBatchGetRepositories,
@@ -47,7 +68,28 @@ func (c *CodeCommit) BatchGetRepositories(input *BatchGetRepositoriesInput) (*Ba
 
 const opCreateBranch = "CreateBranch"
 
-// CreateBranchRequest generates a request for the CreateBranch operation.
+// CreateBranchRequest generates a "aws/request.Request" representing the
+// client's request for the CreateBranch operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateBranch method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateBranchRequest method.
+//    req, resp := client.CreateBranchRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) CreateBranchRequest(input *CreateBranchInput) (req *request.Request, output *CreateBranchOutput) {
 	op := &request.Operation{
 		Name:       opCreateBranch,
@@ -79,7 +121,28 @@ func (c *CodeCommit) CreateBranch(input *CreateBranchInput) (*CreateBranchOutput
 
 const opCreateRepository = "CreateRepository"
 
-// CreateRepositoryRequest generates a request for the CreateRepository operation.
+// CreateRepositoryRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRepository operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateRepository method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateRepositoryRequest method.
+//    req, resp := client.CreateRepositoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) CreateRepositoryRequest(input *CreateRepositoryInput) (req *request.Request, output *CreateRepositoryOutput) {
 	op := &request.Operation{
 		Name:       opCreateRepository,
@@ -106,7 +169,28 @@ func (c *CodeCommit) CreateRepository(input *CreateRepositoryInput) (*CreateRepo
 
 const opDeleteRepository = "DeleteRepository"
 
-// DeleteRepositoryRequest generates a request for the DeleteRepository operation.
+// DeleteRepositoryRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRepository operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRepository method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRepositoryRequest method.
+//    req, resp := client.DeleteRepositoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req *request.Request, output *DeleteRepositoryOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRepository,
@@ -138,7 +222,28 @@ func (c *CodeCommit) DeleteRepository(input *DeleteRepositoryInput) (*DeleteRepo
 
 const opGetBranch = "GetBranch"
 
-// GetBranchRequest generates a request for the GetBranch operation.
+// GetBranchRequest generates a "aws/request.Request" representing the
+// client's request for the GetBranch operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetBranch method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetBranchRequest method.
+//    req, resp := client.GetBranchRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) GetBranchRequest(input *GetBranchInput) (req *request.Request, output *GetBranchOutput) {
 	op := &request.Operation{
 		Name:       opGetBranch,
@@ -166,7 +271,28 @@ func (c *CodeCommit) GetBranch(input *GetBranchInput) (*GetBranchOutput, error) 
 
 const opGetCommit = "GetCommit"
 
-// GetCommitRequest generates a request for the GetCommit operation.
+// GetCommitRequest generates a "aws/request.Request" representing the
+// client's request for the GetCommit operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetCommit method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetCommitRequest method.
+//    req, resp := client.GetCommitRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) GetCommitRequest(input *GetCommitInput) (req *request.Request, output *GetCommitOutput) {
 	op := &request.Operation{
 		Name:       opGetCommit,
@@ -194,7 +320,28 @@ func (c *CodeCommit) GetCommit(input *GetCommitInput) (*GetCommitOutput, error) 
 
 const opGetRepository = "GetRepository"
 
-// GetRepositoryRequest generates a request for the GetRepository operation.
+// GetRepositoryRequest generates a "aws/request.Request" representing the
+// client's request for the GetRepository operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRepository method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRepositoryRequest method.
+//    req, resp := client.GetRepositoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) GetRepositoryRequest(input *GetRepositoryInput) (req *request.Request, output *GetRepositoryOutput) {
 	op := &request.Operation{
 		Name:       opGetRepository,
@@ -227,7 +374,28 @@ func (c *CodeCommit) GetRepository(input *GetRepositoryInput) (*GetRepositoryOut
 
 const opGetRepositoryTriggers = "GetRepositoryTriggers"
 
-// GetRepositoryTriggersRequest generates a request for the GetRepositoryTriggers operation.
+// GetRepositoryTriggersRequest generates a "aws/request.Request" representing the
+// client's request for the GetRepositoryTriggers operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRepositoryTriggers method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRepositoryTriggersRequest method.
+//    req, resp := client.GetRepositoryTriggersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) GetRepositoryTriggersRequest(input *GetRepositoryTriggersInput) (req *request.Request, output *GetRepositoryTriggersOutput) {
 	op := &request.Operation{
 		Name:       opGetRepositoryTriggers,
@@ -254,7 +422,28 @@ func (c *CodeCommit) GetRepositoryTriggers(input *GetRepositoryTriggersInput) (*
 
 const opListBranches = "ListBranches"
 
-// ListBranchesRequest generates a request for the ListBranches operation.
+// ListBranchesRequest generates a "aws/request.Request" representing the
+// client's request for the ListBranches operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListBranches method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListBranchesRequest method.
+//    req, resp := client.ListBranchesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) ListBranchesRequest(input *ListBranchesInput) (req *request.Request, output *ListBranchesOutput) {
 	op := &request.Operation{
 		Name:       opListBranches,
@@ -285,6 +474,23 @@ func (c *CodeCommit) ListBranches(input *ListBranchesInput) (*ListBranchesOutput
 	return out, err
 }
 
+// ListBranchesPages iterates over the pages of a ListBranches operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListBranches method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListBranches operation.
+//    pageNum := 0
+//    err := client.ListBranchesPages(params,
+//        func(page *ListBranchesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CodeCommit) ListBranchesPages(input *ListBranchesInput, fn func(p *ListBranchesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListBranchesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -295,7 +501,28 @@ func (c *CodeCommit) ListBranchesPages(input *ListBranchesInput, fn func(p *List
 
 const opListRepositories = "ListRepositories"
 
-// ListRepositoriesRequest generates a request for the ListRepositories operation.
+// ListRepositoriesRequest generates a "aws/request.Request" representing the
+// client's request for the ListRepositories operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListRepositories method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListRepositoriesRequest method.
+//    req, resp := client.ListRepositoriesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) ListRepositoriesRequest(input *ListRepositoriesInput) (req *request.Request, output *ListRepositoriesOutput) {
 	op := &request.Operation{
 		Name:       opListRepositories,
@@ -326,6 +553,23 @@ func (c *CodeCommit) ListRepositories(input *ListRepositoriesInput) (*ListReposi
 	return out, err
 }
 
+// ListRepositoriesPages iterates over the pages of a ListRepositories operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListRepositories method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListRepositories operation.
+//    pageNum := 0
+//    err := client.ListRepositoriesPages(params,
+//        func(page *ListRepositoriesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CodeCommit) ListRepositoriesPages(input *ListRepositoriesInput, fn func(p *ListRepositoriesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListRepositoriesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -336,7 +580,28 @@ func (c *CodeCommit) ListRepositoriesPages(input *ListRepositoriesInput, fn func
 
 const opPutRepositoryTriggers = "PutRepositoryTriggers"
 
-// PutRepositoryTriggersRequest generates a request for the PutRepositoryTriggers operation.
+// PutRepositoryTriggersRequest generates a "aws/request.Request" representing the
+// client's request for the PutRepositoryTriggers operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRepositoryTriggers method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRepositoryTriggersRequest method.
+//    req, resp := client.PutRepositoryTriggersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) PutRepositoryTriggersRequest(input *PutRepositoryTriggersInput) (req *request.Request, output *PutRepositoryTriggersOutput) {
 	op := &request.Operation{
 		Name:       opPutRepositoryTriggers,
@@ -364,7 +629,28 @@ func (c *CodeCommit) PutRepositoryTriggers(input *PutRepositoryTriggersInput) (*
 
 const opTestRepositoryTriggers = "TestRepositoryTriggers"
 
-// TestRepositoryTriggersRequest generates a request for the TestRepositoryTriggers operation.
+// TestRepositoryTriggersRequest generates a "aws/request.Request" representing the
+// client's request for the TestRepositoryTriggers operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TestRepositoryTriggers method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TestRepositoryTriggersRequest method.
+//    req, resp := client.TestRepositoryTriggersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) TestRepositoryTriggersRequest(input *TestRepositoryTriggersInput) (req *request.Request, output *TestRepositoryTriggersOutput) {
 	op := &request.Operation{
 		Name:       opTestRepositoryTriggers,
@@ -394,7 +680,28 @@ func (c *CodeCommit) TestRepositoryTriggers(input *TestRepositoryTriggersInput) 
 
 const opUpdateDefaultBranch = "UpdateDefaultBranch"
 
-// UpdateDefaultBranchRequest generates a request for the UpdateDefaultBranch operation.
+// UpdateDefaultBranchRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateDefaultBranch operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateDefaultBranch method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateDefaultBranchRequest method.
+//    req, resp := client.UpdateDefaultBranchRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) UpdateDefaultBranchRequest(input *UpdateDefaultBranchInput) (req *request.Request, output *UpdateDefaultBranchOutput) {
 	op := &request.Operation{
 		Name:       opUpdateDefaultBranch,
@@ -427,7 +734,28 @@ func (c *CodeCommit) UpdateDefaultBranch(input *UpdateDefaultBranchInput) (*Upda
 
 const opUpdateRepositoryDescription = "UpdateRepositoryDescription"
 
-// UpdateRepositoryDescriptionRequest generates a request for the UpdateRepositoryDescription operation.
+// UpdateRepositoryDescriptionRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRepositoryDescription operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateRepositoryDescription method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateRepositoryDescriptionRequest method.
+//    req, resp := client.UpdateRepositoryDescriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) UpdateRepositoryDescriptionRequest(input *UpdateRepositoryDescriptionInput) (req *request.Request, output *UpdateRepositoryDescriptionOutput) {
 	op := &request.Operation{
 		Name:       opUpdateRepositoryDescription,
@@ -462,7 +790,28 @@ func (c *CodeCommit) UpdateRepositoryDescription(input *UpdateRepositoryDescript
 
 const opUpdateRepositoryName = "UpdateRepositoryName"
 
-// UpdateRepositoryNameRequest generates a request for the UpdateRepositoryName operation.
+// UpdateRepositoryNameRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRepositoryName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateRepositoryName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateRepositoryNameRequest method.
+//    req, resp := client.UpdateRepositoryNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CodeCommit) UpdateRepositoryNameRequest(input *UpdateRepositoryNameInput) (req *request.Request, output *UpdateRepositoryNameOutput) {
 	op := &request.Operation{
 		Name:       opUpdateRepositoryName,

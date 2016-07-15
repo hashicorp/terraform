@@ -15,7 +15,28 @@ import (
 
 const opAddTags = "AddTags"
 
-// AddTagsRequest generates a request for the AddTags operation.
+// AddTagsRequest generates a "aws/request.Request" representing the
+// client's request for the AddTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddTagsRequest method.
+//    req, resp := client.AddTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) AddTagsRequest(input *AddTagsInput) (req *request.Request, output *AddTagsOutput) {
 	op := &request.Operation{
 		Name:       opAddTags,
@@ -47,7 +68,28 @@ func (c *ElasticsearchService) AddTags(input *AddTagsInput) (*AddTagsOutput, err
 
 const opCreateElasticsearchDomain = "CreateElasticsearchDomain"
 
-// CreateElasticsearchDomainRequest generates a request for the CreateElasticsearchDomain operation.
+// CreateElasticsearchDomainRequest generates a "aws/request.Request" representing the
+// client's request for the CreateElasticsearchDomain operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateElasticsearchDomain method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateElasticsearchDomainRequest method.
+//    req, resp := client.CreateElasticsearchDomainRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) CreateElasticsearchDomainRequest(input *CreateElasticsearchDomainInput) (req *request.Request, output *CreateElasticsearchDomainOutput) {
 	op := &request.Operation{
 		Name:       opCreateElasticsearchDomain,
@@ -76,7 +118,28 @@ func (c *ElasticsearchService) CreateElasticsearchDomain(input *CreateElasticsea
 
 const opDeleteElasticsearchDomain = "DeleteElasticsearchDomain"
 
-// DeleteElasticsearchDomainRequest generates a request for the DeleteElasticsearchDomain operation.
+// DeleteElasticsearchDomainRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteElasticsearchDomain operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteElasticsearchDomain method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteElasticsearchDomainRequest method.
+//    req, resp := client.DeleteElasticsearchDomainRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) DeleteElasticsearchDomainRequest(input *DeleteElasticsearchDomainInput) (req *request.Request, output *DeleteElasticsearchDomainOutput) {
 	op := &request.Operation{
 		Name:       opDeleteElasticsearchDomain,
@@ -104,7 +167,28 @@ func (c *ElasticsearchService) DeleteElasticsearchDomain(input *DeleteElasticsea
 
 const opDescribeElasticsearchDomain = "DescribeElasticsearchDomain"
 
-// DescribeElasticsearchDomainRequest generates a request for the DescribeElasticsearchDomain operation.
+// DescribeElasticsearchDomainRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeElasticsearchDomain operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeElasticsearchDomain method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeElasticsearchDomainRequest method.
+//    req, resp := client.DescribeElasticsearchDomainRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) DescribeElasticsearchDomainRequest(input *DescribeElasticsearchDomainInput) (req *request.Request, output *DescribeElasticsearchDomainOutput) {
 	op := &request.Operation{
 		Name:       opDescribeElasticsearchDomain,
@@ -132,7 +216,28 @@ func (c *ElasticsearchService) DescribeElasticsearchDomain(input *DescribeElasti
 
 const opDescribeElasticsearchDomainConfig = "DescribeElasticsearchDomainConfig"
 
-// DescribeElasticsearchDomainConfigRequest generates a request for the DescribeElasticsearchDomainConfig operation.
+// DescribeElasticsearchDomainConfigRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeElasticsearchDomainConfig operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeElasticsearchDomainConfig method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeElasticsearchDomainConfigRequest method.
+//    req, resp := client.DescribeElasticsearchDomainConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) DescribeElasticsearchDomainConfigRequest(input *DescribeElasticsearchDomainConfigInput) (req *request.Request, output *DescribeElasticsearchDomainConfigOutput) {
 	op := &request.Operation{
 		Name:       opDescribeElasticsearchDomainConfig,
@@ -161,7 +266,28 @@ func (c *ElasticsearchService) DescribeElasticsearchDomainConfig(input *Describe
 
 const opDescribeElasticsearchDomains = "DescribeElasticsearchDomains"
 
-// DescribeElasticsearchDomainsRequest generates a request for the DescribeElasticsearchDomains operation.
+// DescribeElasticsearchDomainsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeElasticsearchDomains operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeElasticsearchDomains method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeElasticsearchDomainsRequest method.
+//    req, resp := client.DescribeElasticsearchDomainsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) DescribeElasticsearchDomainsRequest(input *DescribeElasticsearchDomainsInput) (req *request.Request, output *DescribeElasticsearchDomainsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeElasticsearchDomains,
@@ -189,7 +315,28 @@ func (c *ElasticsearchService) DescribeElasticsearchDomains(input *DescribeElast
 
 const opListDomainNames = "ListDomainNames"
 
-// ListDomainNamesRequest generates a request for the ListDomainNames operation.
+// ListDomainNamesRequest generates a "aws/request.Request" representing the
+// client's request for the ListDomainNames operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListDomainNames method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListDomainNamesRequest method.
+//    req, resp := client.ListDomainNamesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) ListDomainNamesRequest(input *ListDomainNamesInput) (req *request.Request, output *ListDomainNamesOutput) {
 	op := &request.Operation{
 		Name:       opListDomainNames,
@@ -217,7 +364,28 @@ func (c *ElasticsearchService) ListDomainNames(input *ListDomainNamesInput) (*Li
 
 const opListTags = "ListTags"
 
-// ListTagsRequest generates a request for the ListTags operation.
+// ListTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsRequest method.
+//    req, resp := client.ListTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) ListTagsRequest(input *ListTagsInput) (req *request.Request, output *ListTagsOutput) {
 	op := &request.Operation{
 		Name:       opListTags,
@@ -244,7 +412,28 @@ func (c *ElasticsearchService) ListTags(input *ListTagsInput) (*ListTagsOutput, 
 
 const opRemoveTags = "RemoveTags"
 
-// RemoveTagsRequest generates a request for the RemoveTags operation.
+// RemoveTagsRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveTagsRequest method.
+//    req, resp := client.RemoveTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, output *RemoveTagsOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTags,
@@ -273,7 +462,28 @@ func (c *ElasticsearchService) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOu
 
 const opUpdateElasticsearchDomainConfig = "UpdateElasticsearchDomainConfig"
 
-// UpdateElasticsearchDomainConfigRequest generates a request for the UpdateElasticsearchDomainConfig operation.
+// UpdateElasticsearchDomainConfigRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateElasticsearchDomainConfig operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateElasticsearchDomainConfig method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateElasticsearchDomainConfigRequest method.
+//    req, resp := client.UpdateElasticsearchDomainConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) UpdateElasticsearchDomainConfigRequest(input *UpdateElasticsearchDomainConfigInput) (req *request.Request, output *UpdateElasticsearchDomainConfigOutput) {
 	op := &request.Operation{
 		Name:       opUpdateElasticsearchDomainConfig,
