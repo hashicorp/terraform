@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -90,6 +91,8 @@ func TestAccAWSLaunchConfiguration_withSpotPrice(t *testing.T) {
 }
 
 func TestAccAWSLaunchConfiguration_withVpcClassicLink(t *testing.T) {
+	var vpc ec2.Vpc
+	var group ec2.SecurityGroup
 	var conf autoscaling.LaunchConfiguration
 
 	resource.Test(t, resource.TestCase{
@@ -101,29 +104,12 @@ func TestAccAWSLaunchConfiguration_withVpcClassicLink(t *testing.T) {
 				Config: testAccAWSLaunchConfigurationConfig_withVpcClassicLink,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.foo", &conf),
-					resource.TestCheckResourceAttr(
-						"aws_launch_configuration.foo", "vpc_classic_link_id", "vpc-65814701"),
-					resource.TestCheckResourceAttr(
-						"aws_launch_configuration.foo", "vpc_classic_link_security_groups.#", "1"),
-					testAccCheckAWSLaunchConfigurationWithVPCClassicLink(&conf),
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
 				),
 			},
 		},
 	})
-}
-
-func testAccCheckAWSLaunchConfigurationWithVPCClassicLink(conf *autoscaling.LaunchConfiguration) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if *conf.ClassicLinkVPCId != "vpc-65814701" {
-			return fmt.Errorf("Bad vpc_classic_link_id: %s", *conf.ClassicLinkVPCId)
-		}
-
-		if *conf.ClassicLinkVPCSecurityGroups[0] != "sg-6a4d2f0d" {
-			return fmt.Errorf("Bad vpc_classic_link_security_groups: %s", *conf.ClassicLinkVPCSecurityGroups[0])
-		}
-
-		return nil
-	}
 }
 
 func TestAccAWSLaunchConfiguration_withIAMProfile(t *testing.T) {
@@ -392,15 +378,24 @@ resource "aws_launch_configuration" "baz" {
 	}
 }
 `
-
 const testAccAWSLaunchConfigurationConfig_withVpcClassicLink = `
+resource "aws_vpc" "foo" {
+   cidr_block = "10.0.0.0/16"
+   enable_classiclink = true
+}
+
+resource "aws_security_group" "foo" {
+  name = "foo"
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
 resource "aws_launch_configuration" "foo" {
    name = "TestAccAWSLaunchConfiguration_withVpcClassicLink"
-   image_id = "ami-21f78e11"
+   image_id = "ami-2d39803a"
    instance_type = "t1.micro"
 
-   vpc_classic_link_id = "vpc-65814701"
-   vpc_classic_link_security_groups = ["sg-6a4d2f0d"]
+   vpc_classic_link_id = "${aws_vpc.foo.id}"
+   vpc_classic_link_security_groups = ["${aws_security_group.foo.id}"]
 }
 `
 
