@@ -17,6 +17,9 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 		Create: resourceNetworkingSecGroupV2Create,
 		Read:   resourceNetworkingSecGroupV2Read,
 		Delete: resourceNetworkingSecGroupV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -91,6 +94,7 @@ func resourceNetworkingSecGroupV2Read(d *schema.ResourceData, meta interface{}) 
 
 	d.Set("description", security_group.Description)
 	d.Set("tenant_id", security_group.TenantID)
+	d.Set("name", security_group.Name)
 	return nil
 }
 

@@ -2,7 +2,6 @@ package openstack
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -14,37 +13,9 @@ import (
 )
 
 func TestAccNetworkingV2Port_basic(t *testing.T) {
-	region := os.Getenv(OS_REGION_NAME)
-
 	var network networks.Network
 	var port ports.Port
 	var subnet subnets.Subnet
-
-	var testAccNetworkingV2Port_basic = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
-			name = "network_1"
-			admin_state_up = "true"
-		}
-
-		resource "openstack_networking_subnet_v2" "foo" {
-			region = "%s"
-			name = "subnet_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			cidr = "192.168.199.0/24"
-			ip_version = 4
-		}
-
-		resource "openstack_networking_port_v2" "foo" {
-			region = "%s"
-			name = "port_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			admin_state_up = "true"
-			fixed_ip {
-				subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
-				ip_address = "192.168.199.23"
-			}
-		}`, region, region, region)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -64,34 +35,9 @@ func TestAccNetworkingV2Port_basic(t *testing.T) {
 }
 
 func TestAccNetworkingV2Port_noip(t *testing.T) {
-	region := os.Getenv(OS_REGION_NAME)
-
 	var network networks.Network
 	var port ports.Port
 	var subnet subnets.Subnet
-
-	var testAccNetworkingV2Port_noip = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
-			name = "network_1"
-			admin_state_up = "true"
-		}
-		resource "openstack_networking_subnet_v2" "foo" {
-			region = "%s"
-			name = "subnet_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			cidr = "192.168.199.0/24"
-			ip_version = 4
-		}
-		resource "openstack_networking_port_v2" "foo" {
-			region = "%s"
-			name = "port_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			admin_state_up = "true"
-			fixed_ip {
-				subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
-			}
-		}`, region, region, region)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -162,3 +108,46 @@ func testAccCheckNetworkingV2PortExists(t *testing.T, n string, port *ports.Port
 		return nil
 	}
 }
+
+var testAccNetworkingV2Port_basic = fmt.Sprintf(`
+		resource "openstack_networking_network_v2" "foo" {
+			name = "network_1"
+			admin_state_up = "true"
+		}
+
+		resource "openstack_networking_subnet_v2" "foo" {
+			name = "subnet_1"
+			network_id = "${openstack_networking_network_v2.foo.id}"
+			cidr = "192.168.199.0/24"
+			ip_version = 4
+		}
+
+		resource "openstack_networking_port_v2" "foo" {
+			name = "port_1"
+			network_id = "${openstack_networking_network_v2.foo.id}"
+			admin_state_up = "true"
+			fixed_ip {
+				subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
+				ip_address = "192.168.199.23"
+			}
+		}`)
+
+var testAccNetworkingV2Port_noip = fmt.Sprintf(`
+		resource "openstack_networking_network_v2" "foo" {
+			name = "network_1"
+			admin_state_up = "true"
+		}
+		resource "openstack_networking_subnet_v2" "foo" {
+			name = "subnet_1"
+			network_id = "${openstack_networking_network_v2.foo.id}"
+			cidr = "192.168.199.0/24"
+			ip_version = 4
+		}
+		resource "openstack_networking_port_v2" "foo" {
+			name = "port_1"
+			network_id = "${openstack_networking_network_v2.foo.id}"
+			admin_state_up = "true"
+			fixed_ip {
+				subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
+			}
+		}`)

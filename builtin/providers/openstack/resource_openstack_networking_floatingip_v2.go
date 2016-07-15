@@ -20,6 +20,9 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 		Read:   resourceNetworkFloatingIPV2Read,
 		Update: resourceNetworkFloatingIPV2Update,
 		Delete: resourceNetworkFloatingIPV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
