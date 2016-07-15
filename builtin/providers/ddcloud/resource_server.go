@@ -29,6 +29,9 @@ const (
 	resourceKeyServerPrimaryDNS      = "dns_primary"
 	resourceKeyServerSecondaryDNS    = "dns_secondary"
 	resourceKeyServerAutoStart       = "auto_start"
+	resourceKeyServerTag             = "tag"
+	resourceKeyServerTagName         = "name"
+	resourceKeyServerTagValue        = "value"
 	resourceCreateTimeoutServer      = 30 * time.Minute
 	resourceUpdateTimeoutServer      = 10 * time.Minute
 	resourceDeleteTimeoutServer      = 15 * time.Minute
@@ -69,7 +72,7 @@ func resourceServer() *schema.Resource {
 				Computed: true,
 				Default:  nil,
 			},
-			resourceKeyServerImageDisk: schemaServerDisk(true),
+			resourceKeyServerImageDisk:      schemaServerDisk(true),
 			resourceKeyServerAdditionalDisk: schemaServerDisk(false),
 			resourceKeyServerNetworkDomainID: &schema.Schema{
 				Type:     schema.TypeString,
@@ -125,6 +128,27 @@ func resourceServer() *schema.Resource {
 				ForceNew: true,
 				Optional: true,
 				Default:  false,
+			},
+
+			// TODO: Actually apply tags to servers (currently they are simply stored in Terraform state data).
+
+			resourceKeyServerTag: &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Default:  nil,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						resourceKeyServerTagName: &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						resourceKeyServerTagValue: &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				Set: hashServerTag,
 			},
 		},
 	}
@@ -259,6 +283,8 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 	serverIPv6Address := *server.Network.PrimaryAdapter.PrivateIPv6Address
 	data.Set(resourceKeyServerPrimaryIPv6, serverIPv6Address)
 	data.SetPartial(resourceKeyServerPrimaryIPv6)
+
+	// TODO: Adjust image size for image disk(s) if they were explicitly specified.
 
 	// Additional disks
 	additionalDisks := propertyHelper.GetServerDisks(resourceKeyServerAdditionalDisk)
@@ -546,6 +572,14 @@ func hashDiskUnitID(item interface{}) int {
 	diskData := item.(map[string]interface{})
 
 	return diskData[resourceKeyServerDiskUnitID].(int)
+}
+
+func hashServerTag(item interface{}) int {
+	tagData := item.(map[string]interface{})
+
+	return schema.HashString(
+		tagData[resourceKeyServerTagName].(string),
+	)
 }
 
 func schemaServerDisk(readonly bool) *schema.Schema {
