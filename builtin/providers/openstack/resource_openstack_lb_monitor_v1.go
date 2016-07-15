@@ -19,6 +19,9 @@ func resourceLBMonitorV1() *schema.Resource {
 		Read:   resourceLBMonitorV1Read,
 		Update: resourceLBMonitorV1Update,
 		Delete: resourceLBMonitorV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{

@@ -18,6 +18,9 @@ func resourceLBVipV1() *schema.Resource {
 		Read:   resourceLBVipV1Read,
 		Update: resourceLBVipV1Update,
 		Delete: resourceLBVipV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -181,6 +184,16 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", p.Description)
 	d.Set("conn_limit", p.ConnLimit)
 	d.Set("admin_state_up", p.AdminStateUp)
+
+	// Set the persistence method being used
+	persistence := make(map[string]interface{})
+	if p.Persistence.Type != "" {
+		persistence["type"] = p.Persistence.Type
+	}
+	if p.Persistence.CookieName != "" {
+		persistence["cookie_name"] = p.Persistence.CookieName
+	}
+	d.Set("persistence", persistence)
 
 	return nil
 }
