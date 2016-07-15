@@ -79,6 +79,7 @@ IMPROVEMENTS:
 
  * core: The `jsonencode` interpolation function now supports encoding lists and maps [GH-6749]
  * core: Add the ability for resource definitions to mark attributes as "sensitive" which will omit them from UI output. [GH-6923]
+ * core: Support `.` in map keys [GH-7654]
  * provider/aws: Add `dns_name` to `aws_efs_mount_target` [GH-7428]
  * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
  * provider/aws: Add more explicit support for Skipping Final Snapshot in RDS Cluster [GH-6795]
