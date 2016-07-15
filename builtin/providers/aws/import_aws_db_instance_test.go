@@ -23,7 +23,10 @@ func TestAccAWSDBInstance_importBasic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"password", "skip_final_snapshot"},
+					"password",
+					"skip_final_snapshot",
+					"final_snapshot_identifier",
+				},
 			},
 		},
 	})
