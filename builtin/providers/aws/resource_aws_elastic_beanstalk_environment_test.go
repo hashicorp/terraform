@@ -323,6 +323,23 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 `
 
 const testAccBeanstalkWorkerEnvConfig = `
+resource "aws_iam_instance_profile" "tftest" {
+  name = "tftest_profile"
+  roles = ["${aws_iam_role.tftest.name}"]
+}
+
+resource "aws_iam_role" "tftest" {
+  name = "tftest_role"
+  path = "/"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Effect\":\"Allow\",\"Sid\":\"\"}]}"
+}
+
+resource "aws_iam_role_policy" "tftest" {
+  name = "tftest_policy"
+  role = "${aws_iam_role.tftest.id}"
+  policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"QueueAccess\",\"Action\":[\"sqs:ChangeMessageVisibility\",\"sqs:DeleteMessage\",\"sqs:ReceiveMessage\"],\"Effect\":\"Allow\",\"Resource\":\"*\"}]}"
+}
+
 resource "aws_elastic_beanstalk_application" "tftest" {
   name = "tf-test-name"
   description = "tf-test-desc"
@@ -333,6 +350,12 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
   application = "${aws_elastic_beanstalk_application.tftest.name}"
   tier = "Worker"
   solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "IamInstanceProfile"
+    value     = "${aws_iam_instance_profile.tftest.name}"
+  }
 }
 `
 
