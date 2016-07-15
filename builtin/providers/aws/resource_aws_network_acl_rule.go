@@ -63,12 +63,12 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 				ForceNew: true,
 			},
 			"icmp_type": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 			"icmp_code": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -103,14 +103,25 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	// Specify additional required fields for ICMP
+	// Specify additional required fields for ICMP. For the list
+	// of ICMP codes and types, see: http://www.nthelp.com/icmp.html
 	if p == 1 {
 		params.IcmpTypeCode = &ec2.IcmpTypeCode{}
 		if v, ok := d.GetOk("icmp_code"); ok {
-			params.IcmpTypeCode.Code = aws.Int64(int64(v.(int)))
+			icmpCode, err := strconv.Atoi(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to parse ICMP code %s for rule %#v", v, d.Get("rule_number").(int))
+			}
+			params.IcmpTypeCode.Code = aws.Int64(int64(icmpCode))
+			log.Printf("[DEBUG] Transformed ICMP code %s into %d", v, icmpCode)
 		}
 		if v, ok := d.GetOk("icmp_type"); ok {
-			params.IcmpTypeCode.Type = aws.Int64(int64(v.(int)))
+			icmpType, err := strconv.Atoi(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to parse ICMP type %s for rule %#v", v, d.Get("rule_number").(int))
+			}
+			params.IcmpTypeCode.Type = aws.Int64(int64(icmpType))
+			log.Printf("[DEBUG] Transformed ICMP type %s into %d", v, icmpType)
 		}
 	}
 
