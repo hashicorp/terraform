@@ -18,6 +18,9 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 		Read:   resourceNetworkingSubnetV2Read,
 		Update: resourceNetworkingSubnetV2Update,
 		Delete: resourceNetworkingSubnetV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -190,6 +193,8 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 	d.Set("gateway_ip", s.GatewayIP)
 	d.Set("dns_nameservers", s.DNSNameservers)
 	d.Set("host_routes", s.HostRoutes)
+	d.Set("enable_dhcp", s.EnableDHCP)
+	d.Set("network_id", s.NetworkID)
 
 	return nil
 }
