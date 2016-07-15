@@ -90,8 +90,14 @@ func testStepImportState(
 			}
 
 			// Compare their attributes
-			actual := r.Primary.Attributes
-			expected := oldR.Primary.Attributes
+			actual := make(map[string]string)
+			for k, v := range r.Primary.Attributes {
+				actual[k] = v
+			}
+			expected := make(map[string]string)
+			for k, v := range oldR.Primary.Attributes {
+				expected[k] = v
+			}
 
 			// Remove fields we're ignoring
 			for _, v := range step.ImportStateVerifyIgnore {
