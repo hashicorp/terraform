@@ -19,6 +19,9 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 		Read:   resourceNetworkingNetworkV2Read,
 		Update: resourceNetworkingNetworkV2Update,
 		Delete: resourceNetworkingNetworkV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{

@@ -5,27 +5,25 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
+	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		CheckDestroy: resource.ComposeTestCheckFunc(
-			testCheckAzureRMVirtualMachineDestroy,
-			// deletion of OS Disk VHD is opt in
-			testCheckAzureRMVirtualMachineOSDiskVHDExistance(true),
-		),
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 				),
 			},
 		},
@@ -33,6 +31,8 @@ func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
 }
 
 func TestAccAzureRMVirtualMachine_withDataDisk(t *testing.T) {
+	var vm compute.VirtualMachine
+
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMVirtualMachine_withDataDisk, ri, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
@@ -43,7 +43,7 @@ func TestAccAzureRMVirtualMachine_withDataDisk(t *testing.T) {
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 				),
 			},
 		},
@@ -51,6 +51,8 @@ func TestAccAzureRMVirtualMachine_withDataDisk(t *testing.T) {
 }
 
 func TestAccAzureRMVirtualMachine_tags(t *testing.T) {
+	var vm compute.VirtualMachine
+
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineUpdated, ri, ri, ri, ri, ri, ri, ri)
@@ -62,7 +64,7 @@ func TestAccAzureRMVirtualMachine_tags(t *testing.T) {
 			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_machine.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
@@ -75,7 +77,7 @@ func TestAccAzureRMVirtualMachine_tags(t *testing.T) {
 			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_machine.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
@@ -89,6 +91,8 @@ func TestAccAzureRMVirtualMachine_tags(t *testing.T) {
 //This is a regression test around https://github.com/hashicorp/terraform/issues/6517
 //Because we use CreateOrUpdate, we were sending an empty password on update requests
 func TestAccAzureRMVirtualMachine_updateMachineSize(t *testing.T) {
+	var vm compute.VirtualMachine
+
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_updatedLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
@@ -100,7 +104,7 @@ func TestAccAzureRMVirtualMachine_updateMachineSize(t *testing.T) {
 			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_machine.test", "vm_size", "Standard_A0"),
 				),
@@ -108,7 +112,7 @@ func TestAccAzureRMVirtualMachine_updateMachineSize(t *testing.T) {
 			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_machine.test", "vm_size", "Standard_A1"),
 				),
@@ -118,6 +122,7 @@ func TestAccAzureRMVirtualMachine_updateMachineSize(t *testing.T) {
 }
 
 func TestAccAzureRMVirtualMachine_basicWindowsMachine(t *testing.T) {
+	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMVirtualMachine_basicWindowsMachine, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
@@ -128,7 +133,7 @@ func TestAccAzureRMVirtualMachine_basicWindowsMachine(t *testing.T) {
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 				),
 			},
 		},
@@ -136,6 +141,7 @@ func TestAccAzureRMVirtualMachine_basicWindowsMachine(t *testing.T) {
 }
 
 func TestAccAzureRMVirtualMachine_windowsUnattendedConfig(t *testing.T) {
+	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMVirtualMachine_windowsUnattendedConfig, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
@@ -146,7 +152,7 @@ func TestAccAzureRMVirtualMachine_windowsUnattendedConfig(t *testing.T) {
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 				),
 			},
 		},
@@ -154,6 +160,7 @@ func TestAccAzureRMVirtualMachine_windowsUnattendedConfig(t *testing.T) {
 }
 
 func TestAccAzureRMVirtualMachine_winRMConfig(t *testing.T) {
+	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMVirtualMachine_winRMConfig, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
@@ -164,14 +171,39 @@ func TestAccAzureRMVirtualMachine_winRMConfig(t *testing.T) {
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMVirtualMachine_deleteVHD(t *testing.T) {
+func TestAccAzureRMVirtualMachine_deleteVHDOptOut(t *testing.T) {
+	var vm compute.VirtualMachine
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
+				),
+			},
+			{
+				Config: postConfig,
+				Check:  testCheckAzureRMVirtualMachineOSDiskVHDExistance(true),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMVirtualMachine_deleteVHDOptIn(t *testing.T) {
+	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyOSDisk, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
@@ -183,7 +215,7 @@ func TestAccAzureRMVirtualMachine_deleteVHD(t *testing.T) {
 			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test"),
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 				),
 			},
 			{
@@ -194,7 +226,37 @@ func TestAccAzureRMVirtualMachine_deleteVHD(t *testing.T) {
 	})
 }
 
-func testCheckAzureRMVirtualMachineExists(name string) resource.TestCheckFunc {
+func TestAccAzureRMVirtualMachine_ChangeComputerName(t *testing.T) {
+	var afterCreate, afterUpdate compute.VirtualMachine
+
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_machineNameBeforeUpdate, ri, ri, ri, ri, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_updateMachineName, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &afterCreate),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &afterUpdate),
+					testAccCheckVirtualMachineRecreated(
+						t, &afterCreate, &afterUpdate),
+				),
+			},
+		},
+	})
+}
+
+func testCheckAzureRMVirtualMachineExists(name string, vm *compute.VirtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
 		rs, ok := s.RootModule().Resources[name]
@@ -219,6 +281,18 @@ func testCheckAzureRMVirtualMachineExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("Bad: VirtualMachine %q (resource group: %q) does not exist", vmName, resourceGroup)
 		}
 
+		*vm = resp
+
+		return nil
+	}
+}
+
+func testAccCheckVirtualMachineRecreated(t *testing.T,
+	before, after *compute.VirtualMachine) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if before.ID == after.ID {
+			t.Fatalf("Expected change of Virtual Machine IDs, but both were %v", before.ID)
+		}
 		return nil
 	}
 }
@@ -334,6 +408,95 @@ resource "azurerm_virtual_machine" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
+
+    storage_image_reference {
+	publisher = "Canonical"
+	offer = "UbuntuServer"
+	sku = "14.04.2-LTS"
+	version = "latest"
+    }
+
+    storage_os_disk {
+        name = "myosdisk1"
+        vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+        caching = "ReadWrite"
+        create_option = "FromImage"
+    }
+
+    os_profile {
+	computer_name = "hostname%d"
+	admin_username = "testadmin"
+	admin_password = "Password1234!"
+    }
+
+    os_profile_linux_config {
+	disable_password_authentication = false
+    }
+
+    tags {
+    	environment = "Production"
+    	cost-center = "Ops"
+    }
+}
+`
+
+var testAccAzureRMVirtualMachine_machineNameBeforeUpdate = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestrg-%d"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_storage_account" "test" {
+    name = "accsa%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "westus"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "staging"
+    }
+}
+
+resource "azurerm_storage_container" "test" {
+    name = "vhds"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_storage_account.test.name}"
+    container_access_type = "private"
+}
+
+resource "azurerm_virtual_machine" "test" {
+    name = "acctvm-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    network_interface_ids = ["${azurerm_network_interface.test.id}"]
+    vm_size = "Standard_A0"
+    delete_os_disk_on_termination = true
 
     storage_image_reference {
 	publisher = "Canonical"
@@ -1030,3 +1193,87 @@ resource "azurerm_virtual_machine" "test" {
     }
 }
 `
+
+var testAccAzureRMVirtualMachine_updateMachineName = `
+ resource "azurerm_resource_group" "test" {
+     name = "acctestrg-%d"
+     location = "West US"
+ }
+
+ resource "azurerm_virtual_network" "test" {
+     name = "acctvn-%d"
+     address_space = ["10.0.0.0/16"]
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+ }
+
+ resource "azurerm_subnet" "test" {
+     name = "acctsub-%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     virtual_network_name = "${azurerm_virtual_network.test.name}"
+     address_prefix = "10.0.2.0/24"
+ }
+
+ resource "azurerm_network_interface" "test" {
+     name = "acctni-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+
+     ip_configuration {
+     	name = "testconfiguration1"
+     	subnet_id = "${azurerm_subnet.test.id}"
+     	private_ip_address_allocation = "dynamic"
+     }
+ }
+
+ resource "azurerm_storage_account" "test" {
+     name = "accsa%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     location = "westus"
+     account_type = "Standard_LRS"
+
+     tags {
+         environment = "staging"
+     }
+ }
+
+ resource "azurerm_storage_container" "test" {
+     name = "vhds"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     storage_account_name = "${azurerm_storage_account.test.name}"
+     container_access_type = "private"
+ }
+
+ resource "azurerm_virtual_machine" "test" {
+     name = "acctvm-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     network_interface_ids = ["${azurerm_network_interface.test.id}"]
+     vm_size = "Standard_A0"
+      delete_os_disk_on_termination = true
+
+     storage_image_reference {
+ 	publisher = "Canonical"
+ 	offer = "UbuntuServer"
+ 	sku = "14.04.2-LTS"
+ 	version = "latest"
+     }
+
+     storage_os_disk {
+         name = "myosdisk1"
+         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+         caching = "ReadWrite"
+         create_option = "FromImage"
+     }
+
+     os_profile {
+ 	computer_name = "newhostname%d"
+ 	admin_username = "testadmin"
+ 	admin_password = "Password1234!"
+     }
+
+     os_profile_linux_config {
+ 	disable_password_authentication = false
+     }
+ }
+ `
