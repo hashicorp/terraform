@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -65,26 +66,25 @@ func TestAccAWSRDSCluster_updateTags(t *testing.T) {
 }
 
 func TestAccAWSRDSCluster_kmsKey(t *testing.T) {
- 	var v rds.DBCluster
- 	keyRegex := regexp.MustCompile("^arn:aws:kms:")
+	var v rds.DBCluster
+	keyRegex := regexp.MustCompile("^arn:aws:kms:")
 
- 	resource.Test(t, resource.TestCase{
- 		PreCheck:     func() { testAccPreCheck(t) },
- 		Providers:    testAccProviders,
- 		CheckDestroy: testAccCheckAWSClusterDestroy,
- 		Steps: []resource.TestStep{
- 			resource.TestStep{
- 				Config: testAccAWSClusterConfig_kmsKey(acctest.RandInt()),
- 				Check: resource.ComposeTestCheckFunc(
- 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
- 					resource.TestMatchResourceAttr(
- 						"aws_rds_cluster.default", "kms_key_id", keyRegex),
- 				),
- 			},
- 		},
- 	})
- }
-
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSClusterConfig_kmsKey(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+					resource.TestMatchResourceAttr(
+						"aws_rds_cluster.default", "kms_key_id", keyRegex),
+				),
+			},
+		},
+	})
+}
 
 func TestAccAWSRDSCluster_encrypted(t *testing.T) {
 	var v rds.DBCluster
@@ -243,7 +243,7 @@ resource "aws_rds_cluster" "default" {
 }
 
 func testAccAWSClusterConfig_kmsKey(n int) string {
- 	return fmt.Sprintf(`
+	return fmt.Sprintf(`
 
  resource "aws_kms_key" "foo" {
      description = "Terraform acc test %d"
@@ -276,8 +276,7 @@ func testAccAWSClusterConfig_kmsKey(n int) string {
    storage_encrypted = true
    kms_key_id = "${aws_kms_key.foo.arn}"
  }`, n, n)
- }
-
+}
 
 func testAccAWSClusterConfig_encrypted(n int) string {
 	return fmt.Sprintf(`
