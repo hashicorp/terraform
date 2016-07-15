@@ -22,6 +22,9 @@ func resourceLBPoolV1() *schema.Resource {
 		Read:   resourceLBPoolV1Read,
 		Update: resourceLBPoolV1Update,
 		Delete: resourceLBPoolV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
