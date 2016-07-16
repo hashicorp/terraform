@@ -207,6 +207,7 @@ BUG FIXES:
  * provider/azurerm: destroy azurerm_virtual_machine OS Disk VHD on deletion [GH-7584]
  * provider/azurerm: catch `azurerm_template_deployment` erroring silently [GH-7644]
  * provider/azurerm: changing the name of an `azurerm_virtual_machine` now forces a new resource [GH-7646]
+ * provider/azurerm: azurerm_storage_account now returns storage keys value instead of their names [GH-7674]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
