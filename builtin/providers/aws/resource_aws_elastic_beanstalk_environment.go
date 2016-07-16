@@ -108,13 +108,14 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Set:      optionSettingValueHash,
 			},
 			"solution_stack_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"template_name": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"solution_stack_name"},
+				Computed:      true,
+				ConflictsWith: []string{"template_name"},
+			},
+			"template_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"wait_for_ready_timeout": &schema.Schema{
 				Type:     schema.TypeString,
@@ -418,6 +419,10 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		if err := d.Set("cname_prefix", ""); err != nil {
 			return err
 		}
+	}
+
+	if err := d.Set("solution_stack_name", env.SolutionStackName); err != nil {
+		return err
 	}
 
 	if err := d.Set("autoscaling_groups", flattenBeanstalkAsg(resources.EnvironmentResources.AutoScalingGroups)); err != nil {
