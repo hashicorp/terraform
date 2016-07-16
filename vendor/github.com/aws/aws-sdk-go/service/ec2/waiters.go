@@ -784,6 +784,35 @@ func (c *EC2) WaitUntilVpcAvailable(input *DescribeVpcsInput) error {
 	return w.Wait()
 }
 
+func (c *EC2) WaitUntilVpcExists(input *DescribeVpcsInput) error {
+	waiterCfg := waiter.Config{
+		Operation:   "DescribeVpcs",
+		Delay:       1,
+		MaxAttempts: 5,
+		Acceptors: []waiter.WaitAcceptor{
+			{
+				State:    "success",
+				Matcher:  "status",
+				Argument: "",
+				Expected: 200,
+			},
+			{
+				State:    "retry",
+				Matcher:  "error",
+				Argument: "",
+				Expected: "InvalidVpcID.NotFound",
+			},
+		},
+	}
+
+	w := waiter.Waiter{
+		Client: c,
+		Input:  input,
+		Config: waiterCfg,
+	}
+	return w.Wait()
+}
+
 func (c *EC2) WaitUntilVpcPeeringConnectionExists(input *DescribeVpcPeeringConnectionsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeVpcPeeringConnections",
