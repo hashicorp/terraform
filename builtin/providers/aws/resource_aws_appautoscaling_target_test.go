@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,8 +15,10 @@ import (
 
 func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 	var target applicationautoscaling.ScalableTarget
+	var awsAccountId = os.Getenv("AWS_ACCOUNT_ID")
 
-	randResourceId := fmt.Sprintf("service/default/%s", acctest.RandString(10))
+	randClusterName := fmt.Sprintf("cluster-%s", acctest.RandString(10))
+	randResourceId := fmt.Sprintf("service/%s/%s", randClusterName, acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -24,12 +27,12 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 		CheckDestroy:  testAccCheckAWSAppautoscalingTargetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAppautoscalingTargetConfig(randResourceId),
+				Config: testAccAWSAppautoscalingTargetConfig(randClusterName, randResourceId, awsAccountId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingTargetExists("aws_appautoscaling_target.bar", &target),
 					testAccCheckAWSAppautoscalingTargetAttributes(&target, randResourceId),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "service_namespace", "ecs"),
-					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "resource_id", randResourceId),
+					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "resource_id", fmt.Sprintf("service/%s/foobar", randClusterName)),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "scalable_dimension", "ecs:service:DesiredCount"),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "min_capacity", "1"),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "max_capacity", "3"),
@@ -37,7 +40,7 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAWSAppautoscalingTargetConfigUpdate(randResourceId),
+				Config: testAccAWSAppautoscalingTargetConfigUpdate(randClusterName, randResourceId, awsAccountId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingTargetExists("aws_appautoscaling_target.bar", &target),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "min_capacity", "3"),
@@ -121,26 +124,86 @@ func testAccCheckAWSAppautoscalingTargetAttributes(target *applicationautoscalin
 	return nil
 }
 
-func testAccAWSAppautoscalingTargetConfig(r string) string {
+func testAccAWSAppautoscalingTargetConfig(
+	randClusterName string,
+	randResourceId string,
+	awsAccountId string) string {
 	return fmt.Sprintf(`
-resource "aws_appautoscaling_target" "foobar" {
-	service_namespace = "ecs"
-  resource_id = "service/default/%s"
-	scalable_dimension = "ecs:service:DesiredCount"
-	min_capacity = 1
-	max_capacity = 3
+resource "aws_ecs_cluster" "foo" {
+	name = "%s"
 }
-`, r)
+resource "aws_ecs_task_definition" "task" {
+	family = "foobar"
+	container_definitions = <<EOF
+[
+    {
+        "name": "busybox",
+        "image": "busybox:latest",
+        "cpu": 10,
+        "memory": 128,
+        "essential": true
+    }
+]
+EOF
+}
+resource "aws_ecs_service" "service" {
+	name = "foobar"
+	cluster = "${aws_ecs_cluster.foo.id}"
+	task_definition = "${aws_ecs_task_definition.task.arn}"
+	desired_count = 1
+
+	deployment_maximum_percent = 200
+	deployment_minimum_healthy_percent = 50
+}
+resource "aws_appautoscaling_target" "bar" {
+	service_namespace = "ecs"
+	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
+	scalable_dimension = "ecs:service:DesiredCount"
+	role_arn = "arn:aws:iam::%s:role/ecsAutoscaleRole"	
+	min_capacity = 1
+	max_capacity = 4
+}
+`, randClusterName, awsAccountId)
 }
 
-func testAccAWSAppautoscalingTargetConfigUpdate(r string) string {
+func testAccAWSAppautoscalingTargetConfigUpdate(
+	randClusterName,
+	randResourceId string,
+	awsAccountId string) string {
 	return fmt.Sprintf(`
-resource "aws_appautoscaling_target" "foobar" {
-	service_namespace = "ecs"
-  resource_id = "service/default/%s"
-	scalable_dimension = "ecs:service:DesiredCount"
-	min_capacity = 2
-	max_capacity = 6
+resource "aws_ecs_cluster" "foo" {
+	name = "%s"
 }
-`, r)
+resource "aws_ecs_task_definition" "task" {
+	family = "foobar"
+	container_definitions = <<EOF
+[
+    {
+        "name": "busybox",
+        "image": "busybox:latest",
+        "cpu": 10,
+        "memory": 128,
+        "essential": true
+    }
+]
+EOF
+}
+resource "aws_ecs_service" "service" {
+	name = "foobar"
+	cluster = "${aws_ecs_cluster.foo.id}"
+	task_definition = "${aws_ecs_task_definition.task.arn}"
+	desired_count = 1
+
+	deployment_maximum_percent = 200
+	deployment_minimum_healthy_percent = 50
+}
+resource "aws_appautoscaling_target" "bar" {
+	service_namespace = "ecs"
+	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
+	scalable_dimension = "ecs:service:DesiredCount"
+	role_arn = "arn:aws:iam::%s:role/ecsAutoscaleRole"	
+	min_capacity = 2
+	max_capacity = 8
+}
+`, randClusterName, awsAccountId)
 }

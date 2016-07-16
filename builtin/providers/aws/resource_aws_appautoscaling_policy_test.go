@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,8 +14,11 @@ import (
 
 func TestAccAWSAppautoscalingPolicy_basic(t *testing.T) {
 	var policy applicationautoscaling.ScalingPolicy
+	var awsAccountId = os.Getenv("AWS_ACCOUNT_ID")
 
-	name := fmt.Sprintf("terraform-test-foobar-%s", acctest.RandString(5))
+	randClusterName := fmt.Sprintf("cluster-%s", acctest.RandString(10))
+	// randResourceId := fmt.Sprintf("service/%s/%s", randClusterName, acctest.RandString(10))
+	randPolicyName := fmt.Sprintf("terraform-test-foobar-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,15 +26,14 @@ func TestAccAWSAppautoscalingPolicy_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSAppautoscalingPolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAppautoscalingPolicyConfig(name),
+				Config: testAccAWSAppautoscalingPolicyConfig(randClusterName, randPolicyName, awsAccountId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingPolicyExists("aws_appautoscaling_policy.foobar_simple", &policy),
 					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "adjustment_type", "ChangeInCapacity"),
 					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "policy_type", "StepScaling"),
 					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "cooldown", "60"),
-					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "name", "foobar_simple"),
-					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "scaling_adjustment", "2"),
-					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "resource_id", "service/default/foobar_simple"),
+					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "name", randPolicyName),
+					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "resource_id", fmt.Sprintf("service/%s/foobar", randClusterName)),
 					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "service_namespace", "ecs"),
 					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "scalable_dimension", "ecs:service:DesiredCount"),
 				),
@@ -85,37 +88,61 @@ func testAccCheckAWSAppautoscalingPolicyDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccAWSAppautoscalingPolicyConfig(name string) string {
+func testAccAWSAppautoscalingPolicyConfig(
+	randClusterName string,
+	randPolicyName string,
+	awsAccountId string) string {
 	return fmt.Sprintf(`
-resource "aws_appautoscaling_policy" "up" {
+resource "aws_ecs_cluster" "foo" {
+	name = "%s"
+}
+
+resource "aws_ecs_task_definition" "task" {
+	family = "foobar"
+	container_definitions = <<EOF
+[
+	{
+		"name": "busybox",
+		"image": "busybox:latest",
+		"cpu": 10,
+		"memory": 128,
+		"essential": true
+	}
+]
+EOF
+}
+
+resource "aws_ecs_service" "service" {
+	name = "foobar"
+	cluster = "${aws_ecs_cluster.foo.id}"
+	task_definition = "${aws_ecs_task_definition.task.arn}"
+	desired_count = 1
+	deployment_maximum_percent = 200
+	deployment_minimum_healthy_percent = 50
+}
+
+resource "aws_appautoscaling_target" "tgt" {
+	service_namespace = "ecs"
+	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
+	scalable_dimension = "ecs:service:DesiredCount"
+	role_arn = "arn:aws:iam::%s:role/ecsAutoscaleRole"
+	min_capacity = 1
+	max_capacity = 4
+}
+
+resource "aws_appautoscaling_policy" "foobar_simple" {
 	name = "%s"
 	service_namespace = "ecs"
-	resource_id = "service/default/foobar"
+	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
 	scalable_dimension = "ecs:service:DesiredCount"
-
-	adjustment_type = "ExactCapacity"
+	adjustment_type = "ChangeInCapacity"
 	cooldown = 60
-	metric_aggregation_type = "Maximum"
-	min_adjustment_magnitude = 1
-
+	metric_aggregation_type = "Average"
 	step_adjustment {
+		metric_interval_lower_bound = 0
 		scaling_adjustment = 1
 	}
+	depends_on = ["aws_appautoscaling_target.tgt"]
 }
-resource "aws_appautoscaling_policy" "down" {
-	name = "%s"
-	service_namespace = "ecs"
-	resource_id = "service/default/foobar"
-	scalable_dimension = "ecs:service:DesiredCount"
-
-	adjustment_type = "ExactCapacity"
-	cooldown = 60
-	metric_aggregation_type = "Maximum"
-	min_adjustment_magnitude = 1
-
-	step_adjustment {
-		scaling_adjustment = -1
-	}
-}
-`, name, name)
+`, randClusterName, awsAccountId, randPolicyName)
 }
