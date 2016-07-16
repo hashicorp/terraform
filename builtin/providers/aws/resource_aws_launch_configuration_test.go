@@ -391,7 +391,7 @@ resource "aws_security_group" "foo" {
 
 resource "aws_launch_configuration" "foo" {
    name = "TestAccAWSLaunchConfiguration_withVpcClassicLink"
-   image_id = "ami-2d39803a"
+   image_id = "ami-21f78e11"
    instance_type = "t1.micro"
 
    vpc_classic_link_id = "${aws_vpc.foo.id}"
