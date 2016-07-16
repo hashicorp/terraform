@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,7 +14,6 @@ import (
 
 func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 	var target applicationautoscaling.ScalableTarget
-	var awsAccountId = os.Getenv("AWS_ACCOUNT_ID")
 
 	randClusterName := fmt.Sprintf("cluster-%s", acctest.RandString(10))
 	randResourceId := fmt.Sprintf("service/%s/%s", randClusterName, acctest.RandString(10))
@@ -27,7 +25,7 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 		CheckDestroy:  testAccCheckAWSAppautoscalingTargetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAppautoscalingTargetConfig(randClusterName, randResourceId, awsAccountId),
+				Config: testAccAWSAppautoscalingTargetConfig(randClusterName, randResourceId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingTargetExists("aws_appautoscaling_target.bar", &target),
 					testAccCheckAWSAppautoscalingTargetAttributes(&target, randResourceId),
@@ -40,7 +38,7 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAWSAppautoscalingTargetConfigUpdate(randClusterName, randResourceId, awsAccountId),
+				Config: testAccAWSAppautoscalingTargetConfigUpdate(randClusterName, randResourceId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingTargetExists("aws_appautoscaling_target.bar", &target),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "min_capacity", "3"),
@@ -126,9 +124,60 @@ func testAccCheckAWSAppautoscalingTargetAttributes(target *applicationautoscalin
 
 func testAccAWSAppautoscalingTargetConfig(
 	randClusterName string,
-	randResourceId string,
-	awsAccountId string) string {
+	randResourceId string) string {
 	return fmt.Sprintf(`
+resource "aws_iam_role" "autoscale_role" {
+	name = "autoscalerole%s"
+	path = "/"
+
+	assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "application-autoscaling.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "autoscale_role_policy" {
+	name = "autoscalepolicy%s"
+	role = "${aws_iam_role.autoscale_role.id}"
+
+	policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecs:DescribeServices",
+                "ecs:UpdateService"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:DescribeAlarms"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}
+EOF
+}
+
 resource "aws_ecs_cluster" "foo" {
 	name = "%s"
 }
@@ -159,18 +208,69 @@ resource "aws_appautoscaling_target" "bar" {
 	service_namespace = "ecs"
 	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
 	scalable_dimension = "ecs:service:DesiredCount"
-	role_arn = "arn:aws:iam::%s:role/ecsAutoscaleRole"	
+	role_arn = "${aws_iam_role.autoscale_role.arn}"	
 	min_capacity = 1
 	max_capacity = 4
 }
-`, randClusterName, awsAccountId)
+`, randClusterName, randClusterName, randClusterName)
 }
 
 func testAccAWSAppautoscalingTargetConfigUpdate(
 	randClusterName,
-	randResourceId string,
-	awsAccountId string) string {
+	randResourceId string) string {
 	return fmt.Sprintf(`
+resource "aws_iam_role" "autoscale_role" {
+	name = "autoscalerole%s"
+	path = "/"
+
+	assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "application-autoscaling.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "autoscale_role_policy" {
+	name = "autoscalepolicy%s"
+	role = "${aws_iam_role.autoscale_role.id}"
+
+	policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecs:DescribeServices",
+                "ecs:UpdateService"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:DescribeAlarms"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}
+EOF
+}
+
 resource "aws_ecs_cluster" "foo" {
 	name = "%s"
 }
@@ -201,9 +301,9 @@ resource "aws_appautoscaling_target" "bar" {
 	service_namespace = "ecs"
 	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
 	scalable_dimension = "ecs:service:DesiredCount"
-	role_arn = "arn:aws:iam::%s:role/ecsAutoscaleRole"	
+	role_arn = "${aws_iam_role.autoscale_role.arn}"	
 	min_capacity = 2
 	max_capacity = 8
 }
-`, randClusterName, awsAccountId)
+`, randClusterName, randClusterName, randClusterName)
 }

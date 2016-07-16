@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,9 +13,8 @@ import (
 
 func TestAccAWSAppautoscalingPolicy_basic(t *testing.T) {
 	var policy applicationautoscaling.ScalingPolicy
-	var awsAccountId = os.Getenv("AWS_ACCOUNT_ID")
 
-	randClusterName := fmt.Sprintf("cluster-%s", acctest.RandString(10))
+	randClusterName := fmt.Sprintf("cluster%s", acctest.RandString(10))
 	// randResourceId := fmt.Sprintf("service/%s/%s", randClusterName, acctest.RandString(10))
 	randPolicyName := fmt.Sprintf("terraform-test-foobar-%s", acctest.RandString(5))
 
@@ -26,7 +24,7 @@ func TestAccAWSAppautoscalingPolicy_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSAppautoscalingPolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAppautoscalingPolicyConfig(randClusterName, randPolicyName, awsAccountId),
+				Config: testAccAWSAppautoscalingPolicyConfig(randClusterName, randPolicyName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingPolicyExists("aws_appautoscaling_policy.foobar_simple", &policy),
 					resource.TestCheckResourceAttr("aws_appautoscaling_policy.foobar_simple", "adjustment_type", "ChangeInCapacity"),
@@ -90,9 +88,37 @@ func testAccCheckAWSAppautoscalingPolicyDestroy(s *terraform.State) error {
 
 func testAccAWSAppautoscalingPolicyConfig(
 	randClusterName string,
-	randPolicyName string,
-	awsAccountId string) string {
+	randPolicyName string) string {
 	return fmt.Sprintf(`
+resource "aws_iam_role" "autoscale_role" {
+	name = "%s"
+	path = "/"
+
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_iam_role_policy" "autoscale_role_policy" {
+	name = "%s"
+	role = "${aws_iam_role.autoscale_role.id}"
+
+	policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecs:DescribeServices",
+                "ecs:UpdateService",
+				"cloudwatch:DescribeAlarms"
+            ],
+            "Resource": ["*"]
+        }
+    ]
+}
+EOF
+}
+
 resource "aws_ecs_cluster" "foo" {
 	name = "%s"
 }
@@ -125,7 +151,7 @@ resource "aws_appautoscaling_target" "tgt" {
 	service_namespace = "ecs"
 	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
 	scalable_dimension = "ecs:service:DesiredCount"
-	role_arn = "arn:aws:iam::%s:role/ecsAutoscaleRole"
+	role_arn = "${aws_iam_role.autoscale_role.arn}"
 	min_capacity = 1
 	max_capacity = 4
 }
@@ -144,5 +170,5 @@ resource "aws_appautoscaling_policy" "foobar_simple" {
 	}
 	depends_on = ["aws_appautoscaling_target.tgt"]
 }
-`, randClusterName, awsAccountId, randPolicyName)
+`, randClusterName, randClusterName, randClusterName, randPolicyName)
 }
