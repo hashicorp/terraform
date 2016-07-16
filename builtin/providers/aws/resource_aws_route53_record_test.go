@@ -992,7 +992,7 @@ resource "aws_route53_record" "sample" {
 
 const testAccRoute53RecordConfigEmptyName = `
 resource "aws_route53_zone" "main" {
-	name = "notexample.com"
+	name = "not.example.com"
 }
 
 resource "aws_route53_record" "empty" {
