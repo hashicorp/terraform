@@ -32,6 +32,10 @@ func Provider() terraform.ResourceProvider {
 			"scaleway_volume_attachment":   resourceScalewayVolumeAttachment(),
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"scaleway_default_security_group": datasourceScalewayDefaultSecurityGroup(),
+		},
+
 		ConfigureFunc: providerConfigure,
 	}
 }
