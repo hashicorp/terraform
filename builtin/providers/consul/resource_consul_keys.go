@@ -37,8 +37,9 @@ func resourceConsulKeys() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:       schema.TypeString,
+							Optional:   true,
+							Deprecated: "Using consul_keys resource to *read* is deprecated; please use consul_keys data source instead",
 						},
 
 						"path": &schema.Schema{
@@ -220,7 +221,12 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		value = attributeValue(sub, value)
-		vars[key] = value
+		if key != "" {
+			// If key is set then we'll update vars, for backward-compatibilty
+			// with the pre-0.7 capability to read from Consul with this
+			// resource.
+			vars[key] = value
+		}
 
 		// If there is already a "value" attribute present for this key
 		// then it was created as a "write" block. We need to update the
@@ -290,10 +296,7 @@ func parseKey(raw interface{}) (string, string, map[string]interface{}, error) {
 		return "", "", nil, fmt.Errorf("Failed to unroll: %#v", raw)
 	}
 
-	key, ok := sub["name"].(string)
-	if !ok {
-		return "", "", nil, fmt.Errorf("Failed to expand key '%#v'", sub)
-	}
+	key := sub["name"].(string)
 
 	path, ok := sub["path"].(string)
 	if !ok {
