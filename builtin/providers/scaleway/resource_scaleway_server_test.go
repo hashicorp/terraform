@@ -23,6 +23,8 @@ func TestAccScalewayServer_Basic(t *testing.T) {
 						"scaleway_server.base", "type", "C1"),
 					resource.TestCheckResourceAttr(
 						"scaleway_server.base", "name", "test"),
+					resource.TestCheckResourceAttr(
+						"scaleway_server.base", "tags.0", "terraform-test"),
 				),
 			},
 		},
@@ -110,4 +112,5 @@ resource "scaleway_server" "base" {
   # ubuntu 14.04
   image = "%s"
   type = "C1"
+  tags = [ "terraform-test" ]
 }`, armImageIdentifier)
