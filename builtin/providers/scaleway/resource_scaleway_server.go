@@ -82,8 +82,10 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 		server.Bootscript = String(bootscript.(string))
 	}
 
-	if tags, ok := d.GetOk("tags"); ok {
-		server.Tags = tags.([]string)
+	if raw, ok := d.GetOk("tags"); ok {
+		for _, tag := range raw.([]interface{}) {
+			server.Tags = append(server.Tags, tag.(string))
+		}
 	}
 
 	id, err := scaleway.PostServer(server)
@@ -129,6 +131,7 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("ipv4_address_public", server.PublicAddress.IP)
 	d.Set("state", server.State)
 	d.Set("state_detail", server.StateDetail)
+	d.Set("tags", server.Tags)
 
 	d.SetConnInfo(map[string]string{
 		"type": "ssh",
@@ -146,6 +149,16 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
 		req.Name = &name
+	}
+
+	if d.HasChange("tags") {
+		if raw, ok := d.GetOk("tags"); ok {
+			var tags []string
+			for _, tag := range raw.([]interface{}) {
+				tags = append(tags, tag.(string))
+			}
+			req.Tags = &tags
+		}
 	}
 
 	if d.HasChange("dynamic_ip_required") {
