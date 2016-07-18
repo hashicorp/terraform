@@ -170,6 +170,7 @@ BUG FIXES:
  * provider/aws: Fix issue reattaching a VPN gateway to a VPC [GH-6987]
  * provider/aws: Fix issue with Root Block Devices and encrypted flag in Launch Configurations [GH-6512]
  * provider/aws: If more ENIs are attached to `aws_instance`, the one w/ DeviceIndex `0` is always used in context of `aws_instance` (previously unpredictable) [GH-6761]
+ * provider/aws: Increased lambda event mapping creation timeout [GH-7657]
  * provider/aws: Handle spurious failures in resourceAwsSecurityGroupRuleRead [GH-7377]
  * provider/aws: Make 'stage_name' required in api_gateway_deployment [GH-6797]
  * provider/aws: Mark Lambda function as gone when it's gone [GH-6924]
