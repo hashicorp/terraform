@@ -368,9 +368,11 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 		name := parts[1]
 		rType := parts[2]
 
+		en := expandRecordName(name, "notexample.com")
+
 		lopts := &route53.ListResourceRecordSetsInput{
 			HostedZoneId:    aws.String(cleanZoneID(zone)),
-			StartRecordName: aws.String(name),
+			StartRecordName: aws.String(en),
 			StartRecordType: aws.String(rType),
 		}
 
@@ -427,6 +429,7 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 		if len(resp.ResourceRecordSets) == 0 {
 			return fmt.Errorf("Record does not exist")
 		}
+
 		// rec := resp.ResourceRecordSets[0]
 		for _, rec := range resp.ResourceRecordSets {
 			recName := cleanRecordName(*rec.Name)
@@ -992,7 +995,7 @@ resource "aws_route53_record" "sample" {
 
 const testAccRoute53RecordConfigEmptyName = `
 resource "aws_route53_zone" "main" {
-	name = "not.example.com"
+	name = "notexample.com"
 }
 
 resource "aws_route53_record" "empty" {
