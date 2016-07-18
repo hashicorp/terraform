@@ -48,6 +48,46 @@ func (helper resourcePropertyHelper) GetOptionalBool(key string) *bool {
 	}
 }
 
+func (helper resourcePropertyHelper) GetTags(key string) (tags []compute.Tag) {
+	value, ok := helper.data.GetOk(key)
+	if !ok {
+		return
+	}
+	tagData := value.(*schema.Set).List()
+
+	tags = make([]compute.Tag, len(tagData))
+	for index, item := range tagData {
+		tagProperties := item.(map[string]interface{})
+		tag := &compute.Tag{}
+
+		value, ok = tagProperties[resourceKeyServerTagName] // TODO: Move this out of servers.
+		if ok {
+			tag.Name = value.(string)
+		}
+
+		value, ok = tagProperties[resourceKeyServerTagValue] // TODO: Move this out of servers.
+		if ok {
+			tag.Value = value.(string)
+		}
+
+		tags[index] = *tag
+	}
+
+	return
+}
+
+func (helper resourcePropertyHelper) SetTags(key string, tags []compute.Tag) {
+	tagProperties := &schema.Set{F: hashServerTag}
+
+	for _, tag := range tags {
+		tagProperties.Add(map[string]interface{}{
+			resourceKeyServerTagName:     tag.Name,
+			resourceKeyServerTagValue: tag.Value,
+		})
+	}
+	helper.data.Set(key, tagProperties)
+}
+
 func (helper resourcePropertyHelper) GetServerDisks(key string) (disks []compute.VirtualMachineDisk) {
 	value, ok := helper.data.GetOk(key)
 	if !ok {

@@ -125,7 +125,7 @@ func resourceFirewallRule() *schema.Resource {
 			resourceKeyFirewallRuleDestinationPort: &schema.Schema{
 				Type:     schema.TypeString,
 				ForceNew: true,
-				Required: true,
+				Optional: true,
 			},
 		},
 	}
@@ -278,7 +278,7 @@ func configureSourceScope(propertyHelper resourcePropertyHelper, configuration *
 	sourceAddress := propertyHelper.GetOptionalString(resourceKeyFirewallRuleSourceAddress, false)
 	sourceNetwork := propertyHelper.GetOptionalString(resourceKeyFirewallRuleSourceNetwork, false)
 	sourcePort, err := parseFirewallPort(
-		propertyHelper.data.Get(resourceKeyFirewallRuleSourcePort).(string),
+		propertyHelper.GetOptionalString(resourceKeyFirewallRuleSourcePort, false),
 	)
 	if err != nil {
 		return err
@@ -312,8 +312,9 @@ func configureSourceScope(propertyHelper resourcePropertyHelper, configuration *
 func configureDestinationScope(propertyHelper resourcePropertyHelper, configuration *compute.FirewallRuleConfiguration) error {
 	destinationNetwork := propertyHelper.GetOptionalString(resourceKeyFirewallRuleDestinationNetwork, false)
 	destinationAddress := propertyHelper.GetOptionalString(resourceKeyFirewallRuleDestinationAddress, false)
+
 	destinationPort, err := parseFirewallPort(
-		propertyHelper.data.Get(resourceKeyFirewallRuleDestinationPort).(string),
+		propertyHelper.GetOptionalString(resourceKeyFirewallRuleDestinationPort, false),
 	)
 	if err != nil {
 		return err
@@ -357,12 +358,12 @@ func parseFirewallAction(action string) (string, error) {
 	}
 }
 
-func parseFirewallPort(port string) (*int, error) {
-	if port == "any" {
+func parseFirewallPort(port *string) (*int, error) {
+	if port == nil || *port == "any" {
 		return nil, nil
 	}
 
-	parsedPort, err := strconv.Atoi(port)
+	parsedPort, err := strconv.Atoi(*port)
 	if err != nil {
 		return nil, err
 	}

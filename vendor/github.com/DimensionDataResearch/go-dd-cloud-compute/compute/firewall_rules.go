@@ -3,7 +3,6 @@ package compute
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -344,10 +343,6 @@ func (client *Client) CreateFirewallRule(configuration FirewallRuleConfiguration
 	if err != nil {
 		return "", err
 	}
-
-	log.Printf("Request = '%#v'", configuration)
-	temp, _ := json.Marshal(&configuration)
-	log.Printf("Request body = '%s'", string(temp))
 
 	requestURI := fmt.Sprintf("%s/network/createFirewallRule", organizationID)
 	request, err := client.newRequestV22(requestURI, http.MethodPost, &configuration)
