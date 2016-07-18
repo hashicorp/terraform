@@ -303,7 +303,7 @@ func (c *atlasPushClient) Get(name string) (map[string]interface{}, error) {
 
 	var variables map[string]interface{}
 	if version != nil {
-		variables = version.Variables
+		//variables = version.Variables
 	}
 
 	return variables, nil
@@ -316,7 +316,7 @@ func (c *atlasPushClient) Upsert(opts *pushUpsertOptions) (int, error) {
 	}
 
 	data := &atlas.TerraformConfigVersion{
-		Variables: opts.Variables,
+	//Variables: opts.Variables,
 	}
 
 	version, err := c.Client.CreateTerraformConfigVersion(
