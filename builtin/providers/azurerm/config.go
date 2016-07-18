@@ -12,6 +12,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
@@ -61,6 +62,8 @@ type ArmClient struct {
 	storageUsageClient   storage.UsageOperationsClient
 
 	deploymentsClient resources.DeploymentsClient
+
+	trafficManagerProfilesClient trafficmanager.ProfilesClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -330,6 +333,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	dc.Authorizer = spt
 	dc.Sender = autorest.CreateSender(withRequestLogging())
 	client.deploymentsClient = dc
+
+	tmpc := trafficmanager.NewProfilesClient(c.SubscriptionID)
+	setUserAgent(&tmpc.Client)
+	tmpc.Authorizer = spt
+	tmpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.trafficManagerProfilesClient = tmpc
 
 	return &client, nil
 }
