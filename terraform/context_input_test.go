@@ -18,7 +18,7 @@ func TestContext2Input(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo":            "us-west-2",
 			"amis.us-east-1": "override",
 		},
@@ -268,7 +268,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "us-west-2",
 		},
 		UIInput: input,
@@ -323,7 +323,7 @@ func TestContext2Input_providerVars(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "bar",
 		},
 		UIInput: input,
@@ -400,7 +400,7 @@ func TestContext2Input_varOnly(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "us-west-2",
 		},
 		UIInput: input,
@@ -455,7 +455,7 @@ func TestContext2Input_varOnlyUnset(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "foovalue",
 		},
 		UIInput: input,
@@ -497,7 +497,7 @@ func TestContext2Input_varWithDefault(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{},
+		Variables: map[string]interface{}{},
 		UIInput:   input,
 	})
 
@@ -543,7 +543,7 @@ func TestContext2Input_varPartiallyComputed(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "foovalue",
 		},
 		UIInput: input,

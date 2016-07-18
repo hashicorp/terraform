@@ -45,7 +45,7 @@ type ContextOpts struct {
 	Providers          map[string]ResourceProviderFactory
 	Provisioners       map[string]ResourceProvisionerFactory
 	Targets            []string
-	Variables          map[string]string
+	Variables          map[string]interface{}
 
 	UIInput UIInput
 }
@@ -68,7 +68,7 @@ type Context struct {
 	stateLock    sync.RWMutex
 	targets      []string
 	uiInput      UIInput
-	variables    map[string]string
+	variables    map[string]interface{}
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
@@ -121,7 +121,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 
 	// Setup the variables. We first take the variables given to us.
 	// We then merge in the variables set in the environment.
-	variables := make(map[string]string)
+	variables := make(map[string]interface{})
 	for _, v := range os.Environ() {
 		if !strings.HasPrefix(v, VarEnvPrefix) {
 			continue
@@ -506,12 +506,12 @@ func (c *Context) Module() *module.Tree {
 // Variables will return the mapping of variables that were defined
 // for this Context. If Input was called, this mapping may be different
 // than what was given.
-func (c *Context) Variables() map[string]string {
+func (c *Context) Variables() map[string]interface{} {
 	return c.variables
 }
 
 // SetVariable sets a variable after a context has already been built.
-func (c *Context) SetVariable(k, v string) {
+func (c *Context) SetVariable(k string, v interface{}) {
 	c.variables[k] = v
 }
 

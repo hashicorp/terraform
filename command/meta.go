@@ -294,7 +294,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
 	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
 
-	vs := make(map[string]string)
+	vs := make(map[string]interface{})
 	for k, v := range opts.Variables {
 		vs[k] = v
 	}
