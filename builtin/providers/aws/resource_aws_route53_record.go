@@ -695,7 +695,11 @@ func expandRecordName(name, zone string) string {
 	rn := strings.ToLower(strings.TrimSuffix(name, "."))
 	zone = strings.TrimSuffix(zone, ".")
 	if !strings.HasSuffix(rn, zone) {
-		rn = strings.Join([]string{name, zone}, ".")
+		if len(name) == 0 {
+			rn = zone
+		} else {
+			rn = strings.Join([]string{name, zone}, ".")
+		}
 	}
 	return rn
 }
