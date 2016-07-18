@@ -276,21 +276,21 @@ func (c *PushCommand) Synopsis() string {
 // pushClient is implementd internally to control where pushes go. This is
 // either to Atlas or a mock for testing.
 type pushClient interface {
-	Get(string) (map[string]string, error)
+	Get(string) (map[string]interface{}, error)
 	Upsert(*pushUpsertOptions) (int, error)
 }
 
 type pushUpsertOptions struct {
 	Name      string
 	Archive   *archive.Archive
-	Variables map[string]string
+	Variables map[string]interface{}
 }
 
 type atlasPushClient struct {
 	Client *atlas.Client
 }
 
-func (c *atlasPushClient) Get(name string) (map[string]string, error) {
+func (c *atlasPushClient) Get(name string) (map[string]interface{}, error) {
 	user, name, err := atlas.ParseSlug(name)
 	if err != nil {
 		return nil, err
@@ -301,7 +301,7 @@ func (c *atlasPushClient) Get(name string) (map[string]string, error) {
 		return nil, err
 	}
 
-	var variables map[string]string
+	var variables map[string]interface{}
 	if version != nil {
 		variables = version.Variables
 	}
@@ -333,7 +333,7 @@ type mockPushClient struct {
 
 	GetCalled bool
 	GetName   string
-	GetResult map[string]string
+	GetResult map[string]interface{}
 	GetError  error
 
 	UpsertCalled  bool
@@ -342,7 +342,7 @@ type mockPushClient struct {
 	UpsertError   error
 }
 
-func (c *mockPushClient) Get(name string) (map[string]string, error) {
+func (c *mockPushClient) Get(name string) (map[string]interface{}, error) {
 	c.GetCalled = true
 	c.GetName = name
 	return c.GetResult, c.GetError
