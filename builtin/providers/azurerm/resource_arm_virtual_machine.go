@@ -339,7 +339,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"vault_certificates": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -908,7 +908,7 @@ func expandAzureRmVirtualMachineOsProfileSecrets(d *schema.ResourceData) *[]comp
 		}
 
 		if v := config["vault_certificates"]; v != nil {
-			certsConfig := v.(*schema.Set).List()
+			certsConfig := v.([]interface{})
 			certs := make([]compute.VaultCertificate, 0, len(certsConfig))
 			for _, certConfig := range certsConfig {
 				config := certConfig.(map[string]interface{})
