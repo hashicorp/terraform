@@ -9,7 +9,7 @@ import (
 // Tag represents a tag applied to an asset.
 type Tag struct {
 	Name  string `json:"tagKeyName"`
-	Value string `json:"tagKeyValue"`
+	Value string `json:"value"`
 }
 
 // TagDetail represents detailed information about a tag applied to an asset.
@@ -37,6 +37,13 @@ type applyTags struct {
 	AssetType string `json:"assetType"`
 	AssetID   string `json:"assetId"`
 	Tags      []Tag  `json:"tag"`
+}
+
+// Request body when removing tags from an asset.
+type removeTags struct {
+	AssetType string   `json:"assetType"`
+	AssetID   string   `json:"assetId"`
+	TagNames  []string `json:"tagKeyName"`
 }
 
 // TagKey represents a key for asset tags.
@@ -111,11 +118,35 @@ func (client *Client) ApplyAssetTags(assetID string, assetType string, tags ...T
 		return nil, err
 	}
 
-	requestURI := fmt.Sprintf("%s/tags/applyTags", organizationID)
+	requestURI := fmt.Sprintf("%s/tag/applyTags", organizationID)
 	request, err := client.newRequestV22(requestURI, http.MethodPost, &applyTags{
 		AssetID:   assetID,
 		AssetType: assetType,
 		Tags:      tags,
+	})
+	if err != nil {
+		return nil, err
+	}
+	responseBody, statusCode, err := client.executeRequest(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return readAPIResponseAsJSON(responseBody, statusCode)
+}
+
+// RemoveAssetTags removes the specified tags from an asset.
+func (client *Client) RemoveAssetTags(assetID string, assetType string, tagNames ...string) (response *APIResponseV2, err error) {
+	organizationID, err := client.getOrganizationID()
+	if err != nil {
+		return nil, err
+	}
+
+	requestURI := fmt.Sprintf("%s/tag/removeTags", organizationID)
+	request, err := client.newRequestV22(requestURI, http.MethodPost, &removeTags{
+		AssetID:   assetID,
+		AssetType: assetType,
+		TagNames:  tagNames,
 	})
 	if err != nil {
 		return nil, err

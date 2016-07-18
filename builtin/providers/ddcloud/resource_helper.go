@@ -81,7 +81,7 @@ func (helper resourcePropertyHelper) SetTags(key string, tags []compute.Tag) {
 
 	for _, tag := range tags {
 		tagProperties.Add(map[string]interface{}{
-			resourceKeyServerTagName:     tag.Name,
+			resourceKeyServerTagName:  tag.Name,
 			resourceKeyServerTagValue: tag.Value,
 		})
 	}

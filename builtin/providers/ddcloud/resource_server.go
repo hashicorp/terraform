@@ -72,6 +72,7 @@ func resourceServer() *schema.Resource {
 				Computed: true,
 				Default:  nil,
 			},
+			// TODO: Merge "image_disk" and "additional_disk" so there's just "disk".
 			resourceKeyServerImageDisk:      schemaServerDisk(),
 			resourceKeyServerAdditionalDisk: schemaServerDisk(),
 			resourceKeyServerNetworkDomainID: &schema.Schema{
@@ -260,8 +261,6 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 
 	log.Printf("Server '%s' is being provisioned...", name)
 
-	data.Partial(true)
-
 	resource, err := apiClient.WaitForDeploy(compute.ResourceTypeServer, serverID, resourceCreateTimeoutServer)
 	if err != nil {
 		return err
@@ -269,6 +268,8 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 
 	// Capture additional properties that may only be available after deployment.
 	server := resource.(*compute.Server)
+
+	data.Partial(true)
 
 	serverIPv4Address := server.Network.PrimaryAdapter.PrivateIPv4Address
 	data.Set(resourceKeyServerPrimaryIPv4, serverIPv4Address)
@@ -278,16 +279,16 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 	data.Set(resourceKeyServerPrimaryIPv6, serverIPv6Address)
 	data.SetPartial(resourceKeyServerPrimaryIPv6)
 
-	// Capture image disks (there can't be any additional disks yet, so any existing disks are image disks).
-	imageDisksByUnitID := getDisksByUnitID(server.Disks)
-
 	// Adjust image size for image disk(s) if they were explicitly specified in the configuration.
+	log.Printf("Configuring image disks for server '%s'...", serverID)
+	imageDisksByUnitID := getDisksByUnitID(server.Disks)
 	err = createImageDisks(imageDisksByUnitID, data, apiClient)
 	if err != nil {
 		return err
 	}
 
 	// Additional disks
+	log.Printf("Configuring additional disks for server '%s'...", serverID)
 	additionalDisks := propertyHelper.GetServerDisks(resourceKeyServerAdditionalDisk)
 	if len(additionalDisks) == 0 {
 		data.Partial(false)
@@ -369,7 +370,31 @@ func resourceServerRead(data *schema.ResourceData, provider interface{}) error {
 	data.Set(resourceKeyServerMemoryGB, server.MemoryGB)
 	data.Set(resourceKeyServerCPUCount, server.CPU.Count)
 
-	// TODO: Update disks once we store both image and additional disks (until then we can't tell which disks are actually additional disks).
+	disksByUnitID := getDisksByUnitID(server.Disks)
+
+	// Match up image disks with server image disks.
+	propertyHelper := propertyHelper(data)
+	configuredImageDisks := propertyHelper.GetServerDisks(resourceKeyServerImageDisk)
+	imageDisks := configuredImageDisks[:0]
+	for _, imageDisk := range configuredImageDisks {
+		disk, ok := disksByUnitID[imageDisk.SCSIUnitID]
+		if !ok {
+			continue
+		}
+
+		delete(disksByUnitID, imageDisk.SCSIUnitID)
+
+		imageDisks = append(imageDisks, *disk)
+	}
+	propertyHelper.SetServerDisks(resourceKeyServerImageDisk, imageDisks)
+
+	// TODO: Update additional disks.
+	// Any disks remaining in disksByUnitID are, by process of elimination, additional disks.
+	var additionalDisks []compute.VirtualMachineDisk
+	for _, additionalDisk := range disksByUnitID {
+		additionalDisks = append(additionalDisks, *additionalDisk)
+	}
+	propertyHelper.SetServerDisks(resourceKeyServerAdditionalDisk, additionalDisks)
 
 	data.Set(resourceKeyServerPrimaryVLAN, *server.Network.PrimaryAdapter.VLANID)
 	data.Set(resourceKeyServerPrimaryIPv4, *server.Network.PrimaryAdapter.PrivateIPv4Address)
@@ -576,6 +601,8 @@ func createImageDisks(existingDisksByUnitID map[int]*compute.VirtualMachineDisk,
 
 	serverID := data.Id()
 
+	log.Printf("Create image disks for server '%s'...", serverID)
+
 	imageDisks := propertyHelper.GetServerDisks(resourceKeyServerImageDisk)
 	if len(imageDisks) == 0 {
 		// Since this is the first time, populate image disks.
@@ -665,6 +692,8 @@ func updateImageDisks(existingDisksByUnitID map[int]*compute.VirtualMachineDisk,
 	propertyHelper := propertyHelper(data)
 
 	serverID := data.Id()
+
+	log.Printf("Update image disks for server '%s'...", serverID)
 
 	imageDisks := propertyHelper.GetServerDisks(resourceKeyServerImageDisk)
 	if len(imageDisks) == 0 {
@@ -765,7 +794,7 @@ func mergeDisks(imageDisks []compute.VirtualMachineDisk, additionalDisks []compu
 }
 
 func getDisksByUnitID(disks []compute.VirtualMachineDisk) map[int]*compute.VirtualMachineDisk {
-	var disksByUnitID map[int]*compute.VirtualMachineDisk
+	disksByUnitID := make(map[int]*compute.VirtualMachineDisk)
 	for _, disk := range disks {
 		disksByUnitID[disk.SCSIUnitID] = &disk
 	}
@@ -797,14 +826,56 @@ func applyServerTags(data *schema.ResourceData, apiClient *compute.Client) error
 	propertyHelper := propertyHelper(data)
 
 	serverID := data.Id()
-	tags := propertyHelper.GetTags(resourceKeyServerTag)
-	response, err := apiClient.ApplyAssetTags(serverID, compute.AssetTypeServer, tags...)
+
+	log.Printf("Configuring tags for server '%s'...", serverID)
+
+	configuredTags := propertyHelper.GetTags(resourceKeyServerTag)
+
+	// TODO: Support multiple pages of results.
+	serverTags, err := apiClient.GetAssetTags(serverID, compute.AssetTypeServer, nil)
+	if err != nil {
+		return err
+	}
+
+	// Capture any tags that are no-longer needed.
+	unusedTags := &schema.Set{
+		F: schema.HashString,
+	}
+	for _, tag := range serverTags.Items {
+		unusedTags.Add(tag.Name)
+	}
+	for _, tag := range configuredTags {
+		unusedTags.Remove(tag.Name)
+	}
+
+	log.Printf("Applying %d tags to server '%s'...", len(configuredTags), serverID)
+
+	response, err := apiClient.ApplyAssetTags(serverID, compute.AssetTypeServer, configuredTags...)
 	if err != nil {
 		return err
 	}
 
 	if response.ResponseCode != compute.ResponseCodeOK {
-		return response.ToError("Failed to apply tags to server '%s' (response code '%s'): %s", serverID, response.ResponseCode, response.Message)
+		return response.ToError("Failed to apply %d tags to server '%s' (response code '%s'): %s", len(configuredTags), serverID, response.ResponseCode, response.Message)
+	}
+
+	// Trim unused tags (currently-configured tags will overwrite any existing values).
+	if unusedTags.Len() > 0 {
+		unusedTagNames := make([]string, unusedTags.Len())
+		for index, unusedTagName := range unusedTags.List() {
+			unusedTagNames[index] = unusedTagName.(string)
+		}
+
+		log.Printf("Removing %d unused tags from server '%s'...", len(unusedTagNames), serverID)
+
+		response, err = apiClient.RemoveAssetTags(serverID, compute.AssetTypeServer, unusedTagNames...)
+		if err != nil {
+			return err
+		}
+
+		if response.ResponseCode != compute.ResponseCodeOK {
+			return response.ToError("Failed to remove %d tags from server '%s' (response code '%s'): %s", len(configuredTags), serverID, response.ResponseCode, response.Message)
+		}
 	}
 
 	return nil
@@ -815,6 +886,9 @@ func readServerTags(data *schema.ResourceData, apiClient *compute.Client) error 
 	propertyHelper := propertyHelper(data)
 
 	serverID := data.Id()
+
+	log.Printf("Reading tags for server '%s'...", serverID)
+
 	result, err := apiClient.GetAssetTags(serverID, compute.AssetTypeServer, nil)
 	if err != nil {
 		return err
@@ -825,7 +899,7 @@ func readServerTags(data *schema.ResourceData, apiClient *compute.Client) error 
 	tags := make([]compute.Tag, len(result.Items))
 	for index, tagDetail := range result.Items {
 		tags[index] = compute.Tag{
-			Name: tagDetail.Name,
+			Name:  tagDetail.Name,
 			Value: tagDetail.Value,
 		}
 	}
