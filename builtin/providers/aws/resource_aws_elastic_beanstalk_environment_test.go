@@ -158,6 +158,26 @@ func TestAccAWSBeanstalkEnv_resource(t *testing.T) {
 	})
 }
 
+func TestAccAWSBeanstalkEnv_vpc(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkEnv_VPC(acctest.RandString(5)),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.default", &app),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckBeanstalkEnvDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn
 
@@ -488,3 +508,66 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
   }
 }
 `
+
+func testAccBeanstalkEnv_VPC(name string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "tf_b_test" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_internet_gateway" "tf_b_test" {
+  vpc_id = "${aws_vpc.tf_b_test.id}"
+}
+
+resource "aws_route" "r" {
+  route_table_id = "${aws_vpc.tf_b_test.main_route_table_id}"
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id = "${aws_internet_gateway.tf_b_test.id}"
+}
+
+resource "aws_subnet" "main" {
+  vpc_id     = "${aws_vpc.tf_b_test.id}"
+  cidr_block = "10.0.0.0/24"
+}
+
+resource "aws_security_group" "default" {
+  name = "tf-b-test-%s"
+  vpc_id = "${aws_vpc.tf_b_test.id}"
+}
+
+resource "aws_elastic_beanstalk_application" "default" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "default" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.default.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "VPCId"
+    value     = "${aws_vpc.tf_b_test.id}"
+  }
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "Subnets"
+    value     = "${aws_subnet.main.id}"
+  }
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "AssociatePublicIpAddress"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "SecurityGroups"
+    value     = "${aws_security_group.default.id}"
+  }
+}
+`, name)
+}
