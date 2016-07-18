@@ -124,7 +124,7 @@ var testAccCloudStackPortForward_basic = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
@@ -150,7 +150,7 @@ var testAccCloudStackPortForward_update = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   expunge = true

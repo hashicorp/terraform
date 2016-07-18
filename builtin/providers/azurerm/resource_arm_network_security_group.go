@@ -19,39 +19,42 @@ func resourceArmNetworkSecurityGroup() *schema.Resource {
 		Read:   resourceArmNetworkSecurityGroupRead,
 		Update: resourceArmNetworkSecurityGroupCreate,
 		Delete: resourceArmNetworkSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"security_rule": &schema.Schema{
+			"security_rule": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"description": &schema.Schema{
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -64,39 +67,39 @@ func resourceArmNetworkSecurityGroup() *schema.Resource {
 							},
 						},
 
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateNetworkSecurityRuleProtocol,
 						},
 
-						"source_port_range": &schema.Schema{
+						"source_port_range": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"destination_port_range": &schema.Schema{
+						"destination_port_range": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"source_address_prefix": &schema.Schema{
+						"source_address_prefix": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"destination_address_prefix": &schema.Schema{
+						"destination_address_prefix": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"access": &schema.Schema{
+						"access": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateNetworkSecurityRuleAccess,
 						},
 
-						"priority": &schema.Schema{
+						"priority": {
 							Type:     schema.TypeInt,
 							Required: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -109,7 +112,7 @@ func resourceArmNetworkSecurityGroup() *schema.Resource {
 							},
 						},
 
-						"direction": &schema.Schema{
+						"direction": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateNetworkSecurityRuleDirection,
@@ -147,23 +150,32 @@ func resourceArmNetworkSecurityGroupCreate(d *schema.ResourceData, meta interfac
 		Tags: expandTags(tags),
 	}
 
-	resp, err := secClient.CreateOrUpdate(resGroup, name, sg)
+	_, err := secClient.CreateOrUpdate(resGroup, name, sg, make(chan struct{}))
 	if err != nil {
 		return err
 	}
 
-	d.SetId(*resp.ID)
+	read, err := secClient.Get(resGroup, name, "")
+	if err != nil {
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Virtual Network %s (resource group %s) ID", name, resGroup)
+	}
 
-	log.Printf("[DEBUG] Waiting for Network Security Group (%s) to become available", name)
+	log.Printf("[DEBUG] Waiting for NSG (%s) to become available", d.Get("name"))
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"Accepted", "Updating"},
-		Target:  []string{"Succeeded"},
-		Refresh: securityGroupStateRefreshFunc(client, resGroup, name),
-		Timeout: 10 * time.Minute,
+		Pending:    []string{"Updating", "Creating"},
+		Target:     []string{"Succeeded"},
+		Refresh:    networkSecurityGroupStateRefreshFunc(client, resGroup, name),
+		Timeout:    30 * time.Minute,
+		MinTimeout: 15 * time.Second,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Network Securty Group (%s) to become available: %s", name, err)
+		return fmt.Errorf("Error waiting for NSG (%s) to become available: %s", d.Get("name"), err)
 	}
+
+	d.SetId(*read.ID)
 
 	return resourceArmNetworkSecurityGroupRead(d, meta)
 }
@@ -191,6 +203,8 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 		d.Set("security_rule", flattenNetworkSecurityRules(resp.Properties.SecurityRules))
 	}
 
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
 	flattenAndSetTags(d, resp.Tags)
 
 	return nil
@@ -206,7 +220,7 @@ func resourceArmNetworkSecurityGroupDelete(d *schema.ResourceData, meta interfac
 	resGroup := id.ResourceGroup
 	name := id.Path["networkSecurityGroups"]
 
-	_, err = secGroupClient.Delete(resGroup, name)
+	_, err = secGroupClient.Delete(resGroup, name, make(chan struct{}))
 
 	return err
 }
@@ -224,17 +238,6 @@ func resourceArmNetworkSecurityGroupRuleHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["direction"].(string)))
 
 	return hashcode.String(buf.String())
-}
-
-func securityGroupStateRefreshFunc(client *ArmClient, resourceGroupName string, securityGroupName string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		res, err := client.secGroupClient.Get(resourceGroupName, securityGroupName, "")
-		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in securityGroupStateRefreshFunc to Azure ARM for network security group '%s' (RG: '%s'): %s", securityGroupName, resourceGroupName, err)
-		}
-
-		return res, *res.Properties.ProvisioningState, nil
-	}
 }
 
 func flattenNetworkSecurityRules(rules *[]network.SecurityRule) []map[string]interface{} {
@@ -271,7 +274,7 @@ func expandAzureRmSecurityRules(d *schema.ResourceData) ([]network.SecurityRule,
 		destination_port_range := data["destination_port_range"].(string)
 		source_address_prefix := data["source_address_prefix"].(string)
 		destination_address_prefix := data["destination_address_prefix"].(string)
-		priority := data["priority"].(int)
+		priority := int32(data["priority"].(int))
 
 		properties := network.SecurityRulePropertiesFormat{
 			SourcePortRange:          &source_port_range,
@@ -298,4 +301,15 @@ func expandAzureRmSecurityRules(d *schema.ResourceData) ([]network.SecurityRule,
 	}
 
 	return rules, nil
+}
+
+func networkSecurityGroupStateRefreshFunc(client *ArmClient, resourceGroupName string, sgName string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		res, err := client.secGroupClient.Get(resourceGroupName, sgName, "")
+		if err != nil {
+			return nil, "", fmt.Errorf("Error issuing read request in networkSecurityGroupStateRefreshFunc to Azure ARM for NSG '%s' (RG: '%s'): %s", sgName, resourceGroupName, err)
+		}
+
+		return res, *res.Properties.ProvisioningState, nil
+	}
 }

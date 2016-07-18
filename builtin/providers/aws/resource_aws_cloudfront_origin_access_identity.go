@@ -15,6 +15,9 @@ func resourceAwsCloudFrontOriginAccessIdentity() *schema.Resource {
 		Read:   resourceAwsCloudFrontOriginAccessIdentityRead,
 		Update: resourceAwsCloudFrontOriginAccessIdentityUpdate,
 		Delete: resourceAwsCloudFrontOriginAccessIdentityDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"comment": &schema.Schema{
@@ -31,6 +34,10 @@ func resourceAwsCloudFrontOriginAccessIdentity() *schema.Resource {
 				Computed: true,
 			},
 			"etag": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"iam_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -74,6 +81,7 @@ func resourceAwsCloudFrontOriginAccessIdentityRead(d *schema.ResourceData, meta 
 	d.Set("etag", resp.ETag)
 	d.Set("s3_canonical_user_id", resp.CloudFrontOriginAccessIdentity.S3CanonicalUserId)
 	d.Set("cloudfront_access_identity_path", fmt.Sprintf("origin-access-identity/cloudfront/%s", *resp.CloudFrontOriginAccessIdentity.Id))
+	d.Set("iam_arn", fmt.Sprintf("arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity %s", *resp.CloudFrontOriginAccessIdentity.Id))
 	return nil
 }
 

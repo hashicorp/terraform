@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // ResourceAddress is a way of identifying an individual resource (or,
@@ -18,9 +20,11 @@ type ResourceAddress struct {
 	// Addresses a specific resource that occurs in a list
 	Index int
 
-	InstanceType InstanceType
-	Name         string
-	Type         string
+	InstanceType    InstanceType
+	InstanceTypeSet bool
+	Name            string
+	Type            string
+	Mode            config.ResourceMode // significant only if InstanceTypeSet
 }
 
 // Copy returns a copy of this ResourceAddress
@@ -31,6 +35,7 @@ func (r *ResourceAddress) Copy() *ResourceAddress {
 		InstanceType: r.InstanceType,
 		Name:         r.Name,
 		Type:         r.Type,
+		Mode:         r.Mode,
 	}
 	for _, p := range r.Path {
 		n.Path = append(n.Path, p)
@@ -38,10 +43,56 @@ func (r *ResourceAddress) Copy() *ResourceAddress {
 	return n
 }
 
+// String outputs the address that parses into this address.
+func (r *ResourceAddress) String() string {
+	var result []string
+	for _, p := range r.Path {
+		result = append(result, "module", p)
+	}
+
+	switch r.Mode {
+	case config.ManagedResourceMode:
+		// nothing to do
+	case config.DataResourceMode:
+		result = append(result, "data")
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", r.Mode))
+	}
+
+	if r.Type != "" {
+		result = append(result, r.Type)
+	}
+
+	if r.Name != "" {
+		name := r.Name
+		if r.InstanceTypeSet {
+			switch r.InstanceType {
+			case TypePrimary:
+				name += ".primary"
+			case TypeDeposed:
+				name += ".deposed"
+			case TypeTainted:
+				name += ".tainted"
+			}
+		}
+
+		if r.Index >= 0 {
+			name += fmt.Sprintf("[%d]", r.Index)
+		}
+		result = append(result, name)
+	}
+
+	return strings.Join(result, ".")
+}
+
 func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	matches, err := tokenizeResourceAddress(s)
 	if err != nil {
 		return nil, err
+	}
+	mode := config.ManagedResourceMode
+	if matches["data_prefix"] != "" {
+		mode = config.DataResourceMode
 	}
 	resourceIndex, err := ParseResourceIndex(matches["index"])
 	if err != nil {
@@ -53,12 +104,19 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	}
 	path := ParseResourcePath(matches["path"])
 
+	// not allowed to say "data." without a type following
+	if mode == config.DataResourceMode && matches["type"] == "" {
+		return nil, fmt.Errorf("must target specific data instance")
+	}
+
 	return &ResourceAddress{
-		Path:         path,
-		Index:        resourceIndex,
-		InstanceType: instanceType,
-		Name:         matches["name"],
-		Type:         matches["type"],
+		Path:            path,
+		Index:           resourceIndex,
+		InstanceType:    instanceType,
+		InstanceTypeSet: matches["instance_type"] != "",
+		Name:            matches["name"],
+		Type:            matches["type"],
+		Mode:            mode,
 	}, nil
 }
 
@@ -83,11 +141,17 @@ func (addr *ResourceAddress) Equals(raw interface{}) bool {
 		other.Type == "" ||
 		addr.Type == other.Type
 
+	// mode is significant only when type is set
+	modeMatch := addr.Type == "" ||
+		other.Type == "" ||
+		addr.Mode == other.Mode
+
 	return pathMatch &&
 		indexMatch &&
 		addr.InstanceType == other.InstanceType &&
 		nameMatch &&
-		typeMatch
+		typeMatch &&
+		modeMatch
 }
 
 func ParseResourceIndex(s string) (int, error) {
@@ -133,6 +197,8 @@ func tokenizeResourceAddress(s string) (map[string]string, error) {
 	re := regexp.MustCompile(`\A` +
 		// "module.foo.module.bar" (optional)
 		`(?P<path>(?:module\.[^.]+\.?)*)` +
+		// possibly "data.", if targeting is a data resource
+		`(?P<data_prefix>(?:data\.)?)` +
 		// "aws_instance.web" (optional when module path specified)
 		`(?:(?P<type>[^.]+)\.(?P<name>[^.[]+))?` +
 		// "tainted" (optional, omission implies: "primary")

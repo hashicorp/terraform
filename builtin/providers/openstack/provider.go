@@ -78,10 +78,21 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_CACERT", ""),
 			},
+			"cert": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_CERT", ""),
+			},
+			"key": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_KEY", ""),
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"openstack_blockstorage_volume_v1":         resourceBlockStorageVolumeV1(),
+			"openstack_blockstorage_volume_v2":         resourceBlockStorageVolumeV2(),
 			"openstack_compute_instance_v2":            resourceComputeInstanceV2(),
 			"openstack_compute_keypair_v2":             resourceComputeKeypairV2(),
 			"openstack_compute_secgroup_v2":            resourceComputeSecGroupV2(),
@@ -94,6 +105,11 @@ func Provider() terraform.ResourceProvider {
 			"openstack_lb_monitor_v1":                  resourceLBMonitorV1(),
 			"openstack_lb_pool_v1":                     resourceLBPoolV1(),
 			"openstack_lb_vip_v1":                      resourceLBVipV1(),
+			"openstack_lb_loadbalancer_v2":             resourceLoadBalancerV2(),
+			"openstack_lb_listener_v2":                 resourceListenerV2(),
+			"openstack_lb_pool_v2":                     resourcePoolV2(),
+			"openstack_lb_member_v2":                   resourceMemberV2(),
+			"openstack_lb_monitor_v2":                  resourceMonitorV2(),
 			"openstack_networking_network_v2":          resourceNetworkingNetworkV2(),
 			"openstack_networking_subnet_v2":           resourceNetworkingSubnetV2(),
 			"openstack_networking_floatingip_v2":       resourceNetworkingFloatingIPV2(),
@@ -125,6 +141,8 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		Insecure:         d.Get("insecure").(bool),
 		EndpointType:     d.Get("endpoint_type").(string),
 		CACertFile:       d.Get("cacert_file").(string),
+		ClientCertFile:   d.Get("cert").(string),
+		ClientKeyFile:    d.Get("key").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {

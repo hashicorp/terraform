@@ -140,6 +140,44 @@ func TestAccAWSBeanstalkEnv_config(t *testing.T) {
 	})
 }
 
+func TestAccAWSBeanstalkEnv_resource(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkResourceOptionSetting,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSBeanstalkEnv_vpc(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkEnv_VPC(acctest.RandString(5)),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.default", &app),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckBeanstalkEnvDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn
 
@@ -305,6 +343,23 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 `
 
 const testAccBeanstalkWorkerEnvConfig = `
+resource "aws_iam_instance_profile" "tftest" {
+  name = "tftest_profile"
+  roles = ["${aws_iam_role.tftest.name}"]
+}
+
+resource "aws_iam_role" "tftest" {
+  name = "tftest_role"
+  path = "/"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Effect\":\"Allow\",\"Sid\":\"\"}]}"
+}
+
+resource "aws_iam_role_policy" "tftest" {
+  name = "tftest_policy"
+  role = "${aws_iam_role.tftest.id}"
+  policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"QueueAccess\",\"Action\":[\"sqs:ChangeMessageVisibility\",\"sqs:DeleteMessage\",\"sqs:ReceiveMessage\"],\"Effect\":\"Allow\",\"Resource\":\"*\"}]}"
+}
+
 resource "aws_elastic_beanstalk_application" "tftest" {
   name = "tf-test-name"
   description = "tf-test-desc"
@@ -315,6 +370,12 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
   application = "${aws_elastic_beanstalk_application.tftest.name}"
   tier = "Worker"
   solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "IamInstanceProfile"
+    value     = "${aws_iam_instance_profile.tftest.name}"
+  }
 }
 `
 
@@ -414,3 +475,99 @@ resource "aws_elastic_beanstalk_configuration_template" "tftest" {
   }
 }
 `
+const testAccBeanstalkResourceOptionSetting = `
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "ScheduledAction01"
+    name = "MinSize"
+    value = "2"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "ScheduledAction01"
+    name = "MaxSize"
+    value = "6"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "ScheduledAction01"
+    name = "Recurrence"
+    value = "0 8 * * *"
+  }
+}
+`
+
+func testAccBeanstalkEnv_VPC(name string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "tf_b_test" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_internet_gateway" "tf_b_test" {
+  vpc_id = "${aws_vpc.tf_b_test.id}"
+}
+
+resource "aws_route" "r" {
+  route_table_id = "${aws_vpc.tf_b_test.main_route_table_id}"
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id = "${aws_internet_gateway.tf_b_test.id}"
+}
+
+resource "aws_subnet" "main" {
+  vpc_id     = "${aws_vpc.tf_b_test.id}"
+  cidr_block = "10.0.0.0/24"
+}
+
+resource "aws_security_group" "default" {
+  name = "tf-b-test-%s"
+  vpc_id = "${aws_vpc.tf_b_test.id}"
+}
+
+resource "aws_elastic_beanstalk_application" "default" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "default" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.default.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "VPCId"
+    value     = "${aws_vpc.tf_b_test.id}"
+  }
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "Subnets"
+    value     = "${aws_subnet.main.id}"
+  }
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "AssociatePublicIpAddress"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "SecurityGroups"
+    value     = "${aws_security_group.default.id}"
+  }
+}
+`, name)
+}

@@ -21,6 +21,9 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 		Read:   resourceAwsDbSubnetGroupRead,
 		Update: resourceAwsDbSubnetGroupUpdate,
 		Delete: resourceAwsDbSubnetGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -37,7 +40,8 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "Managed by Terraform",
 			},
 
 			"subnet_ids": &schema.Schema{

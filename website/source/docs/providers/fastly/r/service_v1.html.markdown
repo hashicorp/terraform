@@ -1,6 +1,6 @@
 ---
 layout: "fastly"
-page_title: "Fastly: aws_vpc"
+page_title: "Fastly: service_v1"
 sidebar_current: "docs-fastly-resource-service-v1"
 description: |-
   Provides an Fastly Service
@@ -14,7 +14,7 @@ and Backends.
 
 The Service resource requires a domain name that is correctly set up to direct
 traffic to the Fastly service. See Fastly's guide on [Adding CNAME Records][fastly-cname]
-on their documentation site for guidance. 
+on their documentation site for guidance.
 
 ## Example Usage
 
@@ -86,6 +86,38 @@ resource "aws_s3_bucket" "website" {
 }
 ```
 
+Basic usage with [custom VCL](https://docs.fastly.com/guides/vcl/uploading-custom-vcl) (must be enabled on your Fastly account):
+
+```
+resource "fastly_service_v1" "demo" {
+  name = "demofastly"
+
+  domain {
+    name    = "demo.notexample.com"
+    comment = "demo"
+  }
+
+  backend {
+    address = "127.0.0.1"
+    name    = "localhost"
+    port    = 80
+  }
+
+  force_destroy = true
+
+  vcl {
+    name = "my_custom_main_vcl"
+    content = "${file("${path.module}/my_custom_main.vcl")}"
+    main = true
+  }
+
+  vcl {
+    name = "my_custom_library_vcl"
+    content = "${file("${path.module}/my_custom_library.vcl")}"
+  }
+}
+```
+
 **Note:** For an AWS S3 Bucket, the Backend address is
 `<domain>.s3-website-<region>.amazonaws.com`. The `default_host` attribute
 should be set to `<bucket_name>.s3-website-<region>.amazonaws.com`. See the
@@ -102,6 +134,8 @@ Service. Defined below
 Defined below
 * `condition` - (Optional) A set of conditions to add logic to any basic
 configuration object in this service. Defined below
+* `cache_setting` - (Optional) A set of Cache Settings, allowing you to override
+when an item is not to be cached based on an above `condition`. Defined below
 * `gzip` - (Required) A set of gzip rules to control automatic gzipping of
 content. Defined below
 * `header` - (Optional) A set of Headers to manipulate for each request. Defined
@@ -110,8 +144,12 @@ below
 * `default_ttl` - (Optional) The default Time-to-live (TTL) for requests
 * `force_destroy` - (Optional) Services that are active cannot be destroyed. In
 order to destroy the Service, set `force_destroy` to `true`. Default `false`.
+* `request_setting` - (Optional) A set of Request modifiers. Defined below
 * `s3logging` - (Optional) A set of S3 Buckets to send streaming logs too.
 Defined below
+* `vcl` - (Optional) A set of custom VCL configuration blocks. Note that the
+ability to upload custom VCL code is not enabled by default for new Fastly
+accounts (see the [Fastly documentation](https://docs.fastly.com/guides/vcl/uploading-custom-vcl) for details).
 
 
 The `domain` block supports:
@@ -151,33 +189,70 @@ conditions execute. Lower numbers execute first
 * `type` - (Required) Type of the condition, either `REQUEST` (req), `RESPONSE`
 (req, resp), or `CACHE` (req, beresp)
 
+The `cache_setting` block supports:
+
+* `name` - (Required) A unique name to label this Cache Setting
+* `action` - (Required) One of `cache`, `pass`, or `restart`, as defined
+on Fastly's documenation under ["Caching action descriptions"](https://docs.fastly.com/guides/performance-tuning/controlling-caching#caching-action-descriptions)
+* `cache_condition` - (Required) Name of the condition used to test whether this settings object should be used.
+This Condition must be of type `CACHE`
+* `stale_ttl` - (Optional) Max "Time To Live" for stale (unreachable) objects.
+Default `300`
+* `ttl` - (Optional) The "Time To Live" for the object
+
 The `gzip` block supports:
 
 * `name` - (Required) A unique name
-* `content_types` - (Optional) content-type for each type of content you wish to 
+* `content_types` - (Optional) content-type for each type of content you wish to
 have dynamically gzipped. Ex: `["text/html", "text/css"]`
-* `extensions` - (Optional) File extensions for each file type to dynamically 
+* `extensions` - (Optional) File extensions for each file type to dynamically
 gzip. Ex: `["css", "js"]`
 
 
 The `Header` block supports adding, removing, or modifying Request and Response
-headers. See Fastly's documentation on 
-[Adding or modifying headers on HTTP requests and responses](https://docs.fastly.com/guides/basic-configuration/adding-or-modifying-headers-on-http-requests-and-responses#field-description-table) for more detailed information on any 
+headers. See Fastly's documentation on
+[Adding or modifying headers on HTTP requests and responses](https://docs.fastly.com/guides/basic-configuration/adding-or-modifying-headers-on-http-requests-and-responses#field-description-table) for more detailed information on any
 of the properties below.
 
 * `name` - (Required) A unique name to refer to this header attribute
 * `action` - (Required) The Header manipulation action to take; must be one of
 `set`, `append`, `delete`, `regex`, or `regex_repeat`
-* `type` - (Required) The Request type to apply the selected Action on
-* `destination` - (Required) The name of the header that is going to be affected 
+* `type` - (Required) The Request type to apply the selected Action on; must be one of `request`, `fetch`, `cache` or `response`
+* `destination` - (Required) The name of the header that is going to be affected
 by the Action
-* `ignore_if_set` - (Optional) Do not add the header if it is already present. 
+* `ignore_if_set` - (Optional) Do not add the header if it is already present.
 (Only applies to `set` action.). Default `false`
-* `source` - (Optional) Variable to be used as a source for the header content 
+* `source` - (Optional) Variable to be used as a source for the header content
 (Does not apply to `delete` action.)
 * `regex` - (Optional) Regular expression to use (Only applies to `regex` and `regex_repeat` actions.)
 * `substitution` - (Optional) Value to substitute in place of regular expression. (Only applies to `regex` and `regex_repeat`.)
 * `priority` - (Optional) Lower priorities execute first. (Default: `100`.)
+
+The `request_setting` block allow you to customize Fastly's request handling, by
+defining behavior that should change based on a predefined `condition`:
+
+* `name` - (Required) The domain that this request setting
+* `request_condition` - (Required) The name of the corresponding `condition` to
+determin if this request setting should be applied. The `request_condition` must
+match the name of a defined `condition`
+* `max_stale_age` - (Optional) How old an object is allowed to be to serve
+stale-if-error or stale-while-revalidate, in seconds. Default `60`
+* `force_miss` - (Optional) Force a cache miss for the request. If specfified,
+can be `true` or `false`.
+* `force_ssl` - (Optional) Forces the request use SSL (redirects a non-SSL to SSL)
+* `action` - (Optional) Allows you to terminate request handling and immediately
+perform an action. When set it can be `lookup` or `pass` (ignore the cache completely)
+* `bypass_busy_wait` - (Optional) Disable collapsed forwarding, so you don't wait
+for other objects to origin
+* `hash_keys` - (Optional) Comma separated list of varnish request object fields
+that should be in the hash key
+* `xff` - (Optional) X-Forwarded-For -- should be `clear`, `leave`, `append`,
+`append_all`, or `overwrite`. Default `append`
+* `timer_support` - (Optional) Injects the X-Timer info into the request for
+viewing origin fetch durations
+* `geo_headers` - (Optional) Injects Fastly-Geo-Country, Fastly-Geo-City, and
+Fastly-Geo-Region into the request headers
+* `default_host` - (Optional) Sets the host header
 
 The `s3logging` block supports:
 
@@ -203,7 +278,17 @@ compressed. Default `0`
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Default
 Apache Common Log format (`%h %l %u %t %r %>s`)
 * `timestamp_format` - (Optional) `strftime` specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`).
+* `request_condition` - (Optional) The VCL request condition to check if this
+Request Setting should be applied. For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals]
 
+The `vcl` block supports:
+
+* `name` - (Required) A unique name for this configuration block
+* `content` - (Required) The custom VCL code to upload.
+* `main` - (Optional) If `true`, use this block as the main configuration. If
+`false`, use this block as an includable library. Only a single VCL block can be
+marked as the main block. Default is `false`.
 
 ## Attributes Reference
 
@@ -216,6 +301,7 @@ The following attributes are exported:
 * `backend` – Set of Backends. See above for details
 * `header` – Set of Headers. See above for details
 * `s3logging` – Set of S3 Logging configurations. See above for details
+* `vcl` – Set of custom VCL configurations. See above for details
 * `default_host` – Default host specified
 * `default_ttl` - Default TTL
 * `force_destroy` - Force the destruction of the Service on delete
@@ -223,3 +309,4 @@ The following attributes are exported:
 
 [fastly-s3]: https://docs.fastly.com/guides/integrations/amazon-s3
 [fastly-cname]: https://docs.fastly.com/guides/basic-setup/adding-cname-records
+[fastly-conditionals]: https://docs.fastly.com/guides/conditions/using-conditions

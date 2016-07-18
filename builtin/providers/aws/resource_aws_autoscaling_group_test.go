@@ -54,6 +54,8 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 						"aws_autoscaling_group.bar", "termination_policies.0", "OldestInstance"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "termination_policies.1", "ClosestToNextInstanceHour"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "protect_from_scale_in", "false"),
 				),
 			},
 
@@ -66,6 +68,8 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 						"aws_autoscaling_group.bar", "desired_capacity", "5"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "termination_policies.0", "ClosestToNextInstanceHour"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "protect_from_scale_in", "true"),
 					testLaunchConfigurationName("aws_autoscaling_group.bar", &lc),
 					testAccCheckAutoscalingTags(&group.Tags, "Bar", map[string]interface{}{
 						"value":               "bar-foo",
@@ -555,7 +559,7 @@ resource "aws_launch_configuration" "foobar" {
 }
 
 resource "aws_placement_group" "test" {
-  name = "%s"
+  name = "asg_pg_%s"
   strategy = "cluster"
 }
 
@@ -602,6 +606,7 @@ resource "aws_autoscaling_group" "bar" {
   desired_capacity = 5
   force_delete = true
   termination_policies = ["ClosestToNextInstanceHour"]
+  protect_from_scale_in = true
 
   launch_configuration = "${aws_launch_configuration.new.name}"
 

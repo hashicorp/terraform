@@ -19,6 +19,10 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 		Update: resourceAwsEfsFileSystemUpdate,
 		Delete: resourceAwsEfsFileSystemDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"reference_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -100,6 +104,11 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 		FileSystemId: aws.String(d.Id()),
 	})
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "FileSystemNotFound" {
+			log.Printf("[WARN] EFS File System (%s) not found, error code (404)", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 	if len(resp.FileSystems) < 1 {

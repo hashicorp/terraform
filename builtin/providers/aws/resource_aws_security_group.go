@@ -23,6 +23,9 @@ func resourceAwsSecurityGroup() *schema.Resource {
 		Read:   resourceAwsSecurityGroupRead,
 		Update: resourceAwsSecurityGroupUpdate,
 		Delete: resourceAwsSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsSecurityGroupImportState,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -145,6 +148,12 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						},
 
 						"cidr_blocks": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+
+						"prefix_list_ids": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -394,6 +403,18 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 			buf.WriteString(fmt.Sprintf("%s-", v))
 		}
 	}
+	if v, ok := m["prefix_list_ids"]; ok {
+		vs := v.([]interface{})
+		s := make([]string, len(vs))
+		for i, raw := range vs {
+			s[i] = raw.(string)
+		}
+		sort.Strings(s)
+
+		for _, v := range s {
+			buf.WriteString(fmt.Sprintf("%s-", v))
+		}
+	}
 	if v, ok := m["security_groups"]; ok {
 		vs := v.(*schema.Set).List()
 		s := make([]string, len(vs))
@@ -444,6 +465,20 @@ func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpP
 			}
 
 			m["cidr_blocks"] = list
+		}
+
+		if len(perm.PrefixListIds) > 0 {
+			raw, ok := m["prefix_list_ids"]
+			if !ok {
+				raw = make([]string, 0, len(perm.PrefixListIds))
+			}
+			list := raw.([]string)
+
+			for _, pl := range perm.PrefixListIds {
+				list = append(list, *pl.PrefixListId)
+			}
+
+			m["prefix_list_ids"] = list
 		}
 
 		groups := flattenSecurityGroups(perm.UserIdGroupPairs, ownerId)
@@ -655,15 +690,20 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 			// local rule we're examining
 			rHash := idHash(rType, r["protocol"].(string), r["to_port"].(int64), r["from_port"].(int64), remoteSelfVal)
 			if rHash == localHash {
-				var numExpectedCidrs, numExpectedSGs, numRemoteCidrs, numRemoteSGs int
+				var numExpectedCidrs, numExpectedPrefixLists, numExpectedSGs, numRemoteCidrs, numRemotePrefixLists, numRemoteSGs int
 				var matchingCidrs []string
 				var matchingSGs []string
+				var matchingPrefixLists []string
 
 				// grab the local/remote cidr and sg groups, capturing the expected and
 				// actual counts
 				lcRaw, ok := l["cidr_blocks"]
 				if ok {
 					numExpectedCidrs = len(l["cidr_blocks"].([]interface{}))
+				}
+				lpRaw, ok := l["prefix_list_ids"]
+				if ok {
+					numExpectedPrefixLists = len(l["prefix_list_ids"].([]interface{}))
 				}
 				lsRaw, ok := l["security_groups"]
 				if ok {
@@ -674,6 +714,10 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				if ok {
 					numRemoteCidrs = len(r["cidr_blocks"].([]string))
 				}
+				rpRaw, ok := r["prefix_list_ids"]
+				if ok {
+					numRemotePrefixLists = len(r["prefix_list_ids"].([]string))
+				}
 
 				rsRaw, ok := r["security_groups"]
 				if ok {
@@ -683,6 +727,10 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				// check some early failures
 				if numExpectedCidrs > numRemoteCidrs {
 					log.Printf("[DEBUG] Local rule has more CIDR blocks, continuing (%d/%d)", numExpectedCidrs, numRemoteCidrs)
+					continue
+				}
+				if numExpectedPrefixLists > numRemotePrefixLists {
+					log.Printf("[DEBUG] Local rule has more prefix lists, continuing (%d/%d)", numExpectedPrefixLists, numRemotePrefixLists)
 					continue
 				}
 				if numExpectedSGs > numRemoteSGs {
@@ -718,6 +766,34 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 					}
 				}
 
+				// match prefix lists by converting both to sets, and using Set methods
+				var localPrefixLists []interface{}
+				if lpRaw != nil {
+					localPrefixLists = lpRaw.([]interface{})
+				}
+				localPrefixListsSet := schema.NewSet(schema.HashString, localPrefixLists)
+
+				// remote prefix lists are presented as a slice of strings, so we need to
+				// reformat them into a slice of interfaces to be used in creating the
+				// remote prefix list set
+				var remotePrefixLists []string
+				if rpRaw != nil {
+					remotePrefixLists = rpRaw.([]string)
+				}
+				// convert remote prefix lists to a set, for easy comparison
+				list = nil
+				for _, s := range remotePrefixLists {
+					list = append(list, s)
+				}
+				remotePrefixListsSet := schema.NewSet(schema.HashString, list)
+
+				// Build up a list of local prefix lists that are found in the remote set
+				for _, s := range localPrefixListsSet.List() {
+					if remotePrefixListsSet.Contains(s) {
+						matchingPrefixLists = append(matchingPrefixLists, s.(string))
+					}
+				}
+
 				// match SGs. Both local and remote are already sets
 				var localSGSet *schema.Set
 				if lsRaw == nil {
@@ -745,41 +821,57 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				// match, and then remove those elements from the remote rule, so that
 				// this remote rule can still be considered by other local rules
 				if numExpectedCidrs == len(matchingCidrs) {
-					if numExpectedSGs == len(matchingSGs) {
-						// confirm that self references match
-						var lSelf bool
-						var rSelf bool
-						if _, ok := l["self"]; ok {
-							lSelf = l["self"].(bool)
-						}
-						if _, ok := r["self"]; ok {
-							rSelf = r["self"].(bool)
-						}
-						if rSelf == lSelf {
-							delete(r, "self")
-							// pop local cidrs from remote
-							diffCidr := remoteCidrSet.Difference(localCidrSet)
-							var newCidr []string
-							for _, cRaw := range diffCidr.List() {
-								newCidr = append(newCidr, cRaw.(string))
+					if numExpectedPrefixLists == len(matchingPrefixLists) {
+						if numExpectedSGs == len(matchingSGs) {
+							// confirm that self references match
+							var lSelf bool
+							var rSelf bool
+							if _, ok := l["self"]; ok {
+								lSelf = l["self"].(bool)
 							}
-
-							// reassigning
-							if len(newCidr) > 0 {
-								r["cidr_blocks"] = newCidr
-							} else {
-								delete(r, "cidr_blocks")
+							if _, ok := r["self"]; ok {
+								rSelf = r["self"].(bool)
 							}
+							if rSelf == lSelf {
+								delete(r, "self")
+								// pop local cidrs from remote
+								diffCidr := remoteCidrSet.Difference(localCidrSet)
+								var newCidr []string
+								for _, cRaw := range diffCidr.List() {
+									newCidr = append(newCidr, cRaw.(string))
+								}
 
-							// pop local sgs from remote
-							diffSGs := remoteSGSet.Difference(localSGSet)
-							if len(diffSGs.List()) > 0 {
-								r["security_groups"] = diffSGs
-							} else {
-								delete(r, "security_groups")
+								// reassigning
+								if len(newCidr) > 0 {
+									r["cidr_blocks"] = newCidr
+								} else {
+									delete(r, "cidr_blocks")
+								}
+
+								// pop local prefix lists from remote
+								diffPrefixLists := remotePrefixListsSet.Difference(localPrefixListsSet)
+								var newPrefixLists []string
+								for _, pRaw := range diffPrefixLists.List() {
+									newPrefixLists = append(newPrefixLists, pRaw.(string))
+								}
+
+								// reassigning
+								if len(newPrefixLists) > 0 {
+									r["prefix_list_ids"] = newPrefixLists
+								} else {
+									delete(r, "prefix_list_ids")
+								}
+
+								// pop local sgs from remote
+								diffSGs := remoteSGSet.Difference(localSGSet)
+								if len(diffSGs.List()) > 0 {
+									r["security_groups"] = diffSGs
+								} else {
+									delete(r, "security_groups")
+								}
+
+								saves = append(saves, l)
 							}
-
-							saves = append(saves, l)
 						}
 					}
 				}
@@ -792,11 +884,13 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 	// matched locally, and let the graph sort things out. This will happen when
 	// rules are added externally to Terraform
 	for _, r := range remote {
-		var lenCidr, lenSGs int
+		var lenCidr, lenPrefixLists, lenSGs int
 		if rCidrs, ok := r["cidr_blocks"]; ok {
 			lenCidr = len(rCidrs.([]string))
 		}
-
+		if rPrefixLists, ok := r["prefix_list_ids"]; ok {
+			lenPrefixLists = len(rPrefixLists.([]string))
+		}
 		if rawSGs, ok := r["security_groups"]; ok {
 			lenSGs = len(rawSGs.(*schema.Set).List())
 		}
@@ -807,7 +901,7 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 			}
 		}
 
-		if lenSGs+lenCidr > 0 {
+		if lenSGs+lenCidr+lenPrefixLists > 0 {
 			log.Printf("[DEBUG] Found a remote Rule that wasn't empty: (%#v)", r)
 			saves = append(saves, r)
 		}

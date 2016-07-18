@@ -4,6 +4,7 @@
 package emr
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -14,7 +15,28 @@ import (
 
 const opAddInstanceGroups = "AddInstanceGroups"
 
-// AddInstanceGroupsRequest generates a request for the AddInstanceGroups operation.
+// AddInstanceGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the AddInstanceGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddInstanceGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddInstanceGroupsRequest method.
+//    req, resp := client.AddInstanceGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) AddInstanceGroupsRequest(input *AddInstanceGroupsInput) (req *request.Request, output *AddInstanceGroupsOutput) {
 	op := &request.Operation{
 		Name:       opAddInstanceGroups,
@@ -41,7 +63,28 @@ func (c *EMR) AddInstanceGroups(input *AddInstanceGroupsInput) (*AddInstanceGrou
 
 const opAddJobFlowSteps = "AddJobFlowSteps"
 
-// AddJobFlowStepsRequest generates a request for the AddJobFlowSteps operation.
+// AddJobFlowStepsRequest generates a "aws/request.Request" representing the
+// client's request for the AddJobFlowSteps operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddJobFlowSteps method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddJobFlowStepsRequest method.
+//    req, resp := client.AddJobFlowStepsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) AddJobFlowStepsRequest(input *AddJobFlowStepsInput) (req *request.Request, output *AddJobFlowStepsOutput) {
 	op := &request.Operation{
 		Name:       opAddJobFlowSteps,
@@ -91,7 +134,28 @@ func (c *EMR) AddJobFlowSteps(input *AddJobFlowStepsInput) (*AddJobFlowStepsOutp
 
 const opAddTags = "AddTags"
 
-// AddTagsRequest generates a request for the AddTags operation.
+// AddTagsRequest generates a "aws/request.Request" representing the
+// client's request for the AddTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddTagsRequest method.
+//    req, resp := client.AddTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) AddTagsRequest(input *AddTagsInput) (req *request.Request, output *AddTagsOutput) {
 	op := &request.Operation{
 		Name:       opAddTags,
@@ -121,7 +185,28 @@ func (c *EMR) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 
 const opDescribeCluster = "DescribeCluster"
 
-// DescribeClusterRequest generates a request for the DescribeCluster operation.
+// DescribeClusterRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeCluster operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeCluster method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeClusterRequest method.
+//    req, resp := client.DescribeClusterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) DescribeClusterRequest(input *DescribeClusterInput) (req *request.Request, output *DescribeClusterOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCluster,
@@ -149,7 +234,28 @@ func (c *EMR) DescribeCluster(input *DescribeClusterInput) (*DescribeClusterOutp
 
 const opDescribeJobFlows = "DescribeJobFlows"
 
-// DescribeJobFlowsRequest generates a request for the DescribeJobFlows operation.
+// DescribeJobFlowsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeJobFlows operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeJobFlows method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeJobFlowsRequest method.
+//    req, resp := client.DescribeJobFlowsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) DescribeJobFlowsRequest(input *DescribeJobFlowsInput) (req *request.Request, output *DescribeJobFlowsOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, DescribeJobFlows, has been deprecated")
@@ -196,7 +302,28 @@ func (c *EMR) DescribeJobFlows(input *DescribeJobFlowsInput) (*DescribeJobFlowsO
 
 const opDescribeStep = "DescribeStep"
 
-// DescribeStepRequest generates a request for the DescribeStep operation.
+// DescribeStepRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeStep operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeStep method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeStepRequest method.
+//    req, resp := client.DescribeStepRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) DescribeStepRequest(input *DescribeStepInput) (req *request.Request, output *DescribeStepOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStep,
@@ -223,7 +350,28 @@ func (c *EMR) DescribeStep(input *DescribeStepInput) (*DescribeStepOutput, error
 
 const opListBootstrapActions = "ListBootstrapActions"
 
-// ListBootstrapActionsRequest generates a request for the ListBootstrapActions operation.
+// ListBootstrapActionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListBootstrapActions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListBootstrapActions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListBootstrapActionsRequest method.
+//    req, resp := client.ListBootstrapActionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) ListBootstrapActionsRequest(input *ListBootstrapActionsInput) (req *request.Request, output *ListBootstrapActionsOutput) {
 	op := &request.Operation{
 		Name:       opListBootstrapActions,
@@ -254,6 +402,23 @@ func (c *EMR) ListBootstrapActions(input *ListBootstrapActionsInput) (*ListBoots
 	return out, err
 }
 
+// ListBootstrapActionsPages iterates over the pages of a ListBootstrapActions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListBootstrapActions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListBootstrapActions operation.
+//    pageNum := 0
+//    err := client.ListBootstrapActionsPages(params,
+//        func(page *ListBootstrapActionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EMR) ListBootstrapActionsPages(input *ListBootstrapActionsInput, fn func(p *ListBootstrapActionsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListBootstrapActionsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -264,7 +429,28 @@ func (c *EMR) ListBootstrapActionsPages(input *ListBootstrapActionsInput, fn fun
 
 const opListClusters = "ListClusters"
 
-// ListClustersRequest generates a request for the ListClusters operation.
+// ListClustersRequest generates a "aws/request.Request" representing the
+// client's request for the ListClusters operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListClusters method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListClustersRequest method.
+//    req, resp := client.ListClustersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) ListClustersRequest(input *ListClustersInput) (req *request.Request, output *ListClustersOutput) {
 	op := &request.Operation{
 		Name:       opListClusters,
@@ -299,6 +485,23 @@ func (c *EMR) ListClusters(input *ListClustersInput) (*ListClustersOutput, error
 	return out, err
 }
 
+// ListClustersPages iterates over the pages of a ListClusters operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListClusters method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListClusters operation.
+//    pageNum := 0
+//    err := client.ListClustersPages(params,
+//        func(page *ListClustersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EMR) ListClustersPages(input *ListClustersInput, fn func(p *ListClustersOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListClustersRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -309,7 +512,28 @@ func (c *EMR) ListClustersPages(input *ListClustersInput, fn func(p *ListCluster
 
 const opListInstanceGroups = "ListInstanceGroups"
 
-// ListInstanceGroupsRequest generates a request for the ListInstanceGroups operation.
+// ListInstanceGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the ListInstanceGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListInstanceGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListInstanceGroupsRequest method.
+//    req, resp := client.ListInstanceGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) ListInstanceGroupsRequest(input *ListInstanceGroupsInput) (req *request.Request, output *ListInstanceGroupsOutput) {
 	op := &request.Operation{
 		Name:       opListInstanceGroups,
@@ -340,6 +564,23 @@ func (c *EMR) ListInstanceGroups(input *ListInstanceGroupsInput) (*ListInstanceG
 	return out, err
 }
 
+// ListInstanceGroupsPages iterates over the pages of a ListInstanceGroups operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListInstanceGroups method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListInstanceGroups operation.
+//    pageNum := 0
+//    err := client.ListInstanceGroupsPages(params,
+//        func(page *ListInstanceGroupsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EMR) ListInstanceGroupsPages(input *ListInstanceGroupsInput, fn func(p *ListInstanceGroupsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListInstanceGroupsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -350,7 +591,28 @@ func (c *EMR) ListInstanceGroupsPages(input *ListInstanceGroupsInput, fn func(p 
 
 const opListInstances = "ListInstances"
 
-// ListInstancesRequest generates a request for the ListInstances operation.
+// ListInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the ListInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListInstancesRequest method.
+//    req, resp := client.ListInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) ListInstancesRequest(input *ListInstancesInput) (req *request.Request, output *ListInstancesOutput) {
 	op := &request.Operation{
 		Name:       opListInstances,
@@ -385,6 +647,23 @@ func (c *EMR) ListInstances(input *ListInstancesInput) (*ListInstancesOutput, er
 	return out, err
 }
 
+// ListInstancesPages iterates over the pages of a ListInstances operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListInstances method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListInstances operation.
+//    pageNum := 0
+//    err := client.ListInstancesPages(params,
+//        func(page *ListInstancesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EMR) ListInstancesPages(input *ListInstancesInput, fn func(p *ListInstancesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListInstancesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -395,7 +674,28 @@ func (c *EMR) ListInstancesPages(input *ListInstancesInput, fn func(p *ListInsta
 
 const opListSteps = "ListSteps"
 
-// ListStepsRequest generates a request for the ListSteps operation.
+// ListStepsRequest generates a "aws/request.Request" representing the
+// client's request for the ListSteps operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListSteps method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListStepsRequest method.
+//    req, resp := client.ListStepsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) ListStepsRequest(input *ListStepsInput) (req *request.Request, output *ListStepsOutput) {
 	op := &request.Operation{
 		Name:       opListSteps,
@@ -426,6 +726,23 @@ func (c *EMR) ListSteps(input *ListStepsInput) (*ListStepsOutput, error) {
 	return out, err
 }
 
+// ListStepsPages iterates over the pages of a ListSteps operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListSteps method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListSteps operation.
+//    pageNum := 0
+//    err := client.ListStepsPages(params,
+//        func(page *ListStepsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *EMR) ListStepsPages(input *ListStepsInput, fn func(p *ListStepsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListStepsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -436,7 +753,28 @@ func (c *EMR) ListStepsPages(input *ListStepsInput, fn func(p *ListStepsOutput, 
 
 const opModifyInstanceGroups = "ModifyInstanceGroups"
 
-// ModifyInstanceGroupsRequest generates a request for the ModifyInstanceGroups operation.
+// ModifyInstanceGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyInstanceGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyInstanceGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyInstanceGroupsRequest method.
+//    req, resp := client.ModifyInstanceGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) ModifyInstanceGroupsRequest(input *ModifyInstanceGroupsInput) (req *request.Request, output *ModifyInstanceGroupsOutput) {
 	op := &request.Operation{
 		Name:       opModifyInstanceGroups,
@@ -468,7 +806,28 @@ func (c *EMR) ModifyInstanceGroups(input *ModifyInstanceGroupsInput) (*ModifyIns
 
 const opRemoveTags = "RemoveTags"
 
-// RemoveTagsRequest generates a request for the RemoveTags operation.
+// RemoveTagsRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveTagsRequest method.
+//    req, resp := client.RemoveTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, output *RemoveTagsOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTags,
@@ -500,7 +859,28 @@ func (c *EMR) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOutput, error) {
 
 const opRunJobFlow = "RunJobFlow"
 
-// RunJobFlowRequest generates a request for the RunJobFlow operation.
+// RunJobFlowRequest generates a "aws/request.Request" representing the
+// client's request for the RunJobFlow operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RunJobFlow method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RunJobFlowRequest method.
+//    req, resp := client.RunJobFlowRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) RunJobFlowRequest(input *RunJobFlowInput) (req *request.Request, output *RunJobFlowOutput) {
 	op := &request.Operation{
 		Name:       opRunJobFlow,
@@ -549,7 +929,28 @@ func (c *EMR) RunJobFlow(input *RunJobFlowInput) (*RunJobFlowOutput, error) {
 
 const opSetTerminationProtection = "SetTerminationProtection"
 
-// SetTerminationProtectionRequest generates a request for the SetTerminationProtection operation.
+// SetTerminationProtectionRequest generates a "aws/request.Request" representing the
+// client's request for the SetTerminationProtection operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetTerminationProtection method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetTerminationProtectionRequest method.
+//    req, resp := client.SetTerminationProtectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) SetTerminationProtectionRequest(input *SetTerminationProtectionInput) (req *request.Request, output *SetTerminationProtectionOutput) {
 	op := &request.Operation{
 		Name:       opSetTerminationProtection,
@@ -594,7 +995,28 @@ func (c *EMR) SetTerminationProtection(input *SetTerminationProtectionInput) (*S
 
 const opSetVisibleToAllUsers = "SetVisibleToAllUsers"
 
-// SetVisibleToAllUsersRequest generates a request for the SetVisibleToAllUsers operation.
+// SetVisibleToAllUsersRequest generates a "aws/request.Request" representing the
+// client's request for the SetVisibleToAllUsers operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetVisibleToAllUsers method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetVisibleToAllUsersRequest method.
+//    req, resp := client.SetVisibleToAllUsersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) SetVisibleToAllUsersRequest(input *SetVisibleToAllUsersInput) (req *request.Request, output *SetVisibleToAllUsersOutput) {
 	op := &request.Operation{
 		Name:       opSetVisibleToAllUsers,
@@ -628,7 +1050,28 @@ func (c *EMR) SetVisibleToAllUsers(input *SetVisibleToAllUsersInput) (*SetVisibl
 
 const opTerminateJobFlows = "TerminateJobFlows"
 
-// TerminateJobFlowsRequest generates a request for the TerminateJobFlows operation.
+// TerminateJobFlowsRequest generates a "aws/request.Request" representing the
+// client's request for the TerminateJobFlows operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TerminateJobFlows method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TerminateJobFlowsRequest method.
+//    req, resp := client.TerminateJobFlowsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *EMR) TerminateJobFlowsRequest(input *TerminateJobFlowsInput) (req *request.Request, output *TerminateJobFlowsOutput) {
 	op := &request.Operation{
 		Name:       opTerminateJobFlows,
@@ -684,6 +1127,32 @@ func (s AddInstanceGroupsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddInstanceGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddInstanceGroupsInput"}
+	if s.InstanceGroups == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceGroups"))
+	}
+	if s.JobFlowId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobFlowId"))
+	}
+	if s.InstanceGroups != nil {
+		for i, v := range s.InstanceGroups {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "InstanceGroups", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Output from an AddInstanceGroups call.
 type AddInstanceGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -727,6 +1196,32 @@ func (s AddJobFlowStepsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddJobFlowStepsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddJobFlowStepsInput"}
+	if s.JobFlowId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobFlowId"))
+	}
+	if s.Steps == nil {
+		invalidParams.Add(request.NewErrParamRequired("Steps"))
+	}
+	if s.Steps != nil {
+		for i, v := range s.Steps {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Steps", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for the AddJobFlowSteps operation.
 type AddJobFlowStepsOutput struct {
 	_ struct{} `type:"structure"`
@@ -768,6 +1263,22 @@ func (s AddTagsInput) String() string {
 // GoString returns the string representation
 func (s AddTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // This output indicates the result of adding tags to a resource.
@@ -845,6 +1356,27 @@ func (s BootstrapActionConfig) String() string {
 // GoString returns the string representation
 func (s BootstrapActionConfig) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BootstrapActionConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BootstrapActionConfig"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.ScriptBootstrapAction == nil {
+		invalidParams.Add(request.NewErrParamRequired("ScriptBootstrapAction"))
+	}
+	if s.ScriptBootstrapAction != nil {
+		if err := s.ScriptBootstrapAction.Validate(); err != nil {
+			invalidParams.AddNested("ScriptBootstrapAction", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Reports the configuration of a bootstrap action in a job flow.
@@ -1123,6 +1655,19 @@ func (s DescribeClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeClusterInput"}
+	if s.ClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // This output contains the description of the cluster.
 type DescribeClusterOutput struct {
 	_ struct{} `type:"structure"`
@@ -1207,6 +1752,22 @@ func (s DescribeStepInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeStepInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeStepInput"}
+	if s.ClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterId"))
+	}
+	if s.StepId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StepId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // This output contains the description of the cluster step.
 type DescribeStepOutput struct {
 	_ struct{} `type:"structure"`
@@ -1272,6 +1833,24 @@ func (s EbsBlockDeviceConfig) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EbsBlockDeviceConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EbsBlockDeviceConfig"}
+	if s.VolumeSpecification == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeSpecification"))
+	}
+	if s.VolumeSpecification != nil {
+		if err := s.VolumeSpecification.Validate(); err != nil {
+			invalidParams.AddNested("VolumeSpecification", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type EbsConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -1288,6 +1867,26 @@ func (s EbsConfiguration) String() string {
 // GoString returns the string representation
 func (s EbsConfiguration) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EbsConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EbsConfiguration"}
+	if s.EbsBlockDeviceConfigs != nil {
+		for i, v := range s.EbsBlockDeviceConfigs {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "EbsBlockDeviceConfigs", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // EBS block device that's attached to an EC2 instance.
@@ -1394,6 +1993,19 @@ func (s HadoopJarStepConfig) String() string {
 // GoString returns the string representation
 func (s HadoopJarStepConfig) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *HadoopJarStepConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "HadoopJarStepConfig"}
+	if s.Jar == nil {
+		invalidParams.Add(request.NewErrParamRequired("Jar"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A cluster step consisting of a JAR file whose main function will be executed.
@@ -1516,6 +2128,9 @@ type InstanceGroup struct {
 	// The number of instances currently running in this instance group.
 	RunningInstanceCount *int64 `type:"integer"`
 
+	// Policy for customizing shrink operations.
+	ShrinkPolicy *ShrinkPolicy `type:"structure"`
+
 	// The current status of the instance group.
 	Status *InstanceGroupStatus `type:"structure"`
 }
@@ -1573,6 +2188,33 @@ func (s InstanceGroupConfig) String() string {
 // GoString returns the string representation
 func (s InstanceGroupConfig) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InstanceGroupConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InstanceGroupConfig"}
+	if s.InstanceCount == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceCount"))
+	}
+	if s.InstanceRole == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceRole"))
+	}
+	if s.InstanceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceType"))
+	}
+	if s.InstanceType != nil && len(*s.InstanceType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceType", 1))
+	}
+	if s.EbsConfiguration != nil {
+		if err := s.EbsConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("EbsConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Detailed information about an instance group.
@@ -1638,9 +2280,8 @@ func (s InstanceGroupDetail) GoString() string {
 type InstanceGroupModifyConfig struct {
 	_ struct{} `type:"structure"`
 
-	// The EC2 InstanceIds to terminate. For advanced users only. Once you terminate
-	// the instances, the instance group will not return to its original requested
-	// size.
+	// The EC2 InstanceIds to terminate. Once you terminate the instances, the instance
+	// group will not return to its original requested size.
 	EC2InstanceIdsToTerminate []*string `type:"list"`
 
 	// Target size for the instance group.
@@ -1648,6 +2289,9 @@ type InstanceGroupModifyConfig struct {
 
 	// Unique ID of the instance group to expand or shrink.
 	InstanceGroupId *string `type:"string" required:"true"`
+
+	// Policy for customizing shrink operations.
+	ShrinkPolicy *ShrinkPolicy `type:"structure"`
 }
 
 // String returns the string representation
@@ -1658,6 +2302,19 @@ func (s InstanceGroupModifyConfig) String() string {
 // GoString returns the string representation
 func (s InstanceGroupModifyConfig) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InstanceGroupModifyConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InstanceGroupModifyConfig"}
+	if s.InstanceGroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceGroupId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The status change reason details for the instance group.
@@ -1726,6 +2383,32 @@ func (s InstanceGroupTimeline) String() string {
 
 // GoString returns the string representation
 func (s InstanceGroupTimeline) GoString() string {
+	return s.String()
+}
+
+// Custom policy for requesting termination protection or termination of specific
+// instances when shrinking an instance group.
+type InstanceResizePolicy struct {
+	_ struct{} `type:"structure"`
+
+	// Decommissioning timeout override for the specific list of instances to be
+	// terminated.
+	InstanceTerminationTimeout *int64 `type:"integer"`
+
+	// Specific list of instances to be protected when shrinking an instance group.
+	InstancesToProtect []*string `type:"list"`
+
+	// Specific list of instances to be terminated when shrinking an instance group.
+	InstancesToTerminate []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s InstanceResizePolicy) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceResizePolicy) GoString() string {
 	return s.String()
 }
 
@@ -1974,6 +2657,37 @@ func (s JobFlowInstancesConfig) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *JobFlowInstancesConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "JobFlowInstancesConfig"}
+	if s.MasterInstanceType != nil && len(*s.MasterInstanceType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MasterInstanceType", 1))
+	}
+	if s.SlaveInstanceType != nil && len(*s.SlaveInstanceType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SlaveInstanceType", 1))
+	}
+	if s.InstanceGroups != nil {
+		for i, v := range s.InstanceGroups {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "InstanceGroups", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Placement != nil {
+		if err := s.Placement.Validate(); err != nil {
+			invalidParams.AddNested("Placement", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Specify the type of Amazon EC2 instances to run the job flow on.
 type JobFlowInstancesDetail struct {
 	_ struct{} `type:"structure"`
@@ -2081,6 +2795,19 @@ func (s ListBootstrapActionsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListBootstrapActionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListBootstrapActionsInput"}
+	if s.ClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // This output contains the boostrap actions detail .
 type ListBootstrapActionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2173,6 +2900,19 @@ func (s ListInstanceGroupsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListInstanceGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListInstanceGroupsInput"}
+	if s.ClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // This input determines which instance groups to retrieve.
 type ListInstanceGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2207,6 +2947,10 @@ type ListInstancesInput struct {
 	// The type of instance group for which to list the instances.
 	InstanceGroupTypes []*string `type:"list"`
 
+	// A list of instance states that will filter the instances returned with this
+	// request.
+	InstanceStates []*string `type:"list"`
+
 	// The pagination token that indicates the next set of results to retrieve.
 	Marker *string `type:"string"`
 }
@@ -2219,6 +2963,19 @@ func (s ListInstancesInput) String() string {
 // GoString returns the string representation
 func (s ListInstancesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListInstancesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListInstancesInput"}
+	if s.ClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // This output contains the list of instances.
@@ -2269,7 +3026,21 @@ func (s ListStepsInput) GoString() string {
 	return s.String()
 }
 
-// This output contains the list of steps.
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListStepsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListStepsInput"}
+	if s.ClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// This output contains the list of steps returned in reverse order. This means
+// that the last step is the first element in the list.
 type ListStepsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2308,6 +3079,26 @@ func (s ModifyInstanceGroupsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyInstanceGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyInstanceGroupsInput"}
+	if s.InstanceGroups != nil {
+		for i, v := range s.InstanceGroups {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "InstanceGroups", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyInstanceGroupsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2340,6 +3131,19 @@ func (s PlacementType) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PlacementType) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PlacementType"}
+	if s.AvailabilityZone == nil {
+		invalidParams.Add(request.NewErrParamRequired("AvailabilityZone"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // This input identifies a cluster and a list of tags to remove.
 type RemoveTagsInput struct {
 	_ struct{} `type:"structure"`
@@ -2360,6 +3164,22 @@ func (s RemoveTagsInput) String() string {
 // GoString returns the string representation
 func (s RemoveTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // This output indicates the result of removing tags from a resource.
@@ -2498,6 +3318,47 @@ func (s RunJobFlowInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RunJobFlowInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RunJobFlowInput"}
+	if s.Instances == nil {
+		invalidParams.Add(request.NewErrParamRequired("Instances"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.BootstrapActions != nil {
+		for i, v := range s.BootstrapActions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "BootstrapActions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Instances != nil {
+		if err := s.Instances.Validate(); err != nil {
+			invalidParams.AddNested("Instances", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Steps != nil {
+		for i, v := range s.Steps {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Steps", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of the RunJobFlow operation.
 type RunJobFlowOutput struct {
 	_ struct{} `type:"structure"`
@@ -2538,6 +3399,19 @@ func (s ScriptBootstrapActionConfig) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ScriptBootstrapActionConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ScriptBootstrapActionConfig"}
+	if s.Path == nil {
+		invalidParams.Add(request.NewErrParamRequired("Path"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The input argument to the TerminationProtection operation.
 type SetTerminationProtectionInput struct {
 	_ struct{} `type:"structure"`
@@ -2561,6 +3435,22 @@ func (s SetTerminationProtectionInput) String() string {
 // GoString returns the string representation
 func (s SetTerminationProtectionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetTerminationProtectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetTerminationProtectionInput"}
+	if s.JobFlowIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobFlowIds"))
+	}
+	if s.TerminationProtected == nil {
+		invalidParams.Add(request.NewErrParamRequired("TerminationProtected"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetTerminationProtectionOutput struct {
@@ -2602,6 +3492,22 @@ func (s SetVisibleToAllUsersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetVisibleToAllUsersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetVisibleToAllUsersInput"}
+	if s.JobFlowIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobFlowIds"))
+	}
+	if s.VisibleToAllUsers == nil {
+		invalidParams.Add(request.NewErrParamRequired("VisibleToAllUsers"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SetVisibleToAllUsersOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2613,6 +3519,30 @@ func (s SetVisibleToAllUsersOutput) String() string {
 
 // GoString returns the string representation
 func (s SetVisibleToAllUsersOutput) GoString() string {
+	return s.String()
+}
+
+// Policy for customizing shrink operations. Allows configuration of decommissioning
+// timeout and targeted instance shrinking.
+type ShrinkPolicy struct {
+	_ struct{} `type:"structure"`
+
+	// The desired timeout for decommissioning an instance. Overrides the default
+	// YARN decommissioning timeout.
+	DecommissionTimeout *int64 `type:"integer"`
+
+	// Custom policy for requesting termination protection or termination of specific
+	// instances when shrinking an instance group.
+	InstanceResizePolicy *InstanceResizePolicy `type:"structure"`
+}
+
+// String returns the string representation
+func (s ShrinkPolicy) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ShrinkPolicy) GoString() string {
 	return s.String()
 }
 
@@ -2669,6 +3599,27 @@ func (s StepConfig) String() string {
 // GoString returns the string representation
 func (s StepConfig) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StepConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StepConfig"}
+	if s.HadoopJarStep == nil {
+		invalidParams.Add(request.NewErrParamRequired("HadoopJarStep"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.HadoopJarStep != nil {
+		if err := s.HadoopJarStep.Validate(); err != nil {
+			invalidParams.AddNested("HadoopJarStep", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Combines the execution state and configuration of a step.
@@ -2891,6 +3842,19 @@ func (s TerminateJobFlowsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TerminateJobFlowsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TerminateJobFlowsInput"}
+	if s.JobFlowIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobFlowIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type TerminateJobFlowsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2929,6 +3893,22 @@ func (s VolumeSpecification) String() string {
 // GoString returns the string representation
 func (s VolumeSpecification) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *VolumeSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "VolumeSpecification"}
+	if s.SizeInGB == nil {
+		invalidParams.Add(request.NewErrParamRequired("SizeInGB"))
+	}
+	if s.VolumeType == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 const (

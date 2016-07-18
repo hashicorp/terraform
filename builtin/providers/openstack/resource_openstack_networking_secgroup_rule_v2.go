@@ -3,6 +3,7 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -17,6 +18,9 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 		Create: resourceNetworkingSecGroupRuleV2Create,
 		Read:   resourceNetworkingSecGroupRuleV2Read,
 		Delete: resourceNetworkingSecGroupRuleV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -64,6 +68,9 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+				StateFunc: func(v interface{}) string {
+					return strings.ToLower(v.(string))
+				},
 			},
 			"security_group_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -139,11 +146,14 @@ func resourceNetworkingSecGroupRuleV2Read(d *schema.ResourceData, meta interface
 		return CheckDeleted(d, err, "OpenStack Security Group Rule")
 	}
 
+	d.Set("direction", security_group_rule.Direction)
+	d.Set("ethertype", security_group_rule.EtherType)
 	d.Set("protocol", security_group_rule.Protocol)
 	d.Set("port_range_min", security_group_rule.PortRangeMin)
 	d.Set("port_range_max", security_group_rule.PortRangeMax)
 	d.Set("remote_group_id", security_group_rule.RemoteGroupID)
 	d.Set("remote_ip_prefix", security_group_rule.RemoteIPPrefix)
+	d.Set("security_group_id", security_group_rule.SecGroupID)
 	d.Set("tenant_id", security_group_rule.TenantID)
 	return nil
 }

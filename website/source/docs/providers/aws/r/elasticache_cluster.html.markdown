@@ -27,7 +27,7 @@ brief downtime as the server reboots. See the AWS Docs on
 resource "aws_elasticache_cluster" "bar" {
     cluster_id = "cluster-example"
     engine = "memcached"
-    node_type = "cache.m1.small"
+    node_type = "cache.t2.micro"
     port = 11211
     num_cache_nodes = 1
     parameter_group_name = "default.memcached1.4"
@@ -91,7 +91,8 @@ begin taking a daily snapshot of your cache cluster. Example: 05:00-09:00
 * `snapshot_retention_limit` - (Optional, Redis only) The number of days for which ElastiCache will
 retain automatic cache cluster snapshots before deleting them. For example, if you set
 SnapshotRetentionLimit to 5, then a snapshot that was taken today will be retained for 5 days
-before being deleted. If the value of SnapshotRetentionLimit is set to zero (0), backups are turned off
+before being deleted. If the value of SnapshotRetentionLimit is set to zero (0), backups are turned off.
+Please note that setting a `snapshot_retention_limit` is not supported on cache.t1.micro or cache.t2.* cache nodes
 
 * `notification_topic_arn` – (Optional) An Amazon Resource Name (ARN) of an
 SNS topic to send ElastiCache notifications to. Example:

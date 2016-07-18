@@ -42,6 +42,14 @@ resource "vsphere_file" "ubuntu_disk" {
   destination_file = "/my_path/disks/custom_ubuntu.vmdk"
 }
 
+# Create a disk image
+resource "vsphere_virtual_disk" "extraStorage" {
+    size = 2
+    vmdk_path = "myDisk.vmdk"
+    datacenter = "Datacenter"
+    datastore = "local"
+}
+
 # Create a virtual machine within the folder
 resource "vsphere_virtual_machine" "web" {
   name   = "terraform-web"
@@ -75,6 +83,14 @@ The following arguments are used to configure the VMware vSphere Provider:
   could allow an attacker to intercept your auth token. If omitted, default
   value is `false`. Can also be specified with the `VSPHERE_ALLOW_UNVERIFIED_SSL`
   environment variable.
+* `client_debug` - (Optional) Boolean to set the govomomi api to log soap calls
+   to disk.  The log files are logged to `${HOME}/.govc`, the same path used by
+  `govc`.  Can also be specified with the `VSPHERE_CLIENT_DEBUG` environment 
+   variable.
+* `client_debug_path` - (Optional) Override the default log path. Can also 
+   be specified with the `VSPHERE_CLIENT_DEBUG_PATH` environment variable.
+* `client_debug_path_run` - (Optional) Client debug file path for a single run. Can also 
+   be specified with the `VSPHERE_CLIENT_DEBUG_PATH_RUN` environment variable.
 
 ## Required Privileges
 
@@ -153,6 +169,7 @@ set to valid values for your VMware vSphere environment:
  * VSPHERE\_NETWORK\_LABEL
  * VSPHERE\_NETWORK\_LABEL\_DHCP
  * VSPHERE\_TEMPLATE
+ * VSPHERE\_MAC\_ADDRESS
 
 The following environment variables depend on your vSphere environment:
 

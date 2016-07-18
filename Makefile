@@ -1,7 +1,13 @@
-TEST?=$$(go list ./... | grep -v /vendor/)
+TEST?=$$(go list ./... | grep -v '/terraform/vendor/' | grep -v '/builtin/bins/')
 VETARGS?=-all
+GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
 default: test vet
+
+tools:
+	go get -u github.com/kardianos/govendor
+	go get -u golang.org/x/tools/cmd/stringer
+	go get -u golang.org/x/tools/cmd/cover
 
 # bin generates the releaseable binaries for Terraform
 bin: fmtcheck generate
@@ -19,15 +25,16 @@ quickdev: generate
 # changes will require a rebuild of everything, in which case the dev
 # target should be used.
 core-dev: generate
-	go install github.com/hashicorp/terraform
+	go install -tags 'core' github.com/hashicorp/terraform
 
 # Shorthand for quickly testing the core of Terraform (i.e. "not providers")
 core-test: generate
-	@echo "Testing core packages..." && go test $(shell go list ./... | grep -v -E 'builtin|vendor')
+	@echo "Testing core packages..." && \
+		go test -tags 'core' $(TESTARGS) $(shell go list ./... | grep -v -E 'terraform/(builtin|vendor)')
 
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
-plugin-dev: fmtcheck generate
+plugin-dev: generate
 	go install github.com/hashicorp/terraform/builtin/bins/$(PLUGIN)
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
@@ -59,9 +66,6 @@ cover:
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
 vet:
-	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
-		go get golang.org/x/tools/cmd/vet; \
-	fi
 	@echo "go tool vet $(VETARGS) ."
 	@go tool vet $(VETARGS) $$(ls -d */ | grep -v vendor) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
@@ -76,12 +80,13 @@ generate:
 	@which stringer ; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
-	go generate $$(go list ./... | grep -v /vendor/)
+	go generate $$(go list ./... | grep -v /terraform/vendor/)
+	@go fmt command/internal_plugin_list.go > /dev/null
 
 fmt:
-	gofmt -w .
+	gofmt -w $(GOFMT_FILES)
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
-.PHONY: bin default generate test updatedeps vet fmt fmtcheck
+.PHONY: bin default generate test vet fmt fmtcheck tools

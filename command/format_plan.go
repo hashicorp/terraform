@@ -78,6 +78,8 @@ func formatPlanModuleExpand(
 			continue
 		}
 
+		dataSource := strings.HasPrefix(name, "data.")
+
 		if moduleName != "" {
 			name = moduleName + "." + name
 		}
@@ -87,6 +89,7 @@ func formatPlanModuleExpand(
 		// resource header.
 		color := "yellow"
 		symbol := "~"
+		oldValues := true
 		switch rdiff.ChangeType() {
 		case terraform.DiffDestroyCreate:
 			color = "green"
@@ -94,14 +97,31 @@ func formatPlanModuleExpand(
 		case terraform.DiffCreate:
 			color = "green"
 			symbol = "+"
+			oldValues = false
+
+			// If we're "creating" a data resource then we'll present it
+			// to the user as a "read" operation, so it's clear that this
+			// operation won't change anything outside of the Terraform state.
+			// Unfortunately by the time we get here we only have the name
+			// to work with, so we need to cheat and exploit knowledge of the
+			// naming scheme for data resources.
+			if dataSource {
+				symbol = "<="
+				color = "cyan"
+			}
 		case terraform.DiffDestroy:
 			color = "red"
 			symbol = "-"
 		}
 
+		taintStr := ""
+		if rdiff.DestroyTainted {
+			taintStr = " (tainted)"
+		}
+
 		buf.WriteString(opts.Color.Color(fmt.Sprintf(
-			"[%s]%s %s\n",
-			color, symbol, name)))
+			"[%s]%s %s%s\n",
+			color, symbol, name, taintStr)))
 
 		// Get all the attributes that are changing, and sort them. Also
 		// determine the longest key so that we can align them all.
@@ -129,18 +149,39 @@ func formatPlanModuleExpand(
 				v = "<computed>"
 			}
 
-			newResource := ""
-			if attrDiff.RequiresNew && rdiff.Destroy {
-				newResource = opts.Color.Color(" [red](forces new resource)")
+			if attrDiff.Sensitive {
+				v = "<sensitive>"
 			}
 
-			buf.WriteString(fmt.Sprintf(
-				"    %s:%s %#v => %#v%s\n",
-				attrK,
-				strings.Repeat(" ", keyLen-len(attrK)),
-				attrDiff.Old,
-				v,
-				newResource))
+			updateMsg := ""
+			if attrDiff.RequiresNew && rdiff.Destroy {
+				updateMsg = opts.Color.Color(" [red](forces new resource)")
+			} else if attrDiff.Sensitive && oldValues {
+				updateMsg = opts.Color.Color(" [yellow](attribute changed)")
+			}
+
+			if oldValues {
+				var u string
+				if attrDiff.Sensitive {
+					u = "<sensitive>"
+				} else {
+					u = attrDiff.Old
+				}
+				buf.WriteString(fmt.Sprintf(
+					"    %s:%s %#v => %#v%s\n",
+					attrK,
+					strings.Repeat(" ", keyLen-len(attrK)),
+					u,
+					v,
+					updateMsg))
+			} else {
+				buf.WriteString(fmt.Sprintf(
+					"    %s:%s %#v%s\n",
+					attrK,
+					strings.Repeat(" ", keyLen-len(attrK)),
+					v,
+					updateMsg))
+			}
 		}
 
 		// Write the reset color so we don't overload the user's terminal

@@ -756,6 +756,23 @@ func TestFlattenAttachment(t *testing.T) {
 	}
 }
 
+func TestFlattenAttachmentWhenNoInstanceId(t *testing.T) {
+	expanded := &ec2.NetworkInterfaceAttachment{
+		DeviceIndex:  aws.Int64(int64(1)),
+		AttachmentId: aws.String("at-002"),
+	}
+
+	result := flattenAttachment(expanded)
+
+	if result == nil {
+		t.Fatal("expected result to have value, but got nil")
+	}
+
+	if result["instance"] != nil {
+		t.Fatalf("expected instance to be nil, but got %s", result["instance"])
+	}
+}
+
 func TestflattenStepAdjustments(t *testing.T) {
 	expanded := []*autoscaling.StepAdjustment{
 		&autoscaling.StepAdjustment{
@@ -940,5 +957,36 @@ func TestFlattenApiGatewayThrottleSettings(t *testing.T) {
 	}
 	if rateLimitFloat != expectedRateLimit {
 		t.Fatalf("Expected 'rate_limit' to equal %f, got %f", expectedRateLimit, rateLimitFloat)
+	}
+}
+
+func TestFlattenApiGatewayStageKeys(t *testing.T) {
+	cases := []struct {
+		Input  []*string
+		Output []map[string]interface{}
+	}{
+		{
+			Input: []*string{
+				aws.String("a1b2c3d4e5/dev"),
+				aws.String("e5d4c3b2a1/test"),
+			},
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"stage_name":  "dev",
+					"rest_api_id": "a1b2c3d4e5",
+				},
+				map[string]interface{}{
+					"stage_name":  "test",
+					"rest_api_id": "e5d4c3b2a1",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenApiGatewayStageKeys(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
 	}
 }

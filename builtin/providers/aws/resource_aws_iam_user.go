@@ -17,6 +17,9 @@ func resourceAwsIamUser() *schema.Resource {
 		Read:   resourceAwsIamUserRead,
 		Update: resourceAwsIamUserUpdate,
 		Delete: resourceAwsIamUserDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -64,14 +67,15 @@ func resourceAwsIamUserCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error creating IAM User %s: %s", name, err)
 	}
+	d.SetId(*createResp.User.UserName)
 	return resourceAwsIamUserReadResult(d, createResp.User)
 }
 
 func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
-	name := d.Get("name").(string)
+
 	request := &iam.GetUserInput{
-		UserName: aws.String(name),
+		UserName: aws.String(d.Id()),
 	}
 
 	getResp, err := iamconn.GetUser(request)
@@ -87,7 +91,6 @@ func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsIamUserReadResult(d *schema.ResourceData, user *iam.User) error {
-	d.SetId(*user.UserName)
 	if err := d.Set("name", user.UserName); err != nil {
 		return err
 	}

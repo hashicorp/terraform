@@ -46,7 +46,7 @@ resource "azurerm_network_security_group" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) Specifies the name of the availability set. Changing this forces a
+* `name` - (Required) Specifies the name of the network security group. Changing this forces a
     new resource to be created.
 
 * `resource_group_name` - (Required) The name of the resource group in which to

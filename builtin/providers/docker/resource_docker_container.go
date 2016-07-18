@@ -95,6 +95,22 @@ func resourceDockerContainer() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"dns_opts": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"dns_search": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"publish_all_ports": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -267,6 +283,11 @@ func resourceDockerContainer() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"destroy_grace_seconds": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
 			},
 
 			"labels": &schema.Schema{

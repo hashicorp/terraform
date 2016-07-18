@@ -215,11 +215,12 @@ func (d *ModuleDiff) String() string {
 		rdiff := d.Resources[name]
 
 		crud := "UPDATE"
-		if rdiff.RequiresNew() && (rdiff.Destroy || rdiff.DestroyTainted) {
+		switch {
+		case rdiff.RequiresNew() && (rdiff.Destroy || rdiff.DestroyTainted):
 			crud = "DESTROY/CREATE"
-		} else if rdiff.Destroy {
+		case rdiff.Destroy:
 			crud = "DESTROY"
-		} else if rdiff.RequiresNew() {
+		case rdiff.RequiresNew():
 			crud = "CREATE"
 		}
 
@@ -246,22 +247,30 @@ func (d *ModuleDiff) String() string {
 			attrDiff := rdiff.Attributes[attrK]
 
 			v := attrDiff.New
+			u := attrDiff.Old
 			if attrDiff.NewComputed {
 				v = "<computed>"
 			}
 
-			newResource := ""
+			if attrDiff.Sensitive {
+				u = "<sensitive>"
+				v = "<sensitive>"
+			}
+
+			updateMsg := ""
 			if attrDiff.RequiresNew {
-				newResource = " (forces new resource)"
+				updateMsg = " (forces new resource)"
+			} else if attrDiff.Sensitive {
+				updateMsg = " (attribute changed)"
 			}
 
 			buf.WriteString(fmt.Sprintf(
 				"  %s:%s %#v => %#v%s\n",
 				attrK,
 				strings.Repeat(" ", keyLen-len(attrK)),
-				attrDiff.Old,
+				u,
 				v,
-				newResource))
+				updateMsg))
 		}
 	}
 
@@ -283,6 +292,7 @@ type ResourceAttrDiff struct {
 	NewRemoved  bool        // True if this attribute is being removed
 	NewExtra    interface{} // Extra information for the provider
 	RequiresNew bool        // True if change requires new resource
+	Sensitive   bool        // True if the data should not be displayed in UI output
 	Type        DiffAttrType
 }
 
@@ -354,6 +364,10 @@ func (d *InstanceDiff) GoString() string {
 func (d *InstanceDiff) RequiresNew() bool {
 	if d == nil {
 		return false
+	}
+
+	if d.DestroyTainted {
+		return true
 	}
 
 	for _, rd := range d.Attributes {
@@ -429,52 +443,47 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			// values. So check if there is an approximate hash in the key
 			// and if so, try to match the key.
 			if strings.Contains(k, "~") {
-				// TODO (SvH): There should be a better way to do this...
 				parts := strings.Split(k, ".")
-				parts2 := strings.Split(k, ".")
+				parts2 := append([]string(nil), parts...)
+
 				re := regexp.MustCompile(`^~\d+$`)
 				for i, part := range parts {
 					if re.MatchString(part) {
+						// we're going to consider this the base of a
+						// computed hash, and remove all longer matching fields
+						ok = true
+
 						parts2[i] = `\d+`
+						parts2 = parts2[:i+1]
+						break
 					}
 				}
-				re, err := regexp.Compile("^" + strings.Join(parts2, `\.`) + "$")
+
+				re, err := regexp.Compile("^" + strings.Join(parts2, `\.`))
 				if err != nil {
 					return false, fmt.Sprintf("regexp failed to compile; err: %#v", err)
 				}
+
 				for k2, _ := range checkNew {
 					if re.MatchString(k2) {
 						delete(checkNew, k2)
-
-						if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
-							// This is a computed list or set, so remove any keys with this
-							// prefix from the check list.
-							prefix := k2[:len(k2)-1]
-							for k2, _ := range checkNew {
-								if strings.HasPrefix(k2, prefix) {
-									delete(checkNew, k2)
-								}
-							}
-						}
-						ok = true
-						break
 					}
 				}
 			}
 
-			// This is a little tricky, but when a diff contains a computed list
-			// or set that can only be interpolated after the apply command has
-			// created the dependent resources, it could turn out that the result
-			// is actually the same as the existing state which would remove the
-			// key from the diff.
-			if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
+			// This is a little tricky, but when a diff contains a computed
+			// list, set, or map that can only be interpolated after the apply
+			// command has created the dependent resources, it could turn out
+			// that the result is actually the same as the existing state which
+			// would remove the key from the diff.
+			if diffOld.NewComputed && (strings.HasSuffix(k, ".#") || strings.HasSuffix(k, ".%")) {
 				ok = true
 			}
 
 			// Similarly, in a RequiresNew scenario, a list that shows up in the plan
 			// diff can disappear from the apply diff, which is calculated from an
 			// empty state.
-			if d.RequiresNew() && strings.HasSuffix(k, ".#") {
+			if d.RequiresNew() && (strings.HasSuffix(k, ".#") || strings.HasSuffix(k, ".%")) {
 				ok = true
 			}
 
@@ -483,10 +492,16 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			}
 		}
 
-		if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
-			// This is a computed list or set, so remove any keys with this
-			// prefix from the check list.
-			kprefix := k[:len(k)-1]
+		// search for the suffix of the base of a [computed] map, list or set.
+		multiVal := regexp.MustCompile(`\.(#|~#|%)$`)
+		match := multiVal.FindStringSubmatch(k)
+
+		if diffOld.NewComputed && len(match) == 2 {
+			matchLen := len(match[1])
+
+			// This is a computed list, set, or map, so remove any keys with
+			// this prefix from the check list.
+			kprefix := k[:len(k)-matchLen]
 			for k2, _ := range checkOld {
 				if strings.HasPrefix(k2, kprefix) {
 					delete(checkOld, k2)

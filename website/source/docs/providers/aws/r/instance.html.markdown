@@ -14,14 +14,27 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 ## Example Usage
 
 ```
-# Create a new instance of the `ami-408c7f28` (Ubuntu 14.04) on an 
+# Create a new instance of the latest Ubuntu 14.04 on an
 # t1.micro node with an AWS Tag naming it "HelloWorld"
 provider "aws" {
     region = "us-east-1"
 }
-    
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name = "name"
+    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["paravirtual"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
 resource "aws_instance" "web" {
-    ami = "ami-408c7f28"
+    ami = "${data.aws_ami.ubuntu.id}"
     instance_type = "t1.micro"
     tags {
         Name = "HelloWorld"
@@ -49,7 +62,7 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
 * `key_name` - (Optional) The key name to use for the instance.
 * `monitoring` - (Optional) If true, the launched EC2 instance will have detailed monitoring enabled. (Available since v0.6.0)
 * `security_groups` - (Optional) A list of security group names to associate with.
-   If you are within a non-default VPC, you'll need to use `vpc_security_group_ids` instead.
+   If you are creating Instances in a VPC, use `vpc_security_group_ids` instead.
 * `vpc_security_group_ids` - (Optional) A list of security group IDs to associate with.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
 * `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.  Boolean value. 

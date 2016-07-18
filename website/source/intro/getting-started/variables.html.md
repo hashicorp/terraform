@@ -122,22 +122,23 @@ support for the "us-west-2" region as well:
 
 ```
 variable "amis" {
+    type = "map"
 	default = {
-		us-east-1 = "ami-b8b061d0"
-		us-west-2 = "ami-ef5e24df"
+		us-east-1 = "ami-13be557e"
+		us-west-2 = "ami-06b94666"
 	}
 }
 ```
 
-A variable becomes a mapping when it has a default value that is a
-map like above. There is no way to create a required map.
+A variable becomes a mapping when it has a type of "map" assigned, or has a
+default value that is a map like above.
 
 Then, replace the "aws\_instance" with the following:
 
 ```
 resource "aws_instance" "example" {
 	ami = "${lookup(var.amis, var.region)}"
-	instance_type = "t1.micro"
+	instance_type = "t2.micro"
 }
 ```
 
@@ -148,7 +149,7 @@ variables is the key.
 
 While we don't use it in our example, it is worth noting that you
 can also do a static lookup of a mapping directly with
-`${var.amis.us-east-1}`.
+`${var.amis["us-east-1"]}`.
 
 <a id="assigning-mappings"></a>
 ## Assigning Mappings

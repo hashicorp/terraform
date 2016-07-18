@@ -2,6 +2,7 @@ package azurerm
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"testing"
 
@@ -12,6 +13,8 @@ import (
 )
 
 func TestAccAzureRMStorageContainer_basic(t *testing.T) {
+	var c storage.Container
+
 	ri := acctest.RandInt()
 	rs := strings.ToLower(acctest.RandString(11))
 	config := fmt.Sprintf(testAccAzureRMStorageContainer_basic, ri, rs)
@@ -21,17 +24,41 @@ func TestAccAzureRMStorageContainer_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageContainerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMStorageContainerExists("azurerm_storage_container.test"),
+					testCheckAzureRMStorageContainerExists("azurerm_storage_container.test", &c),
 				),
 			},
 		},
 	})
 }
 
-func testCheckAzureRMStorageContainerExists(name string) resource.TestCheckFunc {
+func TestAccAzureRMStorageContainer_disappears(t *testing.T) {
+	var c storage.Container
+
+	ri := acctest.RandInt()
+	rs := strings.ToLower(acctest.RandString(11))
+	config := fmt.Sprintf(testAccAzureRMStorageContainer_basic, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageContainerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageContainerExists("azurerm_storage_container.test", &c),
+					testAccARMStorageContainerDisappears("azurerm_storage_container.test", &c),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testCheckAzureRMStorageContainerExists(name string, c *storage.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		rs, ok := s.RootModule().Resources[name]
@@ -47,9 +74,12 @@ func testCheckAzureRMStorageContainerExists(name string) resource.TestCheckFunc 
 		}
 
 		armClient := testAccProvider.Meta().(*ArmClient)
-		blobClient, err := armClient.getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
+		blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
 		if err != nil {
 			return err
+		}
+		if !accountExists {
+			return fmt.Errorf("Bad: Storage Account %q does not exist", storageAccountName)
 		}
 
 		containers, err := blobClient.ListContainers(storage.ListContainersParameters{
@@ -65,11 +95,45 @@ func testCheckAzureRMStorageContainerExists(name string) resource.TestCheckFunc 
 		for _, container := range containers.Containers {
 			if container.Name == name {
 				found = true
+				*c = container
 			}
 		}
 
 		if !found {
 			return fmt.Errorf("Bad: Storage Container %q (storage account: %q) does not exist", name, storageAccountName)
+		}
+
+		return nil
+	}
+}
+
+func testAccARMStorageContainerDisappears(name string, c *storage.Container) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		armClient := testAccProvider.Meta().(*ArmClient)
+
+		storageAccountName := rs.Primary.Attributes["storage_account_name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for storage container: %s", c.Name)
+		}
+
+		blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
+		if err != nil {
+			return err
+		}
+		if !accountExists {
+			log.Printf("[INFO]Storage Account %q doesn't exist so the container won't exist", storageAccountName)
+			return nil
+		}
+
+		_, err = blobClient.DeleteContainerIfExists(c.Name)
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -90,9 +154,12 @@ func testCheckAzureRMStorageContainerDestroy(s *terraform.State) error {
 		}
 
 		armClient := testAccProvider.Meta().(*ArmClient)
-		blobClient, err := armClient.getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
+		blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
 		if err != nil {
 			//If we can't get keys then the blob can't exist
+			return nil
+		}
+		if !accountExists {
 			return nil
 		}
 
@@ -118,6 +185,34 @@ func testCheckAzureRMStorageContainerDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func TestValidateArmStorageContainerName(t *testing.T) {
+	validNames := []string{
+		"valid-name",
+		"valid02-name",
+	}
+	for _, v := range validNames {
+		_, errors := validateArmStorageContainerName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Storage Container Name: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"InvalidName1",
+		"-invalidname1",
+		"invalid_name",
+		"invalid!",
+		"ww",
+		strings.Repeat("w", 65),
+	}
+	for _, v := range invalidNames {
+		_, errors := validateArmStorageContainerName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Storage Container Name", v)
+		}
+	}
 }
 
 var testAccAzureRMStorageContainer_basic = `

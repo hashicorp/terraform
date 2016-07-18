@@ -1,3 +1,4 @@
+//go:generate go run ./scripts/generate-plugins.go
 package main
 
 import (
@@ -9,10 +10,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/terraform/plugin"
+	"github.com/hashicorp/terraform/command"
+	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/kardianos/osext"
+	"github.com/mitchellh/cli"
 )
 
 // Config is the structure of the configuration for the Terraform CLI.
@@ -73,18 +77,22 @@ func LoadConfig(path string) (*Config, error) {
 	return &result, nil
 }
 
-// Discover discovers plugins.
+// Discover plugins located on disk, and fall back on plugins baked into the
+// Terraform binary.
 //
-// This looks in the directory of the executable and the CWD, in that
-// order for priority.
-func (c *Config) Discover() error {
-	// Look in the cwd.
-	if err := c.discover("."); err != nil {
-		return err
-	}
-
-	// Look in the plugins directory. This will override any found
-	// in the current directory.
+// We look in the following places for plugins:
+//
+// 1. Terraform configuration path
+// 2. Path where Terraform is installed
+// 3. Path where Terraform is invoked
+//
+// Whichever file is discoverd LAST wins.
+//
+// Finally, we look at the list of plugins compiled into Terraform. If any of
+// them has not been found on disk we use the internal version. This allows
+// users to add / replace plugins without recompiling the main binary.
+func (c *Config) Discover(ui cli.Ui) error {
+	// Look in ~/.terraform.d/plugins/
 	dir, err := ConfigDir()
 	if err != nil {
 		log.Printf("[ERR] Error loading config directory: %s", err)
@@ -94,14 +102,57 @@ func (c *Config) Discover() error {
 		}
 	}
 
-	// Next, look in the same directory as the executable. Any conflicts
-	// will overwrite those found in our current directory.
+	// Next, look in the same directory as the Terraform executable, usually
+	// /usr/local/bin. If found, this replaces what we found in the config path.
 	exePath, err := osext.Executable()
 	if err != nil {
 		log.Printf("[ERR] Error loading exe directory: %s", err)
 	} else {
 		if err := c.discover(filepath.Dir(exePath)); err != nil {
 			return err
+		}
+	}
+
+	// Finally look in the cwd (where we are invoke Terraform). If found, this
+	// replaces anything we found in the config / install paths.
+	if err := c.discover("."); err != nil {
+		return err
+	}
+
+	// Finally, if we have a plugin compiled into Terraform and we didn't find
+	// a replacement on disk, we'll just use the internal version. Only do this
+	// from the main process, or the log output will break the plugin handshake.
+	if os.Getenv("TF_PLUGIN_MAGIC_COOKIE") == "" {
+		for name, _ := range command.InternalProviders {
+			if path, found := c.Providers[name]; found {
+				// Allow these warnings to be suppressed via TF_PLUGIN_DEV=1 or similar
+				if os.Getenv("TF_PLUGIN_DEV") == "" {
+					ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provider.\n"+
+						"  If you did not expect to see this message you will need to remove the old plugin.\n"+
+						"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+				}
+			} else {
+				cmd, err := command.BuildPluginCommandString("provider", name)
+				if err != nil {
+					return err
+				}
+				c.Providers[name] = cmd
+			}
+		}
+		for name, _ := range command.InternalProvisioners {
+			if path, found := c.Provisioners[name]; found {
+				if os.Getenv("TF_PLUGIN_DEV") == "" {
+					ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provisioner.\n"+
+						"  If you did not expect to see this message you will need to remove the old plugin.\n"+
+						"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+				}
+			} else {
+				cmd, err := command.BuildPluginCommandString("provisioner", name)
+				if err != nil {
+					return err
+				}
+				c.Provisioners[name] = cmd
+			}
 		}
 	}
 
@@ -202,7 +253,9 @@ func (c *Config) providerFactory(path string) terraform.ResourceProviderFactory 
 	// Build the plugin client configuration and init the plugin
 	var config plugin.ClientConfig
 	config.Cmd = pluginCmd(path)
+	config.HandshakeConfig = tfplugin.Handshake
 	config.Managed = true
+	config.Plugins = tfplugin.PluginMap
 	client := plugin.NewClient(&config)
 
 	return func() (terraform.ResourceProvider, error) {
@@ -213,7 +266,12 @@ func (c *Config) providerFactory(path string) terraform.ResourceProviderFactory 
 			return nil, err
 		}
 
-		return rpcClient.ResourceProvider()
+		raw, err := rpcClient.Dispense(tfplugin.ProviderPluginName)
+		if err != nil {
+			return nil, err
+		}
+
+		return raw.(terraform.ResourceProvider), nil
 	}
 }
 
@@ -232,8 +290,10 @@ func (c *Config) ProvisionerFactories() map[string]terraform.ResourceProvisioner
 func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFactory {
 	// Build the plugin client configuration and init the plugin
 	var config plugin.ClientConfig
+	config.HandshakeConfig = tfplugin.Handshake
 	config.Cmd = pluginCmd(path)
 	config.Managed = true
+	config.Plugins = tfplugin.PluginMap
 	client := plugin.NewClient(&config)
 
 	return func() (terraform.ResourceProvisioner, error) {
@@ -242,7 +302,12 @@ func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFa
 			return nil, err
 		}
 
-		return rpcClient.ResourceProvisioner()
+		raw, err := rpcClient.Dispense(tfplugin.ProvisionerPluginName)
+		if err != nil {
+			return nil, err
+		}
+
+		return raw.(terraform.ResourceProvisioner), nil
 	}
 }
 
@@ -268,6 +333,12 @@ func pluginCmd(path string) *exec.Cmd {
 		if v, err := exec.LookPath(path); err == nil {
 			cmdPath = v
 		}
+	}
+
+	// No plugin binary found, so try to use an internal plugin.
+	if strings.Contains(path, command.TFSPACE) {
+		parts := strings.Split(path, command.TFSPACE)
+		return exec.Command(parts[0], parts[1:]...)
 	}
 
 	// If we still don't have a path, then just set it to the original

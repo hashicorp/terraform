@@ -24,6 +24,12 @@ local state to remote state using the
 use the remote config to disable remote state and move back to local
 state.
 
+### Example Usage
+
+```
+$ terraform remote config -disable
+```
+
 ## Delegation and Teamwork
 
 Remote state gives you more than just easier version control and

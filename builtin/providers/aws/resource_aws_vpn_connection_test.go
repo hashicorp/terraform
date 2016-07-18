@@ -142,7 +142,7 @@ resource "aws_vpn_gateway" "vpn_gateway" {
 }
 
 resource "aws_customer_gateway" "customer_gateway" {
-  bgp_asn = 60000
+  bgp_asn = 65000
   ip_address = "178.0.0.1"
   type = "ipsec.1"
 }
@@ -164,7 +164,7 @@ resource "aws_vpn_gateway" "vpn_gateway" {
 }
 
 resource "aws_customer_gateway" "customer_gateway" {
-  bgp_asn = 60000
+  bgp_asn = 65000
   ip_address = "178.0.0.1"
   type = "ipsec.1"
 }

@@ -38,14 +38,14 @@ func resourceAwsDbSecurityGroup() *schema.Resource {
 
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Default:  "Managed by Terraform",
 			},
 
 			"ingress": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cidr": &schema.Schema{
@@ -208,6 +208,42 @@ func resourceAwsDbSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) 
 			d.SetPartial("tags")
 		}
 	}
+
+	if d.HasChange("ingress") {
+		sg, err := resourceAwsDbSecurityGroupRetrieve(d, meta)
+		if err != nil {
+			return err
+		}
+
+		oi, ni := d.GetChange("ingress")
+		if oi == nil {
+			oi = new(schema.Set)
+		}
+		if ni == nil {
+			ni = new(schema.Set)
+		}
+
+		ois := oi.(*schema.Set)
+		nis := ni.(*schema.Set)
+		removeIngress := ois.Difference(nis).List()
+		newIngress := nis.Difference(ois).List()
+
+		// DELETE old Ingress rules
+		for _, ing := range removeIngress {
+			err := resourceAwsDbSecurityGroupRevokeRule(ing, *sg.DBSecurityGroupName, conn)
+			if err != nil {
+				return err
+			}
+		}
+
+		// ADD new/updated Ingress rules
+		for _, ing := range newIngress {
+			err := resourceAwsDbSecurityGroupAuthorizeRule(ing, *sg.DBSecurityGroupName, conn)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	d.Partial(false)
 
 	return resourceAwsDbSecurityGroupRead(d, meta)
@@ -287,6 +323,41 @@ func resourceAwsDbSecurityGroupAuthorizeRule(ingress interface{}, dbSecurityGrou
 
 	if err != nil {
 		return fmt.Errorf("Error authorizing security group ingress: %s", err)
+	}
+
+	return nil
+}
+
+// Revokes the ingress rule on the db security group
+func resourceAwsDbSecurityGroupRevokeRule(ingress interface{}, dbSecurityGroupName string, conn *rds.RDS) error {
+	ing := ingress.(map[string]interface{})
+
+	opts := rds.RevokeDBSecurityGroupIngressInput{
+		DBSecurityGroupName: aws.String(dbSecurityGroupName),
+	}
+
+	if attr, ok := ing["cidr"]; ok && attr != "" {
+		opts.CIDRIP = aws.String(attr.(string))
+	}
+
+	if attr, ok := ing["security_group_name"]; ok && attr != "" {
+		opts.EC2SecurityGroupName = aws.String(attr.(string))
+	}
+
+	if attr, ok := ing["security_group_id"]; ok && attr != "" {
+		opts.EC2SecurityGroupId = aws.String(attr.(string))
+	}
+
+	if attr, ok := ing["security_group_owner_id"]; ok && attr != "" {
+		opts.EC2SecurityGroupOwnerId = aws.String(attr.(string))
+	}
+
+	log.Printf("[DEBUG] Revoking ingress rule configuration: %#v", opts)
+
+	_, err := conn.RevokeDBSecurityGroupIngress(&opts)
+
+	if err != nil {
+		return fmt.Errorf("Error revoking security group ingress: %s", err)
 	}
 
 	return nil

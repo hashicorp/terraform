@@ -69,13 +69,7 @@ $ make core-dev
 
 ### Dependencies
 
-Terraform stores its dependencies under `vendor/`, which [Go 1.6+ will automatically recognize and load](https://golang.org/cmd/go/#hdr-Vendor_Directories). We use [`godep`](https://github.com/tools/godep) to manage the vendored dependencies.
-
-Generally speaking, `godep` operations follow this pattern:
-
- 1. Get current state of dependencies into your `$GOPATH` with `godep restore`.
- 2. Make changes to the packages in `$GOPATH`.
- 3. Tell `godep` to capture those changes in the Terraform repo.
+Terraform stores its dependencies under `vendor/`, which [Go 1.6+ will automatically recognize and load](https://golang.org/cmd/go/#hdr-Vendor_Directories). We use [`govendor`](https://github.com/kardianos/govendor) to manage the vendored dependencies.
 
 If you're developing Terraform, there are a few tasks you might need to perform.
 
@@ -83,62 +77,35 @@ If you're developing Terraform, there are a few tasks you might need to perform.
 
 If you're adding a dependency, you'll need to vendor it in the same Pull Request as the code that depends on it. You should do this in a separate commit from your code, as makes PR review easier and Git history simpler to read in the future.
 
-Because godep captures new dependencies from the local `$GOPATH`, you first need to `godep restore` from the master branch to ensure that the only diff is your new dependency.
+To add a dependency:
 
 Assuming your work is on a branch called `my-feature-branch`, the steps look like this:
 
-```bash
-# Get latest master branch's dependencies staged in local $GOPATH
-git checkout master
-git pull
-godep restore -v
+1. Add the new package to your GOPATH:
 
-# Capture the new dependency referenced from my-feature-branch
-git checkout my-feature-branch
-git rebase master
-godep save ./...
+    ```bash
+    go get github.com/hashicorp/my-project
+    ```
 
-# There should now be a diff in `vendor/` with added files for your dependency,
-# and a diff in Godeps/Godeps.json with metadata for your dependency.
+2.  Add the new package to your vendor/ directory:
 
-# Make a commit with your new dependencies added
-git add -A
-git commit -m "vendor: Capture new dependency upstream-pkg"
+    ```bash
+    govendor add github.com/hashicorp/my-project/package
+    ```
 
-# Push to your branch (may need -f if you rebased)
-git push origin my-feature-branch
-```
+3. Review the changes in git and commit them.
 
 #### Updating a dependency
 
-If you're updating an existing dependency, godep provides a specific command to snag the newer version from your `$GOPATH`.
+To update a dependency:
 
-```bash
-# Get latest master branch's dependencies staged in local $GOPATH
-git checkout master
-git pull
-godep restore -v
+1. Fetch the dependency:
 
-# Make your way to the dependency in question and checkout the target ref
-pushd $GOPATH/src/github.com/some/dependency
-git checkout v-1.next
+    ```bash
+    govendor fetch github.com/hashicorp/my-project
+    ```
 
-# Head back to Terraform on a feature branch and update the dependncy to the
-# version currently in your $GOPATH
-popd
-git checkout my-feature-branch
-godep update github.com/some/dependency/...
-
-# There should now be a diff in `vendor/` with changed files for your dependency,
-# and a diff in Godeps/Godeps.json with metadata for the updated dependency.
-
-# Make a commit with the updated dependency
-git add -A
-git commit -m "vendor: Update dependency upstream-pkg to 1.4.6"
-
-# Push to your branch
-git push origin my-feature-branch
-```
+2. Review the changes in git and commit them.
 
 ### Acceptance Tests
 

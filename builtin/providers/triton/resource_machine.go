@@ -35,6 +35,9 @@ func resourceMachine() *schema.Resource {
 		Read:   resourceMachineRead,
 		Update: resourceMachineUpdate,
 		Delete: resourceMachineDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceMachineImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -163,6 +166,14 @@ func resourceMachine() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
+			},
+			"domain_names": {
+				Description: "list of domain names from Triton's CNS",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 
 			// computed resources from metadata
@@ -295,6 +306,7 @@ func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("image", machine.Image)
 	d.Set("primaryip", machine.PrimaryIP)
 	d.Set("firewall_enabled", machine.FirewallEnabled)
+	d.Set("domain_names", machine.DomainNames)
 
 	// create and update NICs
 	var (
@@ -567,4 +579,8 @@ func resourceMachineValidateName(value interface{}, name string) (warnings []str
 	}
 
 	return warnings, errors
+}
+
+func resourceMachineImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	return []*schema.ResourceData{d}, nil
 }

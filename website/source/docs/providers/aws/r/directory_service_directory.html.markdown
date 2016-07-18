@@ -57,14 +57,14 @@ The following arguments are supported:
 
 **vpc\_settings** supports the following:
 
-* `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (min. 2 subnets in 2 different AZs).
+* `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (2 subnets in 2 different AZs).
 * `vpc_id` - (Required) The identifier of the VPC that the directory is in.
 
 **connect\_settings** supports the following:
 
 * `customer_username` - (Required) The username corresponding to the password provided.
 * `customer_dns_ips` - (Required) The DNS IP addresses of the domain to connect to.
-* `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (min. 2 subnets in 2 different AZs).
+* `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (2 subnets in 2 different AZs).
 * `vpc_id` - (Required) The identifier of the VPC that the directory is in.
 
 ## Attributes Reference

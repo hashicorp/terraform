@@ -46,3 +46,5 @@ The following arguments are supported:
   and value is either `Error`, `Empty` (built-in models) or `aws_api_gateway_model`'s `name`.
 * `request_parameters_in_json` - (Optional) A map written as a JSON string specifying
   the request query string parameters and headers that should be passed to the integration
+  For example: `request_parameters_in_json = "{\"method.request.header.X-Some-Header\":true}"`  
+  would define that the header X-Some-Header must be provided on the request.

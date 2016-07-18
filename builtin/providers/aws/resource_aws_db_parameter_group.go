@@ -23,6 +23,10 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 		Read:   resourceAwsDbParameterGroupRead,
 		Update: resourceAwsDbParameterGroupUpdate,
 		Delete: resourceAwsDbParameterGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -41,8 +45,9 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Default:  "Managed by Terraform",
 			},
 			"parameter": &schema.Schema{
 				Type:     schema.TypeSet,

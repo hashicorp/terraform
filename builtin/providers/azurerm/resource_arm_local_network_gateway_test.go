@@ -17,7 +17,7 @@ func TestAccAzureRMLocalNetworkGateway_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureRMLocalNetworkGatewayConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLocalNetworkGatewayExists(name),

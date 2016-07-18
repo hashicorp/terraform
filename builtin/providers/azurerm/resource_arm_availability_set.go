@@ -7,6 +7,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/jen20/riviera/azure"
 )
 
 func resourceArmAvailabilitySet() *schema.Resource {
@@ -15,28 +16,31 @@ func resourceArmAvailabilitySet() *schema.Resource {
 		Read:   resourceArmAvailabilitySetRead,
 		Update: resourceArmAvailabilitySetCreate,
 		Delete: resourceArmAvailabilitySetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"platform_update_domain_count": &schema.Schema{
+			"platform_update_domain_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  5,
@@ -50,7 +54,7 @@ func resourceArmAvailabilitySet() *schema.Resource {
 				},
 			},
 
-			"platform_fault_domain_count": &schema.Schema{
+			"platform_fault_domain_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  3,
@@ -86,8 +90,8 @@ func resourceArmAvailabilitySetCreate(d *schema.ResourceData, meta interface{}) 
 		Name:     &name,
 		Location: &location,
 		Properties: &compute.AvailabilitySetProperties{
-			PlatformFaultDomainCount:  &faultDomainCount,
-			PlatformUpdateDomainCount: &updateDomainCount,
+			PlatformFaultDomainCount:  azure.Int32(int32(faultDomainCount)),
+			PlatformUpdateDomainCount: azure.Int32(int32(updateDomainCount)),
 		},
 		Tags: expandTags(tags),
 	}
@@ -124,6 +128,8 @@ func resourceArmAvailabilitySetRead(d *schema.ResourceData, meta interface{}) er
 	availSet := *resp.Properties
 	d.Set("platform_update_domain_count", availSet.PlatformUpdateDomainCount)
 	d.Set("platform_fault_domain_count", availSet.PlatformFaultDomainCount)
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
 
 	flattenAndSetTags(d, resp.Tags)
 

@@ -85,3 +85,11 @@ The following attributes are exported:
 * `security_groups` - See Argument Reference above.
 * `device_id` - See Argument Reference above.
 * `fixed_ip/ip_address` - See Argument Reference above.
+
+## Notes
+
+### Ports and Instances
+
+There are some notes to consider when connecting Instances to networks using
+Ports. Please see the `openstack_compute_instance_v2` documentation for further
+documentation.

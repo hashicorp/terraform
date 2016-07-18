@@ -32,6 +32,10 @@ func resourceAwsElasticBeanstalkOptionSetting() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"resource": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -42,6 +46,9 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 		Read:   resourceAwsElasticBeanstalkEnvironmentRead,
 		Update: resourceAwsElasticBeanstalkEnvironmentUpdate,
 		Delete: resourceAwsElasticBeanstalkEnvironmentDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsElasticBeanstalkEnvironmentMigrateState,
@@ -101,13 +108,14 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Set:      optionSettingValueHash,
 			},
 			"solution_stack_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"template_name": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"solution_stack_name"},
+				Computed:      true,
+				ConflictsWith: []string{"template_name"},
+			},
+			"template_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"wait_for_ready_timeout": &schema.Schema{
 				Type:     schema.TypeString,
@@ -225,6 +233,8 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 		createOpts.TemplateName = aws.String(templateName)
 	}
 
+	// Get the current time to filter describeBeanstalkEvents messages
+	t := time.Now()
 	log.Printf("[DEBUG] Elastic Beanstalk Environment create opts: %s", createOpts)
 	resp, err := conn.CreateEnvironment(&createOpts)
 	if err != nil {
@@ -248,6 +258,11 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 		return fmt.Errorf(
 			"Error waiting for Elastic Beanstalk Environment (%s) to become ready: %s",
 			d.Id(), err)
+	}
+
+	err = describeBeanstalkEvents(conn, d.Id(), t)
+	if err != nil {
+		return err
 	}
 
 	return resourceAwsElasticBeanstalkEnvironmentRead(d, meta)
@@ -293,6 +308,8 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		updateOpts.TemplateName = aws.String(d.Get("template_name").(string))
 	}
 
+	// Get the current time to filter describeBeanstalkEvents messages
+	t := time.Now()
 	log.Printf("[DEBUG] Elastic Beanstalk Environment update opts: %s", updateOpts)
 	_, err = conn.UpdateEnvironment(&updateOpts)
 	if err != nil {
@@ -315,21 +332,23 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 			d.Id(), err)
 	}
 
+	err = describeBeanstalkEvents(conn, d.Id(), t)
+	if err != nil {
+		return err
+	}
+
 	return resourceAwsElasticBeanstalkEnvironmentRead(d, meta)
 }
 
 func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
-	app := d.Get("application").(string)
 	envId := d.Id()
-	tier := d.Get("tier").(string)
 
 	log.Printf("[DEBUG] Elastic Beanstalk environment read %s: id %s", d.Get("name").(string), d.Id())
 
 	resp, err := conn.DescribeEnvironments(&elasticbeanstalk.DescribeEnvironmentsInput{
-		ApplicationName: aws.String(app),
-		EnvironmentIds:  []*string{aws.String(envId)},
+		EnvironmentIds: []*string{aws.String(envId)},
 	})
 
 	if err != nil {
@@ -362,6 +381,14 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		return err
 	}
 
+	if err := d.Set("name", env.EnvironmentName); err != nil {
+		return err
+	}
+
+	if err := d.Set("application", env.ApplicationName); err != nil {
+		return err
+	}
+
 	if err := d.Set("description", env.Description); err != nil {
 		return err
 	}
@@ -370,8 +397,12 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		return err
 	}
 
-	if tier == "WebServer" {
-		beanstalkCnamePrefixRegexp := regexp.MustCompile(`(^[^.]+).\w{2}-\w{4}-\d.elasticbeanstalk.com$`)
+	if err := d.Set("tier", *env.Tier.Name); err != nil {
+		return err
+	}
+
+	if env.CNAME != nil {
+		beanstalkCnamePrefixRegexp := regexp.MustCompile(`(^[^.]+)(.\w{2}-\w{4,9}-\d)?.elasticbeanstalk.com$`)
 		var cnamePrefix string
 		cnamePrefixMatch := beanstalkCnamePrefixRegexp.FindStringSubmatch(*env.CNAME)
 
@@ -384,6 +415,14 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		if err := d.Set("cname_prefix", cnamePrefix); err != nil {
 			return err
 		}
+	} else {
+		if err := d.Set("cname_prefix", ""); err != nil {
+			return err
+		}
+	}
+
+	if err := d.Set("solution_stack_name", env.SolutionStackName); err != nil {
+		return err
 	}
 
 	if err := d.Set("autoscaling_groups", flattenBeanstalkAsg(resources.EnvironmentResources.AutoScalingGroups)); err != nil {
@@ -442,6 +481,10 @@ func fetchAwsElasticBeanstalkEnvironmentSettings(d *schema.ResourceData, meta in
 			m["name"] = *optionSetting.OptionName
 		} else {
 			return nil, fmt.Errorf("Error reading environment settings: option setting with no name: %v", optionSetting)
+		}
+
+		if *optionSetting.Namespace == "aws:autoscaling:scheduledaction" && optionSetting.ResourceName != nil {
+			m["resource"] = *optionSetting.ResourceName
 		}
 
 		if optionSetting.Value != nil {
@@ -514,6 +557,8 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 		TerminateResources: aws.Bool(true),
 	}
 
+	// Get the current time to filter describeBeanstalkEvents messages
+	t := time.Now()
 	log.Printf("[DEBUG] Elastic Beanstalk Environment terminate opts: %s", opts)
 	_, err = conn.TerminateEnvironment(&opts)
 
@@ -535,6 +580,11 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 		return fmt.Errorf(
 			"Error waiting for Elastic Beanstalk Environment (%s) to become terminated: %s",
 			d.Id(), err)
+	}
+
+	err = describeBeanstalkEvents(conn, d.Id(), t)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -579,8 +629,12 @@ func optionSettingValueHash(v interface{}) int {
 	rd := v.(map[string]interface{})
 	namespace := rd["namespace"].(string)
 	optionName := rd["name"].(string)
+	var resourceName string
+	if v, ok := rd["resource"].(string); ok {
+		resourceName = v
+	}
 	value, _ := rd["value"].(string)
-	hk := fmt.Sprintf("%s:%s=%s", namespace, optionName, sortValues(value))
+	hk := fmt.Sprintf("%s:%s%s=%s", namespace, optionName, resourceName, sortValues(value))
 	log.Printf("[DEBUG] Elastic Beanstalk optionSettingValueHash(%#v): %s: hk=%s,hc=%d", v, optionName, hk, hashcode.String(hk))
 	return hashcode.String(hk)
 }
@@ -589,7 +643,11 @@ func optionSettingKeyHash(v interface{}) int {
 	rd := v.(map[string]interface{})
 	namespace := rd["namespace"].(string)
 	optionName := rd["name"].(string)
-	hk := fmt.Sprintf("%s:%s", namespace, optionName)
+	var resourceName string
+	if v, ok := rd["resource"].(string); ok {
+		resourceName = v
+	}
+	hk := fmt.Sprintf("%s:%s%s", namespace, optionName, resourceName)
 	log.Printf("[DEBUG] Elastic Beanstalk optionSettingKeyHash(%#v): %s: hk=%s,hc=%d", v, optionName, hk, hashcode.String(hk))
 	return hashcode.String(hk)
 }
@@ -605,11 +663,17 @@ func extractOptionSettings(s *schema.Set) []*elasticbeanstalk.ConfigurationOptio
 
 	if s != nil {
 		for _, setting := range s.List() {
-			settings = append(settings, &elasticbeanstalk.ConfigurationOptionSetting{
+			optionSetting := elasticbeanstalk.ConfigurationOptionSetting{
 				Namespace:  aws.String(setting.(map[string]interface{})["namespace"].(string)),
 				OptionName: aws.String(setting.(map[string]interface{})["name"].(string)),
 				Value:      aws.String(setting.(map[string]interface{})["value"].(string)),
-			})
+			}
+			if *optionSetting.Namespace == "aws:autoscaling:scheduledaction" {
+				if v, ok := setting.(map[string]interface{})["resource"].(string); ok && v != "" {
+					optionSetting.ResourceName = aws.String(v)
+				}
+			}
+			settings = append(settings, &optionSetting)
 		}
 	}
 
@@ -621,24 +685,71 @@ func dropGeneratedSecurityGroup(settingValue string, meta interface{}) string {
 
 	groups := strings.Split(settingValue, ",")
 
-	resp, err := conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
-		GroupIds: aws.StringSlice(groups),
-	})
+	// Check to see if groups are ec2-classic or vpc security groups
+	ec2Classic := true
+	beanstalkSGRegexp := "sg-[0-9a-fA-F]{8}"
+	for _, g := range groups {
+		if ok, _ := regexp.MatchString(beanstalkSGRegexp, g); ok {
+			ec2Classic = false
+			break
+		}
+	}
+
+	var resp *ec2.DescribeSecurityGroupsOutput
+	var err error
+
+	if ec2Classic {
+		resp, err = conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+			GroupNames: aws.StringSlice(groups),
+		})
+	} else {
+		resp, err = conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+			GroupIds: aws.StringSlice(groups),
+		})
+	}
 
 	if err != nil {
 		log.Printf("[DEBUG] Elastic Beanstalk error describing SecurityGroups: %v", err)
 		return settingValue
 	}
 
+	log.Printf("[DEBUG] Elastic Beanstalk using ec2-classic security-groups: %t", ec2Classic)
 	var legitGroups []string
 	for _, group := range resp.SecurityGroups {
 		log.Printf("[DEBUG] Elastic Beanstalk SecurityGroup: %v", *group.GroupName)
 		if !strings.HasPrefix(*group.GroupName, "awseb") {
-			legitGroups = append(legitGroups, *group.GroupId)
+			if ec2Classic {
+				legitGroups = append(legitGroups, *group.GroupName)
+			} else {
+				legitGroups = append(legitGroups, *group.GroupId)
+			}
 		}
 	}
 
 	sort.Strings(legitGroups)
 
 	return strings.Join(legitGroups, ",")
+}
+
+func describeBeanstalkEvents(conn *elasticbeanstalk.ElasticBeanstalk, environmentId string, t time.Time) error {
+	beanstalkErrors, err := conn.DescribeEvents(&elasticbeanstalk.DescribeEventsInput{
+		EnvironmentId: aws.String(environmentId),
+		Severity:      aws.String("ERROR"),
+		StartTime:     aws.Time(t),
+	})
+
+	if err != nil {
+		log.Printf("[Err] Unable to get Elastic Beanstalk Evironment events: %s", err)
+	}
+
+	events := ""
+	for _, event := range beanstalkErrors.Events {
+		events = events + "\n" + event.EventDate.String() + ": " + *event.Message
+	}
+
+	if events != "" {
+		return fmt.Errorf("%s", events)
+	}
+
+	return nil
 }

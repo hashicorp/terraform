@@ -16,7 +16,7 @@ import (
 
 // How long to sleep if a limit-exceeded event happens
 var routeTargetValidationError = errors.New("Error: more than 1 target specified. Only 1 of gateway_id, " +
-	"nat_gateway_id, instance_id, network_interface_id, route_table_id or" +
+	"nat_gateway_id, instance_id, network_interface_id, route_table_id or " +
 	"vpc_peering_connection_id is allowed.")
 
 // AWS Route resource Schema declaration
@@ -179,14 +179,18 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating route: %s", err)
 	}
 
-	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
+	var route *ec2.Route
+	err = resource.Retry(15*time.Second, func() *resource.RetryError {
+		route, err = findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
+		return resource.RetryableError(err)
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("Error finding route after creating it: %s", err)
 	}
 
 	d.SetId(routeIDHash(d, route))
-
-	return resourceAwsRouteRead(d, meta)
+	resourceAwsRouteSetResourceData(d, route)
+	return nil
 }
 
 func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
@@ -195,7 +199,11 @@ func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	resourceAwsRouteSetResourceData(d, route)
+	return nil
+}
 
+func resourceAwsRouteSetResourceData(d *schema.ResourceData, route *ec2.Route) {
 	d.Set("destination_prefix_list_id", route.DestinationPrefixListId)
 	d.Set("gateway_id", route.GatewayId)
 	d.Set("nat_gateway_id", route.NatGatewayId)
@@ -205,20 +213,17 @@ func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("origin", route.Origin)
 	d.Set("state", route.State)
 	d.Set("vpc_peering_connection_id", route.VpcPeeringConnectionId)
-
-	return nil
 }
 
 func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	var numTargets int
 	var setTarget string
-
 	allowedTargets := []string{
 		"gateway_id",
 		"nat_gateway_id",
-		"network_interface_id",
 		"instance_id",
+		"network_interface_id",
 		"vpc_peering_connection_id",
 	}
 	replaceOpts := &ec2.ReplaceRouteInput{}
@@ -231,18 +236,8 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	switch setTarget {
-	//instance_id is a special case due to the fact that AWS will "discover" the network_interace_id
-	//when it creates the route and return that data.  In the case of an update, we should ignore the
-	//existing network_interface_id
-	case "instance_id":
-		if numTargets > 2 || (numTargets == 2 && len(d.Get("network_interface_id").(string)) == 0) {
-			return routeTargetValidationError
-		}
-	default:
-		if numTargets > 1 {
-			return routeTargetValidationError
-		}
+	if numTargets > 1 {
+		return routeTargetValidationError
 	}
 
 	// Formulate ReplaceRouteInput based on the target type
@@ -264,6 +259,8 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
 			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
 			InstanceId:           aws.String(d.Get("instance_id").(string)),
+			//NOOP: Ensure we don't blow away network interface id that is set after instance is launched
+			NetworkInterfaceId: aws.String(d.Get("network_interface_id").(string)),
 		}
 	case "network_interface_id":
 		replaceOpts = &ec2.ReplaceRouteInput{
@@ -389,7 +386,7 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 		}
 	}
 
-	return nil, fmt.Errorf(`
-error finding matching route for Route table (%s) and destination CIDR block (%s)`,
+	return nil, fmt.Errorf(
+		`error finding matching route for Route table (%s) and destination CIDR block (%s)`,
 		rtbid, cidr)
 }

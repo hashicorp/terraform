@@ -13,13 +13,14 @@ import (
 )
 
 func TestAccAWSSQSQueue_basic(t *testing.T) {
+	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(5))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSQSConfigWithDefaults,
+				Config: testAccAWSSQSConfigWithDefaults(queueName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.queue-with-defaults"),
 				),
@@ -194,11 +195,13 @@ func testAccCheckAWSSQSExistsWithOverrides(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccAWSSQSConfigWithDefaults = `
+func testAccAWSSQSConfigWithDefaults(r string) string {
+	return fmt.Sprintf(`
 resource "aws_sqs_queue" "queue-with-defaults" {
-    name = "test-sqs-queue-with-defaults"
+    name = "%s"
 }
-`
+`, r)
+}
 
 const testAccAWSSQSConfigWithOverrides = `
 resource "aws_sqs_queue" "queue-with-overrides" {

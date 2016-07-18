@@ -4,9 +4,9 @@ package terraform
 
 import "fmt"
 
-const _walkOperation_name = "walkInvalidwalkInputwalkApplywalkPlanwalkPlanDestroywalkRefreshwalkValidatewalkDestroy"
+const _walkOperation_name = "walkInvalidwalkInputwalkApplywalkPlanwalkPlanDestroywalkRefreshwalkValidatewalkDestroywalkImport"
 
-var _walkOperation_index = [...]uint8{0, 11, 20, 29, 37, 52, 63, 75, 86}
+var _walkOperation_index = [...]uint8{0, 11, 20, 29, 37, 52, 63, 75, 86, 96}
 
 func (i walkOperation) String() string {
 	if i >= walkOperation(len(_walkOperation_index)-1) {

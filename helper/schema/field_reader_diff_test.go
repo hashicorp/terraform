@@ -22,7 +22,7 @@ func TestDiffFieldReader_MapHandling(t *testing.T) {
 		Schema: schema,
 		Diff: &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"tags.#": &terraform.ResourceAttrDiff{
+				"tags.%": &terraform.ResourceAttrDiff{
 					Old: "1",
 					New: "2",
 				},
@@ -35,7 +35,7 @@ func TestDiffFieldReader_MapHandling(t *testing.T) {
 		Source: &MapFieldReader{
 			Schema: schema,
 			Map: BasicMapReader(map[string]string{
-				"tags.#":   "1",
+				"tags.%":   "1",
 				"tags.foo": "bar",
 			}),
 		},

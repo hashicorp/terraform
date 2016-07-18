@@ -21,15 +21,14 @@ import (
 
 const TestEnvVar = "TF_ACC"
 
-// UnitTestOverride is a value that when set in TestEnvVar indicates that this
-// is a unit test borrowing the acceptance testing framework.
-const UnitTestOverride = "UnitTestOverride"
-
 // TestCheckFunc is the callback type used with acceptance tests to check
 // the state of a resource. The state passed in is the latest state known,
 // or in the case of being after a destroy, it is the last known state when
 // it was created.
 type TestCheckFunc func(*terraform.State) error
+
+// ImportStateCheckFunc is the check function for ImportState tests
+type ImportStateCheckFunc func([]*terraform.InstanceState) error
 
 // TestCase is a single acceptance test case used to test the apply/destroy
 // lifecycle of a resource in a specific configuration.
@@ -37,6 +36,13 @@ type TestCheckFunc func(*terraform.State) error
 // When the destroy plan is executed, the config from the last TestStep
 // is used to plan it.
 type TestCase struct {
+	// IsUnitTest allows a test to run regardless of the TF_ACC
+	// environment variable. This should be used with care - only for
+	// fast tests on local resources (e.g. remote state with a local
+	// backend) but can be used to increase confidence in correct
+	// operation of Terraform without waiting for a full acctest run.
+	IsUnitTest bool
+
 	// PreCheck, if non-nil, will be called before any test steps are
 	// executed. It will only be executed in the case that the steps
 	// would run, so it can be used for some validation before running
@@ -52,6 +58,10 @@ type TestCase struct {
 	// are used within the tests.
 	Providers         map[string]terraform.ResourceProvider
 	ProviderFactories map[string]terraform.ResourceProviderFactory
+
+	// PreventPostDestroyRefresh can be set to true for cases where data sources
+	// are tested alongside real resources
+	PreventPostDestroyRefresh bool
 
 	// CheckDestroy is called after the resource is finally destroyed
 	// to allow the tester to test that the resource is truly gone.
@@ -81,11 +91,34 @@ type TestCase struct {
 // potentially complex update logic. In general, simply create/destroy
 // tests will only need one step.
 type TestStep struct {
+	// ResourceName should be set to the name of the resource
+	// that is being tested. Example: "aws_instance.foo". Various test
+	// modes use this to auto-detect state information.
+	//
+	// This is only required if the test mode settings below say it is
+	// for the mode you're using.
+	ResourceName string
+
 	// PreConfig is called before the Config is applied to perform any per-step
-	// setup that needs to happen
+	// setup that needs to happen. This is called regardless of "test mode"
+	// below.
 	PreConfig func()
 
-	// Config a string of the configuration to give to Terraform.
+	//---------------------------------------------------------------
+	// Test modes. One of the following groups of settings must be
+	// set to determine what the test step will do. Ideally we would've
+	// used Go interfaces here but there are now hundreds of tests we don't
+	// want to re-type so instead we just determine which step logic
+	// to run based on what settings below are set.
+	//---------------------------------------------------------------
+
+	//---------------------------------------------------------------
+	// Plan, Apply testing
+	//---------------------------------------------------------------
+
+	// Config a string of the configuration to give to Terraform. If this
+	// is set, then the TestCase will execute this step with the same logic
+	// as a `terraform apply`.
 	Config string
 
 	// Check is called after the Config is applied. Use this step to
@@ -104,6 +137,44 @@ type TestStep struct {
 	// ExpectNonEmptyPlan can be set to true for specific types of tests that are
 	// looking to verify that a diff occurs
 	ExpectNonEmptyPlan bool
+
+	// ExpectError allows the construction of test cases that we expect to fail
+	// with an error. The specified regexp must match against the error for the
+	// test to pass.
+	ExpectError *regexp.Regexp
+
+	// PreventPostDestroyRefresh can be set to true for cases where data sources
+	// are tested alongside real resources
+	PreventPostDestroyRefresh bool
+
+	//---------------------------------------------------------------
+	// ImportState testing
+	//---------------------------------------------------------------
+
+	// ImportState, if true, will test the functionality of ImportState
+	// by importing the resource with ResourceName (must be set) and the
+	// ID of that resource.
+	ImportState bool
+
+	// ImportStateId is the ID to perform an ImportState operation with.
+	// This is optional. If it isn't set, then the resource ID is automatically
+	// determined by inspecting the state for ResourceName's ID.
+	ImportStateId string
+
+	// ImportStateCheck checks the results of ImportState. It should be
+	// used to verify that the resulting value of ImportState has the
+	// proper resources, IDs, and attributes.
+	ImportStateCheck ImportStateCheckFunc
+
+	// ImportStateVerify, if true, will also check that the state values
+	// that are finally put into the state after import match for all the
+	// IDs returned by the Import.
+	//
+	// ImportStateVerifyIgnore are fields that should not be verified to
+	// be equal. These can be set to ephemeral fields or fields that can't
+	// be refreshed and don't matter.
+	ImportStateVerify       bool
+	ImportStateVerifyIgnore []string
 }
 
 // Test performs an acceptance test on a resource.
@@ -118,15 +189,14 @@ type TestStep struct {
 // output.
 func Test(t TestT, c TestCase) {
 	// We only run acceptance tests if an env var is set because they're
-	// slow and generally require some outside configuration.
-	if os.Getenv(TestEnvVar) == "" {
+	// slow and generally require some outside configuration. You can opt out
+	// of this with OverrideEnvVar on individual TestCases.
+	if os.Getenv(TestEnvVar) == "" && !c.IsUnitTest {
 		t.Skip(fmt.Sprintf(
 			"Acceptance tests skipped unless env '%s' set",
 			TestEnvVar))
 		return
 	}
-
-	isUnitTest := (os.Getenv(TestEnvVar) == UnitTestOverride)
 
 	logWriter, err := logging.LogOutput()
 	if err != nil {
@@ -135,7 +205,7 @@ func Test(t TestT, c TestCase) {
 	log.SetOutput(logWriter)
 
 	// We require verbose mode so that the user knows what is going on.
-	if !testTesting && !testing.Verbose() && !isUnitTest {
+	if !testTesting && !testing.Verbose() && !c.IsUnitTest {
 		t.Fatal("Acceptance tests must be run with the -v flag on tests")
 		return
 	}
@@ -165,12 +235,35 @@ func Test(t TestT, c TestCase) {
 	for i, step := range c.Steps {
 		var err error
 		log.Printf("[WARN] Test: Executing step %d", i)
-		state, err = testStep(opts, state, step)
+
+		// Determine the test mode to execute
+		if step.Config != "" {
+			state, err = testStepConfig(opts, state, step)
+		} else if step.ImportState {
+			state, err = testStepImportState(opts, state, step)
+		} else {
+			err = fmt.Errorf(
+				"unknown test mode for step. Please see TestStep docs\n\n%#v",
+				step)
+		}
+
+		// If there was an error, exit
 		if err != nil {
-			errored = true
-			t.Error(fmt.Sprintf(
-				"Step %d error: %s", i, err))
-			break
+			// Perhaps we expected an error? Check if it matches
+			if step.ExpectError != nil {
+				if !step.ExpectError.MatchString(err.Error()) {
+					errored = true
+					t.Error(fmt.Sprintf(
+						"Step %d, expected error:\n\n%s\n\nTo match:\n\n%s\n\n",
+						i, err, step.ExpectError))
+					break
+				}
+			} else {
+				errored = true
+				t.Error(fmt.Sprintf(
+					"Step %d error: %s", i, err))
+				break
+			}
 		}
 
 		// If we've never checked an id-only refresh and our state isn't
@@ -200,7 +293,7 @@ func Test(t TestT, c TestCase) {
 				if err := testIDOnlyRefresh(c, opts, step, idRefreshCheck); err != nil {
 					log.Printf("[ERROR] Test: ID-only test failed: %s", err)
 					t.Error(fmt.Sprintf(
-						"ID-Only refresh test failure: %s", err))
+						"[ERROR] Test: ID-only test failed: %s", err))
 					break
 				}
 			}
@@ -216,10 +309,12 @@ func Test(t TestT, c TestCase) {
 
 	// If we have a state, then run the destroy
 	if state != nil {
+		lastStep := c.Steps[len(c.Steps)-1]
 		destroyStep := TestStep{
-			Config:  c.Steps[len(c.Steps)-1].Config,
-			Check:   c.CheckDestroy,
-			Destroy: true,
+			Config:                    lastStep.Config,
+			Check:                     c.CheckDestroy,
+			Destroy:                   true,
+			PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
 		}
 
 		log.Printf("[WARN] Test: Executing destroy step")
@@ -241,15 +336,7 @@ func Test(t TestT, c TestCase) {
 // normal unit test suite. This should only be used for resource that don't
 // have any external dependencies.
 func UnitTest(t TestT, c TestCase) {
-	oldEnv := os.Getenv(TestEnvVar)
-	if err := os.Setenv(TestEnvVar, UnitTestOverride); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := os.Setenv(TestEnvVar, oldEnv); err != nil {
-			t.Fatal(err)
-		}
-	}()
+	c.IsUnitTest = true
 	Test(t, c)
 }
 
@@ -284,7 +371,10 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	// Initialize the context
 	opts.Module = mod
 	opts.State = state
-	ctx := terraform.NewContext(&opts)
+	ctx, err := terraform.NewContext(&opts)
+	if err != nil {
+		return err
+	}
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
 		if len(es) > 0 {
 			estrs := make([]string, len(es))
@@ -349,115 +439,6 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	return nil
 }
 
-func testStep(
-	opts terraform.ContextOpts,
-	state *terraform.State,
-	step TestStep) (*terraform.State, error) {
-	mod, err := testModule(opts, step)
-	if err != nil {
-		return state, err
-	}
-
-	// Build the context
-	opts.Module = mod
-	opts.State = state
-	opts.Destroy = step.Destroy
-	ctx := terraform.NewContext(&opts)
-	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
-		if len(es) > 0 {
-			estrs := make([]string, len(es))
-			for i, e := range es {
-				estrs[i] = e.Error()
-			}
-			return state, fmt.Errorf(
-				"Configuration is invalid.\n\nWarnings: %#v\n\nErrors: %#v",
-				ws, estrs)
-		}
-		log.Printf("[WARN] Config warnings: %#v", ws)
-	}
-
-	// Refresh!
-	state, err = ctx.Refresh()
-	if err != nil {
-		return state, fmt.Errorf(
-			"Error refreshing: %s", err)
-	}
-
-	// Plan!
-	if p, err := ctx.Plan(); err != nil {
-		return state, fmt.Errorf(
-			"Error planning: %s", err)
-	} else {
-		log.Printf("[WARN] Test: Step plan: %s", p)
-	}
-
-	// We need to keep a copy of the state prior to destroying
-	// such that destroy steps can verify their behaviour in the check
-	// function
-	stateBeforeApplication := state.DeepCopy()
-
-	// Apply!
-	state, err = ctx.Apply()
-	if err != nil {
-		return state, fmt.Errorf("Error applying: %s", err)
-	}
-
-	// Check! Excitement!
-	if step.Check != nil {
-		if step.Destroy {
-			if err := step.Check(stateBeforeApplication); err != nil {
-				return state, fmt.Errorf("Check failed: %s", err)
-			}
-		} else {
-			if err := step.Check(state); err != nil {
-				return state, fmt.Errorf("Check failed: %s", err)
-			}
-		}
-	}
-
-	// Now, verify that Plan is now empty and we don't have a perpetual diff issue
-	// We do this with TWO plans. One without a refresh.
-	var p *terraform.Plan
-	if p, err = ctx.Plan(); err != nil {
-		return state, fmt.Errorf("Error on follow-up plan: %s", err)
-	}
-	if p.Diff != nil && !p.Diff.Empty() {
-		if step.ExpectNonEmptyPlan {
-			log.Printf("[INFO] Got non-empty plan, as expected:\n\n%s", p)
-		} else {
-			return state, fmt.Errorf(
-				"After applying this step, the plan was not empty:\n\n%s", p)
-		}
-	}
-
-	// And another after a Refresh.
-	state, err = ctx.Refresh()
-	if err != nil {
-		return state, fmt.Errorf(
-			"Error on follow-up refresh: %s", err)
-	}
-	if p, err = ctx.Plan(); err != nil {
-		return state, fmt.Errorf("Error on second follow-up plan: %s", err)
-	}
-	if p.Diff != nil && !p.Diff.Empty() {
-		if step.ExpectNonEmptyPlan {
-			log.Printf("[INFO] Got non-empty plan, as expected:\n\n%s", p)
-		} else {
-			return state, fmt.Errorf(
-				"After applying this step and refreshing, "+
-					"the plan was not empty:\n\n%s", p)
-		}
-	}
-
-	// Made it here, but expected a non-empty plan, fail!
-	if step.ExpectNonEmptyPlan && (p.Diff == nil || p.Diff.Empty()) {
-		return state, fmt.Errorf("Expected a non-empty plan, but got an empty plan!")
-	}
-
-	// Made it here? Good job test step!
-	return state, nil
-}
-
 func testModule(
 	opts terraform.ContextOpts,
 	step TestStep) (*module.Tree, error) {
@@ -503,6 +484,23 @@ func testModule(
 	}
 
 	return mod, nil
+}
+
+func testResource(c TestStep, state *terraform.State) (*terraform.ResourceState, error) {
+	if c.ResourceName == "" {
+		return nil, fmt.Errorf("ResourceName must be set in TestStep")
+	}
+
+	for _, m := range state.Modules {
+		if len(m.Resources) > 0 {
+			if v, ok := m.Resources[c.ResourceName]; ok {
+				return v, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf(
+		"Resource specified by ResourceName couldn't be found: %s", c.ResourceName)
 }
 
 // ComposeTestCheckFunc lets you compose multiple TestCheckFuncs into
@@ -592,12 +590,32 @@ func TestCheckOutput(name, value string) TestCheckFunc {
 			return fmt.Errorf("Not found: %s", name)
 		}
 
-		if rs != value {
+		if rs.Value != value {
 			return fmt.Errorf(
 				"Output '%s': expected %#v, got %#v",
 				name,
 				value,
 				rs)
+		}
+
+		return nil
+	}
+}
+
+func TestMatchOutput(name string, r *regexp.Regexp) TestCheckFunc {
+	return func(s *terraform.State) error {
+		ms := s.RootModule()
+		rs, ok := ms.Outputs[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		if !r.MatchString(rs.Value.(string)) {
+			return fmt.Errorf(
+				"Output '%s': %#v didn't match %q",
+				name,
+				rs,
+				r.String())
 		}
 
 		return nil

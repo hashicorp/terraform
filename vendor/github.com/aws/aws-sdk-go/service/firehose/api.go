@@ -13,7 +13,28 @@ import (
 
 const opCreateDeliveryStream = "CreateDeliveryStream"
 
-// CreateDeliveryStreamRequest generates a request for the CreateDeliveryStream operation.
+// CreateDeliveryStreamRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDeliveryStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateDeliveryStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateDeliveryStreamRequest method.
+//    req, resp := client.CreateDeliveryStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput) (req *request.Request, output *CreateDeliveryStreamOutput) {
 	op := &request.Operation{
 		Name:       opCreateDeliveryStream,
@@ -33,7 +54,7 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 
 // Creates a delivery stream.
 //
-// CreateDeliveryStream is an asynchronous operation that immediately returns.
+//  CreateDeliveryStream is an asynchronous operation that immediately returns.
 // The initial status of the delivery stream is CREATING. After the delivery
 // stream is created, its status is ACTIVE and it now accepts data. Attempts
 // to send data to a delivery stream that is not in the ACTIVE state cause an
@@ -47,9 +68,9 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 // By default, you can create up to 20 delivery streams per region.
 //
 // A delivery stream can only be configured with a single destination, Amazon
-// S3 or Amazon Redshift. For correct CreateDeliveryStream request syntax, specify
-// only one destination configuration parameter: either ElasticsearchDestinationConfiguration,
-// RedshiftDestinationConfiguration or S3DestinationConfiguration
+// S3, Amazon Elasticsearch Service, or Amazon Redshift. For correct CreateDeliveryStream
+// request syntax, specify only one destination configuration parameter: either
+// S3DestinationConfiguration, ElasticsearchDestinationConfiguration, or RedshiftDestinationConfiguration.
 //
 // As part of S3DestinationConfiguration, optional values BufferingHints, EncryptionConfiguration,
 // and CompressionFormat can be provided. By default, if no BufferingHints value
@@ -63,19 +84,23 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 //
 // A few notes about RedshiftDestinationConfiguration:
 //
-//  An Amazon Redshift destination requires an S3 bucket as intermediate location,
+//   An Amazon Redshift destination requires an S3 bucket as intermediate location,
 // as Firehose first delivers data to S3 and then uses COPY syntax to load data
 // into an Amazon Redshift table. This is specified in the RedshiftDestinationConfiguration.S3Configuration
-// parameter element. The compression formats SNAPPY or ZIP cannot be specified
-// in RedshiftDestinationConfiguration.S3Configuration because the Amazon Redshift
-// COPY operation that reads from the S3 bucket doesn't support these compression
-// formats. We strongly recommend that the username and password provided is
-// used exclusively for Firehose purposes, and that the permissions for the
-// account are restricted for Amazon Redshift INSERT permissions.  Firehose
-// assumes the IAM role that is configured as part of destinations. The IAM
-// role should allow the Firehose principal to assume the role, and the role
-// should have permissions that allows the service to deliver the data. For
-// more information, see Amazon S3 Bucket Access (http://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3)
+// parameter element.
+//
+//   The compression formats SNAPPY or ZIP cannot be specified in RedshiftDestinationConfiguration.S3Configuration
+// because the Amazon Redshift COPY operation that reads from the S3 bucket
+// doesn't support these compression formats.
+//
+//   We strongly recommend that the username and password provided is used
+// exclusively for Firehose purposes, and that the permissions for the account
+// are restricted for Amazon Redshift INSERT permissions.
+//
+//   Firehose assumes the IAM role that is configured as part of destinations.
+// The IAM role should allow the Firehose principal to assume the role, and
+// the role should have permissions that allows the service to deliver the data.
+// For more information, see Amazon S3 Bucket Access (http://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3)
 // in the Amazon Kinesis Firehose Developer Guide.
 func (c *Firehose) CreateDeliveryStream(input *CreateDeliveryStreamInput) (*CreateDeliveryStreamOutput, error) {
 	req, out := c.CreateDeliveryStreamRequest(input)
@@ -85,7 +110,28 @@ func (c *Firehose) CreateDeliveryStream(input *CreateDeliveryStreamInput) (*Crea
 
 const opDeleteDeliveryStream = "DeleteDeliveryStream"
 
-// DeleteDeliveryStreamRequest generates a request for the DeleteDeliveryStream operation.
+// DeleteDeliveryStreamRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDeliveryStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteDeliveryStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteDeliveryStreamRequest method.
+//    req, resp := client.DeleteDeliveryStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Firehose) DeleteDeliveryStreamRequest(input *DeleteDeliveryStreamInput) (req *request.Request, output *DeleteDeliveryStreamOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDeliveryStream,
@@ -123,7 +169,28 @@ func (c *Firehose) DeleteDeliveryStream(input *DeleteDeliveryStreamInput) (*Dele
 
 const opDescribeDeliveryStream = "DescribeDeliveryStream"
 
-// DescribeDeliveryStreamRequest generates a request for the DescribeDeliveryStream operation.
+// DescribeDeliveryStreamRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDeliveryStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeDeliveryStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeDeliveryStreamRequest method.
+//    req, resp := client.DescribeDeliveryStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Firehose) DescribeDeliveryStreamRequest(input *DescribeDeliveryStreamInput) (req *request.Request, output *DescribeDeliveryStreamOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDeliveryStream,
@@ -153,7 +220,28 @@ func (c *Firehose) DescribeDeliveryStream(input *DescribeDeliveryStreamInput) (*
 
 const opListDeliveryStreams = "ListDeliveryStreams"
 
-// ListDeliveryStreamsRequest generates a request for the ListDeliveryStreams operation.
+// ListDeliveryStreamsRequest generates a "aws/request.Request" representing the
+// client's request for the ListDeliveryStreams operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListDeliveryStreams method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListDeliveryStreamsRequest method.
+//    req, resp := client.ListDeliveryStreamsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Firehose) ListDeliveryStreamsRequest(input *ListDeliveryStreamsInput) (req *request.Request, output *ListDeliveryStreamsOutput) {
 	op := &request.Operation{
 		Name:       opListDeliveryStreams,
@@ -188,7 +276,28 @@ func (c *Firehose) ListDeliveryStreams(input *ListDeliveryStreamsInput) (*ListDe
 
 const opPutRecord = "PutRecord"
 
-// PutRecordRequest generates a request for the PutRecord operation.
+// PutRecordRequest generates a "aws/request.Request" representing the
+// client's request for the PutRecord operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRecord method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRecordRequest method.
+//    req, resp := client.PutRecordRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Firehose) PutRecordRequest(input *PutRecordInput) (req *request.Request, output *PutRecordOutput) {
 	op := &request.Operation{
 		Name:       opPutRecord,
@@ -247,7 +356,28 @@ func (c *Firehose) PutRecord(input *PutRecordInput) (*PutRecordOutput, error) {
 
 const opPutRecordBatch = "PutRecordBatch"
 
-// PutRecordBatchRequest generates a request for the PutRecordBatch operation.
+// PutRecordBatchRequest generates a "aws/request.Request" representing the
+// client's request for the PutRecordBatch operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRecordBatch method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRecordBatchRequest method.
+//    req, resp := client.PutRecordBatchRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *request.Request, output *PutRecordBatchOutput) {
 	op := &request.Operation{
 		Name:       opPutRecordBatch,
@@ -329,7 +459,28 @@ func (c *Firehose) PutRecordBatch(input *PutRecordBatchInput) (*PutRecordBatchOu
 
 const opUpdateDestination = "UpdateDestination"
 
-// UpdateDestinationRequest generates a request for the UpdateDestination operation.
+// UpdateDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateDestination operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateDestination method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateDestinationRequest method.
+//    req, resp := client.UpdateDestinationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req *request.Request, output *UpdateDestinationOutput) {
 	op := &request.Operation{
 		Name:       opUpdateDestination,
@@ -465,14 +616,14 @@ type CopyCommand struct {
 	// command (http://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html). Some
 	// possible examples that would apply to Firehose are as follows.
 	//
-	// delimiter '\t' lzop; - fields are delimited with "\t" (TAB character) and
+	//  delimiter '\t' lzop; - fields are delimited with "\t" (TAB character) and
 	// compressed using lzop.
 	//
-	// delimiter '| - fields are delimited with "|" (this is the default delimiter).
+	//  delimiter '| - fields are delimited with "|" (this is the default delimiter).
 	//
-	// delimiter '|' escape - the delimiter should be escaped.
+	//  delimiter '|' escape - the delimiter should be escaped.
 	//
-	// fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'
+	//  fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'
 	// - fields are fixed width in the source, with each width specified after every
 	// column in the table.
 	//
@@ -1067,9 +1218,10 @@ type ElasticsearchRetryOptions struct {
 	_ struct{} `type:"structure"`
 
 	// After an initial failure to deliver to Amazon ES, the total amount of time
-	// during which Firehose re-attempts delivery. After this time has elapsed,
-	// the failed documents are written to Amazon S3. Default value is 300 seconds.
-	// A value of 0 (zero) results in no retries.
+	// during which Firehose re-attempts delivery (including the first attempt).
+	// After this time has elapsed, the failed documents are written to Amazon S3.
+	// Default value is 300 seconds (5 minutes). A value of 0 (zero) results in
+	// no retries.
 	DurationInSeconds *int64 `type:"integer"`
 }
 
@@ -1428,6 +1580,10 @@ type RedshiftDestinationConfiguration struct {
 	// The user password.
 	Password *string `min:"6" type:"string" required:"true"`
 
+	// Configures retry behavior in the event that Firehose is unable to deliver
+	// documents to Amazon Redshift. Default value is 3600 (60 minutes).
+	RetryOptions *RedshiftRetryOptions `type:"structure"`
+
 	// The ARN of the AWS credentials.
 	RoleARN *string `min:"1" type:"string" required:"true"`
 
@@ -1516,6 +1672,10 @@ type RedshiftDestinationDescription struct {
 	// The COPY command.
 	CopyCommand *CopyCommand `type:"structure" required:"true"`
 
+	// Configures retry behavior in the event that Firehose is unable to deliver
+	// documents to Amazon Redshift. Default value is 3600 (60 minutes).
+	RetryOptions *RedshiftRetryOptions `type:"structure"`
+
 	// The ARN of the AWS credentials.
 	RoleARN *string `min:"1" type:"string" required:"true"`
 
@@ -1551,6 +1711,10 @@ type RedshiftDestinationUpdate struct {
 
 	// The user password.
 	Password *string `min:"6" type:"string"`
+
+	// Configures retry behavior in the event that Firehose is unable to deliver
+	// documents to Amazon Redshift. Default value is 3600 (60 minutes).
+	RetryOptions *RedshiftRetryOptions `type:"structure"`
 
 	// The ARN of the AWS credentials.
 	RoleARN *string `min:"1" type:"string"`
@@ -1608,6 +1772,29 @@ func (s *RedshiftDestinationUpdate) Validate() error {
 	return nil
 }
 
+// Configures retry behavior in the event that Firehose is unable to deliver
+// documents to Amazon Redshift.
+type RedshiftRetryOptions struct {
+	_ struct{} `type:"structure"`
+
+	// The length of time during which Firehose retries delivery after a failure,
+	// starting from the initial request and including the first attempt. The default
+	// value is 3600 seconds (60 minutes). Firehose does not retry if the value
+	// of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer
+	// than the current value.
+	DurationInSeconds *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s RedshiftRetryOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RedshiftRetryOptions) GoString() string {
+	return s.String()
+}
+
 // Describes the configuration of a destination in Amazon S3.
 type S3DestinationConfiguration struct {
 	_ struct{} `type:"structure"`
@@ -1638,7 +1825,7 @@ type S3DestinationConfiguration struct {
 	// format prefix. Note that if the prefix ends with a slash, it appears as a
 	// folder in the S3 bucket. For more information, see Amazon S3 Object Name
 	// Format (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html)
-	// in the guide-fh-dev (http://docs.aws.amazon.com/firehose/latest/dev/).
+	// in the Amazon Kinesis Firehose Developer Guide (http://docs.aws.amazon.com/firehose/latest/dev/).
 	Prefix *string `type:"string"`
 
 	// The ARN of the AWS credentials.
@@ -1713,7 +1900,7 @@ type S3DestinationDescription struct {
 	// format prefix. Note that if the prefix ends with a slash, it appears as a
 	// folder in the S3 bucket. For more information, see Amazon S3 Object Name
 	// Format (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html)
-	// in the guide-fh-dev (http://docs.aws.amazon.com/firehose/latest/dev/).
+	// in the Amazon Kinesis Firehose Developer Guide (http://docs.aws.amazon.com/firehose/latest/dev/).
 	Prefix *string `type:"string"`
 
 	// The ARN of the AWS credentials.
@@ -1760,7 +1947,7 @@ type S3DestinationUpdate struct {
 	// format prefix. Note that if the prefix ends with a slash, it appears as a
 	// folder in the S3 bucket. For more information, see Amazon S3 Object Name
 	// Format (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html)
-	// in the guide-fh-dev (http://docs.aws.amazon.com/firehose/latest/dev/).
+	// in the Amazon Kinesis Firehose Developer Guide (http://docs.aws.amazon.com/firehose/latest/dev/).
 	Prefix *string `type:"string"`
 
 	// The ARN of the AWS credentials.

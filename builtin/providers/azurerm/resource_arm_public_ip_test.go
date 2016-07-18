@@ -114,7 +114,7 @@ func TestAccAzureRMPublicIpStatic_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_public_ip.test", "tags.#", "2"),
+						"azurerm_public_ip.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_public_ip.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -127,7 +127,7 @@ func TestAccAzureRMPublicIpStatic_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_public_ip.test", "tags.#", "1"),
+						"azurerm_public_ip.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_public_ip.test", "tags.environment", "staging"),
 				),

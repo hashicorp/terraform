@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -50,27 +51,32 @@ func TestValidateArmStorageAccountName(t *testing.T) {
 }
 
 func TestAccAzureRMStorageAccount_basic(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	preConfig := fmt.Sprintf(testAccAzureRMStorageAccount_basic, ri, rs)
+	postConfig := fmt.Sprintf(testAccAzureRMStorageAccount_update, ri, rs)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMStorageAccount_basic,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_type", "Standard_LRS"),
-					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.#", "1"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.%", "1"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.environment", "production"),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMStorageAccount_update,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_type", "Standard_GRS"),
-					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.#", "1"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.%", "1"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.environment", "staging"),
 				),
 			},
@@ -131,12 +137,12 @@ func testCheckAzureRMStorageAccountDestroy(s *terraform.State) error {
 
 var testAccAzureRMStorageAccount_basic = `
 resource "azurerm_resource_group" "testrg" {
-    name = "testAccAzureRMStorageAccountBasic"
+    name = "testAccAzureRMSA-%d"
     location = "westus"
 }
 
 resource "azurerm_storage_account" "testsa" {
-    name = "unlikely23exst2acct1435"
+    name = "unlikely23exst2acct%s"
     resource_group_name = "${azurerm_resource_group.testrg.name}"
 
     location = "westus"
@@ -149,12 +155,12 @@ resource "azurerm_storage_account" "testsa" {
 
 var testAccAzureRMStorageAccount_update = `
 resource "azurerm_resource_group" "testrg" {
-    name = "testAccAzureRMStorageAccountBasic"
+    name = "testAccAzureRMSA-%d"
     location = "westus"
 }
 
 resource "azurerm_storage_account" "testsa" {
-    name = "unlikely23exst2acct1435"
+    name = "unlikely23exst2acct%s"
     resource_group_name = "${azurerm_resource_group.testrg.name}"
 
     location = "westus"

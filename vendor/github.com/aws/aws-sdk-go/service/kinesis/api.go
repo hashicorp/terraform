@@ -15,7 +15,28 @@ import (
 
 const opAddTagsToStream = "AddTagsToStream"
 
-// AddTagsToStreamRequest generates a request for the AddTagsToStream operation.
+// AddTagsToStreamRequest generates a "aws/request.Request" representing the
+// client's request for the AddTagsToStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddTagsToStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddTagsToStreamRequest method.
+//    req, resp := client.AddTagsToStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) AddTagsToStreamRequest(input *AddTagsToStreamInput) (req *request.Request, output *AddTagsToStreamOutput) {
 	op := &request.Operation{
 		Name:       opAddTagsToStream,
@@ -48,7 +69,28 @@ func (c *Kinesis) AddTagsToStream(input *AddTagsToStreamInput) (*AddTagsToStream
 
 const opCreateStream = "CreateStream"
 
-// CreateStreamRequest generates a request for the CreateStream operation.
+// CreateStreamRequest generates a "aws/request.Request" representing the
+// client's request for the CreateStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateStreamRequest method.
+//    req, resp := client.CreateStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *request.Request, output *CreateStreamOutput) {
 	op := &request.Operation{
 		Name:       opCreateStream,
@@ -112,7 +154,28 @@ func (c *Kinesis) CreateStream(input *CreateStreamInput) (*CreateStreamOutput, e
 
 const opDecreaseStreamRetentionPeriod = "DecreaseStreamRetentionPeriod"
 
-// DecreaseStreamRetentionPeriodRequest generates a request for the DecreaseStreamRetentionPeriod operation.
+// DecreaseStreamRetentionPeriodRequest generates a "aws/request.Request" representing the
+// client's request for the DecreaseStreamRetentionPeriod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DecreaseStreamRetentionPeriod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DecreaseStreamRetentionPeriodRequest method.
+//    req, resp := client.DecreaseStreamRetentionPeriodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) DecreaseStreamRetentionPeriodRequest(input *DecreaseStreamRetentionPeriodInput) (req *request.Request, output *DecreaseStreamRetentionPeriodOutput) {
 	op := &request.Operation{
 		Name:       opDecreaseStreamRetentionPeriod,
@@ -147,7 +210,28 @@ func (c *Kinesis) DecreaseStreamRetentionPeriod(input *DecreaseStreamRetentionPe
 
 const opDeleteStream = "DeleteStream"
 
-// DeleteStreamRequest generates a request for the DeleteStream operation.
+// DeleteStreamRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteStreamRequest method.
+//    req, resp := client.DeleteStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) DeleteStreamRequest(input *DeleteStreamInput) (req *request.Request, output *DeleteStreamOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStream,
@@ -195,7 +279,28 @@ func (c *Kinesis) DeleteStream(input *DeleteStreamInput) (*DeleteStreamOutput, e
 
 const opDescribeStream = "DescribeStream"
 
-// DescribeStreamRequest generates a request for the DescribeStream operation.
+// DescribeStreamRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeStreamRequest method.
+//    req, resp := client.DescribeStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) DescribeStreamRequest(input *DescribeStreamInput) (req *request.Request, output *DescribeStreamOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStream,
@@ -251,6 +356,23 @@ func (c *Kinesis) DescribeStream(input *DescribeStreamInput) (*DescribeStreamOut
 	return out, err
 }
 
+// DescribeStreamPages iterates over the pages of a DescribeStream operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeStream method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeStream operation.
+//    pageNum := 0
+//    err := client.DescribeStreamPages(params,
+//        func(page *DescribeStreamOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Kinesis) DescribeStreamPages(input *DescribeStreamInput, fn func(p *DescribeStreamOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeStreamRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -261,7 +383,28 @@ func (c *Kinesis) DescribeStreamPages(input *DescribeStreamInput, fn func(p *Des
 
 const opDisableEnhancedMonitoring = "DisableEnhancedMonitoring"
 
-// DisableEnhancedMonitoringRequest generates a request for the DisableEnhancedMonitoring operation.
+// DisableEnhancedMonitoringRequest generates a "aws/request.Request" representing the
+// client's request for the DisableEnhancedMonitoring operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableEnhancedMonitoring method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableEnhancedMonitoringRequest method.
+//    req, resp := client.DisableEnhancedMonitoringRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) DisableEnhancedMonitoringRequest(input *DisableEnhancedMonitoringInput) (req *request.Request, output *EnhancedMonitoringOutput) {
 	op := &request.Operation{
 		Name:       opDisableEnhancedMonitoring,
@@ -288,7 +431,28 @@ func (c *Kinesis) DisableEnhancedMonitoring(input *DisableEnhancedMonitoringInpu
 
 const opEnableEnhancedMonitoring = "EnableEnhancedMonitoring"
 
-// EnableEnhancedMonitoringRequest generates a request for the EnableEnhancedMonitoring operation.
+// EnableEnhancedMonitoringRequest generates a "aws/request.Request" representing the
+// client's request for the EnableEnhancedMonitoring operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableEnhancedMonitoring method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableEnhancedMonitoringRequest method.
+//    req, resp := client.EnableEnhancedMonitoringRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) EnableEnhancedMonitoringRequest(input *EnableEnhancedMonitoringInput) (req *request.Request, output *EnhancedMonitoringOutput) {
 	op := &request.Operation{
 		Name:       opEnableEnhancedMonitoring,
@@ -315,7 +479,28 @@ func (c *Kinesis) EnableEnhancedMonitoring(input *EnableEnhancedMonitoringInput)
 
 const opGetRecords = "GetRecords"
 
-// GetRecordsRequest generates a request for the GetRecords operation.
+// GetRecordsRequest generates a "aws/request.Request" representing the
+// client's request for the GetRecords operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRecords method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRecordsRequest method.
+//    req, resp := client.GetRecordsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Request, output *GetRecordsOutput) {
 	op := &request.Operation{
 		Name:       opGetRecords,
@@ -394,7 +579,28 @@ func (c *Kinesis) GetRecords(input *GetRecordsInput) (*GetRecordsOutput, error) 
 
 const opGetShardIterator = "GetShardIterator"
 
-// GetShardIteratorRequest generates a request for the GetShardIterator operation.
+// GetShardIteratorRequest generates a "aws/request.Request" representing the
+// client's request for the GetShardIterator operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetShardIterator method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetShardIteratorRequest method.
+//    req, resp := client.GetShardIteratorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) GetShardIteratorRequest(input *GetShardIteratorInput) (req *request.Request, output *GetShardIteratorOutput) {
 	op := &request.Operation{
 		Name:       opGetShardIterator,
@@ -458,7 +664,28 @@ func (c *Kinesis) GetShardIterator(input *GetShardIteratorInput) (*GetShardItera
 
 const opIncreaseStreamRetentionPeriod = "IncreaseStreamRetentionPeriod"
 
-// IncreaseStreamRetentionPeriodRequest generates a request for the IncreaseStreamRetentionPeriod operation.
+// IncreaseStreamRetentionPeriodRequest generates a "aws/request.Request" representing the
+// client's request for the IncreaseStreamRetentionPeriod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the IncreaseStreamRetentionPeriod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the IncreaseStreamRetentionPeriodRequest method.
+//    req, resp := client.IncreaseStreamRetentionPeriodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) IncreaseStreamRetentionPeriodRequest(input *IncreaseStreamRetentionPeriodInput) (req *request.Request, output *IncreaseStreamRetentionPeriodOutput) {
 	op := &request.Operation{
 		Name:       opIncreaseStreamRetentionPeriod,
@@ -497,7 +724,28 @@ func (c *Kinesis) IncreaseStreamRetentionPeriod(input *IncreaseStreamRetentionPe
 
 const opListStreams = "ListStreams"
 
-// ListStreamsRequest generates a request for the ListStreams operation.
+// ListStreamsRequest generates a "aws/request.Request" representing the
+// client's request for the ListStreams operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListStreams method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListStreamsRequest method.
+//    req, resp := client.ListStreamsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) ListStreamsRequest(input *ListStreamsInput) (req *request.Request, output *ListStreamsOutput) {
 	op := &request.Operation{
 		Name:       opListStreams,
@@ -543,6 +791,23 @@ func (c *Kinesis) ListStreams(input *ListStreamsInput) (*ListStreamsOutput, erro
 	return out, err
 }
 
+// ListStreamsPages iterates over the pages of a ListStreams operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListStreams method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListStreams operation.
+//    pageNum := 0
+//    err := client.ListStreamsPages(params,
+//        func(page *ListStreamsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Kinesis) ListStreamsPages(input *ListStreamsInput, fn func(p *ListStreamsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListStreamsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -553,7 +818,28 @@ func (c *Kinesis) ListStreamsPages(input *ListStreamsInput, fn func(p *ListStrea
 
 const opListTagsForStream = "ListTagsForStream"
 
-// ListTagsForStreamRequest generates a request for the ListTagsForStream operation.
+// ListTagsForStreamRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTagsForStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsForStreamRequest method.
+//    req, resp := client.ListTagsForStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) ListTagsForStreamRequest(input *ListTagsForStreamInput) (req *request.Request, output *ListTagsForStreamOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForStream,
@@ -580,7 +866,28 @@ func (c *Kinesis) ListTagsForStream(input *ListTagsForStreamInput) (*ListTagsFor
 
 const opMergeShards = "MergeShards"
 
-// MergeShardsRequest generates a request for the MergeShards operation.
+// MergeShardsRequest generates a "aws/request.Request" representing the
+// client's request for the MergeShards operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the MergeShards method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the MergeShardsRequest method.
+//    req, resp := client.MergeShardsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) MergeShardsRequest(input *MergeShardsInput) (req *request.Request, output *MergeShardsOutput) {
 	op := &request.Operation{
 		Name:       opMergeShards,
@@ -644,7 +951,28 @@ func (c *Kinesis) MergeShards(input *MergeShardsInput) (*MergeShardsOutput, erro
 
 const opPutRecord = "PutRecord"
 
-// PutRecordRequest generates a request for the PutRecord operation.
+// PutRecordRequest generates a "aws/request.Request" representing the
+// client's request for the PutRecord operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRecord method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRecordRequest method.
+//    req, resp := client.PutRecordRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *request.Request, output *PutRecordOutput) {
 	op := &request.Operation{
 		Name:       opPutRecord,
@@ -708,7 +1036,28 @@ func (c *Kinesis) PutRecord(input *PutRecordInput) (*PutRecordOutput, error) {
 
 const opPutRecords = "PutRecords"
 
-// PutRecordsRequest generates a request for the PutRecords operation.
+// PutRecordsRequest generates a "aws/request.Request" representing the
+// client's request for the PutRecords operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRecords method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRecordsRequest method.
+//    req, resp := client.PutRecordsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *request.Request, output *PutRecordsOutput) {
 	op := &request.Operation{
 		Name:       opPutRecords,
@@ -794,7 +1143,28 @@ func (c *Kinesis) PutRecords(input *PutRecordsInput) (*PutRecordsOutput, error) 
 
 const opRemoveTagsFromStream = "RemoveTagsFromStream"
 
-// RemoveTagsFromStreamRequest generates a request for the RemoveTagsFromStream operation.
+// RemoveTagsFromStreamRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveTagsFromStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveTagsFromStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveTagsFromStreamRequest method.
+//    req, resp := client.RemoveTagsFromStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) RemoveTagsFromStreamRequest(input *RemoveTagsFromStreamInput) (req *request.Request, output *RemoveTagsFromStreamOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTagsFromStream,
@@ -826,7 +1196,28 @@ func (c *Kinesis) RemoveTagsFromStream(input *RemoveTagsFromStreamInput) (*Remov
 
 const opSplitShard = "SplitShard"
 
-// SplitShardRequest generates a request for the SplitShard operation.
+// SplitShardRequest generates a "aws/request.Request" representing the
+// client's request for the SplitShard operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SplitShard method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SplitShardRequest method.
+//    req, resp := client.SplitShardRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) SplitShardRequest(input *SplitShardInput) (req *request.Request, output *SplitShardOutput) {
 	op := &request.Operation{
 		Name:       opSplitShard,

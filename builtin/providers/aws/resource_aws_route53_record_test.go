@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -60,6 +61,36 @@ func TestAccAWSRoute53Record_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53RecordConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRoute53Record_basic_fqdn(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.default",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordConfig_fqdn,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+				),
+			},
+
+			// Ensure that changing the name to include a trailing "dot" results in
+			// nothing happening, because the name is stripped of trailing dots on
+			// save. Otherwise, an update would occur and due to the
+			// create_before_destroy, the record would actually be destroyed, and a
+			// non-empty plan would appear, and the record will fail to exist in
+			// testAccCheckRoute53RecordExists
+			resource.TestStep{
+				Config: testAccRoute53RecordConfig_fqdn_no_op,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53RecordExists("aws_route53_record.default"),
 				),
@@ -184,6 +215,8 @@ func TestAccAWSRoute53Record_weighted_basic(t *testing.T) {
 }
 
 func TestAccAWSRoute53Record_alias(t *testing.T) {
+	rs := acctest.RandString(10)
+	config := fmt.Sprintf(testAccRoute53ElbAliasRecord, rs)
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_route53_record.alias",
@@ -191,7 +224,7 @@ func TestAccAWSRoute53Record_alias(t *testing.T) {
 		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRoute53ElbAliasRecord,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53RecordExists("aws_route53_record.alias"),
 				),
@@ -244,6 +277,43 @@ func TestAccAWSRoute53Record_weighted_alias(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53Record_geolocation_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53GeolocationCNAMERecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+					testAccCheckRoute53RecordExists("aws_route53_record.california"),
+					testAccCheckRoute53RecordExists("aws_route53_record.oceania"),
+					testAccCheckRoute53RecordExists("aws_route53_record.denmark"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRoute53Record_latency_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53LatencyCNAMERecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.us-east-1"),
+					testAccCheckRoute53RecordExists("aws_route53_record.eu-west-1"),
+					testAccCheckRoute53RecordExists("aws_route53_record.ap-northeast-1"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRoute53Record_TypeChange(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -269,56 +339,21 @@ func TestAccAWSRoute53Record_TypeChange(t *testing.T) {
 	})
 }
 
-// Test record deletion out of band and make sure we render a new plan
-// Part of regression test(s) for https://github.com/hashicorp/terraform/pull/4892
-func TestAccAWSRoute53Record_planUpdate(t *testing.T) {
-	var zone route53.GetHostedZoneOutput
+func TestAccAWSRoute53Record_empty(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.empty",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRoute53RecordConfig,
+				Config: testAccRoute53RecordConfigEmptyName,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRoute53RecordExists("aws_route53_record.default"),
-					testAccCheckRoute53ZoneExists("aws_route53_zone.main", &zone),
-				),
-			},
-			resource.TestStep{
-				Config: testAccRoute53RecordConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRoute53DeleteRecord("aws_route53_record.default", &zone),
-				),
-				ExpectNonEmptyPlan: true,
-			},
-			resource.TestStep{
-				Config: testAccRoute53RecordNoConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRoute53ZoneExists("aws_route53_zone.main", &zone),
+					testAccCheckRoute53RecordExists("aws_route53_record.empty"),
 				),
 			},
 		},
 	})
-}
-
-func testAccCheckRoute53DeleteRecord(n string, zone *route53.GetHostedZoneOutput) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No hosted zone ID is set")
-		}
-
-		// Manually set the weight to 0 to replicate a record created in Terraform
-		// pre-0.6.9
-		rs.Primary.Attributes["weight"] = "0"
-
-		return nil
-	}
 }
 
 func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
@@ -333,9 +368,11 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 		name := parts[1]
 		rType := parts[2]
 
+		en := expandRecordName(name, "notexample.com")
+
 		lopts := &route53.ListResourceRecordSetsInput{
 			HostedZoneId:    aws.String(cleanZoneID(zone)),
-			StartRecordName: aws.String(name),
+			StartRecordName: aws.String(en),
 			StartRecordType: aws.String(rType),
 		}
 
@@ -392,6 +429,7 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 		if len(resp.ResourceRecordSets) == 0 {
 			return fmt.Errorf("Record does not exist")
 		}
+
 		// rec := resp.ResourceRecordSets[0]
 		for _, rec := range resp.ResourceRecordSets {
 			recName := cleanRecordName(*rec.Name)
@@ -414,6 +452,41 @@ resource "aws_route53_record" "default" {
 	type = "A"
 	ttl = "30"
 	records = ["127.0.0.1", "127.0.0.27"]
+}
+`
+const testAccRoute53RecordConfig_fqdn = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name    = "www.NOTexamplE.com"
+  type    = "A"
+  ttl     = "30"
+  records = ["127.0.0.1", "127.0.0.27"]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`
+
+const testAccRoute53RecordConfig_fqdn_no_op = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name    = "www.NOTexamplE.com."
+  type    = "A"
+  ttl     = "30"
+  records = ["127.0.0.1", "127.0.0.27"]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 `
 
@@ -530,7 +603,9 @@ resource "aws_route53_record" "www-primary" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  failover = "PRIMARY"
+  failover_routing_policy {
+    type = "PRIMARY"
+  }
   health_check_id = "${aws_route53_health_check.foo.id}"
   set_identifier = "www-primary"
   records = ["primary.notexample.com"]
@@ -541,7 +616,9 @@ resource "aws_route53_record" "www-secondary" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  failover = "SECONDARY"
+  failover_routing_policy {
+    type = "SECONDARY"
+  }
   set_identifier = "www-secondary"
   records = ["secondary.notexample.com"]
 }
@@ -557,7 +634,9 @@ resource "aws_route53_record" "www-dev" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  weight = 10
+  weighted_routing_policy {
+	weight = 10
+  }
   set_identifier = "dev"
   records = ["dev.notexample.com"]
 }
@@ -567,7 +646,9 @@ resource "aws_route53_record" "www-live" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  weight = 90
+  weighted_routing_policy {
+	weight = 90
+  }
   set_identifier = "live"
   records = ["dev.notexample.com"]
 }
@@ -577,8 +658,107 @@ resource "aws_route53_record" "www-off" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  weight = 0
+  weighted_routing_policy = {
+	weight = 0
+  }
   set_identifier = "off"
+  records = ["dev.notexample.com"]
+}
+`
+
+const testAccRoute53GeolocationCNAMERecord = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  geolocation_routing_policy {
+    country = "*"
+  }
+  set_identifier = "Default"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "california" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  geolocation_routing_policy {
+    country = "US"
+    subdivision = "CA"
+  }
+  set_identifier = "California"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "oceania" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  geolocation_routing_policy {
+    continent = "OC"
+  }
+  set_identifier = "Oceania"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "denmark" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  geolocation_routing_policy {
+    country = "DK"
+  }
+  set_identifier = "Denmark"
+  records = ["dev.notexample.com"]
+}
+`
+
+const testAccRoute53LatencyCNAMERecord = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "us-east-1" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  latency_routing_policy {
+    region = "us-east-1"
+  }
+  set_identifier = "us-east-1"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "eu-west-1" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  latency_routing_policy {
+    region = "eu-west-1"
+  }
+  set_identifier = "eu-west-1"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "ap-northeast-1" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  latency_routing_policy {
+    region = "ap-northeast-1"
+  }
+  set_identifier = "ap-northeast-1"
   records = ["dev.notexample.com"]
 }
 `
@@ -601,7 +781,7 @@ resource "aws_route53_record" "alias" {
 }
 
 resource "aws_elb" "main" {
-  name = "foobar-terraform-elb"
+  name = "foobar-terraform-elb-%s"
   availability_zones = ["us-west-2a"]
 
   listener {
@@ -687,7 +867,9 @@ resource "aws_route53_record" "elb_weighted_alias_live" {
   name = "www"
   type = "A"
 
-  weight = 90
+  weighted_routing_policy {
+	weight = 90
+  }
   set_identifier = "live"
 
   alias {
@@ -714,7 +896,9 @@ resource "aws_route53_record" "elb_weighted_alias_dev" {
   name = "www"
   type = "A"
 
-  weight = 10
+  weighted_routing_policy {
+	weight = 10
+  }
   set_identifier = "dev"
 
   alias {
@@ -743,7 +927,9 @@ resource "aws_route53_record" "r53_weighted_alias_live" {
   name = "www"
   type = "CNAME"
 
-  weight = 90
+  weighted_routing_policy {
+	weight = 90
+  }
   set_identifier = "blue"
 
   alias {
@@ -766,7 +952,9 @@ resource "aws_route53_record" "r53_weighted_alias_dev" {
   name = "www"
   type = "CNAME"
 
-  weight = 10
+  weighted_routing_policy {
+	weight = 10
+  }
   set_identifier = "green"
 
   alias {
@@ -802,5 +990,19 @@ resource "aws_route53_record" "sample" {
   type = "A"
   ttl = "30"
   records = ["127.0.0.1", "8.8.8.8"]
+}
+`
+
+const testAccRoute53RecordConfigEmptyName = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "empty" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = ""
+	type = "A"
+	ttl = "30"
+	records = ["127.0.0.1"]
 }
 `

@@ -29,8 +29,8 @@ func TestAccDockerContainer_volume(t *testing.T) {
 	var c dc.Container
 
 	testCheck := func(*terraform.State) error {
-		if len(c.Mounts) != 2 {
-			return fmt.Errorf("Incorrect number of mounts: expected 2, got %d", len(c.Mounts))
+		if len(c.Mounts) != 1 {
+			return fmt.Errorf("Incorrect number of mounts: expected 1, got %d", len(c.Mounts))
 		}
 
 		for _, v := range c.Mounts {
@@ -95,7 +95,39 @@ func TestAccDockerContainer_customized(t *testing.T) {
 		}
 
 		if c.HostConfig.MemorySwap != (2048 * 1024 * 1024) {
-			return fmt.Errorf("Container has wrong memory swap setting: %d", c.HostConfig.MemorySwap)
+			return fmt.Errorf("Container has wrong memory swap setting: %d\n\r\tPlease check that you machine supports memory swap (you can do that by running 'docker info' command).", c.HostConfig.MemorySwap)
+		}
+
+		if c.HostConfig.CPUShares != 32 {
+			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
+		}
+
+		if len(c.HostConfig.DNS) != 1 {
+			return fmt.Errorf("Container does not have the correct number of dns entries: %d", len(c.HostConfig.DNS))
+		}
+
+		if c.HostConfig.DNS[0] != "8.8.8.8" {
+			return fmt.Errorf("Container has wrong dns setting: %v", c.HostConfig.DNS[0])
+		}
+
+		if len(c.HostConfig.DNSOptions) != 1 {
+			return fmt.Errorf("Container does not have the correct number of dns option entries: %d", len(c.HostConfig.DNS))
+		}
+
+		if c.HostConfig.DNSOptions[0] != "rotate" {
+			return fmt.Errorf("Container has wrong dns option setting: %v", c.HostConfig.DNS[0])
+		}
+
+		if len(c.HostConfig.DNSSearch) != 1 {
+			return fmt.Errorf("Container does not have the correct number of dns search entries: %d", len(c.HostConfig.DNS))
+		}
+
+		if c.HostConfig.DNSSearch[0] != "example.com" {
+			return fmt.Errorf("Container has wrong dns search setting: %v", c.HostConfig.DNS[0])
+		}
+
+		if c.HostConfig.CPUShares != 32 {
+			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
 		}
 
 		if c.HostConfig.CPUShares != 32 {
@@ -223,10 +255,14 @@ resource "docker_container" "foo" {
 	entrypoint = ["/bin/bash", "-c", "ping localhost"]
 	user = "root:root"
 	restart = "on-failure"
+	destroy_grace_seconds = 10
 	max_retry_count = 5
 	memory = 512
 	memory_swap = 2048
 	cpu_shares = 32
+	dns = ["8.8.8.8"]
+	dns_opts = ["rotate"]
+	dns_search = ["example.com"]
 	labels {
 		env = "prod"
 		role = "test"

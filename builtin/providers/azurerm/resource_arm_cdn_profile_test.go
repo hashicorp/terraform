@@ -20,19 +20,23 @@ func TestResourceAzureRMCdnProfileSKU_validation(t *testing.T) {
 			ErrCount: 1,
 		},
 		{
-			Value:    "Standard",
+			Value:    "Standard_Verizon",
 			ErrCount: 0,
 		},
 		{
-			Value:    "Premium",
+			Value:    "Premium_Verizon",
 			ErrCount: 0,
 		},
 		{
-			Value:    "STANDARD",
+			Value:    "Standard_Akamai",
 			ErrCount: 0,
 		},
 		{
-			Value:    "PREMIUM",
+			Value:    "STANDARD_AKAMAI",
+			ErrCount: 0,
+		},
+		{
+			Value:    "standard_akamai",
 			ErrCount: 0,
 		},
 	}
@@ -56,7 +60,7 @@ func TestAccAzureRMCdnProfile_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMCdnProfileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnProfileExists("azurerm_cdn_profile.test"),
@@ -77,12 +81,12 @@ func TestAccAzureRMCdnProfile_withTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMCdnProfileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnProfileExists("azurerm_cdn_profile.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_cdn_profile.test", "tags.#", "2"),
+						"azurerm_cdn_profile.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_cdn_profile.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -90,12 +94,12 @@ func TestAccAzureRMCdnProfile_withTags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnProfileExists("azurerm_cdn_profile.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_cdn_profile.test", "tags.#", "1"),
+						"azurerm_cdn_profile.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_cdn_profile.test", "tags.environment", "staging"),
 				),
@@ -167,7 +171,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 }
 `
 
@@ -180,7 +184,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 
     tags {
 	environment = "Production"
@@ -198,7 +202,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 
     tags {
 	environment = "staging"

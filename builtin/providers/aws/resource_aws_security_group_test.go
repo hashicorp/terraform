@@ -174,6 +174,18 @@ func TestResourceAwsSecurityGroupIPPermGather(t *testing.T) {
 				},
 			},
 		},
+		&ec2.IpPermission{
+			IpProtocol:    aws.String("-1"),
+			FromPort:      aws.Int64(int64(0)),
+			ToPort:        aws.Int64(int64(0)),
+			PrefixListIds: []*ec2.PrefixListId{&ec2.PrefixListId{PrefixListId: aws.String("pl-12345678")}},
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				// VPC
+				&ec2.UserIdGroupPair{
+					GroupId: aws.String("sg-22222"),
+				},
+			},
+		},
 	}
 
 	local := []map[string]interface{}{
@@ -199,6 +211,15 @@ func TestResourceAwsSecurityGroupIPPermGather(t *testing.T) {
 			"security_groups": schema.NewSet(schema.HashString, []interface{}{
 				"ec2_classic",
 				"amazon-elb/amazon-elb-sg",
+			}),
+		},
+		map[string]interface{}{
+			"protocol":        "-1",
+			"from_port":       int64(0),
+			"to_port":         int64(0),
+			"prefix_list_ids": []string{"pl-12345678"},
+			"security_groups": schema.NewSet(schema.HashString, []interface{}{
+				"sg-22222",
 			}),
 		},
 	}
@@ -504,7 +525,7 @@ func TestAccAWSSecurityGroup_generatedName(t *testing.T) {
 	})
 }
 
-func TestAccAWSSecurityGroup_DefaultEgress(t *testing.T) {
+func TestAccAWSSecurityGroup_DefaultEgress_VPC(t *testing.T) {
 
 	// VPC
 	resource.Test(t, resource.TestCase{
@@ -521,6 +542,9 @@ func TestAccAWSSecurityGroup_DefaultEgress(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSSecurityGroup_DefaultEgress_Classic(t *testing.T) {
 
 	// Classic
 	var group ec2.SecurityGroup
@@ -843,6 +867,27 @@ func TestAccAWSSecurityGroup_ingressWithCidrAndSGs_classic(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroup_egressWithPrefixList(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigPrefixListEgress,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.egress", &group),
+					testAccCheckAWSSecurityGroupPrefixListAttributes(&group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.egress", "egress.#", "1"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSecurityGroupSGandCidrAttributes(group *ec2.SecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.GroupName != "terraform_acceptance_test_example" {
@@ -874,6 +919,31 @@ func testAccCheckAWSSecurityGroupSGandCidrAttributes(group *ec2.SecurityGroup) r
 				continue
 			}
 			return fmt.Errorf("Found a rouge rule")
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSSecurityGroupPrefixListAttributes(group *ec2.SecurityGroup) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *group.GroupName != "terraform_acceptance_test_prefix_list_egress" {
+			return fmt.Errorf("Bad name: %s", *group.GroupName)
+		}
+		if *group.Description != "Used in the terraform acceptance tests" {
+			return fmt.Errorf("Bad description: %s", *group.Description)
+		}
+		if len(group.IpPermissionsEgress) == 0 {
+			return fmt.Errorf("No egress IPPerms")
+		}
+		if len(group.IpPermissionsEgress) != 1 {
+			return fmt.Errorf("Expected 1 egress rule, got %d", len(group.IpPermissions))
+		}
+
+		p := group.IpPermissionsEgress[0]
+
+		if len(p.PrefixListIds) != 1 {
+			return fmt.Errorf("Expected 1 prefix list, got %d", len(p.PrefixListIds))
 		}
 
 		return nil
@@ -966,6 +1036,24 @@ func testAccCheckAWSSecurityGroupExistsWithoutDefault(n string) resource.TestChe
 
 		return nil
 	}
+}
+
+func TestAccAWSSecurityGroup_failWithDiffMismatch(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfig_failWithDiffMismatch,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.nat", &group),
+				),
+			},
+		},
+	})
 }
 
 const testAccAWSSecurityGroupConfig = `
@@ -1527,5 +1615,133 @@ resource "aws_security_group" "web" {
   tags {
     Name = "tf-acc-test"
   }
+}
+`
+
+// fails to apply in one pass with the error "diffs didn't match during apply"
+// GH-2027
+const testAccAWSSecurityGroupConfig_failWithDiffMismatch = `
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "tf-test"
+  }
+}
+
+resource "aws_security_group" "ssh_base" {
+  name   = "test-ssh-base"
+  vpc_id = "${aws_vpc.main.id}"
+}
+
+resource "aws_security_group" "jump" {
+  name   = "test-jump"
+  vpc_id = "${aws_vpc.main.id}"
+}
+
+resource "aws_security_group" "provision" {
+  name   = "test-provision"
+  vpc_id = "${aws_vpc.main.id}"
+}
+
+resource "aws_security_group" "nat" {
+  vpc_id      = "${aws_vpc.main.id}"
+  name        = "nat"
+  description = "For nat servers "
+
+  ingress {
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = ["${aws_security_group.jump.id}"]
+  }
+
+  ingress {
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = ["${aws_security_group.provision.id}"]
+  }
+}
+`
+const testAccAWSSecurityGroupConfig_importSelf = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+
+  tags {
+    Name = "tf_sg_import_test"
+  }
+}
+
+resource "aws_security_group" "allow_all" {
+  name        = "allow_all"
+  description = "Allow all inbound traffic"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "allow_all" {
+  type        = "ingress"
+  from_port   = 0
+  to_port     = 65535
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+
+  security_group_id = "${aws_security_group.allow_all.id}"
+}
+
+resource "aws_security_group_rule" "allow_all-1" {
+  type      = "ingress"
+  from_port = 65534
+  to_port   = 65535
+  protocol  = "tcp"
+
+  self              = true
+  security_group_id = "${aws_security_group.allow_all.id}"
+}
+`
+
+const testAccAWSSecurityGroupConfigPrefixListEgress = `
+resource "aws_vpc" "tf_sg_prefix_list_egress_test" {
+    cidr_block = "10.0.0.0/16"
+    tags {
+            Name = "tf_sg_prefix_list_egress_test"
+    }
+}
+
+resource "aws_route_table" "default" {
+    vpc_id = "${aws_vpc.tf_sg_prefix_list_egress_test.id}"
+}
+
+resource "aws_vpc_endpoint" "s3-us-west-2" {
+  	vpc_id = "${aws_vpc.tf_sg_prefix_list_egress_test.id}"
+  	service_name = "com.amazonaws.us-west-2.s3"
+  	route_table_ids = ["${aws_route_table.default.id}"]
+  	policy = <<POLICY
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid":"AllowAll",
+			"Effect":"Allow",
+			"Principal":"*",
+			"Action":"*",
+			"Resource":"*"
+		}
+	]
+}
+POLICY
+}
+
+resource "aws_security_group" "egress" {
+    name = "terraform_acceptance_test_prefix_list_egress"
+    description = "Used in the terraform acceptance tests"
+    vpc_id = "${aws_vpc.tf_sg_prefix_list_egress_test.id}"
+ 
+    egress {
+      protocol = "-1"
+      from_port = 0
+      to_port = 0
+      prefix_list_ids = ["${aws_vpc_endpoint.s3-us-west-2.prefix_list_id}"]
+    }
 }
 `

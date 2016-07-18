@@ -4,6 +4,7 @@ package storage
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -24,7 +25,7 @@ const (
 
 	// DefaultAPIVersion is the  Azure Storage API version string used when a
 	// basic client is created.
-	DefaultAPIVersion = "2014-02-14"
+	DefaultAPIVersion = "2015-02-21"
 
 	defaultUseHTTPS = true
 
@@ -37,6 +38,10 @@ const (
 // Client is the object that needs to be constructed to perform
 // operations on the storage account.
 type Client struct {
+	// HTTPClient is the http.Client used to initiate API
+	// requests.  If it is nil, http.DefaultClient is used.
+	HTTPClient *http.Client
+
 	accountName string
 	accountKey  []byte
 	useHTTPS    bool
@@ -48,6 +53,11 @@ type storageResponse struct {
 	statusCode int
 	headers    http.Header
 	body       io.ReadCloser
+}
+
+type odataResponse struct {
+	storageResponse
+	odata odataErrorMessage
 }
 
 // AzureStorageServiceError contains fields of the error response from
@@ -62,6 +72,20 @@ type AzureStorageServiceError struct {
 	Reason                    string `xml:"Reason"`
 	StatusCode                int
 	RequestID                 string
+}
+
+type odataErrorMessageMessage struct {
+	Lang  string `json:"lang"`
+	Value string `json:"value"`
+}
+
+type odataErrorMessageInternal struct {
+	Code    string                   `json:"code"`
+	Message odataErrorMessageMessage `json:"message"`
+}
+
+type odataErrorMessage struct {
+	Err odataErrorMessageInternal `json:"odata.error"`
 }
 
 // UnexpectedStatusCodeError is returned when a storage service responds with neither an error
@@ -108,7 +132,7 @@ func NewClient(accountName, accountKey, blobServiceBaseURL, apiVersion string, u
 
 	key, err := base64.StdEncoding.DecodeString(accountKey)
 	if err != nil {
-		return c, err
+		return c, fmt.Errorf("azure: malformed storage account key: %v", err)
 	}
 
 	return Client{
@@ -160,6 +184,12 @@ func (c Client) GetBlobService() BlobStorageClient {
 // service of the storage account.
 func (c Client) GetQueueService() QueueServiceClient {
 	return QueueServiceClient{c}
+}
+
+// GetTableService returns a TableServiceClient which can operate on the table
+// service of the storage account.
+func (c Client) GetTableService() TableServiceClient {
+	return TableServiceClient{c}
 }
 
 // GetFileService returns a FileServiceClient which can operate on the file
@@ -224,6 +254,22 @@ func (c Client) buildCanonicalizedHeader(headers map[string]string) string {
 	return ch
 }
 
+func (c Client) buildCanonicalizedResourceTable(uri string) (string, error) {
+	errMsg := "buildCanonicalizedResourceTable error: %s"
+	u, err := url.Parse(uri)
+	if err != nil {
+		return "", fmt.Errorf(errMsg, err.Error())
+	}
+
+	cr := "/" + c.accountName
+
+	if len(u.Path) > 0 {
+		cr += u.Path
+	}
+
+	return cr, nil
+}
+
 func (c Client) buildCanonicalizedResource(uri string) (string, error) {
 	errMsg := "buildCanonicalizedResource error: %s"
 	u, err := url.Parse(uri)
@@ -232,6 +278,7 @@ func (c Client) buildCanonicalizedResource(uri string) (string, error) {
 	}
 
 	cr := "/" + c.accountName
+
 	if len(u.Path) > 0 {
 		cr += u.Path
 	}
@@ -262,15 +309,20 @@ func (c Client) buildCanonicalizedResource(uri string) (string, error) {
 			}
 		}
 	}
+
 	return cr, nil
 }
 
 func (c Client) buildCanonicalizedString(verb string, headers map[string]string, canonicalizedResource string) string {
+	contentLength := headers["Content-Length"]
+	if contentLength == "0" {
+		contentLength = ""
+	}
 	canonicalizedString := fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
 		verb,
 		headers["Content-Encoding"],
 		headers["Content-Language"],
-		headers["Content-Length"],
+		contentLength,
 		headers["Content-MD5"],
 		headers["Content-Type"],
 		headers["Date"],
@@ -314,7 +366,11 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 	for k, v := range headers {
 		req.Header.Add(k, v)
 	}
-	httpClient := http.Client{}
+
+	httpClient := c.HTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -350,6 +406,70 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 		statusCode: resp.StatusCode,
 		headers:    resp.Header,
 		body:       resp.Body}, nil
+}
+
+func (c Client) execInternalJSON(verb, url string, headers map[string]string, body io.Reader) (*odataResponse, error) {
+	req, err := http.NewRequest(verb, url, body)
+	for k, v := range headers {
+		req.Header.Add(k, v)
+	}
+
+	httpClient := c.HTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respToRet := &odataResponse{}
+	respToRet.body = resp.Body
+	respToRet.statusCode = resp.StatusCode
+	respToRet.headers = resp.Header
+
+	statusCode := resp.StatusCode
+	if statusCode >= 400 && statusCode <= 505 {
+		var respBody []byte
+		respBody, err = readResponseBody(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(respBody) == 0 {
+			// no error in response body
+			err = fmt.Errorf("storage: service returned without a response body (%d)", resp.StatusCode)
+			return respToRet, err
+		}
+		// try unmarshal as odata.error json
+		err = json.Unmarshal(respBody, &respToRet.odata)
+		return respToRet, err
+	}
+
+	return respToRet, nil
+}
+
+func (c Client) createSharedKeyLite(url string, headers map[string]string) (string, error) {
+	can, err := c.buildCanonicalizedResourceTable(url)
+
+	if err != nil {
+		return "", err
+	}
+	strToSign := headers["x-ms-date"] + "\n" + can
+
+	hmac := c.computeHmac256(strToSign)
+	return fmt.Sprintf("SharedKeyLite %s:%s", c.accountName, hmac), nil
+}
+
+func (c Client) execTable(verb, url string, headers map[string]string, body io.Reader) (*odataResponse, error) {
+	var err error
+	headers["Authorization"], err = c.createSharedKeyLite(url, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.execInternalJSON(verb, url, headers, body)
 }
 
 func readResponseBody(resp *http.Response) ([]byte, error) {

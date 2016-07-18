@@ -6,7 +6,7 @@ sidebar_current: "docs-aws-resource-redshift-cluster"
 
 # aws\_redshift\_cluster
 
-Provides a Redshift Cluster Resource. 
+Provides a Redshift Cluster Resource.
 
 ## Example Usage
 
@@ -52,9 +52,13 @@ string.
 * `number_of_nodes` - (Optional) The number of compute nodes in the cluster. This parameter is required when the ClusterType parameter is specified as multi-node. Default is 1.
 * `publicly_accessible` - (Optional) If true, the cluster can be accessed from a public network. Default is `true`.
 * `encrypted` - (Optional) If true , the data in the cluster is encrypted at rest.
+* `kms_key_id` - (Optional) The KMS key ID for the cluster.
 * `elastic_ip` - (Optional) The Elastic IP (EIP) address for the cluster.
 * `skip_final_snapshot` - (Optional) Determines whether a final snapshot of the cluster is created before Amazon Redshift deletes the cluster. If true , a final cluster snapshot is not created. If false , a final cluster snapshot is created before the cluster is deleted. Default is true.
-* `final_snapshot_identifier` - (Optional) The identifier of the final snapshot that is to be created immediately before deleting the cluster. If this parameter is provided, `skip_final_snapshot` must be false.                                                                                                     
+* `final_snapshot_identifier` - (Optional) The identifier of the final snapshot that is to be created immediately before deleting the cluster. If this parameter is provided, `skip_final_snapshot` must be false.
+* `iam_roles` - (Optional) A list of IAM Role ARNs to associate with the cluster. A Maximum of 10 can be associated to the cluster at any time.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
+
 
 ## Attributes Reference
 
@@ -77,5 +81,4 @@ The following attributes are exported:
 * `cluster_parameter_group_name` - The name of the parameter group to be associated with this cluster
 * `cluster_subnet_group_name` - The name of a cluster subnet group to be associated with this cluster
 * `cluster_public_key` - The public key for the cluster
-* `cluster_revision_number` - The specific revision number of the database in the cluster 
-	
+* `cluster_revision_number` - The specific revision number of the database in the cluster

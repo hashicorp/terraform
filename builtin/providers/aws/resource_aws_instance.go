@@ -24,6 +24,9 @@ func resourceAwsInstance() *schema.Resource {
 		Read:   resourceAwsInstanceRead,
 		Update: resourceAwsInstanceUpdate,
 		Delete: resourceAwsInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsInstanceMigrateState,
@@ -358,25 +361,22 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Run configuration: %s", runOpts)
 
 	var runResp *ec2.Reservation
-	for i := 0; i < 5; i++ {
+	err = resource.Retry(10*time.Second, func() *resource.RetryError {
+		var err error
 		runResp, err = conn.RunInstances(runOpts)
-		if awsErr, ok := err.(awserr.Error); ok {
-			// IAM profiles can take ~10 seconds to propagate in AWS:
-			//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "Invalid IAM Instance Profile") {
-				log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
-				time.Sleep(2 * time.Second)
-				continue
-			}
-
-			// Warn if the AWS Error involves group ids, to help identify situation
-			// where a user uses group ids in security_groups for the Default VPC.
-			//   See https://github.com/hashicorp/terraform/issues/3798
-			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "groupId is invalid") {
-				return fmt.Errorf("Error launching instance, possible mismatch of Security Group IDs and Names. See AWS Instance docs here: %s.\n\n\tAWS Error: %s", "https://terraform.io/docs/providers/aws/r/instance.html", awsErr.Message())
-			}
+		// IAM profiles can take ~10 seconds to propagate in AWS:
+		// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+		if isAWSErr(err, "InvalidParameterValue", "Invalid IAM Instance Profile") {
+			log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
+			return resource.RetryableError(err)
 		}
-		break
+		return resource.NonRetryableError(err)
+	})
+	// Warn if the AWS Error involves group ids, to help identify situation
+	// where a user uses group ids in security_groups for the Default VPC.
+	//   See https://github.com/hashicorp/terraform/issues/3798
+	if isAWSErr(err, "InvalidParameterValue", "groupId is invalid") {
+		return fmt.Errorf("Error launching instance, possible mismatch of Security Group IDs and Names. See AWS Instance docs here: %s.\n\n\tAWS Error: %s", "https://terraform.io/docs/providers/aws/r/instance.html", err.(awserr.Error).Message())
 	}
 	if err != nil {
 		return fmt.Errorf("Error launching source instance: %s", err)
@@ -485,7 +485,11 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
 	if len(instance.NetworkInterfaces) > 0 {
-		d.Set("subnet_id", instance.NetworkInterfaces[0].SubnetId)
+		for _, ni := range instance.NetworkInterfaces {
+			if *ni.Attachment.DeviceIndex == 0 {
+				d.Set("subnet_id", ni.SubnetId)
+			}
+		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
 	}

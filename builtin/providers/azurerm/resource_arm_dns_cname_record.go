@@ -34,10 +34,16 @@ func resourceArmDnsCNameRecord() *schema.Resource {
 			},
 
 			"records": &schema.Schema{
-				Type:     schema.TypeSet,
-				Required: true,
+				Type:     schema.TypeString,
+				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
+				Removed:  "Use `record` instead. This attribute will be removed in a future version",
+			},
+
+			"record": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
 			},
 
 			"ttl": &schema.Schema{
@@ -64,16 +70,10 @@ func resourceArmDnsCNameRecordCreate(d *schema.ResourceData, meta interface{}) e
 		ZoneName:          d.Get("zone_name").(string),
 		TTL:               d.Get("ttl").(int),
 		Tags:              *expandedTags,
+		CNAMERecord: dns.CNAMERecord{
+			CNAME: d.Get("record").(string),
+		},
 	}
-
-	recordStrings := d.Get("records").(*schema.Set).List()
-	records := make([]dns.CNAMERecord, len(recordStrings))
-	for i, v := range recordStrings {
-		records[i] = dns.CNAMERecord{
-			CNAME: v.(string),
-		}
-	}
-	createCommand.CNAMERecords = records
 
 	createRequest := rivieraClient.NewRequest()
 	createRequest.Command = createCommand
@@ -127,17 +127,7 @@ func resourceArmDnsCNameRecordRead(d *schema.ResourceData, meta interface{}) err
 	resp := readResponse.Parsed.(*dns.GetCNAMERecordSetResponse)
 
 	d.Set("ttl", resp.TTL)
-
-	if resp.CNAMERecords != nil {
-		records := make([]string, 0, len(resp.CNAMERecords))
-		for _, record := range resp.CNAMERecords {
-			records = append(records, record.CNAME)
-		}
-
-		if err := d.Set("records", records); err != nil {
-			return err
-		}
-	}
+	d.Set("record", resp.CNAMERecord.CNAME)
 
 	flattenAndSetTags(d, &resp.Tags)
 
