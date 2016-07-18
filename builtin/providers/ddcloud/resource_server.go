@@ -291,8 +291,6 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 	log.Printf("Configuring additional disks for server '%s'...", serverID)
 	additionalDisks := propertyHelper.GetServerDisks(resourceKeyServerAdditionalDisk)
 	if len(additionalDisks) == 0 {
-		data.Partial(false)
-
 		return nil
 	}
 
@@ -612,6 +610,7 @@ func createImageDisks(existingDisksByUnitID map[int]*compute.VirtualMachineDisk,
 		}
 
 		propertyHelper.SetServerDisks(resourceKeyServerImageDisk, serverDisks)
+		propertyHelper.SetPartial(resourceKeyServerImageDisk)
 
 		return nil
 	}
@@ -671,7 +670,7 @@ func createImageDisks(existingDisksByUnitID map[int]*compute.VirtualMachineDisk,
 			server := resource.(*compute.Server)
 
 			propertyHelper.SetServerDisks(resourceKeyServerImageDisk, server.Disks)
-			data.SetPartial(resourceKeyServerAdditionalDisk)
+			propertyHelper.SetPartial(resourceKeyServerImageDisk)
 
 			log.Printf(
 				"Resized disk '%s' for server '%s' (from %d to GB to %d).",
@@ -755,7 +754,7 @@ func updateImageDisks(existingDisksByUnitID map[int]*compute.VirtualMachineDisk,
 			server := resource.(*compute.Server)
 
 			propertyHelper.SetServerDisks(resourceKeyServerImageDisk, server.Disks)
-			data.SetPartial(resourceKeyServerAdditionalDisk)
+			propertyHelper.SetPartial(resourceKeyServerImageDisk)
 
 			log.Printf(
 				"Resized disk '%s' for server '%s' (from %d to GB to %d).",
@@ -769,28 +768,6 @@ func updateImageDisks(existingDisksByUnitID map[int]*compute.VirtualMachineDisk,
 	}
 
 	return nil
-}
-
-// Parse and append additional disks to those specified by the image being deployed.
-func mergeDisks(imageDisks []compute.VirtualMachineDisk, additionalDisks []compute.VirtualMachineDisk) []compute.VirtualMachineDisk {
-	diskSet := schema.NewSet(hashDiskUnitID, []interface{}{})
-
-	for _, disk := range imageDisks {
-		log.Printf("Merge image disk with SCSI unit Id %d.", disk.SCSIUnitID)
-		diskSet.Add(disk)
-	}
-
-	for _, disk := range additionalDisks {
-		log.Printf("Merge additional disk with SCSI unit Id %d.", disk.SCSIUnitID)
-		diskSet.Add(disk)
-	}
-
-	mergedDisks := make([]compute.VirtualMachineDisk, diskSet.Len())
-	for index, disk := range diskSet.List() {
-		mergedDisks[index] = disk.(compute.VirtualMachineDisk)
-	}
-
-	return mergedDisks
 }
 
 func getDisksByUnitID(disks []compute.VirtualMachineDisk) map[int]*compute.VirtualMachineDisk {
@@ -893,6 +870,8 @@ func readServerTags(data *schema.ResourceData, apiClient *compute.Client) error 
 	if err != nil {
 		return err
 	}
+
+	log.Printf("Read %d tags for server '%s'.", result.PageCount, serverID)
 
 	// TODO: Handle multiple pages of results.
 

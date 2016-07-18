@@ -48,6 +48,10 @@ func (helper resourcePropertyHelper) GetOptionalBool(key string) *bool {
 	}
 }
 
+func (helper resourcePropertyHelper) SetPartial(key string) {
+	helper.data.SetPartial(key)
+}
+
 func (helper resourcePropertyHelper) GetTags(key string) (tags []compute.Tag) {
 	value, ok := helper.data.GetOk(key)
 	if !ok {

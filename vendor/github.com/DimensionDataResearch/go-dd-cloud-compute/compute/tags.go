@@ -27,7 +27,7 @@ type TagDetail struct {
 
 // TagDetails represents a page of TagDetail results.
 type TagDetails struct {
-	Items []TagDetail
+	Items []TagDetail `json:"tag"`
 
 	PagedResult
 }
@@ -55,7 +55,7 @@ type TagKey struct {
 
 // TagKeys represents a page of TagKey results.
 type TagKeys struct {
-	Items []TagKey
+	Items []TagKey `json:"tagKey"`
 
 	PagedResult
 }

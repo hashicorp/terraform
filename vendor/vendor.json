@@ -178,10 +178,10 @@
 			"revision": "edd0930276e7f1a5f2cf3e7835b5dc42a3217669"
 		},
 		{
-			"checksumSHA1": "vTsyN4AH0phf9Eb2zzjiscGXwc4=",
+			"checksumSHA1": "w9ObdrO60APCpQ9nUpeqfWjByu4=",
 			"path": "github.com/DimensionDataResearch/go-dd-cloud-compute/compute",
-			"revision": "cc503b8238317fbd7d9fe4bb8bcadb1ea21b88ac",
-			"revisionTime": "2016-07-18T14:20:11Z"
+			"revision": "0c71dc4f83e4ff557021dd4df7b016198cda08c5",
+			"revisionTime": "2016-07-18T20:45:46Z"
 		},
 		{
 			"path": "github.com/DreamItGetIT/statuscake",

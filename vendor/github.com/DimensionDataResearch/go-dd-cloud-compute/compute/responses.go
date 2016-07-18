@@ -12,6 +12,19 @@ type APIResponse interface {
 	GetAPIVersion() string
 }
 
+// APIError is an error representing an error response from an API.
+type APIError struct {
+	Message  string
+	Response APIResponse
+}
+
+// Error returns the error message associated with the APIError.
+func (apiError *APIError) Error() string {
+	return apiError.Message
+}
+
+var _ error = &APIError{}
+
 // Well-known API (v1) results
 
 const (

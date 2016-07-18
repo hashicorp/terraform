@@ -100,6 +100,9 @@ func (client *Client) executeRequest(request *http.Request) (responseBody []byte
 	statusCode = response.StatusCode
 
 	responseBody, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		err = fmt.Errorf("Error reading response body for '%s': %s", request.URL.String(), err.Error())
+	}
 
 	return
 }
@@ -139,11 +142,13 @@ func readAPIResponseV1(responseBody []byte, statusCode int) (apiResponse *APIRes
 	apiResponse = &APIResponseV1{}
 	err = xml.Unmarshal(responseBody, apiResponse)
 	if err != nil {
+		err = fmt.Errorf("Error reading API response (v1) from XML: %s", err.Error())
+
 		return
 	}
 
 	if len(apiResponse.Result) == 0 {
-		apiResponse.Result = "UNKNOWN_RESPONSE_CODE"
+		apiResponse.Result = "UNKNOWN_RESULT"
 	}
 
 	if len(apiResponse.Message) == 0 {
@@ -158,6 +163,8 @@ func readAPIResponseAsJSON(responseBody []byte, statusCode int) (apiResponse *AP
 	apiResponse = &APIResponseV2{}
 	err = json.Unmarshal(responseBody, apiResponse)
 	if err != nil {
+		err = fmt.Errorf("Error reading API response (v2) from JSON: %s", err.Error())
+
 		return
 	}
 

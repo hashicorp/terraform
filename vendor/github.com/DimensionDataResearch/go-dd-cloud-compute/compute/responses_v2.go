@@ -59,16 +59,3 @@ type FieldMessage struct {
 	// The field message.
 	Message string `json:"value"`
 }
-
-// APIError is an error representing an error response from an API.
-type APIError struct {
-	Message  string
-	Response APIResponse
-}
-
-// Error returns the error message associated with the APIError.
-func (apiError *APIError) Error() string {
-	return apiError.Error()
-}
-
-var _ error = &APIError{}
