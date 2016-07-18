@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -836,6 +837,27 @@ func TestFlattenAsgEnabledMetrics(t *testing.T) {
 
 	if result[1] != "GroupMaxSize" {
 		t.Fatalf("expected id to be GroupMaxSize, but was %s", result[1])
+	}
+}
+
+func TestFlattenKinesisShardLevelMetrics(t *testing.T) {
+	expanded := []*kinesis.EnhancedMetrics{
+		&kinesis.EnhancedMetrics{
+			ShardLevelMetrics: []*string{
+				aws.String("IncomingBytes"),
+				aws.String("IncomingRecords"),
+			},
+		},
+	}
+	result := flattenKinesisShardLevelMetrics(expanded)
+	if len(result) != 2 {
+		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
+	}
+	if result[0] != "IncomingBytes" {
+		t.Fatalf("expected element 0 to be IncomingBytes, but was %s", result[0])
+	}
+	if result[1] != "IncomingRecords" {
+		t.Fatalf("expected element 0 to be IncomingRecords, but was %s", result[1])
 	}
 }
 
