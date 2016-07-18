@@ -134,12 +134,31 @@ func (client *Client) newRequestV22(relativeURI string, method string, body inte
 	return request, nil
 }
 
-// Read an APIResponse (as JSON) from the response body.
-func readAPIResponseAsJSON(responseBody []byte, statusCode int) (*APIResponse, error) {
-	apiResponse := &APIResponse{}
-	err := json.Unmarshal(responseBody, apiResponse)
+// Read an APIResponseV1 (as XML) from the response body.
+func readAPIResponseV1(responseBody []byte, statusCode int) (apiResponse *APIResponseV1, err error) {
+	apiResponse = &APIResponseV1{}
+	err = xml.Unmarshal(responseBody, apiResponse)
 	if err != nil {
-		return nil, err
+		return
+	}
+
+	if len(apiResponse.Result) == 0 {
+		apiResponse.Result = "UNKNOWN_RESPONSE_CODE"
+	}
+
+	if len(apiResponse.Message) == 0 {
+		apiResponse.Message = "An unexpected response was received from the compute API."
+	}
+
+	return
+}
+
+// Read an APIResponseV2 (as JSON) from the response body.
+func readAPIResponseAsJSON(responseBody []byte, statusCode int) (apiResponse *APIResponseV2, err error) {
+	apiResponse = &APIResponseV2{}
+	err = json.Unmarshal(responseBody, apiResponse)
+	if err != nil {
+		return
 	}
 
 	if len(apiResponse.ResponseCode) == 0 {
@@ -150,7 +169,7 @@ func readAPIResponseAsJSON(responseBody []byte, statusCode int) (*APIResponse, e
 		apiResponse.Message = "An unexpected response was received from the compute API."
 	}
 
-	return apiResponse, nil
+	return
 }
 
 // newReaderFromJSON serialises the specified data as JSON and returns an io.Reader over that JSON.

@@ -128,7 +128,7 @@ func (client *Client) GetVLAN(id string) (vlan *VLAN, err error) {
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {
@@ -168,7 +168,7 @@ func (client *Client) ListVLANs(networkDomainID string) (vlans *VLANs, err error
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {

@@ -56,7 +56,7 @@ func (client *Client) GetNATRule(id string) (rule *NATRule, err error) {
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {
@@ -98,7 +98,7 @@ func (client *Client) ListNATRules(networkDomainID string) (rules *NATRules, err
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {

@@ -280,7 +280,7 @@ func (client *Client) GetFirewallRule(id string) (rule *FirewallRule, err error)
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {
@@ -322,7 +322,7 @@ func (client *Client) ListFirewallRules(networkDomainID string) (rules *Firewall
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {

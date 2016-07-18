@@ -1,67 +1,25 @@
 package compute
 
-import "fmt"
+// APIResponse represents the response to an API call.
+type APIResponse interface {
+	// GetMessage gets the message associated with the API response.
+	GetMessage() string
 
-// APIResponse represents the basic response most commonly received when making API calls.
-type APIResponse struct {
-	// The operation that was performed.
-	Operation string `json:"operation"`
+	// GetResponseCode gets the response code associated with the API response.
+	GetResponseCode() string
 
-	// The API response code.
-	ResponseCode string `json:"responseCode"`
-
-	// The API status message (if any).
-	Message string `json:"message"`
-
-	// Informational messages (if any) relating to request fields.
-	FieldMessages []FieldMessage `json:"info"`
-
-	// Warning messages (if any) relating to request fields.
-	FieldWarnings []FieldMessage `json:"warning"`
-
-	// Error messages (if any) relating to request fields.
-	FieldErrors []FieldMessage `json:"error"`
-
-	// The request ID (correlation identifier).
-	RequestID string `json:"requestId"`
+	// GetAPIVersion gets the version of the API that returned the response.
+	GetAPIVersion() string
 }
 
-// ToError creates an error representing the API response.
-func (response *APIResponse) ToError(errorMessageOrFormat string, formatArgs ...interface{}) error {
-	return &APIError{
-		Message:  fmt.Sprintf(errorMessageOrFormat, formatArgs...),
-		Response: *response,
-	}
-}
+// Well-known API (v1) results
 
-// FieldMessage represents a field name together with an associated message.
-type FieldMessage struct {
-	// The field name.
-	FieldName string `json:"name"`
+const (
+	// ResultSuccess indicates that an operation completed successfully.
+	ResultSuccess = "SUCCESS"
+)
 
-	// The field message.
-	Message string `json:"value"`
-}
-
-// APIError is an error representing an error response from an API.
-type APIError struct {
-	Message  string
-	Response APIResponse
-}
-
-// Error returns the error message associated with the APIError.
-func (apiError *APIError) Error() string {
-	return apiError.Message
-}
-
-// ResponseCode returns the response code associated with the APIError.
-func (apiError *APIError) ResponseCode() string {
-	return apiError.Response.ResponseCode
-}
-
-var _ error = &APIError{}
-
-// Well-known API response codes
+// Well-known API (v2) response codes
 
 const (
 	// ResponseCodeOK indicates that an operation completed successfully.

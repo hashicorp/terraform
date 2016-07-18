@@ -89,7 +89,7 @@ func (client *Client) GetIPAddressList(id string) (addressList *IPAddressList, e
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {
@@ -128,7 +128,7 @@ func (client *Client) ListIPAddressLists(networkDomainID string) (addressLists *
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {

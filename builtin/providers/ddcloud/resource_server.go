@@ -72,8 +72,8 @@ func resourceServer() *schema.Resource {
 				Computed: true,
 				Default:  nil,
 			},
-			resourceKeyServerImageDisk:      schemaServerDisk(true),
-			resourceKeyServerAdditionalDisk: schemaServerDisk(false),
+			resourceKeyServerImageDisk:      schemaServerDisk(),
+			resourceKeyServerAdditionalDisk: schemaServerDisk(),
 			resourceKeyServerNetworkDomainID: &schema.Schema{
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -223,7 +223,10 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 	}
 
 	// Update the image disks to reflect current state.
-	propertyHelper.SetServerDisks(resourceKeyServerImageDisk, deploymentConfiguration.Disks)
+	var disksByUnitID = make(map[int]*compute.VirtualMachineDisk)
+	for _, disk := range(deploymentConfiguration.Disks) {
+		disksByUnitID[disk.SCSIUnitID] = &disk
+	}
 
 	// Memory and CPU
 	memoryGB := propertyHelper.GetOptionalInt(resourceKeyServerMemoryGB, false)
@@ -284,7 +287,80 @@ func resourceServerCreate(data *schema.ResourceData, provider interface{}) error
 	data.Set(resourceKeyServerPrimaryIPv6, serverIPv6Address)
 	data.SetPartial(resourceKeyServerPrimaryIPv6)
 
-	// TODO: Adjust image size for image disk(s) if they were explicitly specified.
+	// Capture image disk IDs.
+	for _, disk := range(server.Disks) {
+		disksByUnitID[disk.SCSIUnitID].ID = disk.ID
+	}
+
+	// Adjust image size for image disk(s) if they were explicitly specified in the configuration.
+	imageDisks := propertyHelper.GetServerDisks(resourceKeyServerImageDisk)
+	for _, imageDisk := range(imageDisks) {
+		serverImageDisk, ok := disksByUnitID[imageDisk.SCSIUnitID]
+		if !ok {
+			return fmt.Errorf("No disk was found with SCSI unit Id %d for server '%s'.", imageDisk.SCSIUnitID, serverID)
+		}
+
+		diskID := *serverImageDisk.ID
+
+		if (imageDisk.SizeGB == serverImageDisk.SizeGB) {
+			continue // Nothing to do.
+		}
+
+		if (imageDisk.SizeGB < serverImageDisk.SizeGB) {
+
+			// Can't shrink disk, only grow it.
+			return fmt.Errorf(
+				"Cannot resize disk '%s' for server '%s' from %d to GB to %d (for now, disks can only be expanded).",
+				diskID,
+				serverID,
+				serverImageDisk.SizeGB,
+				imageDisk.SizeGB,
+			)
+		}
+
+		// Do we need to expand the disk?
+		if (imageDisk.SizeGB > serverImageDisk.SizeGB) {
+			log.Printf(
+				"Expanding disk '%s' for server '%s' (from %d GB to %d GB)...",
+				diskID,
+				serverID,
+				serverImageDisk.SizeGB,
+				imageDisk.SizeGB,
+			)
+
+			response, err := apiClient.ResizeServerDisk(serverID, diskID, imageDisk.SizeGB)
+			if err != nil {
+				return err
+			}
+			if response.Result != compute.ResultSuccess {
+				return response.ToError("Unexpected result '%s' when resizing server disk '%s' for server '%s'.", response.Result, diskID, serverID)
+			}
+
+			resource, err = apiClient.WaitForChange(
+				compute.ResourceTypeServer,
+				serverID,
+				"Resize disk",
+				resourceUpdateTimeoutServer,
+			)
+			if err != nil {
+				return err
+			}
+
+			server = resource.(*compute.Server)
+
+			propertyHelper.SetServerDisks(resourceKeyServerImageDisk, server.Disks)
+			data.SetPartial(resourceKeyServerAdditionalDisk)
+
+			log.Printf(
+				"Resized disk '%s' for server '%s' (from %d to GB to %d).",
+				diskID,
+				serverID,
+				serverImageDisk.SizeGB,
+				imageDisk.SizeGB,
+			)
+
+		}
+	}
 
 	// Additional disks
 	additionalDisks := propertyHelper.GetServerDisks(resourceKeyServerAdditionalDisk)
@@ -582,10 +658,10 @@ func hashServerTag(item interface{}) int {
 	)
 }
 
-func schemaServerDisk(readonly bool) *schema.Schema {
+func schemaServerDisk() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
-		Optional: !readonly,
+		Optional: true,
 		Computed: true,
 		Default:  nil,
 		Elem: &schema.Resource{

@@ -62,7 +62,7 @@ func (client *Client) FindOSImage(name string, dataCenterID string) (image *OSIm
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {

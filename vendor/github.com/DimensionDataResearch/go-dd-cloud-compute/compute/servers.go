@@ -2,6 +2,7 @@ package compute
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 )
@@ -87,6 +88,15 @@ type addDiskToServer struct {
 	SCSIUnitID int    `json:"scsiId"`
 }
 
+// resizeServerDisk represents the request body when resizing a server disk.
+type resizeServerDisk struct {
+	// The XML name for the "resizeServerDisk" data contract
+	XMLName xml.Name `xml:"http://oec.api.opsource.net/schemas/server ChangeDiskSize"`
+
+	// The new disk size, in gigabytes.
+	NewSizeGB int `xml:"newSizeGb"`
+}
+
 // ApplyImage applies the specified image (and its default values for CPU, memory, and disks) to the ServerDeploymentConfiguration.
 func (config *ServerDeploymentConfiguration) ApplyImage(image *OSImage) error {
 	if image == nil {
@@ -142,7 +152,7 @@ func (client *Client) GetServer(id string) (server *Server, err error) {
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {
@@ -202,10 +212,10 @@ func (client *Client) AddDiskToServer(serverID string, scsiUnitID int, sizeGB in
 
 	requestURI := fmt.Sprintf("%s/server/addDisk", organizationID)
 	request, err := client.newRequestV22(requestURI, http.MethodPost, &addDiskToServer{
-		ServerID: serverID,
-		SizeGB: sizeGB,
+		ServerID:   serverID,
+		SizeGB:     sizeGB,
 		SCSIUnitID: scsiUnitID,
-		Speed: speed,
+		Speed:      speed,
 	})
 	responseBody, statusCode, err := client.executeRequest(request)
 	if err != nil {
@@ -227,6 +237,27 @@ func (client *Client) AddDiskToServer(serverID string, scsiUnitID int, sizeGB in
 	}
 
 	return apiResponse.FieldMessages[0].Message, nil
+}
+
+// ResizeServerDisk requests resizing of a server disk.
+func (client *Client) ResizeServerDisk(serverID string, diskID string, newSizeGB int) (response *APIResponseV1, err error) {
+	organizationID, err := client.getOrganizationID()
+	if err != nil {
+		return
+	}
+
+	requestURI := fmt.Sprintf("%s/server/%s/disk/%s/changeSize", organizationID, serverID, diskID)
+	request, err := client.newRequestV1(requestURI, http.MethodPost, &resizeServerDisk{
+		NewSizeGB: newSizeGB,
+	})
+	responseBody, statusCode, err := client.executeRequest(request)
+	if err != nil {
+		return
+	}
+
+	response, err = readAPIResponseV1(responseBody, statusCode)
+
+	return
 }
 
 // DeleteServer deletes an existing Server.

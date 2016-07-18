@@ -122,7 +122,7 @@ func (client *Client) ListNetworkDomains() (domains *NetworkDomains, err error) 
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {
@@ -161,7 +161,7 @@ func (client *Client) GetNetworkDomain(id string) (domain *NetworkDomain, err er
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {

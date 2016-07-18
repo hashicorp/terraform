@@ -90,7 +90,7 @@ func (client *Client) GetPublicIPBlock(id string) (block *PublicIPBlock, err err
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {
@@ -132,7 +132,7 @@ func (client *Client) ListPublicIPBlocks(networkDomainID string) (blocks *Public
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {
@@ -229,7 +229,7 @@ func (client *Client) ListReservedPublicIPAddresses(networkDomainID string) (res
 	}
 
 	if statusCode != http.StatusOK {
-		var apiResponse *APIResponse
+		var apiResponse *APIResponseV2
 
 		apiResponse, err = readAPIResponseAsJSON(responseBody, statusCode)
 		if err != nil {
