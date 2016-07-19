@@ -141,6 +141,33 @@ func (v virtualMachine) Path() string {
 	return vmPath(v.folder, v.name)
 }
 
+func validatorFromValue(fieldName string, possibleValuesF func() []interface{}) func(v interface{}, k string) (ws []string, errors []error) {
+	possibleValuesI := possibleValuesF()
+	possibleValues := make([]stringer, len(possibleValuesI))
+	var ok bool
+	for i, v := range possibleValuesI {
+		possibleValues[i], ok = v.(stringer)
+		if !ok {
+			log.Panicf("not a stringer %[1]T %[1]v", v)
+		}
+	}
+	return func(v interface{}, k string) (ws []string, errors []error) {
+		value := v.(string)
+		found := false
+		for _, t := range possibleValues {
+			if t.String() == value {
+				found = true
+				break
+			}
+		}
+		if !found {
+			errors = append(errors, fmt.Errorf(
+				"Supported values for '%s' are %v", fieldName, JoinStringer(possibleValues, ", ")))
+		}
+		return
+	}
+}
+
 func vmPath(folder string, name string) string {
 	var path string
 	if len(folder) > 0 {
@@ -873,9 +900,8 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType provision
 	// If diskPath is not specified, pass empty string to CreateDisk()
 	if diskPath == "" {
 		return fmt.Errorf("[ERROR] addHardDisk - No path provided")
-	} else {
-		diskPath = datastore.Path(diskPath)
 	}
+    diskPath = datastore.Path(diskPath)
 	diskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
 	log.Printf("[DEBUG] addHardDisk - diskPath: %v", diskPath)
 	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
@@ -1593,7 +1619,13 @@ func (vm *virtualMachine) setupNetwork(finder *find.Finder) ([]types.BaseVirtual
 	for _, network := range vm.networkInterfaces {
 		// network device
 		var networkDeviceType nicType
-		if network.adapterType != "" {
+		if network.adapterType == "" {
+			if vm.template == "" {
+				networkDeviceType = nicTypeE1000
+			} else {
+				networkDeviceType = nicTypeVmxnet3
+			}
+		} else {
 			networkDeviceType = network.adapterType
 		} else if vm.template == "" {
 			networkDeviceType = nicTypeE1000
