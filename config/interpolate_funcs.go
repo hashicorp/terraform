@@ -91,15 +91,34 @@ func interpolationFuncList() ast.Function {
 		ArgTypes:     []ast.Type{},
 		ReturnType:   ast.TypeList,
 		Variadic:     true,
-		VariadicType: ast.TypeString,
+		VariadicType: ast.TypeAny,
 		Callback: func(args []interface{}) (interface{}, error) {
-			var outputList []string
+			var outputList []ast.Variable
 
-			for _, val := range args {
-				outputList = append(outputList, val.(string))
+			for i, val := range args {
+				switch v := val.(type) {
+				case string:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeString, Value: v})
+				case []ast.Variable:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeList, Value: v})
+				case map[string]ast.Variable:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeMap, Value: v})
+				default:
+					return nil, fmt.Errorf("unexpected type %T for argument %d in list", v, i)
+				}
 			}
 
-			return stringSliceToVariableValue(outputList), nil
+			// we don't support heterogeneous types, so make sure all types match the first
+			if len(outputList) > 0 {
+				firstType := outputList[0].Type
+				for i, v := range outputList[1:] {
+					if v.Type != firstType {
+						return nil, fmt.Errorf("unexpected type %s for argument %d in list", v.Type, i+1)
+					}
+				}
+			}
+
+			return outputList, nil
 		},
 	}
 }

@@ -38,7 +38,28 @@ func TestInterpolateFuncList(t *testing.T) {
 
 			// not a string input gives error
 			{
-				`${list("hello", "${var.list}")}`,
+				`${list("hello", 42)}`,
+				nil,
+				true,
+			},
+
+			// list of lists
+			{
+				`${list("${var.list}", "${var.list2}")}`,
+				[]interface{}{[]interface{}{"Hello", "World"}, []interface{}{"bar", "baz"}},
+				false,
+			},
+
+			// list of maps
+			{
+				`${list("${var.map}", "${var.map2}")}`,
+				[]interface{}{map[string]interface{}{"key": "bar"}, map[string]interface{}{"key2": "baz"}},
+				false,
+			},
+
+			// error on a heterogeneous list
+			{
+				`${list("first", "${var.list}")}`,
 				nil,
 				true,
 			},
@@ -54,6 +75,38 @@ func TestInterpolateFuncList(t *testing.T) {
 					{
 						Type:  ast.TypeString,
 						Value: "World",
+					},
+				},
+			},
+			"var.list2": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "bar",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "baz",
+					},
+				},
+			},
+
+			"var.map": {
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key": {
+						Type:  ast.TypeString,
+						Value: "bar",
+					},
+				},
+			},
+			"var.map2": {
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key2": {
+						Type:  ast.TypeString,
+						Value: "baz",
 					},
 				},
 			},
