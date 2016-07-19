@@ -73,7 +73,7 @@ The following attributes are exported in addition to the arguments listed above:
 * `primary_access_key` - The primary access key for the storage account
 * `secondary_access_key` - The secondary access key for the storage account
 
-### Import
+## Import
 
 Virtual Networks can be imported using the `resource id`, e.g. 
 

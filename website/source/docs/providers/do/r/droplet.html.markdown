@@ -71,7 +71,7 @@ The following attributes are exported:
 * `tags` - The tags associated with the droplet
 * `volume_ids` - A list of the attached block storage volumes
 
-### Import
+## Import
 
 Droplets can be imported using the droplet `id`, e.g. 
 

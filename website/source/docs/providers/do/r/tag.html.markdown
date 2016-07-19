@@ -45,7 +45,7 @@ The following attributes are exported:
 * `name` - The name of the tag
 
 
-### Import
+## Import
 
 Tags can be imported using the `name`, e.g. 
 

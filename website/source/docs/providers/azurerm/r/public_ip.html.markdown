@@ -61,7 +61,7 @@ The following attributes are exported:
 * `fqdn` - Fully qualified domain name of the A DNS record associated with the public IP. This is the concatenation of the domainNameLabel and the regionalized DNS zone
 
 
-### Import
+## Import
 
 Public IPs can be imported using the `resource id`, e.g. 
 

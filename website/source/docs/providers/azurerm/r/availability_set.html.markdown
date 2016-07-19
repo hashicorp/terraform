@@ -53,7 +53,7 @@ The following attributes are exported:
 * `id` - The virtual AvailabilitySet ID.
 
 
-### Import
+## Import
 
 Availability Sets can be imported using the `resource id`, e.g. 
 

@@ -57,7 +57,7 @@ The following attributes are exported:
 
 * `id` - The SQL Firewall Rule ID.
 
-### Import
+## Import
 
 SQL Firewall Rules can be imported using the `resource id`, e.g. 
 

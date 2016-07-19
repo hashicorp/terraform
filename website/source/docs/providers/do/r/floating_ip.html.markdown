@@ -43,7 +43,7 @@ The following attributes are exported:
 
 * `ip_address` - The IP Address of the resource
 
-### Import
+## Import
 
 Floating IPs can be imported using the `ip`, e.g. 
 

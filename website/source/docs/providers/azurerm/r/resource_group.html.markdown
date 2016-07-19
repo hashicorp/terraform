@@ -42,7 +42,7 @@ The following attributes are exported:
 * `id` - The resource group ID.
 
 
-### Import
+## Import
 
 Resource Groups can be imported using the `resource id`, e.g. 
 

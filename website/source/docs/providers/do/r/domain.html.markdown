@@ -37,7 +37,7 @@ The following attributes are exported:
 
 
 
-### Import
+## Import
 
 Domains can be imported using the `domain name`, e.g. 
 

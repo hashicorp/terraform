@@ -41,7 +41,7 @@ The following attributes are exported:
 * `number_of_record_sets` - (Optional) The number of records already in the zone.
 
 
-### Import
+## Import
 
 DNS Zones can be imported using the `resource id`, e.g. 
 

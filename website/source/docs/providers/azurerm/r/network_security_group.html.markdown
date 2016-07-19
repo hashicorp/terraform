@@ -90,7 +90,7 @@ The following attributes are exported:
 * `id` - The Network Security Group ID.
 
 
-### Import
+## Import
 
 Network Security Groups can be imported using the `resource id`, e.g. 
 

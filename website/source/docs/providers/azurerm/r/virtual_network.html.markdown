@@ -82,7 +82,7 @@ The following attributes are exported:
 * `id` - The virtual NetworkConfiguration ID.
 
 
-### Import
+## Import
 
 Virtual Networks can be imported using the `resource id`, e.g. 
 

@@ -47,7 +47,7 @@ The following attributes are exported:
 
 * `id` - The local network gateway unique ID within Azure.
 
-### Import
+## Import
 
 Local Network Gateways can be imported using the `resource id`, e.g. 
 

@@ -40,7 +40,7 @@ The following attributes are exported:
 * `public_key` - The text of the public key
 * `fingerprint` - The fingerprint of the SSH key
 
-### Import
+## Import
 
 SSH Keys can be imported using the `ssh key id`, e.g. 
 

@@ -75,7 +75,7 @@ The following attributes are exported:
 * `id` - The Network Security Rule ID.
 
 
-### Import
+## Import
 
 Network Security Rules can be imported using the `resource id`, e.g. 
 
