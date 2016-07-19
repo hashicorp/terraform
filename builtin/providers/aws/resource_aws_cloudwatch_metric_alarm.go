@@ -16,6 +16,9 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 		Read:   resourceAwsCloudWatchMetricAlarmRead,
 		Update: resourceAwsCloudWatchMetricAlarmUpdate,
 		Delete: resourceAwsCloudWatchMetricAlarmDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"alarm_name": &schema.Schema{

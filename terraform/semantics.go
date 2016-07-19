@@ -69,7 +69,7 @@ func (*SemanticCheckModulesExist) Check(g *dag.Graph, v dag.Vertex) error {
 
 // smcUserVariables does all the semantic checks to verify that the
 // variables given satisfy the configuration itself.
-func smcUserVariables(c *config.Config, vs map[string]string) []error {
+func smcUserVariables(c *config.Config, vs map[string]interface{}) []error {
 	var errs []error
 
 	cvs := make(map[string]*config.Variable)
