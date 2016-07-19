@@ -1,3 +1,6 @@
+//go:generate constarray -type=controllerType,nicType,provisioningType
+//go:generate stringalias -type=controllerType,nicType,provisioningType
+
 package vsphere
 
 import (
@@ -26,7 +29,10 @@ var DefaultDNSServers = []string{
 	"8.8.4.4",
 }
 
-var DiskControllerTypes = []string{
+var DiskControllerTypes = []controllerType{
+	controllerTypeSCSI,
+	controllerTypeLSIParallel,
+
 	"scsi",
 	"scsi-lsi-parallel",
 	"scsi-buslogic",
@@ -34,6 +40,32 @@ var DiskControllerTypes = []string{
 	"scsi-lsi-sas",
 	"ide",
 }
+
+type nicType string
+
+const (
+	nicTypeE1000   nicType = "e1000"
+	nicTypeVmxnet3 nicType = "vmxnet3"
+)
+
+type controllerType string
+
+const (
+	controllerTypeSCSI        controllerType = "scsi"
+	controllerTypeLSIParallel controllerType = "scsi-lsi-parallel"
+	controllerTypeLSISAS      controllerType = "scsi-lsi-sas"
+	controllerTypeBuslogic    controllerType = "scsi-buslogic"
+	controllerTypePV          controllerType = "scsi-paravirtual"
+	controllerTypeIDE         controllerType = "ide"
+)
+
+type provisioningType string
+
+const (
+	provisioningTypeEager     provisioningType = "eager_zeroed"
+	provisioningTypeThin      provisioningType = "thin"
+	provisioningTypeThickLazy provisioningType = "thick_lazy"
+)
 
 type networkInterface struct {
 	deviceName       string
@@ -44,7 +76,7 @@ type networkInterface struct {
 	ipv6Address      string
 	ipv6PrefixLength int
 	ipv6Gateway      string
-	adapterType      string // TODO: Make "adapter_type" argument
+	adapterType      nicType // TODO: Make "adapter_type" argument
 	macAddress       string
 }
 
@@ -52,9 +84,9 @@ type hardDisk struct {
 	name       string
 	size       int64
 	iops       int64
-	initType   string
+	initType   provisioningType
 	vmdkPath   string
-	controller string
+	controller controllerType
 	bootable   bool
 }
 
@@ -105,6 +137,33 @@ type virtualMachine struct {
 
 func (v virtualMachine) Path() string {
 	return vmPath(v.folder, v.name)
+}
+
+func validatorFromValue(fieldName string, possibleValuesF func() []interface{}) func(v interface{}, k string) (ws []string, errors []error) {
+	possibleValuesI := possibleValuesF()
+	possibleValues := make([]stringer, len(possibleValuesI))
+	var ok bool
+	for i, v := range possibleValuesI {
+		possibleValues[i], ok = v.(stringer)
+		if !ok {
+			log.Panicf("not a stringer %[1]T %[1]v", v)
+		}
+	}
+	return func(v interface{}, k string) (ws []string, errors []error) {
+		value := v.(string)
+		found := false
+		for _, t := range possibleValues {
+			if t.String() == value {
+				found = true
+				break
+			}
+		}
+		if !found {
+			errors = append(errors, fmt.Errorf(
+				"Supported values for '%s' are %v", fieldName, JoinStringer(possibleValues, ", ")))
+		}
+		return
+	}
 }
 
 func vmPath(folder string, name string) string {
@@ -382,17 +441,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 
 						"type": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "eager_zeroed",
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if value != "thin" && value != "eager_zeroed" && value != "thick_lazy" {
-									errors = append(errors, fmt.Errorf(
-										"only 'thin', 'thick_lazy' and 'eager_zeroed' are supported values for 'type'"))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      provisioningTypeEager,
+							ValidateFunc: validatorFromValue("type", provisioningTypeValuesAsInterface),
 						},
 
 						"datastore": &schema.Schema{
@@ -432,23 +484,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 
 						"controller_type": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "scsi",
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								found := false
-								for _, t := range DiskControllerTypes {
-									if t == value {
-										found = true
-									}
-								}
-								if !found {
-									errors = append(errors, fmt.Errorf(
-										"Supported values for 'controller_type' are %v", strings.Join(DiskControllerTypes, ", ")))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "scsi",
+							ValidateFunc: validatorFromValue("controller_type", controllerTypeValuesAsInterface),
 						},
 					},
 				},
@@ -566,7 +605,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					size = int64(disk["size"].(int))
 				}
 				iops := int64(disk["iops"].(int))
-				controller_type := disk["controller_type"].(string)
+				controller_type := disk["controller_type"].(controllerType)
 
 				var mo mo.VirtualMachine
 				vm.Properties(context.TODO(), vm.Reference(), []string{"summary", "config"}, &mo)
@@ -588,7 +627,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				}
 
 				log.Printf("[INFO] Attaching disk: %v", diskPath)
-				err = addHardDisk(vm, size, iops, "thin", datastore, diskPath, controller_type)
+				err = addHardDisk(vm, size, iops, provisioningTypeThin, datastore, diskPath, controller_type)
 				if err != nil {
 					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
 					return err
@@ -769,7 +808,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			if v, ok := network["mac_address"].(string); ok && v != "" {
 				networks[i].macAddress = v
 			}
-			if v, ok := network["adapter_type"].(string); ok && v != "" {
+			if v, ok := network["adapter_type"].(nicType); ok && v != "" {
 				networks[i].adapterType = v
 			}
 		}
@@ -819,7 +858,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 					hasBootableDisk = true
 				}
 
-				if v, ok := disk["type"].(string); ok && v != "" {
+				if v, ok := disk["type"].(provisioningType); ok && v != "" {
 					newDisk.initType = v
 				}
 
@@ -845,7 +884,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 					newDisk.iops = int64(v)
 				}
 
-				if v, ok := disk["controller_type"].(string); ok && v != "" {
+				if v, ok := disk["controller_type"].(controllerType); ok && v != "" {
 					newDisk.controller = v
 				}
 
@@ -1185,7 +1224,8 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 }
 
 // addHardDisk adds a new Hard Disk to the VirtualMachine.
-func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, datastore *object.Datastore, diskPath string, controller_type string) error {
+func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType provisioningType, datastore *object.Datastore, diskPath string, controller_type controllerType) error {
+	var err error
 	devices, err := vm.Device(context.TODO())
 	if err != nil {
 		return err
@@ -1194,18 +1234,18 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 
 	var controller types.BaseVirtualController
 	switch controller_type {
-	case "scsi":
-		controller, err = devices.FindDiskController(controller_type)
-	case "scsi-lsi-parallel":
+	case controllerTypeSCSI:
+		controller, err = devices.FindDiskController(string(controller_type))
+	case controllerTypeLSIParallel:
 		controller = devices.PickController(&types.VirtualLsiLogicController{})
-	case "scsi-buslogic":
+	case controllerTypeBuslogic:
 		controller = devices.PickController(&types.VirtualBusLogicController{})
-	case "scsi-paravirtual":
+	case controllerTypePV:
 		controller = devices.PickController(&types.ParaVirtualSCSIController{})
-	case "scsi-lsi-sas":
+	case controllerTypeLSISAS:
 		controller = devices.PickController(&types.VirtualLsiLogicSASController{})
-	case "ide":
-		controller, err = devices.FindDiskController(controller_type)
+	case controllerTypeIDE:
+		controller, err = devices.FindDiskController(string(controller_type))
 	default:
 		return fmt.Errorf("[ERROR] Unsupported disk controller provided: %v", controller_type)
 	}
@@ -1215,37 +1255,37 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 
 		var c types.BaseVirtualDevice
 		switch controller_type {
-		case "scsi":
+		case controllerTypeSCSI:
 			// Create scsi controller
 			c, err = devices.CreateSCSIController("scsi")
 			if err != nil {
 				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
 			}
-		case "scsi-lsi-parallel":
+		case controllerTypeLSIParallel:
 			// Create scsi controller
 			c, err = devices.CreateSCSIController("lsilogic")
 			if err != nil {
 				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
 			}
-		case "scsi-buslogic":
+		case controllerTypeBuslogic:
 			// Create scsi controller
 			c, err = devices.CreateSCSIController("buslogic")
 			if err != nil {
 				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
 			}
-		case "scsi-paravirtual":
+		case controllerTypePV:
 			// Create scsi controller
 			c, err = devices.CreateSCSIController("pvscsi")
 			if err != nil {
 				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
 			}
-		case "scsi-lsi-sas":
+		case controllerTypeLSISAS:
 			// Create scsi controller
 			c, err = devices.CreateSCSIController("lsilogic-sas")
 			if err != nil {
 				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
 			}
-		case "ide":
+		case controllerTypeIDE:
 			// Create ide controller
 			c, err = devices.CreateIDEController()
 			if err != nil {
@@ -1257,7 +1297,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 
 		vm.AddDevice(context.TODO(), c)
 		// Update our devices list
-		devices, err := vm.Device(context.TODO())
+		devices, err = vm.Device(context.TODO())
 		if err != nil {
 			return err
 		}
@@ -1273,11 +1313,9 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	// TODO Check if diskPath & datastore exist
 	// If diskPath is not specified, pass empty string to CreateDisk()
 	if diskPath == "" {
-		return fmt.Errorf("[ERROR] addHardDisk - No path proided")
-	} else {
-		// TODO Check if diskPath & datastore exist
-		diskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
+		return fmt.Errorf("[ERROR] addHardDisk - No path provided")
 	}
+	diskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
 	log.Printf("[DEBUG] addHardDisk - diskPath: %v", diskPath)
 	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
 
@@ -1293,14 +1331,14 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		}
 		backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 
-		if diskType == "eager_zeroed" {
+		if diskType == provisioningTypeEager {
 			// eager zeroed thick virtual disk
 			backing.ThinProvisioned = types.NewBool(false)
 			backing.EagerlyScrub = types.NewBool(true)
-		} else if diskType == "thin" {
+		} else if diskType == provisioningTypeThin {
 			// thin provisioned virtual disk
 			backing.ThinProvisioned = types.NewBool(true)
-		} else if diskType == "thick_lazy" {
+		} else if diskType == provisioningTypeThickLazy {
 			// thin provisioned virtual disk
 			backing.ThinProvisioned = types.NewBool(false)
 			backing.EagerlyScrub = types.NewBool(false)
@@ -1367,7 +1405,7 @@ func addCdrom(vm *object.VirtualMachine, datastore, path string) error {
 }
 
 // buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
-func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
+func buildNetworkDevice(f *find.Finder, label string, adapterType nicType, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
 	network, err := f.Network(context.TODO(), "*"+label)
 	if err != nil {
 		return nil, err
@@ -1385,7 +1423,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress st
 		address_type = string(types.VirtualEthernetCardMacTypeManual)
 	}
 
-	if adapterType == "vmxnet3" {
+	if adapterType == nicTypeVmxnet3 {
 		return &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
 			Device: &types.VirtualVmxnet3{
@@ -1401,7 +1439,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress st
 				},
 			},
 		}, nil
-	} else if adapterType == "e1000" {
+	} else if adapterType == nicTypeE1000 {
 		return &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
 			Device: &types.VirtualE1000{
@@ -1421,7 +1459,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress st
 }
 
 // buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
-func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
+func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType provisioningType) (types.VirtualMachineRelocateSpec, error) {
 	var key int32
 	var moveType string
 	if linkedClone {
@@ -1441,7 +1479,7 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 		}
 	}
 
-	isThin := initType == "thin"
+	isThin := initType == provisioningTypeThin
 	rpr := rp.Reference()
 	dsr := ds.Reference()
 	return types.VirtualMachineRelocateSpec{
@@ -1734,12 +1772,12 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	networkConfigs := []types.CustomizationAdapterMapping{}
 	for _, network := range vm.networkInterfaces {
 		// network device
-		var networkDeviceType string
+		var networkDeviceType nicType
 		if network.adapterType == "" {
 			if vm.template == "" {
-				networkDeviceType = "e1000"
+				networkDeviceType = nicTypeE1000
 			} else {
-				networkDeviceType = "vmxnet3"
+				networkDeviceType = nicTypeVmxnet3
 			}
 		} else {
 			networkDeviceType = network.adapterType
