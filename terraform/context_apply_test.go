@@ -843,7 +843,7 @@ func TestContext2Apply_compute(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ctx.variables = map[string]string{"value": "1"}
+	ctx.variables = map[string]interface{}{"value": "1"}
 
 	state, err := ctx.Apply()
 	if err != nil {
@@ -1134,7 +1134,7 @@ func TestContext2Apply_mapVariableOverride(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"images.us-west-2": "overridden",
 		},
 	})
@@ -1510,7 +1510,7 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"count": "2",
 		},
 		Destroy: true,
@@ -1529,7 +1529,7 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"count": "5",
 		},
 	})
@@ -1623,7 +1623,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"count": "3",
 		},
 	})
@@ -1651,7 +1651,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 			Providers: map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
-			Variables: map[string]string{
+			Variables: map[string]interface{}{
 				"count": "1",
 			},
 		})
@@ -1813,7 +1813,7 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 		Provisioners: map[string]ResourceProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"value": "1",
 		},
 	})
@@ -1937,7 +1937,7 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 		Provisioners: map[string]ResourceProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"value": "1",
 		},
 	})
@@ -2587,7 +2587,7 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 		Provisioners: map[string]ResourceProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"value": "1",
 			"pass":  "test",
 		},
@@ -2813,7 +2813,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 			Providers: map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
-			Variables: map[string]string{
+			Variables: map[string]interface{}{
 				"key_name": "foobarkey",
 			},
 		})
@@ -4268,7 +4268,7 @@ func TestContext2Apply_vars(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo":            "us-west-2",
 			"amis.us-east-1": "override",
 		},
