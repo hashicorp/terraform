@@ -926,8 +926,8 @@ resource "aws_s3_bucket" "default" {
 
 resource "aws_s3_bucket_object" "default" {
   bucket = "${aws_s3_bucket.default.id}"
-  key = "beanstalk/go-v1.zip"
-  source = "test-fixtures/beanstalk-go-v1.zip"
+  key = "python-v1.zip"
+  source = "test-fixtures/python-v1.zip"
 }
 
 resource "aws_elastic_beanstalk_application" "default" {
@@ -946,7 +946,7 @@ resource "aws_elastic_beanstalk_environment" "default" {
   name = "tf-test-name"
   application = "${aws_elastic_beanstalk_application.default.name}"
   version_label = "${aws_elastic_beanstalk_application_version.default.name}"
-  solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.4 running Go 1.4"
+  solution_stack_name = "64bit Amazon Linux running Python"
 }
 `, randInt)
 }
