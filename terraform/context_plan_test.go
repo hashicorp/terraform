@@ -47,7 +47,7 @@ func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"in": "a,b,c",
 		},
 	})
@@ -289,7 +289,7 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "52",
 		},
 	})
@@ -584,7 +584,7 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 				return p, nil
 			},
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "root",
 		},
 	})
@@ -1187,7 +1187,7 @@ func TestContext2Plan_countVar(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"count": "3",
 		},
 	})
@@ -2210,7 +2210,7 @@ func TestContext2Plan_provider(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "bar",
 		},
 	})
@@ -2265,7 +2265,7 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "ami-1234abcd",
 		},
 		State: s,

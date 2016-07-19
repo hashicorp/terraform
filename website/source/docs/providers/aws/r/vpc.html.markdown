@@ -64,3 +64,11 @@ The following attributes are exported:
 
 
 [1]: http://docs.aws.amazon.com/fr_fr/AWSEC2/latest/UserGuide/vpc-classiclink.html
+
+## Import
+
+VPNs can be imported using the `vpn id`, e.g. 
+
+```
+terraform import aws_vpn.test_vpn vpc-a01106c2
+```

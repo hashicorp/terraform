@@ -70,3 +70,11 @@ The following attributes are exported:
 * `status` - The status of the droplet
 * `tags` - The tags associated with the droplet
 * `volume_ids` - A list of the attached block storage volumes
+
+## Import
+
+Droplets can be imported using the droplet `id`, e.g. 
+
+```
+terraform import digitalocean_droplet.mydroplet 100823
+```

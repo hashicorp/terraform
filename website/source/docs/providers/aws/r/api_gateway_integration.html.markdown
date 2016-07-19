@@ -58,4 +58,6 @@ The following arguments are supported:
 * `request_templates` - (Optional) A map of the integration's request templates.
 * `request_parameters_in_json` - (Optional) A map written as a JSON string specifying
   the request query string parameters and headers that should be passed to the
-  backend responder
+  backend responder.
+  For example: `request_parameters_in_json = "{\"integration.request.header.X-Some-Other-Header\":\"method.request.header.X-Some-Header\"}"` 
+  would add the header `X-Some-Header` from method to the integration as the header `X-Some-Other-Header`.

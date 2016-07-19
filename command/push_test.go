@@ -61,7 +61,7 @@ func TestPush_good(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 
-	variables := make(map[string]string)
+	variables := make(map[string]interface{})
 	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
@@ -115,7 +115,7 @@ func TestPush_input(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	variables := map[string]string{
+	variables := map[string]interface{}{
 		"foo": "foo",
 	}
 	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
@@ -143,7 +143,7 @@ func TestPush_inputPartial(t *testing.T) {
 
 	client := &mockPushClient{
 		File:      archivePath,
-		GetResult: map[string]string{"foo": "bar"},
+		GetResult: map[string]interface{}{"foo": "bar"},
 	}
 	ui := new(cli.MockUi)
 	c := &PushCommand{
@@ -170,7 +170,7 @@ func TestPush_inputPartial(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	variables := map[string]string{
+	variables := map[string]interface{}{
 		"foo": "bar",
 		"bar": "foo",
 	}
@@ -208,7 +208,7 @@ func TestPush_localOverride(t *testing.T) {
 
 	client := &mockPushClient{File: archivePath}
 	// Provided vars should override existing ones
-	client.GetResult = map[string]string{
+	client.GetResult = map[string]interface{}{
 		"foo": "old",
 	}
 	ui := new(cli.MockUi)
@@ -247,7 +247,7 @@ func TestPush_localOverride(t *testing.T) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
 
-	variables := map[string]string{
+	variables := map[string]interface{}{
 		"foo": "bar",
 		"bar": "foo",
 	}
@@ -285,7 +285,7 @@ func TestPush_preferAtlas(t *testing.T) {
 
 	client := &mockPushClient{File: archivePath}
 	// Provided vars should override existing ones
-	client.GetResult = map[string]string{
+	client.GetResult = map[string]interface{}{
 		"foo": "old",
 	}
 	ui := new(cli.MockUi)
@@ -323,7 +323,7 @@ func TestPush_preferAtlas(t *testing.T) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
 
-	variables := map[string]string{
+	variables := map[string]interface{}{
 		"foo": "old",
 		"bar": "foo",
 	}
@@ -394,7 +394,7 @@ func TestPush_tfvars(t *testing.T) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
 
-	variables := map[string]string{
+	variables := map[string]interface{}{
 		"foo": "bar",
 		"bar": "foo",
 	}

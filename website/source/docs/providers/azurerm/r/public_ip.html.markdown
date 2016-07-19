@@ -59,3 +59,12 @@ The following attributes are exported:
 * `id` - The Public IP ID.
 * `ip_address` - The IP address value that was allocated.
 * `fqdn` - Fully qualified domain name of the A DNS record associated with the public IP. This is the concatenation of the domainNameLabel and the regionalized DNS zone
+
+
+## Import
+
+Public IPs can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_public_ip.myPublicIp /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/publicIPAddresses/myPublicIpAddress1
+```
