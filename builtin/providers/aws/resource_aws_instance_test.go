@@ -589,6 +589,41 @@ func TestAccAWSInstance_rootBlockDeviceMismatch(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_UserDataNotUpdateableDoesNotRebuildInstances(t *testing.T) {
+	var v ec2.Instance
+	var v1 ec2.Instance
+
+	testCheck := func(*terraform.State) error {
+		if (*v.InstanceId) != (*v1.InstanceId) {
+			return fmt.Errorf("Instance rebuilt: %#v  - %#v", *v.InstanceId, *v1.InstanceId)
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceNonDestructiveUserDataConfig_Step1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccInstanceNonDestructiveUserDataConfig_Step2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v1),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
 // This test reproduces the bug here:
 //   https://github.com/hashicorp/terraform/issues/1752
 //
@@ -803,6 +838,54 @@ resource "aws_instance" "foo" {
 		volume_size = 11
 		iops = 330
 	}
+}
+`
+
+const testAccInstanceNonDestructiveUserDataConfig_Step1 = `
+resource "aws_security_group" "tf_test_foo" {
+	name = "tf_test_foo"
+	description = "foo"
+
+	ingress {
+		protocol = "icmp"
+		from_port = -1
+		to_port = -1
+		cidr_blocks = ["0.0.0.0/0"]
+	}
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-4fccb37f"
+	availability_zone = "us-west-2a"
+
+	instance_type = "m1.small"
+	security_groups = ["${aws_security_group.tf_test_foo.name}"]
+	user_data_not_updatable = "foo:-with-character's"
+}
+`
+
+const testAccInstanceNonDestructiveUserDataConfig_Step2 = `
+resource "aws_security_group" "tf_test_foo" {
+	name = "tf_test_foo"
+	description = "foo"
+
+	ingress {
+		protocol = "icmp"
+		from_port = -1
+		to_port = -1
+		cidr_blocks = ["0.0.0.0/0"]
+	}
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-4fccb37f"
+	availability_zone = "us-west-2a"
+
+	instance_type = "m1.small"
+	security_groups = ["${aws_security_group.tf_test_foo.name}"]
+	user_data_not_updatable = "foo:-with-different-character's"
 }
 `
 

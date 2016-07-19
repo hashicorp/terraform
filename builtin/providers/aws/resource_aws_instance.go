@@ -104,6 +104,23 @@ func resourceAwsInstance() *schema.Resource {
 						return ""
 					}
 				},
+				ConflictsWith: []string{"user_data_not_updatable"},
+			},
+
+			"user_data_not_updatable": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				StateFunc: func(v interface{}) string {
+					switch v.(type) {
+					case string:
+						hash := sha1.Sum([]byte(v.(string)))
+						return hex.EncodeToString(hash[:])
+					default:
+						return ""
+					}
+				},
+				ConflictsWith: []string{"user_data"},
 			},
 
 			"security_groups": &schema.Schema{
@@ -1007,6 +1024,10 @@ func buildAwsInstanceOpts(
 	}
 
 	user_data := d.Get("user_data").(string)
+
+	if user_data == "" {
+		user_data = d.Get("user_data_not_updatable").(string)
+	}
 
 	// Check whether the user_data is already Base64 encoded; don't double-encode
 	_, base64DecodeError := base64.StdEncoding.DecodeString(user_data)
