@@ -1029,7 +1029,7 @@ func WebsiteDomainUrl(region string) string {
 
 	// Frankfurt(and probably future) regions uses different syntax for website endpoints
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteEndpoints.html
-	if region == "eu-central-1" {
+	if region == "eu-central-1" || region == "ap-south-1" {
 		return fmt.Sprintf("s3-website.%s.amazonaws.com", region)
 	}
 
