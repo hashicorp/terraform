@@ -36,3 +36,12 @@ The following attributes are exported:
 
 * `id` - The ID of the VPC endpoint.
 * `prefix_list_id` - The prefix list ID of the exposed service.
+
+
+## Import
+
+VPN Endpoints can be imported using the `vpc endpoint id`, e.g. 
+
+```
+terraform import aws_vpc_endpoint.endpoint1 vpce-3ecf2a57
+```

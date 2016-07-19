@@ -29,3 +29,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The name of the SimpleDB domain
+
+## Import
+
+SimpleDB Domains can be imported using the `name`, e.g. 
+
+```
+terraform import aws_simpledb_domain.users users
+```

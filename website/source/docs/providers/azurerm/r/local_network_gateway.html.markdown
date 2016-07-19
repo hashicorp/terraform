@@ -46,3 +46,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The local network gateway unique ID within Azure.
+
+## Import
+
+Local Network Gateways can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_local_network_gateway.lng1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.network/localnetworkgateways/lng1
+```

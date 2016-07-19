@@ -66,3 +66,11 @@ The following attributes are exported:
 
 ## Notes
 If you are not the owner of both VPCs, or do not enable auto_accept you will still have to accept the peering with the AWS Console, aws-cli or aws-sdk-go.
+
+## Import
+
+VPC Peering resources can be imported using the `vpc peering id`, e.g. 
+
+```
+terraform import aws_vpc_peering_connection.test_connection pcx-111aaa111
+```

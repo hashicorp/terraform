@@ -43,3 +43,12 @@ The following attributes are exported:
 
 * `id` - The name of the tag
 * `name` - The name of the tag
+
+
+## Import
+
+Tags can be imported using the `name`, e.g. 
+
+```
+terraform import digitalocean_tag.mytag tagname
+```
