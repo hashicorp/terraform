@@ -23,7 +23,9 @@ func TestAccAWSNetworkAclRule_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSNetworkAclRuleBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.bar", &networkAcl),
+					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.baz", &networkAcl),
+					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.qux", &networkAcl),
+					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.wibble", &networkAcl),
 				),
 			},
 		},
@@ -112,7 +114,7 @@ resource "aws_vpc" "foo" {
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
 }
-resource "aws_network_acl_rule" "bar" {
+resource "aws_network_acl_rule" "baz" {
 	network_acl_id = "${aws_network_acl.bar.id}"
 	rule_number = 200
 	egress = false
@@ -121,5 +123,23 @@ resource "aws_network_acl_rule" "bar" {
 	cidr_block = "0.0.0.0/0"
 	from_port = 22
 	to_port = 22
+}
+resource "aws_network_acl_rule" "qux" {
+	network_acl_id = "${aws_network_acl.bar.id}"
+	rule_number = 300
+	protocol = "icmp"
+	rule_action = "allow"
+	cidr_block = "0.0.0.0/0"
+	icmp_type = 0
+	icmp_code = -1
+}
+resource "aws_network_acl_rule" "wibble" {
+	network_acl_id = "${aws_network_acl.bar.id}"
+	rule_number = 400
+	protocol = "icmp"
+	rule_action = "allow"
+	cidr_block = "0.0.0.0/0"
+	icmp_type = -1
+	icmp_code = -1
 }
 `
