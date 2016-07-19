@@ -72,6 +72,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"rabbitmq_user":  resourceUser(),
 			"rabbitmq_vhost": resourceVhost(),
 		},
 
