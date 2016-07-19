@@ -92,8 +92,8 @@ func (helper resourcePropertyHelper) SetTags(key string, tags []compute.Tag) {
 	helper.data.Set(key, tagProperties)
 }
 
-func (helper resourcePropertyHelper) GetServerDisks(key string) (disks []compute.VirtualMachineDisk) {
-	value, ok := helper.data.GetOk(key)
+func (helper resourcePropertyHelper) GetServerDisks() (disks []compute.VirtualMachineDisk) {
+	value, ok := helper.data.GetOk(resourceKeyServerDisk)
 	if !ok {
 		return
 	}
@@ -130,7 +130,7 @@ func (helper resourcePropertyHelper) GetServerDisks(key string) (disks []compute
 	return
 }
 
-func (helper resourcePropertyHelper) SetServerDisks(key string, disks []compute.VirtualMachineDisk) {
+func (helper resourcePropertyHelper) SetServerDisks(disks []compute.VirtualMachineDisk) {
 	diskProperties := &schema.Set{F: hashDiskUnitID}
 
 	for _, disk := range disks {
@@ -141,5 +141,5 @@ func (helper resourcePropertyHelper) SetServerDisks(key string, disks []compute.
 			resourceKeyServerDiskSpeed:  disk.Speed,
 		})
 	}
-	helper.data.Set(key, diskProperties)
+	helper.data.Set(resourceKeyServerDisk, diskProperties)
 }
