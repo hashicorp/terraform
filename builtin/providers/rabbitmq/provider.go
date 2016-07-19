@@ -74,6 +74,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"rabbitmq_exchange":    resourceExchange(),
 			"rabbitmq_permissions": resourcePermissions(),
+			"rabbitmq_queue":       resourceQueue(),
 			"rabbitmq_user":        resourceUser(),
 			"rabbitmq_vhost":       resourceVhost(),
 		},
