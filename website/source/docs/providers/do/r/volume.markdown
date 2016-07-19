@@ -43,3 +43,12 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The unique identifier for the block storage volume.
+
+
+## Import
+
+Volumes can be imported using the `volume id`, e.g. 
+
+```
+terraform import digitalocean_volume.volumea 506f78a4-e098-11e5-ad9f-000f53306ae1
+```

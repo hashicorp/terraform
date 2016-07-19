@@ -39,3 +39,11 @@ The following attributes are exported:
 * `name` - The name of the SSH key
 * `public_key` - The text of the public key
 * `fingerprint` - The fingerprint of the SSH key
+
+## Import
+
+SSH Keys can be imported using the `ssh key id`, e.g. 
+
+```
+terraform import digitalocean_ssh_key.mykey 263654
+```

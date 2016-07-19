@@ -42,3 +42,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `ip_address` - The IP Address of the resource
+
+## Import
+
+Floating IPs can be imported using the `ip`, e.g. 
+
+```
+terraform import digitalocean_floating_ip.myip 192.168.0.1
+```
