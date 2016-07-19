@@ -917,14 +917,26 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType provision
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
-	if len(existing) != 0 {
-		log.Printf("[DEBUG] addHardDisk: Disk already present.\n")
-		return nil
-	}
-	disk.CapacityInKB = int64(size * 1024 * 1024)
-	if iops != 0 {
-		disk.StorageIOAllocation = &types.StorageIOAllocationInfo{
-			Limit: iops,
+	if len(existing) == 0 {
+		disk.CapacityInKB = int64(size * 1024 * 1024)
+		if iops != 0 {
+			disk.StorageIOAllocation = &types.StorageIOAllocationInfo{
+				Limit: iops,
+			}
+		}
+		backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+
+		if diskType == provisioningTypeEager {
+			// eager zeroed thick virtual disk
+			backing.ThinProvisioned = types.NewBool(false)
+			backing.EagerlyScrub = types.NewBool(true)
+		} else if diskType == provisioningTypeThin {
+			// thin provisioned virtual disk
+			backing.ThinProvisioned = types.NewBool(true)
+		} else if diskType == provisioningTypeThickLazy {
+			// thin provisioned virtual disk
+			backing.ThinProvisioned = types.NewBool(false)
+			backing.EagerlyScrub = types.NewBool(false)
 		}
 	}
 	backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
