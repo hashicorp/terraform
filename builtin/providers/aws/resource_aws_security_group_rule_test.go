@@ -416,6 +416,24 @@ func TestAccAWSSecurityGroupRule_Race(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroupRule_SelfSource(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRuleSelfInSource,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSecurityGroupRule_PrefixListEgress(t *testing.T) {
 	var group ec2.SecurityGroup
 	var endpoint ec2.VpcEndpoint
@@ -999,5 +1017,30 @@ resource "aws_security_group_rule" "egress_1" {
   to_port = 0
   prefix_list_ids = ["${aws_vpc_endpoint.s3-us-west-2.prefix_list_id}"]
 	security_group_id = "${aws_security_group.egress.id}"
+}
+`
+
+const testAccAWSSecurityGroupRuleSelfInSource = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+
+  tags {
+    Name = "tf_sg_rule_self_group"
+  }
+}
+
+resource "aws_security_group" "web" {
+  name        = "allow_all"
+  description = "Allow all inbound traffic"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "allow_self" {
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  security_group_id        = "${aws_security_group.web.id}"
+  source_security_group_id = "${aws_security_group.web.id}"
 }
 `
