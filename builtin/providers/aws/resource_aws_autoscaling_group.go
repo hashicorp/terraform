@@ -612,6 +612,7 @@ func updateASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoSc
 		props := &autoscaling.EnableMetricsCollectionInput{
 			AutoScalingGroupName: aws.String(d.Id()),
 			Metrics:              expandStringList(enabledMetrics.List()),
+			Granularity:          aws.String(d.Get("metrics_granularity").(string)),
 		}
 
 		_, err := conn.EnableMetricsCollection(props)
