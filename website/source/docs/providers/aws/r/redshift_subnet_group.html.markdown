@@ -56,3 +56,10 @@ The following attributes are exported:
 
 * `id` - The Redshift Subnet group ID.
 
+## Import
+
+Redshift subnet groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_redshift_subnet_group.testgroup1 test-cluster-subnet-group
+```

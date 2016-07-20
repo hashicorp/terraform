@@ -178,3 +178,12 @@ If ASG creation takes more than a few minutes, this could indicate one of a
 number of configuration problems. See the [AWS Docs on Load Balancer
 Troubleshooting](https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-troubleshooting.html)
 for more information.
+
+
+## Import
+
+AutoScaling Groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_autoscaling_group.web web-asg
+```

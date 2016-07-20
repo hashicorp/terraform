@@ -109,3 +109,11 @@ The following attributes are exported:
 [2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
 [4]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+
+## Import
+
+RDS Clusters can be imported using the `cluster_identifier`, e.g. 
+
+```
+$ terraform import aws_rds_cluster.aurora_cluster aurora-prod-cluster
+```

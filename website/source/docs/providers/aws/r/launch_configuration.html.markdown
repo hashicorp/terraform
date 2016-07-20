@@ -214,3 +214,11 @@ The following attributes are exported:
 [1]: /docs/providers/aws/r/autoscaling_group.html
 [2]: /docs/configuration/resources.html#lifecycle
 [3]: /docs/providers/aws/r/spot_instance_request.html
+
+## Import
+
+Launch configurations can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_launch_configuration.as_conf terraform-lg-123456
+```

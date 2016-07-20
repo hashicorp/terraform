@@ -61,3 +61,11 @@ The following attributes are exported:
 attribute once the route resource is created.
 
 * `id` - The ID of the routing table
+
+## Import
+
+Route Tables can be imported using the `route table id`, e.g. 
+
+```
+$ terraform import aws_route_table.public_rt rtb-22574640
+```
