@@ -114,6 +114,7 @@ IMPROVEMENTS:
  * provider/aws: Allow VPC Classic Linking in Autoscaling Launch Configs [GH-7470]
  * provider/aws: Support `task_role_arn` on `aws_ecs_task_definition [GH-7653]
  * provider/aws: Support Tags on `aws_rds_cluster` [GH-7695]
+ * provider/aws: Support kms_key_id for `aws_rds_cluster` [GH-7662]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
