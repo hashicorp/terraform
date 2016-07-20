@@ -21,7 +21,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 		Update: resourceAwsRedshiftClusterUpdate,
 		Delete: resourceAwsRedshiftClusterDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsRedshiftClusterImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -210,6 +210,15 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			"tags": tagsSchema(),
 		},
 	}
+}
+
+func resourceAwsRedshiftClusterImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// Neither skip_final_snapshot nor final_snapshot_identifier can be fetched
+	// from any API call, so we need to default skip_final_snapshot to true so
+	// that final_snapshot_identifier is not required
+	d.Set("skip_final_snapshot", true)
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) error {
@@ -557,11 +566,8 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 		ClusterIdentifier: aws.String(d.Id()),
 	}
 
-	skipFinalSnapshot, exists := d.GetOk("skip_final_snapshot")
-	if !exists {
-		skipFinalSnapshot = true
-	}
-	deleteOpts.SkipFinalClusterSnapshot = aws.Bool(skipFinalSnapshot.(bool))
+	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
+	deleteOpts.SkipFinalClusterSnapshot = aws.Bool(skipFinalSnapshot)
 
 	if skipFinalSnapshot == false {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
