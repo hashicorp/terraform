@@ -168,6 +168,11 @@ The supported built-in functions are:
       * `${length(split(",", "a,b,c"))}` = 3
       * `${length("a,b,c")}` = 5
 
+  * `list(items...)` - Returns a list consisting of the arguments to the function.
+      This function provides a way of representing list literals in interpolation.
+      * `${list("a", "b", "c")}` returns a list of `"a", "b", "c"`.
+      * `${list()}` returns an empty list.
+
   * `lookup(map, key [, default])` - Performs a dynamic lookup into a mapping
       variable. The `map` parameter should be another variable, such
       as `var.amis`. If `key` does not exist in `map`, the interpolation will
