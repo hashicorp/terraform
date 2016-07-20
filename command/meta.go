@@ -174,7 +174,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 
 // DataDir returns the directory where local data will be stored.
 func (m *Meta) DataDir() string {
-	dataDir := DefaultDataDirectory
+	dataDir := DefaultDataDir
 	if m.dataDir != "" {
 		dataDir = m.dataDir
 	}
