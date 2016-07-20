@@ -37,3 +37,11 @@ The following attributes are exported:
 * `unique_id` - The [unique ID][1] assigned by AWS.
 
   [1]: https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html#GUIDs
+  
+## Import
+
+IAM Groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_iam_group.developers developers
+```

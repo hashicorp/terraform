@@ -152,3 +152,12 @@ The following attributes are exported:
 * `description` - The description of the security group
 * `ingress` - The ingress rules. See above for more.
 * `egress` - The egress rules. See above for more.
+
+
+## Import
+
+Security Groups can be imported using the `security group id`, e.g. 
+
+```
+$ terraform import aws_security_group.elb_sg sg-903004f8
+```

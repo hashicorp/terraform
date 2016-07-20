@@ -57,3 +57,12 @@ The following attributes are exported:
 * `arn` - The ARN assigned by AWS for this user.
 
   [1]: https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html#GUIDs
+
+
+## Import
+
+IAM Users can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_iam_user.lb loadbalancer
+```

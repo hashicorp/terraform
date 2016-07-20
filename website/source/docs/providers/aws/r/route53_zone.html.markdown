@@ -69,3 +69,12 @@ The following attributes are exported:
 * `zone_id` - The Hosted Zone ID. This can be referenced by zone records.
 * `name_servers` - A list of name servers in associated (or default) delegation set.
   Find more about delegation sets in [AWS docs](https://docs.aws.amazon.com/Route53/latest/APIReference/actions-on-reusable-delegation-sets.html).
+
+
+## Import
+
+Route53 Zones can be imported using the `zone id`, e.g. 
+
+```
+$ terraform import aws_route53_zone.myzone Z1D633PJN98FT9
+```

@@ -33,3 +33,12 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID that identifies the file system
+
+
+## Import
+
+EFS Filesystems can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_efs_file_system.foo fs-6fa144c6
+```

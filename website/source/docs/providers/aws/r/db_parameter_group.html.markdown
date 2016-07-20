@@ -51,3 +51,11 @@ The following attributes are exported:
 
 * `id` - The db parameter group name.
 * `arn` - The ARN of the db parameter group.
+
+## Import
+
+DB Parameter groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_db_parameter_group.rds_pg rds-pg
+```

@@ -37,3 +37,12 @@ The following attributes are exported:
 
 * `name`
 * `description`
+
+
+## Import
+
+Elastic Beanstalk Applications can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_elastic_beanstalk_application.tf_test tf-test-name
+```

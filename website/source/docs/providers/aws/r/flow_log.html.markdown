@@ -82,3 +82,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The Flow Log ID
+
+## Import
+
+Flow Logs can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_flow_log.test_flow_log fl-1a2b3c4d
+```

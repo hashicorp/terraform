@@ -95,3 +95,12 @@ The following attributes are exported:
 
 
 [1]: http://docs.aws.amazon.com/fr_fr/elasticbeanstalk/latest/dg/concepts.platforms.html
+
+
+## Import
+
+Elastic Beanstalk Environments can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_elastic_beanstalk_environment.prodenv e-rpqsewtp2j
+```

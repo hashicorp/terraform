@@ -68,5 +68,5 @@ The following attributes are exported:
 VPN Connections can be imported using the `vpn connection id`, e.g. 
 
 ```
-terraform import aws_vpn_connection.testvpnconnection vpn-40f41529
+$ terraform import aws_vpn_connection.testvpnconnection vpn-40f41529
 ```

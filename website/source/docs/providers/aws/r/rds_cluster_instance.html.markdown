@@ -90,3 +90,11 @@ this instance is a read replica
 [4]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html
 [5]: /docs/configuration/resources.html#count
 [6]: https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+
+## Import
+
+Redshift Cluster Instances can be imported using the `identifier`, e.g. 
+
+```
+$ terraform import aws_rds_cluster_instance.prod_instance_1 aurora-cluster-instance-1
+```

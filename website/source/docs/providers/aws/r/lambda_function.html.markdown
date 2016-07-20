@@ -79,3 +79,11 @@ resource "aws_lambda_function" "test_lambda" {
 [5]: https://docs.aws.amazon.com/lambda/latest/dg/limits.html
 [6]: https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html#SSS-CreateFunction-request-Runtime
 [7]: http://docs.aws.amazon.com/lambda/latest/dg/vpc.html
+
+## Import
+
+Lambda Functions can be imported using the `function_name`, e.g. 
+
+```
+$ terraform import aws_lambda_function.tesr_lambda my_test_lambda_function
+```
