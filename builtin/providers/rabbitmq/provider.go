@@ -75,6 +75,7 @@ func Provider() terraform.ResourceProvider {
 			"rabbitmq_binding":     resourceBinding(),
 			"rabbitmq_exchange":    resourceExchange(),
 			"rabbitmq_permissions": resourcePermissions(),
+			"rabbitmq_policy":      resourcePolicy(),
 			"rabbitmq_queue":       resourceQueue(),
 			"rabbitmq_user":        resourceUser(),
 			"rabbitmq_vhost":       resourceVhost(),
