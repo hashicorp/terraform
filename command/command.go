@@ -22,10 +22,6 @@ const DefaultVarsFilename = "terraform.tfvars"
 // DefaultBackupExtension is added to the state file to form the path
 const DefaultBackupExtension = ".backup"
 
-// DefaultDataDirectory is the directory where local state is stored
-// by default.
-const DefaultDataDirectory = ".terraform"
-
 // DefaultParallelism is the limit Terraform places on total parallel
 // operations as it walks the dependency graph.
 const DefaultParallelism = 10
