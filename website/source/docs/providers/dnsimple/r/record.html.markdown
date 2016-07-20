@@ -33,6 +33,8 @@ The following arguments are supported:
 * `type` - (Required) The type of the record
 * `ttl` - (Optional) The TTL of the record
 
+Please note that the `domain` must not include the sub-domain. Instead, use the `name` argument for the sub-domain.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -45,4 +47,3 @@ The following attributes are exported:
 * `priority` - The priority of the record
 * `domain_id` - The domain ID of the record
 * `hostname` - The FQDN of the record
-
