@@ -20,13 +20,15 @@ func Retry(timeout time.Duration, f RetryFunc) error {
 		MinTimeout: 500 * time.Millisecond,
 		Refresh: func() (interface{}, string, error) {
 			rerr := f()
+
+			resultErrMu.Lock()
+			defer resultErrMu.Unlock()
+
 			if rerr == nil {
 				resultErr = nil
 				return 42, "success", nil
 			}
 
-			resultErrMu.Lock()
-			defer resultErrMu.Unlock()
 			resultErr = rerr.Err
 
 			if rerr.Retryable {
