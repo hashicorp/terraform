@@ -193,7 +193,10 @@ func (c *Config) Client() (interface{}, error) {
 		dynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
 		kinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
 
+		// These two services need to be set up early so we can check on AccountID
+		client.iamconn = iam.New(awsIamSess)
 		client.stsconn = sts.New(sess)
+
 		err = c.ValidateCredentials(client.stsconn)
 		if err != nil {
 			errs = append(errs, err)
@@ -233,7 +236,6 @@ func (c *Config) Client() (interface{}, error) {
 		client.esconn = elasticsearch.New(sess)
 		client.firehoseconn = firehose.New(sess)
 		client.glacierconn = glacier.New(sess)
-		client.iamconn = iam.New(awsIamSess)
 		client.kinesisconn = kinesis.New(kinesisSess)
 		client.kmsconn = kms.New(sess)
 		client.lambdaconn = lambda.New(sess)
