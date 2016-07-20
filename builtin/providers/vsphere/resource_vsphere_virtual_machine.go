@@ -141,33 +141,6 @@ func (v virtualMachine) Path() string {
 	return vmPath(v.folder, v.name)
 }
 
-func validatorFromValue(fieldName string, possibleValuesF func() []interface{}) func(v interface{}, k string) (ws []string, errors []error) {
-	possibleValuesI := possibleValuesF()
-	possibleValues := make([]stringer, len(possibleValuesI))
-	var ok bool
-	for i, v := range possibleValuesI {
-		possibleValues[i], ok = v.(stringer)
-		if !ok {
-			log.Panicf("not a stringer %[1]T %[1]v", v)
-		}
-	}
-	return func(v interface{}, k string) (ws []string, errors []error) {
-		value := v.(string)
-		found := false
-		for _, t := range possibleValues {
-			if t.String() == value {
-				found = true
-				break
-			}
-		}
-		if !found {
-			errors = append(errors, fmt.Errorf(
-				"Supported values for '%s' are %v", fieldName, JoinStringer(possibleValues, ", ")))
-		}
-		return
-	}
-}
-
 func vmPath(folder string, name string) string {
 	var path string
 	if len(folder) > 0 {
@@ -917,26 +890,14 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType provision
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
-	if len(existing) == 0 {
-		disk.CapacityInKB = int64(size * 1024 * 1024)
-		if iops != 0 {
-			disk.StorageIOAllocation = &types.StorageIOAllocationInfo{
-				Limit: iops,
-			}
-		}
-		backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
-
-		if diskType == provisioningTypeEager {
-			// eager zeroed thick virtual disk
-			backing.ThinProvisioned = types.NewBool(false)
-			backing.EagerlyScrub = types.NewBool(true)
-		} else if diskType == provisioningTypeThin {
-			// thin provisioned virtual disk
-			backing.ThinProvisioned = types.NewBool(true)
-		} else if diskType == provisioningTypeThickLazy {
-			// thin provisioned virtual disk
-			backing.ThinProvisioned = types.NewBool(false)
-			backing.EagerlyScrub = types.NewBool(false)
+	if len(existing) != 0 {
+		log.Printf("[DEBUG] addHardDisk: Disk already present.\n")
+		return nil
+	}
+	disk.CapacityInKB = int64(size * 1024 * 1024)
+	if iops != 0 {
+		disk.StorageIOAllocation = &types.StorageIOAllocationInfo{
+			Limit: iops,
 		}
 	}
 	backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
@@ -1631,13 +1592,7 @@ func (vm *virtualMachine) setupNetwork(finder *find.Finder) ([]types.BaseVirtual
 	for _, network := range vm.networkInterfaces {
 		// network device
 		var networkDeviceType nicType
-		if network.adapterType == "" {
-			if vm.template == "" {
-				networkDeviceType = nicTypeE1000
-			} else {
-				networkDeviceType = nicTypeVmxnet3
-			}
-		} else {
+		if network.adapterType != "" {
 			networkDeviceType = network.adapterType
 		} else if vm.template == "" {
 			networkDeviceType = nicTypeE1000
