@@ -224,6 +224,7 @@ BUG FIXES:
  * provider/openstack: Rebuild Instances On Network Changes [GH-6844]
  * provider/openstack: Firewall rules are applied in the correct order [GH-7194]
  * provider/openstack: Fix Security Group EOF Error when Adding / Removing Multiple Groups [GH-7468]
+ * provider/openstack: Fixing boot volumes interfering with block storage volumes list [GH-7649]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
  * provider/vsphere: adding a `vsphere_virtual_machine` migration [GH-7023]
