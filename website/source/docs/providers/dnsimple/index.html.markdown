@@ -33,7 +33,7 @@ resource "dnsimple_record" "www" {
 
 The following arguments are supported:
 
-* `token` - (Required) The DNSimple API token. It must be provided, but it can also be sourced from the `DNSIMPLE_TOKEN` environment variable.
+* `token` - (Required) The DNSimple API token. It must be provided, but it can also be sourced from the `DNSIMPLE_TOKEN` environment variable. Please note that this must be an API v1 token.
 * `email` - (Required) The email associated with the token. It must be provided, but it can also be sourced from the `DNSIMPLE_EMAIL` environment variable.
 
 
