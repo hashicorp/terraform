@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
 
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
@@ -65,10 +66,23 @@ type ArmClient struct {
 func withRequestLogging() autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
-			log.Printf("[DEBUG] Sending Azure RM Request %q to %q\n", r.Method, r.URL)
+			// dump request to wire format
+			if dump, err := httputil.DumpRequestOut(r, true); err == nil {
+				log.Printf("[DEBUG] AzureRM Request: \n%s\n", dump)
+			} else {
+				// fallback to basic message
+				log.Printf("[DEBUG] AzureRM Request: %s to %s\n", r.Method, r.URL)
+			}
+
 			resp, err := s.Do(r)
 			if resp != nil {
-				log.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
+				// dump response to wire format
+				if dump, err := httputil.DumpResponse(resp, true); err == nil {
+					log.Printf("[DEBUG] AzureRM Response for %s: \n%s\n", r.URL, dump)
+				} else {
+					// fallback to basic message
+					log.Printf("[DEBUG] AzureRM Response: %s for %s\n", resp.Status, r.URL)
+				}
 			} else {
 				log.Printf("[DEBUG] Request to %s completed with no response", r.URL)
 			}

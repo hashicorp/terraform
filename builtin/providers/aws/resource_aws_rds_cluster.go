@@ -20,6 +20,9 @@ func resourceAwsRDSCluster() *schema.Resource {
 		Read:   resourceAwsRDSClusterRead,
 		Update: resourceAwsRDSClusterUpdate,
 		Delete: resourceAwsRDSClusterDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsRdsClusterImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 
@@ -192,18 +195,31 @@ func resourceAwsRDSCluster() *schema.Resource {
 					return
 				},
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
 
+func resourceAwsRdsClusterImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// Neither skip_final_snapshot nor final_snapshot_identifier can be fetched
+	// from any API call, so we need to default skip_final_snapshot to true so
+	// that final_snapshot_identifier is not required
+	d.Set("skip_final_snapshot", true)
+	return []*schema.ResourceData{d}, nil
+}
+
 func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
+	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
 	if _, ok := d.GetOk("snapshot_identifier"); ok {
 		opts := rds.RestoreDBClusterFromSnapshotInput{
 			DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
 			SnapshotIdentifier:  aws.String(d.Get("snapshot_identifier").(string)),
 			Engine:              aws.String("aurora"),
+			Tags:                tags,
 		}
 
 		if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
@@ -282,6 +298,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			MasterUserPassword:  aws.String(d.Get("master_password").(string)),
 			MasterUsername:      aws.String(d.Get("master_username").(string)),
 			StorageEncrypted:    aws.Bool(d.Get("storage_encrypted").(bool)),
+			Tags:                tags,
 		}
 
 		if v := d.Get("database_name"); v.(string) != "" {
@@ -402,6 +419,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("database_name", dbc.DatabaseName)
 	}
 
+	d.Set("cluster_identifier", dbc.DBClusterIdentifier)
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
 	d.Set("parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("db_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
@@ -430,11 +448,22 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[DEBUG] Error saving RDS Cluster Members to state for RDS Cluster (%s): %s", d.Id(), err)
 	}
 
+	// Fetch and save tags
+	arn, err := buildRDSClusterARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	if err != nil {
+		log.Printf("[DEBUG] Error building ARN for RDS Cluster (%s), not setting Tags", *dbc.DBClusterIdentifier)
+	} else {
+		if err := saveTagsRDS(conn, d, arn); err != nil {
+			log.Printf("[WARN] Failed to save tags for RDS Cluster (%s): %s", *dbc.DBClusterIdentifier, err)
+		}
+	}
+
 	return nil
 }
 
 func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
+	requestUpdate := false
 
 	req := &rds.ModifyDBClusterInput{
 		ApplyImmediately:    aws.Bool(d.Get("apply_immediately").(bool)),
@@ -443,6 +472,7 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChange("master_password") {
 		req.MasterUserPassword = aws.String(d.Get("master_password").(string))
+		requestUpdate = true
 	}
 
 	if d.HasChange("vpc_security_group_ids") {
@@ -451,33 +481,49 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		} else {
 			req.VpcSecurityGroupIds = []*string{}
 		}
+		requestUpdate = true
 	}
 
 	if d.HasChange("preferred_backup_window") {
 		req.PreferredBackupWindow = aws.String(d.Get("preferred_backup_window").(string))
+		requestUpdate = true
 	}
 
 	if d.HasChange("preferred_maintenance_window") {
 		req.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintenance_window").(string))
+		requestUpdate = true
 	}
 
 	if d.HasChange("backup_retention_period") {
 		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
+		requestUpdate = true
 	}
 
 	if d.HasChange("parameter_group_name") {
 		d.SetPartial("parameter_group_name")
 		req.DBClusterParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
+		requestUpdate = true
 	}
 
 	if d.HasChange("db_cluster_parameter_group_name") {
 		d.SetPartial("db_cluster_parameter_group_name")
 		req.DBClusterParameterGroupName = aws.String(d.Get("db_cluster_parameter_group_name").(string))
+		requestUpdate = true
 	}
 
-	_, err := conn.ModifyDBCluster(req)
-	if err != nil {
-		return fmt.Errorf("[WARN] Error modifying RDS Cluster (%s): %s", d.Id(), err)
+	if requestUpdate {
+		_, err := conn.ModifyDBCluster(req)
+		if err != nil {
+			return fmt.Errorf("[WARN] Error modifying RDS Cluster (%s): %s", d.Id(), err)
+		}
+	}
+
+	if arn, err := buildRDSClusterARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+		if err := setTagsRDS(conn, d, arn); err != nil {
+			return err
+		} else {
+			d.SetPartial("tags")
+		}
 	}
 
 	return resourceAwsRDSClusterRead(d, meta)
@@ -559,4 +605,14 @@ func resourceAwsRDSClusterStateRefreshFunc(
 
 		return dbc, *dbc.Status, nil
 	}
+}
+
+func buildRDSClusterARN(identifier, accountid, region string) (string, error) {
+	if accountid == "" {
+		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS Account ID")
+	}
+
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:cluster:%s", region, accountid, identifier)
+	return arn, nil
+
 }

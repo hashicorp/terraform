@@ -259,6 +259,36 @@ func TestAccAWSAutoScalingGroup_withPlacementGroup(t *testing.T) {
 	})
 }
 
+func TestAccAWSAutoScalingGroup_enablingMetrics(t *testing.T) {
+	var group autoscaling.Group
+	randName := fmt.Sprintf("terraform-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig(randName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "enabled_metrics.#", ""),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSAutoscalingMetricsCollectionConfig_updatingMetricsCollected,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "enabled_metrics.#", "5"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSAutoScalingGroup_withMetrics(t *testing.T) {
 	var group autoscaling.Group
 

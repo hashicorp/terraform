@@ -19,6 +19,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * You now access the values of maps using the syntax `var.map["key"]` or the `lookup` function instead of `var.map.key`.
  * Outputs on `terraform_remote_state` resources are now top level attributes rather than inside the `output` map. In order to access outputs, use the syntax: `terraform_remote_state.name.outputname`. Currently outputs cannot be named `config` or `backend`.
  * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
+ * `azurerm_virtual_machine` computer_name now Required
  * `aws_db_instance` now defaults `publicly_accessible` to false
  * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
  * `atlas_artifact` resource has be depracated. Please use the new `atlas_artifact` Data Source
@@ -111,10 +112,13 @@ IMPROVEMENTS:
  * provider/aws: Retry creation of IAM role depending on new IAM user [GH-7324]
  * provider/aws: Allow `port` on `aws_db_instance` to be updated [GH-7441]
  * provider/aws: Allow VPC Classic Linking in Autoscaling Launch Configs [GH-7470]
+ * provider/aws: Support `task_role_arn` on `aws_ecs_task_definition [GH-7653]
+ * provider/aws: Support Tags on `aws_rds_cluster` [GH-7695]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
  * provider/azurerm: `azurerm_dns_zone` now returns `name_servers` [GH-7434]
+ * provider/azurerm: dump entire Request/Response in autorest Decorator [GH-7719]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * provider/clc: Fix optional server password [GH-6414]
  * provider/cloudstack: Add support for affinity groups to `cloudstack_instance` [GH-6898]
@@ -199,6 +203,7 @@ BUG FIXES:
  * provider/aws: Fix bug for recurring plans on ec2-classic and vpc in beanstalk [GH-6491]
  * provider/aws: Bump rds_cluster timeout to 15 mins [GH-7604]
  * provider/aws: Fix ICMP fields in `aws_network_acl_rule` to allow ICMP code 0 (echo reply) to be configured [GH-7669]
+ * provider/aws: Fix bug with Updating `aws_autoscaling_group` `enabled_metrics` [GH-7698]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
@@ -213,6 +218,7 @@ BUG FIXES:
  * provider/azurerm: catch `azurerm_template_deployment` erroring silently [GH-7644]
  * provider/azurerm: changing the name of an `azurerm_virtual_machine` now forces a new resource [GH-7646]
  * provider/azurerm: azurerm_storage_account now returns storage keys value instead of their names [GH-7674]
+ * provider/azurerm: `azurerm_virtual_machine` computer_name now Required [GH-7308]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
@@ -224,6 +230,7 @@ BUG FIXES:
  * provider/openstack: Rebuild Instances On Network Changes [GH-6844]
  * provider/openstack: Firewall rules are applied in the correct order [GH-7194]
  * provider/openstack: Fix Security Group EOF Error when Adding / Removing Multiple Groups [GH-7468]
+ * provider/openstack: Fixing boot volumes interfering with block storage volumes list [GH-7649]
  * provider/vsphere: `gateway` and `ipv6_gateway` are now read from `vsphere_virtual_machine` resources [GH-6522]
  * provider/vsphere: `ipv*_gateway` parameters won't force a new `vsphere_virtual_machine` [GH-6635]
  * provider/vsphere: adding a `vsphere_virtual_machine` migration [GH-7023]

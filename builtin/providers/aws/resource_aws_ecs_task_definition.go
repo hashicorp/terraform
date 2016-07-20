@@ -46,6 +46,12 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 				},
 			},
 
+			"task_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"volume": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -81,6 +87,10 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 	input := ecs.RegisterTaskDefinitionInput{
 		ContainerDefinitions: definitions,
 		Family:               aws.String(d.Get("family").(string)),
+	}
+
+	if v, ok := d.GetOk("task_role_arn"); ok {
+		input.TaskRoleArn = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("volume"); ok {
@@ -127,6 +137,7 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("family", *taskDefinition.Family)
 	d.Set("revision", *taskDefinition.Revision)
 	d.Set("container_definitions", taskDefinition.ContainerDefinitions)
+	d.Set("task_role_arn", taskDefinition.TaskRoleArn)
 	d.Set("volumes", flattenEcsVolumes(taskDefinition.Volumes))
 
 	return nil
