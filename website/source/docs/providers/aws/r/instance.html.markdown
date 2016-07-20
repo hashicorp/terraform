@@ -159,3 +159,12 @@ The following attributes are exported:
 * `security_groups` - The associated security groups.
 * `vpc_security_group_ids` - The associated security groups in non-default VPC
 * `subnet_id` - The VPC subnet ID.
+
+
+## Import
+
+Instances can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_instance.web i-12345678
+```

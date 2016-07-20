@@ -70,5 +70,5 @@ The following attributes are exported:
 VPNs can be imported using the `vpn id`, e.g. 
 
 ```
-terraform import aws_vpn.test_vpn vpc-a01106c2
+$ terraform import aws_vpn.test_vpn vpc-a01106c2
 ```

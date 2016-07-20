@@ -48,3 +48,12 @@ The following attributes are exported:
 * `id` - The ID of the mount target
 * `dns_name` - The DNS name for the given subnet/AZ per [documented convention](http://docs.aws.amazon.com/efs/latest/ug/mounting-fs-mount-cmd-dns-name.html)
 * `network_interface_id` - The ID of the network interface that Amazon EFS created when it created the mount target.
+
+
+## Import
+
+EFS Mount Targets can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_efs_mount_target.alpha fsmt-52a643fb
+```

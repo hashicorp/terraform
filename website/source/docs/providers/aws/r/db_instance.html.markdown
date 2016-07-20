@@ -141,3 +141,11 @@ On Oracle instances the following is exported additionally:
 
 [1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
 [2]: https://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+
+## Import
+
+DB Instances can be imported using the `identifier`, e.g. 
+
+```
+$ terraform import aws_db_instance.default mydb-rds-instance
+```

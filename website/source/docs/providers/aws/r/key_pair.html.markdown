@@ -40,3 +40,11 @@ The following attributes are exported:
 
 * `key_name` - The key pair name.
 * `fingerprint` - The MD5 public key fingerprint as specified in section 4 of RFC 4716.
+
+## Import
+
+Key Pairs can be imported using the `key_name`, e.g. 
+
+```
+$ terraform import aws_key_pair.deployer deployer-key
+```

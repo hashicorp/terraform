@@ -84,3 +84,12 @@ The following attributes are exported:
 
 * `id` - The ID of the health check
 
+
+
+## Import
+
+Cloud Metric Alarms can be imported using the `alarm_name`, e.g. 
+
+```
+$ terraform import aws_cloudwatch_metric_alarm.test alarm-12345
+```

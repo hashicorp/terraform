@@ -82,3 +82,12 @@ The following attribute is exported:
 
 * `burst_limit` - The absolute maximum number of times API Gateway allows the API to be called per second (RPS).
 * `rate_limit` - The number of times API Gateway allows the API to be called per second on average (RPS).
+
+
+## Import
+
+API Gateway Accounts can be imported using the word `api-gateway-account`, e.g. 
+
+```
+$ terraform import aws_api_gateway_account.demo api-gateway-account
+```

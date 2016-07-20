@@ -72,3 +72,11 @@ The following attributes are exported:
 
 * `location` - The URI of the vault that was created.
 * `arn` - The ARN of the vault.
+
+## Import
+
+Glacier Vaults can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_glacier_vault.archive my_archive
+```
