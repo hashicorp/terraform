@@ -91,3 +91,11 @@ The following attributes are exported:
 * `shared` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
+
+## Import
+
+Networks can be imported using the `id`, e.g.
+
+```
+terraform import openstack_networking_network_v2.network_1 d90ce693-5ccf-4136-a0ed-152ce412b6b9
+```
