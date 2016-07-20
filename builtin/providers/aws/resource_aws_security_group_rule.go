@@ -498,7 +498,6 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermiss
 	}
 
 	if v, ok := d.GetOk("self"); ok && v.(bool) {
-		// if sg.GroupId != nil {
 		if sg.VpcId != nil && *sg.VpcId != "" {
 			groups[*sg.GroupId] = true
 		} else {
@@ -574,10 +573,6 @@ func setFromIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup, rule *ec2.IpPe
 
 	d.Set("cidr_blocks", cb)
 
-	// 'self' is false by default. Below, we range over the group ids and set true
-	// if the parent sg id is found
-	d.Set("self", false)
-
 	var pl []string
 	for _, p := range rule.PrefixListIds {
 		pl = append(pl, *p.PrefixListId)
@@ -587,17 +582,9 @@ func setFromIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup, rule *ec2.IpPe
 	if len(rule.UserIdGroupPairs) > 0 {
 		s := rule.UserIdGroupPairs[0]
 
-		// Check for Pair that is the same as the Security Group, to denote self.
-		// Otherwise, mark the group id in source_security_group_id
 		if isVPC {
-			if *s.GroupId == *sg.GroupId {
-				d.Set("self", true)
-			}
 			d.Set("source_security_group_id", *s.GroupId)
 		} else {
-			if *s.GroupName == *sg.GroupName {
-				d.Set("self", true)
-			}
 			d.Set("source_security_group_id", *s.GroupName)
 		}
 	}
