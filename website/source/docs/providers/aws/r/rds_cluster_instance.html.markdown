@@ -65,6 +65,8 @@ details on controlling this property.
 * `db_parameter_group_name` - (Optional) The name of the DB parameter group to associate with this instance.
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is`false`.
+* `storage_encrypted` - (Optional) Specifies whether the DB cluster instance is encrypted. The default is `false` if not specified.
+* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to true
 * `tags` - (Optional) A mapping of tags to assign to the instance.
 
 ## Attributes Reference
