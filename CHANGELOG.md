@@ -19,6 +19,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * You now access the values of maps using the syntax `var.map["key"]` or the `lookup` function instead of `var.map.key`.
  * Outputs on `terraform_remote_state` resources are now top level attributes rather than inside the `output` map. In order to access outputs, use the syntax: `terraform_remote_state.name.outputname`. Currently outputs cannot be named `config` or `backend`.
  * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
+ * `azurerm_virtual_machine` computer_name now Required
  * `aws_db_instance` now defaults `publicly_accessible` to false
  * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
  * `atlas_artifact` resource has be depracated. Please use the new `atlas_artifact` Data Source
@@ -217,6 +218,7 @@ BUG FIXES:
  * provider/azurerm: catch `azurerm_template_deployment` erroring silently [GH-7644]
  * provider/azurerm: changing the name of an `azurerm_virtual_machine` now forces a new resource [GH-7646]
  * provider/azurerm: azurerm_storage_account now returns storage keys value instead of their names [GH-7674]
+ * provider/azurerm: `azurerm_virtual_machine` computer_name now Required [GH-7308]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
