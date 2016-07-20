@@ -160,7 +160,7 @@ func (c *PushCommand) Run(args []string) int {
 	archiveOpts := &archive.ArchiveOpts{
 		VCS: archiveVCS,
 		Extra: map[string]string{
-			DefaultDataDir: c.DataDir(),
+			DefaultDataDirectory: c.DataDir(),
 		},
 	}
 	if !moduleUpload {

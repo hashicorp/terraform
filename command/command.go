@@ -10,9 +10,6 @@ import (
 // Set to true when we're testing
 var test bool = false
 
-// DefaultDataDir is the default directory for storing local data.
-const DefaultDataDir = ".terraform"
-
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"
 
@@ -22,8 +19,8 @@ const DefaultVarsFilename = "terraform.tfvars"
 // DefaultBackupExtension is added to the state file to form the path
 const DefaultBackupExtension = ".backup"
 
-// DefaultDataDirectory is the directory where local state is stored
-// by default.
+// DefaultDataDirectory is the directory where local state and data is
+// stored by default.
 const DefaultDataDirectory = ".terraform"
 
 // DefaultParallelism is the limit Terraform places on total parallel
