@@ -62,13 +62,13 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     capacity = 2
   }
 
-  virtual_machine_os_profile {
+  os_profile {
     computer_name_prefix = "testvm"
     admin_username = "myadmin"
     admin_password = "Passwword1234"
   }
 
-  virtual_machine_os_profile_linux_config {
+  os_profile_linux_config {
     disable_password_authentication = true
     ssh_keys {
       path = "/home/myadmin/.ssh/authorized_keys"
@@ -76,7 +76,7 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     }
   }
 
-  virtual_machine_network_profile {
+  network_profile {
       name = "TestNetworkProfile"
       primary = true
       ip_configuration {
@@ -85,14 +85,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       }
   }
 
-  virtual_machine_storage_profile_os_disk {
+  storage_profile_os_disk {
     name = "osDiskProfile"
     caching       = "ReadWrite"
     create_option = "FromImage"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
 
-  virtual_machine_storage_profile_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"
