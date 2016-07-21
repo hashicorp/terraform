@@ -2,7 +2,6 @@ package resource
 
 import (
 	"log"
-	"math"
 	"time"
 )
 
@@ -71,19 +70,26 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 		// Wait for the delay
 		time.Sleep(conf.Delay)
 
-		var err error
-		for tries := 0; ; tries++ {
-			// Wait between refreshes using an exponential backoff
-			wait := time.Duration(math.Pow(2, float64(tries))) *
-				100 * time.Millisecond
-			if wait < conf.MinTimeout {
-				wait = conf.MinTimeout
-			} else if wait > 10*time.Second {
-				wait = 10 * time.Second
-			}
+		wait := 100 * time.Millisecond
 
-			log.Printf("[TRACE] Waiting %s before next try", wait)
-			time.Sleep(wait)
+		var err error
+		for first := true; ; first = false {
+			if !first {
+				if wait < conf.MinTimeout {
+					wait = conf.MinTimeout
+				} else if wait > 10*time.Second {
+					wait = 10 * time.Second
+				}
+
+				log.Printf("[TRACE] Waiting %s before next try", wait)
+				time.Sleep(wait)
+
+				// Wait between refreshes using an exponential backoff, except
+				// when waiting for target state to reoccur.
+				if targetOccurence == 0 {
+					wait *= 2
+				}
+			}
 
 			var currentState string
 			result, currentState, err = conf.Refresh()
