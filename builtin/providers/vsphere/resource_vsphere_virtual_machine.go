@@ -2342,6 +2342,9 @@ func populateResourceDataNetwork(d *schema.ResourceData, mvm *mo.VirtualMachine)
 		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
 	}
 	// get primary IP address as set
+	if len(networkInterfaces) == 0 {
+		return nil
+	}
 	if _, ok := networkInterfaces[0]["ipv4_address"]; !ok {
 		return nil
 	}
