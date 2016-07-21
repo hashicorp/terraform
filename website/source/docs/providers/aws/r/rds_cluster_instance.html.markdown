@@ -80,7 +80,7 @@ The following attributes are exported:
 this instance is a read replica
 * `allocated_storage` - The amount of allocated storage
 * `availability_zones` - The availability zone of the instance
-* `endpoint` - The IP address for this instance. May not be writable
+* `endpoint` - The DNS address for this instance. May not be writable
 * `engine` - The database engine
 * `engine_version` - The database engine version
 * `database_name` - The database name
@@ -95,7 +95,7 @@ this instance is a read replica
 
 ## Import
 
-Redshift Cluster Instances can be imported using the `identifier`, e.g. 
+Redshift Cluster Instances can be imported using the `identifier`, e.g.
 
 ```
 $ terraform import aws_rds_cluster_instance.prod_instance_1 aurora-cluster-instance-1
