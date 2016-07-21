@@ -1501,6 +1501,7 @@ func (vm *virtualMachine) bootstrapConfigSpec() *types.VirtualMachineConfigSpec 
 }
 
 func (vm *virtualMachine) getTemplate(finder *find.Finder) (template *object.VirtualMachine, templateMo *mo.VirtualMachine, err error) {
+	templateMo = &mo.VirtualMachine{}
 	if vm.template != "" {
 		template, err = finder.VirtualMachine(context.TODO(), vm.template)
 		if err != nil {
