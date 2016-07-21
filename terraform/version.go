@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/go-version"
 )
 
@@ -20,3 +22,10 @@ var SemVersion = version.Must(version.NewVersion(Version))
 // VersionHeader is the header name used to send the current terraform version
 // in http requests.
 const VersionHeader = "Terraform-Version"
+
+func VersionString() string {
+	if VersionPrerelease != "" {
+		return fmt.Sprintf("%s-%s", Version, VersionPrerelease)
+	}
+	return Version
+}
