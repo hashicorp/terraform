@@ -79,12 +79,12 @@ type HTTPError struct {
 
 // NewHTTPError creates a new HTTP error from the given code.
 func NewHTTPError(resp *http.Response) *HTTPError {
-	var e *HTTPError
+	var e HTTPError
 	if resp.Body != nil {
 		decodeJSON(&e, resp.Body)
 	}
 	e.StatusCode = resp.StatusCode
-	return e
+	return &e
 }
 
 // Error implements the error interface and returns the string representing the

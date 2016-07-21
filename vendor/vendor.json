@@ -250,8 +250,10 @@
 			"revision": "9b82b0372a4edf52f66fbc8feaa6aafe0123001d"
 		},
 		{
+			"checksumSHA1": "csR8njyJfkweB0RCtfnLwgXNeqQ=",
 			"path": "github.com/ajg/form",
-			"revision": "c9e1c3ae1f869d211cdaa085d23c6af2f5f83866"
+			"revision": "7ff89c75808766205bfa4411abb436c98c33eb5e",
+			"revisionTime": "2016-06-29T21:43:12Z"
 		},
 		{
 			"path": "github.com/apparentlymart/go-cidr/cidr",
@@ -1611,8 +1613,10 @@
 			"revision": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
 		},
 		{
+			"checksumSHA1": "DWJoWDXcRi4HUCyxU6dLVVjR4pI=",
 			"path": "github.com/sethvargo/go-fastly",
-			"revision": "6566b161e807516f4a45bc3054eac291a120e217"
+			"revision": "b0a18d43769d55365d4fbd9ba36493e5c0dcd8f5",
+			"revisionTime": "2016-07-08T18:18:56Z"
 		},
 		{
 			"comment": "v1.1-2-g5578a8c",

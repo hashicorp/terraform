@@ -171,9 +171,46 @@ Now any value with type `Binary` will automatically be encoded using the [URL](h
 Keys
 ----
 
-In theory any value can be a key as long as it has a string representation. However, periods have special meaning to `form`, and thus, under the hood (i.e. in encoded form) they are transparently escaped using a preceding backslash (`\`). Backslashes within keys, themselves, are also escaped in this manner (e.g. as `\\`) in order to permit representing `\.` itself (as `\\\.`).
+In theory any value can be a key as long as it has a string representation. However, by default, periods have special meaning to `form`, and thus, under the hood (i.e. in encoded form) they are transparently escaped using a preceding backslash (`\`). Backslashes within keys, themselves, are also escaped in this manner (e.g. as `\\`) in order to permit representing `\.` itself (as `\\\.`).
 
 (Note: it is normally unnecessary to deal with this issue unless keys are being constructed manually—e.g. literally embedded in HTML or in a URI.)
+
+The default delimiter and escape characters used for encoding and decoding composite keys can be changed using the `DelimitWith` and `EscapeWith` setter methods of `Encoder` and `Decoder`, respectively. For example...
+
+```go
+package main
+
+import (
+	"os"
+
+	"github.com/ajg/form"
+)
+
+func main() {
+	type B struct {
+		Qux string `form:"qux"`
+	}
+	type A struct {
+		FooBar B `form:"foo.bar"`
+	}
+	a := A{FooBar: B{"XYZ"}}
+	os.Stdout.WriteString("Default: ")
+	form.NewEncoder(os.Stdout).Encode(a)
+	os.Stdout.WriteString("\nCustom:  ")
+	form.NewEncoder(os.Stdout).DelimitWith('/').Encode(a)
+	os.Stdout.WriteString("\n")
+}
+
+```
+
+...will produce...
+
+```
+Default: foo%5C.bar.qux=XYZ
+Custom:  foo.bar%2Fqux=XYZ
+```
+
+(`%5C` and `%2F` represent `\` and `/`, respectively.)
 
 Limitations
 -----------
