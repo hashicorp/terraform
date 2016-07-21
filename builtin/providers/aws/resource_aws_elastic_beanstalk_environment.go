@@ -401,13 +401,6 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		updateOpts.VersionLabel = aws.String(d.Get("version_label").(string))
 	}
 
-	// Get the current time to filter describeBeanstalkEvents messages
-	t := time.Now()
-	log.Printf("[DEBUG] Elastic Beanstalk Environment update opts: %s", updateOpts)
-	_, err = conn.UpdateEnvironment(&updateOpts)
-	if err != nil {
-		return err
-	}
 	if hasChange {
 		// Get the current time to filter describeBeanstalkEvents messages
 		t := time.Now()

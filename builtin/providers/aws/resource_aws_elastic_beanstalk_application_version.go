@@ -128,8 +128,9 @@ func resourceAwsElasticBeanstalkApplicationVersionDelete(d *schema.ResourceData,
 	name := d.Id()
 
 	_, err := conn.DeleteApplicationVersion(&elasticbeanstalk.DeleteApplicationVersionInput{
-		ApplicationName: aws.String(application),
-		VersionLabel:    aws.String(name),
+		ApplicationName:    aws.String(application),
+		VersionLabel:       aws.String(name),
+		DeleteSourceBundle: aws.Bool(false),
 	})
 
 	if err != nil {
