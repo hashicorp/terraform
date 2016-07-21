@@ -16,3 +16,7 @@ const VersionPrerelease = "dev"
 // benefit of verifying during tests and init time that our version is a
 // proper semantic version, which should always be the case.
 var SemVersion = version.Must(version.NewVersion(Version))
+
+// VersionHeader is the header name used to send the current terraform version
+// in http requests.
+const VersionHeader = "Terraform-Version"
