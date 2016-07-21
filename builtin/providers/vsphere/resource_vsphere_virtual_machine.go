@@ -1003,6 +1003,8 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	}
 
 	networkInterfaces := make([]map[string]interface{}, 0)
+	// This is because govmomi / vmware sdk reverse the order of nics
+	normNetworkInterfaces := make([]map[string]interface{}, 0)
 	for _, v := range mvm.Guest.Net {
 		if v.DeviceConfigId >= 0 {
 			log.Printf("[DEBUG] v.Network - %#v", v.Network)
@@ -1025,9 +1027,10 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 				log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
 			}
 			log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
-			networkInterfaces = append(networkInterfaces, networkInterface)
+			normNetworkInterfaces = append(normNetworkInterfaces, networkInterface)
 		}
 	}
+
 	if mvm.Guest.IpStack != nil {
 		for _, v := range mvm.Guest.IpStack {
 			if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
@@ -1045,7 +1048,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
 							} else {
 								log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, deviceID, route.Gateway.IpAddress)
-								networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
+								normNetworkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
 							}
 						}
 					}
@@ -1053,6 +1056,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			}
 		}
 	}
+	// Reverse the nic order as VMware's Api does not provide it in the correct order.
+	for i := len(normNetworkInterfaces); i > 0; i-- {
+		networkInterfaces = append(networkInterfaces, normNetworkInterfaces[i-1])
+	}
+
 	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
 	err = d.Set("network_interface", networkInterfaces)
 	if err != nil {
