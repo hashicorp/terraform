@@ -18,12 +18,26 @@ import (
 
 // NewEncoder returns a new form encoder.
 func NewEncoder(w io.Writer) *encoder {
-	return &encoder{w}
+	return &encoder{w, defaultDelimiter, defaultEscape}
 }
 
 // encoder provides a way to encode to a Writer.
 type encoder struct {
 	w io.Writer
+	d rune
+	e rune
+}
+
+// DelimitWith sets r as the delimiter used for composite keys by encoder e and returns the latter; it is '.' by default.
+func (e *encoder) DelimitWith(r rune) *encoder {
+	e.d = r
+	return e
+}
+
+// EscapeWith sets r as the escape used for delimiters (and to escape itself) by encoder e and returns the latter; it is '\\' by default.
+func (e *encoder) EscapeWith(r rune) *encoder {
+	e.e = r
+	return e
 }
 
 // Encode encodes dst as form and writes it out using the encoder's Writer.
@@ -33,7 +47,7 @@ func (e encoder) Encode(dst interface{}) error {
 	if err != nil {
 		return err
 	}
-	s := n.Values().Encode()
+	s := n.values(e.d, e.e).Encode()
 	l, err := io.WriteString(e.w, s)
 	switch {
 	case err != nil:
@@ -51,7 +65,8 @@ func EncodeToString(dst interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return n.Values().Encode(), nil
+	vs := n.values(defaultDelimiter, defaultEscape)
+	return vs.Encode(), nil
 }
 
 // EncodeToValues encodes dst as a form and returns it as Values.
@@ -61,7 +76,8 @@ func EncodeToValues(dst interface{}) (url.Values, error) {
 	if err != nil {
 		return nil, err
 	}
-	return n.Values(), nil
+	vs := n.values(defaultDelimiter, defaultEscape)
+	return vs, nil
 }
 
 func encodeToNode(v reflect.Value) (n node, err error) {
@@ -258,9 +274,16 @@ func fieldInfo(f reflect.StructField) (k string, oe bool) {
 	return k, oe
 }
 
-func findField(v reflect.Value, n string) (reflect.Value, bool) {
+func findField(v reflect.Value, n string, ignoreCase bool) (reflect.Value, bool) {
 	t := v.Type()
 	l := v.NumField()
+
+	var lowerN string
+	caseInsensitiveMatch := -1
+	if ignoreCase {
+		lowerN = strings.ToLower(n)
+	}
+
 	// First try named fields.
 	for i := 0; i < l; i++ {
 		f := t.Field(i)
@@ -269,7 +292,14 @@ func findField(v reflect.Value, n string) (reflect.Value, bool) {
 			continue
 		} else if n == k {
 			return v.Field(i), true
+		} else if ignoreCase && lowerN == strings.ToLower(k) {
+			caseInsensitiveMatch = i
 		}
+	}
+
+	// If no exact match was found try case insensitive match.
+	if caseInsensitiveMatch != -1 {
+		return v.Field(caseInsensitiveMatch), true
 	}
 
 	// Then try anonymous (embedded) fields.
@@ -289,7 +319,7 @@ func findField(v reflect.Value, n string) (reflect.Value, bool) {
 		if fk != reflect.Struct {
 			continue
 		}
-		if ev, ok := findField(fv, n); ok {
+		if ev, ok := findField(fv, n, ignoreCase); ok {
 			return ev, true
 		}
 	}

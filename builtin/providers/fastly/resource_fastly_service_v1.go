@@ -1566,7 +1566,7 @@ func buildHeader(headerMap interface{}) (*gofastly.CreateHeaderInput, error) {
 	df := headerMap.(map[string]interface{})
 	opts := gofastly.CreateHeaderInput{
 		Name:              df["name"].(string),
-		IgnoreIfSet:       df["ignore_if_set"].(bool),
+		IgnoreIfSet:       gofastly.Compatibool(df["ignore_if_set"].(bool)),
 		Destination:       df["destination"].(string),
 		Priority:          uint(df["priority"].(int)),
 		Source:            df["source"].(string),
