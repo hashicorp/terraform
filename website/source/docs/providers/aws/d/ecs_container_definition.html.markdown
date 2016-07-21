@@ -8,9 +8,8 @@ description: |-
 
 # aws\_ecs\_container\_definition
 
-The Availability Zones data source allows access to the list of AWS
-Availability Zones which can be accessed by an AWS account within the region
-configured in the provider.
+The ECS container definition data source allows access to details of
+a specific container within an AWS ECS service.
 
 ## Example Usage
 
