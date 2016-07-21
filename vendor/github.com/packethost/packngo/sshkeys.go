@@ -19,34 +19,37 @@ type sshKeyRoot struct {
 
 // SSHKey represents a user's ssh key
 type SSHKey struct {
-	ID          string    `json:"id"`
-	Label       string    `json:"label"`
-  Key         string    `json:"key"`
-	FingerPrint string    `json:"fingerprint"`
-	Created     string    `json:"created_at"`
-	Updated     string    `json:"updated_at"`
-	User        User      `json:"user,omitempty"`
-	URL         string    `json:"href,omitempty"`
+	ID          string `json:"id"`
+	Label       string `json:"label"`
+	Key         string `json:"key"`
+	FingerPrint string `json:"fingerprint"`
+	Created     string `json:"created_at"`
+	Updated     string `json:"updated_at"`
+	User        User   `json:"user,omitempty"`
+	URL         string `json:"href,omitempty"`
 }
+
 func (s SSHKey) String() string {
 	return Stringify(s)
 }
 
 // SSHKeyCreateRequest type used to create an ssh key
 type SSHKeyCreateRequest struct {
-	Label string   `json:"label"`
-	Key   string   `json:"key"`
+	Label string `json:"label"`
+	Key   string `json:"key"`
 }
+
 func (s SSHKeyCreateRequest) String() string {
 	return Stringify(s)
 }
 
 // SSHKeyUpdateRequest type used to update an ssh key
 type SSHKeyUpdateRequest struct {
-	ID    string   `json:"id"`
-	Label string   `json:"label"`
-	Key   string   `json:"key"`
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Key   string `json:"key"`
 }
+
 func (s SSHKeyUpdateRequest) String() string {
 	return Stringify(s)
 }
