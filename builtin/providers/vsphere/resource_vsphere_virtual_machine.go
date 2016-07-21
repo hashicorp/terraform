@@ -31,18 +31,6 @@ var DefaultDNSServers = []string{
 	"8.8.4.4",
 }
 
-var DiskControllerTypes = []controllerType{
-	controllerTypeSCSI,
-	controllerTypeLSIParallel,
-
-	"scsi",
-	"scsi-lsi-parallel",
-	"scsi-buslogic",
-	"scsi-paravirtual",
-	"scsi-lsi-sas",
-	"ide",
-}
-
 type nicType string
 
 const (
