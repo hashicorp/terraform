@@ -104,5 +104,5 @@ The following attributes are exported:
 Load Balancer VIPs can be imported using the `id`, e.g.
 
 ```
-terraform import openstack_lb_vip_v1.vip_1 50e16b26-89c1-475e-a492-76167182511e
+$ terraform import openstack_lb_vip_v1.vip_1 50e16b26-89c1-475e-a492-76167182511e
 ```
