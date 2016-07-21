@@ -80,6 +80,12 @@ generate:
 	@which stringer ; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
+	@which constarray ; if [ $$? -ne 0 ]; then \
+	  go get -u github.com/ChloeTigre/golang-tools/cmd/constarray; \
+	fi
+	@which stringalias ; if [ $$? -ne 0 ]; then \
+	  go get -u github.com/ChloeTigre/golang-tools/cmd/stringalias; \
+	fi
 	go generate $$(go list ./... | grep -v /terraform/vendor/)
 	@go fmt command/internal_plugin_list.go > /dev/null
 
