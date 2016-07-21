@@ -57,6 +57,8 @@ const (
 	provisioningTypeThickLazy provisioningType = "lazy"
 )
 
+type networkMap map[string]interface{}
+
 type networkInterface struct {
 	deviceName       string
 	label            string
@@ -714,7 +716,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	if err = populateResourceDataDisks(d, mvm.Config.Hardware.Device); err != nil {
 		return err
 	}
-	if err = populateResourceDataNetwork(d, &mvm); err != nil {
+	if err = populateResourceDataNetwork(client, collector, d, &mvm); err != nil {
 		return err
 	}
 	if err = populateResourceDataDatastore(d, &mvm, collector); err != nil {
@@ -1782,9 +1784,12 @@ func waitForIP(vm *object.VirtualMachine, timeout time.Duration) error {
 	}
 
 	if state == types.VirtualMachinePowerStatePoweredOn {
-		// wait for interfaces to appear
-		_, err = vm.WaitForNetIP(context.TODO(), true)
-		if err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		func() {
+			defer cancel()
+			_, err = vm.WaitForNetIP(ctx, true)
+		}()
+		if err != context.DeadlineExceeded && err != nil {
 			return err
 		}
 	}
@@ -2256,13 +2261,13 @@ func populateResourceDataDisks(d *schema.ResourceData, devices []types.BaseVirtu
 	return nil
 }
 
-func populateResourceDataNIC(devices []types.GuestNicInfo, networkInterfaces []map[string]interface{}) error {
+func populateResourceDataNIC(devices []types.GuestNicInfo, networkInterfaces []networkMap) error {
 	for _, v := range devices {
 		if v.DeviceConfigId < 0 {
 			continue
 		}
 		log.Printf("[DEBUG] v.Network - %#v", v.Network)
-		networkInterface := make(map[string]interface{})
+		networkInterface := make(networkMap)
 		networkInterface["label"] = v.Network
 		networkInterface["mac_address"] = v.MacAddress
 		for _, ip := range v.IpConfig.IpAddress {
@@ -2286,7 +2291,7 @@ func populateResourceDataNIC(devices []types.GuestNicInfo, networkInterfaces []m
 	return nil
 }
 
-func populateResourceDataIPStack(devices []types.GuestStackInfo, networkInterfaces []map[string]interface{}) error {
+func populateResourceDataIPStack(devices []types.GuestStackInfo, networkInterfaces []networkMap) error {
 	if devices == nil {
 		return nil
 	}
@@ -2319,11 +2324,66 @@ func populateResourceDataIPStack(devices []types.GuestStackInfo, networkInterfac
 	return nil
 }
 
-func populateResourceDataNetwork(d *schema.ResourceData, mvm *mo.VirtualMachine) error {
+func populateResourceDataNetworkWithoutVsphereTools(networkInterfaces []networkMap, devices []types.BaseVirtualDevice, collector *property.Collector, client *govmomi.Client) error {
+	for _, d := range devices {
+		switch d.(type) {
+		case (types.BaseVirtualEthernetCard):
+			log.Printf("Got a Veth")
+			a, _ := d.(types.BaseVirtualEthernetCard)
+			v := a.GetVirtualEthernetCard()
+
+			networkInterface := networkMap{}
+			networkInterface["mac_address"] = v.MacAddress
+			networkInterface["device_key"] = v.Key
+
+			backingInfo, ok := v.Backing.(*types.VirtualEthernetCardDistributedVirtualPortBackingInfo)
+			if !ok {
+				log.Printf("[ERROR] Could not cast  backingInfo of NIC: %T!", v.Backing)
+				continue
+			}
+			dvsobj := mo.DistributedVirtualSwitch{}
+
+			collector = property.DefaultCollector(client.Client)
+			dvs, err := getDVSByUUID(client, backingInfo.Port.SwitchUuid)
+			if err != nil {
+				log.Printf("[ERROR] Could not retrieve DVS")
+				return err
+
+			}
+			if err := collector.RetrieveOne(context.TODO(), dvs.Reference(), []string{"name", "portgroup"}, &dvsobj); err != nil {
+				log.Printf("[ERROR] Could not retrieve DVS")
+				return err
+			}
+			var netlabel string
+			netlabel = dirname(removefirstpartsofpath(dvs.InventoryPath))
+			for _, p := range dvsobj.Portgroup {
+				pg := mo.DistributedVirtualPortgroup{}
+				if err := collector.RetrieveOne(context.TODO(), p, []string{"name", "key"}, &pg); err != nil {
+					log.Printf("[ERROR] Could not retrieve Portgroup")
+					return err
+				}
+				if pg.Key == backingInfo.Port.PortgroupKey {
+					netlabel += "/" + pg.Name
+					networkInterface["label"] = netlabel
+					log.Printf("[DEBUG] netlabel is %v", netlabel)
+					break
+				}
+			}
+			log.Printf("[DEBUG] Adding networkInterface: %#v", networkInterface)
+			networkInterfaces = append(networkInterfaces, networkInterface)
+		}
+	}
+	return nil
+}
+
+func populateResourceDataNetwork(client *govmomi.Client, collector *property.Collector, d *schema.ResourceData, mvm *mo.VirtualMachine) error {
 	var err error
-	var networkInterfaces []map[string]interface{}
+	var networkInterfaces []networkMap
 	populateResourceDataNIC(mvm.Guest.Net, networkInterfaces)
 	populateResourceDataIPStack(mvm.Guest.IpStack, networkInterfaces)
+	if len(networkInterfaces) == 0 {
+		populateResourceDataNetworkWithoutVsphereTools(networkInterfaces, mvm.Config.Hardware.Device, collector, client)
+	}
 	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
 	if err = d.Set("network_interface", networkInterfaces); err != nil {
 		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
