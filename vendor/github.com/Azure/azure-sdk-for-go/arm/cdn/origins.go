@@ -35,7 +35,12 @@ type OriginsClient struct {
 
 // NewOriginsClient creates an instance of the OriginsClient client.
 func NewOriginsClient(subscriptionID string) OriginsClient {
-	return OriginsClient{New(subscriptionID)}
+	return NewOriginsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewOriginsClientWithBaseURI creates an instance of the OriginsClient client.
+func NewOriginsClientWithBaseURI(baseURI string, subscriptionID string) OriginsClient {
+	return OriginsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Create sends the create request. This method may poll for completion.

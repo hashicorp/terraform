@@ -35,7 +35,13 @@ type InterfacesClient struct {
 
 // NewInterfacesClient creates an instance of the InterfacesClient client.
 func NewInterfacesClient(subscriptionID string) InterfacesClient {
-	return InterfacesClient{New(subscriptionID)}
+	return NewInterfacesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewInterfacesClientWithBaseURI creates an instance of the InterfacesClient
+// client.
+func NewInterfacesClientWithBaseURI(baseURI string, subscriptionID string) InterfacesClient {
+	return InterfacesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put NetworkInterface operation creates/updates a

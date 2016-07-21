@@ -36,7 +36,13 @@ type ExpressRouteCircuitsClient struct {
 // NewExpressRouteCircuitsClient creates an instance of the
 // ExpressRouteCircuitsClient client.
 func NewExpressRouteCircuitsClient(subscriptionID string) ExpressRouteCircuitsClient {
-	return ExpressRouteCircuitsClient{New(subscriptionID)}
+	return NewExpressRouteCircuitsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewExpressRouteCircuitsClientWithBaseURI creates an instance of the
+// ExpressRouteCircuitsClient client.
+func NewExpressRouteCircuitsClientWithBaseURI(baseURI string, subscriptionID string) ExpressRouteCircuitsClient {
+	return ExpressRouteCircuitsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put ExpressRouteCircuit operation creates/updates a

@@ -35,7 +35,12 @@ type SubnetsClient struct {
 
 // NewSubnetsClient creates an instance of the SubnetsClient client.
 func NewSubnetsClient(subscriptionID string) SubnetsClient {
-	return SubnetsClient{New(subscriptionID)}
+	return NewSubnetsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewSubnetsClientWithBaseURI creates an instance of the SubnetsClient client.
+func NewSubnetsClientWithBaseURI(baseURI string, subscriptionID string) SubnetsClient {
+	return SubnetsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put Subnet operation creates/updates a subnet in

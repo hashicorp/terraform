@@ -35,7 +35,12 @@ type RoutesClient struct {
 
 // NewRoutesClient creates an instance of the RoutesClient client.
 func NewRoutesClient(subscriptionID string) RoutesClient {
-	return RoutesClient{New(subscriptionID)}
+	return NewRoutesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewRoutesClientWithBaseURI creates an instance of the RoutesClient client.
+func NewRoutesClientWithBaseURI(baseURI string, subscriptionID string) RoutesClient {
+	return RoutesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put route operation creates/updates a route in the

@@ -35,7 +35,12 @@ type UsagesClient struct {
 
 // NewUsagesClient creates an instance of the UsagesClient client.
 func NewUsagesClient(subscriptionID string) UsagesClient {
-	return UsagesClient{New(subscriptionID)}
+	return NewUsagesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewUsagesClientWithBaseURI creates an instance of the UsagesClient client.
+func NewUsagesClientWithBaseURI(baseURI string, subscriptionID string) UsagesClient {
+	return UsagesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // List lists compute usages for a subscription.
@@ -96,29 +101,5 @@ func (client UsagesClient) ListResponder(resp *http.Response) (result UsagesList
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListNextResults retrieves the next set of results, if any.
-func (client UsagesClient) ListNextResults(lastResults UsagesListResult) (result UsagesListResult, err error) {
-	req, err := lastResults.UsagesListResultPreparer()
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.UsagesClient", "List", nil, "Failure preparing next results request request")
-	}
-	if req == nil {
-		return
-	}
-
-	resp, err := client.ListSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.UsagesClient", "List", resp, "Failure sending next results request request")
-	}
-
-	result, err = client.ListResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.UsagesClient", "List", resp, "Failure responding to next results request request")
-	}
-
 	return
 }

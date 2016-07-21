@@ -32,7 +32,13 @@ type ProvidersClient struct {
 
 // NewProvidersClient creates an instance of the ProvidersClient client.
 func NewProvidersClient(subscriptionID string) ProvidersClient {
-	return ProvidersClient{New(subscriptionID)}
+	return NewProvidersClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewProvidersClientWithBaseURI creates an instance of the ProvidersClient
+// client.
+func NewProvidersClientWithBaseURI(baseURI string, subscriptionID string) ProvidersClient {
+	return ProvidersClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Get gets a resource provider.

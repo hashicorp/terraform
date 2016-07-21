@@ -32,7 +32,13 @@ type DeploymentsClient struct {
 
 // NewDeploymentsClient creates an instance of the DeploymentsClient client.
 func NewDeploymentsClient(subscriptionID string) DeploymentsClient {
-	return DeploymentsClient{New(subscriptionID)}
+	return NewDeploymentsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewDeploymentsClientWithBaseURI creates an instance of the
+// DeploymentsClient client.
+func NewDeploymentsClientWithBaseURI(baseURI string, subscriptionID string) DeploymentsClient {
+	return DeploymentsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Cancel cancel a currently running template deployment.

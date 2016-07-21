@@ -36,7 +36,13 @@ type ApplicationGatewaysClient struct {
 // NewApplicationGatewaysClient creates an instance of the
 // ApplicationGatewaysClient client.
 func NewApplicationGatewaysClient(subscriptionID string) ApplicationGatewaysClient {
-	return ApplicationGatewaysClient{New(subscriptionID)}
+	return NewApplicationGatewaysClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewApplicationGatewaysClientWithBaseURI creates an instance of the
+// ApplicationGatewaysClient client.
+func NewApplicationGatewaysClientWithBaseURI(baseURI string, subscriptionID string) ApplicationGatewaysClient {
+	return ApplicationGatewaysClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put ApplicationGateway operation creates/updates a

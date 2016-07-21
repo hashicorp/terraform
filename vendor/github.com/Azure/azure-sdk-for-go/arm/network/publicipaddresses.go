@@ -36,7 +36,13 @@ type PublicIPAddressesClient struct {
 // NewPublicIPAddressesClient creates an instance of the
 // PublicIPAddressesClient client.
 func NewPublicIPAddressesClient(subscriptionID string) PublicIPAddressesClient {
-	return PublicIPAddressesClient{New(subscriptionID)}
+	return NewPublicIPAddressesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewPublicIPAddressesClientWithBaseURI creates an instance of the
+// PublicIPAddressesClient client.
+func NewPublicIPAddressesClientWithBaseURI(baseURI string, subscriptionID string) PublicIPAddressesClient {
+	return PublicIPAddressesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put PublicIPAddress operation creates/updates a

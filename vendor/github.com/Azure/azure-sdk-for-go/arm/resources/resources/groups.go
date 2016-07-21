@@ -31,7 +31,12 @@ type GroupsClient struct {
 
 // NewGroupsClient creates an instance of the GroupsClient client.
 func NewGroupsClient(subscriptionID string) GroupsClient {
-	return GroupsClient{New(subscriptionID)}
+	return NewGroupsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewGroupsClientWithBaseURI creates an instance of the GroupsClient client.
+func NewGroupsClientWithBaseURI(baseURI string, subscriptionID string) GroupsClient {
+	return GroupsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CheckExistence checks whether resource group exists.

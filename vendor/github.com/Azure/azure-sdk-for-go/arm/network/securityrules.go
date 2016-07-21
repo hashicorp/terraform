@@ -36,7 +36,13 @@ type SecurityRulesClient struct {
 // NewSecurityRulesClient creates an instance of the SecurityRulesClient
 // client.
 func NewSecurityRulesClient(subscriptionID string) SecurityRulesClient {
-	return SecurityRulesClient{New(subscriptionID)}
+	return NewSecurityRulesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewSecurityRulesClientWithBaseURI creates an instance of the
+// SecurityRulesClient client.
+func NewSecurityRulesClientWithBaseURI(baseURI string, subscriptionID string) SecurityRulesClient {
+	return SecurityRulesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put network security rule operation creates/updates a
