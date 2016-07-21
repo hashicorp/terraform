@@ -32,18 +32,6 @@ resource "azurerm_subnet" "test" {
     address_prefix = "10.0.2.0/24"
 }
 
-resource "azurerm_network_interface" "test" {
-    name = "acctni"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-
-    ip_configuration {
-    	name = "testconfiguration1"
-    	subnet_id = "${azurerm_subnet.test.id}"
-    	private_ip_address_allocation = "dynamic"
-    }
-}
-
 resource "azurerm_storage_account" "test" {
     name = "accsa"
     resource_group_name = "${azurerm_resource_group.test.name}"
