@@ -1436,7 +1436,7 @@ func (vm *virtualMachine) prepareCustomization(templateMo *mo.VirtualMachine) (t
 }
 
 func (vm *virtualMachine) addHardDisks(vmObj *object.VirtualMachine, datastore *object.Datastore) error {
-	var vmMo *mo.VirtualMachine
+	var vmMo = &mo.VirtualMachine{}
 	var err error
 	vmObj.Properties(context.TODO(), vmObj.Reference(), []string{"summary", "config"}, vmMo)
 	firstDisk := 0
@@ -1541,7 +1541,7 @@ func (vm *virtualMachine) extraConfig(configSpec *types.VirtualMachineConfigSpec
 func (vm *virtualMachine) setupDatastore(c *govmomi.Client, resourcePool *object.ResourcePool, template *object.VirtualMachine, dcFolders *object.DatacenterFolders, configSpec *types.VirtualMachineConfigSpec, finder *find.Finder) (*object.Datastore, *mo.Datastore, error) {
 	var err error
 	var datastore *object.Datastore
-	var mds *mo.Datastore
+	var mds = &mo.Datastore{}
 	if vm.datastore == "" {
 		datastore, err = finder.DefaultDatastore(context.TODO())
 		if err != nil {
