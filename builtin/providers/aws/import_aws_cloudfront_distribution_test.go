@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccCloudFrontDistribution_importBasic(t *testing.T) {
+func TestAccAWSCloudFrontDistribution_importBasic(t *testing.T) {
 	resourceName := "aws_cloudfront_distribution.s3_distribution"
 
 	resource.Test(t, resource.TestCase{
