@@ -461,7 +461,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"controller_type": &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							Default:      "scsi",
+							Default:      controllerTypeSCSI,
 							ValidateFunc: validatorFromValue("controller_type", controllerTypeValuesAsInterface),
 						},
 					},
@@ -2071,8 +2071,8 @@ func populateVMStructDisk(d *schema.ResourceData, vm *virtualMachine) error {
 			newDisk.iops = int64(v)
 		}
 
-		if v, ok := disk["controller_type"].(controllerType); ok && v != "" {
-			newDisk.controller = v
+		if v, ok := disk["controller_type"].(string); ok && v != "" {
+			newDisk.controller = controllerType(v)
 		}
 
 		if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
