@@ -1628,19 +1628,6 @@ type UsageName struct {
 type UsagesListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]Usage `json:"value,omitempty"`
-	NextLink          *string  `json:",omitempty"`
-}
-
-// UsagesListResultPreparer prepares a request to retrieve the next set of results. It returns
-// nil if no more results exist.
-func (client UsagesListResult) UsagesListResultPreparer() (*http.Request, error) {
-	if client.NextLink == nil || len(to.String(client.NextLink)) <= 0 {
-		return nil, nil
-	}
-	return autorest.Prepare(&http.Request{},
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
 // VirtualNetwork is virtual Network resource

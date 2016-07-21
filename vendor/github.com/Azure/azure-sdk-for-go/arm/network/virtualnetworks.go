@@ -36,7 +36,13 @@ type VirtualNetworksClient struct {
 // NewVirtualNetworksClient creates an instance of the VirtualNetworksClient
 // client.
 func NewVirtualNetworksClient(subscriptionID string) VirtualNetworksClient {
-	return VirtualNetworksClient{New(subscriptionID)}
+	return NewVirtualNetworksClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewVirtualNetworksClientWithBaseURI creates an instance of the
+// VirtualNetworksClient client.
+func NewVirtualNetworksClientWithBaseURI(baseURI string, subscriptionID string) VirtualNetworksClient {
+	return VirtualNetworksClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put VirtualNetwork operation creates/updates a virtual

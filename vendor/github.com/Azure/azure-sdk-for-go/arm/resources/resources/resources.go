@@ -31,7 +31,12 @@ type Client struct {
 
 // NewClient creates an instance of the Client client.
 func NewClient(subscriptionID string) Client {
-	return Client{New(subscriptionID)}
+	return NewClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewClientWithBaseURI creates an instance of the Client client.
+func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
+	return Client{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CheckExistence checks whether resource exists.

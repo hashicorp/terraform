@@ -36,7 +36,13 @@ type LoadBalancersClient struct {
 // NewLoadBalancersClient creates an instance of the LoadBalancersClient
 // client.
 func NewLoadBalancersClient(subscriptionID string) LoadBalancersClient {
-	return LoadBalancersClient{New(subscriptionID)}
+	return NewLoadBalancersClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewLoadBalancersClientWithBaseURI creates an instance of the
+// LoadBalancersClient client.
+func NewLoadBalancersClientWithBaseURI(baseURI string, subscriptionID string) LoadBalancersClient {
+	return LoadBalancersClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put LoadBalancer operation creates/updates a

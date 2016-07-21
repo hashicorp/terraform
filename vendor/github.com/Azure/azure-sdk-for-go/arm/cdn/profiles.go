@@ -35,7 +35,13 @@ type ProfilesClient struct {
 
 // NewProfilesClient creates an instance of the ProfilesClient client.
 func NewProfilesClient(subscriptionID string) ProfilesClient {
-	return ProfilesClient{New(subscriptionID)}
+	return NewProfilesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewProfilesClientWithBaseURI creates an instance of the ProfilesClient
+// client.
+func NewProfilesClientWithBaseURI(baseURI string, subscriptionID string) ProfilesClient {
+	return ProfilesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Create sends the create request. This method may poll for completion.

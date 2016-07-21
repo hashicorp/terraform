@@ -36,7 +36,13 @@ type LocalNetworkGatewaysClient struct {
 // NewLocalNetworkGatewaysClient creates an instance of the
 // LocalNetworkGatewaysClient client.
 func NewLocalNetworkGatewaysClient(subscriptionID string) LocalNetworkGatewaysClient {
-	return LocalNetworkGatewaysClient{New(subscriptionID)}
+	return NewLocalNetworkGatewaysClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewLocalNetworkGatewaysClientWithBaseURI creates an instance of the
+// LocalNetworkGatewaysClient client.
+func NewLocalNetworkGatewaysClientWithBaseURI(baseURI string, subscriptionID string) LocalNetworkGatewaysClient {
+	return LocalNetworkGatewaysClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put LocalNetworkGateway operation creates/updates a
