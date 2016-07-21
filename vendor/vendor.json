@@ -1069,14 +1069,18 @@
 			"revision": "613abdebf4922c4d9d46bcb4bcf14ee18c08d7de"
 		},
 		{
+			"checksumSHA1": "IUWlXGc4g8je52zg2qWOETPp8dg=",
 			"comment": "v0.0.2-37-g5cd82f0",
 			"path": "github.com/hmrc/vmware-govcd",
-			"revision": "5cd82f01aa1c97afa9b23ef6f4f42a60f3106003"
+			"revision": "8dc9fc011e97899e74f8b45ed16ac10aff8b9457",
+			"revisionTime": "2016-03-16T10:04:48Z"
 		},
 		{
+			"checksumSHA1": "QarH8ggsjIB+t0r4loMPEViOGcw=",
 			"comment": "v0.0.2-37-g5cd82f0",
 			"path": "github.com/hmrc/vmware-govcd/types/v56",
-			"revision": "5cd82f01aa1c97afa9b23ef6f4f42a60f3106003"
+			"revision": "8dc9fc011e97899e74f8b45ed16ac10aff8b9457",
+			"revisionTime": "2016-03-16T10:04:48Z"
 		},
 		{
 			"comment": "0.2.1-3-gb1859b1",
