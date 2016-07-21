@@ -2263,7 +2263,7 @@ func populateResourceDataDisks(d *schema.ResourceData, devices []types.BaseVirtu
 		}
 		log.Printf("[DEBUG] disks: %#v", disks)
 	}
-	if err = d.Set("disks", disks); err != nil {
+	if err = d.Set("disk", disks); err != nil {
 		return err
 	}
 	return nil
