@@ -62,6 +62,7 @@ FEATURES:
  * **New Resource:** `aws_simpledb_domain` [GH-7600]
  * **New Resource:** `aws_opsworks_user_profile` [GH-6304]
  * **New Resource:** `aws_opsworks_permission` [GH-6304]
+ * **New Resource:** `aws_ami_launch_permission` [GH-7365]
  * **New Resource:** `openstack_blockstorage_volume_v2` [GH-6693]
  * **New Resource:** `openstack_lb_loadbalancer_v2` [GH-7012]
  * **New Resource:** `openstack_lb_listener_v2` [GH-7012]
