@@ -120,6 +120,7 @@ IMPROVEMENTS:
  * provider/aws: Support Tags on `aws_rds_cluster` [GH-7695]
  * provider/aws: Support kms_key_id for `aws_rds_cluster` [GH-7662]
  * provider/aws: Allow setting a `poll_interval` on `aws_elastic_beanstalk_environment` [GH-7523]
+ * provider/aws: Add support for Kinesis streams shard-level metrics [GH-7684]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
