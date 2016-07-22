@@ -22,6 +22,8 @@ type IPAddress struct {
 	Public        bool              `json:"public"`
 	Cidr          int               `json:"cidr"`
 	AssignedTo    map[string]string `json:"assigned_to"`
+	Created       string            `json:"created_at,omitempty"`
+	Updated       string            `json:"updated_at,omitempty"`
 	Href          string            `json:"href"`
 }
 
