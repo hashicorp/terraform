@@ -8,7 +8,7 @@ description: |-
 
 # Microsoft Azure Provider
 
-The Microsoft Azure Provider provider is used to interact with the many
+The Microsoft Azure provider is used to interact with the many
 resources supported by Azure, via the ARM API. This supercedes the [legacy Azure
 provider][asm], which interacts with Azure using the Service Management API. The
 provider needs to be configured with the credentials needed to generate OAuth
