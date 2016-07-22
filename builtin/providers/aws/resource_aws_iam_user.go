@@ -48,6 +48,12 @@ func resourceAwsIamUser() *schema.Resource {
 				Default:  "/",
 				ForceNew: true,
 			},
+			"force_destroy": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Delete user even if it has non-Terraform-managed IAM access keys",
+			},
 		},
 	}
 }
@@ -154,18 +160,20 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 
 	// All access keys for the user must be removed
 	var accessKeys []string
-	listAccessKeys := &iam.ListAccessKeysInput{
-		UserName: aws.String(d.Id()),
-	}
-	pageOfAccessKeys := func(page *iam.ListAccessKeysOutput, lastPage bool) (shouldContinue bool) {
-		for _, g := range page.AccessKeyMetadata {
-			accessKeys = append(accessKeys, *g.AccessKeyId)
+	if d.Get("force_destroy").(bool) {
+		listAccessKeys := &iam.ListAccessKeysInput{
+			UserName: aws.String(d.Id()),
 		}
-		return true
-	}
-	err = iamconn.ListAccessKeysPages(listAccessKeys, pageOfAccessKeys)
-	if err != nil {
-		return fmt.Errorf("Error removing access keys of user %s: %s", d.Id(), err)
+		pageOfAccessKeys := func(page *iam.ListAccessKeysOutput, lastPage bool) (shouldContinue bool) {
+			for _, g := range page.AccessKeyMetadata {
+				accessKeys = append(accessKeys, *g.AccessKeyId)
+			}
+			return true
+		}
+		err = iamconn.ListAccessKeysPages(listAccessKeys, pageOfAccessKeys)
+		if err != nil {
+			return fmt.Errorf("Error removing access keys of user %s: %s", d.Id(), err)
+		}
 	}
 
 	for _, g := range groups {
