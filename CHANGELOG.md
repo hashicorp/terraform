@@ -22,8 +22,9 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `azurerm_virtual_machine` computer_name now Required
  * `aws_db_instance` now defaults `publicly_accessible` to false
  * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
- * `atlas_artifact` resource has be depracated. Please use the new `atlas_artifact` Data Source
+ * `atlas_artifact` resource has be deprecated. Please use the new `atlas_artifact` Data Source
  * The `member` attribute of `openstack_lb_pool_v1` has been deprecated. Please ue the new `openstack_lb_member_v1` resource.
+ * All deprecated parameters are removed from all `CloudStack` resources
 
 FEATURES:
 
@@ -131,6 +132,11 @@ IMPROVEMENTS:
  * provider/cloudstack: Add support for affinity groups to `cloudstack_instance` [GH-6898]
  * provider/cloudstack: Enable swapping of ACLs without having to rebuild the network tier [GH-6741]
  * provider/cloudstack: Improve ACL swapping [GH-7315]
+ * provider/cloudstack: Add project support to `cloudstack_network_acl` and `cloudstack_network_acl_rule` [GH-7612]
+ * provider/cloudstack: Add option to set `root_disk_size` to `cloudstack_instance` [GH-7070]
+ * provider/cloudstack: Do no longer force a new `cloudstack_instance` resource when updating `user_data` [GH-7074]
+ * provider/cloudstack: Add option to set `security_group_names` to `cloudstack_instance` [GH-7240]
+ * provider/cloudstack: Add option to set `affinity_group_names` to `cloudstack_instance` [GH-7242]
  * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/docker: Docker Container DNS Setting Enhancements [GH-7392]
  * provider/docker: Add `destroy_grace_seconds` option to stop container before delete [GH-7513]
@@ -228,6 +234,9 @@ BUG FIXES:
  * provider/azurerm: `azurerm_virtual_machine` computer_name now Required [GH-7308]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
+ * provider/cloudstack: Fix refresing `cloudstack_network_acl_rule` when the associated ACL is deleted [GH-7612]
+ * provider/cloudstack: Fix refresing `cloudstack_port_forward` when the associated IP address is no longer associated [GH-7612]
+ * provider/cloudstack: Fix creating `cloudstack_network` with offerings that do not support specifying IP ranges [GH-7612]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
  * provider/digitalocean: Reassign Floating IP when droplet changes [GH-7411]
  * provider/google: Fix a bug causing an error attempting to delete an already-deleted `google_compute_disk` [GH-6689]
