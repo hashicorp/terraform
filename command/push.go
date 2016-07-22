@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/atlas-go/archive"
 	"github.com/hashicorp/atlas-go/v1"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type PushCommand struct {
@@ -125,6 +126,8 @@ func (c *PushCommand) Run(args []string) int {
 				return 1
 			}
 		}
+
+		client.DefaultHeader.Set(terraform.VersionHeader, terraform.Version)
 
 		if atlasToken != "" {
 			client.Token = atlasToken
