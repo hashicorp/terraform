@@ -151,7 +151,7 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		for _, g := range page.Groups {
 			groups = append(groups, *g.GroupName)
 		}
-		return true
+		return !lastPage
 	}
 	err := iamconn.ListGroupsForUserPages(listGroups, pageOfGroups)
 	if err != nil {
@@ -175,7 +175,7 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 			for _, k := range page.AccessKeyMetadata {
 				accessKeys = append(accessKeys, *k.AccessKeyId)
 			}
-			return true
+			return !lastPage
 		}
 		err = iamconn.ListAccessKeysPages(listAccessKeys, pageOfAccessKeys)
 		if err != nil {
