@@ -10,7 +10,7 @@ description: |-
 
 [arm]: /docs/providers/azurerm/index.html
 
-The Azure Service Management Provider is used to interact with the many resources supported
+The Azure Service Management provider is used to interact with the many resources supported
 by Azure. The provider needs to be configured with a [publish settings
 file](https://manage.windowsazure.com/publishsettings) and optionally a
 subscription ID before it can be used.
