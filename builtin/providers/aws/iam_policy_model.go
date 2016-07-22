@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 )
 
+// A string array that serializes to JSON as a single string if the length is 1,
+// otherwise as a JSON array of strings.
+type NormalizeStringArray []string
+
 type IAMPolicyDoc struct {
 	Version    string                `json:",omitempty"`
 	Id         string                `json:",omitempty"`
@@ -13,10 +17,10 @@ type IAMPolicyDoc struct {
 type IAMPolicyStatement struct {
 	Sid           string                         `json:",omitempty"`
 	Effect        string                         `json:",omitempty"`
-	Actions       []string                       `json:"Action,omitempty"`
-	NotActions    []string                       `json:"NotAction,omitempty"`
-	Resources     []string                       `json:"Resource,omitempty"`
-	NotResources  []string                       `json:"NotResource,omitempty"`
+	Actions       NormalizeStringArray           `json:"Action,omitempty"`
+	NotActions    NormalizeStringArray           `json:"NotAction,omitempty"`
+	Resources     NormalizeStringArray           `json:"Resource,omitempty"`
+	NotResources  NormalizeStringArray           `json:"NotResource,omitempty"`
 	Principals    IAMPolicyStatementPrincipalSet `json:"Principal,omitempty"`
 	NotPrincipals IAMPolicyStatementPrincipalSet `json:"NotPrincipal,omitempty"`
 	Conditions    IAMPolicyStatementConditionSet `json:"Condition,omitempty"`
@@ -24,20 +28,27 @@ type IAMPolicyStatement struct {
 
 type IAMPolicyStatementPrincipal struct {
 	Type        string
-	Identifiers []string
+	Identifiers NormalizeStringArray
 }
 
 type IAMPolicyStatementCondition struct {
 	Test     string
 	Variable string
-	Values   []string
+	Values   NormalizeStringArray
 }
 
 type IAMPolicyStatementPrincipalSet []IAMPolicyStatementPrincipal
 type IAMPolicyStatementConditionSet []IAMPolicyStatementCondition
 
+func (arr NormalizeStringArray) MarshalJSON() ([]byte, error) {
+	if len(arr) == 1 {
+		return json.Marshal(arr[0])
+	}
+	return json.Marshal([]string(arr))
+}
+
 func (ps IAMPolicyStatementPrincipalSet) MarshalJSON() ([]byte, error) {
-	raw := map[string][]string{}
+	raw := map[string]NormalizeStringArray{}
 
 	for _, p := range ps {
 		if _, ok := raw[p.Type]; !ok {
@@ -50,11 +61,11 @@ func (ps IAMPolicyStatementPrincipalSet) MarshalJSON() ([]byte, error) {
 }
 
 func (cs IAMPolicyStatementConditionSet) MarshalJSON() ([]byte, error) {
-	raw := map[string]map[string][]string{}
+	raw := map[string]map[string]NormalizeStringArray{}
 
 	for _, c := range cs {
 		if _, ok := raw[c.Test]; !ok {
-			raw[c.Test] = map[string][]string{}
+			raw[c.Test] = map[string]NormalizeStringArray{}
 		}
 		if _, ok := raw[c.Test][c.Variable]; !ok {
 			raw[c.Test][c.Variable] = make([]string, 0, len(c.Values))
