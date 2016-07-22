@@ -243,6 +243,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.r53conn = route53.New(usEast1Sess)
 		client.rdsconn = rds.New(sess)
 		client.redshiftconn = redshift.New(sess)
+		client.simpledbconn = simpledb.New(sess)
 		client.s3conn = s3.New(sess)
 		client.sesConn = ses.New(sess)
 		client.snsconn = sns.New(sess)
