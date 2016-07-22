@@ -12,6 +12,8 @@ import (
 
 	"time"
 
+	"github.com/hashicorp/terraform/builtin/providers/vsphere/helpers"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -69,6 +71,7 @@ type networkInterface struct {
 	ipv6PrefixLength int
 	ipv6Gateway      string
 	adapterType      nicType // TODO: Make "adapter_type" argument
+	deviceKey        int
 	macAddress       string
 }
 
@@ -309,15 +312,28 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			},
 
 			"network_interface": &schema.Schema{
-				Type:     schema.TypeList,
+				Type: schema.TypeSet,
+				Set: func(i interface{}) int {
+					asmap := i.(map[string]interface{})
+					// don't take the device_key in account
+					hashmap := networkMap{}
+					
+					for k, v := range asmap {
+						if k != "label" {
+							hashmap[k] = v
+						}
+					}
+					ssm := helpers.SortedStringMap(hashmap)
+					res := hashcode.String(ssm)
+					return res
+				},
+
 				Required: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"label": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: true,
 						},
 
 						"ip_address": &schema.Schema{
@@ -373,11 +389,16 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"adapter_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
+							ForceNew: false,
 						},
 
 						"mac_address": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+						"device_key": &schema.Schema{
+							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 						},
@@ -625,6 +646,26 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	if d.HasChange("network_interface") {
+		rebootRequired = true
+		hasChanges = true
+		log.Printf("[DEBUG] has change in network_interface")
+		oldNet, newNet := d.GetChange("network_interface")
+		oldNetSet := oldNet.(*schema.Set)
+		newNetSet := newNet.(*schema.Set)
+		log.Printf("[DEBUG] oldNetSet: [[%#v]], newNetSet: [[%#v]]", oldNetSet, newNetSet)
+
+		removedNet := oldNetSet.Difference(newNetSet)
+		addedNet := newNetSet.Difference(oldNetSet)
+		var gateway string
+		if gwRaw, ok := d.GetOk("gateway"); ok {
+			gateway = gwRaw.(string)
+		}
+		if err = buildNICChangeSpec(addedNet.List()[:], removedNet.List()[:], gateway, &configSpec, finder); err != nil {
+			return err
 		}
 	}
 
@@ -1005,9 +1046,26 @@ func addCdrom(client *govmomi.Client, vm *object.VirtualMachine, datacenter *obj
 	return vm.AddDevice(context.TODO(), c)
 }
 
+// buildNetworkDeviceRemoveSpec builds a VirtualDeviceConfigSpec to remove a NIC
+func buildNetworkDeviceRemoveSpec(f *find.Finder, label string, network *networkInterface) (*types.VirtualDeviceConfigSpec, error) {
+	spec, err := buildNetworkDevice(f, label, network.adapterType, network.macAddress)
+	if spec == nil {
+		return nil, err
+	}
+	spec.Device.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard().Key = int32(network.deviceKey)
+	spec.Operation = types.VirtualDeviceConfigSpecOperationRemove
+	return spec, err
+}
+
 // buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
 func buildNetworkDevice(f *find.Finder, label string, adapterType nicType, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
-	network, err := f.Network(context.TODO(), "*"+label)
+	var searchString string
+	if label[0] == '/' {
+		searchString = "*" + label
+	} else {
+		searchString = label
+	}
+	network, err := f.Network(context.TODO(), searchString)
 	if err != nil {
 		return nil, err
 	}
@@ -1041,6 +1099,8 @@ func buildNetworkDevice(f *find.Finder, label string, adapterType nicType, macAd
 				},
 			},
 		}, nil
+	default:
+		fallthrough
 	case nicTypeE1000:
 		return &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
@@ -1055,8 +1115,6 @@ func buildNetworkDevice(f *find.Finder, label string, adapterType nicType, macAd
 				},
 			},
 		}, nil
-	default:
-		return nil, fmt.Errorf("Invalid network adapter type.")
 	}
 }
 
@@ -1972,8 +2030,11 @@ func populateVMStructNetwork(d *schema.ResourceData, vm *virtualMachine) error {
 		if v, ok := network["mac_address"].(string); ok && v != "" {
 			networks[i].macAddress = v
 		}
-		if v, ok := network["adapter_type"].(nicType); ok && v != "" {
-			networks[i].adapterType = v
+		if v, ok := network["device_key"].(int); ok {
+			networks[i].deviceKey = v
+		}
+		if v, ok := network["adapter_type"].(string); ok && v != "" {
+			networks[i].adapterType = nicType(v)
 		}
 	}
 	vm.networkInterfaces = networks
@@ -2261,7 +2322,7 @@ func populateResourceDataDisks(d *schema.ResourceData, devices []types.BaseVirtu
 	return nil
 }
 
-func populateResourceDataNIC(devices []types.GuestNicInfo, networkInterfaces []networkMap) error {
+func populateResourceDataNIC(devices []types.GuestNicInfo, networkInterfaces []networkMap) ([]networkMap, error) {
 	for _, v := range devices {
 		if v.DeviceConfigId < 0 {
 			continue
@@ -2288,12 +2349,12 @@ func populateResourceDataNIC(devices []types.GuestNicInfo, networkInterfaces []n
 		log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
 		networkInterfaces = append(networkInterfaces, networkInterface)
 	}
-	return nil
+	return networkInterfaces, nil
 }
 
-func populateResourceDataIPStack(devices []types.GuestStackInfo, networkInterfaces []networkMap) error {
+func populateResourceDataIPStack(devices []types.GuestStackInfo, networkInterfaces []networkMap) ([]networkMap, error) {
 	if devices == nil {
-		return nil
+		return networkInterfaces, nil
 	}
 	for _, v := range devices {
 		if v.IpRouteConfig == nil || v.IpRouteConfig.IpRoute == nil {
@@ -2321,10 +2382,10 @@ func populateResourceDataIPStack(devices []types.GuestStackInfo, networkInterfac
 			networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
 		}
 	}
-	return nil
+	return networkInterfaces, nil
 }
 
-func populateResourceDataNetworkWithoutVsphereTools(networkInterfaces []networkMap, devices []types.BaseVirtualDevice, collector *property.Collector, client *govmomi.Client) error {
+func populateResourceDataNetworkWithoutVsphereTools(networkInterfaces []networkMap, devices []types.BaseVirtualDevice, collector *property.Collector, client *govmomi.Client) ([]networkMap, error) {
 	for _, d := range devices {
 		switch d.(type) {
 		case (types.BaseVirtualEthernetCard):
@@ -2347,20 +2408,21 @@ func populateResourceDataNetworkWithoutVsphereTools(networkInterfaces []networkM
 			dvs, err := getDVSByUUID(client, backingInfo.Port.SwitchUuid)
 			if err != nil {
 				log.Printf("[ERROR] Could not retrieve DVS")
-				return err
+				return networkInterfaces, err
 
 			}
 			if err := collector.RetrieveOne(context.TODO(), dvs.Reference(), []string{"name", "portgroup"}, &dvsobj); err != nil {
 				log.Printf("[ERROR] Could not retrieve DVS")
-				return err
+				return networkInterfaces, err
 			}
 			var netlabel string
 			netlabel = dirname(removefirstpartsofpath(dvs.InventoryPath))
+			log.Printf("[DEBUG] InventoryPath is: [%v]", dvs.InventoryPath)
 			for _, p := range dvsobj.Portgroup {
 				pg := mo.DistributedVirtualPortgroup{}
 				if err := collector.RetrieveOne(context.TODO(), p, []string{"name", "key"}, &pg); err != nil {
 					log.Printf("[ERROR] Could not retrieve Portgroup")
-					return err
+					return networkInterfaces, err
 				}
 				if pg.Key == backingInfo.Port.PortgroupKey {
 					netlabel += "/" + pg.Name
@@ -2373,16 +2435,59 @@ func populateResourceDataNetworkWithoutVsphereTools(networkInterfaces []networkM
 			networkInterfaces = append(networkInterfaces, networkInterface)
 		}
 	}
-	return nil
+	return networkInterfaces, nil
 }
 
-func populateResourceDataNetwork(client *govmomi.Client, collector *property.Collector, d *schema.ResourceData, mvm *mo.VirtualMachine) error {
+func populateResourceDataNICType(devices []types.BaseVirtualDevice, networkInterfaces []networkMap) ([]networkMap, error) {
+	// this section inspects the devices and sets the networkInterfaces adapter_type and device_key field
+	for _, d := range devices {
+		switch card := d.(type) {
+		case types.BaseVirtualEthernetCard:
+			var adapterType nicType
+			switch d.(type) {
+			case *types.VirtualVmxnet3:
+				adapterType = nicTypeVmxnet3
+			case *types.VirtualE1000:
+				adapterType = nicTypeE1000
+			default:
+				return networkInterfaces, fmt.Errorf("Cannot use adapter_type %T. Please report a feature request.", d)
+			}
+			log.Printf("[WARN] MAC address: %s", card.GetVirtualEthernetCard().MacAddress)
+			found := false
+			for _, n := range networkInterfaces {
+				log.Printf("[WARN] %T %#v ? %s", n, n, card.GetVirtualEthernetCard().MacAddress)
+				if strings.ToUpper(n["mac_address"].(string)) == strings.ToUpper(card.GetVirtualEthernetCard().MacAddress) {
+					n["device_key"] = card.GetVirtualEthernetCard().Key
+					n["adapter_type"] = adapterType
+					found = true
+					break
+				}
+			}
+			if !found {
+				log.Panicf("no declaration found for device %#v", card)
+			}
+		}
+	}
+	return networkInterfaces, nil
+}
+
+func populateResourceDataNetwork(client *govmomi.Client, collector *property.Collector, d *schema.ResourceData, vm *mo.VirtualMachine) error {
 	var err error
 	var networkInterfaces []networkMap
-	populateResourceDataNIC(mvm.Guest.Net, networkInterfaces)
-	populateResourceDataIPStack(mvm.Guest.IpStack, networkInterfaces)
+	if networkInterfaces, err = populateResourceDataNIC(vm.Guest.Net, networkInterfaces[:]); err != nil {
+		return err
+	}
+	if networkInterfaces, err = populateResourceDataIPStack(vm.Guest.IpStack, networkInterfaces[:]); err != nil {
+		return err
+	}
 	if len(networkInterfaces) == 0 {
-		populateResourceDataNetworkWithoutVsphereTools(networkInterfaces, mvm.Config.Hardware.Device, collector, client)
+		if networkInterfaces, err = populateResourceDataNetworkWithoutVsphereTools(networkInterfaces[:], vm.Config.Hardware.Device, collector, client); err != nil {
+			return err
+		}
+	}
+	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
+	if networkInterfaces, err = populateResourceDataNICType(vm.Config.Hardware.Device, networkInterfaces[:]); err != nil {
+		return err
 	}
 	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
 	if err = d.Set("network_interface", networkInterfaces); err != nil {
@@ -2424,5 +2529,116 @@ func populateResourceDataDatastore(d *schema.ResourceData, mvm *mo.VirtualMachin
 		break
 	}
 	d.Set("datastore", rootDatastore)
+	return nil
+}
+
+func buildNetworkInterfacesStruct(in []interface{}, gateway string) ([]networkInterface, error) {
+	var networks []networkInterface
+	for _, v := range in {
+		network, err := buildNetworkInterfaceStruct(v.(map[string]interface{}), gateway)
+		if err != nil {
+			return nil, err
+		}
+		if network != nil {
+			networks = append(networks, *network)
+		}
+	}
+	return networks, nil
+}
+
+func buildNetworkInterfaceStruct(network map[string]interface{}, gateway string) (*networkInterface, error) {
+	snetwork := networkInterface{}
+	if v, ok := network["label"].(string); ok && v != "" {
+		log.Printf("[DEBUG] label: %v", v)
+		snetwork.label = v
+	} else {
+		log.Printf("[DEBUG] No label!!! %+v", network)
+		panic("should never happen in buildNetworkInterfacesStruct")
+	}
+	if v, ok := network["ip_address"].(string); ok && v != "" {
+		snetwork.ipv4Address = v
+	}
+	if v, ok := network["subnet_mask"].(string); ok && v != "" {
+		ip := net.ParseIP(v).To4()
+		if ip != nil {
+			mask := net.IPv4Mask(ip[0], ip[1], ip[2], ip[3])
+			pl, _ := mask.Size()
+			snetwork.ipv4PrefixLength = pl
+		} else {
+			return nil, fmt.Errorf("subnet_mask parameter is invalid.")
+		}
+	}
+	if v, ok := network["ipv4_address"].(string); ok && v != "" {
+		snetwork.ipv4Address = v
+	}
+	if v, ok := network["ipv4_prefix_length"].(int); ok && v != 0 {
+		snetwork.ipv4PrefixLength = v
+	}
+	if v, ok := network["ipv4_gateway"].(string); ok && v != "" {
+		snetwork.ipv4Gateway = v
+	}
+	if v, ok := network["ipv6_address"].(string); ok && v != "" {
+		snetwork.ipv6Address = v
+	}
+	if v, ok := network["ipv6_prefix_length"].(int); ok && v != 0 {
+		snetwork.ipv6PrefixLength = v
+	}
+	if v, ok := network["ipv6_gateway"].(string); ok && v != "" {
+		snetwork.ipv6Gateway = v
+	}
+	if v, ok := network["mac_address"].(string); ok && v != "" {
+		snetwork.macAddress = v
+	}
+	if v, ok := network["device_key"].(int); ok {
+		snetwork.deviceKey = v
+	}
+	if v, ok := network["adapter_type"].(string); ok && v != "" {
+		snetwork.adapterType = nicType(v)
+	}
+	if gateway != "" {
+		snetwork.ipv4Gateway = gateway
+	}
+
+	return &snetwork, nil
+}
+
+// buildNICChangeSpec puts add and remove NIC in a VirtualMachineConfigSpec
+func buildNICChangeSpec(added, removed []interface{}, gateway string, config *types.VirtualMachineConfigSpec, finder *find.Finder) error {
+	for _, netRaw := range removed {
+		if netO, ok := netRaw.(map[string]interface{}); ok {
+			network, err := buildNetworkInterfaceStruct(netO, gateway)
+			log.Printf("[DEBUG] Want to delete interface bound to %v", network.label)
+			if err != nil {
+				return err
+			}
+			nd, err := buildNetworkDeviceRemoveSpec(finder, network.label, network)
+			if err != nil {
+				return err
+			}
+			config.DeviceChange = append(config.DeviceChange, nd)
+		} else {
+			return fmt.Errorf("Cast error: cannot cast %T to map[string]interface{}", netRaw)
+		}
+	}
+	for _, netRaw := range added {
+		if netO, ok := netRaw.(map[string]interface{}); ok {
+			network, err := buildNetworkInterfaceStruct(netO, gateway)
+			log.Printf("[DEBUG] Want to add interface bound to %v", network.label)
+			if err != nil {
+				return err
+			}
+			nd, err := buildNetworkDevice(finder, network.label, network.adapterType, network.macAddress)
+			// if network.deviceKey > 0 {
+			//  nd.Operation = types.VirtualDeviceConfigSpecOperationEdit
+			// }
+			if err != nil {
+				return err
+			}
+			nd.Device.GetVirtualDevice().Key = 0
+			config.DeviceChange = append(config.DeviceChange, nd)
+		} else {
+			return fmt.Errorf("Cast error: cannot cast %T to map[string]interface{}", netRaw)
+		}
+	}
 	return nil
 }

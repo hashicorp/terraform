@@ -96,7 +96,7 @@ func BuildManagedObjectsIndexes(client *govmomi.Client, path string) (map[string
 		d, ok := inv[p.Object.Reference().Value]
 		if !ok {
 			inv[p.Object.Reference().Value] = []string{p.Path}
-			log.Printf("[DEBUG] Path: %s, Type: %s", p.Path, p.Object.Reference().Type)
+			// log.Printf("[DEBUG] Path: %s, Type: %s", p.Path, p.Object.Reference().Type)
 			if p.Path == path || (p.Object.Reference().Type != "Datacenter" && p.Object.Reference().Type != "Folder") {
 				continue
 			}
