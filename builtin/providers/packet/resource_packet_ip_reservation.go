@@ -14,8 +14,6 @@ func resourcePacketIPReservation() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
-				Optional: true,
 				Computed: true,
 			},
 
