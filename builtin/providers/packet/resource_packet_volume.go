@@ -152,7 +152,7 @@ func resourcePacketVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 func resourcePacketVolumeRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*packngo.Client)
 
-	device, _, err := client.Volumes.Get(d.Id())
+	volume, _, err := client.Volumes.Get(d.Id())
 	if err != nil {
 		err = friendlyError(err)
 
@@ -165,25 +165,25 @@ func resourcePacketVolumeRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("name", device.Name)
-	d.Set("description", device.Description)
-	d.Set("size", device.Size)
-	d.Set("plan", device.Plan.Slug)
-	d.Set("facility", device.Facility.Code)
-	d.Set("state", device.State)
-	d.Set("billing_cycle", device.BillingCycle)
-	d.Set("locked", device.Locked)
-	d.Set("created", device.Created)
-	d.Set("updated", device.Updated)
+	d.Set("name", volume.Name)
+	d.Set("description", volume.Description)
+	d.Set("size", volume.Size)
+	d.Set("plan", volume.Plan.Slug)
+	d.Set("facility", volume.Facility.Code)
+	d.Set("state", volume.State)
+	d.Set("billing_cycle", volume.BillingCycle)
+	d.Set("locked", volume.Locked)
+	d.Set("created", volume.Created)
+	d.Set("updated", volume.Updated)
 
-	snapshot_policies := make([]*packngo.SnapshotPolicy, 0, len(device.SnapshotPolicies))
-	for _, snapshot_policy := range device.SnapshotPolicies {
+	snapshot_policies := make([]*packngo.SnapshotPolicy, 0, len(volume.SnapshotPolicies))
+	for _, snapshot_policy := range volume.SnapshotPolicies {
 		snapshot_policies = append(snapshot_policies, snapshot_policy)
 	}
 	d.Set("snapshot_policies", snapshot_policies)
 
-	attachments := make([]*packngo.Attachment, 0, len(device.Attachments))
-	for _, attachment := range device.Attachments {
+	attachments := make([]*packngo.Attachment, 0, len(volume.Attachments))
+	for _, attachment := range volume.Attachments {
 		attachments = append(attachments, attachment)
 	}
 	d.Set("attachments", attachments)
