@@ -1464,10 +1464,10 @@
 			"revision": "3d184cea22ee1c41ec1697e0d830ff0c78f7ea97"
 		},
 		{
-			"checksumSHA1": "yHIFvxXMD3q3ZvQZFLw+EJBhTq8=",
+			"checksumSHA1": "/r0HjrIkynh4Gj0EIAKirEKP/Rk=",
 			"path": "github.com/packethost/packngo",
-			"revision": "a596b01fbf1afdf90188ec02aa61fe7cc9703945",
-			"revisionTime": "2016-07-21T21:43:59Z"
+			"revision": "1bf5adfc4f590757da03407f576c46569a9c04b0",
+			"revisionTime": "2016-07-22T15:57:43Z"
 		},
 		{
 			"path": "github.com/pborman/uuid",
