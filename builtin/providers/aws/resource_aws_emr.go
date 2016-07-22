@@ -361,7 +361,8 @@ func readBodyJson(body string, target interface{}) error {
 	log.Printf("[DEBUG] Raw Body %s\n", body)
 	err := json.Unmarshal([]byte(body), target)
 	if err != nil {
-		return fmt.Sprintf("Error parsing JSON: %s\n", err)
+		log.Printf("[ERROR] parsing JSON %s", err)
+		return err
 	}
 	return nil
 }
