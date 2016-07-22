@@ -96,7 +96,7 @@ func resourcePacketIPAddressRead(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		err = friendlyError(err)
 
-		// If the volume somehow already destroyed, mark as succesfully gone.
+		// If the ip_address somehow already destroyed, mark as succesfully gone.
 		if isNotFound(err) {
 			d.SetId("")
 			return nil
