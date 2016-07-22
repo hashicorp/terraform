@@ -321,14 +321,16 @@ func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActi
 	return actionsOut
 }
 
-func expandConfigures(url string) []*emr.Configuration {
+func expandConfigures(input string) []*emr.Configuration {
 	configsOut := []*emr.Configuration{}
-	if strings.HasPrefix(url, "http") {
-		readHttpJson(url, &configsOut)
+	if strings.HasPrefix(input, "http") {
+		readHttpJson(input, &configsOut)
+	} else if strings.HasSuffix(input, ".json") {
+		readLocalJson(input, &configsOut)
 	} else {
-		readLocalJson(url, &configsOut)
+		readBodyJson(input, &configsOut)
 	}
-	log.Printf("[DEBUG] %v\n", configsOut)
+	log.Printf("[DEBUG] Configures %v\n", configsOut)
 
 	return configsOut
 }
@@ -353,4 +355,13 @@ func readLocalJson(localFile string, target interface{}) error {
 	log.Printf("[DEBUG] %s\n", string(file))
 
 	return json.Unmarshal(file, target)
+}
+
+func readBodyJson(body string, target interface{}) error {
+	log.Printf("[DEBUG] Raw Body %s\n", body)
+	err := json.Unmarshal([]byte(body), target)
+	if err != nil {
+		return fmt.Sprintf("Error parsing JSON: %s\n", err)
+	}
+	return nil
 }
