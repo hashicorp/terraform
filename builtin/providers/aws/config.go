@@ -323,7 +323,7 @@ func (c *Config) ValidateAccountId(accountId string) error {
 var addTerraformVersionToUserAgent = request.NamedHandler{
 	Name: "terraform.TerraformVersionUserAgentHandler",
 	Fn: request.MakeAddToUserAgentHandler(
-		"terraform", terraform.Version, terraform.VersionPrerelease),
+		"terraform", terraform.VersionString()),
 }
 
 type awsLogger struct{}
