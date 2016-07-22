@@ -14,21 +14,21 @@ type VolumeService interface {
 
 // Volume represents a volume
 type Volume struct {
-	ID               string           `json:"id"`
-	Name             string           `json:"name,omitempty"`
-	Description      string           `json:"description,omitempty"`
-	Size             int              `json:"size,omitempty"`
-	State            string           `json:"state,omitempty"`
-	Locked           bool             `json:"locked,omitempty"`
-	BillingCycle     string           `json:"billing_cycle,omitempty"`
-	Created          string           `json:"created_at,omitempty"`
-	Updated          string           `json:"updated_at,omitempty"`
-	Href             string           `json:"href,omitempty"`
+	ID               string            `json:"id"`
+	Name             string            `json:"name,omitempty"`
+	Description      string            `json:"description,omitempty"`
+	Size             int               `json:"size,omitempty"`
+	State            string            `json:"state,omitempty"`
+	Locked           bool              `json:"locked,omitempty"`
+	BillingCycle     string            `json:"billing_cycle,omitempty"`
+	Created          string            `json:"created_at,omitempty"`
+	Updated          string            `json:"updated_at,omitempty"`
+	Href             string            `json:"href,omitempty"`
 	SnapshotPolicies []*SnapshotPolicy `json:"snapshot_policies,omitempty"`
 	Attachments      []*Attachment     `json:"attachments,omitempty"`
-	Plan             *Plan            `json:"plan,omitempty"`
-	Facility         *Facility        `json:"facility,omitempty"`
-	Project          *Project         `json:"project,omitempty"`
+	Plan             *Plan             `json:"plan,omitempty"`
+	Facility         *Facility         `json:"facility,omitempty"`
+	Project          *Project          `json:"project,omitempty"`
 }
 
 // SnapshotPolicy used to execute actions on volume
@@ -51,12 +51,12 @@ func (v Volume) String() string {
 
 // VolumeCreateRequest type used to create a Packet volume
 type VolumeCreateRequest struct {
-	Size           int              `json:"size"`
-	BillingCycle   string           `json:"billing_cycle"`
-	ProjectID      string           `json:"project_id"`
-	PlanID         string           `json:"plan_id"`
-	FacilityID     string           `json:"facility_id"`
-	Description    string           `json:"Description,omitempty"`
+	Size             int               `json:"size"`
+	BillingCycle     string            `json:"billing_cycle"`
+	ProjectID        string            `json:"project_id"`
+	PlanID           string            `json:"plan_id"`
+	FacilityID       string            `json:"facility_id"`
+	Description      string            `json:"Description,omitempty"`
 	SnapshotPolicies []*SnapshotPolicy `json:"snapshot_policies,omitempty"`
 }
 

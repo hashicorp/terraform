@@ -93,7 +93,7 @@ func (i *IPServiceOp) Assign(deviceID string, assignRequest *IPAddressAssignRequ
 // IPReservationService interface defines available IPReservation methods
 type IPReservationService interface {
 	List(projectID string) ([]IPReservation, *Response, error)
-	RequestMore(projectID string, ipReservationReq *IPReservationRequest) (*Response, error)
+	RequestMore(projectID string, ipReservationReq *IPReservationRequest) (*IPReservation, *Response, error)
 	Get(ipReservationID string) (*IPReservation, *Response, error)
 	Remove(ipReservationID string) (*Response, error)
 }
@@ -124,6 +124,8 @@ type IPReservation struct {
 	Addon         bool                `json:"addon"`
 	Bill          bool                `json:"bill"`
 	Assignments   []map[string]string `json:"assignments"`
+	Created       string              `json:"created_at,omitempty"`
+	Updated       string              `json:"updated_at,omitempty"`
 	Href          string              `json:"href"`
 }
 
@@ -149,19 +151,20 @@ func (i *IPReservationServiceOp) List(projectID string) ([]IPReservation, *Respo
 }
 
 // RequestMore requests more IP space for a project in order to have additional IP addresses to assign to devices
-func (i *IPReservationServiceOp) RequestMore(projectID string, ipReservationReq *IPReservationRequest) (*Response, error) {
+func (i *IPReservationServiceOp) RequestMore(projectID string, ipReservationReq *IPReservationRequest) (*IPReservation, *Response, error) {
 	path := fmt.Sprintf("%s/%s%s", projectBasePath, projectID, ipBasePath)
 
 	req, err := i.client.NewRequest("POST", path, &ipReservationReq)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	resp, err := i.client.Do(req, nil)
+	ip := new(IPReservation)
+	resp, err := i.client.Do(req, ip)
 	if err != nil {
-		return nil, err
+		return nil, resp, err
 	}
-	return resp, err
+	return ip, resp, err
 }
 
 // Get returns a single IP reservation object
