@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAWSAmiDataSource_ecsContainerDefinition(t *testing.T) {
+func TestAccAWSEcsDataSource_ecsContainerDefinition(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
