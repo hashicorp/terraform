@@ -157,25 +157,6 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error removing user %q from all groups: %s", d.Id(), err)
 	}
-
-	// All access keys for the user must be removed
-	var accessKeys []string
-	if d.Get("force_destroy").(bool) {
-		listAccessKeys := &iam.ListAccessKeysInput{
-			UserName: aws.String(d.Id()),
-		}
-		pageOfAccessKeys := func(page *iam.ListAccessKeysOutput, lastPage bool) (shouldContinue bool) {
-			for _, g := range page.AccessKeyMetadata {
-				accessKeys = append(accessKeys, *g.AccessKeyId)
-			}
-			return true
-		}
-		err = iamconn.ListAccessKeysPages(listAccessKeys, pageOfAccessKeys)
-		if err != nil {
-			return fmt.Errorf("Error removing access keys of user %s: %s", d.Id(), err)
-		}
-	}
-
 	for _, g := range groups {
 		// use iam group membership func to remove user from all groups
 		log.Printf("[DEBUG] Removing IAM User %s from IAM Group %s", d.Id(), g)
@@ -184,13 +165,30 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	for _, k := range accessKeys {
-		_, err := iamconn.DeleteAccessKey(&iam.DeleteAccessKeyInput{
-			UserName:    aws.String(d.Id()),
-			AccessKeyId: aws.String(k),
-		})
+	// All access keys for the user must be removed
+	if d.Get("force_destroy").(bool) {
+		var accessKeys []string
+		listAccessKeys := &iam.ListAccessKeysInput{
+			UserName: aws.String(d.Id()),
+		}
+		pageOfAccessKeys := func(page *iam.ListAccessKeysOutput, lastPage bool) (shouldContinue bool) {
+			for _, k := range page.AccessKeyMetadata {
+				accessKeys = append(accessKeys, *k.AccessKeyId)
+			}
+			return true
+		}
+		err = iamconn.ListAccessKeysPages(listAccessKeys, pageOfAccessKeys)
 		if err != nil {
-			return fmt.Errorf("Error deleting access key %s: %s", k, err)
+			return fmt.Errorf("Error removing access keys of user %s: %s", d.Id(), err)
+		}
+		for _, k := range accessKeys {
+			_, err := iamconn.DeleteAccessKey(&iam.DeleteAccessKeyInput{
+				UserName:    aws.String(d.Id()),
+				AccessKeyId: aws.String(k),
+			})
+			if err != nil {
+				return fmt.Errorf("Error deleting access key %s: %s", k, err)
+			}
 		}
 	}
 
