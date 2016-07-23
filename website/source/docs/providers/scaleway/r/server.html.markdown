@@ -28,6 +28,10 @@ The following arguments are supported:
 * `name` - (Required) name of ARM server
 * `image` - (Required) base image of ARM server
 * `type` - (Required) type of ARM server
+* `bootscript` - (Optional) server bootscript
+* `tags` - (Optional) list of tags for server
+* `enable_ipv6` - (Optional) enable ipv6
+* `dynamic_ip_required` - (Optional) make server publicly available
 
 Field `name`, `type` are editable.
 
@@ -36,3 +40,5 @@ Field `name`, `type` are editable.
 The following attributes are exported:
 
 * `id` - id of the new resource
+* `private_ip` - private ip of the new resource
+* `public_ip` - public ip of the new resource

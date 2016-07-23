@@ -61,19 +61,10 @@ func resourceScalewayServer() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"enable_ipv6": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
 			"state": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-			},
-			"dynamic_ip_required": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
 			},
 			"state_detail": &schema.Schema{
 				Type:     schema.TypeString,
