@@ -90,7 +90,7 @@ func resourceScalewaySecurityGroupRead(d *schema.ResourceData, m interface{}) er
 func resourceScalewaySecurityGroupUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
-	var req = api.ScalewayNewSecurityGroup{
+	var req = api.ScalewayUpdateSecurityGroup{
 		Organization: scaleway.Organization,
 		Name:         d.Get("name").(string),
 		Description:  d.Get("description").(string),
