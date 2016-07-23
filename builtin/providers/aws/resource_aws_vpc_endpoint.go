@@ -25,7 +25,7 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Computed:  true,
-				StateFunc: normalizeJson,
+				StateFunc: normalizePolicyDocument,
 			},
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -60,7 +60,7 @@ func resourceAwsVPCEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if v, ok := d.GetOk("policy"); ok {
-		policy := normalizeJson(v)
+		policy := normalizePolicyDocument(v)
 		input.PolicyDocument = aws.String(policy)
 	}
 
@@ -129,7 +129,7 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("vpc_id", vpce.VpcId)
-	d.Set("policy", normalizeJson(*vpce.PolicyDocument))
+	d.Set("policy", normalizePolicyDocument(*vpce.PolicyDocument))
 	d.Set("service_name", vpce.ServiceName)
 	if err := d.Set("route_table_ids", aws.StringValueSlice(vpce.RouteTableIds)); err != nil {
 		return err
@@ -162,7 +162,7 @@ func resourceAwsVPCEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if d.HasChange("policy") {
-		policy := normalizeJson(d.Get("policy"))
+		policy := normalizePolicyDocument(d.Get("policy"))
 		input.PolicyDocument = aws.String(policy)
 	}
 

@@ -1,8 +1,6 @@
 package aws
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -46,24 +44,10 @@ func resourceAwsSnsTopic() *schema.Resource {
 				ForceNew: false,
 			},
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				StateFunc: func(v interface{}) string {
-					s, ok := v.(string)
-					if !ok || s == "" {
-						return ""
-					}
-					jsonb := []byte(s)
-					buffer := new(bytes.Buffer)
-					if err := json.Compact(buffer, jsonb); err != nil {
-						log.Printf("[WARN] Error compacting JSON for Policy in SNS Topic")
-						return ""
-					}
-					value := normalizeJson(buffer.String())
-					log.Printf("[DEBUG] topic policy before save: %s", value)
-					return value
-				},
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: normalizePolicyDocument,
 			},
 			"delivery_policy": &schema.Schema{
 				Type:     schema.TypeString,
@@ -190,7 +174,7 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 				if resource.Schema[iKey] != nil {
 					var value string
 					if iKey == "policy" {
-						value = normalizeJson(*attrmap[oKey])
+						value = normalizePolicyDocument(*attrmap[oKey])
 					} else {
 						value = *attrmap[oKey]
 					}
