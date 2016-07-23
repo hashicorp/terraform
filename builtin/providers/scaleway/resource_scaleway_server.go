@@ -40,13 +40,18 @@ func resourceScalewayServer() *schema.Resource {
 				},
 				Optional: true,
 			},
-			"ipv4_address_private": &schema.Schema{
+			"private_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"ipv4_address_public": &schema.Schema{
+			"public_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"enable_ipv6": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 			"state": &schema.Schema{
 				Type:     schema.TypeString,
@@ -73,6 +78,7 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 		Name:         d.Get("name").(string),
 		Image:        String(image),
 		Organization: scaleway.Organization,
+		EnableIPV6:   d.Get("enable_ipv6").(bool),
 	}
 
 	server.DynamicIPRequired = Bool(d.Get("dynamic_ip_required").(bool))
@@ -127,8 +133,9 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.Set("ipv4_address_private", server.PrivateIP)
-	d.Set("ipv4_address_public", server.PublicAddress.IP)
+	d.Set("private_ip", server.PrivateIP)
+	d.Set("public_ip", server.PublicAddress.IP)
+
 	d.Set("state", server.State)
 	d.Set("state_detail", server.StateDetail)
 	d.Set("tags", server.Tags)
@@ -159,6 +166,10 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 			}
 			req.Tags = &tags
 		}
+	}
+
+	if d.HasChange("enable_ipv6") {
+		req.EnableIPV6 = Bool(d.Get("enable_ipv6").(bool))
 	}
 
 	if d.HasChange("dynamic_ip_required") {
