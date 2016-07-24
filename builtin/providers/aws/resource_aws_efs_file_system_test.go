@@ -25,6 +25,10 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 					testAccCheckEfsFileSystem(
 						"aws_efs_file_system.foo",
 					),
+					testAccCheckEfsFileSystemPerformanceMode(
+						"aws_efs_file_system.foo",
+						"generalPurpose",
+					),
 				),
 			},
 			resource.TestStep{
@@ -33,12 +37,28 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 					testAccCheckEfsFileSystem(
 						"aws_efs_file_system.foo-with-tags",
 					),
+					testAccCheckEfsFileSystemPerformanceMode(
+						"aws_efs_file_system.foo-with-tags",
+						"generalPurpose",
+					),
 					testAccCheckEfsFileSystemTags(
 						"aws_efs_file_system.foo-with-tags",
 						map[string]string{
 							"Name":    "foo-efs",
 							"Another": "tag",
 						},
+					),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSEFSFileSystemConfigWithPerformanceMode,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckEfsFileSystem(
+						"aws_efs_file_system.foo-with-performance-mode",
+					),
+					testAccCheckEfsFileSystemPerformanceMode(
+						"aws_efs_file_system.foo-with-performance-mode",
+						"maxIO",
 					),
 				),
 			},
@@ -82,14 +102,9 @@ func testAccCheckEfsFileSystem(resourceID string) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
-		fs, ok := s.RootModule().Resources[resourceID]
-		if !ok {
-			return fmt.Errorf("Not found: %s", resourceID)
-		}
-
 		conn := testAccProvider.Meta().(*AWSClient).efsconn
 		_, err := conn.DescribeFileSystems(&efs.DescribeFileSystemsInput{
-			FileSystemId: aws.String(fs.Primary.ID),
+			FileSystemId: aws.String(rs.Primary.ID),
 		})
 
 		if err != nil {
@@ -111,19 +126,44 @@ func testAccCheckEfsFileSystemTags(resourceID string, expectedTags map[string]st
 			return fmt.Errorf("No ID is set")
 		}
 
-		fs, ok := s.RootModule().Resources[resourceID]
-		if !ok {
-			return fmt.Errorf("Not found: %s", resourceID)
-		}
-
 		conn := testAccProvider.Meta().(*AWSClient).efsconn
 		resp, err := conn.DescribeTags(&efs.DescribeTagsInput{
-			FileSystemId: aws.String(fs.Primary.ID),
+			FileSystemId: aws.String(rs.Primary.ID),
 		})
 
 		if !reflect.DeepEqual(expectedTags, tagsToMapEFS(resp.Tags)) {
 			return fmt.Errorf("Tags mismatch.\nExpected: %#v\nGiven: %#v",
 				expectedTags, resp.Tags)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckEfsFileSystemPerformanceMode(resourceID string, expectedMode string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceID]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceID)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).efsconn
+		resp, err := conn.DescribeFileSystems(&efs.DescribeFileSystemsInput{
+			FileSystemId: aws.String(rs.Primary.ID),
+		})
+
+		fs := resp.FileSystems[0]
+		if fs.PerformanceMode == nil || *fs.PerformanceMode != expectedMode {
+			return fmt.Errorf("Performance Mode mismatch.\nExpected: %s\nGiven: %v",
+				expectedMode, *fs.PerformanceMode)
 		}
 
 		if err != nil {
@@ -147,5 +187,11 @@ resource "aws_efs_file_system" "foo-with-tags" {
 		Name = "foo-efs"
 		Another = "tag"
 	}
+}
+`
+
+const testAccAWSEFSFileSystemConfigWithPerformanceMode = `
+resource "aws_efs_file_system" "foo-with-performance-mode" {
+	performance_mode = "maxIO"
 }
 `
