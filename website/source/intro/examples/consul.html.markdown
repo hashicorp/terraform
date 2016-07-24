@@ -32,7 +32,7 @@ Either provide the AWS credentials as a default value in the configuration
 or invoke `apply` with the appropriate variables set.
 
 Once the `apply` has completed, we can see the keys in Consul by
-visiting the [Web UI](http://demo.consul.io/ui/#/nyc1/kv/). We can see
+visiting the [Web UI](http://demo.consul.io/ui/#/nyc3/kv/). We can see
 that the "tf\_test/id" and "tf\_test/public\_dns" values have been
 set.
 
