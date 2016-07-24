@@ -181,6 +181,12 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 		req.DynamicIPRequired = Bool(d.Get("dynamic_ip_required").(bool))
 	}
 
+	if d.HasChange("security_group") {
+		req.SecurityGroup = &api.ScalewaySecurityGroup{
+			Identifier: d.Get("security_group").(string),
+		}
+	}
+
 	if err := scaleway.PatchServer(d.Id(), req); err != nil {
 		return fmt.Errorf("Failed patching scaleway server: %q", err)
 	}

@@ -32,8 +32,9 @@ The following arguments are supported:
 * `tags` - (Optional) list of tags for server
 * `enable_ipv6` - (Optional) enable ipv6
 * `dynamic_ip_required` - (Optional) make server publicly available
+* `security_group` - (Optional) assign security group to server
 
-Field `name`, `type` are editable.
+Field `name`, `type`, `tags`, `dynamic_ip_required`, `security_group` are editable.
 
 ## Attributes Reference
 
