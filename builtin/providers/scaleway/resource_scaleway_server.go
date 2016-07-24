@@ -40,6 +40,19 @@ func resourceScalewayServer() *schema.Resource {
 				},
 				Optional: true,
 			},
+			"enable_ipv6": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"dynamic_ip_required": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"security_group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"private_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -75,10 +88,11 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 
 	image := d.Get("image").(string)
 	var server = api.ScalewayServerDefinition{
-		Name:         d.Get("name").(string),
-		Image:        String(image),
-		Organization: scaleway.Organization,
-		EnableIPV6:   d.Get("enable_ipv6").(bool),
+		Name:          d.Get("name").(string),
+		Image:         String(image),
+		Organization:  scaleway.Organization,
+		EnableIPV6:    d.Get("enable_ipv6").(bool),
+		SecurityGroup: d.Get("security_group").(string),
 	}
 
 	server.DynamicIPRequired = Bool(d.Get("dynamic_ip_required").(bool))
