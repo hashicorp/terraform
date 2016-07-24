@@ -25,7 +25,7 @@ and will default to "m1.small" if that key does not exist. Once the instance is 
 the "tf\_test/id" and "tf\_test/public\_dns" keys will be set with the computed
 values for the instance.
 
-Before we run the example, use the [Web UI](http://demo.consul.io/ui/#/nyc1/kv/)
+Before we run the example, use the [Web UI](http://demo.consul.io/ui/#/nyc3/kv/)
 to set the "tf\_test/size" key to "t1.micro". Once that is done,
 copy the configuration into a configuration file ("consul.tf" works fine).
 Either provide the AWS credentials as a default value in the configuration
