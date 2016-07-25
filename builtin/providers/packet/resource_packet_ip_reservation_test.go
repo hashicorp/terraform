@@ -23,7 +23,7 @@ func TestAccPacketIPReservation_Basic(t *testing.T) {
 					testAccCheckPacketIPReservationExists("packet_ip_reservation.foobar", &ip_reservation),
 					testAccCheckPacketIPReservationAttributes(&ip_reservation),
 					resource.TestCheckResourceAttr(
-						"packet_ip_reservation.foobar", "address", "foobar"),
+						"packet_ip_reservation", "foobar", "{}"),
 				),
 			},
 		},
@@ -81,6 +81,4 @@ func testAccCheckPacketIPReservationExists(n string, ip_reservation *packngo.IPR
 }
 
 var testAccCheckPacketIPReservationConfig_basic = fmt.Sprintf(`
-resource "packet_ip_reservation" "foobar" {
-    address = "foobar"
-}`)
+resource "packet_ip_reservation" "foobar" {}`)
