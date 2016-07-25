@@ -126,7 +126,7 @@ func parseId(recId string) (string, string, error) {
 
 // Detects the API version in use on the server
 // Uses int to represent the API version: 0 is the legacy AKA version 3.4 API
-// Any other integer correlates with te same API version
+// Any other integer correlates with the same API version
 func (client *Client) detectApiVersion() (int, error) {
 	req, err := client.newRequest("GET", "/api/v1/servers", nil)
 	if err != nil {

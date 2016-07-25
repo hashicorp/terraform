@@ -12,7 +12,7 @@ Provides a PowerDNS record resource.
 
 ## Example Usage
 
-For the legacy API (PowerDNS version 3.4):
+For the v1 API (PowerDNS version 4):
 ```
 # Add a record to the zone
 resource "powerdns_record" "foobar" {
@@ -24,11 +24,11 @@ resource "powerdns_record" "foobar" {
 }
 ```
 
-For the v1 API (PowerDNS version 4):
+For the legacy API (PowerDNS version 3.4):
 ```
 # Add a record to the zone
 resource "powerdns_record" "foobar" {
-	zone = "example.com."
+	zone = "example.com"
 	name = "www.example.com"
 	type = "A"
 	ttl = 300
