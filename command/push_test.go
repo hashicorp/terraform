@@ -10,6 +10,7 @@ import (
 	"sort"
 	"testing"
 
+	atlas "github.com/hashicorp/atlas-go/v1"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -247,10 +248,8 @@ func TestPush_localOverride(t *testing.T) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
 
-	variables := map[string]interface{}{
-		"foo": "bar",
-		"bar": "foo",
-	}
+	variables := pushTFVars()
+
 	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
@@ -323,12 +322,11 @@ func TestPush_preferAtlas(t *testing.T) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
 
-	variables := map[string]interface{}{
-		"foo": "old",
-		"bar": "foo",
-	}
+	variables := pushTFVars()
+	variables["foo"] = "old"
+
 	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
-		t.Fatalf("bad: %#v", client.UpsertOptions)
+		t.Fatalf("bad: %#v", client.UpsertOptions.Variables)
 	}
 }
 
@@ -394,12 +392,26 @@ func TestPush_tfvars(t *testing.T) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
 
-	variables := map[string]interface{}{
-		"foo": "bar",
-		"bar": "foo",
+	variables := pushTFVars()
+
+	// make sure these dind't go missing for some reason
+	for k, v := range variables {
+		if !reflect.DeepEqual(client.UpsertOptions.Variables[k], v) {
+			t.Fatalf("bad: %#v", client.UpsertOptions.Variables)
+		}
 	}
-	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
-		t.Fatalf("bad: %#v", client.UpsertOptions)
+
+	//now check TFVVars
+
+	tfvars := []atlas.TFVar{
+		{"bar", "foo", false},
+		{"baz", "{\n  A = \"a\"\n  B = \"b\"\n}\n", true},
+		{"fob", "[\"a\", \"b\", \"c\"]\n", true},
+		{"foo", "bar", false},
+	}
+
+	if !reflect.DeepEqual(client.UpsertOptions.TFVars, tfvars) {
+		t.Fatalf("bad tf_vars: %#v", client.UpsertOptions.TFVars)
 	}
 }
 
@@ -562,4 +574,17 @@ func testArchiveStr(t *testing.T, path string) []string {
 
 	sort.Strings(result)
 	return result
+}
+
+// the structure returned from the push-tfvars test fixture
+func pushTFVars() map[string]interface{} {
+	return map[string]interface{}{
+		"foo": "bar",
+		"bar": "foo",
+		"baz": map[string]interface{}{
+			"A": "a",
+			"B": "b",
+		},
+		"fob": []interface{}{"a", "b", "c"},
+	}
 }
