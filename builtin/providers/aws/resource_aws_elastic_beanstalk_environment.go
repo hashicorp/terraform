@@ -311,7 +311,9 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 
 	if d.HasChange("solution_stack_name") {
 		hasChange = true
-		updateOpts.SolutionStackName = aws.String(d.Get("solution_stack_name").(string))
+		if v, ok := d.GetOk("solution_stack_name"); ok {
+			updateOpts.SolutionStackName = aws.String(v.(string))
+		}
 	}
 
 	if d.HasChange("setting") {
@@ -332,7 +334,9 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 
 	if d.HasChange("template_name") {
 		hasChange = true
-		updateOpts.TemplateName = aws.String(d.Get("template_name").(string))
+		if v, ok := d.GetOk("template_name"); ok {
+			updateOpts.TemplateName = aws.String(v.(string))
+		}
 	}
 
 	if hasChange {
