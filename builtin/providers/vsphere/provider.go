@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/builtin/providers/vsphere/dvs"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -61,6 +62,7 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", ""),
 				Description: "govomomi debug path for debug",
 			},
+
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -68,6 +70,10 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_folder":          resourceVSphereFolder(),
 			"vsphere_virtual_disk":    resourceVSphereVirtualDisk(),
 			"vsphere_virtual_machine": resourceVSphereVirtualMachine(),
+			"vsphere_dvs":             dvs.ResourceVSphereDVS(),
+			"vsphere_dvs_port_group":  dvs.ResourceVSphereDVPG(),
+			"vsphere_dvs_vm_port":     dvs.ResourceVSphereMapVMDVPG(),
+			"vsphere_dvs_host_map":    dvs.ResourceVSphereMapHostDVS(),
 		},
 
 		ConfigureFunc: providerConfigure,

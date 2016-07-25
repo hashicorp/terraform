@@ -73,6 +73,7 @@ type networkInterface struct {
 	adapterType      nicType // TODO: Make "adapter_type" argument
 	deviceKey        int
 	macAddress       string
+	creationOrder    int // order for initial creation of NICs
 }
 
 type hardDisk struct {
@@ -317,14 +318,32 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 					asmap := i.(map[string]interface{})
 					// don't take the device_key in account
 					hashmap := networkMap{}
-					
+					tries := [][]string{
+						[]string{"mac_address", "adapter_type", "label"},
+					}
+					for _, try := range tries {
+						found1 := 0
+						hs := ""
+						for _, k := range try {
+							if v, ok := asmap[k]; ok {
+								hs += fmt.Sprintf("%v-", v)
+								found1++
+							}
+							if found1 == len(try) {
+								log.Printf("[DEBUG] Built hash with %#v", hs)
+								return hashcode.String(hs)
+							}
+						}
+					}
+					log.Printf("[DEBUG] Falling back on other hash for %#v", asmap)
 					for k, v := range asmap {
-						if k != "label" {
+						if k == "label" || k == "device_key" {
 							hashmap[k] = v
 						}
 					}
 					ssm := helpers.SortedStringMap(hashmap)
 					res := hashcode.String(ssm)
+					log.Printf("Hash for %#v is %d", hashmap, res)
 					return res
 				},
 
@@ -389,7 +408,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"adapter_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
+							Computed: true,
 						},
 
 						"mac_address": &schema.Schema{
@@ -401,6 +420,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
+						},
+						"creation_order": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 					},
 				},
@@ -504,6 +527,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 }
 
 func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] VVMC")
 	client := meta.(*govmomi.Client)
 
 	vm := virtualMachine{}
@@ -521,6 +545,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] VVMU %s", d.Id())
 	// flag if changes have to be applied
 	hasChanges := false
 	// flag if changes have to be done when powered off
@@ -650,7 +675,6 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if d.HasChange("network_interface") {
-		rebootRequired = true
 		hasChanges = true
 		log.Printf("[DEBUG] has change in network_interface")
 		oldNet, newNet := d.GetChange("network_interface")
@@ -660,13 +684,16 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 
 		removedNet := oldNetSet.Difference(newNetSet)
 		addedNet := newNetSet.Difference(oldNetSet)
+
 		var gateway string
 		if gwRaw, ok := d.GetOk("gateway"); ok {
 			gateway = gwRaw.(string)
 		}
-		if err = buildNICChangeSpec(addedNet.List()[:], removedNet.List()[:], gateway, &configSpec, finder); err != nil {
+		var rebootRequiredLocal bool
+		if rebootRequiredLocal, err = buildNICChangeSpec(addedNet.List()[:], removedNet.List()[:], gateway, &configSpec, finder); err != nil {
 			return err
 		}
+		rebootRequired = true || rebootRequiredLocal // rebootRequired || rebootRequiredLocal
 	}
 
 	// do nothing if there are no changes
@@ -675,7 +702,6 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
-
 	if rebootRequired {
 		log.Printf("[INFO] Shutting down virtual machine: %s", d.Id())
 
@@ -690,7 +716,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	log.Printf("[INFO] Reconfiguring virtual machine: %s", d.Id())
+	log.Printf("[INFO] Reconfiguring virtual machine: %s: %#v", d.Id(), configSpec)
 
 	task, err := vm.Reconfigure(context.TODO(), configSpec)
 	if err != nil {
@@ -713,11 +739,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			log.Printf("[ERROR] %s", err)
 		}
 	}
-
+	//*/
 	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] VVMR %s", d.Id())
 	log.Printf("[DEBUG] virtual machine resource data: %#v", d)
 	var err error
 	client := meta.(*govmomi.Client)
@@ -767,6 +794,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 }
 
 func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] VVMD")
 	client := meta.(*govmomi.Client)
 	var err error
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
@@ -1047,8 +1075,8 @@ func addCdrom(client *govmomi.Client, vm *object.VirtualMachine, datacenter *obj
 }
 
 // buildNetworkDeviceRemoveSpec builds a VirtualDeviceConfigSpec to remove a NIC
-func buildNetworkDeviceRemoveSpec(f *find.Finder, label string, network *networkInterface) (*types.VirtualDeviceConfigSpec, error) {
-	spec, err := buildNetworkDevice(f, label, network.adapterType, network.macAddress)
+func buildNetworkDeviceRemoveSpec(f *find.Finder, network *networkInterface) (*types.VirtualDeviceConfigSpec, error) {
+	spec, err := buildNetworkDevice(f, network)
 	if spec == nil {
 		return nil, err
 	}
@@ -1058,47 +1086,50 @@ func buildNetworkDeviceRemoveSpec(f *find.Finder, label string, network *network
 }
 
 // buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
-func buildNetworkDevice(f *find.Finder, label string, adapterType nicType, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
+func buildNetworkDevice(f *find.Finder, network *networkInterface) (*types.VirtualDeviceConfigSpec, error) {
 	var searchString string
-	if label[0] == '/' {
-		searchString = "*" + label
+	if network.label[0] == '/' {
+		searchString = "*" + network.label
 	} else {
-		searchString = label
+		searchString = network.label
 	}
-	network, err := f.Network(context.TODO(), searchString)
+	log.Printf("[DEBUG] We will be searching for [%v]", searchString)
+
+	networkObj, err := f.Network(context.TODO(), searchString)
 	if err != nil {
 		return nil, err
 	}
 
-	backing, err := network.EthernetCardBackingInfo(context.TODO())
+	backing, err := networkObj.EthernetCardBackingInfo(context.TODO())
 	if err != nil {
 		return nil, err
 	}
 
 	var addressType string
-	if macAddress == "" {
+	if network.macAddress == "" {
 		addressType = string(types.VirtualEthernetCardMacTypeGenerated)
 	} else {
 		addressType = string(types.VirtualEthernetCardMacTypeManual)
 	}
 
-	switch adapterType {
+	switch network.adapterType {
 	case nicTypeVmxnet3:
-		return &types.VirtualDeviceConfigSpec{
+		d := &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
 			Device: &types.VirtualVmxnet3{
 				VirtualVmxnet: types.VirtualVmxnet{
 					VirtualEthernetCard: types.VirtualEthernetCard{
 						VirtualDevice: types.VirtualDevice{
-							Key:     -1,
+							Key:     0,
 							Backing: backing,
 						},
 						AddressType: addressType,
-						MacAddress:  macAddress,
+						MacAddress:  network.macAddress,
 					},
 				},
 			},
-		}, nil
+		}
+		return d, nil
 	default:
 		fallthrough
 	case nicTypeE1000:
@@ -1107,11 +1138,11 @@ func buildNetworkDevice(f *find.Finder, label string, adapterType nicType, macAd
 			Device: &types.VirtualE1000{
 				VirtualEthernetCard: types.VirtualEthernetCard{
 					VirtualDevice: types.VirtualDevice{
-						Key:     -1,
+						Key:     0,
 						Backing: backing,
 					},
 					AddressType: addressType,
-					MacAddress:  macAddress,
+					MacAddress:  network.macAddress,
 				},
 			},
 		}, nil
@@ -1637,7 +1668,24 @@ func (vm *virtualMachine) setupDatastore(c *govmomi.Client, resourcePool *object
 func (vm *virtualMachine) setupNetwork(finder *find.Finder) ([]types.BaseVirtualDeviceConfigSpec, []types.CustomizationAdapterMapping, error) {
 	networkDevices := []types.BaseVirtualDeviceConfigSpec{}
 	networkConfigs := []types.CustomizationAdapterMapping{}
+	// sort network interfaces
+	netifs := []networkInterface{}
+
+	// q&d sort of network interfaces
 	for _, network := range vm.networkInterfaces {
+		if len(netifs) == 0 {
+			netifs = append(netifs, network)
+			continue
+		}
+		if network.creationOrder >= netifs[0].creationOrder {
+			netifs = append(netifs, network)
+		} else {
+			netifsnew := []networkInterface{network}
+			netifs = append(netifsnew, netifs...)
+		}
+
+	}
+	for _, network := range netifs {
 		// network device
 		var networkDeviceType nicType
 		if network.adapterType != "" {
@@ -1647,8 +1695,9 @@ func (vm *virtualMachine) setupNetwork(finder *find.Finder) ([]types.BaseVirtual
 		} else {
 			networkDeviceType = nicTypeVmxnet3
 		}
+		network.adapterType = networkDeviceType
 
-		nd, err := buildNetworkDevice(finder, network.label, networkDeviceType, network.macAddress)
+		nd, err := buildNetworkDevice(finder, &network)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1985,12 +2034,17 @@ func populateVMStructConfigParams(d *schema.ResourceData, vm *virtualMachine) er
 }
 
 func populateVMStructNetwork(d *schema.ResourceData, vm *virtualMachine) error {
+	log.Printf("[DEBUG] populateVMStructNetwork::begin")
 	vL, ok := d.GetOk("network_interface")
 	if !ok {
 		return nil
 	}
-	networks := make([]networkInterface, len(vL.([]interface{})))
-	for i, v := range vL.([]interface{}) {
+	netifdecl, ok := vL.(*schema.Set)
+	if !ok {
+		panic("bad network_interface. Should not happen")
+	}
+	networks := make([]networkInterface, len(netifdecl.List()))
+	for i, v := range netifdecl.List() {
 		network := v.(map[string]interface{})
 		networks[i].label = network["label"].(string)
 		if v, ok := network["ip_address"].(string); ok && v != "" {
@@ -2032,6 +2086,9 @@ func populateVMStructNetwork(d *schema.ResourceData, vm *virtualMachine) error {
 		}
 		if v, ok := network["device_key"].(int); ok {
 			networks[i].deviceKey = v
+			log.Printf("[DEBUG] Has set deviceKey %[1]T %[1]v", v)
+		} else {
+			log.Printf("[DEBUG] Cannot set deviceKey %[1]T %[1]v", network["device_key"])
 		}
 		if v, ok := network["adapter_type"].(string); ok && v != "" {
 			networks[i].adapterType = nicType(v)
@@ -2039,6 +2096,7 @@ func populateVMStructNetwork(d *schema.ResourceData, vm *virtualMachine) error {
 	}
 	vm.networkInterfaces = networks
 	log.Printf("[DEBUG] network_interface init: %v", networks)
+	log.Printf("[DEBUG] populateVMStructNetwork::end")
 	return nil
 }
 
@@ -2322,14 +2380,24 @@ func populateResourceDataDisks(d *schema.ResourceData, devices []types.BaseVirtu
 	return nil
 }
 
+/*
+this code *should not* be used because v.Network as exposed by the VMware Tools API
+is just the name of the DVPG and not its path. The name does not allow to connect to
+the actual DVPG path so it's better to avoid it unless you target an environment with
+a flat hierarchy of objects.
+
+In that case this code may incur performance gains.
+*/
 func populateResourceDataNIC(devices []types.GuestNicInfo, networkInterfaces []networkMap) ([]networkMap, error) {
 	for _, v := range devices {
-		if v.DeviceConfigId < 0 {
-			continue
-		}
+		// *this* is bogus. v.Network should have a path to the DVPG. It has just its name, useless junk.
 		log.Printf("[DEBUG] v.Network - %#v", v.Network)
+		// if v.DeviceConfigId < 0 {
+		// 	continue
+		// }
 		networkInterface := make(networkMap)
 		networkInterface["label"] = v.Network
+
 		networkInterface["mac_address"] = v.MacAddress
 		for _, ip := range v.IpConfig.IpAddress {
 			p := net.ParseIP(ip.IpAddress)
@@ -2375,7 +2443,7 @@ func populateResourceDataIPStack(devices []types.GuestStackInfo, networkInterfac
 			}
 			deviceID, err := strconv.Atoi(route.Gateway.Device)
 			if err != nil {
-				log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
+				log.Printf("[INFO] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
 				continue
 			}
 			log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, deviceID, route.Gateway.IpAddress)
@@ -2389,10 +2457,10 @@ func populateResourceDataNetworkWithoutVsphereTools(networkInterfaces []networkM
 	for _, d := range devices {
 		switch d.(type) {
 		case (types.BaseVirtualEthernetCard):
-			log.Printf("Got a Veth")
 			a, _ := d.(types.BaseVirtualEthernetCard)
 			v := a.GetVirtualEthernetCard()
 
+			log.Printf("[DEBUG] Got a Veth: %d", v.Key)
 			networkInterface := networkMap{}
 			networkInterface["mac_address"] = v.MacAddress
 			networkInterface["device_key"] = v.Key
@@ -2452,10 +2520,10 @@ func populateResourceDataNICType(devices []types.BaseVirtualDevice, networkInter
 			default:
 				return networkInterfaces, fmt.Errorf("Cannot use adapter_type %T. Please report a feature request.", d)
 			}
-			log.Printf("[WARN] MAC address: %s", card.GetVirtualEthernetCard().MacAddress)
+			log.Printf("[INFO] MAC address: %s -- %v", card.GetVirtualEthernetCard().MacAddress, adapterType)
 			found := false
 			for _, n := range networkInterfaces {
-				log.Printf("[WARN] %T %#v ? %s", n, n, card.GetVirtualEthernetCard().MacAddress)
+				log.Printf("[INFO] %T %#v ? %s", n, n, card.GetVirtualEthernetCard().MacAddress)
 				if strings.ToUpper(n["mac_address"].(string)) == strings.ToUpper(card.GetVirtualEthernetCard().MacAddress) {
 					n["device_key"] = card.GetVirtualEthernetCard().Key
 					n["adapter_type"] = adapterType
@@ -2474,12 +2542,13 @@ func populateResourceDataNICType(devices []types.BaseVirtualDevice, networkInter
 func populateResourceDataNetwork(client *govmomi.Client, collector *property.Collector, d *schema.ResourceData, vm *mo.VirtualMachine) error {
 	var err error
 	var networkInterfaces []networkMap
-	if networkInterfaces, err = populateResourceDataNIC(vm.Guest.Net, networkInterfaces[:]); err != nil {
-		return err
-	}
-	if networkInterfaces, err = populateResourceDataIPStack(vm.Guest.IpStack, networkInterfaces[:]); err != nil {
-		return err
-	}
+	// the vSphere API is bogus so we have to disable this.
+	// if networkInterfaces, err = populateResourceDataNIC(vm.Guest.Net, networkInterfaces[:]); err != nil {
+	// 	return err
+	// }
+	// if networkInterfaces, err = populateResourceDataIPStack(vm.Guest.IpStack, networkInterfaces[:]); err != nil {
+	// 	return err
+	// }
 	if len(networkInterfaces) == 0 {
 		if networkInterfaces, err = populateResourceDataNetworkWithoutVsphereTools(networkInterfaces[:], vm.Config.Hardware.Device, collector, client); err != nil {
 			return err
@@ -2590,7 +2659,10 @@ func buildNetworkInterfaceStruct(network map[string]interface{}, gateway string)
 		snetwork.macAddress = v
 	}
 	if v, ok := network["device_key"].(int); ok {
-		snetwork.deviceKey = v
+		log.Printf("[DEBUG] Setting device_key: %d", v)
+		snetwork.deviceKey = int(v)
+	} else {
+		log.Printf("[DEBUG] Cannot set device_key :'(")
 	}
 	if v, ok := network["adapter_type"].(string); ok && v != "" {
 		snetwork.adapterType = nicType(v)
@@ -2603,21 +2675,25 @@ func buildNetworkInterfaceStruct(network map[string]interface{}, gateway string)
 }
 
 // buildNICChangeSpec puts add and remove NIC in a VirtualMachineConfigSpec
-func buildNICChangeSpec(added, removed []interface{}, gateway string, config *types.VirtualMachineConfigSpec, finder *find.Finder) error {
+func buildNICChangeSpec(added, removed []interface{}, gateway string, config *types.VirtualMachineConfigSpec, finder *find.Finder) (rebootRequired bool, err error) {
+	rebootRequired = false
+	var sadded, srmed = map[int]*networkInterface{}, map[int]*networkInterface{}
 	for _, netRaw := range removed {
 		if netO, ok := netRaw.(map[string]interface{}); ok {
 			network, err := buildNetworkInterfaceStruct(netO, gateway)
+
 			log.Printf("[DEBUG] Want to delete interface bound to %v", network.label)
 			if err != nil {
-				return err
+				return rebootRequired, err
 			}
-			nd, err := buildNetworkDeviceRemoveSpec(finder, network.label, network)
+			nd, err := buildNetworkDeviceRemoveSpec(finder, network)
 			if err != nil {
-				return err
+				return rebootRequired, err
 			}
 			config.DeviceChange = append(config.DeviceChange, nd)
+			sadded[network.deviceKey] = network
 		} else {
-			return fmt.Errorf("Cast error: cannot cast %T to map[string]interface{}", netRaw)
+			return rebootRequired, fmt.Errorf("Cast error: cannot cast %T to map[string]interface{}", netRaw)
 		}
 	}
 	for _, netRaw := range added {
@@ -2625,20 +2701,35 @@ func buildNICChangeSpec(added, removed []interface{}, gateway string, config *ty
 			network, err := buildNetworkInterfaceStruct(netO, gateway)
 			log.Printf("[DEBUG] Want to add interface bound to %v", network.label)
 			if err != nil {
-				return err
+				return rebootRequired, err
 			}
-			nd, err := buildNetworkDevice(finder, network.label, network.adapterType, network.macAddress)
+			nd, err := buildNetworkDevice(finder, network)
 			// if network.deviceKey > 0 {
 			//  nd.Operation = types.VirtualDeviceConfigSpecOperationEdit
 			// }
 			if err != nil {
-				return err
+				return rebootRequired, err
 			}
 			nd.Device.GetVirtualDevice().Key = 0
 			config.DeviceChange = append(config.DeviceChange, nd)
+			srmed[network.deviceKey] = network
 		} else {
-			return fmt.Errorf("Cast error: cannot cast %T to map[string]interface{}", netRaw)
+			return rebootRequired, fmt.Errorf("Cast error: cannot cast %T to map[string]interface{}", netRaw)
 		}
 	}
-	return nil
+	rebootRequired = true // change this once we have a proper algo
+	for k, item := range sadded {
+		if rebootRequired {
+			break
+		}
+		rmed, ok := srmed[k]
+		if !ok {
+			// we have added an interface, we'll need to reboot
+			rebootRequired = true
+			return
+		}
+		rebootRequired = item.adapterType != rmed.adapterType || item.macAddress != rmed.macAddress
+
+	}
+	return rebootRequired, nil
 }
