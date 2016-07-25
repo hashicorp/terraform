@@ -88,6 +88,7 @@ func (c *PushCommand) Run(args []string) int {
 		Path:      configPath,
 		StatePath: c.Meta.statePath,
 	})
+
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -209,12 +210,23 @@ func (c *PushCommand) Run(args []string) int {
 		c.Ui.Output("")
 	}
 
+	variables := ctx.Variables()
+	serializedVars, err := tfVars(variables)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"An error has occurred while serializing the variables for uploading:\n"+
+				"%s", err))
+		return 1
+	}
+
 	// Upsert!
 	opts := &pushUpsertOptions{
 		Name:      name,
 		Archive:   archiveR,
 		Variables: ctx.Variables(),
+		TFVars:    serializedVars,
 	}
+
 	c.Ui.Output("Uploading Terraform configuration...")
 	vsn, err := c.client.Upsert(opts)
 	if err != nil {
@@ -272,6 +284,58 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
+func sortedKeys(m map[string]interface{}) []string {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// build the set of TFVars for push
+func tfVars(vars map[string]interface{}) ([]atlas.TFVar, error) {
+	var tfVars []atlas.TFVar
+	var err error
+
+RANGE:
+	for _, k := range sortedKeys(vars) {
+		v := vars[k]
+
+		var hcl []byte
+		tfv := atlas.TFVar{Key: k}
+
+		switch v := v.(type) {
+		case string:
+			tfv.Value = v
+
+		case []interface{}:
+			hcl, err = encodeHCL(v)
+			if err != nil {
+				break RANGE
+			}
+
+			tfv.Value = string(hcl)
+			tfv.IsHCL = true
+
+		case map[string]interface{}:
+			hcl, err = encodeHCL(v)
+			if err != nil {
+				break RANGE
+			}
+
+			tfv.Value = string(hcl)
+			tfv.IsHCL = true
+		default:
+			err = fmt.Errorf("unknown type %T for variable %s", v, k)
+		}
+
+		tfVars = append(tfVars, tfv)
+	}
+
+	return tfVars, err
+}
+
 func (c *PushCommand) Synopsis() string {
 	return "Upload this Terraform module to Atlas to run"
 }
@@ -287,6 +351,7 @@ type pushUpsertOptions struct {
 	Name      string
 	Archive   *archive.Archive
 	Variables map[string]interface{}
+	TFVars    []atlas.TFVar
 }
 
 type atlasPushClient struct {
@@ -306,6 +371,7 @@ func (c *atlasPushClient) Get(name string) (map[string]interface{}, error) {
 
 	var variables map[string]interface{}
 	if version != nil {
+		// TODO: merge variables and TFVars
 		//variables = version.Variables
 	}
 
@@ -319,7 +385,7 @@ func (c *atlasPushClient) Upsert(opts *pushUpsertOptions) (int, error) {
 	}
 
 	data := &atlas.TerraformConfigVersion{
-	//Variables: opts.Variables,
+		TFVars: opts.TFVars,
 	}
 
 	version, err := c.Client.CreateTerraformConfigVersion(
