@@ -130,6 +130,7 @@ IMPROVEMENTS:
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
  * provider/azurerm: `azurerm_dns_zone` now returns `name_servers` [GH-7434]
  * provider/azurerm: dump entire Request/Response in autorest Decorator [GH-7719]
+ * provider/azurerm: add option to delete VMs Data disks on termination [GH-7793]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * provider/clc: Fix optional server password [GH-6414]
  * provider/cloudstack: Add support for affinity groups to `cloudstack_instance` [GH-6898]
