@@ -88,7 +88,21 @@ func resourceAwsAppautoscalingTargetCreate(d *schema.ResourceData, meta interfac
 	targetOpts.ServiceNamespace = aws.String(d.Get("service_namespace").(string))
 
 	log.Printf("[DEBUG] Application autoscaling target create configuration %#v", targetOpts)
-	_, err := conn.RegisterScalableTarget(&targetOpts)
+	var out *applicationautoscaling.RegisterScalableTargetOutput
+	var err error
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		out, err = conn.RegisterScalableTarget(&targetOpts)
+
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ValidationException" {
+				log.Printf("[DEBUG] Retrying creation of Application Autoscaling Scalable Target due to possible issues with IAM: %s", awsErr)
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Error creating application autoscaling target: %s", err)
 	}
