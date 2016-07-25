@@ -111,16 +111,18 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"aws_ami":                 dataSourceAwsAmi(),
-			"aws_availability_zones":  dataSourceAwsAvailabilityZones(),
-			"aws_iam_policy_document": dataSourceAwsIamPolicyDocument(),
-			"aws_s3_bucket_object":    dataSourceAwsS3BucketObject(),
+			"aws_ami":                      dataSourceAwsAmi(),
+			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
+			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
+			"aws_s3_bucket_object":         dataSourceAwsS3BucketObject(),
+			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"aws_ami":                                      resourceAwsAmi(),
 			"aws_ami_copy":                                 resourceAwsAmiCopy(),
 			"aws_ami_from_instance":                        resourceAwsAmiFromInstance(),
+			"aws_ami_launch_permission":                    resourceAwsAmiLaunchPermission(),
 			"aws_api_gateway_account":                      resourceAwsApiGatewayAccount(),
 			"aws_api_gateway_api_key":                      resourceAwsApiGatewayApiKey(),
 			"aws_api_gateway_authorizer":                   resourceAwsApiGatewayAuthorizer(),

@@ -22,8 +22,9 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `azurerm_virtual_machine` computer_name now Required
  * `aws_db_instance` now defaults `publicly_accessible` to false
  * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
- * `atlas_artifact` resource has be depracated. Please use the new `atlas_artifact` Data Source
+ * `atlas_artifact` resource has be deprecated. Please use the new `atlas_artifact` Data Source
  * The `member` attribute of `openstack_lb_pool_v1` has been deprecated. Please ue the new `openstack_lb_member_v1` resource.
+ * All deprecated parameters are removed from all `CloudStack` resources
 
 FEATURES:
 
@@ -38,6 +39,7 @@ FEATURES:
  * **New Data Source:** `aws_availability_zones` [GH-6805]
  * **New Data Source:** `aws_iam_policy_document` [GH-6881]
  * **New Data Source:** `aws_s3_bucket_object` [GH-6946]
+ * **New Data Source:** `aws_ecs_container_definition` [GH-7230]
  * **New Data Source:** `atlas_artifact` [GH-7419]
  * **New Interpolation Function:** `sort` [GH-7128]
  * **New Interpolation Function:** `distinct` [GH-7174]
@@ -62,6 +64,7 @@ FEATURES:
  * **New Resource:** `aws_simpledb_domain` [GH-7600]
  * **New Resource:** `aws_opsworks_user_profile` [GH-6304]
  * **New Resource:** `aws_opsworks_permission` [GH-6304]
+ * **New Resource:** `aws_ami_launch_permission` [GH-7365]
  * **New Resource:** `openstack_blockstorage_volume_v2` [GH-6693]
  * **New Resource:** `openstack_lb_loadbalancer_v2` [GH-7012]
  * **New Resource:** `openstack_lb_listener_v2` [GH-7012]
@@ -85,6 +88,7 @@ IMPROVEMENTS:
  * core: Support `.` in map keys [GH-7654]
  * command: Remove second DefaultDataDirectory const [GH-7666]
  * provider/aws: Add `dns_name` to `aws_efs_mount_target` [GH-7428]
+ * provider/aws: Add `force_destroy` to `aws_iam_user` for force-deleting access keys assigned to the user [GH-7766]
  * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
  * provider/aws: Add more explicit support for Skipping Final Snapshot in RDS Cluster [GH-6795]
  * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
@@ -118,6 +122,8 @@ IMPROVEMENTS:
  * provider/aws: Support `task_role_arn` on `aws_ecs_task_definition [GH-7653]
  * provider/aws: Support Tags on `aws_rds_cluster` [GH-7695]
  * provider/aws: Support kms_key_id for `aws_rds_cluster` [GH-7662]
+ * provider/aws: Allow setting a `poll_interval` on `aws_elastic_beanstalk_environment` [GH-7523]
+ * provider/aws: Add support for Kinesis streams shard-level metrics [GH-7684]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
@@ -128,6 +134,11 @@ IMPROVEMENTS:
  * provider/cloudstack: Add support for affinity groups to `cloudstack_instance` [GH-6898]
  * provider/cloudstack: Enable swapping of ACLs without having to rebuild the network tier [GH-6741]
  * provider/cloudstack: Improve ACL swapping [GH-7315]
+ * provider/cloudstack: Add project support to `cloudstack_network_acl` and `cloudstack_network_acl_rule` [GH-7612]
+ * provider/cloudstack: Add option to set `root_disk_size` to `cloudstack_instance` [GH-7070]
+ * provider/cloudstack: Do no longer force a new `cloudstack_instance` resource when updating `user_data` [GH-7074]
+ * provider/cloudstack: Add option to set `security_group_names` to `cloudstack_instance` [GH-7240]
+ * provider/cloudstack: Add option to set `affinity_group_names` to `cloudstack_instance` [GH-7242]
  * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/docker: Docker Container DNS Setting Enhancements [GH-7392]
  * provider/docker: Add `destroy_grace_seconds` option to stop container before delete [GH-7513]
@@ -225,6 +236,9 @@ BUG FIXES:
  * provider/azurerm: `azurerm_virtual_machine` computer_name now Required [GH-7308]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
+ * provider/cloudstack: Fix refresing `cloudstack_network_acl_rule` when the associated ACL is deleted [GH-7612]
+ * provider/cloudstack: Fix refresing `cloudstack_port_forward` when the associated IP address is no longer associated [GH-7612]
+ * provider/cloudstack: Fix creating `cloudstack_network` with offerings that do not support specifying IP ranges [GH-7612]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
  * provider/digitalocean: Reassign Floating IP when droplet changes [GH-7411]
  * provider/google: Fix a bug causing an error attempting to delete an already-deleted `google_compute_disk` [GH-6689]
