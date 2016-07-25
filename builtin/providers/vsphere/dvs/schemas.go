@@ -1,6 +1,25 @@
 package dvs
 
-import "github.com/hashicorp/terraform/helper/schema"
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/helper/schema"
+)
+
+func _setDVPGPolicy(v interface{}) int {
+	asmap := v.(map[string]interface{})
+	components := []string{"allow_block_override", "allow_live_port_moving", "allow_network_resources_pool_override", "port_config_reset_disconnect", "allow_shaping_override", "allow_traffic_filter_override", "allow_vendor_config_override"}
+	h := ""
+	for _, i := range components {
+		k, ok := asmap[i]
+		if !ok {
+			h += "unset"
+			continue
+		}
+		h += fmt.Sprintf("%v-", k)
+	}
+	return schema.HashString(h)
+}
 
 func resourceVSphereDVSSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
@@ -146,8 +165,10 @@ func resourceVSphereDVPGSchema() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"policy": &schema.Schema{
-			Type:     schema.TypeMap,
+			Type:     schema.TypeSet,
 			Optional: true,
+			MaxItems: 1,
+			Set:      _setDVPGPolicy,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"allow_block_override": &schema.Schema{
@@ -160,7 +181,7 @@ func resourceVSphereDVPGSchema() map[string]*schema.Schema {
 						Optional: true,
 						Default:  false,
 					},
-					"allov_network_resources_pool_override": &schema.Schema{
+					"allow_network_resources_pool_override": &schema.Schema{
 						Type:     schema.TypeBool,
 						Optional: true,
 						Default:  false,

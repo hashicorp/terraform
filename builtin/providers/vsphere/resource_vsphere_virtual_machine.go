@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -74,6 +75,23 @@ type networkInterface struct {
 	deviceKey        int
 	macAddress       string
 	creationOrder    int // order for initial creation of NICs
+}
+
+// sortable
+type networkInterfaceList []networkInterface
+
+func (ni networkInterfaceList) Len() int {
+	return len(ni)
+}
+
+func (ni networkInterfaceList) Less(i, j int) bool {
+	return ni[i].creationOrder < ni[j].creationOrder
+}
+
+func (ni networkInterfaceList) Swap(i, j int) {
+	a := ni[i]
+	ni[i] = ni[j]
+	ni[j] = a
 }
 
 type hardDisk struct {
@@ -326,7 +344,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						hs := ""
 						for _, k := range try {
 							if v, ok := asmap[k]; ok {
-								hs += fmt.Sprintf("%v-", v)
+								hs += strings.ToUpper(fmt.Sprintf("%v-", v))
 								found1++
 							}
 							if found1 == len(try) {
@@ -1669,22 +1687,10 @@ func (vm *virtualMachine) setupNetwork(finder *find.Finder) ([]types.BaseVirtual
 	networkDevices := []types.BaseVirtualDeviceConfigSpec{}
 	networkConfigs := []types.CustomizationAdapterMapping{}
 	// sort network interfaces
-	netifs := []networkInterface{}
+	netifs := networkInterfaceList(vm.networkInterfaces)
+	sort.Sort(netifs)
 
 	// q&d sort of network interfaces
-	for _, network := range vm.networkInterfaces {
-		if len(netifs) == 0 {
-			netifs = append(netifs, network)
-			continue
-		}
-		if network.creationOrder >= netifs[0].creationOrder {
-			netifs = append(netifs, network)
-		} else {
-			netifsnew := []networkInterface{network}
-			netifs = append(netifsnew, netifs...)
-		}
-
-	}
 	for _, network := range netifs {
 		// network device
 		var networkDeviceType nicType

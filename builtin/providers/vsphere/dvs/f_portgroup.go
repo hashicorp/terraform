@@ -3,7 +3,6 @@ package dvs
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -100,6 +99,7 @@ func resourceVSphereDVPGUpdate(d *schema.ResourceData, meta interface{}) error {
 	hasChange := false
 	for _, u := range updatableFields {
 		if d.HasChange(u) {
+			log.Printf("[DEBUG] DVPG %s has change on field %s", d.Id(), u)
 			hasChange = true
 			break
 		}
@@ -205,17 +205,27 @@ func parseDVPG(d *schema.ResourceData, out *dvs_port_group) error {
 		}
 	}
 	if s, ok := d.GetOk("policy"); ok {
+		log.Printf("[DEBUG] Got dvpg.policy: %#v", s)
 		vmap, casted := s.(map[string]interface{})
 		if !casted {
-			return fmt.Errorf("Cannot cast policy as a string map. See: %+v", s)
+			return fmt.Errorf("Cannot cast policy as a string map. See: %#v", s)
 		}
 		o.policy.allowBlockOverride = vmap["allow_block_override"].(bool)
 		o.policy.allowLivePortMoving = vmap["allow_live_port_moving"].(bool)
-		o.policy.allowNetworkRPOverride = vmap["allow_network_rp_override"].(bool)
+		o.policy.allowNetworkRPOverride = vmap["allow_network_resources_pool_override"].(bool)
 		o.policy.portConfigResetDisconnect = vmap["port_config_reset_disconnect"].(bool)
 		o.policy.allowShapingOverride = vmap["allow_shaping_override"].(bool)
 		o.policy.allowTrafficFilterOverride = vmap["allow_traffic_filter_override"].(bool)
 		o.policy.allowVendorConfigOverride = vmap["allow_vendor_config_override"].(bool)
+	} else {
+		log.Printf("[DEBUG] Could not get dvpg.policy")
+		o.policy.allowBlockOverride = false
+		o.policy.allowLivePortMoving = false
+		o.policy.allowNetworkRPOverride = false
+		o.policy.portConfigResetDisconnect = true
+		o.policy.allowShapingOverride = false
+		o.policy.allowTrafficFilterOverride = false
+		o.policy.allowVendorConfigOverride = false
 	}
 	return nil
 }
@@ -224,6 +234,20 @@ func parseDVPG(d *schema.ResourceData, out *dvs_port_group) error {
 func unparseDVPG(d *schema.ResourceData, in *dvs_port_group) error {
 	var errs []error
 	// define the contents - this means map the stuff to what Terraform expects
+	policyItems := map[string]interface{}{
+
+		"allow_block_override":                  (in.policy.allowBlockOverride),
+		"allow_live_port_moving":                (in.policy.allowLivePortMoving),
+		"allow_network_resources_pool_override": (in.policy.allowNetworkRPOverride),
+		"port_config_reset_disconnect":          (in.policy.portConfigResetDisconnect),
+		"allow_shaping_override":                (in.policy.allowShapingOverride),
+		"allow_traffic_filter_override":         (in.policy.allowTrafficFilterOverride),
+		"allow_vendor_config_override":          (in.policy.allowVendorConfigOverride),
+	}
+	policyObj := &schema.Set{
+		F: _setDVPGPolicy,
+	}
+	policyObj.Add(policyItems)
 	fieldsMap := map[string]interface{}{
 		"name":             in.name,
 		"switch_id":        in.switchId,
@@ -232,16 +256,8 @@ func unparseDVPG(d *schema.ResourceData, in *dvs_port_group) error {
 		"auto_expand":      in.autoExpand,
 		"num_ports":        in.numPorts,
 		"port_name_format": in.portNameFormat,
-		"policy": map[string]interface{}{
-			"allow_block_override":          strconv.FormatBool(in.policy.allowBlockOverride),
-			"allow_live_port_moving":        strconv.FormatBool(in.policy.allowLivePortMoving),
-			"allow_network_rp_override":     strconv.FormatBool(in.policy.allowNetworkRPOverride),
-			"port_config_reset_disconnect":  strconv.FormatBool(in.policy.portConfigResetDisconnect),
-			"allow_shaping_override":        strconv.FormatBool(in.policy.allowShapingOverride),
-			"allow_traffic_filter_override": strconv.FormatBool(in.policy.allowTrafficFilterOverride),
-			"allow_vendor_config_override":  strconv.FormatBool(in.policy.allowVendorConfigOverride),
-		},
-		"full_path": in.getFullPath(),
+		"policy":           policyObj,
+		"full_path":        in.getFullPath(),
 	}
 	vlans := []map[string]interface{}{}
 	for _, numPair := range in.vlanRanges {
@@ -255,6 +271,8 @@ func unparseDVPG(d *schema.ResourceData, in *dvs_port_group) error {
 	for fieldName, fieldValue := range fieldsMap {
 		if err := d.Set(fieldName, fieldValue); err != nil {
 			errs = append(errs, fmt.Errorf("%s invalid: %s: %+v", fieldName, fieldValue, err))
+		} else {
+			log.Printf("[DEBUG] No error for setting field %s to %#v", fieldName, fieldValue)
 		}
 	}
 
