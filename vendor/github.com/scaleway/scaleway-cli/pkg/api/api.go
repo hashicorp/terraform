@@ -98,7 +98,7 @@ func (e ScalewayAPIError) Error() string {
 		"Message":    e.Message,
 		"APIMessage": e.APIMessage,
 	} {
-		fmt.Fprintf(&b, "  %-30s %s", fmt.Sprintf("%s: ", k), v)
+		fmt.Fprintf(&b, "%s: %v ", k, v)
 	}
 	return b.String()
 }
@@ -419,13 +419,13 @@ type ScalewayGetSecurityGroup struct {
 
 // ScalewayIPDefinition represents the IP's fields
 type ScalewayIPDefinition struct {
-	Organization string `json:"organization"`
-	Reverse      string `json:"reverse"`
-	ID           string `json:"id"`
-	Server       struct {
+	Organization string  `json:"organization"`
+	Reverse      *string `json:"reverse"`
+	ID           string  `json:"id"`
+	Server       *struct {
 		Identifier string `json:"id,omitempty"`
 		Name       string `json:"name,omitempty"`
-	} `json:"server,omitempty"`
+	} `json:"server"`
 	Address string `json:"address"`
 }
 
@@ -448,11 +448,20 @@ type ScalewaySecurityGroup struct {
 	Name string `json:"name,omitempty"`
 }
 
-// ScalewayNewSecurityGroup definition POST/PUT request /security_groups
+// ScalewayNewSecurityGroup definition POST request /security_groups
 type ScalewayNewSecurityGroup struct {
-	Organization string `json:"organization"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
+	Organization        string `json:"organization"`
+	Name                string `json:"name"`
+	Description         string `json:"description"`
+	OrganizationDefault bool   `json:"organization_default"`
+}
+
+// ScalewayUpdateSecurityGroup definition PUT request /security_groups
+type ScalewayUpdateSecurityGroup struct {
+	Organization        string `json:"organization"`
+	Name                string `json:"name"`
+	Description         string `json:"description"`
+	OrganizationDefault bool   `json:"organization_default"`
 }
 
 // ScalewayServer represents a Scaleway server
@@ -584,6 +593,8 @@ type ScalewayServerDefinition struct {
 	PublicIP string `json:"public_ip,omitempty"`
 
 	EnableIPV6 bool `json:"enable_ipv6,omitempty"`
+
+	SecurityGroup string `json:"security_group,omitempty"`
 }
 
 // ScalewayOneServer represents the response of a GET /servers/UUID API call
@@ -832,27 +843,26 @@ type MarketImages struct {
 
 // NewScalewayAPI creates a ready-to-use ScalewayAPI client
 func NewScalewayAPI(organization, token, userAgent string, options ...func(*ScalewayAPI)) (*ScalewayAPI, error) {
-	cache, err := NewScalewayCache()
-	if err != nil {
-		return nil, err
-	}
 	s := &ScalewayAPI{
 		// exposed
 		Organization: organization,
 		Token:        token,
-		Cache:        cache,
 		Logger:       NewDefaultLogger(),
-		verbose:      os.Getenv("SCW_VERBOSE_API") != "",
-		password:     "",
-		userAgent:    userAgent,
 
 		// internal
-		client: &http.Client{},
+		client:    &http.Client{},
+		verbose:   os.Getenv("SCW_VERBOSE_API") != "",
+		password:  "",
+		userAgent: userAgent,
 	}
 	for _, option := range options {
 		option(s)
 	}
-
+	cache, err := NewScalewayCache(func() { s.Logger.Debugf("Writing cache file to disk") })
+	if err != nil {
+		return nil, err
+	}
+	s.Cache = cache
 	if os.Getenv("SCW_TLSVERIFY") == "0" {
 		s.client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -1273,62 +1283,77 @@ func (s *ScalewayAPI) PutVolume(volumeID string, definition ScalewayVolumePutDef
 
 // ResolveServer attempts to find a matching Identifier for the input string
 func (s *ScalewayAPI) ResolveServer(needle string) (ScalewayResolverResults, error) {
-	servers := s.Cache.LookUpServers(needle, true)
+	servers, err := s.Cache.LookUpServers(needle, true)
+	if err != nil {
+		return servers, err
+	}
 	if len(servers) == 0 {
-		if _, err := s.GetServers(true, 0); err != nil {
+		if _, err = s.GetServers(true, 0); err != nil {
 			return nil, err
 		}
-		servers = s.Cache.LookUpServers(needle, true)
+		servers, err = s.Cache.LookUpServers(needle, true)
 	}
-	return servers, nil
+	return servers, err
 }
 
 // ResolveVolume attempts to find a matching Identifier for the input string
 func (s *ScalewayAPI) ResolveVolume(needle string) (ScalewayResolverResults, error) {
-	volumes := s.Cache.LookUpVolumes(needle, true)
+	volumes, err := s.Cache.LookUpVolumes(needle, true)
+	if err != nil {
+		return volumes, err
+	}
 	if len(volumes) == 0 {
-		if _, err := s.GetVolumes(); err != nil {
+		if _, err = s.GetVolumes(); err != nil {
 			return nil, err
 		}
-		volumes = s.Cache.LookUpVolumes(needle, true)
+		volumes, err = s.Cache.LookUpVolumes(needle, true)
 	}
-	return volumes, nil
+	return volumes, err
 }
 
 // ResolveSnapshot attempts to find a matching Identifier for the input string
 func (s *ScalewayAPI) ResolveSnapshot(needle string) (ScalewayResolverResults, error) {
-	snapshots := s.Cache.LookUpSnapshots(needle, true)
+	snapshots, err := s.Cache.LookUpSnapshots(needle, true)
+	if err != nil {
+		return snapshots, err
+	}
 	if len(snapshots) == 0 {
-		if _, err := s.GetSnapshots(); err != nil {
+		if _, err = s.GetSnapshots(); err != nil {
 			return nil, err
 		}
-		snapshots = s.Cache.LookUpSnapshots(needle, true)
+		snapshots, err = s.Cache.LookUpSnapshots(needle, true)
 	}
-	return snapshots, nil
+	return snapshots, err
 }
 
 // ResolveImage attempts to find a matching Identifier for the input string
 func (s *ScalewayAPI) ResolveImage(needle string) (ScalewayResolverResults, error) {
-	images := s.Cache.LookUpImages(needle, true)
+	images, err := s.Cache.LookUpImages(needle, true)
+	if err != nil {
+		return images, err
+	}
 	if len(images) == 0 {
-		if _, err := s.GetImages(); err != nil {
+		if _, err = s.GetImages(); err != nil {
 			return nil, err
 		}
-		images = s.Cache.LookUpImages(needle, true)
+		images, err = s.Cache.LookUpImages(needle, true)
 	}
-	return images, nil
+	return images, err
 }
 
 // ResolveBootscript attempts to find a matching Identifier for the input string
 func (s *ScalewayAPI) ResolveBootscript(needle string) (ScalewayResolverResults, error) {
-	bootscripts := s.Cache.LookUpBootscripts(needle, true)
+	bootscripts, err := s.Cache.LookUpBootscripts(needle, true)
+	if err != nil {
+		return bootscripts, err
+	}
 	if len(bootscripts) == 0 {
-		if _, err := s.GetBootscripts(); err != nil {
+		if _, err = s.GetBootscripts(); err != nil {
 			return nil, err
 		}
-		bootscripts = s.Cache.LookUpBootscripts(needle, true)
+		bootscripts, err = s.Cache.LookUpBootscripts(needle, true)
 	}
-	return bootscripts, nil
+	return bootscripts, err
 }
 
 // GetImages gets the list of images from the ScalewayAPI
@@ -2154,7 +2179,7 @@ func (s *ScalewayAPI) DeleteSecurityGroup(securityGroupID string) error {
 }
 
 // PutSecurityGroup updates a SecurityGroup
-func (s *ScalewayAPI) PutSecurityGroup(group ScalewayNewSecurityGroup, securityGroupID string) error {
+func (s *ScalewayAPI) PutSecurityGroup(group ScalewayUpdateSecurityGroup, securityGroupID string) error {
 	resp, err := s.PutResponse(ComputeAPI, fmt.Sprintf("security_groups/%s", securityGroupID), group)
 	if resp != nil {
 		defer resp.Body.Close()
@@ -2313,6 +2338,24 @@ func (s *ScalewayAPI) AttachIP(ipID, serverID string) error {
 	return err
 }
 
+// DetachIP detaches an IP from a server
+func (s *ScalewayAPI) DetachIP(ipID string) error {
+	ip, err := s.GetIP(ipID)
+	if err != nil {
+		return err
+	}
+	ip.IP.Server = nil
+	resp, err := s.PutResponse(ComputeAPI, fmt.Sprintf("ips/%s", ipID), ip.IP)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if err != nil {
+		return err
+	}
+	_, err = s.handleHTTPError([]int{200}, resp)
+	return err
+}
+
 // DeleteIP deletes an IP
 func (s *ScalewayAPI) DeleteIP(ipID string) error {
 	resp, err := s.DeleteResponse(ComputeAPI, fmt.Sprintf("ips/%s", ipID))
@@ -2322,11 +2365,8 @@ func (s *ScalewayAPI) DeleteIP(ipID string) error {
 	if err != nil {
 		return err
 	}
-
-	if _, err := s.handleHTTPError([]int{204}, resp); err != nil {
-		return err
-	}
-	return nil
+	_, err = s.handleHTTPError([]int{204}, resp)
+	return err
 }
 
 // GetIP returns a ScalewayGetIP

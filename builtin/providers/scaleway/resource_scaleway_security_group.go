@@ -90,7 +90,7 @@ func resourceScalewaySecurityGroupRead(d *schema.ResourceData, m interface{}) er
 func resourceScalewaySecurityGroupUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
-	var req = api.ScalewayNewSecurityGroup{
+	var req = api.ScalewayUpdateSecurityGroup{
 		Organization: scaleway.Organization,
 		Name:         d.Get("name").(string),
 		Description:  d.Get("description").(string),
@@ -110,6 +110,15 @@ func resourceScalewaySecurityGroupDelete(d *schema.ResourceData, m interface{}) 
 
 	err := scaleway.DeleteSecurityGroup(d.Id())
 	if err != nil {
+		if serr, ok := err.(api.ScalewayAPIError); ok {
+			log.Printf("[DEBUG] error reading Security Group Rule: %q\n", serr.APIMessage)
+
+			if serr.StatusCode == 404 {
+				d.SetId("")
+				return nil
+			}
+		}
+
 		return err
 	}
 
