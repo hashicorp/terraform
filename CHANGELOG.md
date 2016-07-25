@@ -88,6 +88,7 @@ IMPROVEMENTS:
  * core: Support `.` in map keys [GH-7654]
  * command: Remove second DefaultDataDirectory const [GH-7666]
  * provider/aws: Add `dns_name` to `aws_efs_mount_target` [GH-7428]
+ * provider/aws: Add `force_destroy` to `aws_iam_user` for force-deleting access keys assigned to the user [GH-7766]
  * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
  * provider/aws: Add more explicit support for Skipping Final Snapshot in RDS Cluster [GH-6795]
  * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
