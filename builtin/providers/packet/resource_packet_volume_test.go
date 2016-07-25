@@ -23,7 +23,13 @@ func TestAccPacketVolume_Basic(t *testing.T) {
 					testAccCheckPacketVolumeExists("packet_volume.foobar", &volume),
 					testAccCheckPacketVolumeAttributes(&volume),
 					resource.TestCheckResourceAttr(
-						"packet_volume.foobar", "name", "foobar"),
+						"packet_volume.foobar", "project_id", "foobar"),
+					resource.TestCheckResourceAttr(
+						"packet_volume.foobar", "plan", "foobar"),
+					resource.TestCheckResourceAttr(
+						"packet_volume.foobar", "facility", "foobar"),
+					resource.TestCheckResourceAttr(
+						"packet_volume.foobar", "billing_cycle", "hourly"),
 				),
 			},
 		},
@@ -82,5 +88,8 @@ func testAccCheckPacketVolumeExists(n string, volume *packngo.Volume) resource.T
 
 var testAccCheckPacketVolumeConfig_basic = fmt.Sprintf(`
 resource "packet_volume" "foobar" {
-    name = "foobar"
+    project_id = "foobar"
+    plan = "foobar"
+    facility = "foobar"
+    billing_cycle = "hourly"
 }`)

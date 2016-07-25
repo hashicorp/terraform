@@ -14,7 +14,8 @@ func resourcePacketIPAddress() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"gateway": &schema.Schema{
@@ -28,12 +29,12 @@ func resourcePacketIPAddress() *schema.Resource {
 			},
 
 			"family": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 
 			"netmask": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 
@@ -48,7 +49,7 @@ func resourcePacketIPAddress() *schema.Resource {
 			},
 
 			"assigned_to": &schema.Schema{
-				Type:     schema.TypeBool,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 
