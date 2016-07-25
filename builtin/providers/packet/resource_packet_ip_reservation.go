@@ -28,7 +28,7 @@ func resourcePacketIPReservation() *schema.Resource {
 			},
 
 			"family": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 
