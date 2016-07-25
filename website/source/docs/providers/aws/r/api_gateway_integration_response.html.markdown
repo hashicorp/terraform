@@ -69,6 +69,6 @@ The following arguments are supported:
   If the backend is an `AWS` Lambda function, the AWS Lambda function error header is matched.
   For all other `HTTP` and `AWS` backends, the HTTP status code is matched.
 * `response_templates` - (Optional) A map specifying the templates used to transform the integration response body
-* `response_parameters_in_json` - (Optional) A map written as JSON string specifying response parameters that can be read from the backend response
-  For example: `response_parameters_in_json = "{\"method.response.header.X-Some-Header\":\"integration.response.header.X-Some-Other-Header\"}"`, 
+* `response_parameters` - (Optional) Specify the response parameters that can be read from the backend response
+  For example: `response_parameters = { "method.response.header.X-Some-Header" = "integration.response.header.X-Some-Other-Header" }`,
   would add the header `X-Some-Other-Header` from the integration response to the method response as the header `X-Some-Header`.

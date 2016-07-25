@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -75,8 +74,9 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 				Elem:     schema.TypeString,
 			},
 
-			"request_parameters_in_json": &schema.Schema{
-				Type:     schema.TypeString,
+			"request_parameters": &schema.Schema{
+				Type:     schema.TypeMap,
+				Elem:     schema.TypeString,
 				Optional: true,
 			},
 
@@ -107,9 +107,9 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 	}
 
 	parameters := make(map[string]string)
-	if v, ok := d.GetOk("request_parameters_in_json"); ok {
-		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
-			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
+	if kv, ok := d.GetOk("request_parameters"); ok {
+		for k, v := range kv.(map[string]interface{}) {
+			parameters[k] = v.(string)
 		}
 	}
 
@@ -175,6 +175,7 @@ func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface
 	d.Set("credentials", integration.Credentials)
 	d.Set("type", integration.Type)
 	d.Set("uri", integration.Uri)
+	d.Set("request_parameters", aws.StringValueMap(integration.RequestParameters))
 	d.Set("request_parameters_in_json", aws.StringValueMap(integration.RequestParameters))
 	d.Set("passthrough_behavior", integration.PassthroughBehavior)
 

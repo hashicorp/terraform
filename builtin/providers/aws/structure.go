@@ -1090,22 +1090,12 @@ func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key 
 	return operations
 }
 
-func expandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
+func expandApiGatewayMethodParametersOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
 	operations := make([]*apigateway.PatchOperation, 0)
 
 	oldParameters, newParameters := d.GetChange(key)
-	oldParametersMap := make(map[string]interface{})
-	newParametersMap := make(map[string]interface{})
-
-	if err := json.Unmarshal([]byte(oldParameters.(string)), &oldParametersMap); err != nil {
-		err := fmt.Errorf("Error unmarshaling old %s: %s", key, err)
-		return operations, err
-	}
-
-	if err := json.Unmarshal([]byte(newParameters.(string)), &newParametersMap); err != nil {
-		err := fmt.Errorf("Error unmarshaling new %s: %s", key, err)
-		return operations, err
-	}
+	oldParametersMap := oldParameters.(map[string]interface{})
+	newParametersMap := newParameters.(map[string]interface{})
 
 	for k, _ := range oldParametersMap {
 		operation := apigateway.PatchOperation{
