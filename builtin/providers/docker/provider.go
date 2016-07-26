@@ -32,6 +32,10 @@ func Provider() terraform.ResourceProvider {
 			"docker_volume":    resourceDockerVolume(),
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"docker_registry_image": dataSourceDockerRegistryImage(),
+		},
+
 		ConfigureFunc: providerConfigure,
 	}
 }
