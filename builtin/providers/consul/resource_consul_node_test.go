@@ -19,8 +19,8 @@ func TestAccConsulNode_basic(t *testing.T) {
 				Config: testAccConsulNodeConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulNodeExists(),
-					testAccCheckConsulNodeValue("consul_catalog_entry.app", "address", "127.0.0.1"),
-					testAccCheckConsulNodeValue("consul_catalog_entry.app", "name", "foo"),
+					testAccCheckConsulNodeValue("consul_catalog_entry.foo", "address", "127.0.0.1"),
+					testAccCheckConsulNodeValue("consul_catalog_entry.foo", "node", "foo"),
 				),
 			},
 		},
@@ -82,6 +82,6 @@ func testAccCheckConsulNodeValue(n, attr, val string) resource.TestCheckFunc {
 const testAccConsulNodeConfig = `
 resource "consul_catalog_entry" "foo" {
 	address = "127.0.0.1"
-	name = "foo"
+	node = "foo"
 }
 `
