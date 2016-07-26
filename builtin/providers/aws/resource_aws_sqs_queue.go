@@ -50,22 +50,22 @@ func resourceAwsSqsQueue() *schema.Resource {
 			"delay_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  0,
 			},
 			"max_message_size": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  262144,
 			},
 			"message_retention_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  345600,
 			},
 			"receive_wait_time_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  0,
 			},
 			"visibility_timeout_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
