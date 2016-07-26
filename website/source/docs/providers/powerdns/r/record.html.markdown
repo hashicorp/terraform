@@ -12,6 +12,8 @@ Provides a PowerDNS record resource.
 
 ## Example Usage
 
+Note that PowerDNS internally lowercases certain records (e.g. CNAME and AAAA), which can lead to resources being marked for a change in every singe plan.
+
 For the v1 API (PowerDNS version 4):
 ```
 # Add a record to the zone
