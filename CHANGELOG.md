@@ -239,6 +239,7 @@ BUG FIXES:
  * provider/aws: Ignore IOPS on non io1 AWS root_block_device [GH-7783]
  * provider/aws: Ignore missing ENI attachment when trying to detach ENI [GH-7185]
  * provider/aws: Fix issue updating ElasticBeanstalk Environment templates [GH-7811]
+ * provider/aws: Restore Defaults to SQS Queues [GH-7818]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
