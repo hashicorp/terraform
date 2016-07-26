@@ -278,7 +278,7 @@ func (client *Client) CreateRecord(zone string, record Record) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 200 && resp.StatusCode != 204 {
 		errorResp := new(errorResponse)
 		if err = json.NewDecoder(resp.Body).Decode(errorResp); err != nil {
 			return "", fmt.Errorf("Error creating record: %s", record.Id())
@@ -309,7 +309,7 @@ func (client *Client) ReplaceRecordSet(zone string, rrSet ResourceRecordSet) (st
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 200 && resp.StatusCode != 204 {
 		errorResp := new(errorResponse)
 		if err = json.NewDecoder(resp.Body).Decode(errorResp); err != nil {
 			return "", fmt.Errorf("Error creating record set: %s", rrSet.Id())
@@ -344,7 +344,7 @@ func (client *Client) DeleteRecordSet(zone string, name string, tpe string) erro
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 200 && resp.StatusCode != 204 {
 		errorResp := new(errorResponse)
 		if err = json.NewDecoder(resp.Body).Decode(errorResp); err != nil {
 			return fmt.Errorf("Error deleting record: %s %s", name, tpe)
