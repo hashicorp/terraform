@@ -29,5 +29,6 @@ func (c *Config) NewClient() (*dc.Client, error) {
 
 // Data ia structure for holding data that we fetch from Docker.
 type Data struct {
-	DockerImages map[string]*dc.APIImages
+	DockerImages   map[string]*dc.APIImages
+	DockerRegistry *dc.AuthConfigurations
 }

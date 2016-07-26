@@ -2,7 +2,7 @@ package docker
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -113,70 +113,96 @@ func fetchLocalImages(data *Data, client *dc.Client) error {
 	return nil
 }
 
+func getAuthConfiguration(data *Data, registry string) (string, dc.AuthConfiguration) {
+	authConfiguration := data.DockerRegistry.Configs[registry]
+
+	if authConfiguration == (dc.AuthConfiguration{}) {
+		if len(data.DockerRegistry.Configs) == 1 {
+			for firstRegistry, firstAuthentication := range data.DockerRegistry.Configs {
+				registry = firstRegistry
+				authConfiguration = firstAuthentication
+			}
+		}
+	}
+
+	if authConfiguration == (dc.AuthConfiguration{}) {
+		authConfiguration = data.DockerRegistry.Configs["http://"+registry]
+	}
+
+	if authConfiguration == (dc.AuthConfiguration{}) {
+		authConfiguration = data.DockerRegistry.Configs["https://"+registry]
+	}
+
+	// If registry is not found, we try with the default one
+	if authConfiguration == (dc.AuthConfiguration{}) {
+		registry = "https://index.docker.io/v1/"
+
+		authConfiguration = data.DockerRegistry.Configs["https://index.docker.io/v1/"]
+	}
+
+	// If registry is not found, we try with the default one
+	if authConfiguration == (dc.AuthConfiguration{}) {
+		registry = "https://hub.docker.com/"
+
+		authConfiguration = data.DockerRegistry.Configs["https://hub.docker.com/"]
+	}
+
+	if authConfiguration == (dc.AuthConfiguration{}) {
+		registry = ""
+	}
+
+	return registry, authConfiguration
+}
+
 func pullImage(data *Data, client *dc.Client, image string) error {
-	// TODO: Test local registry handling. It should be working
-	// based on the code that was ported over
+	r, err := regexp.Compile(`^(http[s]{0,1}:\/\/|)(([a-zA-Z0-9\-_\.]+)\/|([a-zA-Z0-9\-_\.]+:([0-9]{1,5}))\/|)((([a-zA-Z0-9\-_\.]+\/|)*)([a-zA-Z0-9\-_\.]+))(|:([a-zA-Z0-9-_\.]+))$`)
+
+	if err != nil {
+		return fmt.Errorf("Error pulling image due to regexp %s: %s\n", image, err)
+	}
 
 	pullOpts := dc.PullImageOptions{}
 
-	splitImageName := strings.Split(image, ":")
-	switch len(splitImageName) {
+	splitImageName := r.FindStringSubmatch(image)
+	// Example of splitted repository
+	// [0] Original: 							http://test.dkr.ecr.us-east-1.amazonaws.com:80/foo/bar/nervous-system:latest
+	// [1] Protocol:							http://
+	// [2] Regsitry raw:					test.dkr.ecr.us-east-1.amazonaws.com:80/
+	// [3] Registry:
+	// [4] Registry (if port):		test.dkr.ecr.us-east-1.amazonaws.com:80
+	// [5] Port: 		  						80
+	// [6] Repository:						foo/bar/nervous-system
+	// [7] Garbage:								foo/bar/
+	// [8] Garbage: 							bar/
+	// [9] Garbage: 							bar
+	// [10] Garbage:							:latest
+	// [11] Tag: 									latest
 
-	// It's in registry:port/username/repo:tag or registry:port/repo:tag format
-	case 3:
-		splitPortRepo := strings.Split(splitImageName[1], "/")
-		pullOpts.Registry = splitImageName[0] + ":" + splitPortRepo[0]
-		pullOpts.Tag = splitImageName[2]
-		pullOpts.Repository = pullOpts.Registry + "/" + strings.Join(splitPortRepo[1:], "/")
-
-	// It's either registry:port/username/repo, registry:port/repo,
-	// or repo:tag with default registry
-	case 2:
-		splitPortRepo := strings.Split(splitImageName[1], "/")
-		switch len(splitPortRepo) {
-		// repo:tag
-		case 1:
-			pullOpts.Repository = splitImageName[0]
-			pullOpts.Tag = splitImageName[1]
-
-		// registry:port/username/repo or registry:port/repo
-		default:
-			pullOpts.Registry = splitImageName[0] + ":" + splitPortRepo[0]
-			pullOpts.Repository = pullOpts.Registry + "/" + strings.Join(splitPortRepo[1:], "/")
-			pullOpts.Tag = "latest"
-		}
-
-	// Plain username/repo or repo
-	default:
-		pullOpts.Repository = image
+	// If registry as a port defined, we take this information
+	if len(splitImageName[3]) == 0 {
+		splitImageName[3] = splitImageName[4]
 	}
 
-	if err := client.PullImage(pullOpts, dc.AuthConfiguration{}); err != nil {
-		return fmt.Errorf("Error pulling image %s: %s\n", image, err)
+	// If there is no tag, we set "latest" by default
+	if len(splitImageName[11]) == 0 {
+		splitImageName[11] = "latest"
+	}
+
+	pullOpts.Registry = splitImageName[3]
+	pullOpts.Repository = splitImageName[2] + splitImageName[6]
+	pullOpts.Tag = splitImageName[11]
+
+	var authConfiguration dc.AuthConfiguration
+
+	if data.DockerRegistry != nil {
+		pullOpts.Registry, authConfiguration = getAuthConfiguration(data, pullOpts.Registry)
+	}
+
+	if err := client.PullImage(pullOpts, authConfiguration); err != nil {
+		return fmt.Errorf("Error pulling image, registry: '%s', repository: '%s', tag: '%s', error : %s\n", pullOpts.Registry, pullOpts.Repository, pullOpts.Tag, err)
 	}
 
 	return fetchLocalImages(data, client)
-}
-
-func getImageTag(image string) string {
-	splitImageName := strings.Split(image, ":")
-	switch {
-
-	// It's in registry:port/repo:tag format
-	case len(splitImageName) == 3:
-		return splitImageName[2]
-
-	// It's either registry:port/repo or repo:tag with default registry
-	case len(splitImageName) == 2:
-		splitPortRepo := strings.Split(splitImageName[1], "/")
-		if len(splitPortRepo) == 2 {
-			return ""
-		} else {
-			return splitImageName[1]
-		}
-	}
-
-	return ""
 }
 
 func findImage(d *schema.ResourceData, client *dc.Client) (*dc.APIImages, error) {
@@ -193,6 +219,16 @@ func findImage(d *schema.ResourceData, client *dc.Client) (*dc.APIImages, error)
 	foundImage := searchLocalImages(data, imageName)
 
 	if d.Get("keep_updated").(bool) || foundImage == nil {
+		if v, ok := d.GetOk("registry"); ok {
+			authConfigurations, err := deserializeDockerRegistryConfigurations(v.(string))
+
+			if err != nil {
+				return nil, fmt.Errorf("Unable to deserialize registry configuration: %s", err)
+			}
+
+			data.DockerRegistry = authConfigurations
+		}
+
 		if err := pullImage(&data, client, imageName); err != nil {
 			return nil, fmt.Errorf("Unable to pull image %s: %s", imageName, err)
 		}

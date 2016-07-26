@@ -29,6 +29,7 @@ func Provider() terraform.ResourceProvider {
 			"docker_container": resourceDockerContainer(),
 			"docker_image":     resourceDockerImage(),
 			"docker_network":   resourceDockerNetwork(),
+			"docker_registry":  resourceDockerRegistry(),
 			"docker_volume":    resourceDockerVolume(),
 		},
 

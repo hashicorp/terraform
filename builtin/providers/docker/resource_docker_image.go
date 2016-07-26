@@ -22,6 +22,11 @@ func resourceDockerImage() *schema.Resource {
 				Optional: true,
 			},
 
+			"registry": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"latest": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,

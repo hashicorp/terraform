@@ -1,0 +1,16 @@
+{
+  "auth": {
+    "https://test.docker.io": {
+      "auth": "QWdTOkNpQndtMFlhSVNKZVJ0Sm01bjFHNnVxZWVrWHVvWFhQZTVVRmNlOVJxOC8xNHhLT0JnRUJBZ0I0Y0p0R0dpRWlYa2JTWnVa",
+      "email": "none"
+    },
+    "http://test.docker.io": {
+      "auth": "QWdTOkNpQndtMFlhSVNKZVJ0Sm01bjFHNnVxZWVrWHVvWFhQZTVVRmNlOVJxOC8xNHhLT0JnRUJBZ0I0Y0p0R0dpRWlYa2JTWnVb",
+      "email": "none"
+    },
+    "test.docker.io": {
+      "auth": "QWdTOkNpQndtMFlhSVNKZVJ0Sm01bjFHNnVxZWVrWHVvWFhQZTVVRmNlOVJxOC8xNHhLT0JnRUJBZ0I0Y0p0R0dpRWlYa2JTWnVc",
+      "email": "none"
+    }
+  }
+}

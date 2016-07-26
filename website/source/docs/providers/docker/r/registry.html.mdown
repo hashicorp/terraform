@@ -1,0 +1,55 @@
+---
+layout: "docker"
+page_title: "Docker: docker_registry"
+sidebar_current: "docs-docker-resource-registry"
+description: |-
+  Manages credentials for one or many docker registries.
+---
+
+# docker\_registry
+
+Used to declare a private docker registry.
+This can be used alongside [docker\_image](/docs/providers/docker/r/image.html)
+to programmatically use the credentials without having to repeat them.
+
+## Example Usage
+
+```
+# Log to a custom docker registry
+resource "docker_registry" "ubuntu_private" {
+    settings_file = "~/.docker/config.json"
+}
+
+# Find the latest Ubuntu precise image.
+resource "docker_image" "ubuntu" {
+    name = "ubuntu:precise"
+    registry = "${docker_registry.ubuntu_private.configurations}"
+}
+
+# Access it somewhere else with ${docker_image.ubuntu.latest}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `settings_file` - (Optional, string) Path to the docker configuration file.
+* `auth` - (Optional, block) See [Auth](#auth) below for details.
+
+<a id="auth"></a>
+### Auth
+
+`auth` is a block within the configuration that can be repeated to specify
+the auth to use with an image. Each `auth` block supports
+the following:
+
+* `server_address` - (Required, string) Docker registry url.
+* `username` - (Required, string) Username used to login.
+* `password` - (Required, string) Password used to login.
+* `email` - (Optional, string) Email used to login.
+
+## Attributes Reference
+
+The following attributes are exported in addition to the above configuration:
+
+* `configurations` (string) - Serialized docker configurations.
