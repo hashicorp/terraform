@@ -584,6 +584,11 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		rebootRequired = true
 	}
 
+	if d.HasChange("guest_id") {
+		configSpec.GuestId = d.Get("guest_id").(string)
+		hasChanges = true
+	}
+
 	client := meta.(*govmomi.Client)
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
@@ -798,6 +803,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("memory_reservation", mvm.Summary.Config.MemoryReservation)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 	d.Set("uuid", mvm.Summary.Config.Uuid)
+	d.Set("guest_id", mvm.Config.GuestId)
 
 	if err = populateResourceDataDisks(d, mvm.Config.Hardware.Device); err != nil {
 		return err
