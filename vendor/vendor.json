@@ -698,6 +698,14 @@
 			"revisionTime": "2016-08-11T16:24:59Z"
 		},
 		{
+			"checksumSHA1": "z9SOK1x/GroMvOSZNOMwU3WaE+U=",
+			"path": "github.com/aws/aws-sdk-go/service/workspaces",
+			"revision": "565027b24171359f23f883d0fc48c228cdde301d",
+			"revisionTime": "2016-07-21T22:15:38Z",
+			"version": "v1.2.7",
+			"versionExact": "v1.2.7"
+		},
+		{
 			"path": "github.com/bgentry/speakeasy",
 			"revision": "36e9cfdd690967f4f690c6edcc9ffacd006014a0"
 		},
