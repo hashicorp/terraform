@@ -206,9 +206,16 @@ func parseDVPG(d *schema.ResourceData, out *dvs_port_group) error {
 	}
 	if s, ok := d.GetOk("policy"); ok {
 		log.Printf("[DEBUG] Got dvpg.policy: %#v", s)
-		vmap, casted := s.(map[string]interface{})
+		setVal, ok := s.(*schema.Set)
+		if !ok {
+			return fmt.Errorf("Cannot cast policy as a Set with string map. See: %#v", s)
+		}
+		if len(setVal.List()) == 0 {
+			return fmt.Errorf("No PG policy set")
+		}
+		vmap, casted := setVal.List()[0].(map[string]interface{})
 		if !casted {
-			return fmt.Errorf("Cannot cast policy as a string map. See: %#v", s)
+			return fmt.Errorf("Cannot cast policy as a map[string]interface{}. See: %#v", s)
 		}
 		o.policy.allowBlockOverride = vmap["allow_block_override"].(bool)
 		o.policy.allowLivePortMoving = vmap["allow_live_port_moving"].(bool)
@@ -217,16 +224,16 @@ func parseDVPG(d *schema.ResourceData, out *dvs_port_group) error {
 		o.policy.allowShapingOverride = vmap["allow_shaping_override"].(bool)
 		o.policy.allowTrafficFilterOverride = vmap["allow_traffic_filter_override"].(bool)
 		o.policy.allowVendorConfigOverride = vmap["allow_vendor_config_override"].(bool)
-	} else {
-		log.Printf("[DEBUG] Could not get dvpg.policy")
-		o.policy.allowBlockOverride = false
-		o.policy.allowLivePortMoving = false
-		o.policy.allowNetworkRPOverride = false
-		o.policy.portConfigResetDisconnect = true
-		o.policy.allowShapingOverride = false
-		o.policy.allowTrafficFilterOverride = false
-		o.policy.allowVendorConfigOverride = false
+		return nil
 	}
+	log.Printf("[DEBUG] Could not get dvpg.policy")
+	o.policy.allowBlockOverride = false
+	o.policy.allowLivePortMoving = false
+	o.policy.allowNetworkRPOverride = false
+	o.policy.portConfigResetDisconnect = true
+	o.policy.allowShapingOverride = false
+	o.policy.allowTrafficFilterOverride = false
+	o.policy.allowVendorConfigOverride = false
 	return nil
 }
 
