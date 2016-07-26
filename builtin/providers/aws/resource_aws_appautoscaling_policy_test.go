@@ -11,11 +11,10 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSAppautoscalingPolicy_basic(t *testing.T) {
+func TestAccAWSAppautoScalingPolicy_basic(t *testing.T) {
 	var policy applicationautoscaling.ScalingPolicy
 
 	randClusterName := fmt.Sprintf("cluster%s", acctest.RandString(10))
-	// randResourceId := fmt.Sprintf("service/%s/%s", randClusterName, acctest.RandString(10))
 	randPolicyName := fmt.Sprintf("terraform-test-foobar-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
