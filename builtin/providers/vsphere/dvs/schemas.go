@@ -166,6 +166,7 @@ func resourceVSphereDVPGSchema() map[string]*schema.Schema {
 		},
 		"policy": &schema.Schema{
 			Type:     schema.TypeSet,
+			Computed: true,
 			Optional: true,
 			MaxItems: 1,
 			Set:      _setDVPGPolicy,

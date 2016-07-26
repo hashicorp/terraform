@@ -242,7 +242,6 @@ func unparseDVPG(d *schema.ResourceData, in *dvs_port_group) error {
 	var errs []error
 	// define the contents - this means map the stuff to what Terraform expects
 	policyItems := map[string]interface{}{
-
 		"allow_block_override":                  (in.policy.allowBlockOverride),
 		"allow_live_port_moving":                (in.policy.allowLivePortMoving),
 		"allow_network_resources_pool_override": (in.policy.allowNetworkRPOverride),
@@ -251,6 +250,7 @@ func unparseDVPG(d *schema.ResourceData, in *dvs_port_group) error {
 		"allow_traffic_filter_override":         (in.policy.allowTrafficFilterOverride),
 		"allow_vendor_config_override":          (in.policy.allowVendorConfigOverride),
 	}
+	log.Printf("[DEBUG] policyItems read: %#v", policyItems)
 	policyObj := &schema.Set{
 		F: _setDVPGPolicy,
 	}
