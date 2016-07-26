@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccAWSSQSQueue_importBasic(t *testing.T) {
-	resourceName := "aws_sqs_queue.queue-with-defaults"
+	resourceName := "aws_sqs_queue.queue"
 	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
@@ -26,9 +26,6 @@ func TestAccAWSSQSQueue_importBasic(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
-				//The name is never returned after the initial create of the queue.
-				//It is part of the URL and can be split down if needed
-				//ImportStateVerifyIgnore: []string{"name"},
 			},
 		},
 	})
