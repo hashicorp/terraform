@@ -63,7 +63,8 @@ type ArmClient struct {
 
 	deploymentsClient resources.DeploymentsClient
 
-	trafficManagerProfilesClient trafficmanager.ProfilesClient
+	trafficManagerProfilesClient  trafficmanager.ProfilesClient
+	trafficManagerEndpointsClient trafficmanager.EndpointsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -339,6 +340,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tmpc.Authorizer = spt
 	tmpc.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerProfilesClient = tmpc
+
+	tmec := trafficmanager.NewEndpointsClient(c.SubscriptionID)
+	setUserAgent(&tmec.Client)
+	tmec.Authorizer = spt
+	tmec.Sender = autorest.CreateSender(withRequestLogging())
+	client.trafficManagerEndpointsClient = tmec
 
 	return &client, nil
 }
