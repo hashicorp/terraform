@@ -178,6 +178,40 @@ func TestAccAWSBeanstalkEnv_vpc(t *testing.T) {
 	})
 }
 
+func TestAccAWSBeanstalkEnv_template_change(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkEnv_TemplateChange_stack(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.environment", &app),
+				),
+			},
+			resource.TestStep{
+				Config: testAccBeanstalkEnv_TemplateChange_temp(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.environment", &app),
+				),
+			},
+			resource.TestStep{
+				Config: testAccBeanstalkEnv_TemplateChange_stack(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.environment", &app),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckBeanstalkEnvDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn
 
@@ -570,4 +604,64 @@ resource "aws_elastic_beanstalk_environment" "default" {
   }
 }
 `, name)
+}
+
+func testAccBeanstalkEnv_TemplateChange_stack(r int) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_elastic_beanstalk_application" "app" {
+  name        = "beanstalk-app-%d"
+  description = ""
+}
+
+resource "aws_elastic_beanstalk_environment" "environment" {
+  name        = "beanstalk-env-%d"
+  application = "${aws_elastic_beanstalk_application.app.name}"
+
+  # Go 1.4
+
+  solution_stack_name = "64bit Amazon Linux 2016.03 v2.1.0 running Go 1.4"
+}
+
+resource "aws_elastic_beanstalk_configuration_template" "template" {
+  name        = "beanstalk-config-%d"
+  application = "${aws_elastic_beanstalk_application.app.name}"
+
+  # Go 1.5
+  solution_stack_name = "64bit Amazon Linux 2016.03 v2.1.3 running Go 1.5"
+}
+`, r, r, r)
+}
+
+func testAccBeanstalkEnv_TemplateChange_temp(r int) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_elastic_beanstalk_application" "app" {
+  name        = "beanstalk-app-%d"
+  description = ""
+}
+
+resource "aws_elastic_beanstalk_environment" "environment" {
+  name        = "beanstalk-env-%d"
+  application = "${aws_elastic_beanstalk_application.app.name}"
+
+  # Go 1.4
+
+  template_name = "${aws_elastic_beanstalk_configuration_template.template.name}"
+}
+
+resource "aws_elastic_beanstalk_configuration_template" "template" {
+  name        = "beanstalk-config-%d"
+  application = "${aws_elastic_beanstalk_application.app.name}"
+
+  # Go 1.5
+  solution_stack_name = "64bit Amazon Linux 2016.03 v2.1.3 running Go 1.5"
+}
+`, r, r, r)
 }
