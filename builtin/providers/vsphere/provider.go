@@ -3,9 +3,9 @@ package vsphere
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/builtin/providers/vsphere/dvs"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/dvs"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -62,7 +62,6 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", ""),
 				Description: "govomomi debug path for debug",
 			},
-
 		},
 
 		ResourcesMap: map[string]*schema.Resource{

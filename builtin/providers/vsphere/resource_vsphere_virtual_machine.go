@@ -587,6 +587,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("guest_id") {
 		configSpec.GuestId = d.Get("guest_id").(string)
 		hasChanges = true
+		rebootRequired = true
 	}
 
 	client := meta.(*govmomi.Client)
