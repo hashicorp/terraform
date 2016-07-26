@@ -44,6 +44,7 @@ FEATURES:
  * **New Data Source:** `aws_ecs_container_definition` [GH-7230]
  * **New Data Source:** `atlas_artifact` [GH-7419]
  * **New Data Source:** `docker_registry_image` [GH-7000]
+ * **New Data Source:** `consul_keys` [GH-7678]
  * **New Interpolation Function:** `sort` [GH-7128]
  * **New Interpolation Function:** `distinct` [GH-7174]
  * **New Provider:** `grafana` [GH-6206]
