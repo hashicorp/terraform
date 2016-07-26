@@ -705,6 +705,8 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   bar = baz
+  list = Hello,World
+  map = Baz,Foo,Hello
   num = 2
   type = aws_instance
 `
@@ -712,6 +714,8 @@ aws_instance.foo:
 const testTerraformApplyVarsEnvStr = `
 aws_instance.bar:
   ID = foo
+  bar = Hello,World
+  baz = Baz,Foo,Hello
   foo = baz
   type = aws_instance
 `
