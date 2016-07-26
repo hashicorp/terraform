@@ -26,6 +26,11 @@ func Provider() terraform.ResourceProvider {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
+			"token": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -33,8 +38,12 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"consul_keys":       resourceConsulKeys(),
-			"consul_key_prefix": resourceConsulKeyPrefix(),
+			"consul_agent_service": resourceConsulAgentService(),
+			"consul_catalog_entry": resourceConsulCatalogEntry(),
+			"consul_keys":          resourceConsulKeys(),
+			"consul_key_prefix":    resourceConsulKeyPrefix(),
+			"consul_node":          resourceConsulNode(),
+			"consul_service":       resourceConsulService(),
 		},
 
 		ConfigureFunc: providerConfigure,
