@@ -16,7 +16,6 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 	var target applicationautoscaling.ScalableTarget
 
 	randClusterName := fmt.Sprintf("cluster-%s", acctest.RandString(10))
-	randResourceId := fmt.Sprintf("service/%s/%s", randClusterName, acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -25,12 +24,10 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 		CheckDestroy:  testAccCheckAWSAppautoscalingTargetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAppautoscalingTargetConfig(randClusterName, randResourceId),
+				Config: testAccAWSAppautoscalingTargetConfig(randClusterName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingTargetExists("aws_appautoscaling_target.bar", &target),
-					testAccCheckAWSAppautoscalingTargetAttributes(&target, randResourceId),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "service_namespace", "ecs"),
-					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "resource_id", fmt.Sprintf("service/%s/foobar", randClusterName)),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "scalable_dimension", "ecs:service:DesiredCount"),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "min_capacity", "1"),
 					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "max_capacity", "3"),
@@ -38,11 +35,11 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAWSAppautoscalingTargetConfigUpdate(randClusterName, randResourceId),
+				Config: testAccAWSAppautoscalingTargetConfigUpdate(randClusterName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingTargetExists("aws_appautoscaling_target.bar", &target),
-					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "min_capacity", "3"),
-					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "max_capacity", "6"),
+					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "min_capacity", "2"),
+					resource.TestCheckResourceAttr("aws_appautoscaling_target.bar", "max_capacity", "8"),
 				),
 			},
 		},
@@ -60,7 +57,8 @@ func testAccCheckAWSAppautoscalingTargetDestroy(s *terraform.State) error {
 		// Try to find the target
 		describeTargets, err := conn.DescribeScalableTargets(
 			&applicationautoscaling.DescribeScalableTargetsInput{
-				ResourceIds: []*string{aws.String(rs.Primary.ID)},
+				ResourceIds:      []*string{aws.String(rs.Primary.ID)},
+				ServiceNamespace: aws.String(rs.Primary.Attributes["service_namespace"]),
 			},
 		)
 
@@ -99,7 +97,8 @@ func testAccCheckAWSAppautoscalingTargetExists(n string, target *applicationauto
 
 		describeTargets, err := conn.DescribeScalableTargets(
 			&applicationautoscaling.DescribeScalableTargetsInput{
-				ResourceIds: []*string{aws.String(rs.Primary.ID)},
+				ResourceIds:      []*string{aws.String(rs.Primary.ID)},
+				ServiceNamespace: aws.String(rs.Primary.Attributes["service_namespace"]),
 			},
 		)
 
@@ -107,24 +106,18 @@ func testAccCheckAWSAppautoscalingTargetExists(n string, target *applicationauto
 			return err
 		}
 
-		if len(describeTargets.ScalableTargets) != 1 ||
-			*describeTargets.ScalableTargets[0].ResourceId != rs.Primary.ID {
+		if len(describeTargets.ScalableTargets) != 1 || *describeTargets.ScalableTargets[0].ResourceId != rs.Primary.ID {
 			return fmt.Errorf("Application AutoScaling ResourceId not found")
 		}
 
-		*target = *describeTargets.ScalableTargets[0]
+		target = describeTargets.ScalableTargets[0]
 
 		return nil
 	}
 }
 
-func testAccCheckAWSAppautoscalingTargetAttributes(target *applicationautoscaling.ScalableTarget, resourceId string) resource.TestCheckFunc {
-	return nil
-}
-
 func testAccAWSAppautoscalingTargetConfig(
-	randClusterName string,
-	randResourceId string) string {
+	randClusterName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "autoscale_role" {
 	name = "autoscalerole%s"
@@ -210,14 +203,13 @@ resource "aws_appautoscaling_target" "bar" {
 	scalable_dimension = "ecs:service:DesiredCount"
 	role_arn = "${aws_iam_role.autoscale_role.arn}"	
 	min_capacity = 1
-	max_capacity = 4
+	max_capacity = 3
 }
 `, randClusterName, randClusterName, randClusterName)
 }
 
 func testAccAWSAppautoscalingTargetConfigUpdate(
-	randClusterName,
-	randResourceId string) string {
+	randClusterName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "autoscale_role" {
 	name = "autoscalerole%s"
