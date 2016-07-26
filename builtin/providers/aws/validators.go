@@ -451,3 +451,12 @@ func validateDbEventSubscriptionName(v interface{}, k string) (ws []string, erro
 	}
 	return
 }
+
+func validateApiGatewayIntegrationPassthroughBehavior(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "WHEN_NO_MATCH" && value != "WHEN_NO_TEMPLATES" && value != "NEVER" {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of 'WHEN_NO_MATCH', 'WHEN_NO_TEMPLATES', 'NEVER'", k))
+	}
+	return
+}
