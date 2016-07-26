@@ -70,7 +70,7 @@ func resourceAwsSqsQueue() *schema.Resource {
 			"visibility_timeout_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  30,
 			},
 			"policy": &schema.Schema{
 				Type:     schema.TypeString,
