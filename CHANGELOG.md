@@ -8,7 +8,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * Quotation marks may no longer be escaped in HIL expressions [GH-7201]
  * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
  * `aws_elb` now defaults `cross_zone_load_balancing` to `true`
- * `resource_aws_instance`: EC2 Classic users may continue to use
+ * `aws_instance`: EC2 Classic users may continue to use
    `security_groups` to reference Security Groups by their `name`. Users who are
    managing Instances inside VPCs will need to use `vpc_security_group_ids` instead, 
    and reference the security groups by their `id`. 
@@ -21,6 +21,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
  * `azurerm_virtual_machine` computer_name now Required
  * `aws_db_instance` now defaults `publicly_accessible` to false
+ * `keep_updated` parameter removed from `docker_image` - This parameter never did what it was supposed to do.
+   See relevant docs, specifically `pull_trigger` & new `docker_registry_image` data source to understand how to keep your `docker_image` updated.
  * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
  * `atlas_artifact` resource has be deprecated. Please use the new `atlas_artifact` Data Source
  * The `member` attribute of `openstack_lb_pool_v1` has been deprecated. Please ue the new `openstack_lb_member_v1` resource.
@@ -41,6 +43,7 @@ FEATURES:
  * **New Data Source:** `aws_s3_bucket_object` [GH-6946]
  * **New Data Source:** `aws_ecs_container_definition` [GH-7230]
  * **New Data Source:** `atlas_artifact` [GH-7419]
+ * **New Data Source:** `docker_registry_image` [GH-7000]
  * **New Interpolation Function:** `sort` [GH-7128]
  * **New Interpolation Function:** `distinct` [GH-7174]
  * **New Provider:** `grafana` [GH-6206]
@@ -148,6 +151,7 @@ IMPROVEMENTS:
  * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/docker: Docker Container DNS Setting Enhancements [GH-7392]
  * provider/docker: Add `destroy_grace_seconds` option to stop container before delete [GH-7513]
+ * provider/docker: Add `pull_trigger` option to `docker_image` to trigger pulling layers of a given image [GH-7000]
  * provider/fastly: Add support for Cache Settings [GH-6781]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
  * provider/fastly: Add support for custom VCL configuration [GH-6662]
