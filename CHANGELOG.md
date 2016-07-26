@@ -87,6 +87,8 @@ FEATURES:
  * **New Resource:** `consul_catalog_entry` [GH-7508]
  * **New Resource:** `consul_node` [GH-7508]
  * **New Resource:** `consul_service` [GH-7508]
+ * **New Resource:** `mysql_grant` [GH-7656]
+ * **New Resource:** `mysql_user` [GH-7656]
  * core: Tainted resources now show up in the plan and respect dependency ordering [GH-6600]
  * core: The `lookup` interpolation function can now have a default fall-back value specified [GH-6884]
  * core: The `terraform plan` command no longer persists state. [GH-6811]
