@@ -8,7 +8,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * Quotation marks may no longer be escaped in HIL expressions [GH-7201]
  * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
  * `aws_elb` now defaults `cross_zone_load_balancing` to `true`
- * `resource_aws_instance`: EC2 Classic users may continue to use
+ * `aws_instance`: EC2 Classic users may continue to use
    `security_groups` to reference Security Groups by their `name`. Users who are
    managing Instances inside VPCs will need to use `vpc_security_group_ids` instead, 
    and reference the security groups by their `id`. 
@@ -21,6 +21,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
  * `azurerm_virtual_machine` computer_name now Required
  * `aws_db_instance` now defaults `publicly_accessible` to false
+ * `keep_updated` parameter removed from `docker_image` - This parameter never did what it was supposed to do.
+   See relevant docs, specifically `pull_trigger` & new `docker_registry_image` data source to understand how to keep your `docker_image` updated.
  * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
  * `atlas_artifact` resource has be deprecated. Please use the new `atlas_artifact` Data Source
  * The `member` attribute of `openstack_lb_pool_v1` has been deprecated. Please ue the new `openstack_lb_member_v1` resource.
@@ -41,6 +43,8 @@ FEATURES:
  * **New Data Source:** `aws_s3_bucket_object` [GH-6946]
  * **New Data Source:** `aws_ecs_container_definition` [GH-7230]
  * **New Data Source:** `atlas_artifact` [GH-7419]
+ * **New Data Source:** `docker_registry_image` [GH-7000]
+ * **New Data Source:** `consul_keys` [GH-7678]
  * **New Interpolation Function:** `sort` [GH-7128]
  * **New Interpolation Function:** `distinct` [GH-7174]
  * **New Provider:** `grafana` [GH-6206]
@@ -79,6 +83,12 @@ FEATURES:
  * **New Resource:** `datadog_timeboard` [GH-6900]
  * **New Resource:** `digitalocean_tag` [GH-7500]
  * **New Resource:** `digitalocean_volume` [GH-7560]
+ * **New Resource:** `consul_agent_service` [GH-7508]
+ * **New Resource:** `consul_catalog_entry` [GH-7508]
+ * **New Resource:** `consul_node` [GH-7508]
+ * **New Resource:** `consul_service` [GH-7508]
+ * **New Resource:** `mysql_grant` [GH-7656]
+ * **New Resource:** `mysql_user` [GH-7656]
  * core: Tainted resources now show up in the plan and respect dependency ordering [GH-6600]
  * core: The `lookup` interpolation function can now have a default fall-back value specified [GH-6884]
  * core: The `terraform plan` command no longer persists state. [GH-6811]
@@ -148,6 +158,7 @@ IMPROVEMENTS:
  * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/docker: Docker Container DNS Setting Enhancements [GH-7392]
  * provider/docker: Add `destroy_grace_seconds` option to stop container before delete [GH-7513]
+ * provider/docker: Add `pull_trigger` option to `docker_image` to trigger pulling layers of a given image [GH-7000]
  * provider/fastly: Add support for Cache Settings [GH-6781]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
  * provider/fastly: Add support for custom VCL configuration [GH-6662]
@@ -227,6 +238,7 @@ BUG FIXES:
  * provider/aws: Fix bug with Updating `aws_autoscaling_group` `enabled_metrics` [GH-7698]
  * provider/aws: Ignore IOPS on non io1 AWS root_block_device [GH-7783]
  * provider/aws: Ignore missing ENI attachment when trying to detach ENI [GH-7185]
+ * provider/aws: Fix issue updating ElasticBeanstalk Environment templates [GH-7811]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
