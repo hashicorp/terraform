@@ -606,7 +606,12 @@ resource "vsphere_virtual_machine" "with_existing_vmdk" {
     disk {
 %s
         vmdk = "%s"
-	bootable = true
+		bootable = true
+    }
+    disk {
+        size = 1
+        iops = 500
+		name = "one"
     }
 }
 `
@@ -635,7 +640,7 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					TestFuncData{vm: vm, label: data.label, vmName: "vsphere_virtual_machine.with_existing_vmdk",
-						vmResource: "terraform-test-with-existing-vmdk"}.testCheckFuncBasic(),
+						vmResource: "terraform-test-with-existing-vmdk", numDisks: "2"}.testCheckFuncBasic(),
 					//resource.TestCheckResourceAttr(
 					//	"vsphere_virtual_machine.with_existing_vmdk", "disk.2393891804.vmdk", vmdk_path),
 					//resource.TestCheckResourceAttr(
@@ -766,7 +771,7 @@ resource "vsphere_virtual_machine" "ipv4ipv6" {
     disk {
         size = 1
         iops = 500
-	name = "one"
+		name = "one"
     }
 }
 `

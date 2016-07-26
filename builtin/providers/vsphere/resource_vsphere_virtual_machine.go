@@ -789,7 +789,6 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		if diskSet, ok := vL.(*schema.Set); ok {
 
 			disks := []hardDisk{}
-			hasBootableDisk := false
 			for _, value := range diskSet.List() {
 				disk := value.(map[string]interface{})
 				newDisk := hardDisk{}
@@ -799,10 +798,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 						return fmt.Errorf("Cannot specify name of a template")
 					}
 					vm.template = v
-					if hasBootableDisk {
+					if vm.hasBootableVmdk {
 						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
 					}
-					hasBootableDisk = true
+					vm.hasBootableVmdk = true
 				}
 
 				if v, ok := disk["type"].(string); ok && v != "" {
@@ -846,9 +845,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 						return fmt.Errorf("Cannot specify name of a vmdk")
 					}
 					if vBootable, ok := disk["bootable"].(bool); ok {
-						hasBootableDisk = true
+						if vBootable && vm.hasBootableVmdk {
+							return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
+						}
 						newDisk.bootable = vBootable
-						vm.hasBootableVmdk = vBootable
+						vm.hasBootableVmdk = vm.hasBootableVmdk || vBootable
 					}
 					newDisk.vmdkPath = vVmdk
 				}
