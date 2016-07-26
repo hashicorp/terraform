@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
@@ -94,6 +95,7 @@ type AWSClient struct {
 	emrconn               *emr.EMR
 	esconn                *elasticsearch.ElasticsearchService
 	apigateway            *apigateway.APIGateway
+	appautoscalingconn    *applicationautoscaling.ApplicationAutoScaling
 	autoscalingconn       *autoscaling.AutoScaling
 	s3conn                *s3.S3
 	sesConn               *ses.SES
@@ -213,6 +215,7 @@ func (c *Config) Client() (interface{}, error) {
 		}
 
 		client.apigateway = apigateway.New(sess)
+		client.appautoscalingconn = applicationautoscaling.New(sess)
 		client.autoscalingconn = autoscaling.New(sess)
 		client.cfconn = cloudformation.New(sess)
 		client.cloudfrontconn = cloudfront.New(sess)
