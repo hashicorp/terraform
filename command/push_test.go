@@ -397,21 +397,29 @@ func TestPush_tfvars(t *testing.T) {
 	// make sure these dind't go missing for some reason
 	for k, v := range variables {
 		if !reflect.DeepEqual(client.UpsertOptions.Variables[k], v) {
-			t.Fatalf("bad: %#v", client.UpsertOptions.Variables)
+			t.Fatalf("bad: %#v", client.UpsertOptions.Variables[k])
 		}
 	}
 
-	//now check TFVVars
-
+	//now check TFVars
 	tfvars := []atlas.TFVar{
 		{"bar", "foo", false},
-		{"baz", "{\n  A = \"a\"\n  B = \"b\"\n}\n", true},
-		{"fob", "[\"a\", \"b\", \"c\"]\n", true},
+		{"baz", `{
+  A      = "a"
+  B      = "b"
+  interp = "${file("t.txt")}"
+}
+`, true},
+		{"fob", `["a", "b", "c", "quotes \"in\" quotes"]` + "\n", true},
 		{"foo", "bar", false},
 	}
 
-	if !reflect.DeepEqual(client.UpsertOptions.TFVars, tfvars) {
-		t.Fatalf("bad tf_vars: %#v", client.UpsertOptions.TFVars)
+	for i, expected := range tfvars {
+		got := client.UpsertOptions.TFVars[i]
+		if got != expected {
+			t.Logf("%2d expected: %#v", i, expected)
+			t.Logf("        got: %#v", got)
+		}
 	}
 }
 
@@ -582,9 +590,10 @@ func pushTFVars() map[string]interface{} {
 		"foo": "bar",
 		"bar": "foo",
 		"baz": map[string]interface{}{
-			"A": "a",
-			"B": "b",
+			"A":      "a",
+			"B":      "b",
+			"interp": `${file("t.txt")}`,
 		},
-		"fob": []interface{}{"a", "b", "c"},
+		"fob": []interface{}{"a", "b", "c", `quotes "in" quotes`},
 	}
 }
