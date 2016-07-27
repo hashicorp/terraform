@@ -43,7 +43,7 @@ func validateArmStorageTableName(v interface{}, k string) (ws []string, errors [
 			"Table Storage %q cannot use the word `table`: %q",
 			k, value))
 	}
-	if !regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]{2,62}$`).MatchString(value) {
+	if !regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]{6,63}$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"Table Storage %q cannot begin with a numeric character, only alphanumeric characters are allowed and must be between 6 and 63 characters long: %q",
 			k, value))
