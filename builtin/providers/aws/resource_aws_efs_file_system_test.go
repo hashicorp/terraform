@@ -9,9 +9,70 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/efs"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func TestResourceAWSEFSReferenceName_validation(t *testing.T) {
+	var value string
+	var errors []error
+
+	value = acctest.RandString(128)
+	_, errors = validateReferenceName(value, "reference_name")
+	if len(errors) == 0 {
+		t.Fatalf("Expected to trigger a validation error")
+	}
+
+	value = acctest.RandString(32)
+	_, errors = validateReferenceName(value, "reference_name")
+	if len(errors) != 0 {
+		t.Fatalf("Expected to trigger a validation error")
+	}
+}
+
+func TestResourceAWSEFSPerformanceMode_validation(t *testing.T) {
+	type testCase struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCase{
+		{
+			Value:    "garrusVakarian",
+			ErrCount: 1,
+		},
+		{
+			Value:    acctest.RandString(80),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validatePerformanceModeType(tc.Value, "performance_mode")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected to trigger a validation error")
+		}
+	}
+
+	validCases := []testCase{
+		{
+			Value:    "generalPurpose",
+			ErrCount: 0,
+		},
+		{
+			Value:    "maxIO",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validatePerformanceModeType(tc.Value, "aws_efs_file_system")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected not to trigger a validation error")
+		}
+	}
+}
 
 func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{

@@ -28,7 +28,7 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateCreationToken,
+				ValidateFunc: validateReferenceName,
 			},
 
 			"performance_mode": &schema.Schema{
@@ -192,7 +192,7 @@ func resourceAwsEfsFileSystemDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func validateCreationToken(v interface{}, k string) (ws []string, errors []error) {
+func validateReferenceName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	creationToken := resource.PrefixedUniqueId(fmt.Sprintf("%s-", value))
 	if len(creationToken) > 64 {
