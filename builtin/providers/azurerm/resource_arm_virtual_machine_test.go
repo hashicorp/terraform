@@ -262,6 +262,36 @@ func TestAccAzureRMVirtualMachine_ChangeComputerName(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMVirtualMachine_ChangeAvailbilitySet(t *testing.T) {
+	var afterCreate, afterUpdate compute.VirtualMachine
+
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_withAvailabilitySet, ri, ri, ri, ri, ri, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_updateAvailabilitySet, ri, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &afterCreate),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &afterUpdate),
+					testAccCheckVirtualMachineRecreated(
+						t, &afterCreate, &afterUpdate),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMVirtualMachineExists(name string, vm *compute.VirtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -1210,6 +1240,188 @@ resource "azurerm_virtual_machine" "test" {
         }
     }
 }
+`
+
+var testAccAzureRMVirtualMachine_withAvailabilitySet = `
+ resource "azurerm_resource_group" "test" {
+     name = "acctestrg-%d"
+     location = "West US"
+ }
+
+ resource "azurerm_virtual_network" "test" {
+     name = "acctvn-%d"
+     address_space = ["10.0.0.0/16"]
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+ }
+
+ resource "azurerm_subnet" "test" {
+     name = "acctsub-%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     virtual_network_name = "${azurerm_virtual_network.test.name}"
+     address_prefix = "10.0.2.0/24"
+ }
+
+ resource "azurerm_network_interface" "test" {
+     name = "acctni-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+
+     ip_configuration {
+     	name = "testconfiguration1"
+     	subnet_id = "${azurerm_subnet.test.id}"
+     	private_ip_address_allocation = "dynamic"
+     }
+ }
+
+ resource "azurerm_storage_account" "test" {
+     name = "accsa%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     location = "westus"
+     account_type = "Standard_LRS"
+
+     tags {
+         environment = "staging"
+     }
+ }
+
+ resource "azurerm_availability_set" "test" {
+    name = "availabilityset%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+ resource "azurerm_storage_container" "test" {
+     name = "vhds"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     storage_account_name = "${azurerm_storage_account.test.name}"
+     container_access_type = "private"
+ }
+
+ resource "azurerm_virtual_machine" "test" {
+     name = "acctvm-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     network_interface_ids = ["${azurerm_network_interface.test.id}"]
+     vm_size = "Standard_A0"
+     availability_set_id = "${azurerm_availability_set.test.id}"
+     delete_os_disk_on_termination = true
+
+     storage_image_reference {
+ 	publisher = "Canonical"
+ 	offer = "UbuntuServer"
+ 	sku = "14.04.2-LTS"
+ 	version = "latest"
+     }
+
+     storage_os_disk {
+         name = "myosdisk1"
+         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+         caching = "ReadWrite"
+         create_option = "FromImage"
+     }
+
+     os_profile {
+ 	computer_name = "hostname%d"
+ 	admin_username = "testadmin"
+ 	admin_password = "Password1234!"
+     }
+
+     os_profile_linux_config {
+ 	disable_password_authentication = false
+     }
+ }
+`
+
+var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
+ resource "azurerm_resource_group" "test" {
+     name = "acctestrg-%d"
+     location = "West US"
+ }
+
+ resource "azurerm_virtual_network" "test" {
+     name = "acctvn-%d"
+     address_space = ["10.0.0.0/16"]
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+ }
+
+ resource "azurerm_subnet" "test" {
+     name = "acctsub-%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     virtual_network_name = "${azurerm_virtual_network.test.name}"
+     address_prefix = "10.0.2.0/24"
+ }
+
+ resource "azurerm_network_interface" "test" {
+     name = "acctni-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+
+     ip_configuration {
+     	name = "testconfiguration1"
+     	subnet_id = "${azurerm_subnet.test.id}"
+     	private_ip_address_allocation = "dynamic"
+     }
+ }
+
+ resource "azurerm_storage_account" "test" {
+     name = "accsa%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     location = "westus"
+     account_type = "Standard_LRS"
+
+     tags {
+         environment = "staging"
+     }
+ }
+
+ resource "azurerm_availability_set" "test" {
+    name = "updatedAvailabilitySet%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+ resource "azurerm_storage_container" "test" {
+     name = "vhds"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     storage_account_name = "${azurerm_storage_account.test.name}"
+     container_access_type = "private"
+ }
+
+ resource "azurerm_virtual_machine" "test" {
+     name = "acctvm-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     network_interface_ids = ["${azurerm_network_interface.test.id}"]
+     vm_size = "Standard_A0"
+     availability_set_id = "${azurerm_availability_set.test.id}"
+     delete_os_disk_on_termination = true
+
+     storage_image_reference {
+ 	publisher = "Canonical"
+ 	offer = "UbuntuServer"
+ 	sku = "14.04.2-LTS"
+ 	version = "latest"
+     }
+
+     storage_os_disk {
+         name = "myosdisk1"
+         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+         caching = "ReadWrite"
+         create_option = "FromImage"
+     }
+
+     os_profile {
+ 	computer_name = "hostname%d"
+ 	admin_username = "testadmin"
+ 	admin_password = "Password1234!"
+     }
+
+     os_profile_linux_config {
+ 	disable_password_authentication = false
+     }
+ }
 `
 
 var testAccAzureRMVirtualMachine_updateMachineName = `
