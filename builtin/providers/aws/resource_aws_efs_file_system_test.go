@@ -117,6 +117,10 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 					testAccCheckEfsFileSystem(
 						"aws_efs_file_system.foo-with-performance-mode",
 					),
+					testAccCheckEfsCreationToken(
+						"aws_efs_file_system.foo-with-performance-mode",
+						"supercalifragilisticexpialidocious",
+					),
 					testAccCheckEfsFileSystemPerformanceMode(
 						"aws_efs_file_system.foo-with-performance-mode",
 						"maxIO",
@@ -176,6 +180,36 @@ func testAccCheckEfsFileSystem(resourceID string) resource.TestCheckFunc {
 	}
 }
 
+func testAccCheckEfsCreationToken(resourceID string, expectedToken string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceID]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceID)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).efsconn
+		resp, err := conn.DescribeFileSystems(&efs.DescribeFileSystemsInput{
+			FileSystemId: aws.String(rs.Primary.ID),
+		})
+
+		fs := resp.FileSystems[0]
+		if *fs.CreationToken != expectedToken {
+			return fmt.Errorf("Creation Token mismatch.\nExpected: %s\nGiven: %v",
+				expectedToken, *fs.CreationToken)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckEfsFileSystemTags(resourceID string, expectedTags map[string]string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceID]
@@ -222,7 +256,7 @@ func testAccCheckEfsFileSystemPerformanceMode(resourceID string, expectedMode st
 		})
 
 		fs := resp.FileSystems[0]
-		if fs.PerformanceMode == nil || *fs.PerformanceMode != expectedMode {
+		if *fs.PerformanceMode != expectedMode {
 			return fmt.Errorf("Performance Mode mismatch.\nExpected: %s\nGiven: %v",
 				expectedMode, *fs.PerformanceMode)
 		}
@@ -253,6 +287,7 @@ resource "aws_efs_file_system" "foo-with-tags" {
 
 const testAccAWSEFSFileSystemConfigWithPerformanceMode = `
 resource "aws_efs_file_system" "foo-with-performance-mode" {
+	creation_token = "supercalifragilisticexpialidocious"
 	performance_mode = "maxIO"
 }
 `

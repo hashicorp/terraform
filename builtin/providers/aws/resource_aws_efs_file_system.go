@@ -24,11 +24,20 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"reference_name": &schema.Schema{
+			"creation_token": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateReferenceName,
+				ValidateFunc: validateMaxLength(64),
+			},
+
+			"reference_name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Deprecated:    "Please use attribute `creation_token' instead. This attribute might be removed in future releases.",
+				ConflictsWith: []string{"creation_token"},
+				ValidateFunc:  validateReferenceName,
 			},
 
 			"performance_mode": &schema.Schema{
@@ -47,10 +56,15 @@ func resourceAwsEfsFileSystemCreate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).efsconn
 
 	creationToken := ""
-	if v, ok := d.GetOk("reference_name"); ok {
-		creationToken = resource.PrefixedUniqueId(fmt.Sprintf("%s-", v.(string)))
+	if v, ok := d.GetOk("creation_token"); ok {
+		creationToken = v.(string)
 	} else {
-		creationToken = resource.UniqueId()
+		if v, ok := d.GetOk("reference_name"); ok {
+			creationToken = resource.PrefixedUniqueId(fmt.Sprintf("%s-", v.(string)))
+			log.Printf("[WARN] Using deprecated `reference_name' attribute.")
+		} else {
+			creationToken = resource.UniqueId()
+		}
 	}
 
 	createOpts := &efs.CreateFileSystemInput{
