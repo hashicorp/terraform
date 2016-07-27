@@ -115,15 +115,15 @@ The supported built-in functions are:
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
   * `distinct(list)` - Removes duplicate items from a list. Keeps the first
-     occurrence of each element, and removes subsequent occurences.
-     Example: `distinct(var.usernames)`
+     occurrence of each element, and removes subsequent occurences. This
+     function is only valid for flat lists. Example: `distinct(var.usernames)`
 
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
       elements, this function will wrap using a standard mod algorithm.
-      A list is only possible with splat variables from resources with
-      a count greater than one.
-      Example: `element(aws_subnet.foo.*.id, count.index)`
+      This function only works on flat lists. Examples:
+      * `element(aws_subnet.foo.*.id, count.index)`
+      * `element(var.list_of_strings, 2)`
 
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
@@ -149,24 +149,28 @@ The supported built-in functions are:
       `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
       Passing lists with different lengths to formatlist results in an error.
 
-  * `index(list, elem)` - Finds the index of a given element in a list. Example:
-      `index(aws_instance.foo.*.tags.Name, "foo-test")`
+  * `index(list, elem)` - Finds the index of a given element in a list.
+      This function only works on flat lists.
+      Example: `index(aws_instance.foo.*.tags.Name, "foo-test")`
 
-  * `join(delim, list)` - Joins the list with the delimiter for a resultant string. A list is
-      only possible with splat variables from resources with a count
-      greater than one. Example: `join(",", aws_instance.foo.*.id)`
+  * `join(delim, list)` - Joins the list with the delimiter for a resultant string.
+      This function works only on flat lists.
+      Examples:
+      * `join(",", aws_instance.foo.*.id)`
+      * `join(",", var.ami_list)`
 
   * `jsonencode(item)` - Returns a JSON-encoded representation of the given
     item, which may be a string, list of strings, or map from string to string.
     Note that if the item is a string, the return value includes the double
     quotes.
 
-  * `keys(map)` - Returns a lexically sorted, JSON-encoded list of the map keys.
+  * `keys(map)` - Returns a lexically sorted list of the map keys.
 
-  * `length(list)` - Returns a number of members in a given list
+  * `length(list)` - Returns a number of members in a given list, map, or string.
       or a number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
       * `${length("a,b,c")}` = 5
+      * `${length(map("key", "val"))}` = 1
 
   * `list(items...)` - Returns a list consisting of the arguments to the function.
       This function provides a way of representing list literals in interpolation.
@@ -177,7 +181,9 @@ The supported built-in functions are:
       variable. The `map` parameter should be another variable, such
       as `var.amis`. If `key` does not exist in `map`, the interpolation will
       fail unless you specify a third argument, `default`, which should be a
-      string value to return if no `key` is found in `map.
+      string value to return if no `key` is found in `map`. This function
+      only works on flat maps and will return an error for maps that
+      include nested lists or maps.
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 
@@ -232,7 +238,9 @@ The supported built-in functions are:
 
   * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
-  * `values(map)` - Returns a JSON-encoded list of the map values, in the order of the keys returned by the `keys` function.
+  * `values(map)` - Returns a list of the map values, in the order of the keys
+    returned by the `keys` function. This function only works on flat maps and
+    will return an error for maps that include nested lists or maps.
 
 ## Templates
 
