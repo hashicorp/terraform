@@ -12,44 +12,27 @@ func resourcePacketIPReservation() *schema.Resource {
 		Delete: resourcePacketIPReservationDelete,
 
 		Schema: map[string]*schema.Schema{
-			"address": &schema.Schema{
+			"id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"gateway": &schema.Schema{
+			"type": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Required: true,
+				ForceNew: true,
 			},
 
-			"network": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"family": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"netmask": &schema.Schema{
+			"quantity": &schema.Schema{
 				Type:     schema.TypeInt,
-				Computed: true,
+				Optional: true,
+				ForceNew: true,
 			},
 
-			"cidr": &schema.Schema{
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-
-			"public": &schema.Schema{
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
-
-			"assigned_to": &schema.Schema{
-				Type:     schema.TypeBool,
-				Computed: true,
+			"comments": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"created": &schema.Schema{
