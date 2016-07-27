@@ -12,45 +12,15 @@ func resourcePacketIPAddress() *schema.Resource {
 		Delete: resourcePacketIPAddressDelete,
 
 		Schema: map[string]*schema.Schema{
+			"id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-			},
-
-			"gateway": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"network": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"family": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"netmask": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"cidr": &schema.Schema{
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-
-			"public": &schema.Schema{
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
-
-			"assigned_to": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 
 			"created": &schema.Schema{
