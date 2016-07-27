@@ -139,6 +139,7 @@ IMPROVEMENTS:
  * provider/aws: Support create / update greater than twenty db parameters in `aws_db_parameter_group` [GH-7364]
  * provider/aws: expose network interface id in `aws_instance` [GH-6751]
  * provider/aws: Adding passthrough behavior for API Gateway integration [GH-7801]
+ * provider/aws: Enable Redshift Cluster Logging [GH-7813]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
