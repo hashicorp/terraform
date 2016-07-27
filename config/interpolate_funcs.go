@@ -71,6 +71,7 @@ func Funcs() map[string]ast.Function {
 		"length":       interpolationFuncLength(),
 		"list":         interpolationFuncList(),
 		"lower":        interpolationFuncLower(),
+		"map":          interpolationFuncMap(),
 		"md5":          interpolationFuncMd5(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
@@ -119,6 +120,50 @@ func interpolationFuncList() ast.Function {
 			}
 
 			return outputList, nil
+		},
+	}
+}
+
+// interpolationFuncMap creates a map from the parameters passed
+// to it.
+func interpolationFuncMap() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{},
+		ReturnType:   ast.TypeMap,
+		Variadic:     true,
+		VariadicType: ast.TypeAny,
+		Callback: func(args []interface{}) (interface{}, error) {
+			outputMap := make(map[string]ast.Variable)
+
+			if len(args)%2 != 0 {
+				return nil, fmt.Errorf("requires an even number of arguments, got %d", len(args))
+			}
+
+			var firstType *ast.Type
+			for i := 0; i < len(args); i += 2 {
+				key, ok := args[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("argument %d represents a key, so it must be a string", i+1)
+				}
+				val := args[i+1]
+				variable, err := hil.InterfaceToVariable(val)
+				if err != nil {
+					return nil, err
+				}
+				// Enforce map type homogeneity
+				if firstType == nil {
+					firstType = &variable.Type
+				} else if variable.Type != *firstType {
+					return nil, fmt.Errorf("all map values must have the same type, got %s then %s", firstType.Printable(), variable.Type.Printable())
+				}
+				// Check for duplicate keys
+				if _, ok := outputMap[key]; ok {
+					return nil, fmt.Errorf("argument %d is a duplicate key: %q", i+1, key)
+				}
+				outputMap[key] = variable
+			}
+
+			return outputMap, nil
 		},
 	}
 }

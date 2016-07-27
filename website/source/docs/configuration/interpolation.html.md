@@ -181,6 +181,13 @@ The supported built-in functions are:
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 
+  * `map(key, value, ...)` - Returns a map consisting of the key/value pairs
+    specified as arguments. Every odd argument must be a string key, and every
+    even argument must have the same type as the other values specified.
+    Duplicate keys are not allowed. Examples:
+    * `map("hello", "world")`
+    * `map("us-east", list("a", "b", "c"), "us-west", list("b", "c", "d"))`
+
   * `md5(string)` - Returns a (conventional) hexadecimal representation of the
     MD5 hash of the given string.
 
