@@ -15,6 +15,11 @@ func resourcePacketVolume() *schema.Resource {
 		Delete: resourcePacketVolumeDelete,
 
 		Schema: map[string]*schema.Schema{
+			"id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"project_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
