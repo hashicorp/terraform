@@ -88,10 +88,9 @@ func resourceAwsAppautoscalingTargetCreate(d *schema.ResourceData, meta interfac
 	targetOpts.ServiceNamespace = aws.String(d.Get("service_namespace").(string))
 
 	log.Printf("[DEBUG] Application autoscaling target create configuration %#v", targetOpts)
-	var out *applicationautoscaling.RegisterScalableTargetOutput
 	var err error
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		out, err = conn.RegisterScalableTarget(&targetOpts)
+		_, err = conn.RegisterScalableTarget(&targetOpts)
 
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ValidationException" {
