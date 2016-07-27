@@ -257,6 +257,7 @@ BUG FIXES:
  * provider/azurerm: changing the name of an `azurerm_virtual_machine` now forces a new resource [GH-7646]
  * provider/azurerm: azurerm_storage_account now returns storage keys value instead of their names [GH-7674]
  * provider/azurerm: `azurerm_virtual_machine` computer_name now Required [GH-7308]
+ * provider/azurerm: Change of `availability_set_id` on `azurerm_virtual_machine` should ForceNew [GH-7650]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
  * provider/cloudstack: Fix refresing `cloudstack_network_acl_rule` when the associated ACL is deleted [GH-7612]
