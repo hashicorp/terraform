@@ -6,9 +6,9 @@ variable "baz" {
   type = "map"
 
   default = {
-    "A"     = "a"
-    "B"     = "b"
-    interp  = "${file("t.txt")}"
+    "A"    = "a"
+    "B"    = "b"
+    interp = "${file("t.txt")}"
   }
 }
 

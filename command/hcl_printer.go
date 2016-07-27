@@ -12,7 +12,6 @@ import (
 // This will only work operate on []interface{}, map[string]interface{}, and
 // primitive types.
 func encodeHCL(i interface{}) ([]byte, error) {
-
 	state := &encodeState{}
 	err := state.encode(i)
 	if err != nil {
