@@ -70,6 +70,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 				StateFunc: func(id interface{}) string {
 					return strings.ToLower(id.(string))
 				},
