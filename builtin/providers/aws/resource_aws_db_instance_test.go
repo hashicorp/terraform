@@ -179,7 +179,7 @@ func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 // Regression test for https://github.com/hashicorp/terraform/issues/3760 .
 // We apply a plan, then change just the iops. If the apply succeeds, we
 // consider this a pass, as before in 3760 the request would fail
-func TestAccAWSDBInstance_iops_update(t *testing.T) {
+func TestAccAWS_seperate_DBInstance_iops_update(t *testing.T) {
 	var v rds.DBInstance
 
 	rName := acctest.RandString(5)
@@ -203,11 +203,6 @@ func TestAccAWSDBInstance_iops_update(t *testing.T) {
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					testAccCheckAWSDBInstanceAttributes(&v),
 				),
-				// The plan will be non-empty because even with apply_immediatley, the
-				// instance has to apply the change via reboot, so follow up plans will
-				// show a non empty plan. The test is considered "successful" if the
-				// follow up change is applied at all.
-				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
