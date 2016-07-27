@@ -41,7 +41,7 @@ resource "azurerm_traffic_manager_endpoint" "test" {
   resource_group_name = "${azurerm_resource_group.test.name}"
   profile_name        = "${azurerm_traffic_manager_profile.test.name}"
   target              = "terraform.io"
-  type                = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+  type                = "externalEndpoints"
   weight              = 100
 }
 ```
@@ -63,9 +63,9 @@ The following arguments are supported:
     either `Enabled` or `Disabled`. Defaults to `Enabled`.
 
 * `type` - (Required) The Endpoint type, must be one of:
-    - `Microsoft.Network/TrafficManagerProfiles/azureEndpoints`
-    - `Microsoft.Network/TrafficManagerProfiles/externalEndpoints`
-    - `Microsoft.Network/TrafficManagerProfiles/nestedEndpoints`
+    - `azureEndpoints`
+    - `externalEndpoints`
+    - `nestedEndpoints`
 
 * `target` - (Optional) The FQDN DNS name of the target. This argument must be
     provided for an endpoint of type `externalEndpoints`, for other types it

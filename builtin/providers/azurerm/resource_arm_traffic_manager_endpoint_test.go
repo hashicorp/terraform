@@ -242,7 +242,7 @@ resource "azurerm_public_ip" "test" {
 
 resource "azurerm_traffic_manager_endpoint" "testAzure" {
     name = "acctestend-azure%d"
-    type = "Microsoft.Network/TrafficManagerProfiles/azureEndpoints"
+    type = "azureEndpoints"
     target_resource_id = "${azurerm_public_ip.test.id}"
     weight = 3
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -251,7 +251,7 @@ resource "azurerm_traffic_manager_endpoint" "testAzure" {
 
 resource "azurerm_traffic_manager_endpoint" "testExternal" {
     name = "acctestend-external%d"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "terraform.io"
     weight = 3
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -292,7 +292,7 @@ resource "azurerm_public_ip" "test" {
 
 resource "azurerm_traffic_manager_endpoint" "testAzure" {
     name = "acctestend-azure%d"
-    type = "Microsoft.Network/TrafficManagerProfiles/azureEndpoints"
+    type = "azureEndpoints"
     target_resource_id = "${azurerm_public_ip.test.id}"
     weight = 3
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -302,7 +302,7 @@ resource "azurerm_traffic_manager_endpoint" "testAzure" {
 resource "azurerm_traffic_manager_endpoint" "testExternal" {
     name = "acctestend-external%d"
     endpoint_status = "Disabled"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "terraform.io"
     weight = 3
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -335,7 +335,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 resource "azurerm_traffic_manager_endpoint" "testExternal" {
     name = "acctestend-external%d"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "terraform.io"
     weight = 50
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -344,7 +344,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternal" {
 
 resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
     name = "acctestend-external%d-2"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "www.terraform.io"
     weight = 50
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -377,7 +377,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 resource "azurerm_traffic_manager_endpoint" "testExternal" {
     name = "acctestend-external%d"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "terraform.io"
     weight = 25
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -386,7 +386,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternal" {
 
 resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
     name = "acctestend-external%d-2"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "www.terraform.io"
     weight = 75
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -419,7 +419,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 resource "azurerm_traffic_manager_endpoint" "testExternal" {
     name = "acctestend-external%d"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "terraform.io"
     priority = 1
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -428,7 +428,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternal" {
 
 resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
     name = "acctestend-external%d-2"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "www.terraform.io"
     priority = 2
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -461,7 +461,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 resource "azurerm_traffic_manager_endpoint" "testExternal" {
     name = "acctestend-external%d"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "terraform.io"
     priority = 3
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -470,7 +470,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternal" {
 
 resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
     name = "acctestend-external%d-2"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "www.terraform.io"
     priority = 2
     profile_name = "${azurerm_traffic_manager_profile.test.name}"
@@ -520,7 +520,7 @@ resource "azurerm_traffic_manager_profile" "child" {
 
 resource "azurerm_traffic_manager_endpoint" "nested" {
     name = "acctestend-parent%d"
-    type = "Microsoft.Network/TrafficManagerProfiles/nestedEndpoints"
+    type = "nestedEndpoints"
     target_resource_id = "${azurerm_traffic_manager_profile.child.id}"
     priority = 1
     profile_name = "${azurerm_traffic_manager_profile.parent.name}"
@@ -530,7 +530,7 @@ resource "azurerm_traffic_manager_endpoint" "nested" {
 
 resource "azurerm_traffic_manager_endpoint" "externalChild" {
     name = "acctestend-child%d"
-    type = "Microsoft.Network/TrafficManagerProfiles/externalEndpoints"
+    type = "externalEndpoints"
     target = "terraform.io"
     priority = 1
     profile_name = "${azurerm_traffic_manager_profile.child.name}"

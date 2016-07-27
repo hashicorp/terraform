@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"path"
 
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -101,21 +100,22 @@ func resourceArmTrafficManagerEndpointCreate(d *schema.ResourceData, meta interf
 
 	name := d.Get("name").(string)
 	endpointType := d.Get("type").(string)
+	fullEndpointType := fmt.Sprintf("Microsoft.Network/TrafficManagerProfiles/%s", endpointType)
 	profileName := d.Get("profile_name").(string)
 	resGroup := d.Get("resource_group_name").(string)
 
 	params := trafficmanager.Endpoint{
 		Name:       &name,
-		Type:       &endpointType,
+		Type:       &fullEndpointType,
 		Properties: getArmTrafficManagerEndpointProperties(d),
 	}
 
-	_, err := client.CreateOrUpdate(resGroup, profileName, path.Base(endpointType), name, params)
+	_, err := client.CreateOrUpdate(resGroup, profileName, endpointType, name, params)
 	if err != nil {
 		return err
 	}
 
-	read, err := client.Get(resGroup, profileName, path.Base(endpointType), name)
+	read, err := client.Get(resGroup, profileName, endpointType, name)
 	if err != nil {
 		return err
 	}
@@ -140,9 +140,9 @@ func resourceArmTrafficManagerEndpointRead(d *schema.ResourceData, meta interfac
 	profileName := id.Path["trafficManagerProfiles"]
 
 	// endpoint name is keyed by endpoint type in ARM ID
-	name := id.Path[path.Base(endpointType)]
+	name := id.Path[endpointType]
 
-	resp, err := client.Get(resGroup, profileName, path.Base(endpointType), name)
+	resp, err := client.Get(resGroup, profileName, endpointType, name)
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
@@ -198,9 +198,9 @@ func resourceArmTrafficManagerEndpointDelete(d *schema.ResourceData, meta interf
 	profileName := id.Path["trafficManagerProfiles"]
 
 	// endpoint name is keyed by endpoint type in ARM ID
-	name := id.Path[path.Base(endpointType)]
+	name := id.Path[endpointType]
 
-	_, err = client.Delete(resGroup, profileName, path.Base(endpointType), name)
+	_, err = client.Delete(resGroup, profileName, endpointType, name)
 
 	return err
 }
@@ -244,9 +244,9 @@ func getArmTrafficManagerEndpointProperties(d *schema.ResourceData) *trafficmana
 
 func validateAzureRMTrafficManagerEndpointType(i interface{}, k string) (s []string, errors []error) {
 	valid := map[string]struct{}{
-		"Microsoft.Network/TrafficManagerProfiles/azureEndpoints":    struct{}{},
-		"Microsoft.Network/TrafficManagerProfiles/externalEndpoints": struct{}{},
-		"Microsoft.Network/TrafficManagerProfiles/nestedEndpoints":   struct{}{},
+		"azureEndpoints":    struct{}{},
+		"externalEndpoints": struct{}{},
+		"nestedEndpoints":   struct{}{},
 	}
 
 	if _, ok := valid[i.(string)]; !ok {
