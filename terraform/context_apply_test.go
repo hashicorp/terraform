@@ -4523,6 +4523,55 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 	}
 }
 
+// GH-7824
+func TestContext2Apply_issue7824(t *testing.T) {
+	p := testProvider("template")
+	p.ResourcesReturn = append(p.ResourcesReturn, ResourceType{
+		Name: "template_file",
+	})
+
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// Apply cleanly step 0
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "issue-7824"),
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write / Read plan to simulate running it through a Plan file
+	var buf bytes.Buffer
+	if err := WritePlan(plan, &buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	planFromFile, err := ReadPlan(&buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ctx, err = planFromFile.Context(&ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 // GH-5254
 func TestContext2Apply_issue5254(t *testing.T) {
 	// Create a provider. We use "template" here just to match the repro
