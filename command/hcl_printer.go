@@ -29,10 +29,14 @@ func encodeHCL(i interface{}) ([]byte, error) {
 
 	// use the real hcl parser to verify our output, and format it canonically
 	hcl, err = printer.Format(fakeAssignment)
+	if err != nil {
+		return nil, err
+	}
 
 	// now strip that first assignment off
 	eq := regexp.MustCompile(`=\s+`).FindIndex(hcl)
-	return hcl[eq[1]:], err
+
+	return hcl[eq[1]:], nil
 }
 
 type encodeState struct {
@@ -98,11 +102,6 @@ func (e *encodeState) encodeMap(m map[string]interface{}) error {
 	return nil
 }
 
-func (e *encodeState) encodeString(s string) error {
-	_, err := fmt.Fprintf(e, "%q", s)
-	return err
-}
-
 func (e *encodeState) encodeInt(i interface{}) error {
 	_, err := fmt.Fprintf(e, "%d", i)
 	return err
@@ -111,4 +110,82 @@ func (e *encodeState) encodeInt(i interface{}) error {
 func (e *encodeState) encodeFloat(f interface{}) error {
 	_, err := fmt.Fprintf(e, "%f", f)
 	return err
+}
+
+func (e *encodeState) encodeString(s string) error {
+	e.Write(quoteHCLString(s))
+	return nil
+}
+
+// Quote an HCL string, which may contain interpolations.
+// Since the string was already parsed from HCL, we have to assume the
+// required characters are sanely escaped. All we need to do is escape double
+// quotes in the string, unless they are in an interpolation block.
+func quoteHCLString(s string) []byte {
+	out := make([]byte, 0, len(s))
+	out = append(out, '"')
+
+	// our parse states
+	var (
+		outer  = 1 // the starting state for the string
+		dollar = 2 // look for '{' in the next character
+		interp = 3 // inside an interpolation block
+		escape = 4 // take the next character and pop back to prev state
+	)
+
+	// we could have nested interpolations
+	state := stack{}
+	state.push(outer)
+
+	for i := 0; i < len(s); i++ {
+		switch state.peek() {
+		case outer:
+			switch s[i] {
+			case '"':
+				out = append(out, '\\')
+			case '$':
+				state.push(dollar)
+			case '\\':
+				state.push(escape)
+			}
+		case dollar:
+			state.pop()
+			switch s[i] {
+			case '{':
+				state.push(interp)
+			case '\\':
+				state.push(escape)
+			}
+		case interp:
+			switch s[i] {
+			case '}':
+				state.pop()
+			}
+		case escape:
+			state.pop()
+		}
+
+		out = append(out, s[i])
+	}
+
+	out = append(out, '"')
+
+	return out
+}
+
+type stack []int
+
+func (s *stack) push(i int) {
+	*s = append(*s, i)
+}
+
+func (s *stack) pop() int {
+	last := len(*s) - 1
+	i := (*s)[last]
+	*s = (*s)[:last]
+	return i
+}
+
+func (s *stack) peek() int {
+	return (*s)[len(*s)-1]
 }
