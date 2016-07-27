@@ -89,6 +89,7 @@ FEATURES:
  * **New Resource:** `consul_service` [GH-7508]
  * **New Resource:** `mysql_grant` [GH-7656]
  * **New Resource:** `mysql_user` [GH-7656]
+ * **New Resource:** `azurerm_storage_table` [GH-7327]
  * core: Tainted resources now show up in the plan and respect dependency ordering [GH-6600]
  * core: The `lookup` interpolation function can now have a default fall-back value specified [GH-6884]
  * core: The `terraform plan` command no longer persists state. [GH-6811]
