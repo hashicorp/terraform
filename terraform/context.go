@@ -181,11 +181,16 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 							if existingMap, ok := existing.(map[string]interface{}); !ok {
 								panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
 							} else {
-								if newMap, ok := varVal.(map[string]interface{}); ok {
-									for newKey, newVal := range newMap {
+								switch typedV := varVal.(type) {
+								case []map[string]interface{}:
+									for newKey, newVal := range typedV[0] {
 										existingMap[newKey] = newVal
 									}
-								} else {
+								case map[string]interface{}:
+									for newKey, newVal := range typedV {
+										existingMap[newKey] = newVal
+									}
+								default:
 									panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
 								}
 							}
@@ -208,11 +213,16 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 							if existingMap, ok := existing.(map[string]interface{}); !ok {
 								panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
 							} else {
-								if newMap, ok := v.([]map[string]interface{}); ok {
-									for newKey, newVal := range newMap[0] {
+								switch typedV := v.(type) {
+								case []map[string]interface{}:
+									for newKey, newVal := range typedV[0] {
 										existingMap[newKey] = newVal
 									}
-								} else {
+								case map[string]interface{}:
+									for newKey, newVal := range typedV {
+										existingMap[newKey] = newVal
+									}
+								default:
 									panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
 								}
 							}
