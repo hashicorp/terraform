@@ -16,6 +16,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-ami") %>>
                             <a href="/docs/providers/aws/d/ami.html">aws_ami</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-ecs-container-definition") %>>
+                            <a href="/docs/providers/aws/d/ecs_container_definition.html">aws_ecs_container_definition</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-availability-zones") %>>
                             <a href="/docs/providers/aws/d/availability_zones.html">aws_availability_zones</a>
                         </li>
@@ -66,6 +69,20 @@
                         </li>
                     </ul>
                 </li>
+
+              <li<%= sidebar_current(/^docs-aws-resource-appautoscaling/) %>>
+                <a href="#">App Autoscaling Resources</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-aws-resource-appautoscaling-policy") %>>
+                    <a href="/docs/providers/aws/r/appautoscaling_policy.html">aws_appautoscaling_policy</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-aws-resource-appautoscaling-target") %>>
+                    <a href="/docs/providers/aws/r/appautoscaling_target.html">aws_appautoscaling_target</a>
+                  </li>
+                </ul>
+              </li>
 
                 <li<%= sidebar_current(/^docs-aws-resource-cloudformation/) %>>
                     <a href="#">CloudFormation Resources</a>

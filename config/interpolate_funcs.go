@@ -69,6 +69,7 @@ func Funcs() map[string]ast.Function {
 		"join":         interpolationFuncJoin(),
 		"jsonencode":   interpolationFuncJSONEncode(),
 		"length":       interpolationFuncLength(),
+		"list":         interpolationFuncList(),
 		"lower":        interpolationFuncLower(),
 		"md5":          interpolationFuncMd5(),
 		"uuid":         interpolationFuncUUID(),
@@ -80,6 +81,45 @@ func Funcs() map[string]ast.Function {
 		"split":        interpolationFuncSplit(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
+	}
+}
+
+// interpolationFuncList creates a list from the parameters passed
+// to it.
+func interpolationFuncList() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{},
+		ReturnType:   ast.TypeList,
+		Variadic:     true,
+		VariadicType: ast.TypeAny,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var outputList []ast.Variable
+
+			for i, val := range args {
+				switch v := val.(type) {
+				case string:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeString, Value: v})
+				case []ast.Variable:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeList, Value: v})
+				case map[string]ast.Variable:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeMap, Value: v})
+				default:
+					return nil, fmt.Errorf("unexpected type %T for argument %d in list", v, i)
+				}
+			}
+
+			// we don't support heterogeneous types, so make sure all types match the first
+			if len(outputList) > 0 {
+				firstType := outputList[0].Type
+				for i, v := range outputList[1:] {
+					if v.Type != firstType {
+						return nil, fmt.Errorf("unexpected type %s for argument %d in list", v.Type, i+1)
+					}
+				}
+			}
+
+			return outputList, nil
+		},
 	}
 }
 
@@ -218,10 +258,8 @@ func interpolationFuncCoalesce() ast.Function {
 	}
 }
 
-// interpolationFuncConcat implements the "concat" function that
-// concatenates multiple strings. This isn't actually necessary anymore
-// since our language supports string concat natively, but for backwards
-// compat we do this.
+// interpolationFuncConcat implements the "concat" function that concatenates
+// multiple lists.
 func interpolationFuncConcat() ast.Function {
 	return ast.Function{
 		ArgTypes:     []ast.Type{ast.TypeAny},
@@ -229,33 +267,42 @@ func interpolationFuncConcat() ast.Function {
 		Variadic:     true,
 		VariadicType: ast.TypeAny,
 		Callback: func(args []interface{}) (interface{}, error) {
-			var finalListElements []string
+			var outputList []ast.Variable
 
 			for _, arg := range args {
-				// Append strings for backward compatibility
-				if argument, ok := arg.(string); ok {
-					finalListElements = append(finalListElements, argument)
-					continue
-				}
-
-				// Otherwise variables
-				if argument, ok := arg.([]ast.Variable); ok {
-					for _, element := range argument {
-						t := element.Type
-						switch t {
+				switch arg := arg.(type) {
+				case string:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeString, Value: arg})
+				case []ast.Variable:
+					for _, v := range arg {
+						switch v.Type {
 						case ast.TypeString:
-							finalListElements = append(finalListElements, element.Value.(string))
+							outputList = append(outputList, v)
+						case ast.TypeList:
+							outputList = append(outputList, v)
+						case ast.TypeMap:
+							outputList = append(outputList, v)
 						default:
-							return nil, fmt.Errorf("concat() does not support lists of %s", t.Printable())
+							return nil, fmt.Errorf("concat() does not support lists of %s", v.Type.Printable())
 						}
 					}
-					continue
-				}
 
-				return nil, fmt.Errorf("arguments to concat() must be a string or list of strings")
+				default:
+					return nil, fmt.Errorf("concat() does not support %T", arg)
+				}
 			}
 
-			return stringSliceToVariableValue(finalListElements), nil
+			// we don't support heterogeneous types, so make sure all types match the first
+			if len(outputList) > 0 {
+				firstType := outputList[0].Type
+				for _, v := range outputList[1:] {
+					if v.Type != firstType {
+						return nil, fmt.Errorf("unexpected %s in list of %s", v.Type.Printable(), firstType.Printable())
+					}
+				}
+			}
+
+			return outputList, nil
 		},
 	}
 }

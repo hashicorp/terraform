@@ -54,7 +54,9 @@ func resourceScalewayIPRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	d.Set("ip", resp.IP.Address)
-	d.Set("server", resp.IP.Server.Identifier)
+	if resp.IP.Server != nil {
+		d.Set("server", resp.IP.Server.Identifier)
+	}
 	return nil
 }
 

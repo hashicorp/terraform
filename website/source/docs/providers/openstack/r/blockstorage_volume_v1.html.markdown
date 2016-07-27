@@ -79,5 +79,5 @@ The following attributes are exported:
 Volumes can be imported using the `id`, e.g.
 
 ```
-terraform import openstack_blockstorage_volume_v1.volume_1 ea257959-eeb1-4c10-8d33-26f0409a755d
+$ terraform import openstack_blockstorage_volume_v1.volume_1 ea257959-eeb1-4c10-8d33-26f0409a755d
 ```

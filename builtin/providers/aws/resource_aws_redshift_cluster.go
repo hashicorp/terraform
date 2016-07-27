@@ -373,7 +373,7 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	} else {
 		d.Set("cluster_type", "single-node")
 	}
-	d.Set("number_of_nodes", len(rsc.ClusterNodes))
+	d.Set("number_of_nodes", rsc.NumberOfNodes)
 	d.Set("publicly_accessible", rsc.PubliclyAccessible)
 
 	var vpcg []string

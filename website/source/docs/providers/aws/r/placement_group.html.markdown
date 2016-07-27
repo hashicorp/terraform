@@ -32,3 +32,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The name of the placement group.
+
+## Import
+
+Placement groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_placement_group.prod_pg production-placement-group
+```

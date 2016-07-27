@@ -112,7 +112,11 @@ func testAccCheckScalewayIPAttachment(n string, check func(string) bool, msg str
 			return err
 		}
 
-		if !check(ip.IP.Server.Identifier) {
+		var serverID = ""
+		if ip.IP.Server != nil {
+			serverID = ip.IP.Server.Identifier
+		}
+		if !check(serverID) {
 			return fmt.Errorf("IP check failed: %q", msg)
 		}
 

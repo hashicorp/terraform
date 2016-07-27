@@ -120,5 +120,5 @@ resource "openstack_compute_instance_v2" "test-server" {
 Security Groups can be imported using the `id`, e.g.
 
 ```
-terraform import openstack_compute_secgroup_v2.my_secgroup 1bc30ee9-9d5b-4c30-bdd5-7f1e663f5edf
+$ terraform import openstack_compute_secgroup_v2.my_secgroup 1bc30ee9-9d5b-4c30-bdd5-7f1e663f5edf
 ```

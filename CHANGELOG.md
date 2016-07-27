@@ -8,7 +8,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * Quotation marks may no longer be escaped in HIL expressions [GH-7201]
  * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
  * `aws_elb` now defaults `cross_zone_load_balancing` to `true`
- * `resource_aws_instance`: EC2 Classic users may continue to use
+ * `aws_instance`: EC2 Classic users may continue to use
    `security_groups` to reference Security Groups by their `name`. Users who are
    managing Instances inside VPCs will need to use `vpc_security_group_ids` instead, 
    and reference the security groups by their `id`. 
@@ -21,9 +21,12 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
  * `azurerm_virtual_machine` computer_name now Required
  * `aws_db_instance` now defaults `publicly_accessible` to false
+ * `keep_updated` parameter removed from `docker_image` - This parameter never did what it was supposed to do.
+   See relevant docs, specifically `pull_trigger` & new `docker_registry_image` data source to understand how to keep your `docker_image` updated.
  * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
- * `atlas_artifact` resource has be depracated. Please use the new `atlas_artifact` Data Source
+ * `atlas_artifact` resource has be deprecated. Please use the new `atlas_artifact` Data Source
  * The `member` attribute of `openstack_lb_pool_v1` has been deprecated. Please ue the new `openstack_lb_member_v1` resource.
+ * All deprecated parameters are removed from all `CloudStack` resources
 
 FEATURES:
 
@@ -38,7 +41,10 @@ FEATURES:
  * **New Data Source:** `aws_availability_zones` [GH-6805]
  * **New Data Source:** `aws_iam_policy_document` [GH-6881]
  * **New Data Source:** `aws_s3_bucket_object` [GH-6946]
+ * **New Data Source:** `aws_ecs_container_definition` [GH-7230]
  * **New Data Source:** `atlas_artifact` [GH-7419]
+ * **New Data Source:** `docker_registry_image` [GH-7000]
+ * **New Data Source:** `consul_keys` [GH-7678]
  * **New Interpolation Function:** `sort` [GH-7128]
  * **New Interpolation Function:** `distinct` [GH-7174]
  * **New Provider:** `grafana` [GH-6206]
@@ -60,6 +66,11 @@ FEATURES:
  * **New Resource:** `aws_ses_receipt_rule` [GH-5387]
  * **New Resource:** `aws_ses_receipt_rule_set` [GH-5387]
  * **New Resource:** `aws_simpledb_domain` [GH-7600]
+ * **New Resource:** `aws_opsworks_user_profile` [GH-6304]
+ * **New Resource:** `aws_opsworks_permission` [GH-6304]
+ * **New Resource:** `aws_ami_launch_permission` [GH-7365]
+ * **New Resource:** `aws_appautoscaling_policy` [GH-7663]
+ * **New Resource:** `aws_appautoscaling_target` [GH-7663]
  * **New Resource:** `openstack_blockstorage_volume_v2` [GH-6693]
  * **New Resource:** `openstack_lb_loadbalancer_v2` [GH-7012]
  * **New Resource:** `openstack_lb_listener_v2` [GH-7012]
@@ -72,6 +83,12 @@ FEATURES:
  * **New Resource:** `datadog_timeboard` [GH-6900]
  * **New Resource:** `digitalocean_tag` [GH-7500]
  * **New Resource:** `digitalocean_volume` [GH-7560]
+ * **New Resource:** `consul_agent_service` [GH-7508]
+ * **New Resource:** `consul_catalog_entry` [GH-7508]
+ * **New Resource:** `consul_node` [GH-7508]
+ * **New Resource:** `consul_service` [GH-7508]
+ * **New Resource:** `mysql_grant` [GH-7656]
+ * **New Resource:** `mysql_user` [GH-7656]
  * core: Tainted resources now show up in the plan and respect dependency ordering [GH-6600]
  * core: The `lookup` interpolation function can now have a default fall-back value specified [GH-6884]
  * core: The `terraform plan` command no longer persists state. [GH-6811]
@@ -81,7 +98,9 @@ IMPROVEMENTS:
  * core: The `jsonencode` interpolation function now supports encoding lists and maps [GH-6749]
  * core: Add the ability for resource definitions to mark attributes as "sensitive" which will omit them from UI output. [GH-6923]
  * core: Support `.` in map keys [GH-7654]
+ * command: Remove second DefaultDataDirectory const [GH-7666]
  * provider/aws: Add `dns_name` to `aws_efs_mount_target` [GH-7428]
+ * provider/aws: Add `force_destroy` to `aws_iam_user` for force-deleting access keys assigned to the user [GH-7766]
  * provider/aws: Add `option_settings` to `aws_db_option_group` [GH-6560]
  * provider/aws: Add more explicit support for Skipping Final Snapshot in RDS Cluster [GH-6795]
  * provider/aws: Add support for S3 Bucket Acceleration [GH-6628]
@@ -114,19 +133,32 @@ IMPROVEMENTS:
  * provider/aws: Allow VPC Classic Linking in Autoscaling Launch Configs [GH-7470]
  * provider/aws: Support `task_role_arn` on `aws_ecs_task_definition [GH-7653]
  * provider/aws: Support Tags on `aws_rds_cluster` [GH-7695]
+ * provider/aws: Support kms_key_id for `aws_rds_cluster` [GH-7662]
+ * provider/aws: Allow setting a `poll_interval` on `aws_elastic_beanstalk_environment` [GH-7523]
+ * provider/aws: Add support for Kinesis streams shard-level metrics [GH-7684]
+ * provider/aws: Support create / update greater than twenty db parameters in `aws_db_parameter_group` [GH-7364]
+ * provider/aws: expose network interface id in `aws_instance` [GH-6751]
+ * provider/aws: Adding passthrough behavior for API Gateway integration [GH-7801]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
  * provider/azurerm: `azurerm_dns_zone` now returns `name_servers` [GH-7434]
  * provider/azurerm: dump entire Request/Response in autorest Decorator [GH-7719]
+ * provider/azurerm: add option to delete VMs Data disks on termination [GH-7793]
  * provider/clc: Add support for hyperscale and bareMetal server types and package installation
  * provider/clc: Fix optional server password [GH-6414]
  * provider/cloudstack: Add support for affinity groups to `cloudstack_instance` [GH-6898]
  * provider/cloudstack: Enable swapping of ACLs without having to rebuild the network tier [GH-6741]
  * provider/cloudstack: Improve ACL swapping [GH-7315]
+ * provider/cloudstack: Add project support to `cloudstack_network_acl` and `cloudstack_network_acl_rule` [GH-7612]
+ * provider/cloudstack: Add option to set `root_disk_size` to `cloudstack_instance` [GH-7070]
+ * provider/cloudstack: Do no longer force a new `cloudstack_instance` resource when updating `user_data` [GH-7074]
+ * provider/cloudstack: Add option to set `security_group_names` to `cloudstack_instance` [GH-7240]
+ * provider/cloudstack: Add option to set `affinity_group_names` to `cloudstack_instance` [GH-7242]
  * provider/datadog: Add support for 'require full window' and 'locked' [GH-6738]
  * provider/docker: Docker Container DNS Setting Enhancements [GH-7392]
  * provider/docker: Add `destroy_grace_seconds` option to stop container before delete [GH-7513]
+ * provider/docker: Add `pull_trigger` option to `docker_image` to trigger pulling layers of a given image [GH-7000]
  * provider/fastly: Add support for Cache Settings [GH-6781]
  * provider/fastly: Add support for Service Request Settings on `fastly_service_v1` resources [GH-6622]
  * provider/fastly: Add support for custom VCL configuration [GH-6662]
@@ -204,6 +236,10 @@ BUG FIXES:
  * provider/aws: Bump rds_cluster timeout to 15 mins [GH-7604]
  * provider/aws: Fix ICMP fields in `aws_network_acl_rule` to allow ICMP code 0 (echo reply) to be configured [GH-7669]
  * provider/aws: Fix bug with Updating `aws_autoscaling_group` `enabled_metrics` [GH-7698]
+ * provider/aws: Ignore IOPS on non io1 AWS root_block_device [GH-7783]
+ * provider/aws: Ignore missing ENI attachment when trying to detach ENI [GH-7185]
+ * provider/aws: Fix issue updating ElasticBeanstalk Environment templates [GH-7811]
+ * provider/aws: Restore Defaults to SQS Queues [GH-7818]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
@@ -221,6 +257,9 @@ BUG FIXES:
  * provider/azurerm: `azurerm_virtual_machine` computer_name now Required [GH-7308]
  * provider/cloudflare: Fix issue upgrading CloudFlare Records created before v0.6.15 [GH-6969]
  * provider/cloudstack: Fix using `cloudstack_network_acl` within a project [GH-6743]
+ * provider/cloudstack: Fix refresing `cloudstack_network_acl_rule` when the associated ACL is deleted [GH-7612]
+ * provider/cloudstack: Fix refresing `cloudstack_port_forward` when the associated IP address is no longer associated [GH-7612]
+ * provider/cloudstack: Fix creating `cloudstack_network` with offerings that do not support specifying IP ranges [GH-7612]
  * provider/digitalocean: Stop `digitocean_droplet` forcing new resource on uppercase region [GH-7044]
  * provider/digitalocean: Reassign Floating IP when droplet changes [GH-7411]
  * provider/google: Fix a bug causing an error attempting to delete an already-deleted `google_compute_disk` [GH-6689]
@@ -239,6 +278,7 @@ BUG FIXES:
  * provider/vsphere: Make `vsphere_virtual_machine` `product_key` optional [GH-7410]
  * provider/vsphere: Refreshing devices list after adding a disk or cdrom controller [GH-7167]
  * provider/vsphere: `vsphere_virtual_machine` no longer has to be powered on to delete [GH-7206]
+ * provider/vSphere: Fixes the hasBootableVmdk flag when attaching multiple disks [GH-7804]
  * provisioner/remote-exec: Properly seed random script paths so they are not deterministic across runs [GH-7413]
 
 ## 0.6.16 (May 9, 2016)

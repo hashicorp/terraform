@@ -72,5 +72,5 @@ If you are not the owner of both VPCs, or do not enable auto_accept you will sti
 VPC Peering resources can be imported using the `vpc peering id`, e.g. 
 
 ```
-terraform import aws_vpc_peering_connection.test_connection pcx-111aaa111
+$ terraform import aws_vpc_peering_connection.test_connection pcx-111aaa111
 ```

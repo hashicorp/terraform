@@ -128,6 +128,11 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"network_interface_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"public_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -488,10 +493,12 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		for _, ni := range instance.NetworkInterfaces {
 			if *ni.Attachment.DeviceIndex == 0 {
 				d.Set("subnet_id", ni.SubnetId)
+				d.Set("network_interface_id", ni.NetworkInterfaceId)
 			}
 		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
+		d.Set("network_interface_id", "")
 	}
 	d.Set("ebs_optimized", instance.EbsOptimized)
 	if instance.SubnetId != nil && *instance.SubnetId != "" {
@@ -931,8 +938,16 @@ func readBlockDeviceMappingsFromConfig(
 				ebs.VolumeType = aws.String(v)
 			}
 
-			if v, ok := bd["iops"].(int); ok && v > 0 {
+			if v, ok := bd["iops"].(int); ok && v > 0 && *ebs.VolumeType == "io1" {
+				// Only set the iops attribute if the volume type is io1. Setting otherwise
+				// can trigger a refresh/plan loop based on the computed value that is given
+				// from AWS, and prevent us from specifying 0 as a valid iops.
+				//   See https://github.com/hashicorp/terraform/pull/4146
+				//   See https://github.com/hashicorp/terraform/issues/7765
 				ebs.Iops = aws.Int64(int64(v))
+			} else if v, ok := bd["iops"].(int); ok && v > 0 && *ebs.VolumeType != "io1" {
+				// Message user about incompatibility
+				log.Printf("[WARN] IOPs is only valid for storate type io1 for EBS Volumes")
 			}
 
 			if dn, err := fetchRootDeviceName(d.Get("ami").(string), conn); err == nil {

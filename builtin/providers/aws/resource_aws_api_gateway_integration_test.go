@@ -34,6 +34,8 @@ func TestAccAWSAPIGatewayIntegration_basic(t *testing.T) {
 						"aws_api_gateway_integration.test", "request_templates.application/json", ""),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration.test", "request_templates.application/xml", "#set($inputRoot = $input.path('$'))\n{ }"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_integration.test", "passthrough_behavior", "WHEN_NO_MATCH"),
 				),
 			},
 
@@ -48,6 +50,8 @@ func TestAccAWSAPIGatewayIntegration_basic(t *testing.T) {
 						"aws_api_gateway_integration.test", "integration_http_method", ""),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration.test", "uri", ""),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_integration.test", "passthrough_behavior", "NEVER"),
 				),
 			},
 		},
@@ -193,6 +197,7 @@ resource "aws_api_gateway_integration" "test" {
   type = "HTTP"
   uri = "https://www.google.de"
   integration_http_method = "GET"
+  passthrough_behavior = "WHEN_NO_MATCH"
 }
 `
 
@@ -230,5 +235,7 @@ resource "aws_api_gateway_integration" "test" {
   PARAMS
 
   type = "MOCK"
+  passthrough_behavior = "NEVER"
+
 }
 `

@@ -44,3 +44,10 @@ The following attributes are exported:
 * `id` - The volume ID (e.g. vol-59fcb34e).
 
 
+## Import
+
+EBS Volumes can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_ebs_volume.data vol-049df61146c4d7901
+```

@@ -62,3 +62,11 @@ Option Settings blocks support the following:
 The following attributes are exported:
 
 * `arn` - The ARN of the db option group.
+
+## Import
+
+DB Option groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_db_option_group.bar mysql-option-group
+```

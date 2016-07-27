@@ -181,7 +181,7 @@ func TestAccAzureRMVirtualMachine_winRMConfig(t *testing.T) {
 func TestAccAzureRMVirtualMachine_deleteVHDOptOut(t *testing.T) {
 	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_withDataDisk, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -196,7 +196,10 @@ func TestAccAzureRMVirtualMachine_deleteVHDOptOut(t *testing.T) {
 			},
 			{
 				Config: postConfig,
-				Check:  testCheckAzureRMVirtualMachineOSDiskVHDExistance(true),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineVHDExistance("myosdisk1.vhd", true),
+					testCheckAzureRMVirtualMachineVHDExistance("mydatadisk1.vhd", true),
+				),
 			},
 		},
 	})
@@ -205,7 +208,7 @@ func TestAccAzureRMVirtualMachine_deleteVHDOptOut(t *testing.T) {
 func TestAccAzureRMVirtualMachine_deleteVHDOptIn(t *testing.T) {
 	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyOSDisk, ri, ri, ri, ri, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisks, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -220,7 +223,10 @@ func TestAccAzureRMVirtualMachine_deleteVHDOptIn(t *testing.T) {
 			},
 			{
 				Config: postConfig,
-				Check:  testCheckAzureRMVirtualMachineOSDiskVHDExistance(false),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineVHDExistance("myosdisk1.vhd", false),
+					testCheckAzureRMVirtualMachineVHDExistance("mydatadisk1.vhd", false),
+				),
 			},
 		},
 	})
@@ -322,7 +328,7 @@ func testCheckAzureRMVirtualMachineDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testCheckAzureRMVirtualMachineOSDiskVHDExistance(shouldExist bool) resource.TestCheckFunc {
+func testCheckAzureRMVirtualMachineVHDExistance(name string, shouldExist bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		for _, rs := range s.RootModule().Resources {
 			if rs.Type != "azurerm_storage_container" {
@@ -338,13 +344,15 @@ func testCheckAzureRMVirtualMachineOSDiskVHDExistance(shouldExist bool) resource
 				return fmt.Errorf("Error creating Blob storage client: %s", err)
 			}
 
-			exists, err := storageClient.BlobExists(containerName, "myosdisk1.vhd")
+			exists, err := storageClient.BlobExists(containerName, name)
 			if err != nil {
-				return fmt.Errorf("Error checking if OS Disk VHD Blob exists: %s", err)
+				return fmt.Errorf("Error checking if Disk VHD Blob exists: %s", err)
 			}
 
 			if exists && !shouldExist {
-				return fmt.Errorf("OS Disk VHD Blob still exists")
+				return fmt.Errorf("Disk VHD Blob still exists")
+			} else if !exists && shouldExist {
+				return fmt.Errorf("Disk VHD Blob should exist")
 			}
 		}
 
@@ -529,7 +537,7 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
-var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyOSDisk = `
+var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisks = `
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"
     location = "West US"
@@ -601,6 +609,16 @@ resource "azurerm_virtual_machine" "test" {
     }
 
     delete_os_disk_on_termination = true
+
+    storage_data_disk {
+        name          = "mydatadisk1"
+        vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/mydatadisk1.vhd"
+    	disk_size_gb  = "1023"
+    	create_option = "Empty"
+    	lun           = 0
+    }
+
+    delete_data_disks_on_termination = true
 
     os_profile {
 	computer_name = "hostname%d"

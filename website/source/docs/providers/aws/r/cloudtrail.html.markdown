@@ -87,3 +87,12 @@ The following attributes are exported:
 * `id` - The name of the trail.
 * `home_region` - The region in which the trail was created.
 * `arn` - The Amazon Resource Name of the trail.
+
+
+## Import
+
+Cloudtrails can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_cloudtrail.sample my-sample-trail
+```

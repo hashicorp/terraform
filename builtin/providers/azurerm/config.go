@@ -92,13 +92,7 @@ func withRequestLogging() autorest.SendDecorator {
 }
 
 func setUserAgent(client *autorest.Client) {
-	var version string
-	if terraform.VersionPrerelease != "" {
-		version = fmt.Sprintf("%s-%s", terraform.Version, terraform.VersionPrerelease)
-	} else {
-		version = terraform.Version
-	}
-
+	version := terraform.VersionString()
 	client.UserAgent = fmt.Sprintf("HashiCorp-Terraform-v%s", version)
 }
 

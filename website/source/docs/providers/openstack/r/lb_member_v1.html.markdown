@@ -62,5 +62,5 @@ The following attributes are exported:
 Load Balancer Members can be imported using the `id`, e.g.
 
 ```
-terraform import openstack_lb_member_v1.member_1 a7498676-4fe4-4243-a864-2eaaf18c73df
+$ terraform import openstack_lb_member_v1.member_1 a7498676-4fe4-4243-a864-2eaaf18c73df
 ```

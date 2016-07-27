@@ -32,18 +32,6 @@ resource "azurerm_subnet" "test" {
     address_prefix = "10.0.2.0/24"
 }
 
-resource "azurerm_network_interface" "test" {
-    name = "acctni"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-
-    ip_configuration {
-    	name = "testconfiguration1"
-    	subnet_id = "${azurerm_subnet.test.id}"
-    	private_ip_address_allocation = "dynamic"
-    }
-}
-
 resource "azurerm_storage_account" "test" {
     name = "accsa"
     resource_group_name = "${azurerm_resource_group.test.name}"
@@ -74,13 +62,13 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     capacity = 2
   }
 
-  virtual_machine_os_profile {
+  os_profile {
     computer_name_prefix = "testvm"
     admin_username = "myadmin"
     admin_password = "Passwword1234"
   }
 
-  virtual_machine_os_profile_linux_config {
+  os_profile_linux_config {
     disable_password_authentication = true
     ssh_keys {
       path = "/home/myadmin/.ssh/authorized_keys"
@@ -88,7 +76,7 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     }
   }
 
-  virtual_machine_network_profile {
+  network_profile {
       name = "TestNetworkProfile"
       primary = true
       ip_configuration {
@@ -97,14 +85,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       }
   }
 
-  virtual_machine_storage_profile_os_disk {
+  storage_profile_os_disk {
     name = "osDiskProfile"
     caching       = "ReadWrite"
     create_option = "FromImage"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
 
-  virtual_machine_storage_profile_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"

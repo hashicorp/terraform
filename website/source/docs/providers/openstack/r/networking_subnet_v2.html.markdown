@@ -106,5 +106,5 @@ The following attributes are exported:
 Subnets can be imported using the `id`, e.g.
 
 ```
-terraform import openstack_networking_subnet_v2.subnet_1 da4faf16-5546-41e4-8330-4d0002b74048
+$ terraform import openstack_networking_subnet_v2.subnet_1 da4faf16-5546-41e4-8330-4d0002b74048
 ```

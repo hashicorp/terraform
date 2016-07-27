@@ -212,6 +212,7 @@ The following arguments are supported:
 * `storage_os_disk` - (Required) A Storage OS Disk block as referenced below.
 * `delete_os_disk_on_termination` - (Optional) Flag to enable deletion of the OS Disk VHD blob when the VM is deleted, defaults to `false`
 * `storage_data_disk` - (Optional) A list of Storage Data disk blocks as referenced below.
+* `delete_data_disks_on_termination` - (Optional) Flag to enable deletion of Storage Disk VHD blobs when the VM is deleted, defaults to `false`
 * `os_profile` - (Required) An OS Profile block as documented below.
 * `os_profile_windows_config` - (Required, when a windows machine) A Windows config block as documented below.
 * `os_profile_linux_config` - (Required, when a linux machine) A Linux config block as documented below.

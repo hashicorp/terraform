@@ -85,5 +85,5 @@ The following attributes are exported:
 Firewalls can be imported using the `id`, e.g.
 
 ```
-terraform import openstack_fw_firewall_v1.firewall_1 c9e39fb2-ce20-46c8-a964-25f3898c7a97
+$ terraform import openstack_fw_firewall_v1.firewall_1 c9e39fb2-ce20-46c8-a964-25f3898c7a97
 ```

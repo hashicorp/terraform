@@ -93,5 +93,5 @@ The following attributes are exported:
 Security Group Rules can be imported using the `id`, e.g.
 
 ```
-terraform import openstack_networking_secgroup_rule_v2.secgroup_rule_1 aeb68ee3-6e9d-4256-955c-9584a6212745
+$ terraform import openstack_networking_secgroup_rule_v2.secgroup_rule_1 aeb68ee3-6e9d-4256-955c-9584a6212745
 ```

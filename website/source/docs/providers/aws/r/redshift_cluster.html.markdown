@@ -82,3 +82,11 @@ The following attributes are exported:
 * `cluster_subnet_group_name` - The name of a cluster subnet group to be associated with this cluster
 * `cluster_public_key` - The public key for the cluster
 * `cluster_revision_number` - The specific revision number of the database in the cluster
+
+## Import
+
+Redshift Clusters can be imported using the `cluster_identifier`, e.g. 
+
+```
+$ terraform import aws_redshift_cluster.myprodcluster tf-redshift-cluster-12345
+```

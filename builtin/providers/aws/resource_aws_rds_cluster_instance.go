@@ -83,6 +83,20 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"kms_key_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"storage_encrypted": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -191,6 +205,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("cluster_identifier", db.DBClusterIdentifier)
 	d.Set("instance_class", db.DBInstanceClass)
 	d.Set("identifier", db.DBInstanceIdentifier)
+	d.Set("storage_encrypted", db.StorageEncrypted)
 
 	if len(db.DBParameterGroups) > 0 {
 		d.Set("db_parameter_group_name", db.DBParameterGroups[0].DBParameterGroupName)

@@ -128,3 +128,11 @@ The following attributes are exported:
   part of your inbound rules for your load balancer's back-end application
   instances. Only available on ELBs launched in a VPC.
 * `zone_id` - The canonical hosted zone ID of the ELB (to be used in a Route 53 Alias record)
+
+## Import
+
+ELBs can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_elb.bar elb-production-12345
+```

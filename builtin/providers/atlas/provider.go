@@ -52,6 +52,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 			return nil, err
 		}
 	}
+	client.DefaultHeader.Set(terraform.VersionHeader, terraform.VersionString())
 	client.Token = d.Get("token").(string)
 
 	return client, nil

@@ -14,6 +14,9 @@ The AMI resource allows the creation and management of a completely-custom
 If you just want to duplicate an existing AMI, possibly copying it to another
 region, it's better to use `aws_ami_copy` instead.
 
+If you just want to share an existing AMI with another AWS account,
+it's better to use `aws_ami_launch_permission` instead.
+
 ## Example Usage
 
 ```

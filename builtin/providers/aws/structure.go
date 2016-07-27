@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
@@ -1001,6 +1002,17 @@ func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
 		if r.Metric != nil {
 			strs = append(strs, *r.Metric)
 		}
+	}
+	return strs
+}
+
+func flattenKinesisShardLevelMetrics(list []*kinesis.EnhancedMetrics) []string {
+	if len(list) == 0 {
+		return []string{}
+	}
+	strs := make([]string, 0, len(list[0].ShardLevelMetrics))
+	for _, s := range list[0].ShardLevelMetrics {
+		strs = append(strs, *s)
 	}
 	return strs
 }

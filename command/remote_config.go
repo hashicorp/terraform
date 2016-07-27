@@ -38,7 +38,7 @@ func (c *RemoteConfigCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.conf.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.conf.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&c.remoteConf.Type, "backend", "atlas", "")
-	cmdFlags.Var((*FlagKV)(&config), "backend-config", "config")
+	cmdFlags.Var((*FlagStringKV)(&config), "backend-config", "config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("\nError parsing CLI flags: %s", err))

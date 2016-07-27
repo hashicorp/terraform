@@ -25,6 +25,8 @@ func resourceCloudStackNetwork() *schema.Resource {
 
 		if value == none {
 			aclidSchema.ForceNew = true
+		} else {
+			aclidSchema.ForceNew = false
 		}
 
 		return value

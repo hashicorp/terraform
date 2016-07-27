@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -58,6 +59,27 @@ func TestAccAWSRDSCluster_updateTags(t *testing.T) {
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster.default", "tags.%", "2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRDSCluster_kmsKey(t *testing.T) {
+	var v rds.DBCluster
+	keyRegex := regexp.MustCompile("^arn:aws:kms:")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSClusterConfig_kmsKey(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+					resource.TestMatchResourceAttr(
+						"aws_rds_cluster.default", "kms_key_id", keyRegex),
 				),
 			},
 		},
@@ -218,6 +240,42 @@ resource "aws_rds_cluster" "default" {
     AnotherTag = "test"
   }
 }`, n)
+}
+
+func testAccAWSClusterConfig_kmsKey(n int) string {
+	return fmt.Sprintf(`
+
+ resource "aws_kms_key" "foo" {
+     description = "Terraform acc test %d"
+     policy = <<POLICY
+ {
+   "Version": "2012-10-17",
+   "Id": "kms-tf-1",
+   "Statement": [
+     {
+       "Sid": "Enable IAM User Permissions",
+       "Effect": "Allow",
+       "Principal": {
+         "AWS": "*"
+       },
+       "Action": "kms:*",
+       "Resource": "*"
+     }
+   ]
+ }
+ POLICY
+ }
+
+ resource "aws_rds_cluster" "default" {
+   cluster_identifier = "tf-aurora-cluster-%d"
+   availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
+   database_name = "mydb"
+   master_username = "foo"
+   master_password = "mustbeeightcharaters"
+   db_cluster_parameter_group_name = "default.aurora5.6"
+   storage_encrypted = true
+   kms_key_id = "${aws_kms_key.foo.arn}"
+ }`, n, n)
 }
 
 func testAccAWSClusterConfig_encrypted(n int) string {
