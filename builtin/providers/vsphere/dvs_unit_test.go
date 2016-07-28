@@ -140,6 +140,7 @@ func aaTestPortgroupCreationAndDestruction(t *testing.T) {
 	//doDeleteDVPortgroup(dvpg, t)
 }
 
+/** disabled
 func buildTestMapVMDVPG(dvpg *dvs_port_group) *dvs_map_vm_dvpg {
 	vmpth := vmPath(testParameters["vmFolder"].(string), testParameters["vmPath"].(string))
 	o := dvs_map_vm_dvpg{}
@@ -207,6 +208,7 @@ func aaTestVMDVSRead(t *testing.T) {
 	// need:
 	// datacenter name, switch path, portgroup name, VM path name
 }
+// */
 
 func init() {
 	datacenter := os.Getenv("VSPHERE_TEST_DC")
