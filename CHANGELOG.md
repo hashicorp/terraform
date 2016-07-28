@@ -99,6 +99,7 @@ IMPROVEMENTS:
  * core: The `jsonencode` interpolation function now supports encoding lists and maps [GH-6749]
  * core: Add the ability for resource definitions to mark attributes as "sensitive" which will omit them from UI output. [GH-6923]
  * core: Support `.` in map keys [GH-7654]
+ * core: Enhance interpolation functions to account for first class maps and lists [GH-7832] [GH-7834]
  * command: Remove second DefaultDataDirectory const [GH-7666]
  * provider/aws: Add `dns_name` to `aws_efs_mount_target` [GH-7428]
  * provider/aws: Add `force_destroy` to `aws_iam_user` for force-deleting access keys assigned to the user [GH-7766]
