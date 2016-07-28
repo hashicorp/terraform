@@ -88,6 +88,11 @@ func resourceComputeBackendService() *schema.Resource {
 				Optional: true,
 			},
 
+			"enable_cdn": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"fingerprint": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -165,6 +170,10 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 		service.TimeoutSec = int64(v.(int))
 	}
 
+	if v, ok := d.GetOk("enable_cdn"); ok {
+		service.EnableCDN = v.(bool)
+	}
+
 	project, err := getProject(d, config)
 	if err != nil {
 		return err
@@ -212,6 +221,7 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	}
 
 	d.Set("description", service.Description)
+	d.Set("enable_cdn", service.EnableCDN)
 	d.Set("port_name", service.PortName)
 	d.Set("protocol", service.Protocol)
 	d.Set("timeout_sec", service.TimeoutSec)
@@ -258,6 +268,10 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 	}
 	if d.HasChange("timeout_sec") {
 		service.TimeoutSec = int64(d.Get("timeout_sec").(int))
+	}
+
+	if d.HasChange("enable_cdn") {
+		service.EnableCDN = d.Get("enable_cdn").(bool)
 	}
 
 	log.Printf("[DEBUG] Updating existing Backend Service %q: %#v", d.Id(), service)
