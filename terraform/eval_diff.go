@@ -185,6 +185,11 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 		return nil
 	}
 
+	// If the resource has been tainted we shouldn't alter the Diff
+	if diff.DestroyTainted {
+		return nil
+	}
+
 	ignorableAttrKeys := make(map[string]bool)
 	for _, ignoredKey := range ignoreChanges {
 		for k := range diff.Attributes {
