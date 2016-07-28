@@ -25,15 +25,15 @@ func TestResourceAzureRMStorageBlobType_validation(t *testing.T) {
 			ErrCount: 0,
 		},
 		{
-			Value:    "blob",
+			Value:    "block",
 			ErrCount: 0,
 		},
 		{
-			Value:    "BLOB",
+			Value:    "BLOCK",
 			ErrCount: 0,
 		},
 		{
-			Value:    "Blob",
+			Value:    "Block",
 			ErrCount: 0,
 		},
 	}
