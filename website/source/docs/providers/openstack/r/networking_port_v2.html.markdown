@@ -82,7 +82,7 @@ The following attributes are exported:
 * `mac_address` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
 * `device_owner` - See Argument Reference above.
-* `security_groups` - See Argument Reference above.
+* `security_group_ids` - See Argument Reference above.
 * `device_id` - See Argument Reference above.
 * `fixed_ip/ip_address` - See Argument Reference above.
 
