@@ -1,11 +1,11 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"bRFOOrZKfO9LweMbPqu0kcu6De8/KVPQfwGxQTBtH0g1kuij0C9i4uc\"",
+ "etag": "\"C5oy1hgQsABtYOYIOXWcR3BgYqU/cPnwg2U9hg8m8Y6wHWcvqIF8qSM\"",
  "discoveryVersion": "v1",
  "id": "storage:v1",
  "name": "storage",
  "version": "v1",
- "revision": "20160304",
+ "revision": "20160609",
  "title": "Cloud Storage JSON API",
  "description": "Stores and retrieves potentially large, immutable data objects.",
  "ownerDomain": "google.com",
@@ -294,15 +294,15 @@
     },
     "website": {
      "type": "object",
-     "description": "The bucket's website configuration.",
+     "description": "The bucket's website configuration, controlling how the service behaves when accessing bucket contents as a web site. See the Static Website Examples for more information.",
      "properties": {
       "mainPageSuffix": {
        "type": "string",
-       "description": "Behaves as the bucket's directory index where missing objects are treated as potential directories."
+       "description": "If the requested object path is missing, the service will ensure the path has a trailing '/', append this suffix, and attempt to retrieve the resulting object. This allows the creation of index.html objects to represent directory pages."
       },
       "notFoundPage": {
        "type": "string",
-       "description": "The custom object to return when a requested resource is not found."
+       "description": "If the requested object path is missing, and any mainPageSuffix object is missing, if applicable, the service will return the named object from this bucket as the content for a 404 Not Found result."
       }
      }
     }
@@ -574,7 +574,7 @@
     },
     "contentType": {
      "type": "string",
-     "description": "Content-Type of the object data."
+     "description": "Content-Type of the object data. If contentType is not specified, object downloads will be served as application/octet-stream."
     },
     "crc32c": {
      "type": "string",
@@ -1088,7 +1088,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit acl and defaultObjectAcl properties."
+        "Omit owner, acl and defaultObjectAcl properties."
        ],
        "location": "query"
       }
@@ -1168,7 +1168,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit acl and defaultObjectAcl properties."
+        "Omit owner, acl and defaultObjectAcl properties."
        ],
        "location": "query"
       }
@@ -1226,7 +1226,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit acl and defaultObjectAcl properties."
+        "Omit owner, acl and defaultObjectAcl properties."
        ],
        "location": "query"
       }
@@ -1318,7 +1318,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit acl and defaultObjectAcl properties."
+        "Omit owner, acl and defaultObjectAcl properties."
        ],
        "location": "query"
       }
@@ -1334,8 +1334,7 @@
      },
      "scopes": [
       "https://www.googleapis.com/auth/cloud-platform",
-      "https://www.googleapis.com/auth/devstorage.full_control",
-      "https://www.googleapis.com/auth/devstorage.read_write"
+      "https://www.googleapis.com/auth/devstorage.full_control"
      ]
     },
     "update": {
@@ -1411,7 +1410,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit acl and defaultObjectAcl properties."
+        "Omit owner, acl and defaultObjectAcl properties."
        ],
        "location": "query"
       }
@@ -1427,8 +1426,7 @@
      },
      "scopes": [
       "https://www.googleapis.com/auth/cloud-platform",
-      "https://www.googleapis.com/auth/devstorage.full_control",
-      "https://www.googleapis.com/auth/devstorage.read_write"
+      "https://www.googleapis.com/auth/devstorage.full_control"
      ]
     }
    }
@@ -2076,7 +2074,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit the acl property."
+        "Omit the owner, acl property."
        ],
        "location": "query"
       },
@@ -2235,7 +2233,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit the acl property."
+        "Omit the owner, acl property."
        ],
        "location": "query"
       }
@@ -2333,7 +2331,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit the acl property."
+        "Omit the owner, acl property."
        ],
        "location": "query"
       }
@@ -2414,7 +2412,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit the acl property."
+        "Omit the owner, acl property."
        ],
        "location": "query"
       },
@@ -2517,7 +2515,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit the acl property."
+        "Omit the owner, acl property."
        ],
        "location": "query"
       }
@@ -2534,8 +2532,7 @@
      },
      "scopes": [
       "https://www.googleapis.com/auth/cloud-platform",
-      "https://www.googleapis.com/auth/devstorage.full_control",
-      "https://www.googleapis.com/auth/devstorage.read_write"
+      "https://www.googleapis.com/auth/devstorage.full_control"
      ]
     },
     "rewrite": {
@@ -2640,7 +2637,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit the acl property."
+        "Omit the owner, acl property."
        ],
        "location": "query"
       },
@@ -2764,7 +2761,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit the acl property."
+        "Omit the owner, acl property."
        ],
        "location": "query"
       }
@@ -2781,8 +2778,7 @@
      },
      "scopes": [
       "https://www.googleapis.com/auth/cloud-platform",
-      "https://www.googleapis.com/auth/devstorage.full_control",
-      "https://www.googleapis.com/auth/devstorage.read_write"
+      "https://www.googleapis.com/auth/devstorage.full_control"
      ],
      "supportsMediaDownload": true,
      "useMediaDownloadService": true
@@ -2830,7 +2826,7 @@
        ],
        "enumDescriptions": [
         "Include all properties.",
-        "Omit the acl property."
+        "Omit the owner, acl property."
        ],
        "location": "query"
       },
