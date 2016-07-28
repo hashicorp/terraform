@@ -22,7 +22,7 @@ func TestAccAWSEFSFileSystem_importBasic(t *testing.T) {
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"reference_name"},
+				ImportStateVerifyIgnore: []string{"reference_name", "creation_token"},
 			},
 		},
 	})
