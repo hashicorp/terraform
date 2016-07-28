@@ -47,6 +47,8 @@ FEATURES:
  * **New Data Source:** `consul_keys` [GH-7678]
  * **New Interpolation Function:** `sort` [GH-7128]
  * **New Interpolation Function:** `distinct` [GH-7174]
+ * **New Interpolation Function:** `list` [GH-7528]
+ * **New Interpolation Function:** `map` [GH-7832]
  * **New Provider:** `grafana` [GH-6206]
  * **New Provider:** `logentries` [GH-7067]
  * **New Provider:** `scaleway` [GH-7331]
