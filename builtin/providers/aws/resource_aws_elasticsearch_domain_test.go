@@ -150,6 +150,13 @@ resource "aws_elasticsearch_domain" "example" {
 }
 `
 
+const testAccESDomainConfig_VersionUpdate = `
+resource "aws_elasticsearch_domain" "example" {
+  domain_name = "tf-test-1"
+  version = "0.0"
+}
+`
+
 const testAccESDomainConfig_TagUpdate = `
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-1"

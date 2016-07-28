@@ -646,6 +646,10 @@ type CreateElasticsearchDomainInput struct {
 	// a-z (lowercase), 0-9, and - (hyphen).
 	DomainName *string `min:"3" type:"string" required:"true"`
 
+	// The version of Elasticsearch to use for the cluster. The default is 1.5 but 2.3
+	// is now optionally available and recommended.
+	Elasticsearch-Version *string `min:"3" type:"string"`
+
 	// Options to enable, disable and specify the type and size of EBS storage volumes.
 	EBSOptions *EBSOptions `type:"structure"`
 

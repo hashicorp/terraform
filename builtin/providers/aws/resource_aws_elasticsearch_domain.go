@@ -44,6 +44,12 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 					return
 				},
 			},
+			"version": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -139,6 +145,10 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 
 	input := elasticsearch.CreateElasticsearchDomainInput{
 		DomainName: aws.String(d.Get("domain_name").(string)),
+	}
+
+	if v, ok := d.GetOk("version"); ok {
+		input.Elasticsearch-Version = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("access_policies"); ok {
@@ -264,6 +274,7 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	}
 	d.Set("domain_id", *ds.DomainId)
 	d.Set("domain_name", *ds.DomainName)
+	d.Set("version", *ds.Elasticsearch-Version)
 	if ds.Endpoint != nil {
 		d.Set("endpoint", *ds.Endpoint)
 	}
@@ -314,6 +325,10 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 
 	input := elasticsearch.UpdateElasticsearchDomainConfigInput{
 		DomainName: aws.String(d.Get("domain_name").(string)),
+	}
+
+	if d.HasChange("version") {
+		input.AccessPolicies = aws.String(d.Get("version").(string))
 	}
 
 	if d.HasChange("access_policies") {
