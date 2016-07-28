@@ -61,7 +61,7 @@ string.
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB cluster is deleted. If omitted, no final snapshot will be
     made.
-* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB cluster is deleted. If true is specified, no DBSnapshot is created. If false is specified, a DB snapshot is created before the DB cluster is deleted, using the value from `final_snapshot_identifier`. Default is true.
+* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB cluster is deleted. If true is specified, no DB snapshot is created. If false is specified, a DB snapshot is created before the DB cluster is deleted, using the value from `final_snapshot_identifier`. Default is true.
 * `availability_zones` - (Optional) A list of EC2 Availability Zones that
   instances in the DB cluster can be created in
 * `backup_retention_period` - (Optional) The days to retain backups for. Default

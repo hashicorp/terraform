@@ -77,7 +77,7 @@ The following arguments are supported:
     defined for notification of log file delivery.
 * `enable_log_file_validation` - (Optional) Specifies whether log file integrity validation is enabled.
     Defaults to `false`.
-* `kms_key_id` - (Optional) Specifies the KMS key ID to use to encrypt the logs delivered by CloudTrail.
+* `kms_key_id` - (Optional) Specifies the KMS key ARN to use to encrypt the logs delivered by CloudTrail.
 * `tags` - (Optional) A mapping of tags to assign to the trail
 
 ## Attribute Reference
