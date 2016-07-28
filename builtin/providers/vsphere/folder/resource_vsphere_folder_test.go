@@ -1,10 +1,11 @@
-package vsphere
+package folder
 
 import (
 	"fmt"
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform/builtin/providers/vsphere/helpers"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
@@ -22,8 +23,8 @@ func TestAccVSphereFolder_basic(t *testing.T) {
 	path := "tf_test_basic"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:     func() { helpers.TestAccPreCheck(t) },
+		Providers:    helpers.TestAccProviders,
 		CheckDestroy: testAccCheckVSphereFolderDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
@@ -54,8 +55,8 @@ func TestAccVSphereFolder_nested(t *testing.T) {
 	path := "tf_test_nested/tf_test_folder"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:     func() { helpers.TestAccPreCheck(t) },
+		Providers:    helpers.TestAccProviders,
 		CheckDestroy: testAccCheckVSphereFolderDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
@@ -87,8 +88,8 @@ func TestAccVSphereFolder_dontDeleteExisting(t *testing.T) {
 	path := existingPath + "/tf_nested/tf_test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:  func() { helpers.TestAccPreCheck(t) },
+		Providers: helpers.TestAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			assertVSphereFolderExists(datacenter, existingPath),
 			removeVSphereFolder(datacenter, existingPath, ""),
@@ -117,7 +118,7 @@ func TestAccVSphereFolder_dontDeleteExisting(t *testing.T) {
 }
 
 func testAccCheckVSphereFolderDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*govmomi.Client)
+	client := helpers.TestAccProvider.Meta().(*govmomi.Client)
 	finder := find.NewFinder(client.Client, true)
 
 	for _, rs := range s.RootModule().Resources {
@@ -139,6 +140,10 @@ func testAccCheckVSphereFolderDestroy(s *terraform.State) error {
 		if f != nil {
 			return fmt.Errorf("Record still exists")
 		}
+		if err != nil {
+			return fmt.Errorf("error %s", err)
+		}
+
 	}
 
 	return nil
@@ -155,7 +160,7 @@ func testAccCheckVSphereFolderExists(n string, f *folder) resource.TestCheckFunc
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := helpers.TestAccProvider.Meta().(*govmomi.Client)
 		finder := find.NewFinder(client.Client, true)
 
 		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])
@@ -189,7 +194,7 @@ func testAccCheckVSphereFolderExistingPathExists(n string, f *folder) resource.T
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := helpers.TestAccProvider.Meta().(*govmomi.Client)
 		finder := find.NewFinder(client.Client, true)
 
 		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])
@@ -215,7 +220,7 @@ func testAccCheckVSphereFolderExistingPathExists(n string, f *folder) resource.T
 func assertVSphereFolderExists(datacenter string, folder_name string) resource.TestCheckFunc {
 
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := helpers.TestAccProvider.Meta().(*govmomi.Client)
 		folder, err := object.NewSearchIndex(client.Client).FindByInventoryPath(
 			context.TODO(), fmt.Sprintf("%v/vm/%v", datacenter, folder_name))
 		if err != nil {
@@ -230,7 +235,7 @@ func assertVSphereFolderExists(datacenter string, folder_name string) resource.T
 
 func createVSphereFolder(datacenter string, folder_name string) error {
 
-	client := testAccProvider.Meta().(*govmomi.Client)
+	client := helpers.TestAccProvider.Meta().(*govmomi.Client)
 
 	f := folder{path: folder_name, datacenter: datacenter}
 
@@ -255,7 +260,7 @@ func removeVSphereFolder(datacenter string, folder_name string, existing_path st
 
 	return func(s *terraform.State) error {
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := helpers.TestAccProvider.Meta().(*govmomi.Client)
 		// finder := find.NewFinder(client.Client, true)
 
 		folder, _ := object.NewSearchIndex(client.Client).FindByInventoryPath(

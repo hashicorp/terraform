@@ -1,4 +1,4 @@
-package vsphere
+package virtual_machine
 
 import (
 	"fmt"

@@ -3,6 +3,7 @@ package helpers
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -47,4 +48,13 @@ func SortedStringMap(in map[string]interface{}) string {
 		out = fmt.Sprintf("%s%s: %+v\t", out, k, in[k])
 	}
 	return out
+}
+
+// JoinStringer joins fmt.Stringer elements like strings.Join
+func JoinStringer(values []fmt.Stringer, sep string) string {
+	var data = make([]string, len(values))
+	for i, v := range values {
+		data[i] = v.String()
+	}
+	return strings.Join(data, sep)
 }

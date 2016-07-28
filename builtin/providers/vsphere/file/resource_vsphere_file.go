@@ -1,4 +1,4 @@
-package vsphere
+package file
 
 import (
 	"fmt"
@@ -13,6 +13,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+import "github.com/hashicorp/terraform/builtin/providers/vsphere/helpers"
+
 type file struct {
 	sourceDatacenter  string
 	datacenter        string
@@ -24,7 +26,7 @@ type file struct {
 	copyFile          bool
 }
 
-func resourceVSphereFile() *schema.Resource {
+func ResourceVSphereFile() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereFileCreate,
 		Read:   resourceVSphereFileRead,
@@ -366,7 +368,7 @@ func resourceVSphereFileDelete(d *schema.ResourceData, meta interface{}) error {
 
 func deleteFile(client *govmomi.Client, f *file) error {
 
-	dc, err := getDatacenter(client, f.datacenter)
+	dc, err := helpers.GetDatacenter(client, f.datacenter)
 	if err != nil {
 		return err
 	}

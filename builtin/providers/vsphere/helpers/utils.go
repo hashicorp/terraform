@@ -1,4 +1,4 @@
-package vsphere
+package helpers
 
 import (
 	"encoding/json"
@@ -22,7 +22,8 @@ import (
 
 const cacheIndexFile = ".vsphereobjindex.json"
 
-func getGovmomiClient(meta interface{}) (*govmomi.Client, error) {
+// GetGovmomiClient gets a Govmomi client from the meta passed by Terraform
+func GetGovmomiClient(meta interface{}) (*govmomi.Client, error) {
 	client, casted := meta.(*govmomi.Client)
 	if !casted {
 		return nil, fmt.Errorf("%+v is not castable as govmomi.Client", meta)
@@ -30,7 +31,8 @@ func getGovmomiClient(meta interface{}) (*govmomi.Client, error) {
 	return client, nil
 }
 
-func getDVSByUUID(c *govmomi.Client, uuid string) (*object.DistributedVirtualSwitch, error) {
+// GetDVSByUUID finds a DVS object from its UUID
+func GetDVSByUUID(c *govmomi.Client, uuid string) (*object.DistributedVirtualSwitch, error) {
 
 	q := types.QueryDvsByUuid{
 		This: *c.ServiceContent.DvSwitchManager,
@@ -115,7 +117,7 @@ func BuildManagedObjectsIndexes(client *govmomi.Client, path string) (map[string
 			Ret: ret,
 			Inv: inv,
 		}
-		clearVSphereInventoryCache()
+		ClearVSphereInventoryCache()
 		if file, err := os.Create(cacheIndexFile); err == nil {
 			b, err := json.MarshalIndent(_bmo, "", " ")
 			if err != nil {
@@ -131,7 +133,8 @@ func BuildManagedObjectsIndexes(client *govmomi.Client, path string) (map[string
 
 var _testGovmomiClient *govmomi.Client
 
-func getTestGovmomiClient() (*govmomi.Client, error) {
+// GetTestGovmomiClient builds a Govmomi client for unit tests
+func GetTestGovmomiClient() (*govmomi.Client, error) {
 	if _testGovmomiClient == nil {
 		u, err := url.Parse("https://" + os.Getenv("VSPHERE_URL") + "/sdk")
 		if err != nil {
@@ -147,6 +150,7 @@ func getTestGovmomiClient() (*govmomi.Client, error) {
 	return _testGovmomiClient, nil
 }
 
+// MapMerge1 merges two map[string][]string
 func MapMerge1(m, m2 *map[string][]string) error {
 	for k, v := range *m2 {
 		v2, ok := (*m)[k]
@@ -159,6 +163,7 @@ func MapMerge1(m, m2 *map[string][]string) error {
 	return nil
 }
 
+// MapMerge1 merges two map[string]types.ManagedObjectReference
 func MapMerge2(m, m2 *map[string]types.ManagedObjectReference) error {
 	for k, v := range *m2 {
 		_, ok := (*m)[k]
@@ -169,7 +174,8 @@ func MapMerge2(m, m2 *map[string]types.ManagedObjectReference) error {
 	return nil
 }
 
-func dirname(path string) string {
+// Dirname extracts the directory name from a path
+func Dirname(path string) string {
 	s := strings.Split(path, "/")
 	sslice := s[0 : len(s)-1]
 	out := strings.Join(sslice, "/")
@@ -177,12 +183,14 @@ func dirname(path string) string {
 	return out
 }
 
-func clearVSphereInventoryCache() {
+// ClearVSphereInventoryCache clears the vSphere inventory cache
+func ClearVSphereInventoryCache() {
 	os.Remove(cacheIndexFile)
 	_bmo = bmores{}
 }
 
-func removefirstpartsofpath(path string) string {
+// RemoveFirstPartsOfPath removes the header part of a vSphere inventory path
+func RemoveFirstPartsOfPath(path string) string {
 	s := strings.Split(path, "/")
 	log.Printf("[DEBUG] split: %+v", s)
 	if len(s) < 3 {

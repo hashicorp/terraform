@@ -4,6 +4,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/builtin/providers/vsphere/dvs"
+	"github.com/hashicorp/terraform/builtin/providers/vsphere/file"
+	"github.com/hashicorp/terraform/builtin/providers/vsphere/folder"
+	"github.com/hashicorp/terraform/builtin/providers/vsphere/helpers"
+	"github.com/hashicorp/terraform/builtin/providers/vsphere/virtual_disk"
+	"github.com/hashicorp/terraform/builtin/providers/vsphere/virtual_machine"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -65,10 +70,10 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"vsphere_file":            resourceVSphereFile(),
-			"vsphere_folder":          resourceVSphereFolder(),
-			"vsphere_virtual_disk":    resourceVSphereVirtualDisk(),
-			"vsphere_virtual_machine": resourceVSphereVirtualMachine(),
+			"vsphere_file":            file.ResourceVSphereFile(),
+			"vsphere_folder":          folder.ResourceVSphereFolder(),
+			"vsphere_virtual_disk":    virtual_disk.ResourceVSphereVirtualDisk(),
+			"vsphere_virtual_machine": virtual_machine.ResourceVSphereVirtualMachine(),
 			"vsphere_dvs":             dvs.ResourceVSphereDVS(),
 			"vsphere_dvs_port_group":  dvs.ResourceVSphereDVPG(),
 			"vsphere_dvs_vm_port":     dvs.ResourceVSphereMapVMDVPG(),
@@ -105,4 +110,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return config.Client()
+}
+
+func init() {
+	helpers.TestAccProvider = Provider().(*schema.Provider)
+	helpers.TestAccProviders = map[string]terraform.ResourceProvider{
+		"vsphere": helpers.TestAccProvider,
+	}
 }
