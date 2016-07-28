@@ -180,6 +180,7 @@ IMPROVEMENTS:
  * provider/openstack: Enforce `ForceNew` on Instance Block Device [GH-6921]
  * provider/openstack: Can now stop instances before destroying them [GH-7184]
  * provider/openstack: Disassociate LBaaS v1 Monitors from Pool Before Deletion [GH-6997]
+ * provider/powerdns: Add support for PowerDNS 4 API [GH-7819]
  * provider/triton: add `triton_machine` `domain names` [GH-7149]
  * provider/vsphere: Add support for `controller_type` to `vsphere_virtual_machine` [GH-6785]
  * provider/vsphere: Fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
