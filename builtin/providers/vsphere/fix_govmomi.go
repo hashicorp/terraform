@@ -1,4 +1,4 @@
-package dvs
+package vsphere
 
 import (
 	"github.com/vmware/govmomi"

@@ -4,29 +4,7 @@ to Terraform
 **/
 package dvs
 
-import "github.com/hashicorp/terraform/helper/schema"
-
-// ResourceVSphereDVS exposes the DVS resource
-func ResourceVSphereDVS() *schema.Resource {
-	return &schema.Resource{
-		Create: resourceVSphereDVSCreate,
-		Read:   resourceVSphereDVSRead,
-		Update: resourceVSphereDVSUpdate,
-		Delete: resourceVSphereDVSDelete,
-		Schema: resourceVSphereDVSSchema(),
-	}
-}
-
-// ResourceVSphereDVPG exposes the DVPG resource
-func ResourceVSphereDVPG() *schema.Resource {
-	return &schema.Resource{
-		Create: resourceVSphereDVPGCreate,
-		Read:   resourceVSphereDVPGRead,
-		Update: resourceVSphereDVPGUpdate,
-		Delete: resourceVSphereDVPGDelete,
-		Schema: resourceVSphereDVPGSchema(),
-	}
-}
+/** disabled because untested
 
 // ResourceVSphereMapHostDVS exposes the MapHostDVS resource (untested)
 func ResourceVSphereMapHostDVS() *schema.Resource {
@@ -48,3 +26,4 @@ func ResourceVSphereMapVMDVPG() *schema.Resource {
 		Schema: resourceVSphereMapVMDVPGSchema(),
 	}
 }
+// **/

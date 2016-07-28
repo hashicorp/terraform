@@ -3,12 +3,6 @@ package vsphere
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/dvs"
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/file"
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/folder"
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/helpers"
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/virtual_disk"
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/virtual_machine"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -70,14 +64,16 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"vsphere_file":            file.ResourceVSphereFile(),
-			"vsphere_folder":          folder.ResourceVSphereFolder(),
-			"vsphere_virtual_disk":    virtual_disk.ResourceVSphereVirtualDisk(),
-			"vsphere_virtual_machine": virtual_machine.ResourceVSphereVirtualMachine(),
-			"vsphere_dvs":             dvs.ResourceVSphereDVS(),
-			"vsphere_dvs_port_group":  dvs.ResourceVSphereDVPG(),
+			"vsphere_file":            ResourceVSphereFile(),
+			"vsphere_folder":          ResourceVSphereFolder(),
+			"vsphere_virtual_disk":    ResourceVSphereVirtualDisk(),
+			"vsphere_virtual_machine": ResourceVSphereVirtualMachine(),
+			"vsphere_dvs":             ResourceVSphereDVS(),
+			"vsphere_dvs_port_group":  ResourceVSphereDVPG(),
+			/** // disabled (untested)
 			"vsphere_dvs_vm_port":     dvs.ResourceVSphereMapVMDVPG(),
 			"vsphere_dvs_host_map":    dvs.ResourceVSphereMapHostDVS(),
+			// **/
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -113,8 +109,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 }
 
 func init() {
-	helpers.TestAccProvider = Provider().(*schema.Provider)
-	helpers.TestAccProviders = map[string]terraform.ResourceProvider{
-		"vsphere": helpers.TestAccProvider,
+	testAccProvider = Provider().(*schema.Provider)
+	testAccProviders = map[string]terraform.ResourceProvider{
+		"vsphere": testAccProvider,
 	}
 }

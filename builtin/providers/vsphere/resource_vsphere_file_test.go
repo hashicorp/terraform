@@ -1,4 +1,4 @@
-package file
+package vsphere
 
 import (
 	"fmt"
@@ -32,8 +32,8 @@ func TestAccVSphereFile_basic(t *testing.T) {
 	sourceFile := testVmdkFile
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { helpers.TestAccPreCheck(t) },
-		Providers:    helpers.TestAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -245,7 +245,7 @@ func TestAccVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 }
 
 func testAccCheckVSphereFileDestroy(s *terraform.State) error {
-	client := helpers.TestAccProvider.Meta().(*govmomi.Client)
+	client := testAccProvider.Meta().(*govmomi.Client)
 	finder := find.NewFinder(client.Client, true)
 
 	for _, rs := range s.RootModule().Resources {
@@ -293,7 +293,7 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := helpers.TestAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*govmomi.Client)
 		finder := find.NewFinder(client.Client, true)
 
 		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])

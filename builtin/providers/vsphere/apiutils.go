@@ -1,11 +1,10 @@
-package dvs
+package vsphere
 
 import (
 	"fmt"
 	"log"
 
 	"github.com/davecgh/go-spew/spew" // debug dependency
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/helpers"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -18,42 +17,6 @@ func loadDVS(c *govmomi.Client, datacenter, dvsPath string, output *dvs) error {
 	output.datacenter = datacenter
 	err := output.loadDVS(c, datacenter, dvsPath)
 	return err
-}
-
-// load map between host and DVS
-func loadMapHostDVS(switchName string, hostmember types.DistributedVirtualSwitchHostMember) (out *dvs_map_host_dvs, err error) {
-	h := hostmember.Config.Host
-	hostObj, casted := h.Value, true
-	if !casted {
-		err = fmt.Errorf("Could not cast Host to mo.HostSystem")
-		return
-	}
-	backingInfosObj := hostmember.Config.Backing
-
-	backingInfos, casted := backingInfosObj.(*types.DistributedVirtualSwitchHostMemberPnicBacking)
-	if !casted {
-		err = fmt.Errorf("Could not cast Host to mo.HostSystem")
-		return
-	}
-	for _, pnic := range backingInfos.PnicSpec {
-		out.nicName = append(out.nicName, pnic.PnicDevice)
-	}
-	out.switchName = switchName
-	out.hostName = hostObj
-	return
-}
-
-// load a DVPG
-func loadDVPG(client *govmomi.Client, datacenter, switchName, name string) (*dvs_port_group, error) {
-	dvpg := dvs_port_group{}
-
-	err := dvpg.loadDVPG(client, datacenter, switchName, name, &dvpg)
-	return &dvpg, err
-}
-
-// load a map between DVPG and VM
-func loadMapVMDVPG(client *govmomi.Client, datacenter, switchName, portgroup, vmPath string) (out *dvs_map_vm_dvpg, err error) {
-	return out.loadMapVMDVPG(client, datacenter, switchName, portgroup, vmPath)
 }
 
 // Host manipulation functions
@@ -222,7 +185,7 @@ func bindVEthAndPortgroup(c *govmomi.Client, vm *object.VirtualMachine, veth typ
 		spew.Dump("Error\n\n", err, "\n\n")
 		return err
 	}
-	return helpers.WaitForTaskEnd(task, "Cannot complete vm.Reconfigure: %+v")
+	return waitForTaskEnd(task, "Cannot complete vm.Reconfigure: %+v")
 }
 
 // unbind a VEth and a Portgroup
@@ -243,9 +206,41 @@ func unbindVEthAndPortgroup(c *govmomi.Client, vm *object.VirtualMachine, veth t
 	if err != nil {
 		return err
 	}
-	return helpers.WaitForTaskEnd(task, "Cannot complete vm.Reconfigure: %+v")
+	return waitForTaskEnd(task, "Cannot complete vm.Reconfigure: %+v")
 }
 
 func vmDebug(c *govmomi.Client, vm *object.VirtualMachine) {
 	return
 }
+
+/* // disabled (untested)
+// load a map between DVPG and VM
+func loadMapVMDVPG(client *govmomi.Client, datacenter, switchName, portgroup, vmPath string) (out *dvs_map_vm_dvpg, err error) {
+	return out.loadMapVMDVPG(client, datacenter, switchName, portgroup, vmPath)
+}
+
+// load map between host and DVS
+func loadMapHostDVS(switchName string, hostmember types.DistributedVirtualSwitchHostMember) (out *dvs_map_host_dvs, err error) {
+	h := hostmember.Config.Host
+	hostObj, casted := h.Value, true
+	if !casted {
+		err = fmt.Errorf("Could not cast Host to mo.HostSystem")
+		return
+	}
+	backingInfosObj := hostmember.Config.Backing
+
+	backingInfos, casted := backingInfosObj.(*types.DistributedVirtualSwitchHostMemberPnicBacking)
+	if !casted {
+		err = fmt.Errorf("Could not cast Host to mo.HostSystem")
+		return
+	}
+	for _, pnic := range backingInfos.PnicSpec {
+		out.nicName = append(out.nicName, pnic.PnicDevice)
+	}
+	out.switchName = switchName
+	out.hostName = hostObj
+	return
+}
+
+
+// */

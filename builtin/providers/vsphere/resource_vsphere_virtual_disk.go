@@ -1,10 +1,9 @@
-package virtual_disk
+package vsphere
 
 import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/helpers"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -168,7 +167,7 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 		vDisk.datastore = v.(string)
 	}
 
-	dc, err := helpers.GetDatacenter(client, d.Get("datacenter").(string))
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
 	}
@@ -220,7 +219,7 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 		vDisk.datastore = v.(string)
 	}
 
-	dc, err := helpers.GetDatacenter(client, d.Get("datacenter").(string))
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
 	}
@@ -273,7 +272,7 @@ func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType 
 		},
 		CapacityKb: int64(1024 * 1024 * size),
 	}
-	datacenter, err := helpers.GetDatacenter(client, dc)
+	datacenter, err := getDatacenter(client, dc)
 	if err != nil {
 		return err
 	}

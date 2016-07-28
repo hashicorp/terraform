@@ -1,7 +1,7 @@
 //go:generate constarray -type=controllerType,nicType,provisioningType
 //go:generate stringalias -type=controllerType,nicType,provisioningType
 
-package virtual_machine
+package vsphere
 
 import (
 	"fmt"
@@ -13,7 +13,6 @@ import (
 
 	"time"
 
-	"github.com/hashicorp/terraform/builtin/providers/vsphere/helpers"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
@@ -151,14 +150,6 @@ type virtualMachine struct {
 
 func (v virtualMachine) Path() string {
 	return vmPath(v.folder, v.name)
-}
-
-func vmPath(folder string, name string) string {
-	var path string
-	if len(folder) > 0 {
-		path += folder + "/"
-	}
-	return path + name
 }
 
 func ResourceVSphereVirtualMachine() *schema.Resource {
@@ -359,7 +350,7 @@ func ResourceVSphereVirtualMachine() *schema.Resource {
 							hashmap[k] = v
 						}
 					}
-					ssm := helpers.SortedStringMap(hashmap)
+					ssm := sortedStringMap(hashmap)
 					res := hashcode.String(ssm)
 					log.Printf("Hash for %#v is %d", hashmap, res)
 					return res
@@ -591,7 +582,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	client := meta.(*govmomi.Client)
-	dc, err := helpers.GetDatacenter(client, d.Get("datacenter").(string))
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
 	}
@@ -772,7 +763,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] virtual machine resource data: %#v", d)
 	var err error
 	client := meta.(*govmomi.Client)
-	dc, err := helpers.GetDatacenter(client, d.Get("datacenter").(string))
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
 	}
@@ -822,7 +813,7 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 	log.Printf("[INFO] VVMD")
 	client := meta.(*govmomi.Client)
 	var err error
-	dc, err := helpers.GetDatacenter(client, d.Get("datacenter").(string))
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
 	}
@@ -1322,7 +1313,7 @@ func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.D
 }
 
 func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
-	dc, err := helpers.GetDatacenter(c, vm.datacenter)
+	dc, err := getDatacenter(c, vm.datacenter)
 
 	if err != nil {
 		return err
@@ -1938,7 +1929,7 @@ func validatorFromValue(fieldName string, possibleValuesF func() []interface{}) 
 		}
 		if !found {
 			errors = append(errors, fmt.Errorf(
-				"Supported values for '%s' are %v", fieldName, helpers.JoinStringer(possibleValues, ", ")))
+				"Supported values for '%s' are %v", fieldName, joinStringer(possibleValues, ", ")))
 		}
 		return
 	}
@@ -2486,7 +2477,7 @@ func populateResourceDataNetworkWithoutVsphereTools(networkInterfaces []networkM
 			dvsobj := mo.DistributedVirtualSwitch{}
 
 			collector = property.DefaultCollector(client.Client)
-			dvs, err := helpers.GetDVSByUUID(client, backingInfo.Port.SwitchUuid)
+			dvs, err := getDVSByUUID(client, backingInfo.Port.SwitchUuid)
 			if err != nil {
 				log.Printf("[ERROR] Could not retrieve DVS")
 				return networkInterfaces, err
@@ -2497,7 +2488,7 @@ func populateResourceDataNetworkWithoutVsphereTools(networkInterfaces []networkM
 				return networkInterfaces, err
 			}
 			var netlabel string
-			netlabel = helpers.Dirname(helpers.RemoveFirstPartsOfPath(dvs.InventoryPath))
+			netlabel = dirname(removeFirstPartsOfPath(dvs.InventoryPath))
 			log.Printf("[DEBUG] InventoryPath is: [%v]", dvs.InventoryPath)
 			for _, p := range dvsobj.Portgroup {
 				pg := mo.DistributedVirtualPortgroup{}

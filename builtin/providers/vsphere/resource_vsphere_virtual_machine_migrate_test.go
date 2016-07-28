@@ -1,4 +1,4 @@
-package virtual_machine
+package vsphere
 
 import (
 	"testing"

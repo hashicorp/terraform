@@ -1,4 +1,4 @@
-package virtual_disk
+package vsphere
 
 import (
 	"fmt"
