@@ -91,6 +91,7 @@ func resourceComputeBackendService() *schema.Resource {
 			"enable_cdn": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 
 			"fingerprint": &schema.Schema{
