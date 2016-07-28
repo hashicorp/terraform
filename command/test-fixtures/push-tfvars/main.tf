@@ -7,14 +7,13 @@ variable "baz" {
 
   default = {
     "A"    = "a"
-    "B"    = "b"
     interp = "${file("t.txt")}"
   }
 }
 
 variable "fob" {
   type    = "list"
-  default = ["a", "b", "c", "quotes \"in\" quotes"]
+  default = ["a", "quotes \"in\" quotes"]
 }
 
 resource "test_instance" "foo" {}
