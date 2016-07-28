@@ -121,11 +121,54 @@ func testAccCheckComputeBackendServiceExists(n string, svc *compute.BackendServi
 	}
 }
 
+func TestAccComputeBackendService_withCDNEnabled(t *testing.T) {
+	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	var svc compute.BackendService
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeBackendService_withCDNEnabled(
+					serviceName, checkName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeBackendServiceExists(
+						"google_compute_backend_service.foobar", &svc),
+				),
+			},
+		},
+	})
+
+	if svc.EnableCDN != true {
+		t.Errorf("Expected EnableCDN == true, got %t", svc.EnableCDN)
+	}
+}
+
 func testAccComputeBackendService_basic(serviceName, checkName string) string {
 	return fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
   name          = "%s"
   health_checks = ["${google_compute_http_health_check.zero.self_link}"]
+}
+
+resource "google_compute_http_health_check" "zero" {
+  name               = "%s"
+  request_path       = "/"
+  check_interval_sec = 1
+  timeout_sec        = 1
+}
+`, serviceName, checkName)
+}
+
+func testAccComputeBackendService_withCDNEnabled(serviceName, checkName string) string {
+	return fmt.Sprintf(`
+resource "google_compute_backend_service" "foobar" {
+  name          = "%s"
+  health_checks = ["${google_compute_http_health_check.zero.self_link}"]
+  enable_cdn    = true
 }
 
 resource "google_compute_http_health_check" "zero" {
