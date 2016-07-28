@@ -332,6 +332,7 @@ func (c *Context) Input(mode InputMode) error {
 
 			// Ask the user for a value for this variable
 			var value string
+			retry := 0
 			for {
 				var err error
 				value, err = c.uiInput.Input(&InputOpts{
@@ -345,7 +346,12 @@ func (c *Context) Input(mode InputMode) error {
 				}
 
 				if value == "" && v.Required() {
-					// Redo if it is required.
+					// Redo if it is required, but abort if we keep getting
+					// blank entries
+					if retry > 2 {
+						return fmt.Errorf("missing required value for %q", n)
+					}
+					retry++
 					continue
 				}
 
