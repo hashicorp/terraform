@@ -70,12 +70,15 @@ type Config struct {
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
 
-	DynamoDBEndpoint string
-	KinesisEndpoint  string
-	Ec2Endpoint      string
-	IamEndpoint      string
-	ElbEndpoint      string
-	Insecure         bool
+	DynamoDBEndpoint     string
+	KinesisEndpoint      string
+	Ec2Endpoint          string
+	IamEndpoint          string
+	ElbEndpoint          string
+	S3Endpoint           string
+	Insecure             bool
+	SkipIamValidation    bool
+	SkipMetadataApiCheck bool
 }
 
 type AWSClient struct {
@@ -141,7 +144,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := GetCredentials(c.AccessKey, c.SecretKey, c.Token, c.Profile, c.CredsFilename)
+		creds := GetCredentials(c)
 		// Call Get to check for credential provider. If nothing found, we'll get an
 		// error, and we can present it nicely to the user
 		cp, err := creds.Get()
@@ -195,23 +198,25 @@ func (c *Config) Client() (interface{}, error) {
 		dynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
 		kinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
 
-		// These two services need to be set up early so we can check on AccountID
-		client.iamconn = iam.New(awsIamSess)
-		client.stsconn = sts.New(sess)
+		if c.SkipIamValidation == false {
+			// These two services need to be set up early so we can check on AccountID
+			client.iamconn = iam.New(awsIamSess)
+			client.stsconn = sts.New(sess)
 
-		err = c.ValidateCredentials(client.stsconn)
-		if err != nil {
-			errs = append(errs, err)
-			return nil, &multierror.Error{Errors: errs}
-		}
-		accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
-		if err == nil {
-			client.accountid = accountId
-		}
+			err = c.ValidateCredentials(client.stsconn)
+			if err != nil {
+				errs = append(errs, err)
+				return nil, &multierror.Error{Errors: errs}
+			}
+			accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
+			if err == nil {
+				client.accountid = accountId
+			}
 
-		authErr := c.ValidateAccountId(client.accountid)
-		if authErr != nil {
-			errs = append(errs, authErr)
+			authErr := c.ValidateAccountId(client.accountid)
+			if authErr != nil {
+				errs = append(errs, authErr)
+			}
 		}
 
 		client.apigateway = apigateway.New(sess)
