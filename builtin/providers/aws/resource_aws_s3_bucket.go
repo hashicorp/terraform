@@ -6,15 +6,16 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"sort"
 	"time"
-
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceAwsS3Bucket() *schema.Resource {
@@ -1319,8 +1320,46 @@ func normalizeJson(jsonString interface{}) string {
 	if err != nil {
 		return fmt.Sprintf("Error parsing JSON: %s", err)
 	}
-	b, _ := json.Marshal(j)
-	return string(b[:])
+	sortArrays(j)
+	b, err := json.Marshal(j)
+	if err != nil {
+		panic(err) // unexpected
+	}
+	return string(b)
+}
+
+// Sort all string arrays contained in `j`.
+func sortArrays(j interface{}) {
+	switch j := j.(type) {
+	case []interface{}:
+		if allStringElements(j) {
+			a := make([]string, len(j))
+			for i := range j {
+				a[i] = j[i].(string)
+			}
+			sort.Strings(a)
+			for i := range a {
+				j[i] = a[i]
+			}
+		} else {
+			for _, v := range j {
+				sortArrays(v)
+			}
+		}
+	case map[string]interface{}:
+		for _, v := range j {
+			sortArrays(v)
+		}
+	}
+}
+
+func allStringElements(j []interface{}) bool {
+	for _, v := range j {
+		if _, isString := v.(string); !isString {
+			return false
+		}
+	}
+	return true
 }
 
 func normalizeRegion(region string) string {
