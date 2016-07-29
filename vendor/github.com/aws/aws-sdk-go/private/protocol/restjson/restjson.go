@@ -1,4 +1,4 @@
-// Package restjson provides RESTful JSON serialisation of AWS
+// Package restjson provides RESTful JSON serialization of AWS
 // requests and responses.
 package restjson
 

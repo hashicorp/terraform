@@ -1719,6 +1719,8 @@ func (c *SES) SendRawEmailRequest(input *SendRawEmailInput) (req *request.Reques
 // list. Note that each recipient in a group list counts towards the 50-recipient
 // limit.
 //
+//   Amazon SES overrides any Message-ID and Date headers you provide.
+//
 //   For every message that you send, the total number of recipients (To:,
 // CC: and BCC:) is counted against your sending quota - the maximum number
 // of emails you can send in a 24-hour period. For information about your sending
@@ -4403,7 +4405,7 @@ type RawMessage struct {
 
 	// The raw data of the message. The client must ensure that the message format
 	// complies with Internet email standards regarding email header fields, MIME
-	// types, MIME encoding, and base64 encoding (if necessary).
+	// types, MIME encoding, and base64 encoding.
 	//
 	// The To:, CC:, and BCC: headers in the raw message can contain a group list.
 	//
@@ -5305,7 +5307,7 @@ type SendRawEmailInput struct {
 	//   MIME content types must be among those supported by Amazon SES. For more
 	// information, go to the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/mime-types.html).
 	//
-	//   Content must be base64-encoded, if MIME requires it.
+	//   Must be base64-encoded.
 	RawMessage *RawMessage `type:"structure" required:"true"`
 
 	// This parameter is used only for sending authorization. It is the ARN of the
