@@ -168,9 +168,7 @@ func resourceArmTrafficManagerProfileRead(d *schema.ResourceData, meta interface
 	d.Set("dns_config", schema.NewSet(resourceAzureRMTrafficManagerDNSConfigHash, dnsFlat))
 
 	// fqdn is actually inside DNSConfig, inlined for simpler reference
-	if profile.DNSConfig.Fqdn != nil {
-		d.Set("fqdn", *profile.DNSConfig.Fqdn)
-	}
+	d.Set("fqdn", profile.DNSConfig.Fqdn)
 
 	monitorFlat := flattenAzureRMTrafficManagerProfileMonitorConfig(profile.MonitorConfig)
 	d.Set("monitor_config", schema.NewSet(resourceAzureRMTrafficManagerMonitorConfigHash, monitorFlat))

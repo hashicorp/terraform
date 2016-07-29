@@ -153,35 +153,14 @@ func resourceArmTrafficManagerEndpointRead(d *schema.ResourceData, meta interfac
 	endpoint := *resp.Properties
 
 	d.Set("name", resp.Name)
-	d.Set("endpoint_status", *endpoint.EndpointStatus)
-
-	if endpoint.TargetResourceID != nil {
-		d.Set("target_resource_id", *endpoint.TargetResourceID)
-	}
-
-	if endpoint.Target != nil {
-		d.Set("target", *endpoint.Target)
-	}
-
-	if endpoint.Weight != nil {
-		d.Set("weight", int(*endpoint.Weight))
-	}
-
-	if endpoint.Priority != nil {
-		d.Set("priority", int(*endpoint.Priority))
-	}
-
-	if endpoint.EndpointLocation != nil {
-		d.Set("endpoint_location", *endpoint.EndpointLocation)
-	}
-
-	if endpoint.EndpointMonitorStatus != nil {
-		d.Set("endpoint_monitor_status", *endpoint.EndpointMonitorStatus)
-	}
-
-	if endpoint.MinChildEndpoints != nil {
-		d.Set("min_child_endpoints", *endpoint.MinChildEndpoints)
-	}
+	d.Set("endpoint_status", endpoint.EndpointStatus)
+	d.Set("target_resource_id", endpoint.TargetResourceID)
+	d.Set("target", endpoint.Target)
+	d.Set("weight", endpoint.Weight)
+	d.Set("priority", endpoint.Priority)
+	d.Set("endpoint_location", endpoint.EndpointLocation)
+	d.Set("endpoint_monitor_status", endpoint.EndpointMonitorStatus)
+	d.Set("min_child_endpoints", endpoint.MinChildEndpoints)
 
 	return nil
 }
