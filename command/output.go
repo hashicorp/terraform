@@ -88,7 +88,7 @@ func (c *OutputCommand) Run(args []string) int {
 			c.Ui.Output(string(jsonOutputs))
 			return 0
 		} else {
-			c.Ui.Output(outputsAsString(state, nil, false))
+			c.Ui.Output(outputsAsString(state, modPath, nil, false))
 			return 0
 		}
 	}
