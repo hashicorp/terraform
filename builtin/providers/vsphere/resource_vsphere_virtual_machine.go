@@ -87,6 +87,7 @@ type virtualMachine struct {
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
 	template              string
+	guestID               types.VirtualMachineGuestOsIdentifier
 	networkInterfaces     []networkInterface
 	hardDisks             []hardDisk
 	cdroms                []cdrom
@@ -238,6 +239,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"guest_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"windows_opt_config": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -380,9 +387,9 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Default:  "eager_zeroed",
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
-								if value != "thin" && value != "eager_zeroed" {
+								if value != "thin" && value != "eager_zeroed" && value != "thick_lazy" {
 									errors = append(errors, fmt.Errorf(
-										"only 'thin' and 'eager_zeroed' are supported values for 'type'"))
+										"only 'thin', 'thick_lazy' and 'eager_zeroed' are supported values for 'type'"))
 								}
 								return
 							},
@@ -677,6 +684,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		vm.timeZone = v.(string)
 	}
 
+	if v, ok := d.GetOk("guest_id"); ok {
+		vm.guestID = v.(types.VirtualMachineGuestOsIdentifier)
+	}
+
 	if v, ok := d.GetOk("linked_clone"); ok {
 		vm.linkedClone = v.(bool)
 	}
@@ -757,6 +768,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			}
 			if v, ok := network["mac_address"].(string); ok && v != "" {
 				networks[i].macAddress = v
+			}
+			if v, ok := network["adapter_type"].(string); ok && v != "" {
+				networks[i].adapterType = v
 			}
 		}
 		vm.networkInterfaces = networks
@@ -1287,6 +1301,10 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		} else if diskType == "thin" {
 			// thin provisioned virtual disk
 			backing.ThinProvisioned = types.NewBool(true)
+		} else if diskType == "thick_lazy" {
+			// thin provisioned virtual disk
+			backing.ThinProvisioned = types.NewBool(false)
+			backing.EagerlyScrub = types.NewBool(false)
 		}
 
 		log.Printf("[DEBUG] addHardDisk: %#v\n", disk)
@@ -1643,8 +1661,15 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			DiskUuidEnabled: &vm.enableDiskUUID,
 		},
 	}
+	if vm.template != "" && vm.guestID != "" {
+		return fmt.Errorf("Cannot enforce guestID if template is set aswell")
+	}
 	if vm.template == "" {
-		configSpec.GuestId = "otherLinux64Guest"
+		if vm.guestID == "" {
+			configSpec.GuestId = "otherLinux64Guest"
+		} else {
+			configSpec.GuestId = string(vm.guestID)
+		}
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
@@ -1711,11 +1736,16 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	for _, network := range vm.networkInterfaces {
 		// network device
 		var networkDeviceType string
-		if vm.template == "" {
-			networkDeviceType = "e1000"
+		if network.adapterType == "" {
+			if vm.template == "" {
+				networkDeviceType = "e1000"
+			} else {
+				networkDeviceType = "vmxnet3"
+			}
 		} else {
-			networkDeviceType = "vmxnet3"
+			networkDeviceType = network.adapterType
 		}
+
 		nd, err := buildNetworkDevice(finder, network.label, networkDeviceType, network.macAddress)
 		if err != nil {
 			return err
