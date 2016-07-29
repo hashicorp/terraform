@@ -14,10 +14,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-version"
-	"github.com/satori/go.uuid"
-
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
+	"github.com/satori/go.uuid"
 )
 
 const (
