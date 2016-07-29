@@ -1,3 +1,5 @@
+// +build freebsd
+
 package module
 
 import (
