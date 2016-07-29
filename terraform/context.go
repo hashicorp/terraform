@@ -689,6 +689,6 @@ func parseVariableAsHCL(name string, input interface{}, targetType config.Variab
 
 		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. One value must be specified.", name, input)
 	default:
-		panic(fmt.Errorf("unknown type %s", targetType))
+		panic(fmt.Errorf("unknown type %s", targetType.Printable()))
 	}
 }
