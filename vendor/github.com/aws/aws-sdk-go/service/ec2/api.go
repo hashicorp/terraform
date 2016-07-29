@@ -1416,6 +1416,9 @@ func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Reques
 //  To copy an encrypted snapshot that has been shared from another account,
 // you must have permissions for the CMK used to encrypt the snapshot.
 //
+//   Snapshots created by the CopySnapshot action have an arbitrary volume
+// ID that should not be used for any purpose.
+//
 //  For more information, see Copying an Amazon EBS Snapshot (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-copy-snapshot.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) CopySnapshot(input *CopySnapshotInput) (*CopySnapshotOutput, error) {
@@ -1546,17 +1549,20 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 //    domain-name-servers - The IP addresses of up to four domain name servers,
 // or AmazonProvidedDNS. The default DHCP option set specifies AmazonProvidedDNS.
 // If specifying more than one domain name server, specify the IP addresses
-// in a single parameter, separated by commas.
+// in a single parameter, separated by commas. If you want your instance to
+// receive a custom DNS hostname as specified in domain-name, you must set domain-name-servers
+// to a custom DNS server.
 //
 //    domain-name - If you're using AmazonProvidedDNS in "us-east-1", specify
 // "ec2.internal". If you're using AmazonProvidedDNS in another region, specify
 // "region.compute.internal" (for example, "ap-northeast-1.compute.internal").
-// Otherwise, specify a domain name (for example, "MyCompany.com"). Important:
-// Some Linux operating systems accept multiple domain names separated by spaces.
-// However, Windows and other Linux operating systems treat the value as a single
-// domain, which results in unexpected behavior. If your DHCP options set is
-// associated with a VPC that has instances with multiple operating systems,
-// specify only one domain name.
+// Otherwise, specify a domain name (for example, "MyCompany.com"). This value
+// is used to complete unqualified DNS hostnames. Important: Some Linux operating
+// systems accept multiple domain names separated by spaces. However, Windows
+// and other Linux operating systems treat the value as a single domain, which
+// results in unexpected behavior. If your DHCP options set is associated with
+// a VPC that has instances with multiple operating systems, specify only one
+// domain name.
 //
 //    ntp-servers - The IP addresses of up to four Network Time Protocol (NTP)
 // servers.
@@ -9439,6 +9445,11 @@ func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req
 //
 //  AWS Marketplace product codes cannot be modified. Images with an AWS Marketplace
 // product code cannot be made public.
+//
+//   The SriovNetSupport enhanced networking attribute cannot be changed using
+// this command. Instead, enable SriovNetSupport on an instance and create an
+// AMI from the instance. This will result in an image with SriovNetSupport
+// enabled.
 func (c *EC2) ModifyImageAttribute(input *ModifyImageAttributeInput) (*ModifyImageAttributeOutput, error) {
 	req, out := c.ModifyImageAttributeRequest(input)
 	err := req.Send()
@@ -10060,12 +10071,15 @@ func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringCo
 //   Enable/disable communication over the peering connection between instances
 // in your VPC and an EC2-Classic instance that's linked to the peer VPC.
 //
+//   Enable/disable a local VPC to resolve public DNS hostnames to private
+// IP addresses when queried from instances in the peer VPC.
+//
 //   If the peered VPCs are in different accounts, each owner must initiate
-// a separate request to enable or disable communication in either direction,
-// depending on whether their VPC was the requester or accepter for the VPC
-// peering connection. If the peered VPCs are in the same account, you can modify
-// the requester and accepter options in the same request. To confirm which
-// VPC is the accepter and requester for a VPC peering connection, use the DescribeVpcPeeringConnections
+// a separate request to modify the peering connection options, depending on
+// whether their VPC was the requester or accepter for the VPC peering connection.
+// If the peered VPCs are in the same account, you can modify the requester
+// and accepter options in the same request. To confirm which VPC is the accepter
+// and requester for a VPC peering connection, use the DescribeVpcPeeringConnections
 // command.
 func (c *EC2) ModifyVpcPeeringConnectionOptions(input *ModifyVpcPeeringConnectionOptionsInput) (*ModifyVpcPeeringConnectionOptionsOutput, error) {
 	req, out := c.ModifyVpcPeeringConnectionOptionsRequest(input)
@@ -12819,7 +12833,8 @@ type AuthorizeSecurityGroupIngressInput struct {
 	IpPermissions []*IpPermission `locationNameList:"item" type:"list"`
 
 	// The IP protocol name (tcp, udp, icmp) or number (see Protocol Numbers (http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)).
-	// (VPC only) Use -1 to specify all.
+	// (VPC only) Use -1 to specify all traffic. If you specify -1, traffic on all
+	// ports is allowed, regardless of any ports you specify.
 	IpProtocol *string `type:"string"`
 
 	// [EC2-Classic, default VPC] The name of the source security group. You can't
@@ -26274,16 +26289,6 @@ func (s *ModifyVpcPeeringConnectionOptionsInput) Validate() error {
 	if s.VpcPeeringConnectionId == nil {
 		invalidParams.Add(request.NewErrParamRequired("VpcPeeringConnectionId"))
 	}
-	if s.AccepterPeeringConnectionOptions != nil {
-		if err := s.AccepterPeeringConnectionOptions.Validate(); err != nil {
-			invalidParams.AddNested("AccepterPeeringConnectionOptions", err.(request.ErrInvalidParams))
-		}
-	}
-	if s.RequesterPeeringConnectionOptions != nil {
-		if err := s.RequesterPeeringConnectionOptions.Validate(); err != nil {
-			invalidParams.AddNested("RequesterPeeringConnectionOptions", err.(request.ErrInvalidParams))
-		}
-	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -26884,6 +26889,10 @@ func (s NewDhcpConfiguration) GoString() string {
 type PeeringConnectionOptions struct {
 	_ struct{} `type:"structure"`
 
+	// If true, enables a local VPC to resolve public DNS hostnames to private IP
+	// addresses when queried from instances in the peer VPC.
+	AllowDnsResolutionFromRemoteVpc *bool `locationName:"allowDnsResolutionFromRemoteVpc" type:"boolean"`
+
 	// If true, enables outbound communication from an EC2-Classic instance that's
 	// linked to a local VPC via ClassicLink to instances in a peer VPC.
 	AllowEgressFromLocalClassicLinkToRemoteVpc *bool `locationName:"allowEgressFromLocalClassicLinkToRemoteVpc" type:"boolean"`
@@ -26907,13 +26916,17 @@ func (s PeeringConnectionOptions) GoString() string {
 type PeeringConnectionOptionsRequest struct {
 	_ struct{} `type:"structure"`
 
+	// If true, enables a local VPC to resolve public DNS hostnames to private IP
+	// addresses when queried from instances in the peer VPC.
+	AllowDnsResolutionFromRemoteVpc *bool `type:"boolean"`
+
 	// If true, enables outbound communication from an EC2-Classic instance that's
 	// linked to a local VPC via ClassicLink to instances in a peer VPC.
-	AllowEgressFromLocalClassicLinkToRemoteVpc *bool `type:"boolean" required:"true"`
+	AllowEgressFromLocalClassicLinkToRemoteVpc *bool `type:"boolean"`
 
 	// If true, enables outbound communication from instances in a local VPC to
 	// an EC2-Classic instance that's linked to a peer VPC via ClassicLink.
-	AllowEgressFromLocalVpcToRemoteClassicLink *bool `type:"boolean" required:"true"`
+	AllowEgressFromLocalVpcToRemoteClassicLink *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -26924,22 +26937,6 @@ func (s PeeringConnectionOptionsRequest) String() string {
 // GoString returns the string representation
 func (s PeeringConnectionOptionsRequest) GoString() string {
 	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *PeeringConnectionOptionsRequest) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "PeeringConnectionOptionsRequest"}
-	if s.AllowEgressFromLocalClassicLinkToRemoteVpc == nil {
-		invalidParams.Add(request.NewErrParamRequired("AllowEgressFromLocalClassicLinkToRemoteVpc"))
-	}
-	if s.AllowEgressFromLocalVpcToRemoteClassicLink == nil {
-		invalidParams.Add(request.NewErrParamRequired("AllowEgressFromLocalVpcToRemoteClassicLink"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
 }
 
 // Describes the placement for the instance.
@@ -30351,7 +30348,9 @@ type Snapshot struct {
 	// Any tags assigned to the snapshot.
 	Tags []*Tag `locationName:"tagSet" locationNameList:"item" type:"list"`
 
-	// The ID of the volume that was used to create the snapshot.
+	// The ID of the volume that was used to create the snapshot. Snapshots created
+	// by the CopySnapshot action have an arbitrary volume ID that should not be
+	// used for any purpose.
 	VolumeId *string `locationName:"volumeId" type:"string"`
 
 	// The size of the volume, in GiB.
@@ -32064,6 +32063,10 @@ func (s VpcPeeringConnection) GoString() string {
 // Describes the VPC peering connection options.
 type VpcPeeringConnectionOptionsDescription struct {
 	_ struct{} `type:"structure"`
+
+	// Indicates whether a local VPC can resolve public DNS hostnames to private
+	// IP addresses when queried from instances in a peer VPC.
+	AllowDnsResolutionFromRemoteVpc *bool `locationName:"allowDnsResolutionFromRemoteVpc" type:"boolean"`
 
 	// Indicates whether a local ClassicLink connection can communicate with the
 	// peer VPC over the VPC peering connection.
