@@ -485,7 +485,7 @@ func (n *graphNodeResourceDestroy) destroyInclude(
 	if d != nil {
 		for k, v := range d.Resources {
 			match := k == prefix || strings.HasPrefix(k, prefix+".")
-			if match && v.Destroy {
+			if match && v.GetDestroy() {
 				return true
 			}
 		}
