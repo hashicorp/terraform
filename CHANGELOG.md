@@ -2,31 +2,34 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * Terraform's built-in plugins are now distributed as part of the main Terraform binary, and use the go-plugin framework. Overrides are still available using separate binaries, but will need recompiling against Terraform 0.7.
- * The `terraform plan` command no longer persists state. This makes the command much safer to run, since it is now side-effect free. The `refresh` and `apply` commands still persist state to local and remote storage. Any automation that assumes that `terraform plan` persists state will need to be reworked to explicitly call `terraform refresh` to get the equivalent side-effect. (The `terraform plan` command no longer has the `-state-out` or `-backup` flags due to this change.)
- * The `concat()` interpolation function can no longer be used to join strings.
- * Quotation marks may no longer be escaped in HIL expressions [GH-7201]
- * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
- * `aws_elb` now defaults `cross_zone_load_balancing` to `true`
- * `aws_instance`: EC2 Classic users may continue to use
-   `security_groups` to reference Security Groups by their `name`. Users who are
-   managing Instances inside VPCs will need to use `vpc_security_group_ids` instead, 
-   and reference the security groups by their `id`. 
-   Ref https://github.com/hashicorp/terraform/issues/6416#issuecomment-219145065
- * Lists materialized using splat syntax, for example `aws_instance.foo.*.id` are now ordered by the count index rather than lexographically sorted. If this produces a large number of undesirable differences, you can use the new `sort()` interpolation function to produce the previous behaviour.
- * `aws_kinesis_firehose_delivery_stream`: AWS Kinesis Firehose has been refactored to support Redshift as a destination in addition to S3. As a result, the configuration has changed and users will need to update their configuration to match the new `s3_configuration` block. Checkout the documentaiton on [AWS Kinesis Firehose](http://localhost:4567/docs/providers/aws/r/kinesis_firehose_delivery_stream.html) for more information [GH-7375]
- * `aws_route53_record`: `latency_routing_policy`, `geolocation_routing_policy`, and `failover_routing_policy` block options have been added. With these additions we’ve renamed the `weight` attribute to `weighted_routing_policy`, and it has changed from a string to a block to match the others. Please see the updated documentation on using `weighted_routing_policy`:  https://www.terraform.io/docs/providers/aws/r/route53_record.html . [GH-6954]
- * You now access the values of maps using the syntax `var.map["key"]` or the `lookup` function instead of `var.map.key`.
- * Outputs on `terraform_remote_state` resources are now top level attributes rather than inside the `output` map. In order to access outputs, use the syntax: `terraform_remote_state.name.outputname`. Currently outputs cannot be named `config` or `backend`.
- * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
- * `azurerm_virtual_machine` computer_name now Required
- * `aws_db_instance` now defaults `publicly_accessible` to false
- * `keep_updated` parameter removed from `docker_image` - This parameter never did what it was supposed to do.
-   See relevant docs, specifically `pull_trigger` & new `docker_registry_image` data source to understand how to keep your `docker_image` updated.
- * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
- * `atlas_artifact` resource has be deprecated. Please use the new `atlas_artifact` Data Source
- * The `member` attribute of `openstack_lb_pool_v1` has been deprecated. Please ue the new `openstack_lb_member_v1` resource.
- * All deprecated parameters are removed from all `CloudStack` resources
+  * Terraform Core
+   * Terraform's built-in plugins are now distributed as part of the main Terraform binary, and use the go-plugin framework. Overrides are still available using separate binaries, but will need recompiling against Terraform 0.7.
+   * The `terraform plan` command no longer persists state. This makes the command much safer to run, since it is now side-effect free. The `refresh` and `apply` commands still persist state to local and remote storage. Any automation that assumes that `terraform plan` persists state will need to be reworked to explicitly call `terraform refresh` to get the equivalent side-effect. (The `terraform plan` command no longer has the `-state-out` or `-backup` flags due to this change.)
+   * The `concat()` interpolation function can no longer be used to join strings.
+   * Quotation marks may no longer be escaped in HIL expressions [GH-7201]
+   * Lists materialized using splat syntax, for example `aws_instance.foo.*.id` are now ordered by the count index rather than lexographically sorted. If this produces a large number of undesirable differences, you can use the new `sort()` interpolation function to produce the previous behaviour.
+   * You now access the values of maps using the syntax `var.map["key"]` or the `lookup` function instead of `var.map.key`.
+   * Outputs on `terraform_remote_state` resources are now top level attributes rather than inside the `output` map. In order to access outputs, use the syntax: `terraform_remote_state.name.outputname`. Currently outputs cannot be named `config` or `backend`.
+  * AWS Provider
+   * `aws_elb` now defaults `cross_zone_load_balancing` to `true`
+   * `aws_instance`: EC2 Classic users may continue to use `security_groups` to reference Security Groups by their `name`. Users who are managing Instances inside VPCs will need to use `vpc_security_group_ids` instead, and reference the security groups by their `id`. Ref https://github.com/hashicorp/terraform/issues/6416#issuecomment-219145065
+   * `aws_kinesis_firehose_delivery_stream`: AWS Kinesis Firehose has been refactored to support Redshift as a destination in addition to S3. As a result, the configuration has changed and users will need to update their configuration to match the new `s3_configuration` block. Checkout the documentaiton on [AWS Kinesis Firehose](http://localhost:4567/docs/providers/aws/r/kinesis_firehose_delivery_stream.html) for more information [GH-7375]
+   * `aws_route53_record`: `latency_routing_policy`, `geolocation_routing_policy`, and `failover_routing_policy` block options have been added. With these additions we’ve renamed the `weight` attribute to `weighted_routing_policy`, and it has changed from a string to a block to match the others. Please see the updated documentation on using `weighted_routing_policy`:  https://www.terraform.io/docs/providers/aws/r/route53_record.html . [GH-6954]
+   * `aws_db_instance` now defaults `publicly_accessible` to false
+  * Microsoft Azure Provider
+   * In documentation, the "Azure (Resource Manager)" provider has been renamed to the "Microsoft Azure" provider.
+   * `azurerm_dns_cname_record` now accepts a single record rather than a list of records
+   * `azurerm_virtual_machine` computer_name now Required
+  * Openstack Provider
+   * `openstack_networking_subnet_v2` now defaults to turning DHCP on.
+   * `openstack_fw_policy_v1` now correctly applies rules in the order they are specified. Upon the next apply, current rules might be re-ordered.
+   * The `member` attribute of `openstack_lb_pool_v1` has been deprecated. Please ue the new `openstack_lb_member_v1` resource.
+  * Docker Provider
+   * `keep_updated` parameter removed from `docker_image` - This parameter never did what it was supposed to do.  See relevant docs, specifically `pull_trigger` & new `docker_registry_image` data source to understand how to keep your `docker_image` updated.
+  * Atlas Provider
+   * `atlas_artifact` resource has be deprecated. Please use the new `atlas_artifact` Data Source.
+  * CloudStack Provider
+   * All deprecated parameters are removed from all `CloudStack` resources
 
 FEATURES:
 
@@ -34,7 +37,6 @@ FEATURES:
  * **Lists and maps** can now be used as first class types for variables and may also be passed between modules. [GH-6322]
  * **State management CLI commands** provide a variety of state manipulation functions for advanced use cases. This should be used where possible instead of manually modifying state files. [GH-5811]
  * **State Import** allows a way to import existing resources into Terraform state for many types of resource. Initial coverage of AWS is quite high, and it is straightforward to add support for new resources.
- 
  * **New Command:** `terraform state` to provide access to a variety of state manipulation functions [GH-5811]
  * **New Option:** `terraform output` now supports the `-json` flag to print a machine-readable representation of outputs [GH-7608]
  * **New Data Source:** `aws_ami` [GH-6911]
@@ -47,6 +49,8 @@ FEATURES:
  * **New Data Source:** `consul_keys` [GH-7678]
  * **New Interpolation Function:** `sort` [GH-7128]
  * **New Interpolation Function:** `distinct` [GH-7174]
+ * **New Interpolation Function:** `list` [GH-7528]
+ * **New Interpolation Function:** `map` [GH-7832]
  * **New Provider:** `grafana` [GH-6206]
  * **New Provider:** `logentries` [GH-7067]
  * **New Provider:** `scaleway` [GH-7331]
@@ -99,6 +103,7 @@ IMPROVEMENTS:
  * core: The `jsonencode` interpolation function now supports encoding lists and maps [GH-6749]
  * core: Add the ability for resource definitions to mark attributes as "sensitive" which will omit them from UI output. [GH-6923]
  * core: Support `.` in map keys [GH-7654]
+ * core: Enhance interpolation functions to account for first class maps and lists [GH-7832] [GH-7834]
  * command: Remove second DefaultDataDirectory const [GH-7666]
  * provider/aws: Add `dns_name` to `aws_efs_mount_target` [GH-7428]
  * provider/aws: Add `force_destroy` to `aws_iam_user` for force-deleting access keys assigned to the user [GH-7766]
@@ -141,6 +146,7 @@ IMPROVEMENTS:
  * provider/aws: expose network interface id in `aws_instance` [GH-6751]
  * provider/aws: Adding passthrough behavior for API Gateway integration [GH-7801]
  * provider/aws: Enable Redshift Cluster Logging [GH-7813]
+ * provider/aws: Add ability to set Performance Mode in `aws_efs_file_system` [GH-7791]
  * provider/azurerm: Add support for EnableIPForwarding to `azurerm_network_interface` [GH-6807]
  * provider/azurerm: Add support for exporting the `azurerm_storage_account` access keys [GH-6742]
  * provider/azurerm: The Azure SDK now exposes better error messages [GH-6976]
@@ -174,6 +180,7 @@ IMPROVEMENTS:
  * provider/openstack: Enforce `ForceNew` on Instance Block Device [GH-6921]
  * provider/openstack: Can now stop instances before destroying them [GH-7184]
  * provider/openstack: Disassociate LBaaS v1 Monitors from Pool Before Deletion [GH-6997]
+ * provider/powerdns: Add support for PowerDNS 4 API [GH-7819]
  * provider/triton: add `triton_machine` `domain names` [GH-7149]
  * provider/vsphere: Add support for `controller_type` to `vsphere_virtual_machine` [GH-6785]
  * provider/vsphere: Fix bug with `vsphere_virtual_machine` wait for ip [GH-6377]
