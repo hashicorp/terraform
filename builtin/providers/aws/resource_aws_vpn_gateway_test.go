@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -52,6 +53,27 @@ func TestAccAWSVpnGateway_basic(t *testing.T) {
 						"aws_vpn_gateway.foo", &v2),
 					testNotEqual,
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSVpnGateway_disappears(t *testing.T) {
+	var v ec2.VpnGateway
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpn_gateway.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpnGatewayDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVpnGatewayConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpnGatewayExists("aws_vpn_gateway.foo", &v),
+					testAccAWSVpnGatewayDisappears(&v),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -170,6 +192,61 @@ func TestAccAWSVpnGateway_tags(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccAWSVpnGatewayDisappears(gateway *ec2.VpnGateway) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+
+		_, err := conn.DetachVpnGateway(&ec2.DetachVpnGatewayInput{
+			VpnGatewayId: gateway.VpnGatewayId,
+			VpcId:        gateway.VpcAttachments[0].VpcId,
+		})
+		if err != nil {
+			ec2err, ok := err.(awserr.Error)
+			if ok {
+				if ec2err.Code() == "InvalidVpnGatewayID.NotFound" {
+					return nil
+				} else if ec2err.Code() == "InvalidVpnGatewayAttachment.NotFound" {
+					return nil
+				}
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+		opts := &ec2.DeleteVpnGatewayInput{
+			VpnGatewayId: gateway.VpnGatewayId,
+		}
+		if _, err := conn.DeleteVpnGateway(opts); err != nil {
+			return err
+		}
+		return resource.Retry(40*time.Minute, func() *resource.RetryError {
+			opts := &ec2.DescribeVpnGatewaysInput{
+				VpnGatewayIds: []*string{gateway.VpnGatewayId},
+			}
+			resp, err := conn.DescribeVpnGateways(opts)
+			if err != nil {
+				cgw, ok := err.(awserr.Error)
+				if ok && cgw.Code() == "InvalidVpnGatewayID.NotFound" {
+					return nil
+				}
+				if ok && cgw.Code() == "IncorrectState" {
+					return resource.RetryableError(fmt.Errorf(
+						"Waiting for VPN Gateway to be in the correct state: %v", gateway.VpnGatewayId))
+				}
+				return resource.NonRetryableError(
+					fmt.Errorf("Error retrieving VPN Gateway: %s", err))
+			}
+			if *resp.VpnGateways[0].State == "deleted" {
+				return nil
+			}
+			return resource.RetryableError(fmt.Errorf(
+				"Waiting for VPN Gateway: %v", gateway.VpnGatewayId))
+		})
+	}
 }
 
 func testAccCheckVpnGatewayDestroy(s *terraform.State) error {
