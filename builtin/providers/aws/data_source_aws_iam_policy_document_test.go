@@ -1,9 +1,9 @@
 package aws
 
 import (
+	"fmt"
 	"testing"
 
-	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -121,22 +121,14 @@ var testAccAWSIAMPolicyDocumentExpectedJSON = `{
         "s3:GetBucketLocation",
         "s3:ListAllMyBuckets"
       ],
-      "Resource": [
-        "arn:aws:s3:::*"
-      ]
+      "Resource": "arn:aws:s3:::*"
     },
     {
       "Effect": "Allow",
-      "Action": [
-        "s3:ListBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::foo"
-      ],
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::foo",
       "NotPrincipal": {
-        "AWS": [
-          "arn:blahblah:example"
-        ]
+        "AWS": "arn:blahblah:example"
       },
       "Condition": {
         "StringLike": {
@@ -150,27 +142,19 @@ var testAccAWSIAMPolicyDocumentExpectedJSON = `{
     },
     {
       "Effect": "Allow",
-      "Action": [
-        "s3:*"
-      ],
+      "Action": "s3:*",
       "Resource": [
         "arn:aws:s3:::foo/home/${aws:username}/*",
         "arn:aws:s3:::foo/home/${aws:username}"
       ],
       "Principal": {
-        "AWS": [
-          "arn:blahblah:example"
-        ]
+        "AWS": "arn:blahblah:example"
       }
     },
     {
       "Effect": "Deny",
-      "NotAction": [
-        "s3:*"
-      ],
-      "NotResource": [
-        "arn:aws:s3:::*"
-      ]
+      "NotAction": "s3:*",
+      "NotResource": "arn:aws:s3:::*"
     }
   ]
 }`
