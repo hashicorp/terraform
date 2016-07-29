@@ -1330,7 +1330,7 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 		}
 	}
 	if d != nil {
-		for k, diff := range d.Attributes {
+		for k, diff := range d.CopyAttributes() {
 			if diff.NewRemoved {
 				delete(result.Attributes, k)
 				continue
