@@ -1198,6 +1198,12 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	}
 
 	if err != nil || controller == nil {
+		// Check if max number of scsi controller are already used
+		diskControllers := getSCSIControllers(devices)
+		if len(diskControllers) >= 4 {
+			return fmt.Errorf("[ERROR] Maximum number of SCSI controllers created")
+		}
+
 		log.Printf("[DEBUG] Couldn't find a %v controller.  Creating one..", controller_type)
 
 		var c types.BaseVirtualDevice
@@ -1268,6 +1274,14 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	log.Printf("[DEBUG] addHardDisk - diskPath: %v", diskPath)
 	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
 
+	if strings.Contains(controller_type, "scsi") {
+		unitNumber, err := getNextUnitNumber(devices, controller)
+		if err != nil {
+			return err
+		}
+		*disk.UnitNumber = unitNumber
+	}
+
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
@@ -1298,6 +1312,44 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 
 		return nil
 	}
+}
+
+func getSCSIControllers(vmDevices object.VirtualDeviceList) []*types.VirtualController {
+	// get virtual scsi controllers of all supported types
+	var scsiControllers []*types.VirtualController
+	for _, device := range vmDevices {
+		devType := vmDevices.Type(device)
+		switch devType {
+		case "scsi", "lsilogic", "buslogic", "pvscsi", "lsilogic-sas":
+			if c, ok := device.(types.BaseVirtualController); ok {
+				scsiControllers = append(scsiControllers, c.GetVirtualController())
+			}
+		}
+	}
+	return scsiControllers
+}
+
+func getNextUnitNumber(devices object.VirtualDeviceList, c types.BaseVirtualController) (int32, error) {
+	key := c.GetVirtualController().Key
+
+	var unitNumbers [16]bool
+	unitNumbers[7] = true
+
+	for _, device := range devices {
+		d := device.GetVirtualDevice()
+
+		if d.ControllerKey == key {
+			if d.UnitNumber != nil {
+				unitNumbers[*d.UnitNumber] = true
+			}
+		}
+	}
+	for i, taken := range unitNumbers {
+		if !taken {
+			return int32(i), nil
+		}
+	}
+	return -1, fmt.Errorf("[ERROR] getNextUnitNumber - controller is full")
 }
 
 // addCdrom adds a new virtual cdrom drive to the VirtualMachine and attaches an image (ISO) to it from a datastore path.
@@ -1902,6 +1954,10 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
 		if err != nil {
+			err2 := addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
+			if err2 != nil {
+				return err2
+			}
 			return err
 		}
 	}

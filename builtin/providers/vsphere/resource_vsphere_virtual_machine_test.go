@@ -328,6 +328,76 @@ func TestAccVSphereVirtualMachine_client_debug(t *testing.T) {
 	})
 }
 
+const testAccCheckVSphereVirtualMachineConfig_diskSCSICapacity = `
+resource "vsphere_virtual_machine" "scsiCapacity" {
+    name = "terraform-test"
+` + testAccTemplateBasicBody + `
+    disk {
+        size = 1
+        controller_type = "scsi-paravirtual"
+        name = "one"
+    }
+    disk {
+        size = 1
+        controller_type = "scsi-paravirtual"
+        name = "two"
+    }
+	disk {
+        size = 1
+        controller_type = "scsi-paravirtual"
+        name = "three"
+    }
+	disk {
+        size = 1
+        controller_type = "scsi-paravirtual"
+        name = "four"
+    }
+	disk {
+        size = 1
+        controller_type = "scsi-paravirtual"
+        name = "five"
+    }
+	disk {
+        size = 1
+        controller_type = "scsi-paravirtual"
+        name = "six"
+    }
+	disk {
+        size = 1
+        controller_type = "scsi-paravirtual"
+        name = "seven"
+    }
+}
+`
+
+func TestAccVSphereVirtualMachine_diskSCSICapacity(t *testing.T) {
+	var vm virtualMachine
+	basic_vars := setupTemplateBasicBodyVars()
+	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_diskSCSICapacity)
+
+	vmName := "vsphere_virtual_machine.scsiCapacity"
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: basic_vars.label, vmName: vmName, numDisks: "8"}.testCheckFuncBasic()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_diskSCSICapacity)
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+				),
+			},
+		},
+	})
+}
+
 const testAccCheckVSphereVirtualMachineConfig_initType = `
 resource "vsphere_virtual_machine" "thin" {
     name = "terraform-test"
