@@ -172,6 +172,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpc":                      dataSourceAwsVpc(),
 			"aws_vpc_endpoint_service":     dataSourceAwsVpcEndpointService(),
 			"aws_vpc_peering_connection":   dataSourceAwsVpcPeeringConnection(),
+			"aws_kms_secrets":              dataSourceAwsKmsSecrets(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
