@@ -15,7 +15,7 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 
 	// Input stuff
 	seq = append(seq, &EvalOpFilter{
-		Ops: []walkOperation{walkInput},
+		Ops: []walkOperation{walkInput, walkImport},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
@@ -71,7 +71,7 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 
 	// Apply stuff
 	seq = append(seq, &EvalOpFilter{
-		Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkDestroy},
+		Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkDestroy, walkImport},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
@@ -98,7 +98,7 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 	// We configure on everything but validate, since validate may
 	// not have access to all the variables.
 	seq = append(seq, &EvalOpFilter{
-		Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkDestroy},
+		Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkDestroy, walkImport},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalConfigProvider{

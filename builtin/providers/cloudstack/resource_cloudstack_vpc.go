@@ -50,6 +50,7 @@ func resourceCloudStackVPC() *schema.Resource {
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -125,7 +126,10 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the VPC details
-	v, count, err := cs.VPC.GetVPCByID(d.Id())
+	v, count, err := cs.VPC.GetVPCByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf(
@@ -168,11 +172,9 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if l.Count != 1 {
-		return fmt.Errorf("Unexpected number (%d) of source NAT IPs returned", l.Count)
+	if l.Count == 1 {
+		d.Set("source_nat_ip", l.PublicIpAddresses[0].Ipaddress)
 	}
-
-	d.Set("source_nat_ip", l.PublicIpAddresses[0].Ipaddress)
 
 	return nil
 }

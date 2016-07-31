@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // DiffChangeType is an enum with the kind of changes a diff has planned.
@@ -215,11 +216,12 @@ func (d *ModuleDiff) String() string {
 		rdiff := d.Resources[name]
 
 		crud := "UPDATE"
-		if rdiff.RequiresNew() && (rdiff.Destroy || rdiff.DestroyTainted) {
+		switch {
+		case rdiff.RequiresNew() && (rdiff.GetDestroy() || rdiff.GetDestroyTainted()):
 			crud = "DESTROY/CREATE"
-		} else if rdiff.Destroy {
+		case rdiff.GetDestroy():
 			crud = "DESTROY"
-		} else if rdiff.RequiresNew() {
+		case rdiff.RequiresNew():
 			crud = "CREATE"
 		}
 
@@ -229,8 +231,9 @@ func (d *ModuleDiff) String() string {
 			name))
 
 		keyLen := 0
-		keys := make([]string, 0, len(rdiff.Attributes))
-		for key, _ := range rdiff.Attributes {
+		rdiffAttrs := rdiff.CopyAttributes()
+		keys := make([]string, 0, len(rdiffAttrs))
+		for key, _ := range rdiffAttrs {
 			if key == "id" {
 				continue
 			}
@@ -243,25 +246,33 @@ func (d *ModuleDiff) String() string {
 		sort.Strings(keys)
 
 		for _, attrK := range keys {
-			attrDiff := rdiff.Attributes[attrK]
+			attrDiff, _ := rdiff.GetAttribute(attrK)
 
 			v := attrDiff.New
+			u := attrDiff.Old
 			if attrDiff.NewComputed {
 				v = "<computed>"
 			}
 
-			newResource := ""
+			if attrDiff.Sensitive {
+				u = "<sensitive>"
+				v = "<sensitive>"
+			}
+
+			updateMsg := ""
 			if attrDiff.RequiresNew {
-				newResource = " (forces new resource)"
+				updateMsg = " (forces new resource)"
+			} else if attrDiff.Sensitive {
+				updateMsg = " (attribute changed)"
 			}
 
 			buf.WriteString(fmt.Sprintf(
 				"  %s:%s %#v => %#v%s\n",
 				attrK,
 				strings.Repeat(" ", keyLen-len(attrK)),
-				attrDiff.Old,
+				u,
 				v,
-				newResource))
+				updateMsg))
 		}
 	}
 
@@ -270,6 +281,7 @@ func (d *ModuleDiff) String() string {
 
 // InstanceDiff is the diff of a resource from some state to another.
 type InstanceDiff struct {
+	mu             sync.Mutex
 	Attributes     map[string]*ResourceAttrDiff
 	Destroy        bool
 	DestroyTainted bool
@@ -283,6 +295,7 @@ type ResourceAttrDiff struct {
 	NewRemoved  bool        // True if this attribute is being removed
 	NewExtra    interface{} // Extra information for the provider
 	RequiresNew bool        // True if change requires new resource
+	Sensitive   bool        // True if the data should not be displayed in UI output
 	Type        DiffAttrType
 }
 
@@ -314,6 +327,10 @@ func (d *InstanceDiff) init() {
 	}
 }
 
+func NewInstanceDiff() *InstanceDiff {
+	return &InstanceDiff{Attributes: make(map[string]*ResourceAttrDiff)}
+}
+
 // ChangeType returns the DiffChangeType represented by the diff
 // for this single instance.
 func (d *InstanceDiff) ChangeType() DiffChangeType {
@@ -321,11 +338,11 @@ func (d *InstanceDiff) ChangeType() DiffChangeType {
 		return DiffNone
 	}
 
-	if d.RequiresNew() && (d.Destroy || d.DestroyTainted) {
+	if d.RequiresNew() && (d.GetDestroy() || d.GetDestroyTainted()) {
 		return DiffDestroyCreate
 	}
 
-	if d.Destroy {
+	if d.GetDestroy() {
 		return DiffDestroy
 	}
 
@@ -342,6 +359,8 @@ func (d *InstanceDiff) Empty() bool {
 		return true
 	}
 
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	return !d.Destroy && len(d.Attributes) == 0
 }
 
@@ -356,6 +375,21 @@ func (d *InstanceDiff) RequiresNew() bool {
 		return false
 	}
 
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	return d.requiresNew()
+}
+
+func (d *InstanceDiff) requiresNew() bool {
+	if d == nil {
+		return false
+	}
+
+	if d.DestroyTainted {
+		return true
+	}
+
 	for _, rd := range d.Attributes {
 		if rd != nil && rd.RequiresNew {
 			return true
@@ -365,24 +399,103 @@ func (d *InstanceDiff) RequiresNew() bool {
 	return false
 }
 
+// These methods are properly locked, for use outside other InstanceDiff
+// methods but everywhere else within in the terraform package.
+// TODO refactor the locking scheme
+func (d *InstanceDiff) SetTainted(b bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.DestroyTainted = b
+}
+
+func (d *InstanceDiff) GetDestroyTainted() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	return d.DestroyTainted
+}
+
+func (d *InstanceDiff) SetDestroy(b bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.Destroy = b
+}
+
+func (d *InstanceDiff) GetDestroy() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	return d.Destroy
+}
+
+func (d *InstanceDiff) SetAttribute(key string, attr *ResourceAttrDiff) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.Attributes[key] = attr
+}
+
+func (d *InstanceDiff) DelAttribute(key string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	delete(d.Attributes, key)
+}
+
+func (d *InstanceDiff) GetAttribute(key string) (*ResourceAttrDiff, bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	attr, ok := d.Attributes[key]
+	return attr, ok
+}
+func (d *InstanceDiff) GetAttributesLen() int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	return len(d.Attributes)
+}
+
+// Safely copies the Attributes map
+func (d *InstanceDiff) CopyAttributes() map[string]*ResourceAttrDiff {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	attrs := make(map[string]*ResourceAttrDiff)
+	for k, v := range d.Attributes {
+		attrs[k] = v
+	}
+
+	return attrs
+}
+
 // Same checks whether or not two InstanceDiff's are the "same". When
 // we say "same", it is not necessarily exactly equal. Instead, it is
 // just checking that the same attributes are changing, a destroy
 // isn't suddenly happening, etc.
 func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
-	if d == nil && d2 == nil {
+	// we can safely compare the pointers without a lock
+	switch {
+	case d == nil && d2 == nil:
 		return true, ""
-	} else if d == nil || d2 == nil {
-		return false, "both nil"
+	case d == nil || d2 == nil:
+		return false, "one nil"
+	case d == d2:
+		return true, ""
 	}
 
-	if d.Destroy != d2.Destroy {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.Destroy != d2.GetDestroy() {
 		return false, fmt.Sprintf(
-			"diff: Destroy; old: %t, new: %t", d.Destroy, d2.Destroy)
+			"diff: Destroy; old: %t, new: %t", d.Destroy, d2.GetDestroy())
 	}
-	if d.RequiresNew() != d2.RequiresNew() {
+	if d.requiresNew() != d2.RequiresNew() {
 		return false, fmt.Sprintf(
-			"diff RequiresNew; old: %t, new: %t", d.RequiresNew(), d2.RequiresNew())
+			"diff RequiresNew; old: %t, new: %t", d.requiresNew(), d2.RequiresNew())
 	}
 
 	// Go through the old diff and make sure the new diff has all the
@@ -392,7 +505,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 	for k, _ := range d.Attributes {
 		checkOld[k] = struct{}{}
 	}
-	for k, _ := range d2.Attributes {
+	for k, _ := range d2.CopyAttributes() {
 		checkNew[k] = struct{}{}
 	}
 
@@ -417,7 +530,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 		delete(checkOld, k)
 		delete(checkNew, k)
 
-		_, ok := d2.Attributes[k]
+		_, ok := d2.GetAttribute(k)
 		if !ok {
 			// If there's no new attribute, and the old diff expected the attribute
 			// to be removed, that's just fine.
@@ -429,52 +542,47 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			// values. So check if there is an approximate hash in the key
 			// and if so, try to match the key.
 			if strings.Contains(k, "~") {
-				// TODO (SvH): There should be a better way to do this...
 				parts := strings.Split(k, ".")
-				parts2 := strings.Split(k, ".")
+				parts2 := append([]string(nil), parts...)
+
 				re := regexp.MustCompile(`^~\d+$`)
 				for i, part := range parts {
 					if re.MatchString(part) {
+						// we're going to consider this the base of a
+						// computed hash, and remove all longer matching fields
+						ok = true
+
 						parts2[i] = `\d+`
+						parts2 = parts2[:i+1]
+						break
 					}
 				}
-				re, err := regexp.Compile("^" + strings.Join(parts2, `\.`) + "$")
+
+				re, err := regexp.Compile("^" + strings.Join(parts2, `\.`))
 				if err != nil {
 					return false, fmt.Sprintf("regexp failed to compile; err: %#v", err)
 				}
+
 				for k2, _ := range checkNew {
 					if re.MatchString(k2) {
 						delete(checkNew, k2)
-
-						if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
-							// This is a computed list or set, so remove any keys with this
-							// prefix from the check list.
-							prefix := k2[:len(k2)-1]
-							for k2, _ := range checkNew {
-								if strings.HasPrefix(k2, prefix) {
-									delete(checkNew, k2)
-								}
-							}
-						}
-						ok = true
-						break
 					}
 				}
 			}
 
-			// This is a little tricky, but when a diff contains a computed list
-			// or set that can only be interpolated after the apply command has
-			// created the dependent resources, it could turn out that the result
-			// is actually the same as the existing state which would remove the
-			// key from the diff.
-			if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
+			// This is a little tricky, but when a diff contains a computed
+			// list, set, or map that can only be interpolated after the apply
+			// command has created the dependent resources, it could turn out
+			// that the result is actually the same as the existing state which
+			// would remove the key from the diff.
+			if diffOld.NewComputed && (strings.HasSuffix(k, ".#") || strings.HasSuffix(k, ".%")) {
 				ok = true
 			}
 
 			// Similarly, in a RequiresNew scenario, a list that shows up in the plan
 			// diff can disappear from the apply diff, which is calculated from an
 			// empty state.
-			if d.RequiresNew() && strings.HasSuffix(k, ".#") {
+			if d.requiresNew() && (strings.HasSuffix(k, ".#") || strings.HasSuffix(k, ".%")) {
 				ok = true
 			}
 
@@ -483,10 +591,16 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			}
 		}
 
-		if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
-			// This is a computed list or set, so remove any keys with this
-			// prefix from the check list.
-			kprefix := k[:len(k)-1]
+		// search for the suffix of the base of a [computed] map, list or set.
+		multiVal := regexp.MustCompile(`\.(#|~#|%)$`)
+		match := multiVal.FindStringSubmatch(k)
+
+		if diffOld.NewComputed && len(match) == 2 {
+			matchLen := len(match[1])
+
+			// This is a computed list, set, or map, so remove any keys with
+			// this prefix from the check list.
+			kprefix := k[:len(k)-matchLen]
 			for k2, _ := range checkOld {
 				if strings.HasPrefix(k2, kprefix) {
 					delete(checkOld, k2)

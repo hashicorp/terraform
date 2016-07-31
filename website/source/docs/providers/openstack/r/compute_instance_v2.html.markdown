@@ -12,16 +12,185 @@ Manages a V2 VM instance resource within OpenStack.
 
 ## Example Usage
 
+### Basic Instance
+
 ```
-resource "openstack_compute_instance_v2" "test-server" {
-  name = "tf-test"
+resource "openstack_compute_instance_v2" "basic" {
+  name = "basic"
   image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
   flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
   metadata {
     this = "that"
   }
+
+  network {
+    name = "my_network"
+  }
+}
+```
+
+### Instance With Attached Volume
+
+```
+resource "openstack_blockstorage_volume_v1" "myvol" {
+  name = "myvol"
+  size = 1
+}
+
+resource "openstack_compute_instance_v2" "volume-attached" {
+  name = "volume-attached"
+  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id = "3"
   key_pair = "my_key_pair_name"
-  security_groups = ["test-group-1"]
+  security_groups = ["default"]
+
+  network {
+    name = "my_network"
+  }
+
+  volume {
+    volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
+  }
+}
+```
+
+### Boot From Volume
+
+```
+resource "openstack_compute_instance_v2" "boot-from-volume" {
+  name = "boot-from-volume"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    uuid = "<image-id>"
+    source_type = "image"
+    volume_size = 5
+    boot_index = 0
+    destination_type = "volume"
+    delete_on_termination = true
+  }
+
+  network {
+    name = "my_network"
+  }
+}
+```
+
+### Boot From an Existing Volume
+
+```
+resource "openstack_blockstorage_volume_v1" "myvol" {
+  name = "myvol"
+  size = 5
+  image_id = "<image-id>"
+}
+
+resource "openstack_compute_instance_v2" "boot-from-volume" {
+  name = "bootfromvolume"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    uuid = "${openstack_blockstorage_volume_v1.myvol.id}"
+    source_type = "volume"
+    boot_index = 0
+    destination_type = "volume"
+    delete_on_termination = true
+  }
+
+  network {
+    name = "my_network"
+  }
+}
+```
+
+### Instance With Multiple Networks
+
+```
+resource "openstack_compute_floatingip_v2" "myip" {
+  pool = "my_pool"
+}
+
+resource "openstack_compute_instance_v2" "multi-net" {
+  name = "multi-net"
+  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  network {
+    name = "my_first_network"
+  }
+
+  network {
+    name = "my_second_network"
+    floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
+    # Terraform will use this network for provisioning
+    access_network = true
+  }
+}
+```
+
+### Instance With Personality
+
+```
+resource "openstack_compute_instance_v2" "personality" {
+  name = "personality"
+  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  personality {
+    file = "/path/to/file/on/instance.txt
+    content = "contents of file"
+  }
+
+  network {
+    name = "my_network"
+  }
+}
+```
+
+### Instance with Multiple Ephemeral Disks
+
+```
+resource "openstack_compute_instance_v2" "multi-eph" {
+  name = "multi_eph"
+  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    boot_index = 0
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "image"
+    uuid = "<image-id>"
+  }
+
+  block_device {
+    boot_index = -1
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "blank"
+    volume_size = 1
+  }
+
+  block_device {
+    boot_index = -1
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "blank"
+    volume_size = 1
+  }
 }
 ```
 
@@ -36,12 +205,12 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource.
 
 * `image_id` - (Optional; Required if `image_name` is empty and not booting
-    from a volume) The image ID of the desired image for the server. Changing
-    this creates a new server.
+    from a volume. Do not specify if booting from a volume.) The image ID of
+    the desired image for the server. Changing this creates a new server.
 
 * `image_name` - (Optional; Required if `image_id` is empty and not booting
-    from a volume) The name of the desired image for the server. Changing this
-    creates a new server.
+    from a volume. Do not specify if booting from a volume.) The name of the
+    desired image for the server. Changing this creates a new server.
 
 * `flavor_id` - (Optional; Required if `flavor_name` is empty) The flavor ID of
     the desired flavor for the server. Changing this resizes the existing server.
@@ -58,7 +227,9 @@ The following arguments are supported:
 
 * `security_groups` - (Optional) An array of one or more security group names
     to associate with the server. Changing this results in adding/removing
-    security groups from the existing server.
+    security groups from the existing server. *Note*: When attaching the
+    instance to networks using Ports, place the security groups on the Port
+    and not the instance.
 
 * `availability_zone` - (Optional) The availability zone in which to create
     the server. Changing this creates a new server.
@@ -95,19 +266,27 @@ The following arguments are supported:
     defining one or more files and their contents. The personality structure
     is described below.
 
+* `stop_before_destroy` - (Optional) Whether to try stop instance gracefully
+    before destroying it, thus giving chance for guest OS daemons to stop correctly.
+    If instance doesn't stop within timeout, it will be destroyed anyway.
+
+
 The `network` block supports:
 
 * `uuid` - (Required unless `port`  or `name` is provided) The network UUID to
-    attach to the server.
+    attach to the server. Changing this creates a new server.
 
 * `name` - (Required unless `uuid` or `port` is provided) The human-readable
-    name of the network.
+    name of the network. Changing this creates a new server.
 
 * `port` - (Required unless `uuid` or `name` is provided) The port UUID of a
-    network to attach to the server.
+    network to attach to the server. Changing this creates a new server.
 
 * `fixed_ip_v4` - (Optional) Specifies a fixed IPv4 address to be used on this
-    network.
+    network. Changing this creates a new server.
+
+* `fixed_ip_v6` - (Optional) Specifies a fixed IPv6 address to be used on this
+    network. Changing this creates a new server.
 
 * `floating_ip` - (Optional) Specifies a floating IP address to be associated
     with this network. Cannot be combined with a top-level floating IP. See
@@ -118,19 +297,26 @@ The `network` block supports:
 
 The `block_device` block supports:
 
-* `uuid` - (Required unless `source_type` is set to `"blank"` ) The UUID of the image, volume, or snapshot.
+* `uuid` - (Required unless `source_type` is set to `"blank"` ) The UUID of
+    the image, volume, or snapshot. Changing this creates a new server.
 
 * `source_type` - (Required) The source type of the device. Must be one of
-    "blank", "image", "volume", or "snapshot".
+    "blank", "image", "volume", or "snapshot". Changing this creates a new
+    server.
 
 * `volume_size` - The size of the volume to create (in gigabytes). Required
     in the following combinations: source=image and destination=volume,
-    source=blank and destination=local.
+    source=blank and destination=local. Changing this creates a new server.
 
 * `boot_index` - (Optional) The boot index of the volume. It defaults to 0.
+    Changing this creates a new server.
 
 * `destination_type` - (Optional) The type that gets created. Possible values
-    are "volume" and "local".
+    are "volume" and "local". Changing this creates a new server.
+
+* `delete_on_termination` - (Optional) Delete the volume / block device upon
+    termination of the instance. Defaults to false. Changing this creates a
+    new server.
 
 The `volume` block supports:
 
@@ -243,6 +429,58 @@ resource "openstack_compute_instance_v2" "foo" {
     destination_type = "local"
     source_type = "blank"
     volume_size = 1
+  }
+}
+```
+
+### Instances and Ports
+
+Neutron Ports are a great feature and provide a lot of functionality. However,
+there are some notes to be aware of when mixing Instances and Ports:
+
+* When attaching an Instance to one or more networks using Ports, place the
+security groups on the Port and not the Instance. If you place the security
+groups on the Instance, the security groups will not be applied upon creation,
+but they will be applied upon a refresh. This is a known OpenStack bug.
+
+* Network IP information is not available within an instance for networks that
+are attached with Ports. This is mostly due to the flexibility Neutron Ports
+provide when it comes to IP addresses. For example, a Neutron Port can have
+multiple Fixed IP addresses associated with it. It's not possible to know which
+single IP address the user would want returned to the Instance's state
+information. Therefore, in order for a Provisioner to connect to an Instance
+via it's network Port, customize the `connection` information:
+
+```
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  admin_state_up = "true"
+
+  network_id = "0a1d0a27-cffa-4de3-92c5-9d3fd3f2e74d"
+  security_group_ids = [
+    "2f02d20a-8dca-49b7-b26f-b6ce9fddaf4f",
+    "ca1e5ed7-dae8-4605-987b-fadaeeb30461",
+  ]
+
+}
+
+resource "openstack_compute_instance_v2" "instance_1" {
+  name        = "instance_1"
+
+  network {
+    port = "${openstack_networking_port_v2.port_1.id}"
+  }
+
+  connection {
+    user = "root"
+    host = "${openstack_networking_port_v2.port_1.fixed_ip.0.ip_address}"
+    private_key = "~/path/to/key"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo terraform executed > /tmp/foo"
+    ]
   }
 }
 ```

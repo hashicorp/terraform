@@ -53,16 +53,20 @@ loads all of them.
 
 ```
 provider "aws" {
-	access_key = "ACCESS_KEY_HERE"
-	secret_key = "SECRET_KEY_HERE"
-	region = "us-east-1"
+  access_key = "ACCESS_KEY_HERE"
+  secret_key = "SECRET_KEY_HERE"
+  region     = "us-east-1"
 }
 
 resource "aws_instance" "example" {
-	ami = "ami-408c7f28"
-	instance_type = "t1.micro"
+  ami           = "ami-0d729a60"
+  instance_type = "t2.micro"
 }
 ```
+
+~> **Note**: The above configuation is designed to work on most EC2 accounts,
+with access to a default VPC. For EC2 Classic users, please use `t1.micro` for
+`instance_type`, and `ami-408c7f28` for the `ami`.
 
 Replace the `ACCESS_KEY_HERE` and `SECRET_KEY_HERE` with your
 AWS access key and secret key, available from
@@ -95,7 +99,7 @@ Within the resource block itself is configuration for that
 resource. This is dependent on each resource provider and
 is fully documented within our
 [providers reference](/docs/providers/index.html). For our EC2 instance, we specify
-an AMI for Ubuntu, and request a "t1.micro" instance so we
+an AMI for Ubuntu, and request a "t2.micro" instance so we
 qualify under the free tier.
 
 ## Execution Plan
@@ -111,16 +115,24 @@ $ terraform plan
 ...
 
 + aws_instance.example
-    ami:               "" => "ami-408c7f28"
-    availability_zone: "" => "<computed>"
-    instance_type:     "" => "t1.micro"
-    key_name:          "" => "<computed>"
-    private_dns:       "" => "<computed>"
-    private_ip:        "" => "<computed>"
-    public_dns:        "" => "<computed>"
-    public_ip:         "" => "<computed>"
-    security_groups:   "" => "<computed>"
-    subnet_id:         "" => "<computed>"
+    ami:                      "ami-0d729a60"
+    availability_zone:        "<computed>"
+    ebs_block_device.#:       "<computed>"
+    ephemeral_block_device.#: "<computed>"
+    instance_state:           "<computed>"
+    instance_type:            "t2.micro"
+    key_name:                 "<computed>"
+    placement_group:          "<computed>"
+    private_dns:              "<computed>"
+    private_ip:               "<computed>"
+    public_dns:               "<computed>"
+    public_ip:                "<computed>"
+    root_block_device.#:      "<computed>"
+    security_groups.#:        "<computed>"
+    source_dest_check:        "true"
+    subnet_id:                "<computed>"
+    tenancy:                  "<computed>"
+    vpc_security_group_ids.#: "<computed>"
 ```
 
 `terraform plan` shows what changes Terraform will apply to
@@ -148,8 +160,12 @@ since Terraform waits for the EC2 instance to become available.
 ```
 $ terraform apply
 aws_instance.example: Creating...
-  ami:           "" => "ami-408c7f28"
-  instance_type: "" => "t1.micro"
+  ami:                      "" => "ami-0d729a60"
+  instance_type:            "" => "t2.micro"
+  [...]
+
+aws_instance.example: Still creating... (10s elapsed)
+aws_instance.example: Creation complete
 
 Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 
@@ -171,18 +187,17 @@ You can inspect the state using `terraform show`:
 ```
 $ terraform show
 aws_instance.example:
-  id = i-e60900cd
-  ami = ami-408c7f28
-  availability_zone = us-east-1c
-  instance_type = t1.micro
-  key_name =
-  private_dns = domU-12-31-39-12-38-AB.compute-1.internal
-  private_ip = 10.200.59.89
-  public_dns = ec2-54-81-21-192.compute-1.amazonaws.com
-  public_ip = 54.81.21.192
-  security_groups.# = 1
-  security_groups.0 = default
-  subnet_id =
+  id = i-32cf65a8
+  ami = ami-0d729a60
+  availability_zone = us-east-1a
+  instance_state = running
+  instance_type = t2.micro
+  private_ip = 172.31.30.244
+  public_dns = ec2-52-90-212-55.compute-1.amazonaws.com
+  public_ip = 52.90.212.55
+  subnet_id = subnet-1497024d
+  vpc_security_group_ids.# = 1
+  vpc_security_group_ids.3348721628 = sg-67652003
 ```
 
 You can see that by creating our resource, we've also gathered

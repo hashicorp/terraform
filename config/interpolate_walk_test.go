@@ -89,7 +89,7 @@ func TestInterpolationWalker_detect(t *testing.T) {
 
 	for i, tc := range cases {
 		var actual []string
-		detectFn := func(root ast.Node) (string, error) {
+		detectFn := func(root ast.Node) (interface{}, error) {
 			actual = append(actual, fmt.Sprintf("%s", root))
 			return "", nil
 		}
@@ -109,7 +109,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 	cases := []struct {
 		Input  interface{}
 		Output interface{}
-		Value  string
+		Value  interface{}
 	}{
 		{
 			Input: map[string]interface{}{
@@ -159,7 +159,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 					"bing",
 				},
 			},
-			Value: NewStringList([]string{"bar", "baz"}).String(),
+			Value: []interface{}{"bar", "baz"},
 		},
 
 		{
@@ -170,12 +170,12 @@ func TestInterpolationWalker_replace(t *testing.T) {
 				},
 			},
 			Output: map[string]interface{}{},
-			Value:  NewStringList([]string{UnknownVariableValue, "baz"}).String(),
+			Value:  []interface{}{UnknownVariableValue, "baz"},
 		},
 	}
 
 	for i, tc := range cases {
-		fn := func(ast.Node) (string, error) {
+		fn := func(ast.Node) (interface{}, error) {
 			return tc.Value, nil
 		}
 

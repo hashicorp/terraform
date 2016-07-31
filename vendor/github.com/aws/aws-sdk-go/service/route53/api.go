@@ -4,6 +4,7 @@
 package route53
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -12,7 +13,28 @@ import (
 
 const opAssociateVPCWithHostedZone = "AssociateVPCWithHostedZone"
 
-// AssociateVPCWithHostedZoneRequest generates a request for the AssociateVPCWithHostedZone operation.
+// AssociateVPCWithHostedZoneRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateVPCWithHostedZone operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateVPCWithHostedZone method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateVPCWithHostedZoneRequest method.
+//    req, resp := client.AssociateVPCWithHostedZoneRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) AssociateVPCWithHostedZoneRequest(input *AssociateVPCWithHostedZoneInput) (req *request.Request, output *AssociateVPCWithHostedZoneOutput) {
 	op := &request.Operation{
 		Name:       opAssociateVPCWithHostedZone,
@@ -46,7 +68,28 @@ func (c *Route53) AssociateVPCWithHostedZone(input *AssociateVPCWithHostedZoneIn
 
 const opChangeResourceRecordSets = "ChangeResourceRecordSets"
 
-// ChangeResourceRecordSetsRequest generates a request for the ChangeResourceRecordSets operation.
+// ChangeResourceRecordSetsRequest generates a "aws/request.Request" representing the
+// client's request for the ChangeResourceRecordSets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ChangeResourceRecordSets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ChangeResourceRecordSetsRequest method.
+//    req, resp := client.ChangeResourceRecordSetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSetsInput) (req *request.Request, output *ChangeResourceRecordSetsOutput) {
 	op := &request.Operation{
 		Name:       opChangeResourceRecordSets,
@@ -97,7 +140,28 @@ func (c *Route53) ChangeResourceRecordSets(input *ChangeResourceRecordSetsInput)
 
 const opChangeTagsForResource = "ChangeTagsForResource"
 
-// ChangeTagsForResourceRequest generates a request for the ChangeTagsForResource operation.
+// ChangeTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ChangeTagsForResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ChangeTagsForResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ChangeTagsForResourceRequest method.
+//    req, resp := client.ChangeTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ChangeTagsForResourceRequest(input *ChangeTagsForResourceInput) (req *request.Request, output *ChangeTagsForResourceOutput) {
 	op := &request.Operation{
 		Name:       opChangeTagsForResource,
@@ -123,7 +187,28 @@ func (c *Route53) ChangeTagsForResource(input *ChangeTagsForResourceInput) (*Cha
 
 const opCreateHealthCheck = "CreateHealthCheck"
 
-// CreateHealthCheckRequest generates a request for the CreateHealthCheck operation.
+// CreateHealthCheckRequest generates a "aws/request.Request" representing the
+// client's request for the CreateHealthCheck operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateHealthCheck method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateHealthCheckRequest method.
+//    req, resp := client.CreateHealthCheckRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) CreateHealthCheckRequest(input *CreateHealthCheckInput) (req *request.Request, output *CreateHealthCheckOutput) {
 	op := &request.Operation{
 		Name:       opCreateHealthCheck,
@@ -155,7 +240,28 @@ func (c *Route53) CreateHealthCheck(input *CreateHealthCheckInput) (*CreateHealt
 
 const opCreateHostedZone = "CreateHostedZone"
 
-// CreateHostedZoneRequest generates a request for the CreateHostedZone operation.
+// CreateHostedZoneRequest generates a "aws/request.Request" representing the
+// client's request for the CreateHostedZone operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateHostedZone method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateHostedZoneRequest method.
+//    req, resp := client.CreateHostedZoneRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) CreateHostedZoneRequest(input *CreateHostedZoneInput) (req *request.Request, output *CreateHostedZoneOutput) {
 	op := &request.Operation{
 		Name:       opCreateHostedZone,
@@ -203,7 +309,28 @@ func (c *Route53) CreateHostedZone(input *CreateHostedZoneInput) (*CreateHostedZ
 
 const opCreateReusableDelegationSet = "CreateReusableDelegationSet"
 
-// CreateReusableDelegationSetRequest generates a request for the CreateReusableDelegationSet operation.
+// CreateReusableDelegationSetRequest generates a "aws/request.Request" representing the
+// client's request for the CreateReusableDelegationSet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateReusableDelegationSet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateReusableDelegationSetRequest method.
+//    req, resp := client.CreateReusableDelegationSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) CreateReusableDelegationSetRequest(input *CreateReusableDelegationSetInput) (req *request.Request, output *CreateReusableDelegationSetOutput) {
 	op := &request.Operation{
 		Name:       opCreateReusableDelegationSet,
@@ -239,7 +366,28 @@ func (c *Route53) CreateReusableDelegationSet(input *CreateReusableDelegationSet
 
 const opCreateTrafficPolicy = "CreateTrafficPolicy"
 
-// CreateTrafficPolicyRequest generates a request for the CreateTrafficPolicy operation.
+// CreateTrafficPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateTrafficPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateTrafficPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateTrafficPolicyRequest method.
+//    req, resp := client.CreateTrafficPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) CreateTrafficPolicyRequest(input *CreateTrafficPolicyInput) (req *request.Request, output *CreateTrafficPolicyOutput) {
 	op := &request.Operation{
 		Name:       opCreateTrafficPolicy,
@@ -273,7 +421,28 @@ func (c *Route53) CreateTrafficPolicy(input *CreateTrafficPolicyInput) (*CreateT
 
 const opCreateTrafficPolicyInstance = "CreateTrafficPolicyInstance"
 
-// CreateTrafficPolicyInstanceRequest generates a request for the CreateTrafficPolicyInstance operation.
+// CreateTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the CreateTrafficPolicyInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateTrafficPolicyInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateTrafficPolicyInstanceRequest method.
+//    req, resp := client.CreateTrafficPolicyInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) CreateTrafficPolicyInstanceRequest(input *CreateTrafficPolicyInstanceInput) (req *request.Request, output *CreateTrafficPolicyInstanceOutput) {
 	op := &request.Operation{
 		Name:       opCreateTrafficPolicyInstance,
@@ -311,7 +480,28 @@ func (c *Route53) CreateTrafficPolicyInstance(input *CreateTrafficPolicyInstance
 
 const opCreateTrafficPolicyVersion = "CreateTrafficPolicyVersion"
 
-// CreateTrafficPolicyVersionRequest generates a request for the CreateTrafficPolicyVersion operation.
+// CreateTrafficPolicyVersionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateTrafficPolicyVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateTrafficPolicyVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateTrafficPolicyVersionRequest method.
+//    req, resp := client.CreateTrafficPolicyVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) CreateTrafficPolicyVersionRequest(input *CreateTrafficPolicyVersionInput) (req *request.Request, output *CreateTrafficPolicyVersionOutput) {
 	op := &request.Operation{
 		Name:       opCreateTrafficPolicyVersion,
@@ -348,7 +538,28 @@ func (c *Route53) CreateTrafficPolicyVersion(input *CreateTrafficPolicyVersionIn
 
 const opDeleteHealthCheck = "DeleteHealthCheck"
 
-// DeleteHealthCheckRequest generates a request for the DeleteHealthCheck operation.
+// DeleteHealthCheckRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteHealthCheck operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteHealthCheck method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteHealthCheckRequest method.
+//    req, resp := client.DeleteHealthCheckRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) DeleteHealthCheckRequest(input *DeleteHealthCheckInput) (req *request.Request, output *DeleteHealthCheckOutput) {
 	op := &request.Operation{
 		Name:       opDeleteHealthCheck,
@@ -384,7 +595,28 @@ func (c *Route53) DeleteHealthCheck(input *DeleteHealthCheckInput) (*DeleteHealt
 
 const opDeleteHostedZone = "DeleteHostedZone"
 
-// DeleteHostedZoneRequest generates a request for the DeleteHostedZone operation.
+// DeleteHostedZoneRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteHostedZone operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteHostedZone method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteHostedZoneRequest method.
+//    req, resp := client.DeleteHostedZoneRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) DeleteHostedZoneRequest(input *DeleteHostedZoneInput) (req *request.Request, output *DeleteHostedZoneOutput) {
 	op := &request.Operation{
 		Name:       opDeleteHostedZone,
@@ -405,14 +637,10 @@ func (c *Route53) DeleteHostedZoneRequest(input *DeleteHostedZoneInput) (req *re
 // This action deletes a hosted zone. To delete a hosted zone, send a DELETE
 // request to the /Route 53 API version/hostedzone/hosted zone ID resource.
 //
-// For more information about deleting a hosted zone, see Deleting a Hosted
-// Zone (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DeleteHostedZone.html)
-// in the Amazon Route 53 Developer Guide.
-//
-//  You can delete a hosted zone only if there are no resource record sets
-// other than the default SOA record and NS resource record sets. If your hosted
-// zone contains other resource record sets, you must delete them before you
-// can delete your hosted zone. If you try to delete a hosted zone that contains
+// You can delete a hosted zone only if there are no resource record sets other
+// than the default SOA record and NS resource record sets. If your hosted zone
+// contains other resource record sets, you must delete them before you can
+// delete your hosted zone. If you try to delete a hosted zone that contains
 // other resource record sets, Amazon Route 53 will deny your request with a
 // HostedZoneNotEmpty error. For information about deleting records from your
 // hosted zone, see ChangeResourceRecordSets.
@@ -424,7 +652,28 @@ func (c *Route53) DeleteHostedZone(input *DeleteHostedZoneInput) (*DeleteHostedZ
 
 const opDeleteReusableDelegationSet = "DeleteReusableDelegationSet"
 
-// DeleteReusableDelegationSetRequest generates a request for the DeleteReusableDelegationSet operation.
+// DeleteReusableDelegationSetRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteReusableDelegationSet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteReusableDelegationSet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteReusableDelegationSetRequest method.
+//    req, resp := client.DeleteReusableDelegationSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) DeleteReusableDelegationSetRequest(input *DeleteReusableDelegationSetInput) (req *request.Request, output *DeleteReusableDelegationSetOutput) {
 	op := &request.Operation{
 		Name:       opDeleteReusableDelegationSet,
@@ -460,7 +709,28 @@ func (c *Route53) DeleteReusableDelegationSet(input *DeleteReusableDelegationSet
 
 const opDeleteTrafficPolicy = "DeleteTrafficPolicy"
 
-// DeleteTrafficPolicyRequest generates a request for the DeleteTrafficPolicy operation.
+// DeleteTrafficPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteTrafficPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteTrafficPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteTrafficPolicyRequest method.
+//    req, resp := client.DeleteTrafficPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) DeleteTrafficPolicyRequest(input *DeleteTrafficPolicyInput) (req *request.Request, output *DeleteTrafficPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTrafficPolicy,
@@ -488,7 +758,28 @@ func (c *Route53) DeleteTrafficPolicy(input *DeleteTrafficPolicyInput) (*DeleteT
 
 const opDeleteTrafficPolicyInstance = "DeleteTrafficPolicyInstance"
 
-// DeleteTrafficPolicyInstanceRequest generates a request for the DeleteTrafficPolicyInstance operation.
+// DeleteTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteTrafficPolicyInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteTrafficPolicyInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteTrafficPolicyInstanceRequest method.
+//    req, resp := client.DeleteTrafficPolicyInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) DeleteTrafficPolicyInstanceRequest(input *DeleteTrafficPolicyInstanceInput) (req *request.Request, output *DeleteTrafficPolicyInstanceOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTrafficPolicyInstance,
@@ -523,7 +814,28 @@ func (c *Route53) DeleteTrafficPolicyInstance(input *DeleteTrafficPolicyInstance
 
 const opDisassociateVPCFromHostedZone = "DisassociateVPCFromHostedZone"
 
-// DisassociateVPCFromHostedZoneRequest generates a request for the DisassociateVPCFromHostedZone operation.
+// DisassociateVPCFromHostedZoneRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateVPCFromHostedZone operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisassociateVPCFromHostedZone method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisassociateVPCFromHostedZoneRequest method.
+//    req, resp := client.DisassociateVPCFromHostedZoneRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) DisassociateVPCFromHostedZoneRequest(input *DisassociateVPCFromHostedZoneInput) (req *request.Request, output *DisassociateVPCFromHostedZoneOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateVPCFromHostedZone,
@@ -557,7 +869,28 @@ func (c *Route53) DisassociateVPCFromHostedZone(input *DisassociateVPCFromHosted
 
 const opGetChange = "GetChange"
 
-// GetChangeRequest generates a request for the GetChange operation.
+// GetChangeRequest generates a "aws/request.Request" representing the
+// client's request for the GetChange operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetChange method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetChangeRequest method.
+//    req, resp := client.GetChangeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetChangeRequest(input *GetChangeInput) (req *request.Request, output *GetChangeOutput) {
 	op := &request.Operation{
 		Name:       opGetChange,
@@ -592,7 +925,28 @@ func (c *Route53) GetChange(input *GetChangeInput) (*GetChangeOutput, error) {
 
 const opGetChangeDetails = "GetChangeDetails"
 
-// GetChangeDetailsRequest generates a request for the GetChangeDetails operation.
+// GetChangeDetailsRequest generates a "aws/request.Request" representing the
+// client's request for the GetChangeDetails operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetChangeDetails method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetChangeDetailsRequest method.
+//    req, resp := client.GetChangeDetailsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetChangeDetailsRequest(input *GetChangeDetailsInput) (req *request.Request, output *GetChangeDetailsOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, GetChangeDetails, has been deprecated")
@@ -622,7 +976,28 @@ func (c *Route53) GetChangeDetails(input *GetChangeDetailsInput) (*GetChangeDeta
 
 const opGetCheckerIpRanges = "GetCheckerIpRanges"
 
-// GetCheckerIpRangesRequest generates a request for the GetCheckerIpRanges operation.
+// GetCheckerIpRangesRequest generates a "aws/request.Request" representing the
+// client's request for the GetCheckerIpRanges operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetCheckerIpRanges method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetCheckerIpRangesRequest method.
+//    req, resp := client.GetCheckerIpRangesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetCheckerIpRangesRequest(input *GetCheckerIpRangesInput) (req *request.Request, output *GetCheckerIpRangesOutput) {
 	op := &request.Operation{
 		Name:       opGetCheckerIpRanges,
@@ -653,7 +1028,28 @@ func (c *Route53) GetCheckerIpRanges(input *GetCheckerIpRangesInput) (*GetChecke
 
 const opGetGeoLocation = "GetGeoLocation"
 
-// GetGeoLocationRequest generates a request for the GetGeoLocation operation.
+// GetGeoLocationRequest generates a "aws/request.Request" representing the
+// client's request for the GetGeoLocation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetGeoLocation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetGeoLocationRequest method.
+//    req, resp := client.GetGeoLocationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetGeoLocationRequest(input *GetGeoLocationInput) (req *request.Request, output *GetGeoLocationOutput) {
 	op := &request.Operation{
 		Name:       opGetGeoLocation,
@@ -682,7 +1078,28 @@ func (c *Route53) GetGeoLocation(input *GetGeoLocationInput) (*GetGeoLocationOut
 
 const opGetHealthCheck = "GetHealthCheck"
 
-// GetHealthCheckRequest generates a request for the GetHealthCheck operation.
+// GetHealthCheckRequest generates a "aws/request.Request" representing the
+// client's request for the GetHealthCheck operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetHealthCheck method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetHealthCheckRequest method.
+//    req, resp := client.GetHealthCheckRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetHealthCheckRequest(input *GetHealthCheckInput) (req *request.Request, output *GetHealthCheckOutput) {
 	op := &request.Operation{
 		Name:       opGetHealthCheck,
@@ -710,7 +1127,28 @@ func (c *Route53) GetHealthCheck(input *GetHealthCheckInput) (*GetHealthCheckOut
 
 const opGetHealthCheckCount = "GetHealthCheckCount"
 
-// GetHealthCheckCountRequest generates a request for the GetHealthCheckCount operation.
+// GetHealthCheckCountRequest generates a "aws/request.Request" representing the
+// client's request for the GetHealthCheckCount operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetHealthCheckCount method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetHealthCheckCountRequest method.
+//    req, resp := client.GetHealthCheckCountRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetHealthCheckCountRequest(input *GetHealthCheckCountInput) (req *request.Request, output *GetHealthCheckCountOutput) {
 	op := &request.Operation{
 		Name:       opGetHealthCheckCount,
@@ -738,7 +1176,28 @@ func (c *Route53) GetHealthCheckCount(input *GetHealthCheckCountInput) (*GetHeal
 
 const opGetHealthCheckLastFailureReason = "GetHealthCheckLastFailureReason"
 
-// GetHealthCheckLastFailureReasonRequest generates a request for the GetHealthCheckLastFailureReason operation.
+// GetHealthCheckLastFailureReasonRequest generates a "aws/request.Request" representing the
+// client's request for the GetHealthCheckLastFailureReason operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetHealthCheckLastFailureReason method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetHealthCheckLastFailureReasonRequest method.
+//    req, resp := client.GetHealthCheckLastFailureReasonRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetHealthCheckLastFailureReasonRequest(input *GetHealthCheckLastFailureReasonInput) (req *request.Request, output *GetHealthCheckLastFailureReasonOutput) {
 	op := &request.Operation{
 		Name:       opGetHealthCheckLastFailureReason,
@@ -768,7 +1227,28 @@ func (c *Route53) GetHealthCheckLastFailureReason(input *GetHealthCheckLastFailu
 
 const opGetHealthCheckStatus = "GetHealthCheckStatus"
 
-// GetHealthCheckStatusRequest generates a request for the GetHealthCheckStatus operation.
+// GetHealthCheckStatusRequest generates a "aws/request.Request" representing the
+// client's request for the GetHealthCheckStatus operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetHealthCheckStatus method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetHealthCheckStatusRequest method.
+//    req, resp := client.GetHealthCheckStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetHealthCheckStatusRequest(input *GetHealthCheckStatusInput) (req *request.Request, output *GetHealthCheckStatusOutput) {
 	op := &request.Operation{
 		Name:       opGetHealthCheckStatus,
@@ -797,7 +1277,28 @@ func (c *Route53) GetHealthCheckStatus(input *GetHealthCheckStatusInput) (*GetHe
 
 const opGetHostedZone = "GetHostedZone"
 
-// GetHostedZoneRequest generates a request for the GetHostedZone operation.
+// GetHostedZoneRequest generates a "aws/request.Request" representing the
+// client's request for the GetHostedZone operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetHostedZone method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetHostedZoneRequest method.
+//    req, resp := client.GetHostedZoneRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetHostedZoneRequest(input *GetHostedZoneInput) (req *request.Request, output *GetHostedZoneOutput) {
 	op := &request.Operation{
 		Name:       opGetHostedZone,
@@ -827,7 +1328,28 @@ func (c *Route53) GetHostedZone(input *GetHostedZoneInput) (*GetHostedZoneOutput
 
 const opGetHostedZoneCount = "GetHostedZoneCount"
 
-// GetHostedZoneCountRequest generates a request for the GetHostedZoneCount operation.
+// GetHostedZoneCountRequest generates a "aws/request.Request" representing the
+// client's request for the GetHostedZoneCount operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetHostedZoneCount method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetHostedZoneCountRequest method.
+//    req, resp := client.GetHostedZoneCountRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetHostedZoneCountRequest(input *GetHostedZoneCountInput) (req *request.Request, output *GetHostedZoneCountOutput) {
 	op := &request.Operation{
 		Name:       opGetHostedZoneCount,
@@ -855,7 +1377,28 @@ func (c *Route53) GetHostedZoneCount(input *GetHostedZoneCountInput) (*GetHosted
 
 const opGetReusableDelegationSet = "GetReusableDelegationSet"
 
-// GetReusableDelegationSetRequest generates a request for the GetReusableDelegationSet operation.
+// GetReusableDelegationSetRequest generates a "aws/request.Request" representing the
+// client's request for the GetReusableDelegationSet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetReusableDelegationSet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetReusableDelegationSetRequest method.
+//    req, resp := client.GetReusableDelegationSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetReusableDelegationSetRequest(input *GetReusableDelegationSetInput) (req *request.Request, output *GetReusableDelegationSetOutput) {
 	op := &request.Operation{
 		Name:       opGetReusableDelegationSet,
@@ -883,7 +1426,28 @@ func (c *Route53) GetReusableDelegationSet(input *GetReusableDelegationSetInput)
 
 const opGetTrafficPolicy = "GetTrafficPolicy"
 
-// GetTrafficPolicyRequest generates a request for the GetTrafficPolicy operation.
+// GetTrafficPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetTrafficPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetTrafficPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetTrafficPolicyRequest method.
+//    req, resp := client.GetTrafficPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetTrafficPolicyRequest(input *GetTrafficPolicyInput) (req *request.Request, output *GetTrafficPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetTrafficPolicy,
@@ -911,7 +1475,28 @@ func (c *Route53) GetTrafficPolicy(input *GetTrafficPolicyInput) (*GetTrafficPol
 
 const opGetTrafficPolicyInstance = "GetTrafficPolicyInstance"
 
-// GetTrafficPolicyInstanceRequest generates a request for the GetTrafficPolicyInstance operation.
+// GetTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the GetTrafficPolicyInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetTrafficPolicyInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetTrafficPolicyInstanceRequest method.
+//    req, resp := client.GetTrafficPolicyInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetTrafficPolicyInstanceRequest(input *GetTrafficPolicyInstanceInput) (req *request.Request, output *GetTrafficPolicyInstanceOutput) {
 	op := &request.Operation{
 		Name:       opGetTrafficPolicyInstance,
@@ -946,7 +1531,28 @@ func (c *Route53) GetTrafficPolicyInstance(input *GetTrafficPolicyInstanceInput)
 
 const opGetTrafficPolicyInstanceCount = "GetTrafficPolicyInstanceCount"
 
-// GetTrafficPolicyInstanceCountRequest generates a request for the GetTrafficPolicyInstanceCount operation.
+// GetTrafficPolicyInstanceCountRequest generates a "aws/request.Request" representing the
+// client's request for the GetTrafficPolicyInstanceCount operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetTrafficPolicyInstanceCount method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetTrafficPolicyInstanceCountRequest method.
+//    req, resp := client.GetTrafficPolicyInstanceCountRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) GetTrafficPolicyInstanceCountRequest(input *GetTrafficPolicyInstanceCountInput) (req *request.Request, output *GetTrafficPolicyInstanceCountOutput) {
 	op := &request.Operation{
 		Name:       opGetTrafficPolicyInstanceCount,
@@ -977,7 +1583,28 @@ func (c *Route53) GetTrafficPolicyInstanceCount(input *GetTrafficPolicyInstanceC
 
 const opListChangeBatchesByHostedZone = "ListChangeBatchesByHostedZone"
 
-// ListChangeBatchesByHostedZoneRequest generates a request for the ListChangeBatchesByHostedZone operation.
+// ListChangeBatchesByHostedZoneRequest generates a "aws/request.Request" representing the
+// client's request for the ListChangeBatchesByHostedZone operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListChangeBatchesByHostedZone method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListChangeBatchesByHostedZoneRequest method.
+//    req, resp := client.ListChangeBatchesByHostedZoneRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListChangeBatchesByHostedZoneRequest(input *ListChangeBatchesByHostedZoneInput) (req *request.Request, output *ListChangeBatchesByHostedZoneOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, ListChangeBatchesByHostedZone, has been deprecated")
@@ -1008,7 +1635,28 @@ func (c *Route53) ListChangeBatchesByHostedZone(input *ListChangeBatchesByHosted
 
 const opListChangeBatchesByRRSet = "ListChangeBatchesByRRSet"
 
-// ListChangeBatchesByRRSetRequest generates a request for the ListChangeBatchesByRRSet operation.
+// ListChangeBatchesByRRSetRequest generates a "aws/request.Request" representing the
+// client's request for the ListChangeBatchesByRRSet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListChangeBatchesByRRSet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListChangeBatchesByRRSetRequest method.
+//    req, resp := client.ListChangeBatchesByRRSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListChangeBatchesByRRSetRequest(input *ListChangeBatchesByRRSetInput) (req *request.Request, output *ListChangeBatchesByRRSetOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, ListChangeBatchesByRRSet, has been deprecated")
@@ -1039,7 +1687,28 @@ func (c *Route53) ListChangeBatchesByRRSet(input *ListChangeBatchesByRRSetInput)
 
 const opListGeoLocations = "ListGeoLocations"
 
-// ListGeoLocationsRequest generates a request for the ListGeoLocations operation.
+// ListGeoLocationsRequest generates a "aws/request.Request" representing the
+// client's request for the ListGeoLocations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListGeoLocations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListGeoLocationsRequest method.
+//    req, resp := client.ListGeoLocationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListGeoLocationsRequest(input *ListGeoLocationsInput) (req *request.Request, output *ListGeoLocationsOutput) {
 	op := &request.Operation{
 		Name:       opListGeoLocations,
@@ -1078,7 +1747,28 @@ func (c *Route53) ListGeoLocations(input *ListGeoLocationsInput) (*ListGeoLocati
 
 const opListHealthChecks = "ListHealthChecks"
 
-// ListHealthChecksRequest generates a request for the ListHealthChecks operation.
+// ListHealthChecksRequest generates a "aws/request.Request" representing the
+// client's request for the ListHealthChecks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListHealthChecks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListHealthChecksRequest method.
+//    req, resp := client.ListHealthChecksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListHealthChecksRequest(input *ListHealthChecksInput) (req *request.Request, output *ListHealthChecksOutput) {
 	op := &request.Operation{
 		Name:       opListHealthChecks,
@@ -1118,6 +1808,23 @@ func (c *Route53) ListHealthChecks(input *ListHealthChecksInput) (*ListHealthChe
 	return out, err
 }
 
+// ListHealthChecksPages iterates over the pages of a ListHealthChecks operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListHealthChecks method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListHealthChecks operation.
+//    pageNum := 0
+//    err := client.ListHealthChecksPages(params,
+//        func(page *ListHealthChecksOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Route53) ListHealthChecksPages(input *ListHealthChecksInput, fn func(p *ListHealthChecksOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListHealthChecksRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1128,7 +1835,28 @@ func (c *Route53) ListHealthChecksPages(input *ListHealthChecksInput, fn func(p 
 
 const opListHostedZones = "ListHostedZones"
 
-// ListHostedZonesRequest generates a request for the ListHostedZones operation.
+// ListHostedZonesRequest generates a "aws/request.Request" representing the
+// client's request for the ListHostedZones operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListHostedZones method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListHostedZonesRequest method.
+//    req, resp := client.ListHostedZonesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListHostedZonesRequest(input *ListHostedZonesInput) (req *request.Request, output *ListHostedZonesOutput) {
 	op := &request.Operation{
 		Name:       opListHostedZones,
@@ -1168,6 +1896,23 @@ func (c *Route53) ListHostedZones(input *ListHostedZonesInput) (*ListHostedZones
 	return out, err
 }
 
+// ListHostedZonesPages iterates over the pages of a ListHostedZones operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListHostedZones method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListHostedZones operation.
+//    pageNum := 0
+//    err := client.ListHostedZonesPages(params,
+//        func(page *ListHostedZonesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Route53) ListHostedZonesPages(input *ListHostedZonesInput, fn func(p *ListHostedZonesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListHostedZonesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1178,7 +1923,28 @@ func (c *Route53) ListHostedZonesPages(input *ListHostedZonesInput, fn func(p *L
 
 const opListHostedZonesByName = "ListHostedZonesByName"
 
-// ListHostedZonesByNameRequest generates a request for the ListHostedZonesByName operation.
+// ListHostedZonesByNameRequest generates a "aws/request.Request" representing the
+// client's request for the ListHostedZonesByName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListHostedZonesByName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListHostedZonesByNameRequest method.
+//    req, resp := client.ListHostedZonesByNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListHostedZonesByNameRequest(input *ListHostedZonesByNameInput) (req *request.Request, output *ListHostedZonesByNameOutput) {
 	op := &request.Operation{
 		Name:       opListHostedZonesByName,
@@ -1215,7 +1981,28 @@ func (c *Route53) ListHostedZonesByName(input *ListHostedZonesByNameInput) (*Lis
 
 const opListResourceRecordSets = "ListResourceRecordSets"
 
-// ListResourceRecordSetsRequest generates a request for the ListResourceRecordSets operation.
+// ListResourceRecordSetsRequest generates a "aws/request.Request" representing the
+// client's request for the ListResourceRecordSets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListResourceRecordSets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListResourceRecordSetsRequest method.
+//    req, resp := client.ListResourceRecordSetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListResourceRecordSetsRequest(input *ListResourceRecordSetsInput) (req *request.Request, output *ListResourceRecordSetsOutput) {
 	op := &request.Operation{
 		Name:       opListResourceRecordSets,
@@ -1239,50 +2026,62 @@ func (c *Route53) ListResourceRecordSetsRequest(input *ListResourceRecordSetsInp
 	return
 }
 
-// Imagine all the resource record sets in a zone listed out in front of you.
-// Imagine them sorted lexicographically first by DNS name (with the labels
-// reversed, like "com.amazon.www" for example), and secondarily, lexicographically
-// by record type. This operation retrieves at most MaxItems resource record
-// sets from this list, in order, starting at a position specified by the Name
-// and Type arguments:
+// List the resource record sets in a specified hosted zone. Send a GET request
+// to the 2013-04-01/hostedzone/hosted zone ID/rrset resource.
 //
-//  If both Name and Type are omitted, this means start the results at the
-// first RRSET in the HostedZone. If Name is specified but Type is omitted,
-// this means start the results at the first RRSET in the list whose name is
-// greater than or equal to Name.  If both Name and Type are specified, this
-// means start the results at the first RRSET in the list whose name is greater
-// than or equal to Name and whose type is greater than or equal to Type. It
-// is an error to specify the Type but not the Name.  Use ListResourceRecordSets
-// to retrieve a single known record set by specifying the record set's name
-// and type, and setting MaxItems = 1
+// ListResourceRecordSets returns up to 100 resource record sets at a time
+// in ASCII order, beginning at a position specified by the name and type elements.
+// The action sorts results first by DNS name with the labels reversed, for
+// example:
 //
-// To retrieve all the records in a HostedZone, first pause any processes making
-// calls to ChangeResourceRecordSets. Initially call ListResourceRecordSets
-// without a Name and Type to get the first page of record sets. For subsequent
-// calls, set Name and Type to the NextName and NextType values returned by
-// the previous response.
+// com.example.www.
 //
-// In the presence of concurrent ChangeResourceRecordSets calls, there is no
-// consistency of results across calls to ListResourceRecordSets. The only way
-// to get a consistent multi-page snapshot of all RRSETs in a zone is to stop
-// making changes while pagination is in progress.
+// Note the trailing dot, which can change the sort order in some circumstances.
+// When multiple records have the same DNS name, the action sorts results by
+// the record type.
 //
-// However, the results from ListResourceRecordSets are consistent within a
-// page. If MakeChange calls are taking place concurrently, the result of each
-// one will either be completely visible in your results or not at all. You
-// will not see partial changes, or changes that do not ultimately succeed.
-// (This follows from the fact that MakeChange is atomic)
+// You can use the name and type elements to adjust the beginning position
+// of the list of resource record sets returned:
 //
-// The results from ListResourceRecordSets are strongly consistent with ChangeResourceRecordSets.
-// To be precise, if a single process makes a call to ChangeResourceRecordSets
-// and receives a successful response, the effects of that change will be visible
-// in a subsequent call to ListResourceRecordSets by that process.
+//  If you do not specify Name or Type: The results begin with the first resource
+// record set that the hosted zone contains. If you specify Name but not Type:
+// The results begin with the first resource record set in the list whose name
+// is greater than or equal to Name. If you specify Type but not Name: Amazon
+// Route 53 returns the InvalidInput error. If you specify both Name and Type:
+// The results begin with the first resource record set in the list whose name
+// is greater than or equal to Name, and whose type is greater than or equal
+// to Type.  This action returns the most current version of the records. This
+// includes records that are PENDING, and that are not yet available on all
+// Amazon Route 53 DNS servers.
+//
+// To ensure that you get an accurate listing of the resource record sets for
+// a hosted zone at a point in time, do not submit a ChangeResourceRecordSets
+// request while you are paging through the results of a ListResourceRecordSets
+// request. If you do, some pages may display results without the latest changes
+// while other pages display results with the latest changes.
 func (c *Route53) ListResourceRecordSets(input *ListResourceRecordSetsInput) (*ListResourceRecordSetsOutput, error) {
 	req, out := c.ListResourceRecordSetsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// ListResourceRecordSetsPages iterates over the pages of a ListResourceRecordSets operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListResourceRecordSets method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListResourceRecordSets operation.
+//    pageNum := 0
+//    err := client.ListResourceRecordSetsPages(params,
+//        func(page *ListResourceRecordSetsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Route53) ListResourceRecordSetsPages(input *ListResourceRecordSetsInput, fn func(p *ListResourceRecordSetsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListResourceRecordSetsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1293,7 +2092,28 @@ func (c *Route53) ListResourceRecordSetsPages(input *ListResourceRecordSetsInput
 
 const opListReusableDelegationSets = "ListReusableDelegationSets"
 
-// ListReusableDelegationSetsRequest generates a request for the ListReusableDelegationSets operation.
+// ListReusableDelegationSetsRequest generates a "aws/request.Request" representing the
+// client's request for the ListReusableDelegationSets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListReusableDelegationSets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListReusableDelegationSetsRequest method.
+//    req, resp := client.ListReusableDelegationSetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListReusableDelegationSetsRequest(input *ListReusableDelegationSetsInput) (req *request.Request, output *ListReusableDelegationSetsOutput) {
 	op := &request.Operation{
 		Name:       opListReusableDelegationSets,
@@ -1329,7 +2149,28 @@ func (c *Route53) ListReusableDelegationSets(input *ListReusableDelegationSetsIn
 
 const opListTagsForResource = "ListTagsForResource"
 
-// ListTagsForResourceRequest generates a request for the ListTagsForResource operation.
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTagsForResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsForResourceRequest method.
+//    req, resp := client.ListTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForResource,
@@ -1355,7 +2196,28 @@ func (c *Route53) ListTagsForResource(input *ListTagsForResourceInput) (*ListTag
 
 const opListTagsForResources = "ListTagsForResources"
 
-// ListTagsForResourcesRequest generates a request for the ListTagsForResources operation.
+// ListTagsForResourcesRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResources operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTagsForResources method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsForResourcesRequest method.
+//    req, resp := client.ListTagsForResourcesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListTagsForResourcesRequest(input *ListTagsForResourcesInput) (req *request.Request, output *ListTagsForResourcesOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForResources,
@@ -1381,7 +2243,28 @@ func (c *Route53) ListTagsForResources(input *ListTagsForResourcesInput) (*ListT
 
 const opListTrafficPolicies = "ListTrafficPolicies"
 
-// ListTrafficPoliciesRequest generates a request for the ListTrafficPolicies operation.
+// ListTrafficPoliciesRequest generates a "aws/request.Request" representing the
+// client's request for the ListTrafficPolicies operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTrafficPolicies method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTrafficPoliciesRequest method.
+//    req, resp := client.ListTrafficPoliciesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListTrafficPoliciesRequest(input *ListTrafficPoliciesInput) (req *request.Request, output *ListTrafficPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListTrafficPolicies,
@@ -1435,7 +2318,28 @@ func (c *Route53) ListTrafficPolicies(input *ListTrafficPoliciesInput) (*ListTra
 
 const opListTrafficPolicyInstances = "ListTrafficPolicyInstances"
 
-// ListTrafficPolicyInstancesRequest generates a request for the ListTrafficPolicyInstances operation.
+// ListTrafficPolicyInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the ListTrafficPolicyInstances operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTrafficPolicyInstances method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTrafficPolicyInstancesRequest method.
+//    req, resp := client.ListTrafficPolicyInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListTrafficPolicyInstancesRequest(input *ListTrafficPolicyInstancesInput) (req *request.Request, output *ListTrafficPolicyInstancesOutput) {
 	op := &request.Operation{
 		Name:       opListTrafficPolicyInstances,
@@ -1494,7 +2398,28 @@ func (c *Route53) ListTrafficPolicyInstances(input *ListTrafficPolicyInstancesIn
 
 const opListTrafficPolicyInstancesByHostedZone = "ListTrafficPolicyInstancesByHostedZone"
 
-// ListTrafficPolicyInstancesByHostedZoneRequest generates a request for the ListTrafficPolicyInstancesByHostedZone operation.
+// ListTrafficPolicyInstancesByHostedZoneRequest generates a "aws/request.Request" representing the
+// client's request for the ListTrafficPolicyInstancesByHostedZone operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTrafficPolicyInstancesByHostedZone method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTrafficPolicyInstancesByHostedZoneRequest method.
+//    req, resp := client.ListTrafficPolicyInstancesByHostedZoneRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListTrafficPolicyInstancesByHostedZoneRequest(input *ListTrafficPolicyInstancesByHostedZoneInput) (req *request.Request, output *ListTrafficPolicyInstancesByHostedZoneOutput) {
 	op := &request.Operation{
 		Name:       opListTrafficPolicyInstancesByHostedZone,
@@ -1553,7 +2478,28 @@ func (c *Route53) ListTrafficPolicyInstancesByHostedZone(input *ListTrafficPolic
 
 const opListTrafficPolicyInstancesByPolicy = "ListTrafficPolicyInstancesByPolicy"
 
-// ListTrafficPolicyInstancesByPolicyRequest generates a request for the ListTrafficPolicyInstancesByPolicy operation.
+// ListTrafficPolicyInstancesByPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the ListTrafficPolicyInstancesByPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTrafficPolicyInstancesByPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTrafficPolicyInstancesByPolicyRequest method.
+//    req, resp := client.ListTrafficPolicyInstancesByPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListTrafficPolicyInstancesByPolicyRequest(input *ListTrafficPolicyInstancesByPolicyInput) (req *request.Request, output *ListTrafficPolicyInstancesByPolicyOutput) {
 	op := &request.Operation{
 		Name:       opListTrafficPolicyInstancesByPolicy,
@@ -1613,7 +2559,28 @@ func (c *Route53) ListTrafficPolicyInstancesByPolicy(input *ListTrafficPolicyIns
 
 const opListTrafficPolicyVersions = "ListTrafficPolicyVersions"
 
-// ListTrafficPolicyVersionsRequest generates a request for the ListTrafficPolicyVersions operation.
+// ListTrafficPolicyVersionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListTrafficPolicyVersions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTrafficPolicyVersions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTrafficPolicyVersionsRequest method.
+//    req, resp := client.ListTrafficPolicyVersionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) ListTrafficPolicyVersionsRequest(input *ListTrafficPolicyVersionsInput) (req *request.Request, output *ListTrafficPolicyVersionsOutput) {
 	op := &request.Operation{
 		Name:       opListTrafficPolicyVersions,
@@ -1666,7 +2633,28 @@ func (c *Route53) ListTrafficPolicyVersions(input *ListTrafficPolicyVersionsInpu
 
 const opUpdateHealthCheck = "UpdateHealthCheck"
 
-// UpdateHealthCheckRequest generates a request for the UpdateHealthCheck operation.
+// UpdateHealthCheckRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateHealthCheck operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateHealthCheck method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateHealthCheckRequest method.
+//    req, resp := client.UpdateHealthCheckRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) UpdateHealthCheckRequest(input *UpdateHealthCheckInput) (req *request.Request, output *UpdateHealthCheckOutput) {
 	op := &request.Operation{
 		Name:       opUpdateHealthCheck,
@@ -1698,7 +2686,28 @@ func (c *Route53) UpdateHealthCheck(input *UpdateHealthCheckInput) (*UpdateHealt
 
 const opUpdateHostedZoneComment = "UpdateHostedZoneComment"
 
-// UpdateHostedZoneCommentRequest generates a request for the UpdateHostedZoneComment operation.
+// UpdateHostedZoneCommentRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateHostedZoneComment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateHostedZoneComment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateHostedZoneCommentRequest method.
+//    req, resp := client.UpdateHostedZoneCommentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) UpdateHostedZoneCommentRequest(input *UpdateHostedZoneCommentInput) (req *request.Request, output *UpdateHostedZoneCommentOutput) {
 	op := &request.Operation{
 		Name:       opUpdateHostedZoneComment,
@@ -1730,7 +2739,28 @@ func (c *Route53) UpdateHostedZoneComment(input *UpdateHostedZoneCommentInput) (
 
 const opUpdateTrafficPolicyComment = "UpdateTrafficPolicyComment"
 
-// UpdateTrafficPolicyCommentRequest generates a request for the UpdateTrafficPolicyComment operation.
+// UpdateTrafficPolicyCommentRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateTrafficPolicyComment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateTrafficPolicyComment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateTrafficPolicyCommentRequest method.
+//    req, resp := client.UpdateTrafficPolicyCommentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) UpdateTrafficPolicyCommentRequest(input *UpdateTrafficPolicyCommentInput) (req *request.Request, output *UpdateTrafficPolicyCommentOutput) {
 	op := &request.Operation{
 		Name:       opUpdateTrafficPolicyComment,
@@ -1763,7 +2793,28 @@ func (c *Route53) UpdateTrafficPolicyComment(input *UpdateTrafficPolicyCommentIn
 
 const opUpdateTrafficPolicyInstance = "UpdateTrafficPolicyInstance"
 
-// UpdateTrafficPolicyInstanceRequest generates a request for the UpdateTrafficPolicyInstance operation.
+// UpdateTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateTrafficPolicyInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateTrafficPolicyInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateTrafficPolicyInstanceRequest method.
+//    req, resp := client.UpdateTrafficPolicyInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Route53) UpdateTrafficPolicyInstanceRequest(input *UpdateTrafficPolicyInstanceInput) (req *request.Request, output *UpdateTrafficPolicyInstanceOutput) {
 	op := &request.Operation{
 		Name:       opUpdateTrafficPolicyInstance,
@@ -1809,6 +2860,50 @@ func (c *Route53) UpdateTrafficPolicyInstance(input *UpdateTrafficPolicyInstance
 	return out, err
 }
 
+// A complex type that contains information to uniquely identify the CloudWatch
+// alarm that you're associating with a Route 53 health check.
+type AlarmIdentifier struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the CloudWatch alarm.
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// The CloudWatchRegion that the CloudWatch alarm was created in.
+	Region *string `min:"1" type:"string" required:"true" enum:"CloudWatchRegion"`
+}
+
+// String returns the string representation
+func (s AlarmIdentifier) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AlarmIdentifier) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AlarmIdentifier) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AlarmIdentifier"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Region == nil {
+		invalidParams.Add(request.NewErrParamRequired("Region"))
+	}
+	if s.Region != nil && len(*s.Region) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Region", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Alias resource record sets only: Information about the CloudFront distribution,
 // ELB load balancer, Amazon S3 bucket, or Amazon Route 53 resource record set
 // to which you are routing traffic.
@@ -1820,10 +2915,7 @@ func (c *Route53) UpdateTrafficPolicyInstance(input *UpdateTrafficPolicyInstance
 // record sets in the same private hosted zone. Creating alias resource record
 // sets for CloudFront distributions, ELB load balancers, and Amazon S3 buckets
 // is not supported. You can't create alias resource record sets for failover,
-// geolocation, or latency resource record sets in a private hosted zone.  For
-// more information and an example, see Example: Creating Alias Resource Record
-// Sets (http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html)
-// in the Amazon Route 53 API Reference.
+// geolocation, or latency resource record sets in a private hosted zone.
 type AliasTarget struct {
 	_ struct{} `type:"structure"`
 
@@ -1855,9 +2947,7 @@ type AliasTarget struct {
 	// S3 (http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html) in
 	// the Amazon Simple Storage Service Developer Guide. Another Amazon Route 53
 	// resource record set: Specify the value of the Name element for a resource
-	// record set in the current hosted zone.  For more information and an example,
-	// see Example: Creating Alias Resource Record Sets (http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html)
-	// in the Amazon Route 53 API Reference.
+	// record set in the current hosted zone.
 	DNSName *string `type:"string" required:"true"`
 
 	// Alias resource record sets only: If you set the value of EvaluateTargetHealth
@@ -1890,19 +2980,17 @@ type AliasTarget struct {
 	// record set or a group of resource record sets (for example, a group of weighted
 	// resource record sets), but it is not another alias resource record set, we
 	// recommend that you associate a health check with all of the resource record
-	// sets in the alias target. For more information, see What Happens When You
-	// Omit Health Checks? (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-complex-configs.html#dns-failover-complex-configs-hc-omitting)
-	// in the Amazon Route 53 Developer Guide. If you specify an ELB load balancer
-	// in AliasTarget, Elastic Load Balancing routes queries only to the healthy
-	// Amazon EC2 instances that are registered with the load balancer. If no Amazon
-	// EC2 instances are healthy or if the load balancer itself is unhealthy, and
-	// if EvaluateTargetHealth is true for the corresponding alias resource record
-	// set, Amazon Route 53 routes queries to other resources. When you create a
-	// load balancer, you configure settings for Elastic Load Balancing health checks;
-	// they're not Amazon Route 53 health checks, but they perform a similar function.
-	// Do not create Amazon Route 53 health checks for the Amazon EC2 instances
-	// that you register with an ELB load balancer. For more information, see How
-	// Health Checks Work in More Complex Amazon Route 53 Configurations (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-complex-configs.html)
+	// sets in the alias target. If you specify an ELB load balancer in AliasTarget,
+	// Elastic Load Balancing routes queries only to the healthy Amazon EC2 instances
+	// that are registered with the load balancer. If no Amazon EC2 instances are
+	// healthy or if the load balancer itself is unhealthy, and if EvaluateTargetHealth
+	// is true for the corresponding alias resource record set, Amazon Route 53
+	// routes queries to other resources. When you create a load balancer, you configure
+	// settings for Elastic Load Balancing health checks; they're not Amazon Route
+	// 53 health checks, but they perform a similar function. Do not create Amazon
+	// Route 53 health checks for the Amazon EC2 instances that you register with
+	// an ELB load balancer. For more information, see How Health Checks Work in
+	// More Complex Amazon Route 53 Configurations (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-complex-configs.html)
 	// in the Amazon Route 53 Developer Guide.  We recommend that you set EvaluateTargetHealth
 	// to true only when you have enough idle capacity to handle the failure of
 	// one or more endpoints.
@@ -1928,9 +3016,7 @@ type AliasTarget struct {
 	// in the Amazon Web Services General Reference. Another Amazon Route 53 resource
 	// record set in your hosted zone: Specify the hosted zone ID of your hosted
 	// zone. (An alias resource record set cannot reference a resource record set
-	// in a different hosted zone.)  For more information and an example, see Example:
-	// Creating Alias Resource Record Sets (http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html)
-	// in the Amazon Route 53 API Reference.
+	// in a different hosted zone.)
 	HostedZoneId *string `type:"string" required:"true"`
 }
 
@@ -1942,6 +3028,25 @@ func (s AliasTarget) String() string {
 // GoString returns the string representation
 func (s AliasTarget) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AliasTarget) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AliasTarget"}
+	if s.DNSName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DNSName"))
+	}
+	if s.EvaluateTargetHealth == nil {
+		invalidParams.Add(request.NewErrParamRequired("EvaluateTargetHealth"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the request to associate a
@@ -1970,6 +3075,27 @@ func (s AssociateVPCWithHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s AssociateVPCWithHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateVPCWithHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateVPCWithHostedZoneInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.VPC == nil {
+		invalidParams.Add(request.NewErrParamRequired("VPC"))
+	}
+	if s.VPC != nil {
+		if err := s.VPC.Validate(); err != nil {
+			invalidParams.AddNested("VPC", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the request.
@@ -2025,6 +3151,27 @@ func (s Change) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Change) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Change"}
+	if s.Action == nil {
+		invalidParams.Add(request.NewErrParamRequired("Action"))
+	}
+	if s.ResourceRecordSet == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceRecordSet"))
+	}
+	if s.ResourceRecordSet != nil {
+		if err := s.ResourceRecordSet.Validate(); err != nil {
+			invalidParams.AddNested("ResourceRecordSet", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains an optional comment and the changes that you
 // want to make with a change batch request.
 type ChangeBatch struct {
@@ -2046,6 +3193,32 @@ func (s ChangeBatch) String() string {
 // GoString returns the string representation
 func (s ChangeBatch) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeBatch) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeBatch"}
+	if s.Changes == nil {
+		invalidParams.Add(request.NewErrParamRequired("Changes"))
+	}
+	if s.Changes != nil && len(s.Changes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Changes", 1))
+	}
+	if s.Changes != nil {
+		for i, v := range s.Changes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Changes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that lists the changes and information for a ChangeBatch.
@@ -2156,6 +3329,27 @@ func (s ChangeResourceRecordSetsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeResourceRecordSetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeResourceRecordSetsInput"}
+	if s.ChangeBatch == nil {
+		invalidParams.Add(request.NewErrParamRequired("ChangeBatch"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.ChangeBatch != nil {
+		if err := s.ChangeBatch.Validate(); err != nil {
+			invalidParams.AddNested("ChangeBatch", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing the response for the request.
 type ChangeResourceRecordSetsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2211,6 +3405,28 @@ func (s ChangeTagsForResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeTagsForResourceInput"}
+	if s.AddTags != nil && len(s.AddTags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AddTags", 1))
+	}
+	if s.RemoveTagKeys != nil && len(s.RemoveTagKeys) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RemoveTagKeys", 1))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Empty response for the request.
 type ChangeTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
@@ -2223,6 +3439,62 @@ func (s ChangeTagsForResourceOutput) String() string {
 
 // GoString returns the string representation
 func (s ChangeTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// For CLOUDWATCH_METRIC health checks, a complex type that contains information
+// about the CloudWatch alarm that you're associating with the health check.
+type CloudWatchAlarmConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The arithmetic operation to use when comparing the specified Statistic and
+	// Threshold.
+	//
+	// Valid Values are GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold
+	// and LessThanOrEqualToThreshold
+	ComparisonOperator *string `type:"string" required:"true" enum:"ComparisonOperator"`
+
+	// A list of Dimension elements for the CloudWatch metric that is associated
+	// with the CloudWatch alarm. For information about the metrics and dimensions
+	// that CloudWatch supports, see Amazon CloudWatch Namespaces, Dimensions, and
+	// Metrics Reference (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html).
+	Dimensions []*Dimension `locationNameList:"Dimension" type:"list"`
+
+	// The number of periods over which data is compared to the specified threshold.
+	EvaluationPeriods *int64 `min:"1" type:"integer" required:"true"`
+
+	// The name of the CloudWatch metric that is associated with the CloudWatch
+	// alarm.
+	MetricName *string `min:"1" type:"string" required:"true"`
+
+	// The namespace of the CloudWatch metric that is associated with the CloudWatch
+	// alarm.
+	Namespace *string `min:"1" type:"string" required:"true"`
+
+	// An integer that represents the period in seconds over which the statistic
+	// is applied.
+	Period *int64 `min:"60" type:"integer" required:"true"`
+
+	// The statistic to apply to the CloudWatch metric that is associated with the
+	// CloudWatch alarm.
+	//
+	// Valid Values are SampleCount, Average, Sum, Minimum and Maximum
+	Statistic *string `type:"string" required:"true" enum:"Statistic"`
+
+	// The value that the metric is compared with to determine the state of the
+	// alarm. For example, if you want the health check to fail if the average TCP
+	// connection time is greater than 500 milliseconds for more than 60 seconds,
+	// the threshold is 500.
+	Threshold *float64 `type:"double" required:"true"`
+}
+
+// String returns the string representation
+func (s CloudWatchAlarmConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CloudWatchAlarmConfiguration) GoString() string {
 	return s.String()
 }
 
@@ -2253,6 +3525,30 @@ func (s CreateHealthCheckInput) String() string {
 // GoString returns the string representation
 func (s CreateHealthCheckInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHealthCheckInput"}
+	if s.CallerReference == nil {
+		invalidParams.Add(request.NewErrParamRequired("CallerReference"))
+	}
+	if s.CallerReference != nil && len(*s.CallerReference) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CallerReference", 1))
+	}
+	if s.HealthCheckConfig == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckConfig"))
+	}
+	if s.HealthCheckConfig != nil {
+		if err := s.HealthCheckConfig.Validate(); err != nil {
+			invalidParams.AddNested("HealthCheckConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the new health check.
@@ -2325,6 +3621,30 @@ func (s CreateHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHostedZoneInput"}
+	if s.CallerReference == nil {
+		invalidParams.Add(request.NewErrParamRequired("CallerReference"))
+	}
+	if s.CallerReference != nil && len(*s.CallerReference) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CallerReference", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.VPC != nil {
+		if err := s.VPC.Validate(); err != nil {
+			invalidParams.AddNested("VPC", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing the response information for the new hosted zone.
 type CreateHostedZoneOutput struct {
 	_ struct{} `type:"structure"`
@@ -2384,6 +3704,22 @@ func (s CreateReusableDelegationSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateReusableDelegationSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateReusableDelegationSetInput"}
+	if s.CallerReference == nil {
+		invalidParams.Add(request.NewErrParamRequired("CallerReference"))
+	}
+	if s.CallerReference != nil && len(*s.CallerReference) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CallerReference", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateReusableDelegationSetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2412,7 +3748,9 @@ type CreateTrafficPolicyInput struct {
 	// Any comments that you want to include about the traffic policy.
 	Comment *string `type:"string"`
 
-	// The definition of this traffic policy in JSON format.
+	// The definition of this traffic policy in JSON format. For more information,
+	// see Traffic Policy Document Format (http://docs.aws.amazon.com/Route53/latest/APIReference/api-policies-traffic-policy-document-format.html)
+	// in the Amazon Route 53 API Reference.
 	Document *string `type:"string" required:"true"`
 
 	// The name of the traffic policy.
@@ -2427,6 +3765,22 @@ func (s CreateTrafficPolicyInput) String() string {
 // GoString returns the string representation
 func (s CreateTrafficPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTrafficPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTrafficPolicyInput"}
+	if s.Document == nil {
+		invalidParams.Add(request.NewErrParamRequired("Document"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the resource record sets that
@@ -2464,6 +3818,34 @@ func (s CreateTrafficPolicyInstanceInput) String() string {
 // GoString returns the string representation
 func (s CreateTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTrafficPolicyInstanceInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.TTL == nil {
+		invalidParams.Add(request.NewErrParamRequired("TTL"))
+	}
+	if s.TrafficPolicyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyId"))
+	}
+	if s.TrafficPolicyVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyVersion"))
+	}
+	if s.TrafficPolicyVersion != nil && *s.TrafficPolicyVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TrafficPolicyVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the CreateTrafficPolicyInstance
@@ -2519,7 +3901,9 @@ type CreateTrafficPolicyVersionInput struct {
 
 	// The definition of a new traffic policy version, in JSON format. You must
 	// specify the full definition of the new traffic policy. You cannot specify
-	// just the differences between the new version and a previous version.
+	// just the differences between the new version and a previous version. For
+	// more information, see Traffic Policy Document Format (http://docs.aws.amazon.com/Route53/latest/APIReference/api-policies-traffic-policy-document-format.html)
+	// in the Amazon Route 53 API Reference.
 	Document *string `type:"string" required:"true"`
 
 	// The ID of the traffic policy for which you want to create a new version.
@@ -2534,6 +3918,22 @@ func (s CreateTrafficPolicyVersionInput) String() string {
 // GoString returns the string representation
 func (s CreateTrafficPolicyVersionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTrafficPolicyVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTrafficPolicyVersionInput"}
+	if s.Document == nil {
+		invalidParams.Add(request.NewErrParamRequired("Document"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the CreateTrafficPolicyVersion
@@ -2600,6 +4000,19 @@ func (s DeleteHealthCheckInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHealthCheckInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Empty response for the request.
 type DeleteHealthCheckOutput struct {
 	_ struct{} `type:"structure"`
@@ -2632,6 +4045,19 @@ func (s DeleteHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s DeleteHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHostedZoneInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the request.
@@ -2671,6 +4097,19 @@ func (s DeleteReusableDelegationSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteReusableDelegationSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteReusableDelegationSetInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Empty response for the request.
 type DeleteReusableDelegationSetOutput struct {
 	_ struct{} `type:"structure"`
@@ -2707,6 +4146,25 @@ func (s DeleteTrafficPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTrafficPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTrafficPolicyInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Version == nil {
+		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && *s.Version < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Version", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the traffic policy instance
 // that you want to delete.
 type DeleteTrafficPolicyInstanceInput struct {
@@ -2728,6 +4186,19 @@ func (s DeleteTrafficPolicyInstanceInput) String() string {
 // GoString returns the string representation
 func (s DeleteTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTrafficPolicyInstanceInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // An empty element.
@@ -2760,6 +4231,27 @@ func (s DeleteTrafficPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// The name and value of a dimension for a CloudWatch metric.
+type Dimension struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the dimension.
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// The value of the dimension.
+	Value *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Dimension) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Dimension) GoString() string {
+	return s.String()
+}
+
 // A complex type that contains information about the request to disassociate
 // a VPC from an hosted zone.
 type DisassociateVPCFromHostedZoneInput struct {
@@ -2785,6 +4277,27 @@ func (s DisassociateVPCFromHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s DisassociateVPCFromHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateVPCFromHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateVPCFromHostedZoneInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.VPC == nil {
+		invalidParams.Add(request.NewErrParamRequired("VPC"))
+	}
+	if s.VPC != nil {
+		if err := s.VPC.Validate(); err != nil {
+			invalidParams.AddNested("VPC", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the request.
@@ -2842,6 +4355,25 @@ func (s GeoLocation) String() string {
 // GoString returns the string representation
 func (s GeoLocation) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GeoLocation) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GeoLocation"}
+	if s.ContinentCode != nil && len(*s.ContinentCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("ContinentCode", 2))
+	}
+	if s.CountryCode != nil && len(*s.CountryCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CountryCode", 1))
+	}
+	if s.SubdivisionCode != nil && len(*s.SubdivisionCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SubdivisionCode", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about a GeoLocation.
@@ -2906,6 +4438,19 @@ func (s GetChangeDetailsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetChangeDetailsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetChangeDetailsInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the ChangeBatchRecord element.
 type GetChangeDetailsOutput struct {
 	_ struct{} `deprecated:"true" type:"structure"`
@@ -2944,6 +4489,19 @@ func (s GetChangeInput) String() string {
 // GoString returns the string representation
 func (s GetChangeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetChangeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetChangeInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the ChangeInfo element.
@@ -3038,6 +4596,25 @@ func (s GetGeoLocationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetGeoLocationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetGeoLocationInput"}
+	if s.ContinentCode != nil && len(*s.ContinentCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("ContinentCode", 2))
+	}
+	if s.CountryCode != nil && len(*s.CountryCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CountryCode", 1))
+	}
+	if s.SubdivisionCode != nil && len(*s.SubdivisionCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SubdivisionCode", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing information about the specified geo location.
 type GetGeoLocationOutput struct {
 	_ struct{} `type:"structure"`
@@ -3110,6 +4687,19 @@ func (s GetHealthCheckInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the request to get the most
 // recent failure reason for a health check.
 type GetHealthCheckLastFailureReasonInput struct {
@@ -3128,6 +4718,19 @@ func (s GetHealthCheckLastFailureReasonInput) String() string {
 // GoString returns the string representation
 func (s GetHealthCheckLastFailureReasonInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHealthCheckLastFailureReasonInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckLastFailureReasonInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the most recent failure for
@@ -3241,6 +4844,19 @@ func (s GetHealthCheckStatusInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHealthCheckStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckStatusInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the status of the specified
 // health check.
 type GetHealthCheckStatusOutput struct {
@@ -3315,6 +4931,19 @@ func (s GetHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHostedZoneInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing information about the specified hosted zone.
 type GetHostedZoneOutput struct {
 	_ struct{} `type:"structure"`
@@ -3360,6 +4989,19 @@ func (s GetReusableDelegationSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetReusableDelegationSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetReusableDelegationSetInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing information about the specified reusable delegation
 // set.
 type GetReusableDelegationSetOutput struct {
@@ -3402,6 +5044,25 @@ func (s GetTrafficPolicyInput) String() string {
 // GoString returns the string representation
 func (s GetTrafficPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTrafficPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTrafficPolicyInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Version == nil {
+		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && *s.Version < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Version", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // To retrieve a count of all your traffic policy instances, send a GET request
@@ -3461,6 +5122,19 @@ func (s GetTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTrafficPolicyInstanceInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // Amazon Route 53 created based on a specified traffic policy.
 type GetTrafficPolicyInstanceOutput struct {
@@ -3505,6 +5179,10 @@ type HealthCheck struct {
 	// A unique string that identifies the request to create the health check.
 	CallerReference *string `min:"1" type:"string" required:"true"`
 
+	// For CLOUDWATCH_METRIC health checks, a complex type that contains information
+	// about the CloudWatch alarm that you're associating with the health check.
+	CloudWatchAlarmConfiguration *CloudWatchAlarmConfiguration `type:"structure"`
+
 	// A complex type that contains the health check configuration.
 	HealthCheckConfig *HealthCheckConfig `type:"structure" required:"true"`
 
@@ -3530,6 +5208,10 @@ func (s HealthCheck) GoString() string {
 // A complex type that contains the health check configuration.
 type HealthCheckConfig struct {
 	_ struct{} `type:"structure"`
+
+	// A complex type that contains information to uniquely identify the CloudWatch
+	// alarm that you're associating with a Route 53 health check.
+	AlarmIdentifier *AlarmIdentifier `type:"structure"`
 
 	// For a specified parent health check, a list of HealthCheckId values for the
 	// associated child health checks.
@@ -3562,6 +5244,10 @@ type HealthCheckConfig struct {
 	// IP Address of the instance being checked.
 	IPAddress *string `type:"string"`
 
+	// The status of the health check when CloudWatch has insufficient data about
+	// the state of associated alarm. Valid values are Healthy, Unhealthy and LastKnownStatus.
+	InsufficientDataHealthStatus *string `type:"string" enum:"InsufficientDataHealthStatus"`
+
 	// A boolean value that indicates whether the status of health check should
 	// be inverted. For example, if a health check is healthy but Inverted is True,
 	// then Amazon Route 53 considers the health check to be unhealthy.
@@ -3576,6 +5262,11 @@ type HealthCheckConfig struct {
 	// For HTTP and HTTP_STR_MATCH this defaults to 80 if the port is not specified.
 	// For HTTPS and HTTPS_STR_MATCH this defaults to 443 if the port is not specified.
 	Port *int64 `min:"1" type:"integer"`
+
+	// A list of HealthCheckRegion values that you want Amazon Route 53 to use to
+	// perform health checks for the specified endpoint. You must specify at least
+	// three regions.
+	Regions []*string `locationNameList:"Region" min:"1" type:"list"`
 
 	// The number of seconds between the time that Amazon Route 53 gets a response
 	// from your endpoint and the time that it sends the next health-check request.
@@ -3595,7 +5286,7 @@ type HealthCheckConfig struct {
 	SearchString *string `type:"string"`
 
 	// The type of health check to be performed. Currently supported types are TCP,
-	// HTTP, HTTPS, HTTP_STR_MATCH, and HTTPS_STR_MATCH.
+	// HTTP, HTTPS, HTTP_STR_MATCH, HTTPS_STR_MATCH, CALCULATED and CLOUDWATCH_METRIC.
 	Type *string `type:"string" required:"true" enum:"HealthCheckType"`
 }
 
@@ -3609,14 +5300,48 @@ func (s HealthCheckConfig) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *HealthCheckConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "HealthCheckConfig"}
+	if s.FailureThreshold != nil && *s.FailureThreshold < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("FailureThreshold", 1))
+	}
+	if s.Port != nil && *s.Port < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Port", 1))
+	}
+	if s.Regions != nil && len(s.Regions) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Regions", 1))
+	}
+	if s.RequestInterval != nil && *s.RequestInterval < 10 {
+		invalidParams.Add(request.NewErrParamMinValue("RequestInterval", 10))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.AlarmIdentifier != nil {
+		if err := s.AlarmIdentifier.Validate(); err != nil {
+			invalidParams.AddNested("AlarmIdentifier", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the IP address of a Amazon Route 53 health checker
 // and the reason for the health check status.
 type HealthCheckObservation struct {
 	_ struct{} `type:"structure"`
 
-	// The IP address of the Amazon Route 53 health checker that performed the health
-	// check.
+	// The IP address of the Amazon Route 53 health checker that performed this
+	// health check.
 	IPAddress *string `type:"string"`
+
+	// The HealthCheckRegion of the Amazon Route 53 health checker that performed
+	// this health check.
+	Region *string `min:"1" type:"string" enum:"HealthCheckRegion"`
 
 	// A complex type that contains information about the health check status for
 	// the current observation.
@@ -3682,6 +5407,12 @@ type HostedZoneConfig struct {
 	// XML document.
 	Comment *string `type:"string"`
 
+	// GetHostedZone and ListHostedZone responses: A Boolean value that indicates
+	// whether a hosted zone is private.
+	//
+	// CreateHostedZone requests: When you're creating a private hosted zone (when
+	// you specify values for VPCId and VPCRegion), you can optionally specify true
+	// for PrivateZone.
 	PrivateZone *bool `type:"boolean"`
 }
 
@@ -3723,6 +5454,25 @@ func (s ListChangeBatchesByHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s ListChangeBatchesByHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListChangeBatchesByHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListChangeBatchesByHostedZoneInput"}
+	if s.EndDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndDate"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.StartDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartDate"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The input for a ListChangeBatchesByHostedZone request.
@@ -3792,6 +5542,34 @@ func (s ListChangeBatchesByRRSetInput) String() string {
 // GoString returns the string representation
 func (s ListChangeBatchesByRRSetInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListChangeBatchesByRRSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListChangeBatchesByRRSetInput"}
+	if s.EndDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndDate"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.SetIdentifier != nil && len(*s.SetIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SetIdentifier", 1))
+	}
+	if s.StartDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartDate"))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The input for a ListChangeBatchesByRRSet request.
@@ -3866,6 +5644,25 @@ func (s ListGeoLocationsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListGeoLocationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListGeoLocationsInput"}
+	if s.StartContinentCode != nil && len(*s.StartContinentCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("StartContinentCode", 2))
+	}
+	if s.StartCountryCode != nil && len(*s.StartCountryCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StartCountryCode", 1))
+	}
+	if s.StartSubdivisionCode != nil && len(*s.StartSubdivisionCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StartSubdivisionCode", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the geo locations that are
 // returned by the request and information about the response.
 type ListGeoLocationsOutput struct {
@@ -3877,9 +5674,8 @@ type ListGeoLocationsOutput struct {
 
 	// A flag that indicates whether there are more geo locations to be listed.
 	// If your results were truncated, you can make a follow-up request for the
-	// next page of results by using the values included in the ListGeoLocationsResponse$NextContinentCode,
-	// ListGeoLocationsResponse$NextCountryCode and ListGeoLocationsResponse$NextSubdivisionCode
-	// elements.
+	// next page of results by using the values included in the NextContinentCode,
+	// NextCountryCode, and NextSubdivisionCode elements.
 	//
 	// Valid Values: true | false
 	IsTruncated *bool `type:"boolean" required:"true"`
@@ -3889,18 +5685,18 @@ type ListGeoLocationsOutput struct {
 	MaxItems *string `type:"string" required:"true"`
 
 	// If the results were truncated, the continent code of the next geo location
-	// in the list. This element is present only if ListGeoLocationsResponse$IsTruncated
-	// is true and the next geo location to list is a continent location.
+	// in the list. This element is present only if IsTruncated is true and the
+	// next geo location to list is a continent location.
 	NextContinentCode *string `min:"2" type:"string"`
 
 	// If the results were truncated, the country code of the next geo location
-	// in the list. This element is present only if ListGeoLocationsResponse$IsTruncated
-	// is true and the next geo location to list is not a continent location.
+	// in the list. This element is present only if IsTruncated is true and the
+	// next geo location to list is not a continent location.
 	NextCountryCode *string `min:"1" type:"string"`
 
 	// If the results were truncated, the subdivision code of the next geo location
-	// in the list. This element is present only if ListGeoLocationsResponse$IsTruncated
-	// is true and the next geo location has a subdivision.
+	// in the list. This element is present only if IsTruncated is true and the
+	// next geo location has a subdivision.
 	NextSubdivisionCode *string `min:"1" type:"string"`
 }
 
@@ -3968,14 +5764,14 @@ type ListHealthChecksOutput struct {
 
 	// The maximum number of health checks to be included in the response body.
 	// If the number of health checks associated with this AWS account exceeds MaxItems,
-	// the value of ListHealthChecksResponse$IsTruncated in the response is true.
-	// Call ListHealthChecks again and specify the value of ListHealthChecksResponse$NextMarker
-	// in the ListHostedZonesRequest$Marker element to get the next page of results.
+	// the value of IsTruncated in the response is true. Call ListHealthChecks again
+	// and specify the value of NextMarker from the last response in the Marker
+	// element of the next request to get the next page of results.
 	MaxItems *string `type:"string" required:"true"`
 
-	// Indicates where to continue listing health checks. If ListHealthChecksResponse$IsTruncated
-	// is true, make another request to ListHealthChecks and include the value of
-	// the NextMarker element in the Marker element to get the next page of results.
+	// Indicates where to continue listing health checks. If IsTruncated is true,
+	// make another request to ListHealthChecks and include the value of the NextMarker
+	// element in the Marker element to get the next page of results.
 	NextMarker *string `type:"string"`
 }
 
@@ -3997,10 +5793,6 @@ func (s ListHealthChecksOutput) GoString() string {
 // of the page that is displayed by using the MaxItems parameter. You can use
 // the DNSName and HostedZoneId parameters to control the hosted zone that the
 // list begins with.
-//
-// For more information about listing hosted zones, see Listing the Hosted
-// Zones for an AWS Account (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ListInfoOnHostedZone.html)
-// in the Amazon Route 53 Developer Guide.
 type ListHostedZonesByNameInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4054,24 +5846,23 @@ type ListHostedZonesByNameOutput struct {
 
 	// The maximum number of hosted zones to be included in the response body. If
 	// the number of hosted zones associated with this AWS account exceeds MaxItems,
-	// the value of ListHostedZonesByNameResponse$IsTruncated in the response is
-	// true. Call ListHostedZonesByName again and specify the value of ListHostedZonesByNameResponse$NextDNSName
-	// and ListHostedZonesByNameResponse$NextHostedZoneId elements respectively
-	// to get the next page of results.
+	// the value of IsTruncated in the ListHostedZonesByNameResponse is true. Call
+	// ListHostedZonesByName again and specify the value of NextDNSName and NextHostedZoneId
+	// elements from the previous response to get the next page of results.
 	MaxItems *string `type:"string" required:"true"`
 
-	// If ListHostedZonesByNameResponse$IsTruncated is true, there are more hosted
-	// zones associated with the current AWS account. To get the next page of results,
-	// make another request to ListHostedZonesByName. Specify the value of ListHostedZonesByNameResponse$NextDNSName
-	// in the ListHostedZonesByNameRequest$DNSName element and ListHostedZonesByNameResponse$NextHostedZoneId
-	// in the ListHostedZonesByNameRequest$HostedZoneId element.
+	// If the value of IsTruncated in the ListHostedZonesByNameResponse is true,
+	// there are more hosted zones associated with the current AWS account. To get
+	// the next page of results, make another request to ListHostedZonesByName.
+	// Specify the value of NextDNSName in the DNSName parameter. Specify NextHostedZoneId
+	// in the HostedZoneId parameter.
 	NextDNSName *string `type:"string"`
 
-	// If ListHostedZonesByNameResponse$IsTruncated is true, there are more hosted
-	// zones associated with the current AWS account. To get the next page of results,
-	// make another request to ListHostedZonesByName. Specify the value of ListHostedZonesByNameResponse$NextDNSName
-	// in the ListHostedZonesByNameRequest$DNSName element and ListHostedZonesByNameResponse$NextHostedZoneId
-	// in the ListHostedZonesByNameRequest$HostedZoneId element.
+	// If the value of IsTruncated in the ListHostedZonesByNameResponse is true,
+	// there are more hosted zones associated with the current AWS account. To get
+	// the next page of results, make another request to ListHostedZonesByName.
+	// Specify the value of NextDNSName in the DNSName parameter. Specify NextHostedZoneId
+	// in the HostedZoneId parameter.
 	NextHostedZoneId *string `type:"string"`
 }
 
@@ -4091,12 +5882,10 @@ func (s ListHostedZonesByNameOutput) GoString() string {
 // the list of hosted zones is displayed on a single page. You can control the
 // length of the page that is displayed by using the MaxItems parameter. You
 // can use the Marker parameter to control the hosted zone that the list begins
-// with. For more information about listing hosted zones, see Listing the Hosted
-// Zones for an AWS Account (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ListInfoOnHostedZone.html)
-// in the Amazon Route 53 Developer Guide.
+// with.
 //
-//  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
-// a value greater than 100, Amazon Route 53 returns only the first 100.
+// Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to a
+// value greater than 100, Amazon Route 53 returns only the first 100.
 type ListHostedZonesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4143,14 +5932,14 @@ type ListHostedZonesOutput struct {
 
 	// The maximum number of hosted zones to be included in the response body. If
 	// the number of hosted zones associated with this AWS account exceeds MaxItems,
-	// the value of ListHostedZonesResponse$IsTruncated in the response is true.
-	// Call ListHostedZones again and specify the value of ListHostedZonesResponse$NextMarker
-	// in the ListHostedZonesRequest$Marker element to get the next page of results.
+	// the value of IsTruncated in the response is true. Call ListHostedZones again
+	// and specify the value of NextMarker in the Marker parameter to get the next
+	// page of results.
 	MaxItems *string `type:"string" required:"true"`
 
-	// Indicates where to continue listing hosted zones. If ListHostedZonesResponse$IsTruncated
-	// is true, make another request to ListHostedZones and include the value of
-	// the NextMarker element in the Marker element to get the next page of results.
+	// Indicates where to continue listing hosted zones. If IsTruncated is true,
+	// make another request to ListHostedZones and include the value of the NextMarker
+	// element in the Marker element to get the next page of results.
 	NextMarker *string `type:"string"`
 }
 
@@ -4176,9 +5965,9 @@ type ListResourceRecordSetsInput struct {
 	MaxItems *string `location:"querystring" locationName:"maxitems" type:"string"`
 
 	// Weighted resource record sets only: If results were truncated for a given
-	// DNS name and type, specify the value of ListResourceRecordSetsResponse$NextRecordIdentifier
-	// from the previous response to get the next resource record set that has the
-	// current DNS name and type.
+	// DNS name and type, specify the value of NextRecordIdentifier from the previous
+	// response to get the next resource record set that has the current DNS name
+	// and type.
 	StartRecordIdentifier *string `location:"querystring" locationName:"identifier" min:"1" type:"string"`
 
 	// The first name in the lexicographic ordering of domain names that you want
@@ -4210,6 +5999,22 @@ func (s ListResourceRecordSetsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListResourceRecordSetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListResourceRecordSetsInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.StartRecordIdentifier != nil && len(*s.StartRecordIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StartRecordIdentifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // are returned by the request and information about the response.
 type ListResourceRecordSetsOutput struct {
@@ -4217,8 +6022,7 @@ type ListResourceRecordSetsOutput struct {
 
 	// A flag that indicates whether there are more resource record sets to be listed.
 	// If your results were truncated, you can make a follow-up request for the
-	// next page of results by using the ListResourceRecordSetsResponse$NextRecordName
-	// element.
+	// next page of results by using the NextRecordName element.
 	//
 	// Valid Values: true | false
 	IsTruncated *bool `type:"boolean" required:"true"`
@@ -4233,13 +6037,11 @@ type ListResourceRecordSetsOutput struct {
 	NextRecordIdentifier *string `min:"1" type:"string"`
 
 	// If the results were truncated, the name of the next record in the list. This
-	// element is present only if ListResourceRecordSetsResponse$IsTruncated is
-	// true.
+	// element is present only if IsTruncated is true.
 	NextRecordName *string `type:"string"`
 
 	// If the results were truncated, the type of the next record in the list. This
-	// element is present only if ListResourceRecordSetsResponse$IsTruncated is
-	// true.
+	// element is present only if IsTruncated is true.
 	NextRecordType *string `type:"string" enum:"RRType"`
 
 	// A complex type that contains information about the resource record sets that
@@ -4312,16 +6114,16 @@ type ListReusableDelegationSetsOutput struct {
 
 	// The maximum number of reusable delegation sets to be included in the response
 	// body. If the number of reusable delegation sets associated with this AWS
-	// account exceeds MaxItems, the value of ListReusablDelegationSetsResponse$IsTruncated
-	// in the response is true. Call ListReusableDelegationSets again and specify
-	// the value of ListReusableDelegationSetsResponse$NextMarker in the ListReusableDelegationSetsRequest$Marker
-	// element to get the next page of results.
+	// account exceeds MaxItems, the value of IsTruncated in the response is true.
+	// To get the next page of results, call ListReusableDelegationSets again and
+	// specify the value of NextMarker from the previous response in the Marker
+	// element of the request.
 	MaxItems *string `type:"string" required:"true"`
 
-	// Indicates where to continue listing reusable delegation sets. If ListReusableDelegationSetsResponse$IsTruncated
+	// Indicates where to continue listing reusable delegation sets. If IsTruncated
 	// is true, make another request to ListReusableDelegationSets and include the
-	// value of the NextMarker element in the Marker element to get the next page
-	// of results.
+	// value of the NextMarker element in the Marker element of the previous response
+	// to get the next page of results.
 	NextMarker *string `type:"string"`
 }
 
@@ -4359,6 +6161,22 @@ func (s ListTagsForResourceInput) String() string {
 // GoString returns the string representation
 func (s ListTagsForResourceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing tags for the specified resource.
@@ -4404,6 +6222,25 @@ func (s ListTagsForResourcesInput) String() string {
 // GoString returns the string representation
 func (s ListTagsForResourcesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourcesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourcesInput"}
+	if s.ResourceIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceIds"))
+	}
+	if s.ResourceIds != nil && len(s.ResourceIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceIds", 1))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing tags for the specified resources.
@@ -4546,6 +6383,19 @@ func (s ListTrafficPolicyInstancesByHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTrafficPolicyInstancesByHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTrafficPolicyInstancesByHostedZoneInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the response information for the request.
 type ListTrafficPolicyInstancesByHostedZoneOutput struct {
 	_ struct{} `type:"structure"`
@@ -4655,6 +6505,25 @@ func (s ListTrafficPolicyInstancesByPolicyInput) String() string {
 // GoString returns the string representation
 func (s ListTrafficPolicyInstancesByPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTrafficPolicyInstancesByPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTrafficPolicyInstancesByPolicyInput"}
+	if s.TrafficPolicyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyId"))
+	}
+	if s.TrafficPolicyVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyVersion"))
+	}
+	if s.TrafficPolicyVersion != nil && *s.TrafficPolicyVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TrafficPolicyVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the request.
@@ -4850,6 +6719,19 @@ func (s ListTrafficPolicyVersionsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTrafficPolicyVersionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTrafficPolicyVersionsInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the response information for the request.
 type ListTrafficPolicyVersionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4913,6 +6795,19 @@ func (s ResourceRecord) String() string {
 // GoString returns the string representation
 func (s ResourceRecord) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceRecord) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceRecord"}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the current resource record
@@ -5062,13 +6957,14 @@ type ResourceRecordSet struct {
 
 	// The cache time to live for the current resource record set. Note the following:
 	//
-	//  If you're creating an alias resource record set, omit TTL. Amazon Route
-	// 53 uses the value of TTL for the alias target.  If you're associating this
-	// resource record set with a health check (if you're adding a HealthCheckId
-	// element), we recommend that you specify a TTL of 60 seconds or less so clients
-	// respond quickly to changes in health status. All of the resource record sets
-	// in a group of weighted, latency, geolocation, or failover resource record
-	// sets must have the same value for TTL. If a group of weighted resource record
+	//  If you're creating a non-alias resource record set, TTL is required.  If
+	// you're creating an alias resource record set, omit TTL. Amazon Route 53 uses
+	// the value of TTL for the alias target.  If you're associating this resource
+	// record set with a health check (if you're adding a HealthCheckId element),
+	// we recommend that you specify a TTL of 60 seconds or less so clients respond
+	// quickly to changes in health status. All of the resource record sets in a
+	// group of weighted, latency, geolocation, or failover resource record sets
+	// must have the same value for TTL. If a group of weighted resource record
 	// sets includes one or more weighted alias resource record sets for which the
 	// alias target is an ELB load balancer, we recommend that you specify a TTL
 	// of 60 seconds for all of the non-alias weighted resource record sets that
@@ -5142,6 +7038,51 @@ func (s ResourceRecordSet) String() string {
 // GoString returns the string representation
 func (s ResourceRecordSet) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceRecordSet) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceRecordSet"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Region != nil && len(*s.Region) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Region", 1))
+	}
+	if s.ResourceRecords != nil && len(s.ResourceRecords) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceRecords", 1))
+	}
+	if s.SetIdentifier != nil && len(*s.SetIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SetIdentifier", 1))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.AliasTarget != nil {
+		if err := s.AliasTarget.Validate(); err != nil {
+			invalidParams.AddNested("AliasTarget", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.GeoLocation != nil {
+		if err := s.GeoLocation.Validate(); err != nil {
+			invalidParams.AddNested("GeoLocation", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ResourceRecords != nil {
+		for i, v := range s.ResourceRecords {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ResourceRecords", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing a resource and its associated tags.
@@ -5305,6 +7246,10 @@ func (s TrafficPolicySummary) GoString() string {
 type UpdateHealthCheckInput struct {
 	_ struct{} `locationName:"UpdateHealthCheckRequest" type:"structure" xmlURI:"https://route53.amazonaws.com/doc/2013-04-01/"`
 
+	// A complex type that contains information to uniquely identify the CloudWatch
+	// alarm that you're associating with a Route 53 health check.
+	AlarmIdentifier *AlarmIdentifier `type:"structure"`
+
 	// For a specified parent health check, a list of HealthCheckId values for the
 	// associated child health checks.
 	//
@@ -5357,6 +7302,8 @@ type UpdateHealthCheckInput struct {
 	// Specify this value only if you want to change it.
 	IPAddress *string `type:"string"`
 
+	InsufficientDataHealthStatus *string `type:"string" enum:"InsufficientDataHealthStatus"`
+
 	// A boolean value that indicates whether the status of health check should
 	// be inverted. For example, if a health check is healthy but Inverted is True,
 	// then Amazon Route 53 considers the health check to be unhealthy.
@@ -5369,6 +7316,15 @@ type UpdateHealthCheckInput struct {
 	//
 	// Specify this value only if you want to change it.
 	Port *int64 `min:"1" type:"integer"`
+
+	// A list of HealthCheckRegion values that specify the Amazon EC2 regions that
+	// you want Amazon Route 53 to use to perform health checks. You must specify
+	// at least three regions.
+	//
+	// When you remove a region from the list, Amazon Route 53 will briefly continue
+	// to check your endpoint from that region. Specify this value only if you want
+	// to change it.
+	Regions []*string `locationNameList:"Region" min:"1" type:"list"`
 
 	// The path that you want Amazon Route 53 to request when performing health
 	// checks. The path can be any value for which your endpoint will return an
@@ -5396,6 +7352,36 @@ func (s UpdateHealthCheckInput) String() string {
 // GoString returns the string representation
 func (s UpdateHealthCheckInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateHealthCheckInput"}
+	if s.FailureThreshold != nil && *s.FailureThreshold < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("FailureThreshold", 1))
+	}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+	if s.HealthCheckVersion != nil && *s.HealthCheckVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("HealthCheckVersion", 1))
+	}
+	if s.Port != nil && *s.Port < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Port", 1))
+	}
+	if s.Regions != nil && len(s.Regions) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Regions", 1))
+	}
+	if s.AlarmIdentifier != nil {
+		if err := s.AlarmIdentifier.Validate(); err != nil {
+			invalidParams.AddNested("AlarmIdentifier", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UpdateHealthCheckOutput struct {
@@ -5435,6 +7421,19 @@ func (s UpdateHostedZoneCommentInput) String() string {
 // GoString returns the string representation
 func (s UpdateHostedZoneCommentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateHostedZoneCommentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateHostedZoneCommentInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing information about the specified hosted zone after
@@ -5480,6 +7479,28 @@ func (s UpdateTrafficPolicyCommentInput) String() string {
 // GoString returns the string representation
 func (s UpdateTrafficPolicyCommentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTrafficPolicyCommentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTrafficPolicyCommentInput"}
+	if s.Comment == nil {
+		invalidParams.Add(request.NewErrParamRequired("Comment"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Version == nil {
+		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && *s.Version < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Version", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the traffic policy.
@@ -5531,6 +7552,31 @@ func (s UpdateTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTrafficPolicyInstanceInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.TTL == nil {
+		invalidParams.Add(request.NewErrParamRequired("TTL"))
+	}
+	if s.TrafficPolicyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyId"))
+	}
+	if s.TrafficPolicyVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyVersion"))
+	}
+	if s.TrafficPolicyVersion != nil && *s.TrafficPolicyVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TrafficPolicyVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // Amazon Route 53 created based on a specified traffic policy.
 type UpdateTrafficPolicyInstanceOutput struct {
@@ -5569,6 +7615,19 @@ func (s VPC) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *VPC) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "VPC"}
+	if s.VPCRegion != nil && len(*s.VPCRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VPCRegion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 const (
 	// @enum ChangeAction
 	ChangeActionCreate = "CREATE"
@@ -5586,6 +7645,61 @@ const (
 )
 
 const (
+	// @enum CloudWatchRegion
+	CloudWatchRegionUsEast1 = "us-east-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionUsWest1 = "us-west-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionUsWest2 = "us-west-2"
+	// @enum CloudWatchRegion
+	CloudWatchRegionEuCentral1 = "eu-central-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionEuWest1 = "eu-west-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApSoutheast1 = "ap-southeast-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApSoutheast2 = "ap-southeast-2"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApNortheast1 = "ap-northeast-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApNortheast2 = "ap-northeast-2"
+	// @enum CloudWatchRegion
+	CloudWatchRegionSaEast1 = "sa-east-1"
+)
+
+const (
+	// @enum ComparisonOperator
+	ComparisonOperatorGreaterThanOrEqualToThreshold = "GreaterThanOrEqualToThreshold"
+	// @enum ComparisonOperator
+	ComparisonOperatorGreaterThanThreshold = "GreaterThanThreshold"
+	// @enum ComparisonOperator
+	ComparisonOperatorLessThanThreshold = "LessThanThreshold"
+	// @enum ComparisonOperator
+	ComparisonOperatorLessThanOrEqualToThreshold = "LessThanOrEqualToThreshold"
+)
+
+// An Amazon EC2 region that you want Amazon Route 53 to use to perform health
+// checks.
+const (
+	// @enum HealthCheckRegion
+	HealthCheckRegionUsEast1 = "us-east-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionUsWest1 = "us-west-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionUsWest2 = "us-west-2"
+	// @enum HealthCheckRegion
+	HealthCheckRegionEuWest1 = "eu-west-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionApSoutheast1 = "ap-southeast-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionApSoutheast2 = "ap-southeast-2"
+	// @enum HealthCheckRegion
+	HealthCheckRegionApNortheast1 = "ap-northeast-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionSaEast1 = "sa-east-1"
+)
+
+const (
 	// @enum HealthCheckType
 	HealthCheckTypeHttp = "HTTP"
 	// @enum HealthCheckType
@@ -5598,6 +7712,17 @@ const (
 	HealthCheckTypeTcp = "TCP"
 	// @enum HealthCheckType
 	HealthCheckTypeCalculated = "CALCULATED"
+	// @enum HealthCheckType
+	HealthCheckTypeCloudwatchMetric = "CLOUDWATCH_METRIC"
+)
+
+const (
+	// @enum InsufficientDataHealthStatus
+	InsufficientDataHealthStatusHealthy = "Healthy"
+	// @enum InsufficientDataHealthStatus
+	InsufficientDataHealthStatusUnhealthy = "Unhealthy"
+	// @enum InsufficientDataHealthStatus
+	InsufficientDataHealthStatusLastKnownStatus = "LastKnownStatus"
 )
 
 const (
@@ -5653,6 +7778,21 @@ const (
 	ResourceRecordSetRegionSaEast1 = "sa-east-1"
 	// @enum ResourceRecordSetRegion
 	ResourceRecordSetRegionCnNorth1 = "cn-north-1"
+	// @enum ResourceRecordSetRegion
+	ResourceRecordSetRegionApSouth1 = "ap-south-1"
+)
+
+const (
+	// @enum Statistic
+	StatisticAverage = "Average"
+	// @enum Statistic
+	StatisticSum = "Sum"
+	// @enum Statistic
+	StatisticSampleCount = "SampleCount"
+	// @enum Statistic
+	StatisticMaximum = "Maximum"
+	// @enum Statistic
+	StatisticMinimum = "Minimum"
 )
 
 const (
@@ -5677,6 +7817,8 @@ const (
 	VPCRegionApSoutheast1 = "ap-southeast-1"
 	// @enum VPCRegion
 	VPCRegionApSoutheast2 = "ap-southeast-2"
+	// @enum VPCRegion
+	VPCRegionApSouth1 = "ap-south-1"
 	// @enum VPCRegion
 	VPCRegionApNortheast1 = "ap-northeast-1"
 	// @enum VPCRegion

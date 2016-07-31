@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -628,7 +628,7 @@ func (s *LoadBalancerService) NewCreateLBStickinessPolicyParams(lbruleid string,
 	return p
 }
 
-// Creates a Load Balancer stickiness policy
+// Creates a load balancer stickiness policy
 func (s *LoadBalancerService) CreateLBStickinessPolicy(p *CreateLBStickinessPolicyParams) (*CreateLBStickinessPolicyResponse, error) {
 	resp, err := s.cs.newRequest("createLBStickinessPolicy", p.toURLValues())
 	if err != nil {
@@ -738,7 +738,7 @@ func (s *LoadBalancerService) NewUpdateLBStickinessPolicyParams(id string) *Upda
 	return p
 }
 
-// Updates LB Stickiness policy
+// Updates load balancer stickiness policy
 func (s *LoadBalancerService) UpdateLBStickinessPolicy(p *UpdateLBStickinessPolicyParams) (*UpdateLBStickinessPolicyResponse, error) {
 	resp, err := s.cs.newRequest("updateLBStickinessPolicy", p.toURLValues())
 	if err != nil {
@@ -825,7 +825,7 @@ func (s *LoadBalancerService) NewDeleteLBStickinessPolicyParams(id string) *Dele
 	return p
 }
 
-// Deletes a LB stickiness policy.
+// Deletes a load balancer stickiness policy.
 func (s *LoadBalancerService) DeleteLBStickinessPolicy(p *DeleteLBStickinessPolicyParams) (*DeleteLBStickinessPolicyResponse, error) {
 	resp, err := s.cs.newRequest("deleteLBStickinessPolicy", p.toURLValues())
 	if err != nil {
@@ -1067,25 +1067,21 @@ func (s *LoadBalancerService) NewListLoadBalancerRulesParams() *ListLoadBalancer
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetLoadBalancerRuleID(name string) (string, error) {
+func (s *LoadBalancerService) GetLoadBalancerRuleID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListLoadBalancerRulesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListLoadBalancerRules(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListLoadBalancerRules(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1107,13 +1103,13 @@ func (s *LoadBalancerService) GetLoadBalancerRuleID(name string) (string, error)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetLoadBalancerRuleByName(name string) (*LoadBalancerRule, int, error) {
-	id, err := s.GetLoadBalancerRuleID(name)
+func (s *LoadBalancerService) GetLoadBalancerRuleByName(name string, opts ...OptionFunc) (*LoadBalancerRule, int, error) {
+	id, err := s.GetLoadBalancerRuleID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetLoadBalancerRuleByID(id)
+	r, count, err := s.GetLoadBalancerRuleByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -1121,11 +1117,17 @@ func (s *LoadBalancerService) GetLoadBalancerRuleByName(name string) (*LoadBalan
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetLoadBalancerRuleByID(id string) (*LoadBalancerRule, int, error) {
+func (s *LoadBalancerService) GetLoadBalancerRuleByID(id string, opts ...OptionFunc) (*LoadBalancerRule, int, error) {
 	p := &ListLoadBalancerRulesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListLoadBalancerRules(p)
 	if err != nil {
@@ -1135,21 +1137,6 @@ func (s *LoadBalancerService) GetLoadBalancerRuleByID(id string) (*LoadBalancerR
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListLoadBalancerRules(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1305,11 +1292,17 @@ func (s *LoadBalancerService) NewListLBStickinessPoliciesParams() *ListLBStickin
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetLBStickinessPolicyByID(id string) (*LBStickinessPolicy, int, error) {
+func (s *LoadBalancerService) GetLBStickinessPolicyByID(id string, opts ...OptionFunc) (*LBStickinessPolicy, int, error) {
 	p := &ListLBStickinessPoliciesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListLBStickinessPolicies(p)
 	if err != nil {
@@ -1331,7 +1324,7 @@ func (s *LoadBalancerService) GetLBStickinessPolicyByID(id string) (*LBStickines
 	return nil, l.Count, fmt.Errorf("There is more then one result for LBStickinessPolicy UUID: %s!", id)
 }
 
-// Lists LBStickiness policies.
+// Lists load balancer stickiness policies.
 func (s *LoadBalancerService) ListLBStickinessPolicies(p *ListLBStickinessPoliciesParams) (*ListLBStickinessPoliciesResponse, error) {
 	resp, err := s.cs.newRequest("listLBStickinessPolicies", p.toURLValues())
 	if err != nil {
@@ -1460,11 +1453,17 @@ func (s *LoadBalancerService) NewListLBHealthCheckPoliciesParams() *ListLBHealth
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetLBHealthCheckPolicyByID(id string) (*LBHealthCheckPolicy, int, error) {
+func (s *LoadBalancerService) GetLBHealthCheckPolicyByID(id string, opts ...OptionFunc) (*LBHealthCheckPolicy, int, error) {
 	p := &ListLBHealthCheckPoliciesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListLBHealthCheckPolicies(p)
 	if err != nil {
@@ -1486,7 +1485,7 @@ func (s *LoadBalancerService) GetLBHealthCheckPolicyByID(id string) (*LBHealthCh
 	return nil, l.Count, fmt.Errorf("There is more then one result for LBHealthCheckPolicy UUID: %s!", id)
 }
 
-// Lists load balancer HealthCheck policies.
+// Lists load balancer health check policies.
 func (s *LoadBalancerService) ListLBHealthCheckPolicies(p *ListLBHealthCheckPoliciesParams) (*ListLBHealthCheckPoliciesResponse, error) {
 	resp, err := s.cs.newRequest("listLBHealthCheckPolicies", p.toURLValues())
 	if err != nil {
@@ -1638,7 +1637,7 @@ func (s *LoadBalancerService) NewCreateLBHealthCheckPolicyParams(lbruleid string
 	return p
 }
 
-// Creates a Load Balancer healthcheck policy
+// Creates a load balancer health check policy
 func (s *LoadBalancerService) CreateLBHealthCheckPolicy(p *CreateLBHealthCheckPolicyParams) (*CreateLBHealthCheckPolicyResponse, error) {
 	resp, err := s.cs.newRequest("createLBHealthCheckPolicy", p.toURLValues())
 	if err != nil {
@@ -1747,7 +1746,7 @@ func (s *LoadBalancerService) NewUpdateLBHealthCheckPolicyParams(id string) *Upd
 	return p
 }
 
-// Updates LB HealthCheck policy
+// Updates load balancer health check policy
 func (s *LoadBalancerService) UpdateLBHealthCheckPolicy(p *UpdateLBHealthCheckPolicyParams) (*UpdateLBHealthCheckPolicyResponse, error) {
 	resp, err := s.cs.newRequest("updateLBHealthCheckPolicy", p.toURLValues())
 	if err != nil {
@@ -1833,7 +1832,7 @@ func (s *LoadBalancerService) NewDeleteLBHealthCheckPolicyParams(id string) *Del
 	return p
 }
 
-// Deletes a load balancer HealthCheck policy.
+// Deletes a load balancer health check policy.
 func (s *LoadBalancerService) DeleteLBHealthCheckPolicy(p *DeleteLBHealthCheckPolicyParams) (*DeleteLBHealthCheckPolicyResponse, error) {
 	resp, err := s.cs.newRequest("deleteLBHealthCheckPolicy", p.toURLValues())
 	if err != nil {
@@ -1960,12 +1959,18 @@ func (s *LoadBalancerService) NewListLoadBalancerRuleInstancesParams(id string) 
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetLoadBalancerRuleInstanceByID(id string) (*LoadBalancerRuleInstance, int, error) {
+func (s *LoadBalancerService) GetLoadBalancerRuleInstanceByID(id string, opts ...OptionFunc) (*LoadBalancerRuleInstance, int, error) {
 	p := &ListLoadBalancerRuleInstancesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListLoadBalancerRuleInstances(p)
 	if err != nil {
@@ -2003,12 +2008,12 @@ func (s *LoadBalancerService) ListLoadBalancerRuleInstances(p *ListLoadBalancerR
 
 type ListLoadBalancerRuleInstancesResponse struct {
 	Count                     int                         `json:"count"`
-	LoadBalancerRuleInstances []*LoadBalancerRuleInstance `json:"loadbalancerruleinstance"`
+	LoadBalancerRuleInstances []*LoadBalancerRuleInstance `json:"lbrulevmidip"`
 }
 
 type LoadBalancerRuleInstance struct {
-	Lbvmipaddresses          []string `json:"lbvmipaddresses,omitempty"`
-	Loadbalancerruleinstance string   `json:"loadbalancerruleinstance,omitempty"`
+	Lbvmipaddresses          []string        `json:"lbvmipaddresses,omitempty"`
+	Loadbalancerruleinstance *VirtualMachine `json:"loadbalancerruleinstance,omitempty"`
 }
 
 type UpdateLoadBalancerRuleParams struct {
@@ -2267,7 +2272,7 @@ func (s *LoadBalancerService) NewUploadSslCertParams(certificate string, private
 	return p
 }
 
-// Upload a certificate to cloudstack
+// Upload a certificate to CloudStack
 func (s *LoadBalancerService) UploadSslCert(p *UploadSslCertParams) (*UploadSslCertResponse, error) {
 	resp, err := s.cs.newRequest("uploadSslCert", p.toURLValues())
 	if err != nil {
@@ -2326,7 +2331,7 @@ func (s *LoadBalancerService) NewDeleteSslCertParams(id string) *DeleteSslCertPa
 	return p
 }
 
-// Delete a certificate to cloudstack
+// Delete a certificate to CloudStack
 func (s *LoadBalancerService) DeleteSslCert(p *DeleteSslCertParams) (*DeleteSslCertResponse, error) {
 	resp, err := s.cs.newRequest("deleteSslCert", p.toURLValues())
 	if err != nil {
@@ -2485,7 +2490,7 @@ func (s *LoadBalancerService) NewAssignCertToLoadBalancerParams(certid string, l
 	return p
 }
 
-// Assigns a certificate to a Load Balancer Rule
+// Assigns a certificate to a load balancer rule
 func (s *LoadBalancerService) AssignCertToLoadBalancer(p *AssignCertToLoadBalancerParams) (*AssignCertToLoadBalancerResponse, error) {
 	resp, err := s.cs.newRequest("assignCertToLoadBalancer", p.toURLValues())
 	if err != nil {
@@ -2552,7 +2557,7 @@ func (s *LoadBalancerService) NewRemoveCertFromLoadBalancerParams(lbruleid strin
 	return p
 }
 
-// Removes a certificate from a Load Balancer Rule
+// Removes a certificate from a load balancer rule
 func (s *LoadBalancerService) RemoveCertFromLoadBalancer(p *RemoveCertFromLoadBalancerParams) (*RemoveCertFromLoadBalancerResponse, error) {
 	resp, err := s.cs.newRequest("removeCertFromLoadBalancer", p.toURLValues())
 	if err != nil {
@@ -3656,25 +3661,21 @@ func (s *LoadBalancerService) NewListGlobalLoadBalancerRulesParams() *ListGlobal
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetGlobalLoadBalancerRuleID(keyword string) (string, error) {
+func (s *LoadBalancerService) GetGlobalLoadBalancerRuleID(keyword string, opts ...OptionFunc) (string, error) {
 	p := &ListGlobalLoadBalancerRulesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["keyword"] = keyword
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListGlobalLoadBalancerRules(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListGlobalLoadBalancerRules(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -3696,13 +3697,13 @@ func (s *LoadBalancerService) GetGlobalLoadBalancerRuleID(keyword string) (strin
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetGlobalLoadBalancerRuleByName(name string) (*GlobalLoadBalancerRule, int, error) {
-	id, err := s.GetGlobalLoadBalancerRuleID(name)
+func (s *LoadBalancerService) GetGlobalLoadBalancerRuleByName(name string, opts ...OptionFunc) (*GlobalLoadBalancerRule, int, error) {
+	id, err := s.GetGlobalLoadBalancerRuleID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetGlobalLoadBalancerRuleByID(id)
+	r, count, err := s.GetGlobalLoadBalancerRuleByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -3710,11 +3711,17 @@ func (s *LoadBalancerService) GetGlobalLoadBalancerRuleByName(name string) (*Glo
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetGlobalLoadBalancerRuleByID(id string) (*GlobalLoadBalancerRule, int, error) {
+func (s *LoadBalancerService) GetGlobalLoadBalancerRuleByID(id string, opts ...OptionFunc) (*GlobalLoadBalancerRule, int, error) {
 	p := &ListGlobalLoadBalancerRulesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListGlobalLoadBalancerRules(p)
 	if err != nil {
@@ -3724,21 +3731,6 @@ func (s *LoadBalancerService) GetGlobalLoadBalancerRuleByID(id string) (*GlobalL
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListGlobalLoadBalancerRules(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -4135,7 +4127,7 @@ func (s *LoadBalancerService) NewCreateLoadBalancerParams(algorithm string, inst
 	return p
 }
 
-// Creates a Load Balancer
+// Creates a load balancer
 func (s *LoadBalancerService) CreateLoadBalancer(p *CreateLoadBalancerParams) (*CreateLoadBalancerResponse, error) {
 	resp, err := s.cs.newRequest("createLoadBalancer", p.toURLValues())
 	if err != nil {
@@ -4416,25 +4408,21 @@ func (s *LoadBalancerService) NewListLoadBalancersParams() *ListLoadBalancersPar
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetLoadBalancerID(name string) (string, error) {
+func (s *LoadBalancerService) GetLoadBalancerID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListLoadBalancersParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListLoadBalancers(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListLoadBalancers(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -4456,13 +4444,13 @@ func (s *LoadBalancerService) GetLoadBalancerID(name string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetLoadBalancerByName(name string) (*LoadBalancer, int, error) {
-	id, err := s.GetLoadBalancerID(name)
+func (s *LoadBalancerService) GetLoadBalancerByName(name string, opts ...OptionFunc) (*LoadBalancer, int, error) {
+	id, err := s.GetLoadBalancerID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetLoadBalancerByID(id)
+	r, count, err := s.GetLoadBalancerByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -4470,11 +4458,17 @@ func (s *LoadBalancerService) GetLoadBalancerByName(name string) (*LoadBalancer,
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *LoadBalancerService) GetLoadBalancerByID(id string) (*LoadBalancer, int, error) {
+func (s *LoadBalancerService) GetLoadBalancerByID(id string, opts ...OptionFunc) (*LoadBalancer, int, error) {
 	p := &ListLoadBalancersParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListLoadBalancers(p)
 	if err != nil {
@@ -4487,21 +4481,6 @@ func (s *LoadBalancerService) GetLoadBalancerByID(id string) (*LoadBalancer, int
 	}
 
 	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListLoadBalancers(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
-	}
-
-	if l.Count == 0 {
 		return nil, l.Count, fmt.Errorf("No match found for %s: %+v", id, l)
 	}
 
@@ -4511,7 +4490,7 @@ func (s *LoadBalancerService) GetLoadBalancerByID(id string) (*LoadBalancer, int
 	return nil, l.Count, fmt.Errorf("There is more then one result for LoadBalancer UUID: %s!", id)
 }
 
-// Lists Load Balancers
+// Lists load balancers
 func (s *LoadBalancerService) ListLoadBalancers(p *ListLoadBalancersParams) (*ListLoadBalancersResponse, error) {
 	resp, err := s.cs.newRequest("listLoadBalancers", p.toURLValues())
 	if err != nil {
@@ -4691,7 +4670,7 @@ func (s *LoadBalancerService) NewUpdateLoadBalancerParams(id string) *UpdateLoad
 	return p
 }
 
-// Updates a Load Balancer
+// Updates a load balancer
 func (s *LoadBalancerService) UpdateLoadBalancer(p *UpdateLoadBalancerParams) (*UpdateLoadBalancerResponse, error) {
 	resp, err := s.cs.newRequest("updateLoadBalancer", p.toURLValues())
 	if err != nil {

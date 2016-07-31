@@ -38,6 +38,20 @@ func TestRetry_timeout(t *testing.T) {
 	}
 }
 
+func TestRetry_hang(t *testing.T) {
+	t.Parallel()
+
+	f := func() *RetryError {
+		time.Sleep(2 * time.Second)
+		return nil
+	}
+
+	err := Retry(1*time.Second, f)
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestRetry_error(t *testing.T) {
 	t.Parallel()
 

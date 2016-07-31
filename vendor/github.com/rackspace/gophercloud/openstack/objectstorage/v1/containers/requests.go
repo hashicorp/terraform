@@ -96,7 +96,7 @@ func (opts CreateOpts) ToContainerCreateMap() (map[string]string, error) {
 // Create is a function that creates a new container.
 func Create(c *gophercloud.ServiceClient, containerName string, opts CreateOptsBuilder) CreateResult {
 	var res CreateResult
-	h := c.AuthenticatedHeaders()
+	h := make(map[string]string)
 
 	if opts != nil {
 		headers, err := opts.ToContainerCreateMap()
@@ -164,7 +164,7 @@ func (opts UpdateOpts) ToContainerUpdateMap() (map[string]string, error) {
 // metadata.
 func Update(c *gophercloud.ServiceClient, containerName string, opts UpdateOptsBuilder) UpdateResult {
 	var res UpdateResult
-	h := c.AuthenticatedHeaders()
+	h := make(map[string]string)
 
 	if opts != nil {
 		headers, err := opts.ToContainerUpdateMap()

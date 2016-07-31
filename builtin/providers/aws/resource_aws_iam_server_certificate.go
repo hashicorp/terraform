@@ -138,6 +138,11 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "NoSuchEntity" {
+				log.Printf("[WARN] IAM Server Cert (%s) not found, removing from state", d.Id())
+				d.SetId("")
+				return nil
+			}
 			return fmt.Errorf("[WARN] Error reading IAM Server Certificate: %s: %s", awsErr.Code(), awsErr.Message())
 		}
 		return fmt.Errorf("[WARN] Error reading IAM Server Certificate: %s", err)
@@ -161,7 +166,7 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	log.Printf("[INFO] Deleting IAM Server Certificate: %s", d.Id())
-	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err := resource.Retry(3*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteServerCertificate(&iam.DeleteServerCertificateInput{
 			ServerCertificateName: aws.String(d.Get("name").(string)),
 		})
@@ -171,6 +176,11 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 				if awsErr.Code() == "DeleteConflict" && strings.Contains(awsErr.Message(), "currently in use by arn") {
 					log.Printf("[WARN] Conflict deleting server certificate: %s, retrying", awsErr.Message())
 					return resource.RetryableError(err)
+				}
+				if awsErr.Code() == "NoSuchEntity" {
+					log.Printf("[WARN] IAM Server Certificate (%s) not found, removing from state", d.Id())
+					d.SetId("")
+					return nil
 				}
 			}
 			return resource.NonRetryableError(err)

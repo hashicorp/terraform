@@ -67,6 +67,8 @@ The following arguments are supported:
 
 * `internal_dns_name_label` - (Optional) Relative DNS name for this NIC used for internal communications between VMs in the same VNet
 
+* `enable_ip_forwarding` - (Optional) Enables IP Forwarding on the NIC. Defaults to `false`.
+
 * `dns_servers` - (Optional) List of DNS servers IP addresses to use for this NIC, overrides the VNet-level server list
 
 * `ip_configuration` - (Optional) Collection of ipConfigurations associated with this NIC. Each `ip_configuration` block supports fields documented below.
@@ -95,6 +97,7 @@ The following attributes are exported:
 
 * `id` - The virtual NetworkConfiguration ID.
 * `mac_address` - The media access control (MAC) address of the network interface.
+* `private_ip_address` - The private ip address of the network interface.
 * `virtual_machine_id` - Reference to a VM with which this NIC has been associated.
 * `applied_dns_servers` - If the VM that uses this NIC is part of an Availability Set, then this list will have the union of all DNS servers from all NICs that are part of the Availability Set
 * `internal_fqdn` - Fully qualified DNS name supporting internal communications between VMs in the same VNet

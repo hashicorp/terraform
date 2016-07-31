@@ -105,6 +105,7 @@ var brokenAuthHeaderProviders = []string{
 	"https://oauth.sandbox.trainingpeaks.com/",
 	"https://oauth.trainingpeaks.com/",
 	"https://oauth.vk.com/",
+	"https://openapi.baidu.com/",
 	"https://slack.com/",
 	"https://test-sandbox.auth.corp.google.com",
 	"https://test.salesforce.com/",
@@ -113,6 +114,8 @@ var brokenAuthHeaderProviders = []string{
 	"https://www.googleapis.com/",
 	"https://www.linkedin.com/",
 	"https://www.strava.com/oauth/",
+	"https://www.wunderlist.com/oauth/",
+	"https://api.patreon.com/",
 }
 
 func RegisterBrokenAuthHeaderProvider(tokenURL string) {

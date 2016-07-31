@@ -4,6 +4,7 @@
 package elasticbeanstalk
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -14,7 +15,28 @@ import (
 
 const opAbortEnvironmentUpdate = "AbortEnvironmentUpdate"
 
-// AbortEnvironmentUpdateRequest generates a request for the AbortEnvironmentUpdate operation.
+// AbortEnvironmentUpdateRequest generates a "aws/request.Request" representing the
+// client's request for the AbortEnvironmentUpdate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AbortEnvironmentUpdate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AbortEnvironmentUpdateRequest method.
+//    req, resp := client.AbortEnvironmentUpdateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) AbortEnvironmentUpdateRequest(input *AbortEnvironmentUpdateInput) (req *request.Request, output *AbortEnvironmentUpdateOutput) {
 	op := &request.Operation{
 		Name:       opAbortEnvironmentUpdate,
@@ -42,9 +64,80 @@ func (c *ElasticBeanstalk) AbortEnvironmentUpdate(input *AbortEnvironmentUpdateI
 	return out, err
 }
 
+const opApplyEnvironmentManagedAction = "ApplyEnvironmentManagedAction"
+
+// ApplyEnvironmentManagedActionRequest generates a "aws/request.Request" representing the
+// client's request for the ApplyEnvironmentManagedAction operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ApplyEnvironmentManagedAction method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ApplyEnvironmentManagedActionRequest method.
+//    req, resp := client.ApplyEnvironmentManagedActionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *ElasticBeanstalk) ApplyEnvironmentManagedActionRequest(input *ApplyEnvironmentManagedActionInput) (req *request.Request, output *ApplyEnvironmentManagedActionOutput) {
+	op := &request.Operation{
+		Name:       opApplyEnvironmentManagedAction,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ApplyEnvironmentManagedActionInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ApplyEnvironmentManagedActionOutput{}
+	req.Data = output
+	return
+}
+
+// Applies a scheduled managed action immediately. A managed action can be applied
+// only if its status is Scheduled. Get the status and action ID of a managed
+// action with DescribeEnvironmentManagedActions.
+func (c *ElasticBeanstalk) ApplyEnvironmentManagedAction(input *ApplyEnvironmentManagedActionInput) (*ApplyEnvironmentManagedActionOutput, error) {
+	req, out := c.ApplyEnvironmentManagedActionRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opCheckDNSAvailability = "CheckDNSAvailability"
 
-// CheckDNSAvailabilityRequest generates a request for the CheckDNSAvailability operation.
+// CheckDNSAvailabilityRequest generates a "aws/request.Request" representing the
+// client's request for the CheckDNSAvailability operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CheckDNSAvailability method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CheckDNSAvailabilityRequest method.
+//    req, resp := client.CheckDNSAvailabilityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) CheckDNSAvailabilityRequest(input *CheckDNSAvailabilityInput) (req *request.Request, output *CheckDNSAvailabilityOutput) {
 	op := &request.Operation{
 		Name:       opCheckDNSAvailability,
@@ -71,7 +164,28 @@ func (c *ElasticBeanstalk) CheckDNSAvailability(input *CheckDNSAvailabilityInput
 
 const opComposeEnvironments = "ComposeEnvironments"
 
-// ComposeEnvironmentsRequest generates a request for the ComposeEnvironments operation.
+// ComposeEnvironmentsRequest generates a "aws/request.Request" representing the
+// client's request for the ComposeEnvironments operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ComposeEnvironments method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ComposeEnvironmentsRequest method.
+//    req, resp := client.ComposeEnvironmentsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) ComposeEnvironmentsRequest(input *ComposeEnvironmentsInput) (req *request.Request, output *EnvironmentDescriptionsMessage) {
 	op := &request.Operation{
 		Name:       opComposeEnvironments,
@@ -104,7 +218,28 @@ func (c *ElasticBeanstalk) ComposeEnvironments(input *ComposeEnvironmentsInput) 
 
 const opCreateApplication = "CreateApplication"
 
-// CreateApplicationRequest generates a request for the CreateApplication operation.
+// CreateApplicationRequest generates a "aws/request.Request" representing the
+// client's request for the CreateApplication operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateApplication method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateApplicationRequest method.
+//    req, resp := client.CreateApplicationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) CreateApplicationRequest(input *CreateApplicationInput) (req *request.Request, output *ApplicationDescriptionMessage) {
 	op := &request.Operation{
 		Name:       opCreateApplication,
@@ -132,7 +267,28 @@ func (c *ElasticBeanstalk) CreateApplication(input *CreateApplicationInput) (*Ap
 
 const opCreateApplicationVersion = "CreateApplicationVersion"
 
-// CreateApplicationVersionRequest generates a request for the CreateApplicationVersion operation.
+// CreateApplicationVersionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateApplicationVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateApplicationVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateApplicationVersionRequest method.
+//    req, resp := client.CreateApplicationVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicationVersionInput) (req *request.Request, output *ApplicationVersionDescriptionMessage) {
 	op := &request.Operation{
 		Name:       opCreateApplicationVersion,
@@ -164,7 +320,28 @@ func (c *ElasticBeanstalk) CreateApplicationVersion(input *CreateApplicationVers
 
 const opCreateConfigurationTemplate = "CreateConfigurationTemplate"
 
-// CreateConfigurationTemplateRequest generates a request for the CreateConfigurationTemplate operation.
+// CreateConfigurationTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the CreateConfigurationTemplate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateConfigurationTemplate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateConfigurationTemplateRequest method.
+//    req, resp := client.CreateConfigurationTemplateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) CreateConfigurationTemplateRequest(input *CreateConfigurationTemplateInput) (req *request.Request, output *ConfigurationSettingsDescription) {
 	op := &request.Operation{
 		Name:       opCreateConfigurationTemplate,
@@ -197,7 +374,28 @@ func (c *ElasticBeanstalk) CreateConfigurationTemplate(input *CreateConfiguratio
 
 const opCreateEnvironment = "CreateEnvironment"
 
-// CreateEnvironmentRequest generates a request for the CreateEnvironment operation.
+// CreateEnvironmentRequest generates a "aws/request.Request" representing the
+// client's request for the CreateEnvironment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateEnvironment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateEnvironmentRequest method.
+//    req, resp := client.CreateEnvironmentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) CreateEnvironmentRequest(input *CreateEnvironmentInput) (req *request.Request, output *EnvironmentDescription) {
 	op := &request.Operation{
 		Name:       opCreateEnvironment,
@@ -225,7 +423,28 @@ func (c *ElasticBeanstalk) CreateEnvironment(input *CreateEnvironmentInput) (*En
 
 const opCreateStorageLocation = "CreateStorageLocation"
 
-// CreateStorageLocationRequest generates a request for the CreateStorageLocation operation.
+// CreateStorageLocationRequest generates a "aws/request.Request" representing the
+// client's request for the CreateStorageLocation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateStorageLocation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateStorageLocationRequest method.
+//    req, resp := client.CreateStorageLocationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) CreateStorageLocationRequest(input *CreateStorageLocationInput) (req *request.Request, output *CreateStorageLocationOutput) {
 	op := &request.Operation{
 		Name:       opCreateStorageLocation,
@@ -254,7 +473,28 @@ func (c *ElasticBeanstalk) CreateStorageLocation(input *CreateStorageLocationInp
 
 const opDeleteApplication = "DeleteApplication"
 
-// DeleteApplicationRequest generates a request for the DeleteApplication operation.
+// DeleteApplicationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteApplication operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteApplication method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteApplicationRequest method.
+//    req, resp := client.DeleteApplicationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DeleteApplicationRequest(input *DeleteApplicationInput) (req *request.Request, output *DeleteApplicationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteApplication,
@@ -287,7 +527,28 @@ func (c *ElasticBeanstalk) DeleteApplication(input *DeleteApplicationInput) (*De
 
 const opDeleteApplicationVersion = "DeleteApplicationVersion"
 
-// DeleteApplicationVersionRequest generates a request for the DeleteApplicationVersion operation.
+// DeleteApplicationVersionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteApplicationVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteApplicationVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteApplicationVersionRequest method.
+//    req, resp := client.DeleteApplicationVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicationVersionInput) (req *request.Request, output *DeleteApplicationVersionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteApplicationVersion,
@@ -319,7 +580,28 @@ func (c *ElasticBeanstalk) DeleteApplicationVersion(input *DeleteApplicationVers
 
 const opDeleteConfigurationTemplate = "DeleteConfigurationTemplate"
 
-// DeleteConfigurationTemplateRequest generates a request for the DeleteConfigurationTemplate operation.
+// DeleteConfigurationTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteConfigurationTemplate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteConfigurationTemplate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteConfigurationTemplateRequest method.
+//    req, resp := client.DeleteConfigurationTemplateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DeleteConfigurationTemplateRequest(input *DeleteConfigurationTemplateInput) (req *request.Request, output *DeleteConfigurationTemplateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteConfigurationTemplate,
@@ -352,7 +634,28 @@ func (c *ElasticBeanstalk) DeleteConfigurationTemplate(input *DeleteConfiguratio
 
 const opDeleteEnvironmentConfiguration = "DeleteEnvironmentConfiguration"
 
-// DeleteEnvironmentConfigurationRequest generates a request for the DeleteEnvironmentConfiguration operation.
+// DeleteEnvironmentConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteEnvironmentConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteEnvironmentConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteEnvironmentConfigurationRequest method.
+//    req, resp := client.DeleteEnvironmentConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DeleteEnvironmentConfigurationRequest(input *DeleteEnvironmentConfigurationInput) (req *request.Request, output *DeleteEnvironmentConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteEnvironmentConfiguration,
@@ -388,7 +691,28 @@ func (c *ElasticBeanstalk) DeleteEnvironmentConfiguration(input *DeleteEnvironme
 
 const opDescribeApplicationVersions = "DescribeApplicationVersions"
 
-// DescribeApplicationVersionsRequest generates a request for the DescribeApplicationVersions operation.
+// DescribeApplicationVersionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeApplicationVersions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeApplicationVersions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeApplicationVersionsRequest method.
+//    req, resp := client.DescribeApplicationVersionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DescribeApplicationVersionsRequest(input *DescribeApplicationVersionsInput) (req *request.Request, output *DescribeApplicationVersionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeApplicationVersions,
@@ -416,7 +740,28 @@ func (c *ElasticBeanstalk) DescribeApplicationVersions(input *DescribeApplicatio
 
 const opDescribeApplications = "DescribeApplications"
 
-// DescribeApplicationsRequest generates a request for the DescribeApplications operation.
+// DescribeApplicationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeApplications operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeApplications method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeApplicationsRequest method.
+//    req, resp := client.DescribeApplicationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DescribeApplicationsRequest(input *DescribeApplicationsInput) (req *request.Request, output *DescribeApplicationsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeApplications,
@@ -443,7 +788,28 @@ func (c *ElasticBeanstalk) DescribeApplications(input *DescribeApplicationsInput
 
 const opDescribeConfigurationOptions = "DescribeConfigurationOptions"
 
-// DescribeConfigurationOptionsRequest generates a request for the DescribeConfigurationOptions operation.
+// DescribeConfigurationOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeConfigurationOptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeConfigurationOptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeConfigurationOptionsRequest method.
+//    req, resp := client.DescribeConfigurationOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DescribeConfigurationOptionsRequest(input *DescribeConfigurationOptionsInput) (req *request.Request, output *DescribeConfigurationOptionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConfigurationOptions,
@@ -474,7 +840,28 @@ func (c *ElasticBeanstalk) DescribeConfigurationOptions(input *DescribeConfigura
 
 const opDescribeConfigurationSettings = "DescribeConfigurationSettings"
 
-// DescribeConfigurationSettingsRequest generates a request for the DescribeConfigurationSettings operation.
+// DescribeConfigurationSettingsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeConfigurationSettings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeConfigurationSettings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeConfigurationSettingsRequest method.
+//    req, resp := client.DescribeConfigurationSettingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DescribeConfigurationSettingsRequest(input *DescribeConfigurationSettingsInput) (req *request.Request, output *DescribeConfigurationSettingsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConfigurationSettings,
@@ -513,7 +900,28 @@ func (c *ElasticBeanstalk) DescribeConfigurationSettings(input *DescribeConfigur
 
 const opDescribeEnvironmentHealth = "DescribeEnvironmentHealth"
 
-// DescribeEnvironmentHealthRequest generates a request for the DescribeEnvironmentHealth operation.
+// DescribeEnvironmentHealthRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEnvironmentHealth operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEnvironmentHealth method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEnvironmentHealthRequest method.
+//    req, resp := client.DescribeEnvironmentHealthRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DescribeEnvironmentHealthRequest(input *DescribeEnvironmentHealthInput) (req *request.Request, output *DescribeEnvironmentHealthOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEnvironmentHealth,
@@ -540,9 +948,126 @@ func (c *ElasticBeanstalk) DescribeEnvironmentHealth(input *DescribeEnvironmentH
 	return out, err
 }
 
+const opDescribeEnvironmentManagedActionHistory = "DescribeEnvironmentManagedActionHistory"
+
+// DescribeEnvironmentManagedActionHistoryRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEnvironmentManagedActionHistory operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEnvironmentManagedActionHistory method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEnvironmentManagedActionHistoryRequest method.
+//    req, resp := client.DescribeEnvironmentManagedActionHistoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistoryRequest(input *DescribeEnvironmentManagedActionHistoryInput) (req *request.Request, output *DescribeEnvironmentManagedActionHistoryOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEnvironmentManagedActionHistory,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEnvironmentManagedActionHistoryInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeEnvironmentManagedActionHistoryOutput{}
+	req.Data = output
+	return
+}
+
+// Lists an environment's completed and failed managed actions.
+func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistory(input *DescribeEnvironmentManagedActionHistoryInput) (*DescribeEnvironmentManagedActionHistoryOutput, error) {
+	req, out := c.DescribeEnvironmentManagedActionHistoryRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeEnvironmentManagedActions = "DescribeEnvironmentManagedActions"
+
+// DescribeEnvironmentManagedActionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEnvironmentManagedActions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEnvironmentManagedActions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEnvironmentManagedActionsRequest method.
+//    req, resp := client.DescribeEnvironmentManagedActionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionsRequest(input *DescribeEnvironmentManagedActionsInput) (req *request.Request, output *DescribeEnvironmentManagedActionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEnvironmentManagedActions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEnvironmentManagedActionsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeEnvironmentManagedActionsOutput{}
+	req.Data = output
+	return
+}
+
+// Lists an environment's upcoming and in-progress managed actions.
+func (c *ElasticBeanstalk) DescribeEnvironmentManagedActions(input *DescribeEnvironmentManagedActionsInput) (*DescribeEnvironmentManagedActionsOutput, error) {
+	req, out := c.DescribeEnvironmentManagedActionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeEnvironmentResources = "DescribeEnvironmentResources"
 
-// DescribeEnvironmentResourcesRequest generates a request for the DescribeEnvironmentResources operation.
+// DescribeEnvironmentResourcesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEnvironmentResources operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEnvironmentResources method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEnvironmentResourcesRequest method.
+//    req, resp := client.DescribeEnvironmentResourcesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DescribeEnvironmentResourcesRequest(input *DescribeEnvironmentResourcesInput) (req *request.Request, output *DescribeEnvironmentResourcesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEnvironmentResources,
@@ -569,7 +1094,28 @@ func (c *ElasticBeanstalk) DescribeEnvironmentResources(input *DescribeEnvironme
 
 const opDescribeEnvironments = "DescribeEnvironments"
 
-// DescribeEnvironmentsRequest generates a request for the DescribeEnvironments operation.
+// DescribeEnvironmentsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEnvironments operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEnvironments method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEnvironmentsRequest method.
+//    req, resp := client.DescribeEnvironmentsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DescribeEnvironmentsRequest(input *DescribeEnvironmentsInput) (req *request.Request, output *EnvironmentDescriptionsMessage) {
 	op := &request.Operation{
 		Name:       opDescribeEnvironments,
@@ -596,7 +1142,28 @@ func (c *ElasticBeanstalk) DescribeEnvironments(input *DescribeEnvironmentsInput
 
 const opDescribeEvents = "DescribeEvents"
 
-// DescribeEventsRequest generates a request for the DescribeEvents operation.
+// DescribeEventsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEvents operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEvents method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEventsRequest method.
+//    req, resp := client.DescribeEventsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DescribeEventsRequest(input *DescribeEventsInput) (req *request.Request, output *DescribeEventsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEvents,
@@ -629,6 +1196,23 @@ func (c *ElasticBeanstalk) DescribeEvents(input *DescribeEventsInput) (*Describe
 	return out, err
 }
 
+// DescribeEventsPages iterates over the pages of a DescribeEvents operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeEvents method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeEvents operation.
+//    pageNum := 0
+//    err := client.DescribeEventsPages(params,
+//        func(page *DescribeEventsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *ElasticBeanstalk) DescribeEventsPages(input *DescribeEventsInput, fn func(p *DescribeEventsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeEventsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -639,7 +1223,28 @@ func (c *ElasticBeanstalk) DescribeEventsPages(input *DescribeEventsInput, fn fu
 
 const opDescribeInstancesHealth = "DescribeInstancesHealth"
 
-// DescribeInstancesHealthRequest generates a request for the DescribeInstancesHealth operation.
+// DescribeInstancesHealthRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInstancesHealth operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInstancesHealth method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInstancesHealthRequest method.
+//    req, resp := client.DescribeInstancesHealthRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) DescribeInstancesHealthRequest(input *DescribeInstancesHealthInput) (req *request.Request, output *DescribeInstancesHealthOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstancesHealth,
@@ -668,7 +1273,28 @@ func (c *ElasticBeanstalk) DescribeInstancesHealth(input *DescribeInstancesHealt
 
 const opListAvailableSolutionStacks = "ListAvailableSolutionStacks"
 
-// ListAvailableSolutionStacksRequest generates a request for the ListAvailableSolutionStacks operation.
+// ListAvailableSolutionStacksRequest generates a "aws/request.Request" representing the
+// client's request for the ListAvailableSolutionStacks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListAvailableSolutionStacks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListAvailableSolutionStacksRequest method.
+//    req, resp := client.ListAvailableSolutionStacksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) ListAvailableSolutionStacksRequest(input *ListAvailableSolutionStacksInput) (req *request.Request, output *ListAvailableSolutionStacksOutput) {
 	op := &request.Operation{
 		Name:       opListAvailableSolutionStacks,
@@ -695,7 +1321,28 @@ func (c *ElasticBeanstalk) ListAvailableSolutionStacks(input *ListAvailableSolut
 
 const opRebuildEnvironment = "RebuildEnvironment"
 
-// RebuildEnvironmentRequest generates a request for the RebuildEnvironment operation.
+// RebuildEnvironmentRequest generates a "aws/request.Request" representing the
+// client's request for the RebuildEnvironment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RebuildEnvironment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RebuildEnvironmentRequest method.
+//    req, resp := client.RebuildEnvironmentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) RebuildEnvironmentRequest(input *RebuildEnvironmentInput) (req *request.Request, output *RebuildEnvironmentOutput) {
 	op := &request.Operation{
 		Name:       opRebuildEnvironment,
@@ -725,7 +1372,28 @@ func (c *ElasticBeanstalk) RebuildEnvironment(input *RebuildEnvironmentInput) (*
 
 const opRequestEnvironmentInfo = "RequestEnvironmentInfo"
 
-// RequestEnvironmentInfoRequest generates a request for the RequestEnvironmentInfo operation.
+// RequestEnvironmentInfoRequest generates a "aws/request.Request" representing the
+// client's request for the RequestEnvironmentInfo operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RequestEnvironmentInfo method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RequestEnvironmentInfoRequest method.
+//    req, resp := client.RequestEnvironmentInfoRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) RequestEnvironmentInfoRequest(input *RequestEnvironmentInfoInput) (req *request.Request, output *RequestEnvironmentInfoOutput) {
 	op := &request.Operation{
 		Name:       opRequestEnvironmentInfo,
@@ -768,7 +1436,28 @@ func (c *ElasticBeanstalk) RequestEnvironmentInfo(input *RequestEnvironmentInfoI
 
 const opRestartAppServer = "RestartAppServer"
 
-// RestartAppServerRequest generates a request for the RestartAppServer operation.
+// RestartAppServerRequest generates a "aws/request.Request" representing the
+// client's request for the RestartAppServer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RestartAppServer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RestartAppServerRequest method.
+//    req, resp := client.RestartAppServerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) RestartAppServerRequest(input *RestartAppServerInput) (req *request.Request, output *RestartAppServerOutput) {
 	op := &request.Operation{
 		Name:       opRestartAppServer,
@@ -798,7 +1487,28 @@ func (c *ElasticBeanstalk) RestartAppServer(input *RestartAppServerInput) (*Rest
 
 const opRetrieveEnvironmentInfo = "RetrieveEnvironmentInfo"
 
-// RetrieveEnvironmentInfoRequest generates a request for the RetrieveEnvironmentInfo operation.
+// RetrieveEnvironmentInfoRequest generates a "aws/request.Request" representing the
+// client's request for the RetrieveEnvironmentInfo operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RetrieveEnvironmentInfo method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RetrieveEnvironmentInfoRequest method.
+//    req, resp := client.RetrieveEnvironmentInfoRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) RetrieveEnvironmentInfoRequest(input *RetrieveEnvironmentInfoInput) (req *request.Request, output *RetrieveEnvironmentInfoOutput) {
 	op := &request.Operation{
 		Name:       opRetrieveEnvironmentInfo,
@@ -829,7 +1539,28 @@ func (c *ElasticBeanstalk) RetrieveEnvironmentInfo(input *RetrieveEnvironmentInf
 
 const opSwapEnvironmentCNAMEs = "SwapEnvironmentCNAMEs"
 
-// SwapEnvironmentCNAMEsRequest generates a request for the SwapEnvironmentCNAMEs operation.
+// SwapEnvironmentCNAMEsRequest generates a "aws/request.Request" representing the
+// client's request for the SwapEnvironmentCNAMEs operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SwapEnvironmentCNAMEs method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SwapEnvironmentCNAMEsRequest method.
+//    req, resp := client.SwapEnvironmentCNAMEsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) SwapEnvironmentCNAMEsRequest(input *SwapEnvironmentCNAMEsInput) (req *request.Request, output *SwapEnvironmentCNAMEsOutput) {
 	op := &request.Operation{
 		Name:       opSwapEnvironmentCNAMEs,
@@ -858,7 +1589,28 @@ func (c *ElasticBeanstalk) SwapEnvironmentCNAMEs(input *SwapEnvironmentCNAMEsInp
 
 const opTerminateEnvironment = "TerminateEnvironment"
 
-// TerminateEnvironmentRequest generates a request for the TerminateEnvironment operation.
+// TerminateEnvironmentRequest generates a "aws/request.Request" representing the
+// client's request for the TerminateEnvironment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TerminateEnvironment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TerminateEnvironmentRequest method.
+//    req, resp := client.TerminateEnvironmentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) TerminateEnvironmentRequest(input *TerminateEnvironmentInput) (req *request.Request, output *EnvironmentDescription) {
 	op := &request.Operation{
 		Name:       opTerminateEnvironment,
@@ -885,7 +1637,28 @@ func (c *ElasticBeanstalk) TerminateEnvironment(input *TerminateEnvironmentInput
 
 const opUpdateApplication = "UpdateApplication"
 
-// UpdateApplicationRequest generates a request for the UpdateApplication operation.
+// UpdateApplicationRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateApplication operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateApplication method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateApplicationRequest method.
+//    req, resp := client.UpdateApplicationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) UpdateApplicationRequest(input *UpdateApplicationInput) (req *request.Request, output *ApplicationDescriptionMessage) {
 	op := &request.Operation{
 		Name:       opUpdateApplication,
@@ -915,7 +1688,28 @@ func (c *ElasticBeanstalk) UpdateApplication(input *UpdateApplicationInput) (*Ap
 
 const opUpdateApplicationVersion = "UpdateApplicationVersion"
 
-// UpdateApplicationVersionRequest generates a request for the UpdateApplicationVersion operation.
+// UpdateApplicationVersionRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateApplicationVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateApplicationVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateApplicationVersionRequest method.
+//    req, resp := client.UpdateApplicationVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) UpdateApplicationVersionRequest(input *UpdateApplicationVersionInput) (req *request.Request, output *ApplicationVersionDescriptionMessage) {
 	op := &request.Operation{
 		Name:       opUpdateApplicationVersion,
@@ -945,7 +1739,28 @@ func (c *ElasticBeanstalk) UpdateApplicationVersion(input *UpdateApplicationVers
 
 const opUpdateConfigurationTemplate = "UpdateConfigurationTemplate"
 
-// UpdateConfigurationTemplateRequest generates a request for the UpdateConfigurationTemplate operation.
+// UpdateConfigurationTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateConfigurationTemplate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateConfigurationTemplate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateConfigurationTemplateRequest method.
+//    req, resp := client.UpdateConfigurationTemplateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) UpdateConfigurationTemplateRequest(input *UpdateConfigurationTemplateInput) (req *request.Request, output *ConfigurationSettingsDescription) {
 	op := &request.Operation{
 		Name:       opUpdateConfigurationTemplate,
@@ -979,7 +1794,28 @@ func (c *ElasticBeanstalk) UpdateConfigurationTemplate(input *UpdateConfiguratio
 
 const opUpdateEnvironment = "UpdateEnvironment"
 
-// UpdateEnvironmentRequest generates a request for the UpdateEnvironment operation.
+// UpdateEnvironmentRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateEnvironment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateEnvironment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateEnvironmentRequest method.
+//    req, resp := client.UpdateEnvironmentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) UpdateEnvironmentRequest(input *UpdateEnvironmentInput) (req *request.Request, output *EnvironmentDescription) {
 	op := &request.Operation{
 		Name:       opUpdateEnvironment,
@@ -1016,7 +1852,28 @@ func (c *ElasticBeanstalk) UpdateEnvironment(input *UpdateEnvironmentInput) (*En
 
 const opValidateConfigurationSettings = "ValidateConfigurationSettings"
 
-// ValidateConfigurationSettingsRequest generates a request for the ValidateConfigurationSettings operation.
+// ValidateConfigurationSettingsRequest generates a "aws/request.Request" representing the
+// client's request for the ValidateConfigurationSettings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ValidateConfigurationSettings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ValidateConfigurationSettingsRequest method.
+//    req, resp := client.ValidateConfigurationSettingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticBeanstalk) ValidateConfigurationSettingsRequest(input *ValidateConfigurationSettingsInput) (req *request.Request, output *ValidateConfigurationSettingsOutput) {
 	op := &request.Operation{
 		Name:       opValidateConfigurationSettings,
@@ -1065,6 +1922,19 @@ func (s AbortEnvironmentUpdateInput) String() string {
 // GoString returns the string representation
 func (s AbortEnvironmentUpdateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AbortEnvironmentUpdateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AbortEnvironmentUpdateInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AbortEnvironmentUpdateOutput struct {
@@ -1218,6 +2088,70 @@ func (s ApplicationVersionDescriptionMessage) GoString() string {
 	return s.String()
 }
 
+// Request to execute a scheduled managed action immediately.
+type ApplyEnvironmentManagedActionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The action ID of the scheduled managed action to execute.
+	ActionId *string `type:"string" required:"true"`
+
+	// The environment ID of the target environment.
+	EnvironmentId *string `type:"string"`
+
+	// The name of the target environment.
+	EnvironmentName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ApplyEnvironmentManagedActionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApplyEnvironmentManagedActionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ApplyEnvironmentManagedActionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ApplyEnvironmentManagedActionInput"}
+	if s.ActionId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ActionId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The result message containing information about the managed action.
+type ApplyEnvironmentManagedActionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A description of the managed action.
+	ActionDescription *string `type:"string"`
+
+	// The action ID of the managed action.
+	ActionId *string `type:"string"`
+
+	// The type of managed action.
+	ActionType *string `type:"string" enum:"ActionType"`
+
+	// The status of the managed action.
+	Status *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ApplyEnvironmentManagedActionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApplyEnvironmentManagedActionOutput) GoString() string {
+	return s.String()
+}
+
 // Describes an Auto Scaling launch configuration.
 type AutoScalingGroup struct {
 	_ struct{} `type:"structure"`
@@ -1299,6 +2233,22 @@ func (s CheckDNSAvailabilityInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CheckDNSAvailabilityInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CheckDNSAvailabilityInput"}
+	if s.CNAMEPrefix == nil {
+		invalidParams.Add(request.NewErrParamRequired("CNAMEPrefix"))
+	}
+	if s.CNAMEPrefix != nil && len(*s.CNAMEPrefix) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("CNAMEPrefix", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Indicates if the specified CNAME is available.
 type CheckDNSAvailabilityOutput struct {
 	_ struct{} `type:"structure"`
@@ -1353,6 +2303,22 @@ func (s ComposeEnvironmentsInput) String() string {
 // GoString returns the string representation
 func (s ComposeEnvironmentsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ComposeEnvironmentsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ComposeEnvironmentsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.GroupName != nil && len(*s.GroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes the possible values for a configuration option.
@@ -1462,6 +2428,19 @@ func (s ConfigurationOptionSetting) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConfigurationOptionSetting) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConfigurationOptionSetting"}
+	if s.ResourceName != nil && len(*s.ResourceName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes the settings for a configuration set.
 type ConfigurationSettingsDescription struct {
 	_ struct{} `type:"structure"`
@@ -1537,6 +2516,22 @@ func (s CreateApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateApplicationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateApplicationVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1592,6 +2587,28 @@ func (s CreateApplicationVersionInput) String() string {
 // GoString returns the string representation
 func (s CreateApplicationVersionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateApplicationVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateApplicationVersionInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.VersionLabel == nil {
+		invalidParams.Add(request.NewErrParamRequired("VersionLabel"))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Request to create a configuration template.
@@ -1664,6 +2681,43 @@ func (s CreateConfigurationTemplateInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateConfigurationTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateConfigurationTemplateInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.TemplateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TemplateName"))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.SourceConfiguration != nil {
+		if err := s.SourceConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("SourceConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateEnvironmentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1683,7 +2737,7 @@ type CreateEnvironmentInput struct {
 
 	// A unique name for the deployment environment. Used in the application URL.
 	//
-	// Constraint: Must be from 4 to 23 characters in length. The name can contain
+	// Constraint: Must be from 4 to 40 characters in length. The name can contain
 	// only letters, numbers, and hyphens. It cannot start or end with a hyphen.
 	// This name must be unique in your account. If the specified name already exists,
 	// AWS Elastic Beanstalk returns an InvalidParameterValue error.
@@ -1755,6 +2809,67 @@ func (s CreateEnvironmentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateEnvironmentInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.CNAMEPrefix != nil && len(*s.CNAMEPrefix) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("CNAMEPrefix", 4))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.GroupName != nil && len(*s.GroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GroupName", 1))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.OptionsToRemove != nil {
+		for i, v := range s.OptionsToRemove {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionsToRemove", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateStorageLocationInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1809,6 +2924,22 @@ func (s DeleteApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteApplicationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1851,6 +2982,28 @@ func (s DeleteApplicationVersionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteApplicationVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteApplicationVersionInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.VersionLabel == nil {
+		invalidParams.Add(request.NewErrParamRequired("VersionLabel"))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteApplicationVersionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1884,6 +3037,28 @@ func (s DeleteConfigurationTemplateInput) String() string {
 // GoString returns the string representation
 func (s DeleteConfigurationTemplateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteConfigurationTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteConfigurationTemplateInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.TemplateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TemplateName"))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteConfigurationTemplateOutput struct {
@@ -1921,6 +3096,28 @@ func (s DeleteEnvironmentConfigurationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteEnvironmentConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteEnvironmentConfigurationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName == nil {
+		invalidParams.Add(request.NewErrParamRequired("EnvironmentName"))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteEnvironmentConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1932,6 +3129,39 @@ func (s DeleteEnvironmentConfigurationOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteEnvironmentConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+// Information about an application version deployment.
+type Deployment struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the deployment. This number increases by one each time that you
+	// deploy source code or change instance configuration settings.
+	DeploymentId *int64 `type:"long"`
+
+	// For in-progress deployments, the time that the deloyment started.
+	//
+	// For completed deployments, the time that the deployment ended.
+	DeploymentTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// The status of the deployment:
+	//
+	//   In Progress : The deployment is in progress.  Deployed : The deployment
+	// succeeded.  Failed : The deployment failed.
+	Status *string `type:"string"`
+
+	// The version label of the application version in the deployment.
+	VersionLabel *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Deployment) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Deployment) GoString() string {
 	return s.String()
 }
 
@@ -1956,6 +3186,19 @@ func (s DescribeApplicationVersionsInput) String() string {
 // GoString returns the string representation
 func (s DescribeApplicationVersionsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeApplicationVersionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeApplicationVersionsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Result message wrapping a list of application version descriptions.
@@ -2046,6 +3289,35 @@ func (s DescribeConfigurationOptionsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeConfigurationOptionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeConfigurationOptionsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.Options != nil {
+		for i, v := range s.Options {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Options", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes the settings for a specified configuration set.
 type DescribeConfigurationOptionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2102,6 +3374,28 @@ func (s DescribeConfigurationSettingsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeConfigurationSettingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeConfigurationSettingsInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The results from a request to change the configuration settings of an environment.
 type DescribeConfigurationSettingsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2153,6 +3447,19 @@ func (s DescribeEnvironmentHealthInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEnvironmentHealthInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEnvironmentHealthInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // See the example below for a sample response.
 type DescribeEnvironmentHealthOutput struct {
 	_ struct{} `type:"structure"`
@@ -2195,6 +3502,110 @@ func (s DescribeEnvironmentHealthOutput) GoString() string {
 	return s.String()
 }
 
+// Request to list completed and failed managed actions.
+type DescribeEnvironmentManagedActionHistoryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The environment ID of the target environment.
+	EnvironmentId *string `type:"string"`
+
+	// The name of the target environment.
+	EnvironmentName *string `min:"4" type:"string"`
+
+	// The maximum number of items to return for a single request.
+	MaxItems *int64 `type:"integer"`
+
+	// The pagination token returned by a previous request.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeEnvironmentManagedActionHistoryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEnvironmentManagedActionHistoryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEnvironmentManagedActionHistoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEnvironmentManagedActionHistoryInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// A result message containing a list of completed and failed managed actions.
+type DescribeEnvironmentManagedActionHistoryOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of completed and failed managed actions.
+	ManagedActionHistoryItems []*ManagedActionHistoryItem `min:"1" type:"list"`
+
+	// A pagination token that you pass to DescribeEnvironmentManagedActionHistory
+	// to get the next page of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeEnvironmentManagedActionHistoryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEnvironmentManagedActionHistoryOutput) GoString() string {
+	return s.String()
+}
+
+// Request to list an environment's upcoming and in-progress managed actions.
+type DescribeEnvironmentManagedActionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The environment ID of the target environment.
+	EnvironmentId *string `type:"string"`
+
+	// The name of the target environment.
+	EnvironmentName *string `type:"string"`
+
+	// To show only actions with a particular status, specify a status.
+	Status *string `type:"string" enum:"ActionStatus"`
+}
+
+// String returns the string representation
+func (s DescribeEnvironmentManagedActionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEnvironmentManagedActionsInput) GoString() string {
+	return s.String()
+}
+
+// The result message containing a list of managed actions.
+type DescribeEnvironmentManagedActionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of upcoming and in-progress managed actions.
+	ManagedActions []*ManagedAction `min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeEnvironmentManagedActionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEnvironmentManagedActionsOutput) GoString() string {
+	return s.String()
+}
+
 // Request to describe the resources in an environment.
 type DescribeEnvironmentResourcesInput struct {
 	_ struct{} `type:"structure"`
@@ -2222,6 +3633,19 @@ func (s DescribeEnvironmentResourcesInput) String() string {
 // GoString returns the string representation
 func (s DescribeEnvironmentResourcesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEnvironmentResourcesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEnvironmentResourcesInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Result message containing a list of environment resource descriptions.
@@ -2285,6 +3709,22 @@ func (s DescribeEnvironmentsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEnvironmentsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEnvironmentsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to retrieve a list of events for an environment.
 type DescribeEventsInput struct {
 	_ struct{} `type:"structure"`
@@ -2343,6 +3783,31 @@ func (s DescribeEventsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEventsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEventsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.MaxRecords != nil && *s.MaxRecords < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxRecords", 1))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Result message wrapping a list of event descriptions.
 type DescribeEventsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2391,6 +3856,22 @@ func (s DescribeInstancesHealthInput) String() string {
 // GoString returns the string representation
 func (s DescribeInstancesHealthInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeInstancesHealthInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeInstancesHealthInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // See the example below for a sample response.
@@ -2924,6 +4405,77 @@ func (s LoadBalancerDescription) GoString() string {
 	return s.String()
 }
 
+// The record of an upcoming or in-progress managed action.
+type ManagedAction struct {
+	_ struct{} `type:"structure"`
+
+	// A description of the managed action.
+	ActionDescription *string `type:"string"`
+
+	// A unique identifier for the managed action.
+	ActionId *string `type:"string"`
+
+	// The type of managed action.
+	ActionType *string `type:"string" enum:"ActionType"`
+
+	// The status of the managed action. If the action is Scheduled, you can apply
+	// it immediately with ApplyEnvironmentManagedAction.
+	Status *string `type:"string" enum:"ActionStatus"`
+
+	// The start time of the maintenance window in which the managed action will
+	// execute.
+	WindowStartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+}
+
+// String returns the string representation
+func (s ManagedAction) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ManagedAction) GoString() string {
+	return s.String()
+}
+
+// The record of a completed or failed managed action.
+type ManagedActionHistoryItem struct {
+	_ struct{} `type:"structure"`
+
+	// A description of the managed action.
+	ActionDescription *string `type:"string"`
+
+	// A unique identifier for the managed action.
+	ActionId *string `type:"string"`
+
+	// The type of the managed action.
+	ActionType *string `type:"string" enum:"ActionType"`
+
+	// The date and time that the action started executing.
+	ExecutedTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// If the action failed, a description of the failure.
+	FailureDescription *string `type:"string"`
+
+	// If the action failed, the type of failure.
+	FailureType *string `type:"string" enum:"FailureType"`
+
+	// The date and time that the action finished executing.
+	FinishedTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// The status of the action.
+	Status *string `type:"string" enum:"ActionHistoryStatus"`
+}
+
+// String returns the string representation
+func (s ManagedActionHistoryItem) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ManagedActionHistoryItem) GoString() string {
+	return s.String()
+}
+
 // A regular expression representing a restriction on a string configuration
 // option value.
 type OptionRestrictionRegex struct {
@@ -2969,6 +4521,19 @@ func (s OptionSpecification) String() string {
 // GoString returns the string representation
 func (s OptionSpecification) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OptionSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OptionSpecification"}
+	if s.ResourceName != nil && len(*s.ResourceName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes a queue.
@@ -3018,6 +4583,19 @@ func (s RebuildEnvironmentInput) String() string {
 // GoString returns the string representation
 func (s RebuildEnvironmentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RebuildEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RebuildEnvironmentInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RebuildEnvironmentOutput struct {
@@ -3073,6 +4651,22 @@ func (s RequestEnvironmentInfoInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RequestEnvironmentInfoInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RequestEnvironmentInfoInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.InfoType == nil {
+		invalidParams.Add(request.NewErrParamRequired("InfoType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RequestEnvironmentInfoOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3113,6 +4707,19 @@ func (s RestartAppServerInput) String() string {
 // GoString returns the string representation
 func (s RestartAppServerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RestartAppServerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RestartAppServerInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RestartAppServerOutput struct {
@@ -3165,6 +4772,22 @@ func (s RetrieveEnvironmentInfoInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RetrieveEnvironmentInfoInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RetrieveEnvironmentInfoInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.InfoType == nil {
+		invalidParams.Add(request.NewErrParamRequired("InfoType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Result message containing a description of the requested environment info.
 type RetrieveEnvironmentInfoOutput struct {
 	_ struct{} `type:"structure"`
@@ -3213,6 +4836,9 @@ type SingleInstanceHealth struct {
 	// Represents the application metrics for a specified environment.
 	ApplicationMetrics *ApplicationMetrics `type:"structure"`
 
+	// The availability zone in which the instance runs.
+	AvailabilityZone *string `type:"string"`
+
 	// Represents the causes, which provide more information about the current health
 	// status.
 	Causes []*string `type:"list"`
@@ -3222,12 +4848,18 @@ type SingleInstanceHealth struct {
 	// (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html).
 	Color *string `type:"string"`
 
+	// Information about the most recent deployment to an instance.
+	Deployment *Deployment `type:"structure"`
+
 	// Returns the health status of the specified instance. For more information,
 	// see Health Colors and Statuses (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html).
 	HealthStatus *string `type:"string"`
 
 	// The ID of the Amazon EC2 instance.
 	InstanceId *string `min:"1" type:"string"`
+
+	// The instance's type.
+	InstanceType *string `type:"string"`
 
 	// The time at which the EC2 instance was launched.
 	LaunchedAt *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -3287,6 +4919,22 @@ func (s SourceConfiguration) String() string {
 // GoString returns the string representation
 func (s SourceConfiguration) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SourceConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SourceConfiguration"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the percentage of requests over the last 10 seconds that resulted
@@ -3365,6 +5013,22 @@ func (s SwapEnvironmentCNAMEsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SwapEnvironmentCNAMEsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SwapEnvironmentCNAMEsInput"}
+	if s.DestinationEnvironmentName != nil && len(*s.DestinationEnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("DestinationEnvironmentName", 4))
+	}
+	if s.SourceEnvironmentName != nil && len(*s.SourceEnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("SourceEnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SwapEnvironmentCNAMEsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3425,6 +5089,22 @@ func (s Tag) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Tag) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Tag"}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+	if s.Value != nil && len(*s.Value) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Value", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to terminate an environment.
 type TerminateEnvironmentInput struct {
 	_ struct{} `type:"structure"`
@@ -3472,6 +5152,19 @@ func (s TerminateEnvironmentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TerminateEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TerminateEnvironmentInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes a trigger.
 type Trigger struct {
 	_ struct{} `type:"structure"`
@@ -3514,6 +5207,22 @@ func (s UpdateApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateApplicationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateApplicationVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3541,6 +5250,28 @@ func (s UpdateApplicationVersionInput) String() string {
 // GoString returns the string representation
 func (s UpdateApplicationVersionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateApplicationVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateApplicationVersionInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.VersionLabel == nil {
+		invalidParams.Add(request.NewErrParamRequired("VersionLabel"))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result message containing the options for the specified solution stack.
@@ -3581,6 +5312,48 @@ func (s UpdateConfigurationTemplateInput) String() string {
 // GoString returns the string representation
 func (s UpdateConfigurationTemplateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateConfigurationTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateConfigurationTemplateInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.TemplateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TemplateName"))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.OptionsToRemove != nil {
+		for i, v := range s.OptionsToRemove {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionsToRemove", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Request to update an environment.
@@ -3659,6 +5432,51 @@ func (s UpdateEnvironmentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateEnvironmentInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.GroupName != nil && len(*s.GroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GroupName", 1))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.OptionsToRemove != nil {
+		for i, v := range s.OptionsToRemove {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionsToRemove", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A list of validation messages for a specified configuration template.
 type ValidateConfigurationSettingsInput struct {
 	_ struct{} `type:"structure"`
@@ -3689,6 +5507,41 @@ func (s ValidateConfigurationSettingsInput) String() string {
 // GoString returns the string representation
 func (s ValidateConfigurationSettingsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ValidateConfigurationSettingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ValidateConfigurationSettingsInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.OptionSettings == nil {
+		invalidParams.Add(request.NewErrParamRequired("OptionSettings"))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Provides a list of validation messages.
@@ -3737,6 +5590,35 @@ func (s ValidationMessage) String() string {
 func (s ValidationMessage) GoString() string {
 	return s.String()
 }
+
+const (
+	// @enum ActionHistoryStatus
+	ActionHistoryStatusCompleted = "Completed"
+	// @enum ActionHistoryStatus
+	ActionHistoryStatusFailed = "Failed"
+	// @enum ActionHistoryStatus
+	ActionHistoryStatusUnknown = "Unknown"
+)
+
+const (
+	// @enum ActionStatus
+	ActionStatusScheduled = "Scheduled"
+	// @enum ActionStatus
+	ActionStatusPending = "Pending"
+	// @enum ActionStatus
+	ActionStatusRunning = "Running"
+	// @enum ActionStatus
+	ActionStatusUnknown = "Unknown"
+)
+
+const (
+	// @enum ActionType
+	ActionTypeInstanceRefresh = "InstanceRefresh"
+	// @enum ActionType
+	ActionTypePlatformUpdate = "PlatformUpdate"
+	// @enum ActionType
+	ActionTypeUnknown = "Unknown"
+)
 
 const (
 	// @enum ApplicationVersionStatus
@@ -3850,6 +5732,23 @@ const (
 )
 
 const (
+	// @enum FailureType
+	FailureTypeUpdateCancelled = "UpdateCancelled"
+	// @enum FailureType
+	FailureTypeCancellationFailed = "CancellationFailed"
+	// @enum FailureType
+	FailureTypeRollbackFailed = "RollbackFailed"
+	// @enum FailureType
+	FailureTypeRollbackSuccessful = "RollbackSuccessful"
+	// @enum FailureType
+	FailureTypeInternalFailure = "InternalFailure"
+	// @enum FailureType
+	FailureTypeInvalidEnvironmentState = "InvalidEnvironmentState"
+	// @enum FailureType
+	FailureTypePermissionsError = "PermissionsError"
+)
+
+const (
 	// @enum InstancesHealthAttribute
 	InstancesHealthAttributeHealthStatus = "HealthStatus"
 	// @enum InstancesHealthAttribute
@@ -3864,6 +5763,12 @@ const (
 	InstancesHealthAttributeLaunchedAt = "LaunchedAt"
 	// @enum InstancesHealthAttribute
 	InstancesHealthAttributeSystem = "System"
+	// @enum InstancesHealthAttribute
+	InstancesHealthAttributeDeployment = "Deployment"
+	// @enum InstancesHealthAttribute
+	InstancesHealthAttributeAvailabilityZone = "AvailabilityZone"
+	// @enum InstancesHealthAttribute
+	InstancesHealthAttributeInstanceType = "InstanceType"
 	// @enum InstancesHealthAttribute
 	InstancesHealthAttributeAll = "All"
 )

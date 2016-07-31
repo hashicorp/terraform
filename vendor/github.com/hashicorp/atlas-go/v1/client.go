@@ -2,6 +2,7 @@ package atlas
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-rootcerts"
 )
 
 const (
@@ -23,6 +25,14 @@ const (
 	// atlasEndpointEnvVar is the environment variable that overrrides the
 	// default Atlas address.
 	atlasEndpointEnvVar = "ATLAS_ADDRESS"
+
+	// atlasCAFileEnvVar is the environment variable that causes the client to
+	// load trusted certs from a file
+	atlasCAFileEnvVar = "ATLAS_CAFILE"
+
+	// atlasCAPathEnvVar is the environment variable that causes the client to
+	// load trusted certs from a directory
+	atlasCAPathEnvVar = "ATLAS_CAPATH"
 
 	// atlasTokenHeader is the header key used for authenticating with Atlas
 	atlasTokenHeader = "X-Atlas-Token"
@@ -60,6 +70,10 @@ type Client struct {
 
 	// HTTPClient is the underlying http client with which to make requests.
 	HTTPClient *http.Client
+
+	// DefaultHeaders is a set of headers that will be added to every request.
+	// This minimally includes the atlas user-agent string.
+	DefaultHeader http.Header
 }
 
 // DefaultClient returns a client that connects to the Atlas API.
@@ -98,9 +112,12 @@ func NewClient(urlString string) (*Client, error) {
 	}
 
 	client := &Client{
-		URL:   parsedURL,
-		Token: token,
+		URL:           parsedURL,
+		Token:         token,
+		DefaultHeader: make(http.Header),
 	}
+
+	client.DefaultHeader.Set("User-Agent", userAgent)
 
 	if err := client.init(); err != nil {
 		return nil, err
@@ -112,6 +129,17 @@ func NewClient(urlString string) (*Client, error) {
 // init() sets defaults on the client.
 func (c *Client) init() error {
 	c.HTTPClient = cleanhttp.DefaultClient()
+	tlsConfig := &tls.Config{}
+	err := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+		CAFile: os.Getenv(atlasCAFileEnvVar),
+		CAPath: os.Getenv(atlasCAPathEnvVar),
+	})
+	if err != nil {
+		return err
+	}
+	t := cleanhttp.DefaultTransport()
+	t.TLSClientConfig = tlsConfig
+	c.HTTPClient.Transport = t
 	return nil
 }
 
@@ -206,10 +234,12 @@ func (c *Client) rawRequest(verb string, u *url.URL, ro *RequestOptions) (*http.
 		return nil, err
 	}
 
-	// Set the User-Agent
-	request.Header.Set("User-Agent", userAgent)
+	// set our default headers first
+	for k, v := range c.DefaultHeader {
+		request.Header[k] = v
+	}
 
-	// Add any headers (auth will be here if set)
+	// Add any request headers (auth will be here if set)
 	for k, v := range ro.Headers {
 		request.Header.Add(k, v)
 	}

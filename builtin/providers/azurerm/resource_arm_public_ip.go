@@ -6,10 +6,8 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -19,34 +17,40 @@ func resourceArmPublicIp() *schema.Resource {
 		Read:   resourceArmPublicIpRead,
 		Update: resourceArmPublicIpCreate,
 		Delete: resourceArmPublicIpDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"public_ip_address_allocation": &schema.Schema{
+			"public_ip_address_allocation": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validatePublicIpAllocation,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
 
-			"idle_timeout_in_minutes": &schema.Schema{
+			"idle_timeout_in_minutes": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -59,23 +63,23 @@ func resourceArmPublicIp() *schema.Resource {
 				},
 			},
 
-			"domain_name_label": &schema.Schema{
+			"domain_name_label": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validatePublicIpDomainNameLabel,
 			},
 
-			"reverse_fqdn": &schema.Schema{
+			"reverse_fqdn": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"fqdn": &schema.Schema{
+			"fqdn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -121,7 +125,7 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("idle_timeout_in_minutes"); ok {
-		idle_timeout := v.(int)
+		idle_timeout := v.(int32)
 		properties.IdleTimeoutInMinutes = &idle_timeout
 	}
 
@@ -132,23 +136,20 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 		Tags:       expandTags(tags),
 	}
 
-	resp, err := publicIPClient.CreateOrUpdate(resGroup, name, publicIp)
+	_, err := publicIPClient.CreateOrUpdate(resGroup, name, publicIp, make(chan struct{}))
 	if err != nil {
 		return err
 	}
 
-	d.SetId(*resp.ID)
+	read, err := publicIPClient.Get(resGroup, name, "")
+	if err != nil {
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Public IP %s (resource group %s) ID", name, resGroup)
+	}
 
-	log.Printf("[DEBUG] Waiting for Public IP (%s) to become available", name)
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"Accepted", "Updating"},
-		Target:  []string{"Succeeded"},
-		Refresh: publicIPStateRefreshFunc(client, resGroup, name),
-		Timeout: 10 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Public IP (%s) to become available: %s", name, err)
-	}
+	d.SetId(*read.ID)
 
 	return resourceArmPublicIpRead(d, meta)
 }
@@ -171,6 +172,10 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
 	}
+
+	d.Set("location", resp.Location)
+	d.Set("name", resp.Name)
+	d.Set("public_ip_address_allocation", strings.ToLower(string(resp.Properties.PublicIPAllocationMethod)))
 
 	if resp.Properties.DNSSettings != nil && resp.Properties.DNSSettings.Fqdn != nil && *resp.Properties.DNSSettings.Fqdn != "" {
 		d.Set("fqdn", resp.Properties.DNSSettings.Fqdn)
@@ -195,20 +200,9 @@ func resourceArmPublicIpDelete(d *schema.ResourceData, meta interface{}) error {
 	resGroup := id.ResourceGroup
 	name := id.Path["publicIPAddresses"]
 
-	_, err = publicIPClient.Delete(resGroup, name)
+	_, err = publicIPClient.Delete(resGroup, name, make(chan struct{}))
 
 	return err
-}
-
-func publicIPStateRefreshFunc(client *ArmClient, resourceGroupName string, publicIpName string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		res, err := client.publicIPClient.Get(resourceGroupName, publicIpName, "")
-		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in publicIPStateRefreshFunc to Azure ARM for public ip '%s' (RG: '%s'): %s", publicIpName, resourceGroupName, err)
-		}
-
-		return res, *res.Properties.ProvisioningState, nil
-	}
 }
 
 func validatePublicIpAllocation(v interface{}, k string) (ws []string, errors []error) {
@@ -247,5 +241,4 @@ func validatePublicIpDomainNameLabel(v interface{}, k string) (ws []string, erro
 	}
 
 	return
-
 }

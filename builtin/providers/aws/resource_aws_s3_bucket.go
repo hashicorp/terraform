@@ -183,12 +183,122 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
+			"lifecycle_rule": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:         schema.TypeString,
+							Optional:     true,
+							Computed:     true,
+							ValidateFunc: validateS3BucketLifecycleRuleId,
+						},
+						"prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"abort_incomplete_multipart_upload_days": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"expiration": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Set:      expirationHash,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"date": &schema.Schema{
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateS3BucketLifecycleTimestamp,
+									},
+									"days": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+									"expired_object_delete_marker": &schema.Schema{
+										Type:     schema.TypeBool,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"noncurrent_version_expiration": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Set:      expirationHash,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"days": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"transition": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Set:      transitionHash,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"date": &schema.Schema{
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateS3BucketLifecycleTimestamp,
+									},
+									"days": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+									"storage_class": &schema.Schema{
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validateS3BucketLifecycleStorageClass,
+									},
+								},
+							},
+						},
+						"noncurrent_version_transition": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Set:      transitionHash,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"days": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+									"storage_class": &schema.Schema{
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validateS3BucketLifecycleStorageClass,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"tags": tagsSchema(),
 
 			"force_destroy": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			"acceleration_status": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateS3BucketAccelerationStatus,
 			},
 		},
 	}
@@ -286,6 +396,18 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("lifecycle_rule") {
+		if err := resourceAwsS3BucketLifecycleUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("acceleration_status") {
+		if err := resourceAwsS3BucketAccelerationUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
 	return resourceAwsS3BucketRead(d, meta)
 }
 
@@ -306,6 +428,11 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			// some additional context.
 			return fmt.Errorf("error reading S3 bucket \"%s\": %s", d.Id(), err)
 		}
+	}
+
+	// In the import case, we won't have this
+	if _, ok := d.GetOk("bucket"); !ok {
+		d.Set("bucket", d.Id())
 	}
 
 	// Read the policy
@@ -411,6 +538,16 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	//read the acceleration status
+	accelerate, err := s3conn.GetBucketAccelerateConfiguration(&s3.GetBucketAccelerateConfigurationInput{
+		Bucket: aws.String(d.Id()),
+	})
+	log.Printf("[DEBUG] S3 bucket: %s, read Acceleration: %v", d.Id(), accelerate)
+	if err != nil {
+		return err
+	}
+	d.Set("acceleration_status", accelerate.Status)
+
 	// Read the logging configuration
 	logging, err := s3conn.GetBucketLogging(&s3.GetBucketLoggingInput{
 		Bucket: aws.String(d.Id()),
@@ -430,6 +567,110 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		lcl = append(lcl, lc)
 		if err := d.Set("logging", lcl); err != nil {
+			return err
+		}
+	}
+
+	// Read the lifecycle configuration
+	lifecycle, err := s3conn.GetBucketLifecycleConfiguration(&s3.GetBucketLifecycleConfigurationInput{
+		Bucket: aws.String(d.Id()),
+	})
+	if err != nil {
+		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() != 404 {
+			return err
+		}
+	}
+	log.Printf("[DEBUG] S3 Bucket: %s, lifecycle: %v", d.Id(), lifecycle)
+	if len(lifecycle.Rules) > 0 {
+		rules := make([]map[string]interface{}, 0, len(lifecycle.Rules))
+
+		for _, lifecycleRule := range lifecycle.Rules {
+			rule := make(map[string]interface{})
+
+			// ID
+			if lifecycleRule.ID != nil && *lifecycleRule.ID != "" {
+				rule["id"] = *lifecycleRule.ID
+			}
+			// Prefix
+			if lifecycleRule.Prefix != nil && *lifecycleRule.Prefix != "" {
+				rule["prefix"] = *lifecycleRule.Prefix
+			}
+			// Enabled
+			if lifecycleRule.Status != nil {
+				if *lifecycleRule.Status == s3.ExpirationStatusEnabled {
+					rule["enabled"] = true
+				} else {
+					rule["enabled"] = false
+				}
+			}
+
+			// AbortIncompleteMultipartUploadDays
+			if lifecycleRule.AbortIncompleteMultipartUpload != nil {
+				if lifecycleRule.AbortIncompleteMultipartUpload.DaysAfterInitiation != nil {
+					rule["abort_incomplete_multipart_upload_days"] = int(*lifecycleRule.AbortIncompleteMultipartUpload.DaysAfterInitiation)
+				}
+			}
+
+			// expiration
+			if lifecycleRule.Expiration != nil {
+				e := make(map[string]interface{})
+				if lifecycleRule.Expiration.Date != nil {
+					e["date"] = (*lifecycleRule.Expiration.Date).Format("2006-01-02")
+				}
+				if lifecycleRule.Expiration.Days != nil {
+					e["days"] = int(*lifecycleRule.Expiration.Days)
+				}
+				if lifecycleRule.Expiration.ExpiredObjectDeleteMarker != nil {
+					e["expired_object_delete_marker"] = *lifecycleRule.Expiration.ExpiredObjectDeleteMarker
+				}
+				rule["expiration"] = schema.NewSet(expirationHash, []interface{}{e})
+			}
+			// noncurrent_version_expiration
+			if lifecycleRule.NoncurrentVersionExpiration != nil {
+				e := make(map[string]interface{})
+				if lifecycleRule.NoncurrentVersionExpiration.NoncurrentDays != nil {
+					e["days"] = int(*lifecycleRule.NoncurrentVersionExpiration.NoncurrentDays)
+				}
+				rule["noncurrent_version_expiration"] = schema.NewSet(expirationHash, []interface{}{e})
+			}
+			//// transition
+			if len(lifecycleRule.Transitions) > 0 {
+				transitions := make([]interface{}, 0, len(lifecycleRule.Transitions))
+				for _, v := range lifecycleRule.Transitions {
+					t := make(map[string]interface{})
+					if v.Date != nil {
+						t["date"] = (*v.Date).Format("2006-01-02")
+					}
+					if v.Days != nil {
+						t["days"] = int(*v.Days)
+					}
+					if v.StorageClass != nil {
+						t["storage_class"] = *v.StorageClass
+					}
+					transitions = append(transitions, t)
+				}
+				rule["transition"] = schema.NewSet(transitionHash, transitions)
+			}
+			// noncurrent_version_transition
+			if len(lifecycleRule.NoncurrentVersionTransitions) > 0 {
+				transitions := make([]interface{}, 0, len(lifecycleRule.NoncurrentVersionTransitions))
+				for _, v := range lifecycleRule.NoncurrentVersionTransitions {
+					t := make(map[string]interface{})
+					if v.NoncurrentDays != nil {
+						t["days"] = int(*v.NoncurrentDays)
+					}
+					if v.StorageClass != nil {
+						t["storage_class"] = *v.StorageClass
+					}
+					transitions = append(transitions, t)
+				}
+				rule["noncurrent_version_transition"] = schema.NewSet(transitionHash, transitions)
+			}
+
+			rules = append(rules, rule)
+		}
+
+		if err := d.Set("lifecycle_rule", rules); err != nil {
 			return err
 		}
 	}
@@ -658,7 +899,12 @@ func resourceAwsS3BucketWebsiteUpdate(s3conn *s3.S3, d *schema.ResourceData) err
 	ws := d.Get("website").([]interface{})
 
 	if len(ws) == 1 {
-		w := ws[0].(map[string]interface{})
+		var w map[string]interface{}
+		if ws[0] != nil {
+			w = ws[0].(map[string]interface{})
+		} else {
+			w = make(map[string]interface{})
+		}
 		return resourceAwsS3BucketWebsitePut(s3conn, d, w)
 	} else if len(ws) == 0 {
 		return resourceAwsS3BucketWebsiteDelete(s3conn, d)
@@ -670,10 +916,19 @@ func resourceAwsS3BucketWebsiteUpdate(s3conn *s3.S3, d *schema.ResourceData) err
 func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, website map[string]interface{}) error {
 	bucket := d.Get("bucket").(string)
 
-	indexDocument := website["index_document"].(string)
-	errorDocument := website["error_document"].(string)
-	redirectAllRequestsTo := website["redirect_all_requests_to"].(string)
-	routingRules := website["routing_rules"].(string)
+	var indexDocument, errorDocument, redirectAllRequestsTo, routingRules string
+	if v, ok := website["index_document"]; ok {
+		indexDocument = v.(string)
+	}
+	if v, ok := website["error_document"]; ok {
+		errorDocument = v.(string)
+	}
+	if v, ok := website["redirect_all_requests_to"]; ok {
+		redirectAllRequestsTo = v.(string)
+	}
+	if v, ok := website["routing_rules"]; ok {
+		routingRules = v.(string)
+	}
 
 	if indexDocument == "" && redirectAllRequestsTo == "" {
 		return fmt.Errorf("Must specify either index_document or redirect_all_requests_to.")
@@ -774,7 +1029,7 @@ func WebsiteDomainUrl(region string) string {
 
 	// Frankfurt(and probably future) regions uses different syntax for website endpoints
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteEndpoints.html
-	if region == "eu-central-1" {
+	if region == "eu-central-1" || region == "ap-south-1" {
 		return fmt.Sprintf("s3-website.%s.amazonaws.com", region)
 	}
 
@@ -863,6 +1118,157 @@ func resourceAwsS3BucketLoggingUpdate(s3conn *s3.S3, d *schema.ResourceData) err
 	return nil
 }
 
+func resourceAwsS3BucketAccelerationUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	enableAcceleration := d.Get("acceleration_status").(string)
+
+	i := &s3.PutBucketAccelerateConfigurationInput{
+		Bucket: aws.String(bucket),
+		AccelerateConfiguration: &s3.AccelerateConfiguration{
+			Status: aws.String(enableAcceleration),
+		},
+	}
+	log.Printf("[DEBUG] S3 put bucket acceleration: %#v", i)
+
+	_, err := s3conn.PutBucketAccelerateConfiguration(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 acceleration: %s", err)
+	}
+
+	return nil
+}
+
+func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+
+	lifecycleRules := d.Get("lifecycle_rule").([]interface{})
+
+	rules := make([]*s3.LifecycleRule, 0, len(lifecycleRules))
+
+	for i, lifecycleRule := range lifecycleRules {
+		r := lifecycleRule.(map[string]interface{})
+
+		rule := &s3.LifecycleRule{
+			Prefix: aws.String(r["prefix"].(string)),
+		}
+
+		// ID
+		if val, ok := r["id"].(string); ok && val != "" {
+			rule.ID = aws.String(val)
+		} else {
+			rule.ID = aws.String(resource.PrefixedUniqueId("tf-s3-lifecycle-"))
+		}
+
+		// Enabled
+		if val, ok := r["enabled"].(bool); ok && val {
+			rule.Status = aws.String(s3.ExpirationStatusEnabled)
+		} else {
+			rule.Status = aws.String(s3.ExpirationStatusDisabled)
+		}
+
+		// AbortIncompleteMultipartUpload
+		if val, ok := r["abort_incomplete_multipart_upload_days"].(int); ok && val > 0 {
+			rule.AbortIncompleteMultipartUpload = &s3.AbortIncompleteMultipartUpload{
+				DaysAfterInitiation: aws.Int64(int64(val)),
+			}
+		}
+
+		// Expiration
+		expiration := d.Get(fmt.Sprintf("lifecycle_rule.%d.expiration", i)).(*schema.Set).List()
+		if len(expiration) > 0 {
+			e := expiration[0].(map[string]interface{})
+			i := &s3.LifecycleExpiration{}
+
+			if val, ok := e["date"].(string); ok && val != "" {
+				t, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT00:00:00Z", val))
+				if err != nil {
+					return fmt.Errorf("Error Parsing AWS S3 Bucket Lifecycle Expiration Date: %s", err.Error())
+				}
+				i.Date = aws.Time(t)
+			} else if val, ok := e["days"].(int); ok && val > 0 {
+				i.Days = aws.Int64(int64(val))
+			} else if val, ok := e["expired_object_delete_marker"].(bool); ok {
+				i.ExpiredObjectDeleteMarker = aws.Bool(val)
+			}
+			rule.Expiration = i
+		}
+
+		// NoncurrentVersionExpiration
+		nc_expiration := d.Get(fmt.Sprintf("lifecycle_rule.%d.noncurrent_version_expiration", i)).(*schema.Set).List()
+		if len(nc_expiration) > 0 {
+			e := nc_expiration[0].(map[string]interface{})
+
+			if val, ok := e["days"].(int); ok && val > 0 {
+				rule.NoncurrentVersionExpiration = &s3.NoncurrentVersionExpiration{
+					NoncurrentDays: aws.Int64(int64(val)),
+				}
+			}
+		}
+
+		// Transitions
+		transitions := d.Get(fmt.Sprintf("lifecycle_rule.%d.transition", i)).(*schema.Set).List()
+		if len(transitions) > 0 {
+			rule.Transitions = make([]*s3.Transition, 0, len(transitions))
+			for _, transition := range transitions {
+				transition := transition.(map[string]interface{})
+				i := &s3.Transition{}
+				if val, ok := transition["date"].(string); ok && val != "" {
+					t, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT00:00:00Z", val))
+					if err != nil {
+						return fmt.Errorf("Error Parsing AWS S3 Bucket Lifecycle Expiration Date: %s", err.Error())
+					}
+					i.Date = aws.Time(t)
+				} else if val, ok := transition["days"].(int); ok && val > 0 {
+					i.Days = aws.Int64(int64(val))
+				}
+				if val, ok := transition["storage_class"].(string); ok && val != "" {
+					i.StorageClass = aws.String(val)
+				}
+
+				rule.Transitions = append(rule.Transitions, i)
+			}
+		}
+		// NoncurrentVersionTransitions
+		nc_transitions := d.Get(fmt.Sprintf("lifecycle_rule.%d.noncurrent_version_transition", i)).(*schema.Set).List()
+		if len(nc_transitions) > 0 {
+			rule.NoncurrentVersionTransitions = make([]*s3.NoncurrentVersionTransition, 0, len(nc_transitions))
+			for _, transition := range nc_transitions {
+				transition := transition.(map[string]interface{})
+				i := &s3.NoncurrentVersionTransition{}
+				if val, ok := transition["days"].(int); ok && val > 0 {
+					i.NoncurrentDays = aws.Int64(int64(val))
+				}
+				if val, ok := transition["storage_class"].(string); ok && val != "" {
+					i.StorageClass = aws.String(val)
+				}
+
+				rule.NoncurrentVersionTransitions = append(rule.NoncurrentVersionTransitions, i)
+			}
+		}
+
+		rules = append(rules, rule)
+	}
+
+	i := &s3.PutBucketLifecycleConfigurationInput{
+		Bucket: aws.String(bucket),
+		LifecycleConfiguration: &s3.BucketLifecycleConfiguration{
+			Rules: rules,
+		},
+	}
+
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		if _, err := s3conn.PutBucketLifecycleConfiguration(i); err != nil {
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Error putting S3 lifecycle: %s", err)
+	}
+
+	return nil
+}
+
 func normalizeRoutingRules(w []*s3.RoutingRule) (string, error) {
 	withNulls, err := json.Marshal(w)
 	if err != nil {
@@ -925,6 +1331,48 @@ func normalizeRegion(region string) string {
 	}
 
 	return region
+}
+
+func validateS3BucketAccelerationStatus(v interface{}, k string) (ws []string, errors []error) {
+	validTypes := map[string]struct{}{
+		"Enabled":   struct{}{},
+		"Suspended": struct{}{},
+	}
+
+	if _, ok := validTypes[v.(string)]; !ok {
+		errors = append(errors, fmt.Errorf("S3 Bucket Acceleration Status %q is invalid, must be %q or %q", v.(string), "Enabled", "Suspended"))
+	}
+	return
+}
+
+func expirationHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	if v, ok := m["date"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	if v, ok := m["days"]; ok {
+		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
+	}
+	if v, ok := m["expired_object_delete_marker"]; ok {
+		buf.WriteString(fmt.Sprintf("%t-", v.(bool)))
+	}
+	return hashcode.String(buf.String())
+}
+
+func transitionHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	if v, ok := m["date"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	if v, ok := m["days"]; ok {
+		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
+	}
+	if v, ok := m["storage_class"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	return hashcode.String(buf.String())
 }
 
 type S3Website struct {

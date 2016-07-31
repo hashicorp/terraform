@@ -51,6 +51,9 @@ func resourceAwsVpnConnection() *schema.Resource {
 		Read:   resourceAwsVpnConnectionRead,
 		Update: resourceAwsVpnConnectionUpdate,
 		Delete: resourceAwsVpnConnectionDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"vpn_gateway_id": &schema.Schema{
@@ -316,10 +319,8 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 	if err := d.Set("vgw_telemetry", telemetryToMapList(vpnConnection.VgwTelemetry)); err != nil {
 		return err
 	}
-	if vpnConnection.Routes != nil {
-		if err := d.Set("routes", routesToMapList(vpnConnection.Routes)); err != nil {
-			return err
-		}
+	if err := d.Set("routes", routesToMapList(vpnConnection.Routes)); err != nil {
+		return err
 	}
 
 	return nil

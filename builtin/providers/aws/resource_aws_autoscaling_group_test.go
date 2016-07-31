@@ -22,9 +22,11 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 	randName := fmt.Sprintf("terraform-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		PreCheck:        func() { testAccPreCheck(t) },
+		IDRefreshName:   "aws_autoscaling_group.bar",
+		IDRefreshIgnore: []string{"force_delete", "metrics_granularity", "wait_for_capacity_timeout"},
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSAutoScalingGroupConfig(randName),
@@ -52,6 +54,8 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 						"aws_autoscaling_group.bar", "termination_policies.0", "OldestInstance"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "termination_policies.1", "ClosestToNextInstanceHour"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "protect_from_scale_in", "false"),
 				),
 			},
 
@@ -64,6 +68,8 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 						"aws_autoscaling_group.bar", "desired_capacity", "5"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "termination_policies.0", "ClosestToNextInstanceHour"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "protect_from_scale_in", "true"),
 					testLaunchConfigurationName("aws_autoscaling_group.bar", &lc),
 					testAccCheckAutoscalingTags(&group.Tags, "Bar", map[string]interface{}{
 						"value":               "bar-foo",
@@ -247,6 +253,36 @@ func TestAccAWSAutoScalingGroup_withPlacementGroup(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "placement_group", randName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSAutoScalingGroup_enablingMetrics(t *testing.T) {
+	var group autoscaling.Group
+	randName := fmt.Sprintf("terraform-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig(randName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "enabled_metrics.#", ""),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSAutoscalingMetricsCollectionConfig_updatingMetricsCollected,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "enabled_metrics.#", "5"),
 				),
 			},
 		},
@@ -553,7 +589,7 @@ resource "aws_launch_configuration" "foobar" {
 }
 
 resource "aws_placement_group" "test" {
-  name = "%s"
+  name = "asg_pg_%s"
   strategy = "cluster"
 }
 
@@ -600,6 +636,7 @@ resource "aws_autoscaling_group" "bar" {
   desired_capacity = 5
   force_delete = true
   termination_policies = ["ClosestToNextInstanceHour"]
+  protect_from_scale_in = true
 
   launch_configuration = "${aws_launch_configuration.new.name}"
 

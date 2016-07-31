@@ -16,9 +16,10 @@ func TestAccAWSNatGateway_basic(t *testing.T) {
 	var natGateway ec2.NatGateway
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckNatGatewayDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_nat_gateway.gateway",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckNatGatewayDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccNatGatewayConfig,

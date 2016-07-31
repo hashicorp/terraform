@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -85,6 +85,9 @@ func (p *CreateDiskOfferingParams) toURLValues() url.Values {
 	}
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
+	}
+	if v, found := p.p["provisioningtype"]; found {
+		u.Set("provisioningtype", v.(string))
 	}
 	if v, found := p.p["storagetype"]; found {
 		u.Set("storagetype", v.(string))
@@ -207,6 +210,14 @@ func (p *CreateDiskOfferingParams) SetName(v string) {
 	return
 }
 
+func (p *CreateDiskOfferingParams) SetProvisioningtype(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["provisioningtype"] = v
+	return
+}
+
 func (p *CreateDiskOfferingParams) SetStoragetype(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -266,6 +277,7 @@ type CreateDiskOfferingResponse struct {
 	Maxiops                   int64  `json:"maxiops,omitempty"`
 	Miniops                   int64  `json:"miniops,omitempty"`
 	Name                      string `json:"name,omitempty"`
+	Provisioningtype          string `json:"provisioningtype,omitempty"`
 	Storagetype               string `json:"storagetype,omitempty"`
 	Tags                      string `json:"tags,omitempty"`
 }
@@ -381,6 +393,7 @@ type UpdateDiskOfferingResponse struct {
 	Maxiops                   int64  `json:"maxiops,omitempty"`
 	Miniops                   int64  `json:"miniops,omitempty"`
 	Name                      string `json:"name,omitempty"`
+	Provisioningtype          string `json:"provisioningtype,omitempty"`
 	Storagetype               string `json:"storagetype,omitempty"`
 	Tags                      string `json:"tags,omitempty"`
 }
@@ -451,8 +464,16 @@ func (p *ListDiskOfferingsParams) toURLValues() url.Values {
 	if v, found := p.p["id"]; found {
 		u.Set("id", v.(string))
 	}
+	if v, found := p.p["isrecursive"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("isrecursive", vv)
+	}
 	if v, found := p.p["keyword"]; found {
 		u.Set("keyword", v.(string))
+	}
+	if v, found := p.p["listall"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("listall", vv)
 	}
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
@@ -484,11 +505,27 @@ func (p *ListDiskOfferingsParams) SetId(v string) {
 	return
 }
 
+func (p *ListDiskOfferingsParams) SetIsrecursive(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["isrecursive"] = v
+	return
+}
+
 func (p *ListDiskOfferingsParams) SetKeyword(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
 	}
 	p.p["keyword"] = v
+	return
+}
+
+func (p *ListDiskOfferingsParams) SetListall(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["listall"] = v
 	return
 }
 
@@ -525,11 +562,17 @@ func (s *DiskOfferingService) NewListDiskOfferingsParams() *ListDiskOfferingsPar
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *DiskOfferingService) GetDiskOfferingID(name string) (string, error) {
+func (s *DiskOfferingService) GetDiskOfferingID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListDiskOfferingsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListDiskOfferings(p)
 	if err != nil {
@@ -555,13 +598,13 @@ func (s *DiskOfferingService) GetDiskOfferingID(name string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *DiskOfferingService) GetDiskOfferingByName(name string) (*DiskOffering, int, error) {
-	id, err := s.GetDiskOfferingID(name)
+func (s *DiskOfferingService) GetDiskOfferingByName(name string, opts ...OptionFunc) (*DiskOffering, int, error) {
+	id, err := s.GetDiskOfferingID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetDiskOfferingByID(id)
+	r, count, err := s.GetDiskOfferingByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -569,11 +612,17 @@ func (s *DiskOfferingService) GetDiskOfferingByName(name string) (*DiskOffering,
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *DiskOfferingService) GetDiskOfferingByID(id string) (*DiskOffering, int, error) {
+func (s *DiskOfferingService) GetDiskOfferingByID(id string, opts ...OptionFunc) (*DiskOffering, int, error) {
 	p := &ListDiskOfferingsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListDiskOfferings(p)
 	if err != nil {
@@ -633,6 +682,7 @@ type DiskOffering struct {
 	Maxiops                   int64  `json:"maxiops,omitempty"`
 	Miniops                   int64  `json:"miniops,omitempty"`
 	Name                      string `json:"name,omitempty"`
+	Provisioningtype          string `json:"provisioningtype,omitempty"`
 	Storagetype               string `json:"storagetype,omitempty"`
 	Tags                      string `json:"tags,omitempty"`
 }

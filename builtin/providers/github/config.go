@@ -1,6 +1,8 @@
 package github
 
 import (
+	"net/url"
+
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
@@ -8,6 +10,7 @@ import (
 type Config struct {
 	Token        string
 	Organization string
+	BaseURL      string
 }
 
 type Organization struct {
@@ -25,5 +28,12 @@ func (c *Config) Client() (interface{}, error) {
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
 	org.client = github.NewClient(tc)
+	if c.BaseURL != "" {
+		u, err := url.Parse(c.BaseURL)
+		if err != nil {
+			return nil, err
+		}
+		org.client.BaseURL = u
+	}
 	return &org, nil
 }

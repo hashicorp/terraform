@@ -6,21 +6,23 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSProxyProtocolPolicy_basic(t *testing.T) {
+	lbName := fmt.Sprintf("tf-test-lb-%s", acctest.RandString(5))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckProxyProtocolPolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProxyProtocolPolicyConfig,
+				Config: testAccProxyProtocolPolicyConfig(lbName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_proxy_protocol_policy.smtp", "load_balancer", "test-lb"),
+						"aws_proxy_protocol_policy.smtp", "load_balancer", lbName),
 					resource.TestCheckResourceAttr(
 						"aws_proxy_protocol_policy.smtp", "instance_ports.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -28,10 +30,10 @@ func TestAccAWSProxyProtocolPolicy_basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccProxyProtocolPolicyConfigUpdate,
+				Config: testAccProxyProtocolPolicyConfigUpdate(lbName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_proxy_protocol_policy.smtp", "load_balancer", "test-lb"),
+						"aws_proxy_protocol_policy.smtp", "load_balancer", lbName),
 					resource.TestCheckResourceAttr(
 						"aws_proxy_protocol_policy.smtp", "instance_ports.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -70,9 +72,10 @@ func testAccCheckProxyProtocolPolicyDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccProxyProtocolPolicyConfig = `
+func testAccProxyProtocolPolicyConfig(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_elb" "lb" {
-	name = "test-lb"
+	name = "%s"
 	availability_zones = ["us-west-2a"]
 
 	listener {
@@ -93,12 +96,13 @@ resource "aws_elb" "lb" {
 resource "aws_proxy_protocol_policy" "smtp" {
 	load_balancer = "${aws_elb.lb.name}"
 	instance_ports = ["25"]
+}`, rName)
 }
-`
 
-const testAccProxyProtocolPolicyConfigUpdate = `
+func testAccProxyProtocolPolicyConfigUpdate(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_elb" "lb" {
-	name = "test-lb"
+	name = "%s"
 	availability_zones = ["us-west-2a"]
 
 	listener {
@@ -119,5 +123,5 @@ resource "aws_elb" "lb" {
 resource "aws_proxy_protocol_policy" "smtp" {
 	load_balancer = "${aws_elb.lb.name}"
 	instance_ports = ["25", "587"]
+}`, rName)
 }
-`

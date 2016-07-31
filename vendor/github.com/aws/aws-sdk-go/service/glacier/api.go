@@ -14,7 +14,28 @@ import (
 
 const opAbortMultipartUpload = "AbortMultipartUpload"
 
-// AbortMultipartUploadRequest generates a request for the AbortMultipartUpload operation.
+// AbortMultipartUploadRequest generates a "aws/request.Request" representing the
+// client's request for the AbortMultipartUpload operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AbortMultipartUpload method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AbortMultipartUploadRequest method.
+//    req, resp := client.AbortMultipartUploadRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) (req *request.Request, output *AbortMultipartUploadOutput) {
 	op := &request.Operation{
 		Name:       opAbortMultipartUpload,
@@ -62,7 +83,28 @@ func (c *Glacier) AbortMultipartUpload(input *AbortMultipartUploadInput) (*Abort
 
 const opAbortVaultLock = "AbortVaultLock"
 
-// AbortVaultLockRequest generates a request for the AbortVaultLock operation.
+// AbortVaultLockRequest generates a "aws/request.Request" representing the
+// client's request for the AbortVaultLock operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AbortVaultLock method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AbortVaultLockRequest method.
+//    req, resp := client.AbortVaultLockRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) AbortVaultLockRequest(input *AbortVaultLockInput) (req *request.Request, output *AbortVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opAbortVaultLock,
@@ -106,7 +148,28 @@ func (c *Glacier) AbortVaultLock(input *AbortVaultLockInput) (*AbortVaultLockOut
 
 const opAddTagsToVault = "AddTagsToVault"
 
-// AddTagsToVaultRequest generates a request for the AddTagsToVault operation.
+// AddTagsToVaultRequest generates a "aws/request.Request" representing the
+// client's request for the AddTagsToVault operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddTagsToVault method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddTagsToVaultRequest method.
+//    req, resp := client.AddTagsToVaultRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) AddTagsToVaultRequest(input *AddTagsToVaultInput) (req *request.Request, output *AddTagsToVaultOutput) {
 	op := &request.Operation{
 		Name:       opAddTagsToVault,
@@ -140,7 +203,28 @@ func (c *Glacier) AddTagsToVault(input *AddTagsToVaultInput) (*AddTagsToVaultOut
 
 const opCompleteMultipartUpload = "CompleteMultipartUpload"
 
-// CompleteMultipartUploadRequest generates a request for the CompleteMultipartUpload operation.
+// CompleteMultipartUploadRequest generates a "aws/request.Request" representing the
+// client's request for the CompleteMultipartUpload operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CompleteMultipartUpload method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CompleteMultipartUploadRequest method.
+//    req, resp := client.CompleteMultipartUploadRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadInput) (req *request.Request, output *ArchiveCreationOutput) {
 	op := &request.Operation{
 		Name:       opCompleteMultipartUpload,
@@ -210,7 +294,28 @@ func (c *Glacier) CompleteMultipartUpload(input *CompleteMultipartUploadInput) (
 
 const opCompleteVaultLock = "CompleteVaultLock"
 
-// CompleteVaultLockRequest generates a request for the CompleteVaultLock operation.
+// CompleteVaultLockRequest generates a "aws/request.Request" representing the
+// client's request for the CompleteVaultLock operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CompleteVaultLock method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CompleteVaultLockRequest method.
+//    req, resp := client.CompleteVaultLockRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) CompleteVaultLockRequest(input *CompleteVaultLockInput) (req *request.Request, output *CompleteVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opCompleteVaultLock,
@@ -253,7 +358,28 @@ func (c *Glacier) CompleteVaultLock(input *CompleteVaultLockInput) (*CompleteVau
 
 const opCreateVault = "CreateVault"
 
-// CreateVaultRequest generates a request for the CreateVault operation.
+// CreateVaultRequest generates a "aws/request.Request" representing the
+// client's request for the CreateVault operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateVault method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateVaultRequest method.
+//    req, resp := client.CreateVaultRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) CreateVaultRequest(input *CreateVaultInput) (req *request.Request, output *CreateVaultOutput) {
 	op := &request.Operation{
 		Name:       opCreateVault,
@@ -303,7 +429,28 @@ func (c *Glacier) CreateVault(input *CreateVaultInput) (*CreateVaultOutput, erro
 
 const opDeleteArchive = "DeleteArchive"
 
-// DeleteArchiveRequest generates a request for the DeleteArchive operation.
+// DeleteArchiveRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteArchive operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteArchive method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteArchiveRequest method.
+//    req, resp := client.DeleteArchiveRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.Request, output *DeleteArchiveOutput) {
 	op := &request.Operation{
 		Name:       opDeleteArchive,
@@ -352,7 +499,28 @@ func (c *Glacier) DeleteArchive(input *DeleteArchiveInput) (*DeleteArchiveOutput
 
 const opDeleteVault = "DeleteVault"
 
-// DeleteVaultRequest generates a request for the DeleteVault operation.
+// DeleteVaultRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVault operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVault method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVaultRequest method.
+//    req, resp := client.DeleteVaultRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Request, output *DeleteVaultOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVault,
@@ -403,7 +571,28 @@ func (c *Glacier) DeleteVault(input *DeleteVaultInput) (*DeleteVaultOutput, erro
 
 const opDeleteVaultAccessPolicy = "DeleteVaultAccessPolicy"
 
-// DeleteVaultAccessPolicyRequest generates a request for the DeleteVaultAccessPolicy operation.
+// DeleteVaultAccessPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVaultAccessPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVaultAccessPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVaultAccessPolicyRequest method.
+//    req, resp := client.DeleteVaultAccessPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) DeleteVaultAccessPolicyRequest(input *DeleteVaultAccessPolicyInput) (req *request.Request, output *DeleteVaultAccessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVaultAccessPolicy,
@@ -441,7 +630,28 @@ func (c *Glacier) DeleteVaultAccessPolicy(input *DeleteVaultAccessPolicyInput) (
 
 const opDeleteVaultNotifications = "DeleteVaultNotifications"
 
-// DeleteVaultNotificationsRequest generates a request for the DeleteVaultNotifications operation.
+// DeleteVaultNotificationsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVaultNotifications operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteVaultNotifications method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteVaultNotificationsRequest method.
+//    req, resp := client.DeleteVaultNotificationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotificationsInput) (req *request.Request, output *DeleteVaultNotificationsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVaultNotifications,
@@ -484,7 +694,28 @@ func (c *Glacier) DeleteVaultNotifications(input *DeleteVaultNotificationsInput)
 
 const opDescribeJob = "DescribeJob"
 
-// DescribeJobRequest generates a request for the DescribeJob operation.
+// DescribeJobRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeJob operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeJob method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeJobRequest method.
+//    req, resp := client.DescribeJobRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) DescribeJobRequest(input *DescribeJobInput) (req *request.Request, output *JobDescription) {
 	op := &request.Operation{
 		Name:       opDescribeJob,
@@ -532,7 +763,28 @@ func (c *Glacier) DescribeJob(input *DescribeJobInput) (*JobDescription, error) 
 
 const opDescribeVault = "DescribeVault"
 
-// DescribeVaultRequest generates a request for the DescribeVault operation.
+// DescribeVaultRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVault operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVault method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVaultRequest method.
+//    req, resp := client.DescribeVaultRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) DescribeVaultRequest(input *DescribeVaultInput) (req *request.Request, output *DescribeVaultOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVault,
@@ -578,7 +830,28 @@ func (c *Glacier) DescribeVault(input *DescribeVaultInput) (*DescribeVaultOutput
 
 const opGetDataRetrievalPolicy = "GetDataRetrievalPolicy"
 
-// GetDataRetrievalPolicyRequest generates a request for the GetDataRetrievalPolicy operation.
+// GetDataRetrievalPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetDataRetrievalPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDataRetrievalPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDataRetrievalPolicyRequest method.
+//    req, resp := client.GetDataRetrievalPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) GetDataRetrievalPolicyRequest(input *GetDataRetrievalPolicyInput) (req *request.Request, output *GetDataRetrievalPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetDataRetrievalPolicy,
@@ -607,7 +880,28 @@ func (c *Glacier) GetDataRetrievalPolicy(input *GetDataRetrievalPolicyInput) (*G
 
 const opGetJobOutput = "GetJobOutput"
 
-// GetJobOutputRequest generates a request for the GetJobOutput operation.
+// GetJobOutputRequest generates a "aws/request.Request" representing the
+// client's request for the GetJobOutput operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetJobOutput method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetJobOutputRequest method.
+//    req, resp := client.GetJobOutputRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) GetJobOutputRequest(input *GetJobOutputInput) (req *request.Request, output *GetJobOutputOutput) {
 	op := &request.Operation{
 		Name:       opGetJobOutput,
@@ -677,7 +971,28 @@ func (c *Glacier) GetJobOutput(input *GetJobOutputInput) (*GetJobOutputOutput, e
 
 const opGetVaultAccessPolicy = "GetVaultAccessPolicy"
 
-// GetVaultAccessPolicyRequest generates a request for the GetVaultAccessPolicy operation.
+// GetVaultAccessPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetVaultAccessPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetVaultAccessPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetVaultAccessPolicyRequest method.
+//    req, resp := client.GetVaultAccessPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) GetVaultAccessPolicyRequest(input *GetVaultAccessPolicyInput) (req *request.Request, output *GetVaultAccessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetVaultAccessPolicy,
@@ -709,7 +1024,28 @@ func (c *Glacier) GetVaultAccessPolicy(input *GetVaultAccessPolicyInput) (*GetVa
 
 const opGetVaultLock = "GetVaultLock"
 
-// GetVaultLockRequest generates a request for the GetVaultLock operation.
+// GetVaultLockRequest generates a "aws/request.Request" representing the
+// client's request for the GetVaultLock operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetVaultLock method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetVaultLockRequest method.
+//    req, resp := client.GetVaultLockRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) GetVaultLockRequest(input *GetVaultLockInput) (req *request.Request, output *GetVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opGetVaultLock,
@@ -753,7 +1089,28 @@ func (c *Glacier) GetVaultLock(input *GetVaultLockInput) (*GetVaultLockOutput, e
 
 const opGetVaultNotifications = "GetVaultNotifications"
 
-// GetVaultNotificationsRequest generates a request for the GetVaultNotifications operation.
+// GetVaultNotificationsRequest generates a "aws/request.Request" representing the
+// client's request for the GetVaultNotifications operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetVaultNotifications method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetVaultNotificationsRequest method.
+//    req, resp := client.GetVaultNotificationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) GetVaultNotificationsRequest(input *GetVaultNotificationsInput) (req *request.Request, output *GetVaultNotificationsOutput) {
 	op := &request.Operation{
 		Name:       opGetVaultNotifications,
@@ -798,7 +1155,28 @@ func (c *Glacier) GetVaultNotifications(input *GetVaultNotificationsInput) (*Get
 
 const opInitiateJob = "InitiateJob"
 
-// InitiateJobRequest generates a request for the InitiateJob operation.
+// InitiateJobRequest generates a "aws/request.Request" representing the
+// client's request for the InitiateJob operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the InitiateJob method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the InitiateJobRequest method.
+//    req, resp := client.InitiateJobRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Request, output *InitiateJobOutput) {
 	op := &request.Operation{
 		Name:       opInitiateJob,
@@ -940,7 +1318,28 @@ func (c *Glacier) InitiateJob(input *InitiateJobInput) (*InitiateJobOutput, erro
 
 const opInitiateMultipartUpload = "InitiateMultipartUpload"
 
-// InitiateMultipartUploadRequest generates a request for the InitiateMultipartUpload operation.
+// InitiateMultipartUploadRequest generates a "aws/request.Request" representing the
+// client's request for the InitiateMultipartUpload operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the InitiateMultipartUpload method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the InitiateMultipartUploadRequest method.
+//    req, resp := client.InitiateMultipartUploadRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) InitiateMultipartUploadRequest(input *InitiateMultipartUploadInput) (req *request.Request, output *InitiateMultipartUploadOutput) {
 	op := &request.Operation{
 		Name:       opInitiateMultipartUpload,
@@ -1001,7 +1400,28 @@ func (c *Glacier) InitiateMultipartUpload(input *InitiateMultipartUploadInput) (
 
 const opInitiateVaultLock = "InitiateVaultLock"
 
-// InitiateVaultLockRequest generates a request for the InitiateVaultLock operation.
+// InitiateVaultLockRequest generates a "aws/request.Request" representing the
+// client's request for the InitiateVaultLock operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the InitiateVaultLock method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the InitiateVaultLockRequest method.
+//    req, resp := client.InitiateVaultLockRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) InitiateVaultLockRequest(input *InitiateVaultLockInput) (req *request.Request, output *InitiateVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opInitiateVaultLock,
@@ -1055,7 +1475,28 @@ func (c *Glacier) InitiateVaultLock(input *InitiateVaultLockInput) (*InitiateVau
 
 const opListJobs = "ListJobs"
 
-// ListJobsRequest generates a request for the ListJobs operation.
+// ListJobsRequest generates a "aws/request.Request" representing the
+// client's request for the ListJobs operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListJobs method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListJobsRequest method.
+//    req, resp := client.ListJobsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, output *ListJobsOutput) {
 	op := &request.Operation{
 		Name:       opListJobs,
@@ -1125,6 +1566,23 @@ func (c *Glacier) ListJobs(input *ListJobsInput) (*ListJobsOutput, error) {
 	return out, err
 }
 
+// ListJobsPages iterates over the pages of a ListJobs operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListJobs method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListJobs operation.
+//    pageNum := 0
+//    err := client.ListJobsPages(params,
+//        func(page *ListJobsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Glacier) ListJobsPages(input *ListJobsInput, fn func(p *ListJobsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListJobsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1135,7 +1593,28 @@ func (c *Glacier) ListJobsPages(input *ListJobsInput, fn func(p *ListJobsOutput,
 
 const opListMultipartUploads = "ListMultipartUploads"
 
-// ListMultipartUploadsRequest generates a request for the ListMultipartUploads operation.
+// ListMultipartUploadsRequest generates a "aws/request.Request" representing the
+// client's request for the ListMultipartUploads operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListMultipartUploads method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListMultipartUploadsRequest method.
+//    req, resp := client.ListMultipartUploadsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) (req *request.Request, output *ListMultipartUploadsOutput) {
 	op := &request.Operation{
 		Name:       opListMultipartUploads,
@@ -1195,6 +1674,23 @@ func (c *Glacier) ListMultipartUploads(input *ListMultipartUploadsInput) (*ListM
 	return out, err
 }
 
+// ListMultipartUploadsPages iterates over the pages of a ListMultipartUploads operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListMultipartUploads method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListMultipartUploads operation.
+//    pageNum := 0
+//    err := client.ListMultipartUploadsPages(params,
+//        func(page *ListMultipartUploadsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Glacier) ListMultipartUploadsPages(input *ListMultipartUploadsInput, fn func(p *ListMultipartUploadsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListMultipartUploadsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1205,7 +1701,28 @@ func (c *Glacier) ListMultipartUploadsPages(input *ListMultipartUploadsInput, fn
 
 const opListParts = "ListParts"
 
-// ListPartsRequest generates a request for the ListParts operation.
+// ListPartsRequest generates a "aws/request.Request" representing the
+// client's request for the ListParts operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListParts method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListPartsRequest method.
+//    req, resp := client.ListPartsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request, output *ListPartsOutput) {
 	op := &request.Operation{
 		Name:       opListParts,
@@ -1259,6 +1776,23 @@ func (c *Glacier) ListParts(input *ListPartsInput) (*ListPartsOutput, error) {
 	return out, err
 }
 
+// ListPartsPages iterates over the pages of a ListParts operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListParts method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListParts operation.
+//    pageNum := 0
+//    err := client.ListPartsPages(params,
+//        func(page *ListPartsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Glacier) ListPartsPages(input *ListPartsInput, fn func(p *ListPartsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListPartsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1269,7 +1803,28 @@ func (c *Glacier) ListPartsPages(input *ListPartsInput, fn func(p *ListPartsOutp
 
 const opListTagsForVault = "ListTagsForVault"
 
-// ListTagsForVaultRequest generates a request for the ListTagsForVault operation.
+// ListTagsForVaultRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForVault operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTagsForVault method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsForVaultRequest method.
+//    req, resp := client.ListTagsForVaultRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) ListTagsForVaultRequest(input *ListTagsForVaultInput) (req *request.Request, output *ListTagsForVaultOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForVault,
@@ -1298,7 +1853,28 @@ func (c *Glacier) ListTagsForVault(input *ListTagsForVaultInput) (*ListTagsForVa
 
 const opListVaults = "ListVaults"
 
-// ListVaultsRequest generates a request for the ListVaults operation.
+// ListVaultsRequest generates a "aws/request.Request" representing the
+// client's request for the ListVaults operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListVaults method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListVaultsRequest method.
+//    req, resp := client.ListVaultsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Request, output *ListVaultsOutput) {
 	op := &request.Operation{
 		Name:       opListVaults,
@@ -1350,6 +1926,23 @@ func (c *Glacier) ListVaults(input *ListVaultsInput) (*ListVaultsOutput, error) 
 	return out, err
 }
 
+// ListVaultsPages iterates over the pages of a ListVaults operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListVaults method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListVaults operation.
+//    pageNum := 0
+//    err := client.ListVaultsPages(params,
+//        func(page *ListVaultsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Glacier) ListVaultsPages(input *ListVaultsInput, fn func(p *ListVaultsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListVaultsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1360,7 +1953,28 @@ func (c *Glacier) ListVaultsPages(input *ListVaultsInput, fn func(p *ListVaultsO
 
 const opRemoveTagsFromVault = "RemoveTagsFromVault"
 
-// RemoveTagsFromVaultRequest generates a request for the RemoveTagsFromVault operation.
+// RemoveTagsFromVaultRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveTagsFromVault operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveTagsFromVault method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveTagsFromVaultRequest method.
+//    req, resp := client.RemoveTagsFromVaultRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) RemoveTagsFromVaultRequest(input *RemoveTagsFromVaultInput) (req *request.Request, output *RemoveTagsFromVaultOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTagsFromVault,
@@ -1393,7 +2007,28 @@ func (c *Glacier) RemoveTagsFromVault(input *RemoveTagsFromVaultInput) (*RemoveT
 
 const opSetDataRetrievalPolicy = "SetDataRetrievalPolicy"
 
-// SetDataRetrievalPolicyRequest generates a request for the SetDataRetrievalPolicy operation.
+// SetDataRetrievalPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the SetDataRetrievalPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetDataRetrievalPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetDataRetrievalPolicyRequest method.
+//    req, resp := client.SetDataRetrievalPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) SetDataRetrievalPolicyRequest(input *SetDataRetrievalPolicyInput) (req *request.Request, output *SetDataRetrievalPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetDataRetrievalPolicy,
@@ -1428,7 +2063,28 @@ func (c *Glacier) SetDataRetrievalPolicy(input *SetDataRetrievalPolicyInput) (*S
 
 const opSetVaultAccessPolicy = "SetVaultAccessPolicy"
 
-// SetVaultAccessPolicyRequest generates a request for the SetVaultAccessPolicy operation.
+// SetVaultAccessPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the SetVaultAccessPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetVaultAccessPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetVaultAccessPolicyRequest method.
+//    req, resp := client.SetVaultAccessPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) SetVaultAccessPolicyRequest(input *SetVaultAccessPolicyInput) (req *request.Request, output *SetVaultAccessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetVaultAccessPolicy,
@@ -1463,7 +2119,28 @@ func (c *Glacier) SetVaultAccessPolicy(input *SetVaultAccessPolicyInput) (*SetVa
 
 const opSetVaultNotifications = "SetVaultNotifications"
 
-// SetVaultNotificationsRequest generates a request for the SetVaultNotifications operation.
+// SetVaultNotificationsRequest generates a "aws/request.Request" representing the
+// client's request for the SetVaultNotifications operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetVaultNotifications method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetVaultNotificationsRequest method.
+//    req, resp := client.SetVaultNotificationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput) (req *request.Request, output *SetVaultNotificationsOutput) {
 	op := &request.Operation{
 		Name:       opSetVaultNotifications,
@@ -1520,7 +2197,28 @@ func (c *Glacier) SetVaultNotifications(input *SetVaultNotificationsInput) (*Set
 
 const opUploadArchive = "UploadArchive"
 
-// UploadArchiveRequest generates a request for the UploadArchive operation.
+// UploadArchiveRequest generates a "aws/request.Request" representing the
+// client's request for the UploadArchive operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UploadArchive method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UploadArchiveRequest method.
+//    req, resp := client.UploadArchiveRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) UploadArchiveRequest(input *UploadArchiveInput) (req *request.Request, output *ArchiveCreationOutput) {
 	op := &request.Operation{
 		Name:       opUploadArchive,
@@ -1582,7 +2280,28 @@ func (c *Glacier) UploadArchive(input *UploadArchiveInput) (*ArchiveCreationOutp
 
 const opUploadMultipartPart = "UploadMultipartPart"
 
-// UploadMultipartPartRequest generates a request for the UploadMultipartPart operation.
+// UploadMultipartPartRequest generates a "aws/request.Request" representing the
+// client's request for the UploadMultipartPart operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UploadMultipartPart method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UploadMultipartPartRequest method.
+//    req, resp := client.UploadMultipartPartRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Glacier) UploadMultipartPartRequest(input *UploadMultipartPartInput) (req *request.Request, output *UploadMultipartPartOutput) {
 	op := &request.Operation{
 		Name:       opUploadMultipartPart,
@@ -1682,6 +2401,25 @@ func (s AbortMultipartUploadInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AbortMultipartUploadInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AbortMultipartUploadInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AbortMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1720,6 +2458,22 @@ func (s AbortVaultLockInput) String() string {
 // GoString returns the string representation
 func (s AbortVaultLockInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AbortVaultLockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AbortVaultLockInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AbortVaultLockOutput struct {
@@ -1763,6 +2517,22 @@ func (s AddTagsToVaultInput) String() string {
 // GoString returns the string representation
 func (s AddTagsToVaultInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsToVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsToVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AddTagsToVaultOutput struct {
@@ -1849,6 +2619,25 @@ func (s CompleteMultipartUploadInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CompleteMultipartUploadInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CompleteMultipartUploadInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The input values for CompleteVaultLock.
 type CompleteVaultLockInput struct {
 	_ struct{} `type:"structure"`
@@ -1876,6 +2665,25 @@ func (s CompleteVaultLockInput) String() string {
 // GoString returns the string representation
 func (s CompleteVaultLockInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CompleteVaultLockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CompleteVaultLockInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.LockId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LockId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CompleteVaultLockOutput struct {
@@ -1916,6 +2724,22 @@ func (s CreateVaultInput) String() string {
 // GoString returns the string representation
 func (s CreateVaultInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2010,6 +2834,25 @@ func (s DeleteArchiveInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteArchiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteArchiveInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.ArchiveId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ArchiveId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteArchiveOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2047,6 +2890,22 @@ func (s DeleteVaultAccessPolicyInput) String() string {
 // GoString returns the string representation
 func (s DeleteVaultAccessPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteVaultAccessPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteVaultAccessPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteVaultAccessPolicyOutput struct {
@@ -2088,6 +2947,22 @@ func (s DeleteVaultInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Provides options for deleting a vault notification configuration from an
 // Amazon Glacier vault.
 type DeleteVaultNotificationsInput struct {
@@ -2112,6 +2987,22 @@ func (s DeleteVaultNotificationsInput) String() string {
 // GoString returns the string representation
 func (s DeleteVaultNotificationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteVaultNotificationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteVaultNotificationsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteVaultNotificationsOutput struct {
@@ -2170,6 +3061,25 @@ func (s DescribeJobInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeJobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeJobInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Provides options for retrieving metadata for a specific vault in Amazon Glacier.
 type DescribeVaultInput struct {
 	_ struct{} `type:"structure"`
@@ -2193,6 +3103,22 @@ func (s DescribeVaultInput) String() string {
 // GoString returns the string representation
 func (s DescribeVaultInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2257,6 +3183,19 @@ func (s GetDataRetrievalPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDataRetrievalPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDataRetrievalPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the Amazon Glacier response to the GetDataRetrievalPolicy request.
 type GetDataRetrievalPolicyOutput struct {
 	_ struct{} `type:"structure"`
@@ -2306,6 +3245,25 @@ func (s GetJobOutputInput) String() string {
 // GoString returns the string representation
 func (s GetJobOutputInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetJobOutputInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetJobOutputInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2386,6 +3344,22 @@ func (s GetVaultAccessPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetVaultAccessPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetVaultAccessPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Output for GetVaultAccessPolicy.
 type GetVaultAccessPolicyOutput struct {
 	_ struct{} `type:"structure" payload:"Policy"`
@@ -2427,6 +3401,22 @@ func (s GetVaultLockInput) String() string {
 // GoString returns the string representation
 func (s GetVaultLockInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetVaultLockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetVaultLockInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2484,6 +3474,22 @@ func (s GetVaultNotificationsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetVaultNotificationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetVaultNotificationsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the Amazon Glacier response to your request.
 type GetVaultNotificationsOutput struct {
 	_ struct{} `type:"structure" payload:"VaultNotificationConfig"`
@@ -2528,6 +3534,22 @@ func (s InitiateJobInput) String() string {
 // GoString returns the string representation
 func (s InitiateJobInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InitiateJobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InitiateJobInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2588,6 +3610,22 @@ func (s InitiateMultipartUploadInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InitiateMultipartUploadInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InitiateMultipartUploadInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The Amazon Glacier response to your request.
 type InitiateMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
@@ -2637,6 +3675,22 @@ func (s InitiateVaultLockInput) String() string {
 // GoString returns the string representation
 func (s InitiateVaultLockInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InitiateVaultLockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InitiateVaultLockInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -2924,6 +3978,22 @@ func (s ListJobsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListJobsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListJobsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the Amazon Glacier response to your request.
 type ListJobsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2982,6 +4052,22 @@ func (s ListMultipartUploadsInput) String() string {
 // GoString returns the string representation
 func (s ListMultipartUploadsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListMultipartUploadsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListMultipartUploadsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -3045,6 +4131,25 @@ func (s ListPartsInput) String() string {
 // GoString returns the string representation
 func (s ListPartsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListPartsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListPartsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -3112,6 +4217,22 @@ func (s ListTagsForVaultInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the Amazon Glacier response to your request.
 type ListTagsForVaultOutput struct {
 	_ struct{} `type:"structure"`
@@ -3160,6 +4281,19 @@ func (s ListVaultsInput) String() string {
 // GoString returns the string representation
 func (s ListVaultsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListVaultsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListVaultsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.
@@ -3234,6 +4368,22 @@ func (s RemoveTagsFromVaultInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsFromVaultInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsFromVaultInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RemoveTagsFromVaultOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3272,6 +4422,19 @@ func (s SetDataRetrievalPolicyInput) String() string {
 // GoString returns the string representation
 func (s SetDataRetrievalPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetDataRetrievalPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetDataRetrievalPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetDataRetrievalPolicyOutput struct {
@@ -3316,6 +4479,22 @@ func (s SetVaultAccessPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetVaultAccessPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetVaultAccessPolicyInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SetVaultAccessPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3357,6 +4536,22 @@ func (s SetVaultNotificationsInput) String() string {
 // GoString returns the string representation
 func (s SetVaultNotificationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetVaultNotificationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetVaultNotificationsInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetVaultNotificationsOutput struct {
@@ -3405,6 +4600,22 @@ func (s UploadArchiveInput) String() string {
 // GoString returns the string representation
 func (s UploadArchiveInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UploadArchiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UploadArchiveInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A list of in-progress multipart uploads for a vault.
@@ -3478,6 +4689,25 @@ func (s UploadMultipartPartInput) String() string {
 // GoString returns the string representation
 func (s UploadMultipartPartInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UploadMultipartPartInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UploadMultipartPartInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+	if s.VaultName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the Amazon Glacier response to your request.

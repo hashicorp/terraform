@@ -451,6 +451,7 @@ const (
 // virtual IP address for the Virtual Machine.
 type PublicIP struct {
 	Name                 string // Specifies the name of the public IP address.
+	Address              string // Specifies the IP address.
 	IdleTimeoutInMinutes int    `xml:",omitempty"` // Specifies the timeout for the TCP idle connection. The value can be set between 4 and 30 minutes. The default value is 4 minutes. This element is only used when the protocol is set to TCP.
 }
 
@@ -468,10 +469,19 @@ type StartRoleOperation struct {
 	OperationType string
 }
 
+type PostShutdownAction string
+
+// Enum values for PostShutdownAction
+const (
+	PostShutdownActionStopped            PostShutdownAction = "Stopped"
+	PostShutdownActionStoppedDeallocated PostShutdownAction = "StoppedDeallocated"
+)
+
 // ShutdownRoleOperation contains the information for shutting down a Role.
 type ShutdownRoleOperation struct {
-	XMLName       xml.Name `xml:"http://schemas.microsoft.com/windowsazure ShutdownRoleOperation"`
-	OperationType string
+	XMLName            xml.Name `xml:"http://schemas.microsoft.com/windowsazure ShutdownRoleOperation"`
+	OperationType      string
+	PostShutdownAction PostShutdownAction
 }
 
 // RestartRoleOperation contains the information for restarting a Role.

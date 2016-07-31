@@ -24,6 +24,9 @@ func resourceAwsInstance() *schema.Resource {
 		Read:   resourceAwsInstanceRead,
 		Update: resourceAwsInstanceUpdate,
 		Delete: resourceAwsInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsInstanceMigrateState,
@@ -121,6 +124,11 @@ func resourceAwsInstance() *schema.Resource {
 			},
 
 			"public_dns": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"network_interface_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -358,25 +366,22 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Run configuration: %s", runOpts)
 
 	var runResp *ec2.Reservation
-	for i := 0; i < 5; i++ {
+	err = resource.Retry(10*time.Second, func() *resource.RetryError {
+		var err error
 		runResp, err = conn.RunInstances(runOpts)
-		if awsErr, ok := err.(awserr.Error); ok {
-			// IAM profiles can take ~10 seconds to propagate in AWS:
-			//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "Invalid IAM Instance Profile") {
-				log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
-				time.Sleep(2 * time.Second)
-				continue
-			}
-
-			// Warn if the AWS Error involves group ids, to help identify situation
-			// where a user uses group ids in security_groups for the Default VPC.
-			//   See https://github.com/hashicorp/terraform/issues/3798
-			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "groupId is invalid") {
-				return fmt.Errorf("Error launching instance, possible mismatch of Security Group IDs and Names. See AWS Instance docs here: %s.\n\n\tAWS Error: %s", "https://terraform.io/docs/providers/aws/r/instance.html", awsErr.Message())
-			}
+		// IAM profiles can take ~10 seconds to propagate in AWS:
+		// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+		if isAWSErr(err, "InvalidParameterValue", "Invalid IAM Instance Profile") {
+			log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
+			return resource.RetryableError(err)
 		}
-		break
+		return resource.NonRetryableError(err)
+	})
+	// Warn if the AWS Error involves group ids, to help identify situation
+	// where a user uses group ids in security_groups for the Default VPC.
+	//   See https://github.com/hashicorp/terraform/issues/3798
+	if isAWSErr(err, "InvalidParameterValue", "groupId is invalid") {
+		return fmt.Errorf("Error launching instance, possible mismatch of Security Group IDs and Names. See AWS Instance docs here: %s.\n\n\tAWS Error: %s", "https://terraform.io/docs/providers/aws/r/instance.html", err.(awserr.Error).Message())
 	}
 	if err != nil {
 		return fmt.Errorf("Error launching source instance: %s", err)
@@ -485,9 +490,15 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
 	if len(instance.NetworkInterfaces) > 0 {
-		d.Set("subnet_id", instance.NetworkInterfaces[0].SubnetId)
+		for _, ni := range instance.NetworkInterfaces {
+			if *ni.Attachment.DeviceIndex == 0 {
+				d.Set("subnet_id", ni.SubnetId)
+				d.Set("network_interface_id", ni.NetworkInterfaceId)
+			}
+		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
+		d.Set("network_interface_id", "")
 	}
 	d.Set("ebs_optimized", instance.EbsOptimized)
 	if instance.SubnetId != nil && *instance.SubnetId != "" {
@@ -533,6 +544,9 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
 			return err
 		}
+		if err := d.Set("security_groups", []string{}); err != nil {
+			return err
+		}
 	} else {
 		for _, sg := range instance.SecurityGroups {
 			sgs = append(sgs, *sg.GroupName)
@@ -541,10 +555,28 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("security_groups", sgs); err != nil {
 			return err
 		}
+		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
+			return err
+		}
 	}
 
 	if err := readBlockDevices(d, instance, conn); err != nil {
 		return err
+	}
+	if _, ok := d.GetOk("ephemeral_block_device"); !ok {
+		d.Set("ephemeral_block_device", []interface{}{})
+	}
+
+	// Instance attributes
+	{
+		attr, err := conn.DescribeInstanceAttribute(&ec2.DescribeInstanceAttributeInput{
+			Attribute:  aws.String("disableApiTermination"),
+			InstanceId: aws.String(d.Id()),
+		})
+		if err != nil {
+			return err
+		}
+		d.Set("disable_api_termination", attr.DisableApiTermination.Value)
 	}
 
 	return nil
@@ -696,8 +728,17 @@ func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.
 	if err := d.Set("ebs_block_device", ibds["ebs"]); err != nil {
 		return err
 	}
+
+	// This handles the import case which needs to be defaulted to empty
+	if _, ok := d.GetOk("root_block_device"); !ok {
+		if err := d.Set("root_block_device", []interface{}{}); err != nil {
+			return err
+		}
+	}
+
 	if ibds["root"] != nil {
-		if err := d.Set("root_block_device", []interface{}{ibds["root"]}); err != nil {
+		roots := []interface{}{ibds["root"]}
+		if err := d.Set("root_block_device", roots); err != nil {
 			return err
 		}
 	}
@@ -897,8 +938,16 @@ func readBlockDeviceMappingsFromConfig(
 				ebs.VolumeType = aws.String(v)
 			}
 
-			if v, ok := bd["iops"].(int); ok && v > 0 {
+			if v, ok := bd["iops"].(int); ok && v > 0 && *ebs.VolumeType == "io1" {
+				// Only set the iops attribute if the volume type is io1. Setting otherwise
+				// can trigger a refresh/plan loop based on the computed value that is given
+				// from AWS, and prevent us from specifying 0 as a valid iops.
+				//   See https://github.com/hashicorp/terraform/pull/4146
+				//   See https://github.com/hashicorp/terraform/issues/7765
 				ebs.Iops = aws.Int64(int64(v))
+			} else if v, ok := bd["iops"].(int); ok && v > 0 && *ebs.VolumeType != "io1" {
+				// Message user about incompatibility
+				log.Printf("[WARN] IOPs is only valid for storate type io1 for EBS Volumes")
 			}
 
 			if dn, err := fetchRootDeviceName(d.Get("ami").(string), conn); err == nil {

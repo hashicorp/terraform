@@ -117,7 +117,7 @@ func TestAccStorageForceDestroy(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: "",
+				Config: testGoogleStorageBucketsReaderCustomAttributes("idontexist"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketMissing(bucketName),
 				),

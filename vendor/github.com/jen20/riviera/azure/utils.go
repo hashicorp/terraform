@@ -11,6 +11,24 @@ func String(input string) *string {
 	return &input
 }
 
+// Int32 returns a pointer to the input int32. This is useful when initializing
+// structures.
+func Int32(input int32) *int32 {
+	return &input
+}
+
+// Int64 returns a pointer to the input int64. This is useful when initializing
+// structures.
+func Int64(input int64) *int64 {
+	return &input
+}
+
+// Bool returns a pointer to the input bool. This is useful when initializing
+// structures.
+func Bool(input bool) *bool {
+	return &input
+}
+
 // isSuccessCode returns true for 200-range numbers which usually denote
 // that an HTTP request was successful
 func isSuccessCode(statusCode int) bool {

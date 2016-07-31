@@ -128,6 +128,12 @@ func (p *Parser) objectKey() ([]*ast.ObjectKey, error) {
 				Token: p.tok.HCLToken(),
 			})
 		case token.COLON:
+			// If we have a zero keycount it means that we never got
+			// an object key, i.e. `{ :`. This is a syntax error.
+			if keyCount == 0 {
+				return nil, fmt.Errorf("expected: STRING got: %s", p.tok.Type)
+			}
+
 			// Done
 			return keys, nil
 		case token.ILLEGAL:

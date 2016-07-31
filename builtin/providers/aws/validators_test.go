@@ -382,3 +382,174 @@ func TestValidateLogGroupName(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateS3BucketLifecycleTimestamp(t *testing.T) {
+	validDates := []string{
+		"2016-01-01",
+		"2006-01-02",
+	}
+
+	for _, v := range validDates {
+		_, errors := validateS3BucketLifecycleTimestamp(v, "date")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid date: %q", v, errors)
+		}
+	}
+
+	invalidDates := []string{
+		"Jan 01 2016",
+		"20160101",
+	}
+
+	for _, v := range invalidDates {
+		_, errors := validateS3BucketLifecycleTimestamp(v, "date")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid date", v)
+		}
+	}
+}
+
+func TestValidateS3BucketLifecycleStorageClass(t *testing.T) {
+	validStorageClass := []string{
+		"STANDARD_IA",
+		"GLACIER",
+	}
+
+	for _, v := range validStorageClass {
+		_, errors := validateS3BucketLifecycleStorageClass(v, "storage_class")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid storage class: %q", v, errors)
+		}
+	}
+
+	invalidStorageClass := []string{
+		"STANDARD",
+		"1234",
+	}
+	for _, v := range invalidStorageClass {
+		_, errors := validateS3BucketLifecycleStorageClass(v, "storage_class")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid storage class", v)
+		}
+	}
+}
+
+func TestValidateS3BucketLifecycleRuleId(t *testing.T) {
+	validId := []string{
+		"YadaHereAndThere",
+		"Valid-5Rule_ID",
+		"This . is also %% valid@!)+*(:ID",
+		"1234",
+		strings.Repeat("W", 255),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketLifecycleRuleId(v, "id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid lifecycle rule id: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		// length > 255
+		strings.Repeat("W", 256),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketLifecycleRuleId(v, "id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid lifecycle rule id", v)
+		}
+	}
+}
+
+func TestValidateIntegerInRange(t *testing.T) {
+	validIntegers := []int{-259, 0, 1, 5, 999}
+	min := -259
+	max := 999
+	for _, v := range validIntegers {
+		_, errors := validateIntegerInRange(min, max)(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be an integer in range (%d, %d): %q", v, min, max, errors)
+		}
+	}
+
+	invalidIntegers := []int{-260, -99999, 1000, 25678}
+	for _, v := range invalidIntegers {
+		_, errors := validateIntegerInRange(min, max)(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an integer outside range (%d, %d)", v, min, max)
+		}
+	}
+}
+
+func TestResourceAWSElastiCacheClusterIdValidation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "tEsting",
+			ErrCount: 1,
+		},
+		{
+			Value:    "t.sting",
+			ErrCount: 1,
+		},
+		{
+			Value:    "t--sting",
+			ErrCount: 1,
+		},
+		{
+			Value:    "1testing",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing-",
+			ErrCount: 1,
+		},
+		{
+			Value:    randomString(65),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateElastiCacheClusterId(tc.Value, "aws_elasticache_cluster_cluster_id")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the ElastiCache Cluster cluster_id to trigger a validation error")
+		}
+	}
+}
+
+func TestValidateDbEventSubscriptionName(t *testing.T) {
+	validNames := []string{
+		"valid-name",
+		"valid02-name",
+		"Valid-Name1",
+	}
+	for _, v := range validNames {
+		_, errors := validateDbEventSubscriptionName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid RDS Event Subscription Name: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"and here is another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		"*",
+		"",
+		" ",
+		"_",
+		// length > 255
+		strings.Repeat("W", 256),
+	}
+	for _, v := range invalidNames {
+		_, errors := validateDbEventSubscriptionName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid RDS Event Subscription Name", v)
+		}
+	}
+}

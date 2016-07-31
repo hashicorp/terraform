@@ -119,6 +119,7 @@ func (n *graphNodeExpandedResource) ResourceAddress() *ResourceAddress {
 		InstanceType: TypePrimary,
 		Name:         n.Resource.Name,
 		Type:         n.Resource.Type,
+		Mode:         n.Resource.Mode,
 	}
 }
 
@@ -195,10 +196,8 @@ func (n *graphNodeExpandedResource) StateDependencies() []string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResource) EvalTree() EvalNode {
-	var diff *InstanceDiff
 	var provider ResourceProvider
 	var resourceConfig *ResourceConfig
-	var state *InstanceState
 
 	// Build the resource. If we aren't part of a multi-resource, then
 	// we still consider ourselves as count index zero.
@@ -230,6 +229,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		Config:       &resourceConfig,
 		ResourceName: n.Resource.Name,
 		ResourceType: n.Resource.Type,
+		ResourceMode: n.Resource.Mode,
 	})
 
 	// Validate all the provisioners
@@ -258,8 +258,34 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	info := n.instanceInfo()
 	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
 
+	// Each resource mode has its own lifecycle
+	switch n.Resource.Mode {
+	case config.ManagedResourceMode:
+		seq.Nodes = append(
+			seq.Nodes,
+			n.managedResourceEvalNodes(resource, info, resourceConfig)...,
+		)
+	case config.DataResourceMode:
+		seq.Nodes = append(
+			seq.Nodes,
+			n.dataResourceEvalNodes(resource, info, resourceConfig)...,
+		)
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", n.Resource.Mode))
+	}
+
+	return seq
+}
+
+func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource, info *InstanceInfo, resourceConfig *ResourceConfig) []EvalNode {
+	var diff *InstanceDiff
+	var provider ResourceProvider
+	var state *InstanceState
+
+	nodes := make([]EvalNode, 0, 5)
+
 	// Refresh the resource
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
@@ -289,7 +315,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	})
 
 	// Diff the resource
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkPlan},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
@@ -302,6 +328,16 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Name:   n.ProvidedBy()[0],
 					Output: &provider,
 				},
+				// Re-run validation to catch any errors we missed, e.g. type
+				// mismatches on computed values.
+				&EvalValidateResource{
+					Provider:       &provider,
+					Config:         &resourceConfig,
+					ResourceName:   n.Resource.Name,
+					ResourceType:   n.Resource.Type,
+					ResourceMode:   n.Resource.Mode,
+					IgnoreWarnings: true,
+				},
 				&EvalReadState{
 					Name:   n.stateId(),
 					Output: &state,
@@ -309,16 +345,13 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				&EvalDiff{
 					Info:        info,
 					Config:      &resourceConfig,
+					Resource:    n.Resource,
 					Provider:    &provider,
 					State:       &state,
-					Output:      &diff,
+					OutputDiff:  &diff,
 					OutputState: &state,
 				},
 				&EvalCheckPreventDestroy{
-					Resource: n.Resource,
-					Diff:     &diff,
-				},
-				&EvalIgnoreChanges{
 					Resource: n.Resource,
 					Diff:     &diff,
 				},
@@ -329,10 +362,6 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Dependencies: n.StateDependencies(),
 					State:        &state,
 				},
-				&EvalDiffTainted{
-					Diff: &diff,
-					Name: n.stateId(),
-				},
 				&EvalWriteDiff{
 					Name: n.stateId(),
 					Diff: &diff,
@@ -342,7 +371,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	})
 
 	// Diff the resource for destruction
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkPlanDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
@@ -370,10 +399,9 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	// Apply
 	var diffApply *InstanceDiff
 	var err error
-	var createNew, tainted bool
+	var createNew bool
 	var createBeforeDestroyEnabled bool
-	var wasChangeType DiffChangeType
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
@@ -390,12 +418,11 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 							return true, EvalEarlyExitError{}
 						}
 
-						if diffApply.Destroy && len(diffApply.Attributes) == 0 {
+						if diffApply.GetDestroy() && diffApply.GetAttributesLen() == 0 {
 							return true, EvalEarlyExitError{}
 						}
 
-						wasChangeType = diffApply.ChangeType()
-						diffApply.Destroy = false
+						diffApply.SetDestroy(false)
 						return true, nil
 					},
 					Then: EvalNoop{},
@@ -405,7 +432,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					If: func(ctx EvalContext) (bool, error) {
 						destroy := false
 						if diffApply != nil {
-							destroy = diffApply.Destroy || diffApply.RequiresNew()
+							destroy = diffApply.GetDestroy() || diffApply.RequiresNew()
 						}
 
 						createBeforeDestroyEnabled =
@@ -432,18 +459,24 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Name:   n.stateId(),
 					Output: &state,
 				},
-
-				&EvalDiff{
-					Info:     info,
-					Config:   &resourceConfig,
-					Provider: &provider,
-					State:    &state,
-					Output:   &diffApply,
+				// Re-run validation to catch any errors we missed, e.g. type
+				// mismatches on computed values.
+				&EvalValidateResource{
+					Provider:       &provider,
+					Config:         &resourceConfig,
+					ResourceName:   n.Resource.Name,
+					ResourceType:   n.Resource.Type,
+					ResourceMode:   n.Resource.Mode,
+					IgnoreWarnings: true,
 				},
-				&EvalIgnoreChanges{
-					Resource:      n.Resource,
-					Diff:          &diffApply,
-					WasChangeType: &wasChangeType,
+				&EvalDiff{
+					Info:       info,
+					Config:     &resourceConfig,
+					Resource:   n.Resource,
+					Provider:   &provider,
+					Diff:       &diffApply,
+					State:      &state,
+					OutputDiff: &diffApply,
 				},
 
 				// Get the saved diff
@@ -489,20 +522,22 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Resource:       n.Resource,
 					InterpResource: resource,
 					CreateNew:      &createNew,
-					Tainted:        &tainted,
 					Error:          &err,
 				},
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if createBeforeDestroyEnabled {
-							tainted = err != nil
-						}
-
-						failure := tainted || err != nil
-						return createBeforeDestroyEnabled && failure, nil
+						return createBeforeDestroyEnabled && err != nil, nil
 					},
 					Then: &EvalUndeposeState{
-						Name: n.stateId(),
+						Name:  n.stateId(),
+						State: &state,
+					},
+					Else: &EvalWriteState{
+						Name:         n.stateId(),
+						ResourceType: n.Resource.Type,
+						Provider:     n.Resource.Provider,
+						Dependencies: n.StateDependencies(),
+						State:        &state,
 					},
 				},
 
@@ -514,38 +549,6 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Diff: nil,
 				},
 
-				&EvalIf{
-					If: func(ctx EvalContext) (bool, error) {
-						return tainted, nil
-					},
-					Then: &EvalSequence{
-						Nodes: []EvalNode{
-							&EvalWriteStateTainted{
-								Name:         n.stateId(),
-								ResourceType: n.Resource.Type,
-								Provider:     n.Resource.Provider,
-								Dependencies: n.StateDependencies(),
-								State:        &state,
-								Index:        -1,
-							},
-							&EvalIf{
-								If: func(ctx EvalContext) (bool, error) {
-									return !n.Resource.Lifecycle.CreateBeforeDestroy, nil
-								},
-								Then: &EvalClearPrimaryState{
-									Name: n.stateId(),
-								},
-							},
-						},
-					},
-					Else: &EvalWriteState{
-						Name:         n.stateId(),
-						ResourceType: n.Resource.Type,
-						Provider:     n.Resource.Provider,
-						Dependencies: n.StateDependencies(),
-						State:        &state,
-					},
-				},
 				&EvalApplyPost{
 					Info:  info,
 					State: &state,
@@ -556,7 +559,270 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		},
 	})
 
-	return seq
+	return nodes
+}
+
+func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, info *InstanceInfo, resourceConfig *ResourceConfig) []EvalNode {
+	//var diff *InstanceDiff
+	var provider ResourceProvider
+	var config *ResourceConfig
+	var diff *InstanceDiff
+	var state *InstanceState
+
+	nodes := make([]EvalNode, 0, 5)
+
+	// Refresh the resource
+	nodes = append(nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkRefresh},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+
+				// Always destroy the existing state first, since we must
+				// make sure that values from a previous read will not
+				// get interpolated if we end up needing to defer our
+				// loading until apply time.
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state, // state is nil here
+				},
+
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig.Copy(),
+					Resource: resource,
+					Output:   &config,
+				},
+
+				// The rest of this pass can proceed only if there are no
+				// computed values in our config.
+				// (If there are, we'll deal with this during the plan and
+				// apply phases.)
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if config.ComputedKeys != nil && len(config.ComputedKeys) > 0 {
+							return true, EvalEarlyExitError{}
+						}
+
+						return true, nil
+					},
+					Then: EvalNoop{},
+				},
+
+				// The remainder of this pass is the same as running
+				// a "plan" pass immediately followed by an "apply" pass,
+				// populating the state early so it'll be available to
+				// provider configurations that need this data during
+				// refresh/plan.
+
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+
+				&EvalReadDataDiff{
+					Info:        info,
+					Config:      &config,
+					Provider:    &provider,
+					Output:      &diff,
+					OutputState: &state,
+				},
+
+				&EvalReadDataApply{
+					Info:     info,
+					Diff:     &diff,
+					Provider: &provider,
+					Output:   &state,
+				},
+
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state,
+				},
+
+				&EvalUpdateStateHook{},
+			},
+		},
+	})
+
+	// Diff the resource
+	nodes = append(nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkPlan},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
+
+				// We need to re-interpolate the config here because some
+				// of the attributes may have become computed during
+				// earlier planning, due to other resources having
+				// "requires new resource" diffs.
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig.Copy(),
+					Resource: resource,
+					Output:   &config,
+				},
+
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						computed := config.ComputedKeys != nil && len(config.ComputedKeys) > 0
+
+						// If the configuration is complete and we
+						// already have a state then we don't need to
+						// do any further work during apply, because we
+						// already populated the state during refresh.
+						if !computed && state != nil {
+							return true, EvalEarlyExitError{}
+						}
+
+						return true, nil
+					},
+					Then: EvalNoop{},
+				},
+
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+
+				&EvalReadDataDiff{
+					Info:        info,
+					Config:      &config,
+					Provider:    &provider,
+					Output:      &diff,
+					OutputState: &state,
+				},
+
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state,
+				},
+
+				&EvalWriteDiff{
+					Name: n.stateId(),
+					Diff: &diff,
+				},
+			},
+		},
+	})
+
+	// Diff the resource for destruction
+	nodes = append(nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkPlanDestroy},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
+
+				// Since EvalDiffDestroy doesn't interact with the
+				// provider at all, we can safely share the same
+				// implementation for data vs. managed resources.
+				&EvalDiffDestroy{
+					Info:   info,
+					State:  &state,
+					Output: &diff,
+				},
+
+				&EvalWriteDiff{
+					Name: n.stateId(),
+					Diff: &diff,
+				},
+			},
+		},
+	})
+
+	// Apply
+	nodes = append(nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkApply, walkDestroy},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				// Get the saved diff for apply
+				&EvalReadDiff{
+					Name: n.stateId(),
+					Diff: &diff,
+				},
+
+				// Stop here if we don't actually have a diff
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if diff == nil {
+							return true, EvalEarlyExitError{}
+						}
+
+						if diff.GetAttributesLen() == 0 {
+							return true, EvalEarlyExitError{}
+						}
+
+						return true, nil
+					},
+					Then: EvalNoop{},
+				},
+
+				// We need to re-interpolate the config here, rather than
+				// just using the diff's values directly, because we've
+				// potentially learned more variable values during the
+				// apply pass that weren't known when the diff was produced.
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig.Copy(),
+					Resource: resource,
+					Output:   &config,
+				},
+
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+
+				// Make a new diff with our newly-interpolated config.
+				&EvalReadDataDiff{
+					Info:     info,
+					Config:   &config,
+					Previous: &diff,
+					Provider: &provider,
+					Output:   &diff,
+				},
+
+				&EvalReadDataApply{
+					Info:     info,
+					Diff:     &diff,
+					Provider: &provider,
+					Output:   &state,
+				},
+
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state,
+				},
+
+				// Clear the diff now that we've applied it, so
+				// later nodes won't see a diff that's now a no-op.
+				&EvalWriteDiff{
+					Name: n.stateId(),
+					Diff: nil,
+				},
+
+				&EvalUpdateStateHook{},
+			},
+		},
+	})
+
+	return nodes
 }
 
 // instanceInfo is used for EvalTree.
@@ -621,7 +887,7 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 				// If we're not destroying, then compare diffs
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if diffApply != nil && diffApply.Destroy {
+						if diffApply != nil && diffApply.GetDestroy() {
 							return true, nil
 						}
 
@@ -641,13 +907,30 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 				&EvalRequireState{
 					State: &state,
 				},
-				&EvalApply{
-					Info:     info,
-					State:    &state,
-					Diff:     &diffApply,
-					Provider: &provider,
-					Output:   &state,
-					Error:    &err,
+				// Make sure we handle data sources properly.
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if n.Resource.Mode == config.DataResourceMode {
+							return true, nil
+						}
+
+						return false, nil
+					},
+
+					Then: &EvalReadDataApply{
+						Info:     info,
+						Diff:     &diffApply,
+						Provider: &provider,
+						Output:   &state,
+					},
+					Else: &EvalApply{
+						Info:     info,
+						State:    &state,
+						Diff:     &diffApply,
+						Provider: &provider,
+						Output:   &state,
+						Error:    &err,
+					},
 				},
 				&EvalWriteState{
 					Name:         n.stateId(),

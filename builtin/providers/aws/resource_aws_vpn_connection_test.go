@@ -14,9 +14,10 @@ import (
 
 func TestAccAWSVpnConnection_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccAwsVpnConnectionDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpn_connection.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccAwsVpnConnectionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAwsVpnConnectionConfig,
@@ -141,7 +142,7 @@ resource "aws_vpn_gateway" "vpn_gateway" {
 }
 
 resource "aws_customer_gateway" "customer_gateway" {
-  bgp_asn = 60000
+  bgp_asn = 65000
   ip_address = "178.0.0.1"
   type = "ipsec.1"
 }
@@ -163,7 +164,7 @@ resource "aws_vpn_gateway" "vpn_gateway" {
 }
 
 resource "aws_customer_gateway" "customer_gateway" {
-  bgp_asn = 60000
+  bgp_asn = 65000
   ip_address = "178.0.0.1"
   type = "ipsec.1"
 }

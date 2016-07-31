@@ -15,7 +15,28 @@ import (
 
 const opAddPermission = "AddPermission"
 
-// AddPermissionRequest generates a request for the AddPermission operation.
+// AddPermissionRequest generates a "aws/request.Request" representing the
+// client's request for the AddPermission operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddPermission method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddPermissionRequest method.
+//    req, resp := client.AddPermissionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.Request, output *AddPermissionOutput) {
 	op := &request.Operation{
 		Name:       opAddPermission,
@@ -56,7 +77,28 @@ func (c *Lambda) AddPermission(input *AddPermissionInput) (*AddPermissionOutput,
 
 const opCreateAlias = "CreateAlias"
 
-// CreateAliasRequest generates a request for the CreateAlias operation.
+// CreateAliasRequest generates a "aws/request.Request" representing the
+// client's request for the CreateAlias operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateAlias method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateAliasRequest method.
+//    req, resp := client.CreateAliasRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) CreateAliasRequest(input *CreateAliasInput) (req *request.Request, output *AliasConfiguration) {
 	op := &request.Operation{
 		Name:       opCreateAlias,
@@ -87,7 +129,28 @@ func (c *Lambda) CreateAlias(input *CreateAliasInput) (*AliasConfiguration, erro
 
 const opCreateEventSourceMapping = "CreateEventSourceMapping"
 
-// CreateEventSourceMappingRequest generates a request for the CreateEventSourceMapping operation.
+// CreateEventSourceMappingRequest generates a "aws/request.Request" representing the
+// client's request for the CreateEventSourceMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateEventSourceMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateEventSourceMappingRequest method.
+//    req, resp := client.CreateEventSourceMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMappingInput) (req *request.Request, output *EventSourceMappingConfiguration) {
 	op := &request.Operation{
 		Name:       opCreateEventSourceMapping,
@@ -137,7 +200,28 @@ func (c *Lambda) CreateEventSourceMapping(input *CreateEventSourceMappingInput) 
 
 const opCreateFunction = "CreateFunction"
 
-// CreateFunctionRequest generates a request for the CreateFunction operation.
+// CreateFunctionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateFunction operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateFunction method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateFunctionRequest method.
+//    req, resp := client.CreateFunctionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) CreateFunctionRequest(input *CreateFunctionInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opCreateFunction,
@@ -173,7 +257,28 @@ func (c *Lambda) CreateFunction(input *CreateFunctionInput) (*FunctionConfigurat
 
 const opDeleteAlias = "DeleteAlias"
 
-// DeleteAliasRequest generates a request for the DeleteAlias operation.
+// DeleteAliasRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteAlias operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteAlias method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteAliasRequest method.
+//    req, resp := client.DeleteAliasRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Request, output *DeleteAliasOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAlias,
@@ -205,7 +310,28 @@ func (c *Lambda) DeleteAlias(input *DeleteAliasInput) (*DeleteAliasOutput, error
 
 const opDeleteEventSourceMapping = "DeleteEventSourceMapping"
 
-// DeleteEventSourceMappingRequest generates a request for the DeleteEventSourceMapping operation.
+// DeleteEventSourceMappingRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteEventSourceMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteEventSourceMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteEventSourceMappingRequest method.
+//    req, resp := client.DeleteEventSourceMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) DeleteEventSourceMappingRequest(input *DeleteEventSourceMappingInput) (req *request.Request, output *EventSourceMappingConfiguration) {
 	op := &request.Operation{
 		Name:       opDeleteEventSourceMapping,
@@ -236,7 +362,28 @@ func (c *Lambda) DeleteEventSourceMapping(input *DeleteEventSourceMappingInput) 
 
 const opDeleteFunction = "DeleteFunction"
 
-// DeleteFunctionRequest generates a request for the DeleteFunction operation.
+// DeleteFunctionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteFunction operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteFunction method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteFunctionRequest method.
+//    req, resp := client.DeleteFunctionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) DeleteFunctionRequest(input *DeleteFunctionInput) (req *request.Request, output *DeleteFunctionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteFunction,
@@ -277,7 +424,28 @@ func (c *Lambda) DeleteFunction(input *DeleteFunctionInput) (*DeleteFunctionOutp
 
 const opGetAlias = "GetAlias"
 
-// GetAliasRequest generates a request for the GetAlias operation.
+// GetAliasRequest generates a "aws/request.Request" representing the
+// client's request for the GetAlias operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetAlias method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetAliasRequest method.
+//    req, resp := client.GetAliasRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) GetAliasRequest(input *GetAliasInput) (req *request.Request, output *AliasConfiguration) {
 	op := &request.Operation{
 		Name:       opGetAlias,
@@ -308,7 +476,28 @@ func (c *Lambda) GetAlias(input *GetAliasInput) (*AliasConfiguration, error) {
 
 const opGetEventSourceMapping = "GetEventSourceMapping"
 
-// GetEventSourceMappingRequest generates a request for the GetEventSourceMapping operation.
+// GetEventSourceMappingRequest generates a "aws/request.Request" representing the
+// client's request for the GetEventSourceMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetEventSourceMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetEventSourceMappingRequest method.
+//    req, resp := client.GetEventSourceMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) GetEventSourceMappingRequest(input *GetEventSourceMappingInput) (req *request.Request, output *EventSourceMappingConfiguration) {
 	op := &request.Operation{
 		Name:       opGetEventSourceMapping,
@@ -339,7 +528,28 @@ func (c *Lambda) GetEventSourceMapping(input *GetEventSourceMappingInput) (*Even
 
 const opGetFunction = "GetFunction"
 
-// GetFunctionRequest generates a request for the GetFunction operation.
+// GetFunctionRequest generates a "aws/request.Request" representing the
+// client's request for the GetFunction operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetFunction method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetFunctionRequest method.
+//    req, resp := client.GetFunctionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) GetFunctionRequest(input *GetFunctionInput) (req *request.Request, output *GetFunctionOutput) {
 	op := &request.Operation{
 		Name:       opGetFunction,
@@ -378,7 +588,28 @@ func (c *Lambda) GetFunction(input *GetFunctionInput) (*GetFunctionOutput, error
 
 const opGetFunctionConfiguration = "GetFunctionConfiguration"
 
-// GetFunctionConfigurationRequest generates a request for the GetFunctionConfiguration operation.
+// GetFunctionConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the GetFunctionConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetFunctionConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetFunctionConfigurationRequest method.
+//    req, resp := client.GetFunctionConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) GetFunctionConfigurationRequest(input *GetFunctionConfigurationInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opGetFunctionConfiguration,
@@ -417,7 +648,28 @@ func (c *Lambda) GetFunctionConfiguration(input *GetFunctionConfigurationInput) 
 
 const opGetPolicy = "GetPolicy"
 
-// GetPolicyRequest generates a request for the GetPolicy operation.
+// GetPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetPolicyRequest method.
+//    req, resp := client.GetPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, output *GetPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetPolicy,
@@ -453,7 +705,28 @@ func (c *Lambda) GetPolicy(input *GetPolicyInput) (*GetPolicyOutput, error) {
 
 const opInvoke = "Invoke"
 
-// InvokeRequest generates a request for the Invoke operation.
+// InvokeRequest generates a "aws/request.Request" representing the
+// client's request for the Invoke operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the Invoke method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the InvokeRequest method.
+//    req, resp := client.InvokeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output *InvokeOutput) {
 	op := &request.Operation{
 		Name:       opInvoke,
@@ -489,7 +762,28 @@ func (c *Lambda) Invoke(input *InvokeInput) (*InvokeOutput, error) {
 
 const opInvokeAsync = "InvokeAsync"
 
-// InvokeAsyncRequest generates a request for the InvokeAsync operation.
+// InvokeAsyncRequest generates a "aws/request.Request" representing the
+// client's request for the InvokeAsync operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the InvokeAsync method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the InvokeAsyncRequest method.
+//    req, resp := client.InvokeAsyncRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) InvokeAsyncRequest(input *InvokeAsyncInput) (req *request.Request, output *InvokeAsyncOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, InvokeAsync, has been deprecated")
@@ -524,7 +818,28 @@ func (c *Lambda) InvokeAsync(input *InvokeAsyncInput) (*InvokeAsyncOutput, error
 
 const opListAliases = "ListAliases"
 
-// ListAliasesRequest generates a request for the ListAliases operation.
+// ListAliasesRequest generates a "aws/request.Request" representing the
+// client's request for the ListAliases operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListAliases method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListAliasesRequest method.
+//    req, resp := client.ListAliasesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) ListAliasesRequest(input *ListAliasesInput) (req *request.Request, output *ListAliasesOutput) {
 	op := &request.Operation{
 		Name:       opListAliases,
@@ -556,7 +871,28 @@ func (c *Lambda) ListAliases(input *ListAliasesInput) (*ListAliasesOutput, error
 
 const opListEventSourceMappings = "ListEventSourceMappings"
 
-// ListEventSourceMappingsRequest generates a request for the ListEventSourceMappings operation.
+// ListEventSourceMappingsRequest generates a "aws/request.Request" representing the
+// client's request for the ListEventSourceMappings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListEventSourceMappings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListEventSourceMappingsRequest method.
+//    req, resp := client.ListEventSourceMappingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) ListEventSourceMappingsRequest(input *ListEventSourceMappingsInput) (req *request.Request, output *ListEventSourceMappingsOutput) {
 	op := &request.Operation{
 		Name:       opListEventSourceMappings,
@@ -599,6 +935,23 @@ func (c *Lambda) ListEventSourceMappings(input *ListEventSourceMappingsInput) (*
 	return out, err
 }
 
+// ListEventSourceMappingsPages iterates over the pages of a ListEventSourceMappings operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListEventSourceMappings method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListEventSourceMappings operation.
+//    pageNum := 0
+//    err := client.ListEventSourceMappingsPages(params,
+//        func(page *ListEventSourceMappingsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Lambda) ListEventSourceMappingsPages(input *ListEventSourceMappingsInput, fn func(p *ListEventSourceMappingsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListEventSourceMappingsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -609,7 +962,28 @@ func (c *Lambda) ListEventSourceMappingsPages(input *ListEventSourceMappingsInpu
 
 const opListFunctions = "ListFunctions"
 
-// ListFunctionsRequest generates a request for the ListFunctions operation.
+// ListFunctionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListFunctions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListFunctions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListFunctionsRequest method.
+//    req, resp := client.ListFunctionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) ListFunctionsRequest(input *ListFunctionsInput) (req *request.Request, output *ListFunctionsOutput) {
 	op := &request.Operation{
 		Name:       opListFunctions,
@@ -648,6 +1022,23 @@ func (c *Lambda) ListFunctions(input *ListFunctionsInput) (*ListFunctionsOutput,
 	return out, err
 }
 
+// ListFunctionsPages iterates over the pages of a ListFunctions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListFunctions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListFunctions operation.
+//    pageNum := 0
+//    err := client.ListFunctionsPages(params,
+//        func(page *ListFunctionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Lambda) ListFunctionsPages(input *ListFunctionsInput, fn func(p *ListFunctionsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListFunctionsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -658,7 +1049,28 @@ func (c *Lambda) ListFunctionsPages(input *ListFunctionsInput, fn func(p *ListFu
 
 const opListVersionsByFunction = "ListVersionsByFunction"
 
-// ListVersionsByFunctionRequest generates a request for the ListVersionsByFunction operation.
+// ListVersionsByFunctionRequest generates a "aws/request.Request" representing the
+// client's request for the ListVersionsByFunction operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListVersionsByFunction method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListVersionsByFunctionRequest method.
+//    req, resp := client.ListVersionsByFunctionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) ListVersionsByFunctionRequest(input *ListVersionsByFunctionInput) (req *request.Request, output *ListVersionsByFunctionOutput) {
 	op := &request.Operation{
 		Name:       opListVersionsByFunction,
@@ -686,7 +1098,28 @@ func (c *Lambda) ListVersionsByFunction(input *ListVersionsByFunctionInput) (*Li
 
 const opPublishVersion = "PublishVersion"
 
-// PublishVersionRequest generates a request for the PublishVersion operation.
+// PublishVersionRequest generates a "aws/request.Request" representing the
+// client's request for the PublishVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PublishVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PublishVersionRequest method.
+//    req, resp := client.PublishVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) PublishVersionRequest(input *PublishVersionInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opPublishVersion,
@@ -717,7 +1150,28 @@ func (c *Lambda) PublishVersion(input *PublishVersionInput) (*FunctionConfigurat
 
 const opRemovePermission = "RemovePermission"
 
-// RemovePermissionRequest generates a request for the RemovePermission operation.
+// RemovePermissionRequest generates a "aws/request.Request" representing the
+// client's request for the RemovePermission operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemovePermission method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemovePermissionRequest method.
+//    req, resp := client.RemovePermissionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) RemovePermissionRequest(input *RemovePermissionInput) (req *request.Request, output *RemovePermissionOutput) {
 	op := &request.Operation{
 		Name:       opRemovePermission,
@@ -758,7 +1212,28 @@ func (c *Lambda) RemovePermission(input *RemovePermissionInput) (*RemovePermissi
 
 const opUpdateAlias = "UpdateAlias"
 
-// UpdateAliasRequest generates a request for the UpdateAlias operation.
+// UpdateAliasRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateAlias operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateAlias method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateAliasRequest method.
+//    req, resp := client.UpdateAliasRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Request, output *AliasConfiguration) {
 	op := &request.Operation{
 		Name:       opUpdateAlias,
@@ -789,7 +1264,28 @@ func (c *Lambda) UpdateAlias(input *UpdateAliasInput) (*AliasConfiguration, erro
 
 const opUpdateEventSourceMapping = "UpdateEventSourceMapping"
 
-// UpdateEventSourceMappingRequest generates a request for the UpdateEventSourceMapping operation.
+// UpdateEventSourceMappingRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateEventSourceMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateEventSourceMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateEventSourceMappingRequest method.
+//    req, resp := client.UpdateEventSourceMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) UpdateEventSourceMappingRequest(input *UpdateEventSourceMappingInput) (req *request.Request, output *EventSourceMappingConfiguration) {
 	op := &request.Operation{
 		Name:       opUpdateEventSourceMapping,
@@ -832,7 +1328,28 @@ func (c *Lambda) UpdateEventSourceMapping(input *UpdateEventSourceMappingInput) 
 
 const opUpdateFunctionCode = "UpdateFunctionCode"
 
-// UpdateFunctionCodeRequest generates a request for the UpdateFunctionCode operation.
+// UpdateFunctionCodeRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateFunctionCode operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateFunctionCode method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateFunctionCodeRequest method.
+//    req, resp := client.UpdateFunctionCodeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) UpdateFunctionCodeRequest(input *UpdateFunctionCodeInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opUpdateFunctionCode,
@@ -867,7 +1384,28 @@ func (c *Lambda) UpdateFunctionCode(input *UpdateFunctionCodeInput) (*FunctionCo
 
 const opUpdateFunctionConfiguration = "UpdateFunctionConfiguration"
 
-// UpdateFunctionConfigurationRequest generates a request for the UpdateFunctionConfiguration operation.
+// UpdateFunctionConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateFunctionConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateFunctionConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateFunctionConfigurationRequest method.
+//    req, resp := client.UpdateFunctionConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Lambda) UpdateFunctionConfigurationRequest(input *UpdateFunctionConfigurationInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opUpdateFunctionConfiguration,
@@ -910,6 +1448,8 @@ type AddPermissionInput struct {
 	// For example, lambda:CreateFunction. You can use wildcard (lambda:*) to grant
 	// permission for all AWS Lambda actions.
 	Action *string `type:"string" required:"true"`
+
+	EventSourceToken *string `type:"string"`
 
 	// Name of the Lambda function whose resource policy you are updating by adding
 	// a new permission.
@@ -979,6 +1519,37 @@ func (s AddPermissionInput) String() string {
 // GoString returns the string representation
 func (s AddPermissionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddPermissionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddPermissionInput"}
+	if s.Action == nil {
+		invalidParams.Add(request.NewErrParamRequired("Action"))
+	}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Principal == nil {
+		invalidParams.Add(request.NewErrParamRequired("Principal"))
+	}
+	if s.Qualifier != nil && len(*s.Qualifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Qualifier", 1))
+	}
+	if s.StatementId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatementId"))
+	}
+	if s.StatementId != nil && len(*s.StatementId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatementId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AddPermissionOutput struct {
@@ -1055,6 +1626,34 @@ func (s CreateAliasInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateAliasInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateAliasInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.FunctionVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionVersion"))
+	}
+	if s.FunctionVersion != nil && len(*s.FunctionVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionVersion", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateEventSourceMappingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1105,6 +1704,31 @@ func (s CreateEventSourceMappingInput) String() string {
 // GoString returns the string representation
 func (s CreateEventSourceMappingInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateEventSourceMappingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateEventSourceMappingInput"}
+	if s.BatchSize != nil && *s.BatchSize < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("BatchSize", 1))
+	}
+	if s.EventSourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("EventSourceArn"))
+	}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.StartingPosition == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartingPosition"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateFunctionInput struct {
@@ -1170,6 +1794,45 @@ func (s CreateFunctionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateFunctionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateFunctionInput"}
+	if s.Code == nil {
+		invalidParams.Add(request.NewErrParamRequired("Code"))
+	}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Handler == nil {
+		invalidParams.Add(request.NewErrParamRequired("Handler"))
+	}
+	if s.MemorySize != nil && *s.MemorySize < 128 {
+		invalidParams.Add(request.NewErrParamMinValue("MemorySize", 128))
+	}
+	if s.Role == nil {
+		invalidParams.Add(request.NewErrParamRequired("Role"))
+	}
+	if s.Runtime == nil {
+		invalidParams.Add(request.NewErrParamRequired("Runtime"))
+	}
+	if s.Timeout != nil && *s.Timeout < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Timeout", 1))
+	}
+	if s.Code != nil {
+		if err := s.Code.Validate(); err != nil {
+			invalidParams.AddNested("Code", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1189,6 +1852,28 @@ func (s DeleteAliasInput) String() string {
 // GoString returns the string representation
 func (s DeleteAliasInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteAliasInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteAliasInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteAliasOutput struct {
@@ -1220,6 +1905,19 @@ func (s DeleteEventSourceMappingInput) String() string {
 // GoString returns the string representation
 func (s DeleteEventSourceMappingInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteEventSourceMappingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteEventSourceMappingInput"}
+	if s.UUID == nil {
+		invalidParams.Add(request.NewErrParamRequired("UUID"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteFunctionInput struct {
@@ -1261,6 +1959,25 @@ func (s DeleteFunctionInput) String() string {
 // GoString returns the string representation
 func (s DeleteFunctionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteFunctionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteFunctionInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Qualifier != nil && len(*s.Qualifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Qualifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteFunctionOutput struct {
@@ -1354,6 +2071,25 @@ func (s FunctionCode) String() string {
 // GoString returns the string representation
 func (s FunctionCode) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *FunctionCode) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "FunctionCode"}
+	if s.S3Bucket != nil && len(*s.S3Bucket) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("S3Bucket", 3))
+	}
+	if s.S3Key != nil && len(*s.S3Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("S3Key", 1))
+	}
+	if s.S3ObjectVersion != nil && len(*s.S3ObjectVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("S3ObjectVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The object for the Lambda function location.
@@ -1458,6 +2194,28 @@ func (s GetAliasInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetAliasInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetAliasInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GetEventSourceMappingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1473,6 +2231,19 @@ func (s GetEventSourceMappingInput) String() string {
 // GoString returns the string representation
 func (s GetEventSourceMappingInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetEventSourceMappingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetEventSourceMappingInput"}
+	if s.UUID == nil {
+		invalidParams.Add(request.NewErrParamRequired("UUID"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type GetFunctionConfigurationInput struct {
@@ -1509,6 +2280,25 @@ func (s GetFunctionConfigurationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetFunctionConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetFunctionConfigurationInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Qualifier != nil && len(*s.Qualifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Qualifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GetFunctionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1539,6 +2329,25 @@ func (s GetFunctionInput) String() string {
 // GoString returns the string representation
 func (s GetFunctionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetFunctionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetFunctionInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Qualifier != nil && len(*s.Qualifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Qualifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // This response contains the object for the Lambda function location (see API_FunctionCodeLocation.
@@ -1594,6 +2403,25 @@ func (s GetPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetPolicyInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Qualifier != nil && len(*s.Qualifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Qualifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GetPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1631,6 +2459,25 @@ func (s InvokeAsyncInput) String() string {
 // GoString returns the string representation
 func (s InvokeAsyncInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InvokeAsyncInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InvokeAsyncInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.InvokeArgs == nil {
+		invalidParams.Add(request.NewErrParamRequired("InvokeArgs"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Upon success, it returns empty response. Otherwise, throws an exception.
@@ -1711,6 +2558,25 @@ func (s InvokeInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InvokeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InvokeInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Qualifier != nil && len(*s.Qualifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Qualifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Upon success, returns an empty response. Otherwise, throws an exception.
 type InvokeOutput struct {
 	_ struct{} `type:"structure" payload:"Payload"`
@@ -1783,6 +2649,28 @@ func (s ListAliasesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListAliasesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListAliasesInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.FunctionVersion != nil && len(*s.FunctionVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionVersion", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ListAliasesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1841,6 +2729,22 @@ func (s ListEventSourceMappingsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListEventSourceMappingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListEventSourceMappingsInput"}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains a list of event sources (see API_EventSourceMappingConfiguration)
 type ListEventSourceMappingsOutput struct {
 	_ struct{} `type:"structure"`
@@ -1882,6 +2786,19 @@ func (s ListFunctionsInput) String() string {
 // GoString returns the string representation
 func (s ListFunctionsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListFunctionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListFunctionsInput"}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains a list of AWS Lambda function configurations (see FunctionConfiguration.
@@ -1933,6 +2850,25 @@ func (s ListVersionsByFunctionInput) String() string {
 // GoString returns the string representation
 func (s ListVersionsByFunctionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListVersionsByFunctionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListVersionsByFunctionInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ListVersionsByFunctionOutput struct {
@@ -1987,6 +2923,22 @@ func (s PublishVersionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PublishVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PublishVersionInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RemovePermissionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2017,6 +2969,31 @@ func (s RemovePermissionInput) String() string {
 // GoString returns the string representation
 func (s RemovePermissionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemovePermissionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemovePermissionInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.Qualifier != nil && len(*s.Qualifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Qualifier", 1))
+	}
+	if s.StatementId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatementId"))
+	}
+	if s.StatementId != nil && len(*s.StatementId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatementId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RemovePermissionOutput struct {
@@ -2060,6 +3037,31 @@ func (s UpdateAliasInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateAliasInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateAliasInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.FunctionVersion != nil && len(*s.FunctionVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionVersion", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateEventSourceMappingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2098,6 +3100,25 @@ func (s UpdateEventSourceMappingInput) String() string {
 // GoString returns the string representation
 func (s UpdateEventSourceMappingInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateEventSourceMappingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateEventSourceMappingInput"}
+	if s.BatchSize != nil && *s.BatchSize < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("BatchSize", 1))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.UUID == nil {
+		invalidParams.Add(request.NewErrParamRequired("UUID"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UpdateFunctionCodeInput struct {
@@ -2143,6 +3164,31 @@ func (s UpdateFunctionCodeInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateFunctionCodeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateFunctionCodeInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.S3Bucket != nil && len(*s.S3Bucket) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("S3Bucket", 3))
+	}
+	if s.S3Key != nil && len(*s.S3Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("S3Key", 1))
+	}
+	if s.S3ObjectVersion != nil && len(*s.S3ObjectVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("S3ObjectVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2175,6 +3221,8 @@ type UpdateFunctionConfigurationInput struct {
 	// it executes your function.
 	Role *string `type:"string"`
 
+	Runtime *string `type:"string" enum:"Runtime"`
+
 	// The function execution time at which AWS Lambda should terminate the function.
 	// Because the execution time has cost implications, we recommend you set this
 	// value based on your expected execution time. The default is 3 seconds.
@@ -2195,6 +3243,28 @@ func (s UpdateFunctionConfigurationInput) String() string {
 // GoString returns the string representation
 func (s UpdateFunctionConfigurationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateFunctionConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateFunctionConfigurationInput"}
+	if s.FunctionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FunctionName"))
+	}
+	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
+	}
+	if s.MemorySize != nil && *s.MemorySize < 128 {
+		invalidParams.Add(request.NewErrParamMinValue("MemorySize", 128))
+	}
+	if s.Timeout != nil && *s.Timeout < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Timeout", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // If your Lambda function accesses resources in a VPC, you provide this parameter
@@ -2271,6 +3341,8 @@ const (
 const (
 	// @enum Runtime
 	RuntimeNodejs = "nodejs"
+	// @enum Runtime
+	RuntimeNodejs43 = "nodejs4.3"
 	// @enum Runtime
 	RuntimeJava8 = "java8"
 	// @enum Runtime

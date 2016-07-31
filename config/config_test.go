@@ -86,6 +86,31 @@ func TestConfigCount_var(t *testing.T) {
 	}
 }
 
+func TestConfig_emptyCollections(t *testing.T) {
+	c := testConfig(t, "empty-collections")
+	if len(c.Variables) != 3 {
+		t.Fatalf("bad: expected 3 variables, got %d", len(c.Variables))
+	}
+	for _, variable := range c.Variables {
+		switch variable.Name {
+		case "empty_string":
+			if variable.Default != "" {
+				t.Fatalf("bad: wrong default %q for variable empty_string", variable.Default)
+			}
+		case "empty_map":
+			if !reflect.DeepEqual(variable.Default, map[string]interface{}{}) {
+				t.Fatalf("bad: wrong default %#v for variable empty_map", variable.Default)
+			}
+		case "empty_list":
+			if !reflect.DeepEqual(variable.Default, []interface{}{}) {
+				t.Fatalf("bad: wrong default %#v for variable empty_list", variable.Default)
+			}
+		default:
+			t.Fatalf("Unexpected variable: %s", variable.Name)
+		}
+	}
+}
+
 func TestConfigValidate(t *testing.T) {
 	c := testConfig(t, "validate-good")
 	if err := c.Validate(); err != nil {
@@ -216,8 +241,15 @@ func TestConfigValidate_moduleVarInt(t *testing.T) {
 
 func TestConfigValidate_moduleVarMap(t *testing.T) {
 	c := testConfig(t, "validate-module-var-map")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should be invalid")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
+	}
+}
+
+func TestConfigValidate_moduleVarList(t *testing.T) {
+	c := testConfig(t, "validate-module-var-list")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
 	}
 }
 
@@ -368,10 +400,10 @@ func TestConfigValidate_varDefault(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_varDefaultBadType(t *testing.T) {
-	c := testConfig(t, "validate-var-default-bad-type")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
+func TestConfigValidate_varDefaultListType(t *testing.T) {
+	c := testConfig(t, "validate-var-default-list-type")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
 	}
 }
 
@@ -455,43 +487,6 @@ func TestProviderConfigName(t *testing.T) {
 	n := ProviderConfigName("aws_instance", pcs)
 	if n != "aws" {
 		t.Fatalf("bad: %s", n)
-	}
-}
-
-func TestVariableDefaultsMap(t *testing.T) {
-	cases := []struct {
-		Default interface{}
-		Output  map[string]string
-	}{
-		{
-			nil,
-			nil,
-		},
-
-		{
-			"foo",
-			map[string]string{"var.foo": "foo"},
-		},
-
-		{
-			map[interface{}]interface{}{
-				"foo": "bar",
-				"bar": "baz",
-			},
-			map[string]string{
-				"var.foo":     "foo",
-				"var.foo.foo": "bar",
-				"var.foo.bar": "baz",
-			},
-		},
-	}
-
-	for i, tc := range cases {
-		v := &Variable{Name: "foo", Default: tc.Default}
-		actual := v.DefaultsMap()
-		if !reflect.DeepEqual(actual, tc.Output) {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
 	}
 }
 

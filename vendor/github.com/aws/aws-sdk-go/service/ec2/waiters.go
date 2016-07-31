@@ -493,7 +493,7 @@ func (c *EC2) WaitUntilNatGatewayAvailable(input *DescribeNatGatewaysInput) erro
 				State:    "retry",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidNatGatewayIDNotFound",
+				Expected: "NatGatewayNotFound",
 			},
 		},
 	}
@@ -522,7 +522,7 @@ func (c *EC2) WaitUntilNetworkInterfaceAvailable(input *DescribeNetworkInterface
 				State:    "failure",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidNetworkInterfaceIDNotFound",
+				Expected: "InvalidNetworkInterfaceID.NotFound",
 			},
 		},
 	}
@@ -772,6 +772,35 @@ func (c *EC2) WaitUntilVpcAvailable(input *DescribeVpcsInput) error {
 				Matcher:  "pathAll",
 				Argument: "Vpcs[].State",
 				Expected: "available",
+			},
+		},
+	}
+
+	w := waiter.Waiter{
+		Client: c,
+		Input:  input,
+		Config: waiterCfg,
+	}
+	return w.Wait()
+}
+
+func (c *EC2) WaitUntilVpcExists(input *DescribeVpcsInput) error {
+	waiterCfg := waiter.Config{
+		Operation:   "DescribeVpcs",
+		Delay:       1,
+		MaxAttempts: 5,
+		Acceptors: []waiter.WaitAcceptor{
+			{
+				State:    "success",
+				Matcher:  "status",
+				Argument: "",
+				Expected: 200,
+			},
+			{
+				State:    "retry",
+				Matcher:  "error",
+				Argument: "",
+				Expected: "InvalidVpcID.NotFound",
 			},
 		},
 	}

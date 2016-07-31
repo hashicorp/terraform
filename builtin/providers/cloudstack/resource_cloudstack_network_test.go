@@ -50,6 +50,35 @@ func TestAccCloudStackNetwork_vpc(t *testing.T) {
 	})
 }
 
+func TestAccCloudStackNetwork_updateACL(t *testing.T) {
+	var network cloudstack.Network
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudStackNetworkDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCloudStackNetwork_acl,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackNetworkExists(
+						"cloudstack_network.foo", &network),
+					testAccCheckCloudStackNetworkVPCAttributes(&network),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCloudStackNetwork_updateACL,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackNetworkExists(
+						"cloudstack_network.foo", &network),
+					testAccCheckCloudStackNetworkVPCAttributes(&network),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCloudStackNetworkExists(
 	n string, network *cloudstack.Network) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -186,6 +215,60 @@ resource "cloudstack_network" "foo" {
 	cidr = "%s"
 	network_offering = "%s"
 	vpc_id = "${cloudstack_vpc.foobar.id}"
+	zone = "${cloudstack_vpc.foobar.zone}"
+}`,
+	CLOUDSTACK_VPC_CIDR_1,
+	CLOUDSTACK_VPC_OFFERING,
+	CLOUDSTACK_ZONE,
+	CLOUDSTACK_VPC_NETWORK_CIDR,
+	CLOUDSTACK_VPC_NETWORK_OFFERING)
+
+var testAccCloudStackNetwork_acl = fmt.Sprintf(`
+resource "cloudstack_vpc" "foobar" {
+	name = "terraform-vpc"
+	cidr = "%s"
+	vpc_offering = "%s"
+	zone = "%s"
+}
+
+resource "cloudstack_network_acl" "foo" {
+	name = "foo"
+	vpc_id = "${cloudstack_vpc.foobar.id}"
+}
+
+resource "cloudstack_network" "foo" {
+	name = "terraform-network"
+	cidr = "%s"
+	network_offering = "%s"
+	vpc_id = "${cloudstack_vpc.foobar.id}"
+	acl_id = "${cloudstack_network_acl.foo.id}"
+	zone = "${cloudstack_vpc.foobar.zone}"
+}`,
+	CLOUDSTACK_VPC_CIDR_1,
+	CLOUDSTACK_VPC_OFFERING,
+	CLOUDSTACK_ZONE,
+	CLOUDSTACK_VPC_NETWORK_CIDR,
+	CLOUDSTACK_VPC_NETWORK_OFFERING)
+
+var testAccCloudStackNetwork_updateACL = fmt.Sprintf(`
+resource "cloudstack_vpc" "foobar" {
+	name = "terraform-vpc"
+	cidr = "%s"
+	vpc_offering = "%s"
+	zone = "%s"
+}
+
+resource "cloudstack_network_acl" "bar" {
+	name = "bar"
+	vpc_id = "${cloudstack_vpc.foobar.id}"
+}
+
+resource "cloudstack_network" "foo" {
+	name = "terraform-network"
+	cidr = "%s"
+	network_offering = "%s"
+	vpc_id = "${cloudstack_vpc.foobar.id}"
+	acl_id = "${cloudstack_network_acl.bar.id}"
 	zone = "${cloudstack_vpc.foobar.zone}"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,

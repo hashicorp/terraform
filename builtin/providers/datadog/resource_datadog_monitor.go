@@ -1,12 +1,12 @@
 package datadog
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 
-	"encoding/json"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/zorkian/go-datadog-api"
 )
@@ -92,6 +92,14 @@ func resourceDatadogMonitor() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
+			"require_full_window": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"locked": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			// TODO should actually be map[string]int
 			"silenced": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -135,7 +143,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		}
 		o.Silenced = s
 	}
-	if attr, ok := d.GetOk("notify_data"); ok {
+	if attr, ok := d.GetOk("notify_no_data"); ok {
 		o.NotifyNoData = attr.(bool)
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
@@ -153,11 +161,14 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 	if attr, ok := d.GetOk("escalation_message"); ok {
 		o.EscalationMessage = attr.(string)
 	}
-	if attr, ok := d.GetOk("escalation_message"); ok {
-		o.EscalationMessage = attr.(string)
-	}
 	if attr, ok := d.GetOk("include_tags"); ok {
 		o.IncludeTags = attr.(bool)
+	}
+	if attr, ok := d.GetOk("require_full_window"); ok {
+		o.RequireFullWindow = attr.(bool)
+	}
+	if attr, ok := d.GetOk("locked"); ok {
+		o.Locked = attr.(bool)
 	}
 
 	m := datadog.Monitor{
@@ -226,13 +237,15 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("type", m.Type)
 	d.Set("thresholds", m.Options.Thresholds)
 	d.Set("notify_no_data", m.Options.NotifyNoData)
-	d.Set("notify_no_data_timeframe", m.Options.NoDataTimeframe)
+	d.Set("no_data_timeframe", m.Options.NoDataTimeframe)
 	d.Set("renotify_interval", m.Options.RenotifyInterval)
 	d.Set("notify_audit", m.Options.NotifyAudit)
 	d.Set("timeout_h", m.Options.TimeoutH)
 	d.Set("escalation_message", m.Options.EscalationMessage)
 	d.Set("silenced", m.Options.Silenced)
 	d.Set("include_tags", m.Options.IncludeTags)
+	d.Set("require_full_window", m.Options.RequireFullWindow)
+	d.Set("locked", m.Options.Locked)
 
 	return nil
 }
@@ -275,7 +288,7 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	if attr, ok := d.GetOk("notify_no_data"); ok {
 		o.NotifyNoData = attr.(bool)
 	}
-	if attr, ok := d.GetOk("notify_no_data_timeframe"); ok {
+	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = attr.(int)
 	}
 	if attr, ok := d.GetOk("renotify_interval"); ok {
@@ -300,6 +313,12 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 	if attr, ok := d.GetOk("include_tags"); ok {
 		o.IncludeTags = attr.(bool)
+	}
+	if attr, ok := d.GetOk("require_full_window"); ok {
+		o.RequireFullWindow = attr.(bool)
+	}
+	if attr, ok := d.GetOk("locked"); ok {
+		o.Locked = attr.(bool)
 	}
 
 	m.Options = o

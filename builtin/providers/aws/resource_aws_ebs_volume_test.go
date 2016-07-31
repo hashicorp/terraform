@@ -13,8 +13,9 @@ import (
 func TestAccAWSEBSVolume_basic(t *testing.T) {
 	var v ec2.Volume
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_ebs_volume.test",
+		Providers:     testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAwsEbsVolumeConfig,
@@ -45,8 +46,9 @@ func TestAccAWSEBSVolume_NoIops(t *testing.T) {
 func TestAccAWSEBSVolume_withTags(t *testing.T) {
 	var v ec2.Volume
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_ebs_volume.tags_test",
+		Providers:     testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAwsEbsVolumeConfigWithTags,

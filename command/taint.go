@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // TaintCommand is a cli.Command implementation that manually taints
@@ -41,6 +43,17 @@ func (c *TaintCommand) Run(args []string) int {
 		module = "root"
 	} else {
 		module = "root." + module
+	}
+
+	rsk, err := terraform.ParseResourceStateKey(name)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to parse resource name: %s", err))
+		return 1
+	}
+
+	if !rsk.Mode.Taintable() {
+		c.Ui.Error(fmt.Sprintf("Resource '%s' cannot be tainted", name))
+		return 1
 	}
 
 	// Get the state that we'll be modifying

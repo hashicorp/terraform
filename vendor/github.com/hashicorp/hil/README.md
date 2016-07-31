@@ -72,7 +72,7 @@ docs, we'll assume you're within `${}`.
     `add(1, var.foo)` or even nested function calls:
     `add(1, get("some value"))`. 
 
-  * Witin strings, further interpolations can be opened with `${}`.
+  * Within strings, further interpolations can be opened with `${}`.
     Example: `"Hello ${nested}"`. A full example including the 
     original `${}` (remember this list assumes were inside of one
     already) could be: `foo ${func("hello ${var.foo}")}`. 

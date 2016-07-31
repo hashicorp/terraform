@@ -6,10 +6,12 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -475,7 +477,7 @@ func TestExpandParameters(t *testing.T) {
 	}
 }
 
-func TestexpandRedshiftParameters(t *testing.T) {
+func TestExpandRedshiftParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":  "character_set_client",
@@ -500,7 +502,7 @@ func TestexpandRedshiftParameters(t *testing.T) {
 	}
 }
 
-func TestexpandElasticacheParameters(t *testing.T) {
+func TestExpandElasticacheParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "activerehashing",
@@ -582,7 +584,7 @@ func TestFlattenParameters(t *testing.T) {
 	}
 }
 
-func TestflattenRedshiftParameters(t *testing.T) {
+func TestFlattenRedshiftParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*redshift.Parameter
 		Output []map[string]interface{}
@@ -611,7 +613,7 @@ func TestflattenRedshiftParameters(t *testing.T) {
 	}
 }
 
-func TestflattenElasticacheParameters(t *testing.T) {
+func TestFlattenElasticacheParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*elasticache.Parameter
 		Output []map[string]interface{}
@@ -755,7 +757,24 @@ func TestFlattenAttachment(t *testing.T) {
 	}
 }
 
-func TestflattenStepAdjustments(t *testing.T) {
+func TestFlattenAttachmentWhenNoInstanceId(t *testing.T) {
+	expanded := &ec2.NetworkInterfaceAttachment{
+		DeviceIndex:  aws.Int64(int64(1)),
+		AttachmentId: aws.String("at-002"),
+	}
+
+	result := flattenAttachment(expanded)
+
+	if result == nil {
+		t.Fatal("expected result to have value, but got nil")
+	}
+
+	if result["instance"] != nil {
+		t.Fatalf("expected instance to be nil, but got %s", result["instance"])
+	}
+}
+
+func TestFlattenStepAdjustments(t *testing.T) {
 	expanded := []*autoscaling.StepAdjustment{
 		&autoscaling.StepAdjustment{
 			MetricIntervalLowerBound: aws.Float64(1.0),
@@ -818,6 +837,27 @@ func TestFlattenAsgEnabledMetrics(t *testing.T) {
 
 	if result[1] != "GroupMaxSize" {
 		t.Fatalf("expected id to be GroupMaxSize, but was %s", result[1])
+	}
+}
+
+func TestFlattenKinesisShardLevelMetrics(t *testing.T) {
+	expanded := []*kinesis.EnhancedMetrics{
+		&kinesis.EnhancedMetrics{
+			ShardLevelMetrics: []*string{
+				aws.String("IncomingBytes"),
+				aws.String("IncomingRecords"),
+			},
+		},
+	}
+	result := flattenKinesisShardLevelMetrics(expanded)
+	if len(result) != 2 {
+		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
+	}
+	if result[0] != "IncomingBytes" {
+		t.Fatalf("expected element 0 to be IncomingBytes, but was %s", result[0])
+	}
+	if result[1] != "IncomingRecords" {
+		t.Fatalf("expected element 0 to be IncomingRecords, but was %s", result[1])
 	}
 }
 
@@ -899,6 +939,76 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		out := flattenSecurityGroups(c.pairs, c.ownerId)
 		if !reflect.DeepEqual(out, c.expected) {
 			t.Fatalf("Error matching output and expected: %#v vs %#v", out, c.expected)
+		}
+	}
+}
+
+func TestFlattenApiGatewayThrottleSettings(t *testing.T) {
+	expectedBurstLimit := int64(140)
+	expectedRateLimit := 120.0
+
+	ts := &apigateway.ThrottleSettings{
+		BurstLimit: aws.Int64(expectedBurstLimit),
+		RateLimit:  aws.Float64(expectedRateLimit),
+	}
+	result := flattenApiGatewayThrottleSettings(ts)
+
+	if len(result) != 1 {
+		t.Fatalf("Expected map to have exactly 1 element, got %d", len(result))
+	}
+
+	burstLimit, ok := result[0]["burst_limit"]
+	if !ok {
+		t.Fatal("Expected 'burst_limit' key in the map")
+	}
+	burstLimitInt, ok := burstLimit.(int64)
+	if !ok {
+		t.Fatal("Expected 'burst_limit' to be int")
+	}
+	if burstLimitInt != expectedBurstLimit {
+		t.Fatalf("Expected 'burst_limit' to equal %d, got %d", expectedBurstLimit, burstLimitInt)
+	}
+
+	rateLimit, ok := result[0]["rate_limit"]
+	if !ok {
+		t.Fatal("Expected 'rate_limit' key in the map")
+	}
+	rateLimitFloat, ok := rateLimit.(float64)
+	if !ok {
+		t.Fatal("Expected 'rate_limit' to be float64")
+	}
+	if rateLimitFloat != expectedRateLimit {
+		t.Fatalf("Expected 'rate_limit' to equal %f, got %f", expectedRateLimit, rateLimitFloat)
+	}
+}
+
+func TestFlattenApiGatewayStageKeys(t *testing.T) {
+	cases := []struct {
+		Input  []*string
+		Output []map[string]interface{}
+	}{
+		{
+			Input: []*string{
+				aws.String("a1b2c3d4e5/dev"),
+				aws.String("e5d4c3b2a1/test"),
+			},
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"stage_name":  "dev",
+					"rest_api_id": "a1b2c3d4e5",
+				},
+				map[string]interface{}{
+					"stage_name":  "test",
+					"rest_api_id": "e5d4c3b2a1",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenApiGatewayStageKeys(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
 	}
 }

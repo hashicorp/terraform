@@ -29,7 +29,7 @@ func TestAccAWSElasticacheParameterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_elasticache_parameter_group.bar", "family", "redis2.8"),
 					resource.TestCheckResourceAttr(
-						"aws_elasticache_parameter_group.bar", "description", "Test parameter group for terraform"),
+						"aws_elasticache_parameter_group.bar", "description", "Managed by Terraform"),
 					resource.TestCheckResourceAttr(
 						"aws_elasticache_parameter_group.bar", "parameter.283487565.name", "appendonly"),
 					resource.TestCheckResourceAttr(
@@ -78,8 +78,6 @@ func TestAccAWSElasticacheParameterGroupOnly(t *testing.T) {
 						"aws_elasticache_parameter_group.bar", "name", "parameter-group-test-terraform"),
 					resource.TestCheckResourceAttr(
 						"aws_elasticache_parameter_group.bar", "family", "redis2.8"),
-					resource.TestCheckResourceAttr(
-						"aws_elasticache_parameter_group.bar", "description", "Test parameter group for terraform"),
 				),
 			},
 		},
@@ -131,10 +129,6 @@ func testAccCheckAWSElasticacheParameterGroupAttributes(v *elasticache.CachePara
 			return fmt.Errorf("bad family: %#v", v.CacheParameterGroupFamily)
 		}
 
-		if *v.Description != "Test parameter group for terraform" {
-			return fmt.Errorf("bad description: %#v", v.Description)
-		}
-
 		return nil
 	}
 }
@@ -177,7 +171,6 @@ const testAccAWSElasticacheParameterGroupConfig = `
 resource "aws_elasticache_parameter_group" "bar" {
 	name = "parameter-group-test-terraform"
 	family = "redis2.8"
-	description = "Test parameter group for terraform"
 	parameter {
 	  name = "appendonly"
 	  value = "yes"

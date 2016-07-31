@@ -103,6 +103,40 @@ func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
 	})
 }
 
+func TestAccDigitalOceanDroplet_UpdateTags(t *testing.T) {
+	var afterCreate, afterUpdate godo.Droplet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterCreate),
+					testAccCheckDigitalOceanDropletAttributes(&afterCreate),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_tag_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterUpdate),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar",
+						"tags.#",
+						"1"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar",
+						"tags.0",
+						"barbaz"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDigitalOceanDroplet_PrivateNetworkingIpv6(t *testing.T) {
 	var droplet godo.Droplet
 
@@ -306,6 +340,27 @@ resource "digitalocean_droplet" "foobar" {
   region    = "nyc3"
   user_data = "foobar"
   ssh_keys  = ["${digitalocean_ssh_key.foobar.id}"]
+}
+`, testAccValidPublicKey)
+
+var testAccCheckDigitalOceanDropletConfig_tag_update = fmt.Sprintf(`
+resource "digitalocean_tag" "barbaz" {
+  name       = "barbaz"
+}
+
+resource "digitalocean_ssh_key" "foobar" {
+  name       = "foobar"
+  public_key = "%s"
+}
+
+resource "digitalocean_droplet" "foobar" {
+  name      = "foo"
+  size      = "512mb"
+  image     = "centos-5-8-x32"
+  region    = "nyc3"
+  user_data = "foobar"
+  ssh_keys  = ["${digitalocean_ssh_key.foobar.id}"]
+  tags  = ["${digitalocean_tag.barbaz.id}"]
 }
 `, testAccValidPublicKey)
 

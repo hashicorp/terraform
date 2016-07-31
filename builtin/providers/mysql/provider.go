@@ -17,12 +17,28 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("MYSQL_ENDPOINT", nil),
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if value == "" {
+						errors = append(errors, fmt.Errorf("Endpoint must not be an empty string"))
+					}
+
+					return
+				},
 			},
 
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("MYSQL_USERNAME", nil),
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if value == "" {
+						errors = append(errors, fmt.Errorf("Username must not be an empty string"))
+					}
+
+					return
+				},
 			},
 
 			"password": &schema.Schema{
@@ -34,6 +50,8 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"mysql_database": resourceDatabase(),
+			"mysql_user":     resourceUser(),
+			"mysql_grant":    resourceGrant(),
 		},
 
 		ConfigureFunc: providerConfigure,

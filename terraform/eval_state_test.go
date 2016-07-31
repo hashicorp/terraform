@@ -88,21 +88,6 @@ func TestEvalReadState(t *testing.T) {
 			},
 			ExpectedInstanceId: "i-abc123",
 		},
-		"ReadStateTainted gets tainted instance": {
-			Resources: map[string]*ResourceState{
-				"aws_instance.bar": &ResourceState{
-					Tainted: []*InstanceState{
-						&InstanceState{ID: "i-abc123"},
-					},
-				},
-			},
-			Node: &EvalReadStateTainted{
-				Name:   "aws_instance.bar",
-				Output: &output,
-				Index:  0,
-			},
-			ExpectedInstanceId: "i-abc123",
-		},
 		"ReadStateDeposed gets deposed instance": {
 			Resources: map[string]*ResourceState{
 				"aws_instance.bar": &ResourceState{
@@ -172,32 +157,6 @@ func TestEvalWriteState(t *testing.T) {
 	checkStateString(t, state, `
 restype.resname:
   ID = i-abc123
-	`)
-}
-
-func TestEvalWriteStateTainted(t *testing.T) {
-	state := &State{}
-	ctx := new(MockEvalContext)
-	ctx.StateState = state
-	ctx.StateLock = new(sync.RWMutex)
-	ctx.PathPath = rootModulePath
-
-	is := &InstanceState{ID: "i-abc123"}
-	node := &EvalWriteStateTainted{
-		Name:         "restype.resname",
-		ResourceType: "restype",
-		State:        &is,
-		Index:        -1,
-	}
-	_, err := node.Eval(ctx)
-	if err != nil {
-		t.Fatalf("Got err: %#v", err)
-	}
-
-	checkStateString(t, state, `
-restype.resname: (1 tainted)
-  ID = <not created>
-  Tainted ID 1 = i-abc123
 	`)
 }
 

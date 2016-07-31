@@ -159,6 +159,20 @@ func autoscalingTagDescriptionsToMap(ts *[]*autoscaling.TagDescription) map[stri
 	return tags
 }
 
+// autoscalingTagDescriptionsToSlice turns the list of tags into a slice.
+func autoscalingTagDescriptionsToSlice(ts []*autoscaling.TagDescription) []map[string]interface{} {
+	tags := make([]map[string]interface{}, 0, len(ts))
+	for _, t := range ts {
+		tags = append(tags, map[string]interface{}{
+			"key":                 *t.Key,
+			"value":               *t.Value,
+			"propagate_at_launch": *t.PropagateAtLaunch,
+		})
+	}
+
+	return tags
+}
+
 func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
 	result := make(map[string]interface{})
 	for _, rawData := range s.List() {

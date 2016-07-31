@@ -34,7 +34,7 @@ The following arguments are supported:
 * `attach` - (Optional) Determines whether or not to attach the disk volume to a
     virtual machine (defaults false).
 
-* `device` - (Optional) The device to map the disk volume to within the guest OS.
+* `device_id` - (Optional) The device ID to map the disk volume to within the guest OS.
 
 * `disk_offering` - (Required) The name or ID of the disk offering to use for
     this disk volume.
@@ -44,8 +44,8 @@ The following arguments are supported:
 * `shrink_ok` - (Optional) Verifies if the disk volume is allowed to shrink when
     resizing (defaults false).
 
-* `virtual_machine` - (Optional) The name or ID of the virtual machine to which you
-    want to attach the disk volume.
+* `virtual_machine_id` - (Optional) The ID of the virtual machine to which you want
+    to attach the disk volume.
 
 * `project` - (Optional) The name or ID of the project to deploy this
     instance to. Changing this forces a new resource to be created.
@@ -58,4 +58,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the disk volume.
-* `device` - The device the disk volume is mapped to within the guest OS.
+* `device_id` - The device ID the disk volume is mapped to within the guest OS.

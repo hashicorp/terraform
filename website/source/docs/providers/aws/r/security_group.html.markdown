@@ -38,6 +38,7 @@ resource "aws_security_group" "allow_all" {
       to_port = 0
       protocol = "-1"
       cidr_blocks = ["0.0.0.0/0"]
+      prefix_list_ids = ["pl-12c4e678"]
   }
 }
 ```
@@ -88,7 +89,7 @@ The `ingress` block supports:
 * `protocol` - (Required) The protocol. If you select a protocol of
 "-1", you must specify a "from_port" and "to_port" equal to 0.
 * `security_groups` - (Optional) List of security group Group Names if using
-    EC2-Classic or the default VPC, or Group IDs if using a non-default VPC.
+    EC2-Classic, or Group IDs if using a VPC.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
 * `to_port` - (Required) The end range port.
@@ -96,11 +97,12 @@ The `ingress` block supports:
 The `egress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks.
+* `prefix_list_ids` - (Optional) List of prefix list IDs (for allowing access to VPC endpoints)
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp")
 * `protocol` - (Required) The protocol. If you select a protocol of
 "-1", you must specify a "from_port" and "to_port" equal to 0.
 * `security_groups` - (Optional) List of security group Group Names if using
-    EC2-Classic or the default VPC, or Group IDs if using a non-default VPC.
+    EC2-Classic, or Group IDs if using a VPC.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this egress rule.
 * `to_port` - (Required) The end range port.
@@ -119,6 +121,26 @@ be in place, you can use this `egress` block:
       cidr_blocks = ["0.0.0.0/0"]
     }
 
+## Usage with prefix list IDs
+
+Prefix list IDs are manged by AWS internally. Prefix list IDs
+are associated with a prefix list name, or service name, that is linked to a specific region.
+Prefix list IDs are exported on VPC Endpoints, so you can use this format:
+
+```
+    ...
+      egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        prefix_list_ids = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
+      }
+    ...
+    resource "aws_vpc_endpoint" "my_endpoint" {
+      ...
+    }
+```
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -130,3 +152,12 @@ The following attributes are exported:
 * `description` - The description of the security group
 * `ingress` - The ingress rules. See above for more.
 * `egress` - The egress rules. See above for more.
+
+
+## Import
+
+Security Groups can be imported using the `security group id`, e.g. 
+
+```
+$ terraform import aws_security_group.elb_sg sg-903004f8
+```

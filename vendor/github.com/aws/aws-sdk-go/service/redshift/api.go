@@ -14,7 +14,28 @@ import (
 
 const opAuthorizeClusterSecurityGroupIngress = "AuthorizeClusterSecurityGroupIngress"
 
-// AuthorizeClusterSecurityGroupIngressRequest generates a request for the AuthorizeClusterSecurityGroupIngress operation.
+// AuthorizeClusterSecurityGroupIngressRequest generates a "aws/request.Request" representing the
+// client's request for the AuthorizeClusterSecurityGroupIngress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AuthorizeClusterSecurityGroupIngress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AuthorizeClusterSecurityGroupIngressRequest method.
+//    req, resp := client.AuthorizeClusterSecurityGroupIngressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) AuthorizeClusterSecurityGroupIngressRequest(input *AuthorizeClusterSecurityGroupIngressInput) (req *request.Request, output *AuthorizeClusterSecurityGroupIngressOutput) {
 	op := &request.Operation{
 		Name:       opAuthorizeClusterSecurityGroupIngress,
@@ -60,7 +81,28 @@ func (c *Redshift) AuthorizeClusterSecurityGroupIngress(input *AuthorizeClusterS
 
 const opAuthorizeSnapshotAccess = "AuthorizeSnapshotAccess"
 
-// AuthorizeSnapshotAccessRequest generates a request for the AuthorizeSnapshotAccess operation.
+// AuthorizeSnapshotAccessRequest generates a "aws/request.Request" representing the
+// client's request for the AuthorizeSnapshotAccess operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AuthorizeSnapshotAccess method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AuthorizeSnapshotAccessRequest method.
+//    req, resp := client.AuthorizeSnapshotAccessRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) AuthorizeSnapshotAccessRequest(input *AuthorizeSnapshotAccessInput) (req *request.Request, output *AuthorizeSnapshotAccessOutput) {
 	op := &request.Operation{
 		Name:       opAuthorizeSnapshotAccess,
@@ -91,7 +133,28 @@ func (c *Redshift) AuthorizeSnapshotAccess(input *AuthorizeSnapshotAccessInput) 
 
 const opCopyClusterSnapshot = "CopyClusterSnapshot"
 
-// CopyClusterSnapshotRequest generates a request for the CopyClusterSnapshot operation.
+// CopyClusterSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the CopyClusterSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CopyClusterSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CopyClusterSnapshotRequest method.
+//    req, resp := client.CopyClusterSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CopyClusterSnapshotRequest(input *CopyClusterSnapshotInput) (req *request.Request, output *CopyClusterSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opCopyClusterSnapshot,
@@ -130,7 +193,28 @@ func (c *Redshift) CopyClusterSnapshot(input *CopyClusterSnapshotInput) (*CopyCl
 
 const opCreateCluster = "CreateCluster"
 
-// CreateClusterRequest generates a request for the CreateCluster operation.
+// CreateClusterRequest generates a "aws/request.Request" representing the
+// client's request for the CreateCluster operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateCluster method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateClusterRequest method.
+//    req, resp := client.CreateClusterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateClusterRequest(input *CreateClusterInput) (req *request.Request, output *CreateClusterOutput) {
 	op := &request.Operation{
 		Name:       opCreateCluster,
@@ -163,7 +247,28 @@ func (c *Redshift) CreateCluster(input *CreateClusterInput) (*CreateClusterOutpu
 
 const opCreateClusterParameterGroup = "CreateClusterParameterGroup"
 
-// CreateClusterParameterGroupRequest generates a request for the CreateClusterParameterGroup operation.
+// CreateClusterParameterGroupRequest generates a "aws/request.Request" representing the
+// client's request for the CreateClusterParameterGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateClusterParameterGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateClusterParameterGroupRequest method.
+//    req, resp := client.CreateClusterParameterGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateClusterParameterGroupRequest(input *CreateClusterParameterGroupInput) (req *request.Request, output *CreateClusterParameterGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateClusterParameterGroup,
@@ -200,7 +305,28 @@ func (c *Redshift) CreateClusterParameterGroup(input *CreateClusterParameterGrou
 
 const opCreateClusterSecurityGroup = "CreateClusterSecurityGroup"
 
-// CreateClusterSecurityGroupRequest generates a request for the CreateClusterSecurityGroup operation.
+// CreateClusterSecurityGroupRequest generates a "aws/request.Request" representing the
+// client's request for the CreateClusterSecurityGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateClusterSecurityGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateClusterSecurityGroupRequest method.
+//    req, resp := client.CreateClusterSecurityGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateClusterSecurityGroupRequest(input *CreateClusterSecurityGroupInput) (req *request.Request, output *CreateClusterSecurityGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateClusterSecurityGroup,
@@ -232,7 +358,28 @@ func (c *Redshift) CreateClusterSecurityGroup(input *CreateClusterSecurityGroupI
 
 const opCreateClusterSnapshot = "CreateClusterSnapshot"
 
-// CreateClusterSnapshotRequest generates a request for the CreateClusterSnapshot operation.
+// CreateClusterSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the CreateClusterSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateClusterSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateClusterSnapshotRequest method.
+//    req, resp := client.CreateClusterSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateClusterSnapshotRequest(input *CreateClusterSnapshotInput) (req *request.Request, output *CreateClusterSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opCreateClusterSnapshot,
@@ -264,7 +411,28 @@ func (c *Redshift) CreateClusterSnapshot(input *CreateClusterSnapshotInput) (*Cr
 
 const opCreateClusterSubnetGroup = "CreateClusterSubnetGroup"
 
-// CreateClusterSubnetGroupRequest generates a request for the CreateClusterSubnetGroup operation.
+// CreateClusterSubnetGroupRequest generates a "aws/request.Request" representing the
+// client's request for the CreateClusterSubnetGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateClusterSubnetGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateClusterSubnetGroupRequest method.
+//    req, resp := client.CreateClusterSubnetGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateClusterSubnetGroupRequest(input *CreateClusterSubnetGroupInput) (req *request.Request, output *CreateClusterSubnetGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateClusterSubnetGroup,
@@ -297,7 +465,28 @@ func (c *Redshift) CreateClusterSubnetGroup(input *CreateClusterSubnetGroupInput
 
 const opCreateEventSubscription = "CreateEventSubscription"
 
-// CreateEventSubscriptionRequest generates a request for the CreateEventSubscription operation.
+// CreateEventSubscriptionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateEventSubscription operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateEventSubscription method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateEventSubscriptionRequest method.
+//    req, resp := client.CreateEventSubscriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateEventSubscriptionRequest(input *CreateEventSubscriptionInput) (req *request.Request, output *CreateEventSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opCreateEventSubscription,
@@ -345,7 +534,28 @@ func (c *Redshift) CreateEventSubscription(input *CreateEventSubscriptionInput) 
 
 const opCreateHsmClientCertificate = "CreateHsmClientCertificate"
 
-// CreateHsmClientCertificateRequest generates a request for the CreateHsmClientCertificate operation.
+// CreateHsmClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the CreateHsmClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateHsmClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateHsmClientCertificateRequest method.
+//    req, resp := client.CreateHsmClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateHsmClientCertificateRequest(input *CreateHsmClientCertificateInput) (req *request.Request, output *CreateHsmClientCertificateOutput) {
 	op := &request.Operation{
 		Name:       opCreateHsmClientCertificate,
@@ -380,7 +590,28 @@ func (c *Redshift) CreateHsmClientCertificate(input *CreateHsmClientCertificateI
 
 const opCreateHsmConfiguration = "CreateHsmConfiguration"
 
-// CreateHsmConfigurationRequest generates a request for the CreateHsmConfiguration operation.
+// CreateHsmConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the CreateHsmConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateHsmConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateHsmConfigurationRequest method.
+//    req, resp := client.CreateHsmConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateHsmConfigurationRequest(input *CreateHsmConfigurationInput) (req *request.Request, output *CreateHsmConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opCreateHsmConfiguration,
@@ -416,7 +647,28 @@ func (c *Redshift) CreateHsmConfiguration(input *CreateHsmConfigurationInput) (*
 
 const opCreateSnapshotCopyGrant = "CreateSnapshotCopyGrant"
 
-// CreateSnapshotCopyGrantRequest generates a request for the CreateSnapshotCopyGrant operation.
+// CreateSnapshotCopyGrantRequest generates a "aws/request.Request" representing the
+// client's request for the CreateSnapshotCopyGrant operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateSnapshotCopyGrant method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateSnapshotCopyGrantRequest method.
+//    req, resp := client.CreateSnapshotCopyGrantRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateSnapshotCopyGrantRequest(input *CreateSnapshotCopyGrantInput) (req *request.Request, output *CreateSnapshotCopyGrantOutput) {
 	op := &request.Operation{
 		Name:       opCreateSnapshotCopyGrant,
@@ -449,7 +701,28 @@ func (c *Redshift) CreateSnapshotCopyGrant(input *CreateSnapshotCopyGrantInput) 
 
 const opCreateTags = "CreateTags"
 
-// CreateTagsRequest generates a request for the CreateTags operation.
+// CreateTagsRequest generates a "aws/request.Request" representing the
+// client's request for the CreateTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateTagsRequest method.
+//    req, resp := client.CreateTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, output *CreateTagsOutput) {
 	op := &request.Operation{
 		Name:       opCreateTags,
@@ -484,7 +757,28 @@ func (c *Redshift) CreateTags(input *CreateTagsInput) (*CreateTagsOutput, error)
 
 const opDeleteCluster = "DeleteCluster"
 
-// DeleteClusterRequest generates a request for the DeleteCluster operation.
+// DeleteClusterRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteCluster operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteCluster method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteClusterRequest method.
+//    req, resp := client.DeleteClusterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteClusterRequest(input *DeleteClusterInput) (req *request.Request, output *DeleteClusterOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCluster,
@@ -527,7 +821,28 @@ func (c *Redshift) DeleteCluster(input *DeleteClusterInput) (*DeleteClusterOutpu
 
 const opDeleteClusterParameterGroup = "DeleteClusterParameterGroup"
 
-// DeleteClusterParameterGroupRequest generates a request for the DeleteClusterParameterGroup operation.
+// DeleteClusterParameterGroupRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteClusterParameterGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteClusterParameterGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteClusterParameterGroupRequest method.
+//    req, resp := client.DeleteClusterParameterGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteClusterParameterGroupRequest(input *DeleteClusterParameterGroupInput) (req *request.Request, output *DeleteClusterParameterGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeleteClusterParameterGroup,
@@ -557,7 +872,28 @@ func (c *Redshift) DeleteClusterParameterGroup(input *DeleteClusterParameterGrou
 
 const opDeleteClusterSecurityGroup = "DeleteClusterSecurityGroup"
 
-// DeleteClusterSecurityGroupRequest generates a request for the DeleteClusterSecurityGroup operation.
+// DeleteClusterSecurityGroupRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteClusterSecurityGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteClusterSecurityGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteClusterSecurityGroupRequest method.
+//    req, resp := client.DeleteClusterSecurityGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteClusterSecurityGroupRequest(input *DeleteClusterSecurityGroupInput) (req *request.Request, output *DeleteClusterSecurityGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeleteClusterSecurityGroup,
@@ -591,7 +927,28 @@ func (c *Redshift) DeleteClusterSecurityGroup(input *DeleteClusterSecurityGroupI
 
 const opDeleteClusterSnapshot = "DeleteClusterSnapshot"
 
-// DeleteClusterSnapshotRequest generates a request for the DeleteClusterSnapshot operation.
+// DeleteClusterSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteClusterSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteClusterSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteClusterSnapshotRequest method.
+//    req, resp := client.DeleteClusterSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteClusterSnapshotRequest(input *DeleteClusterSnapshotInput) (req *request.Request, output *DeleteClusterSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opDeleteClusterSnapshot,
@@ -625,7 +982,28 @@ func (c *Redshift) DeleteClusterSnapshot(input *DeleteClusterSnapshotInput) (*De
 
 const opDeleteClusterSubnetGroup = "DeleteClusterSubnetGroup"
 
-// DeleteClusterSubnetGroupRequest generates a request for the DeleteClusterSubnetGroup operation.
+// DeleteClusterSubnetGroupRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteClusterSubnetGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteClusterSubnetGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteClusterSubnetGroupRequest method.
+//    req, resp := client.DeleteClusterSubnetGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteClusterSubnetGroupRequest(input *DeleteClusterSubnetGroupInput) (req *request.Request, output *DeleteClusterSubnetGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeleteClusterSubnetGroup,
@@ -654,7 +1032,28 @@ func (c *Redshift) DeleteClusterSubnetGroup(input *DeleteClusterSubnetGroupInput
 
 const opDeleteEventSubscription = "DeleteEventSubscription"
 
-// DeleteEventSubscriptionRequest generates a request for the DeleteEventSubscription operation.
+// DeleteEventSubscriptionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteEventSubscription operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteEventSubscription method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteEventSubscriptionRequest method.
+//    req, resp := client.DeleteEventSubscriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteEventSubscriptionRequest(input *DeleteEventSubscriptionInput) (req *request.Request, output *DeleteEventSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteEventSubscription,
@@ -683,7 +1082,28 @@ func (c *Redshift) DeleteEventSubscription(input *DeleteEventSubscriptionInput) 
 
 const opDeleteHsmClientCertificate = "DeleteHsmClientCertificate"
 
-// DeleteHsmClientCertificateRequest generates a request for the DeleteHsmClientCertificate operation.
+// DeleteHsmClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteHsmClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteHsmClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteHsmClientCertificateRequest method.
+//    req, resp := client.DeleteHsmClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteHsmClientCertificateRequest(input *DeleteHsmClientCertificateInput) (req *request.Request, output *DeleteHsmClientCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteHsmClientCertificate,
@@ -712,7 +1132,28 @@ func (c *Redshift) DeleteHsmClientCertificate(input *DeleteHsmClientCertificateI
 
 const opDeleteHsmConfiguration = "DeleteHsmConfiguration"
 
-// DeleteHsmConfigurationRequest generates a request for the DeleteHsmConfiguration operation.
+// DeleteHsmConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteHsmConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteHsmConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteHsmConfigurationRequest method.
+//    req, resp := client.DeleteHsmConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteHsmConfigurationRequest(input *DeleteHsmConfigurationInput) (req *request.Request, output *DeleteHsmConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteHsmConfiguration,
@@ -741,7 +1182,28 @@ func (c *Redshift) DeleteHsmConfiguration(input *DeleteHsmConfigurationInput) (*
 
 const opDeleteSnapshotCopyGrant = "DeleteSnapshotCopyGrant"
 
-// DeleteSnapshotCopyGrantRequest generates a request for the DeleteSnapshotCopyGrant operation.
+// DeleteSnapshotCopyGrantRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSnapshotCopyGrant operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteSnapshotCopyGrant method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteSnapshotCopyGrantRequest method.
+//    req, resp := client.DeleteSnapshotCopyGrantRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteSnapshotCopyGrantRequest(input *DeleteSnapshotCopyGrantInput) (req *request.Request, output *DeleteSnapshotCopyGrantOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSnapshotCopyGrant,
@@ -770,7 +1232,28 @@ func (c *Redshift) DeleteSnapshotCopyGrant(input *DeleteSnapshotCopyGrantInput) 
 
 const opDeleteTags = "DeleteTags"
 
-// DeleteTagsRequest generates a request for the DeleteTags operation.
+// DeleteTagsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteTagsRequest method.
+//    req, resp := client.DeleteTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, output *DeleteTagsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTags,
@@ -800,7 +1283,28 @@ func (c *Redshift) DeleteTags(input *DeleteTagsInput) (*DeleteTagsOutput, error)
 
 const opDescribeClusterParameterGroups = "DescribeClusterParameterGroups"
 
-// DescribeClusterParameterGroupsRequest generates a request for the DescribeClusterParameterGroups operation.
+// DescribeClusterParameterGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClusterParameterGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeClusterParameterGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeClusterParameterGroupsRequest method.
+//    req, resp := client.DescribeClusterParameterGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeClusterParameterGroupsRequest(input *DescribeClusterParameterGroupsInput) (req *request.Request, output *DescribeClusterParameterGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeClusterParameterGroups,
@@ -849,6 +1353,23 @@ func (c *Redshift) DescribeClusterParameterGroups(input *DescribeClusterParamete
 	return out, err
 }
 
+// DescribeClusterParameterGroupsPages iterates over the pages of a DescribeClusterParameterGroups operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeClusterParameterGroups method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeClusterParameterGroups operation.
+//    pageNum := 0
+//    err := client.DescribeClusterParameterGroupsPages(params,
+//        func(page *DescribeClusterParameterGroupsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeClusterParameterGroupsPages(input *DescribeClusterParameterGroupsInput, fn func(p *DescribeClusterParameterGroupsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeClusterParameterGroupsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -859,7 +1380,28 @@ func (c *Redshift) DescribeClusterParameterGroupsPages(input *DescribeClusterPar
 
 const opDescribeClusterParameters = "DescribeClusterParameters"
 
-// DescribeClusterParametersRequest generates a request for the DescribeClusterParameters operation.
+// DescribeClusterParametersRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClusterParameters operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeClusterParameters method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeClusterParametersRequest method.
+//    req, resp := client.DescribeClusterParametersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeClusterParametersRequest(input *DescribeClusterParametersInput) (req *request.Request, output *DescribeClusterParametersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeClusterParameters,
@@ -901,6 +1443,23 @@ func (c *Redshift) DescribeClusterParameters(input *DescribeClusterParametersInp
 	return out, err
 }
 
+// DescribeClusterParametersPages iterates over the pages of a DescribeClusterParameters operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeClusterParameters method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeClusterParameters operation.
+//    pageNum := 0
+//    err := client.DescribeClusterParametersPages(params,
+//        func(page *DescribeClusterParametersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeClusterParametersPages(input *DescribeClusterParametersInput, fn func(p *DescribeClusterParametersOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeClusterParametersRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -911,7 +1470,28 @@ func (c *Redshift) DescribeClusterParametersPages(input *DescribeClusterParamete
 
 const opDescribeClusterSecurityGroups = "DescribeClusterSecurityGroups"
 
-// DescribeClusterSecurityGroupsRequest generates a request for the DescribeClusterSecurityGroups operation.
+// DescribeClusterSecurityGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClusterSecurityGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeClusterSecurityGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeClusterSecurityGroupsRequest method.
+//    req, resp := client.DescribeClusterSecurityGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeClusterSecurityGroupsRequest(input *DescribeClusterSecurityGroupsInput) (req *request.Request, output *DescribeClusterSecurityGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeClusterSecurityGroups,
@@ -958,6 +1538,23 @@ func (c *Redshift) DescribeClusterSecurityGroups(input *DescribeClusterSecurityG
 	return out, err
 }
 
+// DescribeClusterSecurityGroupsPages iterates over the pages of a DescribeClusterSecurityGroups operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeClusterSecurityGroups method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeClusterSecurityGroups operation.
+//    pageNum := 0
+//    err := client.DescribeClusterSecurityGroupsPages(params,
+//        func(page *DescribeClusterSecurityGroupsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeClusterSecurityGroupsPages(input *DescribeClusterSecurityGroupsInput, fn func(p *DescribeClusterSecurityGroupsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeClusterSecurityGroupsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -968,7 +1565,28 @@ func (c *Redshift) DescribeClusterSecurityGroupsPages(input *DescribeClusterSecu
 
 const opDescribeClusterSnapshots = "DescribeClusterSnapshots"
 
-// DescribeClusterSnapshotsRequest generates a request for the DescribeClusterSnapshots operation.
+// DescribeClusterSnapshotsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClusterSnapshots operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeClusterSnapshots method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeClusterSnapshotsRequest method.
+//    req, resp := client.DescribeClusterSnapshotsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeClusterSnapshotsRequest(input *DescribeClusterSnapshotsInput) (req *request.Request, output *DescribeClusterSnapshotsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeClusterSnapshots,
@@ -1014,6 +1632,23 @@ func (c *Redshift) DescribeClusterSnapshots(input *DescribeClusterSnapshotsInput
 	return out, err
 }
 
+// DescribeClusterSnapshotsPages iterates over the pages of a DescribeClusterSnapshots operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeClusterSnapshots method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeClusterSnapshots operation.
+//    pageNum := 0
+//    err := client.DescribeClusterSnapshotsPages(params,
+//        func(page *DescribeClusterSnapshotsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeClusterSnapshotsPages(input *DescribeClusterSnapshotsInput, fn func(p *DescribeClusterSnapshotsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeClusterSnapshotsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1024,7 +1659,28 @@ func (c *Redshift) DescribeClusterSnapshotsPages(input *DescribeClusterSnapshots
 
 const opDescribeClusterSubnetGroups = "DescribeClusterSubnetGroups"
 
-// DescribeClusterSubnetGroupsRequest generates a request for the DescribeClusterSubnetGroups operation.
+// DescribeClusterSubnetGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClusterSubnetGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeClusterSubnetGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeClusterSubnetGroupsRequest method.
+//    req, resp := client.DescribeClusterSubnetGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeClusterSubnetGroupsRequest(input *DescribeClusterSubnetGroupsInput) (req *request.Request, output *DescribeClusterSubnetGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeClusterSubnetGroups,
@@ -1067,6 +1723,23 @@ func (c *Redshift) DescribeClusterSubnetGroups(input *DescribeClusterSubnetGroup
 	return out, err
 }
 
+// DescribeClusterSubnetGroupsPages iterates over the pages of a DescribeClusterSubnetGroups operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeClusterSubnetGroups method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeClusterSubnetGroups operation.
+//    pageNum := 0
+//    err := client.DescribeClusterSubnetGroupsPages(params,
+//        func(page *DescribeClusterSubnetGroupsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeClusterSubnetGroupsPages(input *DescribeClusterSubnetGroupsInput, fn func(p *DescribeClusterSubnetGroupsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeClusterSubnetGroupsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1077,7 +1750,28 @@ func (c *Redshift) DescribeClusterSubnetGroupsPages(input *DescribeClusterSubnet
 
 const opDescribeClusterVersions = "DescribeClusterVersions"
 
-// DescribeClusterVersionsRequest generates a request for the DescribeClusterVersions operation.
+// DescribeClusterVersionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClusterVersions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeClusterVersions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeClusterVersionsRequest method.
+//    req, resp := client.DescribeClusterVersionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeClusterVersionsRequest(input *DescribeClusterVersionsInput) (req *request.Request, output *DescribeClusterVersionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeClusterVersions,
@@ -1112,6 +1806,23 @@ func (c *Redshift) DescribeClusterVersions(input *DescribeClusterVersionsInput) 
 	return out, err
 }
 
+// DescribeClusterVersionsPages iterates over the pages of a DescribeClusterVersions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeClusterVersions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeClusterVersions operation.
+//    pageNum := 0
+//    err := client.DescribeClusterVersionsPages(params,
+//        func(page *DescribeClusterVersionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeClusterVersionsPages(input *DescribeClusterVersionsInput, fn func(p *DescribeClusterVersionsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeClusterVersionsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1122,7 +1833,28 @@ func (c *Redshift) DescribeClusterVersionsPages(input *DescribeClusterVersionsIn
 
 const opDescribeClusters = "DescribeClusters"
 
-// DescribeClustersRequest generates a request for the DescribeClusters operation.
+// DescribeClustersRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClusters operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeClusters method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeClustersRequest method.
+//    req, resp := client.DescribeClustersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeClustersRequest(input *DescribeClustersInput) (req *request.Request, output *DescribeClustersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeClusters,
@@ -1166,6 +1898,23 @@ func (c *Redshift) DescribeClusters(input *DescribeClustersInput) (*DescribeClus
 	return out, err
 }
 
+// DescribeClustersPages iterates over the pages of a DescribeClusters operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeClusters method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeClusters operation.
+//    pageNum := 0
+//    err := client.DescribeClustersPages(params,
+//        func(page *DescribeClustersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeClustersPages(input *DescribeClustersInput, fn func(p *DescribeClustersOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeClustersRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1176,7 +1925,28 @@ func (c *Redshift) DescribeClustersPages(input *DescribeClustersInput, fn func(p
 
 const opDescribeDefaultClusterParameters = "DescribeDefaultClusterParameters"
 
-// DescribeDefaultClusterParametersRequest generates a request for the DescribeDefaultClusterParameters operation.
+// DescribeDefaultClusterParametersRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDefaultClusterParameters operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeDefaultClusterParameters method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeDefaultClusterParametersRequest method.
+//    req, resp := client.DescribeDefaultClusterParametersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeDefaultClusterParametersRequest(input *DescribeDefaultClusterParametersInput) (req *request.Request, output *DescribeDefaultClusterParametersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDefaultClusterParameters,
@@ -1211,6 +1981,23 @@ func (c *Redshift) DescribeDefaultClusterParameters(input *DescribeDefaultCluste
 	return out, err
 }
 
+// DescribeDefaultClusterParametersPages iterates over the pages of a DescribeDefaultClusterParameters operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeDefaultClusterParameters method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeDefaultClusterParameters operation.
+//    pageNum := 0
+//    err := client.DescribeDefaultClusterParametersPages(params,
+//        func(page *DescribeDefaultClusterParametersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeDefaultClusterParametersPages(input *DescribeDefaultClusterParametersInput, fn func(p *DescribeDefaultClusterParametersOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeDefaultClusterParametersRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1221,7 +2008,28 @@ func (c *Redshift) DescribeDefaultClusterParametersPages(input *DescribeDefaultC
 
 const opDescribeEventCategories = "DescribeEventCategories"
 
-// DescribeEventCategoriesRequest generates a request for the DescribeEventCategories operation.
+// DescribeEventCategoriesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEventCategories operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEventCategories method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEventCategoriesRequest method.
+//    req, resp := client.DescribeEventCategoriesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeEventCategoriesRequest(input *DescribeEventCategoriesInput) (req *request.Request, output *DescribeEventCategoriesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEventCategories,
@@ -1250,7 +2058,28 @@ func (c *Redshift) DescribeEventCategories(input *DescribeEventCategoriesInput) 
 
 const opDescribeEventSubscriptions = "DescribeEventSubscriptions"
 
-// DescribeEventSubscriptionsRequest generates a request for the DescribeEventSubscriptions operation.
+// DescribeEventSubscriptionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEventSubscriptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEventSubscriptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEventSubscriptionsRequest method.
+//    req, resp := client.DescribeEventSubscriptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeEventSubscriptionsRequest(input *DescribeEventSubscriptionsInput) (req *request.Request, output *DescribeEventSubscriptionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEventSubscriptions,
@@ -1283,6 +2112,23 @@ func (c *Redshift) DescribeEventSubscriptions(input *DescribeEventSubscriptionsI
 	return out, err
 }
 
+// DescribeEventSubscriptionsPages iterates over the pages of a DescribeEventSubscriptions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeEventSubscriptions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeEventSubscriptions operation.
+//    pageNum := 0
+//    err := client.DescribeEventSubscriptionsPages(params,
+//        func(page *DescribeEventSubscriptionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeEventSubscriptionsPages(input *DescribeEventSubscriptionsInput, fn func(p *DescribeEventSubscriptionsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeEventSubscriptionsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1293,7 +2139,28 @@ func (c *Redshift) DescribeEventSubscriptionsPages(input *DescribeEventSubscript
 
 const opDescribeEvents = "DescribeEvents"
 
-// DescribeEventsRequest generates a request for the DescribeEvents operation.
+// DescribeEventsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEvents operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEvents method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEventsRequest method.
+//    req, resp := client.DescribeEventsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeEventsRequest(input *DescribeEventsInput) (req *request.Request, output *DescribeEventsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEvents,
@@ -1327,6 +2194,23 @@ func (c *Redshift) DescribeEvents(input *DescribeEventsInput) (*DescribeEventsOu
 	return out, err
 }
 
+// DescribeEventsPages iterates over the pages of a DescribeEvents operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeEvents method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeEvents operation.
+//    pageNum := 0
+//    err := client.DescribeEventsPages(params,
+//        func(page *DescribeEventsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeEventsPages(input *DescribeEventsInput, fn func(p *DescribeEventsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeEventsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1337,7 +2221,28 @@ func (c *Redshift) DescribeEventsPages(input *DescribeEventsInput, fn func(p *De
 
 const opDescribeHsmClientCertificates = "DescribeHsmClientCertificates"
 
-// DescribeHsmClientCertificatesRequest generates a request for the DescribeHsmClientCertificates operation.
+// DescribeHsmClientCertificatesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeHsmClientCertificates operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeHsmClientCertificates method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeHsmClientCertificatesRequest method.
+//    req, resp := client.DescribeHsmClientCertificatesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeHsmClientCertificatesRequest(input *DescribeHsmClientCertificatesInput) (req *request.Request, output *DescribeHsmClientCertificatesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeHsmClientCertificates,
@@ -1380,6 +2285,23 @@ func (c *Redshift) DescribeHsmClientCertificates(input *DescribeHsmClientCertifi
 	return out, err
 }
 
+// DescribeHsmClientCertificatesPages iterates over the pages of a DescribeHsmClientCertificates operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeHsmClientCertificates method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeHsmClientCertificates operation.
+//    pageNum := 0
+//    err := client.DescribeHsmClientCertificatesPages(params,
+//        func(page *DescribeHsmClientCertificatesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeHsmClientCertificatesPages(input *DescribeHsmClientCertificatesInput, fn func(p *DescribeHsmClientCertificatesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeHsmClientCertificatesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1390,7 +2312,28 @@ func (c *Redshift) DescribeHsmClientCertificatesPages(input *DescribeHsmClientCe
 
 const opDescribeHsmConfigurations = "DescribeHsmConfigurations"
 
-// DescribeHsmConfigurationsRequest generates a request for the DescribeHsmConfigurations operation.
+// DescribeHsmConfigurationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeHsmConfigurations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeHsmConfigurations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeHsmConfigurationsRequest method.
+//    req, resp := client.DescribeHsmConfigurationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeHsmConfigurationsRequest(input *DescribeHsmConfigurationsInput) (req *request.Request, output *DescribeHsmConfigurationsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeHsmConfigurations,
@@ -1433,6 +2376,23 @@ func (c *Redshift) DescribeHsmConfigurations(input *DescribeHsmConfigurationsInp
 	return out, err
 }
 
+// DescribeHsmConfigurationsPages iterates over the pages of a DescribeHsmConfigurations operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeHsmConfigurations method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeHsmConfigurations operation.
+//    pageNum := 0
+//    err := client.DescribeHsmConfigurationsPages(params,
+//        func(page *DescribeHsmConfigurationsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeHsmConfigurationsPages(input *DescribeHsmConfigurationsInput, fn func(p *DescribeHsmConfigurationsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeHsmConfigurationsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1443,7 +2403,28 @@ func (c *Redshift) DescribeHsmConfigurationsPages(input *DescribeHsmConfiguratio
 
 const opDescribeLoggingStatus = "DescribeLoggingStatus"
 
-// DescribeLoggingStatusRequest generates a request for the DescribeLoggingStatus operation.
+// DescribeLoggingStatusRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoggingStatus operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoggingStatus method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoggingStatusRequest method.
+//    req, resp := client.DescribeLoggingStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeLoggingStatusRequest(input *DescribeLoggingStatusInput) (req *request.Request, output *LoggingStatus) {
 	op := &request.Operation{
 		Name:       opDescribeLoggingStatus,
@@ -1471,7 +2452,28 @@ func (c *Redshift) DescribeLoggingStatus(input *DescribeLoggingStatusInput) (*Lo
 
 const opDescribeOrderableClusterOptions = "DescribeOrderableClusterOptions"
 
-// DescribeOrderableClusterOptionsRequest generates a request for the DescribeOrderableClusterOptions operation.
+// DescribeOrderableClusterOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeOrderableClusterOptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeOrderableClusterOptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeOrderableClusterOptionsRequest method.
+//    req, resp := client.DescribeOrderableClusterOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeOrderableClusterOptionsRequest(input *DescribeOrderableClusterOptionsInput) (req *request.Request, output *DescribeOrderableClusterOptionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeOrderableClusterOptions,
@@ -1510,6 +2512,23 @@ func (c *Redshift) DescribeOrderableClusterOptions(input *DescribeOrderableClust
 	return out, err
 }
 
+// DescribeOrderableClusterOptionsPages iterates over the pages of a DescribeOrderableClusterOptions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeOrderableClusterOptions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeOrderableClusterOptions operation.
+//    pageNum := 0
+//    err := client.DescribeOrderableClusterOptionsPages(params,
+//        func(page *DescribeOrderableClusterOptionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeOrderableClusterOptionsPages(input *DescribeOrderableClusterOptionsInput, fn func(p *DescribeOrderableClusterOptionsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeOrderableClusterOptionsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1520,7 +2539,28 @@ func (c *Redshift) DescribeOrderableClusterOptionsPages(input *DescribeOrderable
 
 const opDescribeReservedNodeOfferings = "DescribeReservedNodeOfferings"
 
-// DescribeReservedNodeOfferingsRequest generates a request for the DescribeReservedNodeOfferings operation.
+// DescribeReservedNodeOfferingsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReservedNodeOfferings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeReservedNodeOfferings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeReservedNodeOfferingsRequest method.
+//    req, resp := client.DescribeReservedNodeOfferingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeReservedNodeOfferingsRequest(input *DescribeReservedNodeOfferingsInput) (req *request.Request, output *DescribeReservedNodeOfferingsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedNodeOfferings,
@@ -1560,6 +2600,23 @@ func (c *Redshift) DescribeReservedNodeOfferings(input *DescribeReservedNodeOffe
 	return out, err
 }
 
+// DescribeReservedNodeOfferingsPages iterates over the pages of a DescribeReservedNodeOfferings operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeReservedNodeOfferings method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeReservedNodeOfferings operation.
+//    pageNum := 0
+//    err := client.DescribeReservedNodeOfferingsPages(params,
+//        func(page *DescribeReservedNodeOfferingsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeReservedNodeOfferingsPages(input *DescribeReservedNodeOfferingsInput, fn func(p *DescribeReservedNodeOfferingsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeReservedNodeOfferingsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1570,7 +2627,28 @@ func (c *Redshift) DescribeReservedNodeOfferingsPages(input *DescribeReservedNod
 
 const opDescribeReservedNodes = "DescribeReservedNodes"
 
-// DescribeReservedNodesRequest generates a request for the DescribeReservedNodes operation.
+// DescribeReservedNodesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReservedNodes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeReservedNodes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeReservedNodesRequest method.
+//    req, resp := client.DescribeReservedNodesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeReservedNodesRequest(input *DescribeReservedNodesInput) (req *request.Request, output *DescribeReservedNodesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedNodes,
@@ -1601,6 +2679,23 @@ func (c *Redshift) DescribeReservedNodes(input *DescribeReservedNodesInput) (*De
 	return out, err
 }
 
+// DescribeReservedNodesPages iterates over the pages of a DescribeReservedNodes operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeReservedNodes method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeReservedNodes operation.
+//    pageNum := 0
+//    err := client.DescribeReservedNodesPages(params,
+//        func(page *DescribeReservedNodesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Redshift) DescribeReservedNodesPages(input *DescribeReservedNodesInput, fn func(p *DescribeReservedNodesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeReservedNodesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1611,7 +2706,28 @@ func (c *Redshift) DescribeReservedNodesPages(input *DescribeReservedNodesInput,
 
 const opDescribeResize = "DescribeResize"
 
-// DescribeResizeRequest generates a request for the DescribeResize operation.
+// DescribeResizeRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeResize operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeResize method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeResizeRequest method.
+//    req, resp := client.DescribeResizeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeResizeRequest(input *DescribeResizeInput) (req *request.Request, output *DescribeResizeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeResize,
@@ -1644,7 +2760,28 @@ func (c *Redshift) DescribeResize(input *DescribeResizeInput) (*DescribeResizeOu
 
 const opDescribeSnapshotCopyGrants = "DescribeSnapshotCopyGrants"
 
-// DescribeSnapshotCopyGrantsRequest generates a request for the DescribeSnapshotCopyGrants operation.
+// DescribeSnapshotCopyGrantsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSnapshotCopyGrants operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSnapshotCopyGrants method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSnapshotCopyGrantsRequest method.
+//    req, resp := client.DescribeSnapshotCopyGrantsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeSnapshotCopyGrantsRequest(input *DescribeSnapshotCopyGrantsInput) (req *request.Request, output *DescribeSnapshotCopyGrantsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSnapshotCopyGrants,
@@ -1676,7 +2813,28 @@ func (c *Redshift) DescribeSnapshotCopyGrants(input *DescribeSnapshotCopyGrantsI
 
 const opDescribeTableRestoreStatus = "DescribeTableRestoreStatus"
 
-// DescribeTableRestoreStatusRequest generates a request for the DescribeTableRestoreStatus operation.
+// DescribeTableRestoreStatusRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeTableRestoreStatus operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeTableRestoreStatus method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeTableRestoreStatusRequest method.
+//    req, resp := client.DescribeTableRestoreStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeTableRestoreStatusRequest(input *DescribeTableRestoreStatusInput) (req *request.Request, output *DescribeTableRestoreStatusOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTableRestoreStatus,
@@ -1696,9 +2854,9 @@ func (c *Redshift) DescribeTableRestoreStatusRequest(input *DescribeTableRestore
 
 // Lists the status of one or more table restore requests made using the RestoreTableFromClusterSnapshot
 // API action. If you don't specify a value for the TableRestoreRequestId parameter,
-// then DescribeTableRestoreStatus returns the status of all in-progress table
-// restore requests. Otherwise DescribeTableRestoreStatus returns the status
-// of the table specified by TableRestoreRequestId.
+// then DescribeTableRestoreStatus returns the status of all table restore requests
+// ordered by the date and time of the request in ascending order. Otherwise
+// DescribeTableRestoreStatus returns the status of the table specified by TableRestoreRequestId.
 func (c *Redshift) DescribeTableRestoreStatus(input *DescribeTableRestoreStatusInput) (*DescribeTableRestoreStatusOutput, error) {
 	req, out := c.DescribeTableRestoreStatusRequest(input)
 	err := req.Send()
@@ -1707,7 +2865,28 @@ func (c *Redshift) DescribeTableRestoreStatus(input *DescribeTableRestoreStatusI
 
 const opDescribeTags = "DescribeTags"
 
-// DescribeTagsRequest generates a request for the DescribeTags operation.
+// DescribeTagsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeTagsRequest method.
+//    req, resp := client.DescribeTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Request, output *DescribeTagsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTags,
@@ -1752,7 +2931,28 @@ func (c *Redshift) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, 
 
 const opDisableLogging = "DisableLogging"
 
-// DisableLoggingRequest generates a request for the DisableLogging operation.
+// DisableLoggingRequest generates a "aws/request.Request" representing the
+// client's request for the DisableLogging operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableLogging method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableLoggingRequest method.
+//    req, resp := client.DisableLoggingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DisableLoggingRequest(input *DisableLoggingInput) (req *request.Request, output *LoggingStatus) {
 	op := &request.Operation{
 		Name:       opDisableLogging,
@@ -1780,7 +2980,28 @@ func (c *Redshift) DisableLogging(input *DisableLoggingInput) (*LoggingStatus, e
 
 const opDisableSnapshotCopy = "DisableSnapshotCopy"
 
-// DisableSnapshotCopyRequest generates a request for the DisableSnapshotCopy operation.
+// DisableSnapshotCopyRequest generates a "aws/request.Request" representing the
+// client's request for the DisableSnapshotCopy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableSnapshotCopy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableSnapshotCopyRequest method.
+//    req, resp := client.DisableSnapshotCopyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) DisableSnapshotCopyRequest(input *DisableSnapshotCopyInput) (req *request.Request, output *DisableSnapshotCopyOutput) {
 	op := &request.Operation{
 		Name:       opDisableSnapshotCopy,
@@ -1812,7 +3033,28 @@ func (c *Redshift) DisableSnapshotCopy(input *DisableSnapshotCopyInput) (*Disabl
 
 const opEnableLogging = "EnableLogging"
 
-// EnableLoggingRequest generates a request for the EnableLogging operation.
+// EnableLoggingRequest generates a "aws/request.Request" representing the
+// client's request for the EnableLogging operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableLogging method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableLoggingRequest method.
+//    req, resp := client.EnableLoggingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) EnableLoggingRequest(input *EnableLoggingInput) (req *request.Request, output *LoggingStatus) {
 	op := &request.Operation{
 		Name:       opEnableLogging,
@@ -1840,7 +3082,28 @@ func (c *Redshift) EnableLogging(input *EnableLoggingInput) (*LoggingStatus, err
 
 const opEnableSnapshotCopy = "EnableSnapshotCopy"
 
-// EnableSnapshotCopyRequest generates a request for the EnableSnapshotCopy operation.
+// EnableSnapshotCopyRequest generates a "aws/request.Request" representing the
+// client's request for the EnableSnapshotCopy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableSnapshotCopy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableSnapshotCopyRequest method.
+//    req, resp := client.EnableSnapshotCopyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) EnableSnapshotCopyRequest(input *EnableSnapshotCopyInput) (req *request.Request, output *EnableSnapshotCopyOutput) {
 	op := &request.Operation{
 		Name:       opEnableSnapshotCopy,
@@ -1868,7 +3131,28 @@ func (c *Redshift) EnableSnapshotCopy(input *EnableSnapshotCopyInput) (*EnableSn
 
 const opModifyCluster = "ModifyCluster"
 
-// ModifyClusterRequest generates a request for the ModifyCluster operation.
+// ModifyClusterRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyCluster operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyCluster method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyClusterRequest method.
+//    req, resp := client.ModifyClusterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request.Request, output *ModifyClusterOutput) {
 	op := &request.Operation{
 		Name:       opModifyCluster,
@@ -1903,9 +3187,81 @@ func (c *Redshift) ModifyCluster(input *ModifyClusterInput) (*ModifyClusterOutpu
 	return out, err
 }
 
+const opModifyClusterIamRoles = "ModifyClusterIamRoles"
+
+// ModifyClusterIamRolesRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyClusterIamRoles operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyClusterIamRoles method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyClusterIamRolesRequest method.
+//    req, resp := client.ModifyClusterIamRolesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *Redshift) ModifyClusterIamRolesRequest(input *ModifyClusterIamRolesInput) (req *request.Request, output *ModifyClusterIamRolesOutput) {
+	op := &request.Operation{
+		Name:       opModifyClusterIamRoles,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyClusterIamRolesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ModifyClusterIamRolesOutput{}
+	req.Data = output
+	return
+}
+
+// Modifies the list of AWS Identity and Access Management (IAM) roles that
+// can be used by the cluster to access other AWS services.
+//
+// A cluster can have up to 10 IAM roles associated at any time.
+func (c *Redshift) ModifyClusterIamRoles(input *ModifyClusterIamRolesInput) (*ModifyClusterIamRolesOutput, error) {
+	req, out := c.ModifyClusterIamRolesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opModifyClusterParameterGroup = "ModifyClusterParameterGroup"
 
-// ModifyClusterParameterGroupRequest generates a request for the ModifyClusterParameterGroup operation.
+// ModifyClusterParameterGroupRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyClusterParameterGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyClusterParameterGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyClusterParameterGroupRequest method.
+//    req, resp := client.ModifyClusterParameterGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) ModifyClusterParameterGroupRequest(input *ModifyClusterParameterGroupInput) (req *request.Request, output *ClusterParameterGroupNameMessage) {
 	op := &request.Operation{
 		Name:       opModifyClusterParameterGroup,
@@ -1936,7 +3292,28 @@ func (c *Redshift) ModifyClusterParameterGroup(input *ModifyClusterParameterGrou
 
 const opModifyClusterSubnetGroup = "ModifyClusterSubnetGroup"
 
-// ModifyClusterSubnetGroupRequest generates a request for the ModifyClusterSubnetGroup operation.
+// ModifyClusterSubnetGroupRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyClusterSubnetGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyClusterSubnetGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyClusterSubnetGroupRequest method.
+//    req, resp := client.ModifyClusterSubnetGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) ModifyClusterSubnetGroupRequest(input *ModifyClusterSubnetGroupInput) (req *request.Request, output *ModifyClusterSubnetGroupOutput) {
 	op := &request.Operation{
 		Name:       opModifyClusterSubnetGroup,
@@ -1965,7 +3342,28 @@ func (c *Redshift) ModifyClusterSubnetGroup(input *ModifyClusterSubnetGroupInput
 
 const opModifyEventSubscription = "ModifyEventSubscription"
 
-// ModifyEventSubscriptionRequest generates a request for the ModifyEventSubscription operation.
+// ModifyEventSubscriptionRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyEventSubscription operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyEventSubscription method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyEventSubscriptionRequest method.
+//    req, resp := client.ModifyEventSubscriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) ModifyEventSubscriptionRequest(input *ModifyEventSubscriptionInput) (req *request.Request, output *ModifyEventSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opModifyEventSubscription,
@@ -1992,7 +3390,28 @@ func (c *Redshift) ModifyEventSubscription(input *ModifyEventSubscriptionInput) 
 
 const opModifySnapshotCopyRetentionPeriod = "ModifySnapshotCopyRetentionPeriod"
 
-// ModifySnapshotCopyRetentionPeriodRequest generates a request for the ModifySnapshotCopyRetentionPeriod operation.
+// ModifySnapshotCopyRetentionPeriodRequest generates a "aws/request.Request" representing the
+// client's request for the ModifySnapshotCopyRetentionPeriod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifySnapshotCopyRetentionPeriod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifySnapshotCopyRetentionPeriodRequest method.
+//    req, resp := client.ModifySnapshotCopyRetentionPeriodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) ModifySnapshotCopyRetentionPeriodRequest(input *ModifySnapshotCopyRetentionPeriodInput) (req *request.Request, output *ModifySnapshotCopyRetentionPeriodOutput) {
 	op := &request.Operation{
 		Name:       opModifySnapshotCopyRetentionPeriod,
@@ -2020,7 +3439,28 @@ func (c *Redshift) ModifySnapshotCopyRetentionPeriod(input *ModifySnapshotCopyRe
 
 const opPurchaseReservedNodeOffering = "PurchaseReservedNodeOffering"
 
-// PurchaseReservedNodeOfferingRequest generates a request for the PurchaseReservedNodeOffering operation.
+// PurchaseReservedNodeOfferingRequest generates a "aws/request.Request" representing the
+// client's request for the PurchaseReservedNodeOffering operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PurchaseReservedNodeOffering method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PurchaseReservedNodeOfferingRequest method.
+//    req, resp := client.PurchaseReservedNodeOfferingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) PurchaseReservedNodeOfferingRequest(input *PurchaseReservedNodeOfferingInput) (req *request.Request, output *PurchaseReservedNodeOfferingOutput) {
 	op := &request.Operation{
 		Name:       opPurchaseReservedNodeOffering,
@@ -2055,7 +3495,28 @@ func (c *Redshift) PurchaseReservedNodeOffering(input *PurchaseReservedNodeOffer
 
 const opRebootCluster = "RebootCluster"
 
-// RebootClusterRequest generates a request for the RebootCluster operation.
+// RebootClusterRequest generates a "aws/request.Request" representing the
+// client's request for the RebootCluster operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RebootCluster method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RebootClusterRequest method.
+//    req, resp := client.RebootClusterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) RebootClusterRequest(input *RebootClusterInput) (req *request.Request, output *RebootClusterOutput) {
 	op := &request.Operation{
 		Name:       opRebootCluster,
@@ -2088,7 +3549,28 @@ func (c *Redshift) RebootCluster(input *RebootClusterInput) (*RebootClusterOutpu
 
 const opResetClusterParameterGroup = "ResetClusterParameterGroup"
 
-// ResetClusterParameterGroupRequest generates a request for the ResetClusterParameterGroup operation.
+// ResetClusterParameterGroupRequest generates a "aws/request.Request" representing the
+// client's request for the ResetClusterParameterGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ResetClusterParameterGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ResetClusterParameterGroupRequest method.
+//    req, resp := client.ResetClusterParameterGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) ResetClusterParameterGroupRequest(input *ResetClusterParameterGroupInput) (req *request.Request, output *ClusterParameterGroupNameMessage) {
 	op := &request.Operation{
 		Name:       opResetClusterParameterGroup,
@@ -2118,7 +3600,28 @@ func (c *Redshift) ResetClusterParameterGroup(input *ResetClusterParameterGroupI
 
 const opRestoreFromClusterSnapshot = "RestoreFromClusterSnapshot"
 
-// RestoreFromClusterSnapshotRequest generates a request for the RestoreFromClusterSnapshot operation.
+// RestoreFromClusterSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the RestoreFromClusterSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RestoreFromClusterSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RestoreFromClusterSnapshotRequest method.
+//    req, resp := client.RestoreFromClusterSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) RestoreFromClusterSnapshotRequest(input *RestoreFromClusterSnapshotInput) (req *request.Request, output *RestoreFromClusterSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opRestoreFromClusterSnapshot,
@@ -2159,7 +3662,28 @@ func (c *Redshift) RestoreFromClusterSnapshot(input *RestoreFromClusterSnapshotI
 
 const opRestoreTableFromClusterSnapshot = "RestoreTableFromClusterSnapshot"
 
-// RestoreTableFromClusterSnapshotRequest generates a request for the RestoreTableFromClusterSnapshot operation.
+// RestoreTableFromClusterSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the RestoreTableFromClusterSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RestoreTableFromClusterSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RestoreTableFromClusterSnapshotRequest method.
+//    req, resp := client.RestoreTableFromClusterSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) RestoreTableFromClusterSnapshotRequest(input *RestoreTableFromClusterSnapshotInput) (req *request.Request, output *RestoreTableFromClusterSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opRestoreTableFromClusterSnapshot,
@@ -2198,7 +3722,28 @@ func (c *Redshift) RestoreTableFromClusterSnapshot(input *RestoreTableFromCluste
 
 const opRevokeClusterSecurityGroupIngress = "RevokeClusterSecurityGroupIngress"
 
-// RevokeClusterSecurityGroupIngressRequest generates a request for the RevokeClusterSecurityGroupIngress operation.
+// RevokeClusterSecurityGroupIngressRequest generates a "aws/request.Request" representing the
+// client's request for the RevokeClusterSecurityGroupIngress operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RevokeClusterSecurityGroupIngress method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RevokeClusterSecurityGroupIngressRequest method.
+//    req, resp := client.RevokeClusterSecurityGroupIngressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) RevokeClusterSecurityGroupIngressRequest(input *RevokeClusterSecurityGroupIngressInput) (req *request.Request, output *RevokeClusterSecurityGroupIngressOutput) {
 	op := &request.Operation{
 		Name:       opRevokeClusterSecurityGroupIngress,
@@ -2229,7 +3774,28 @@ func (c *Redshift) RevokeClusterSecurityGroupIngress(input *RevokeClusterSecurit
 
 const opRevokeSnapshotAccess = "RevokeSnapshotAccess"
 
-// RevokeSnapshotAccessRequest generates a request for the RevokeSnapshotAccess operation.
+// RevokeSnapshotAccessRequest generates a "aws/request.Request" representing the
+// client's request for the RevokeSnapshotAccess operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RevokeSnapshotAccess method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RevokeSnapshotAccessRequest method.
+//    req, resp := client.RevokeSnapshotAccessRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) RevokeSnapshotAccessRequest(input *RevokeSnapshotAccessInput) (req *request.Request, output *RevokeSnapshotAccessOutput) {
 	op := &request.Operation{
 		Name:       opRevokeSnapshotAccess,
@@ -2262,7 +3828,28 @@ func (c *Redshift) RevokeSnapshotAccess(input *RevokeSnapshotAccessInput) (*Revo
 
 const opRotateEncryptionKey = "RotateEncryptionKey"
 
-// RotateEncryptionKeyRequest generates a request for the RotateEncryptionKey operation.
+// RotateEncryptionKeyRequest generates a "aws/request.Request" representing the
+// client's request for the RotateEncryptionKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RotateEncryptionKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RotateEncryptionKeyRequest method.
+//    req, resp := client.RotateEncryptionKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Redshift) RotateEncryptionKeyRequest(input *RotateEncryptionKeyInput) (req *request.Request, output *RotateEncryptionKeyOutput) {
 	op := &request.Operation{
 		Name:       opRotateEncryptionKey,
@@ -2335,6 +3922,19 @@ func (s AuthorizeClusterSecurityGroupIngressInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AuthorizeClusterSecurityGroupIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AuthorizeClusterSecurityGroupIngressInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AuthorizeClusterSecurityGroupIngressOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2376,6 +3976,22 @@ func (s AuthorizeSnapshotAccessInput) String() string {
 // GoString returns the string representation
 func (s AuthorizeSnapshotAccessInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AuthorizeSnapshotAccessInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AuthorizeSnapshotAccessInput"}
+	if s.AccountWithRestoreAccess == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountWithRestoreAccess"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AuthorizeSnapshotAccessOutput struct {
@@ -2492,6 +4108,10 @@ type Cluster struct {
 	// Values: active, applying
 	HsmStatus *HsmStatus `type:"structure"`
 
+	// A list of AWS Identity and Access Management (IAM) roles that can be used
+	// by the cluster to access other AWS services.
+	IamRoles []*ClusterIamRole `locationNameList:"ClusterIamRole" type:"list"`
+
 	// The AWS Key Management Service (KMS) key ID of the encryption key used to
 	// encrypt data in the cluster.
 	KmsKeyId *string `type:"string"`
@@ -2542,6 +4162,34 @@ func (s Cluster) String() string {
 
 // GoString returns the string representation
 func (s Cluster) GoString() string {
+	return s.String()
+}
+
+// An AWS Identity and Access Management (IAM) role that can be used by the
+// associated Amazon Redshift cluster to access other AWS services.
+type ClusterIamRole struct {
+	_ struct{} `type:"structure"`
+
+	// Describes the status of the IAM role's association with an Amazon Redshift
+	// cluster.
+	//
+	// The following are possible statuses and descriptions. in-sync: The role
+	// is available for use by the cluster. adding: The role is in the process of
+	// being associated with the cluster. removing: The role is in the process of
+	// being disassociated with the cluster.
+	ApplyStatus *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) of the IAM role. For example, arn:aws:iam::123456789012:role/RedshiftCopyUnload.
+	IamRoleArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ClusterIamRole) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClusterIamRole) GoString() string {
 	return s.String()
 }
 
@@ -2863,6 +4511,22 @@ func (s CopyClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CopyClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CopyClusterSnapshotInput"}
+	if s.SourceSnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceSnapshotIdentifier"))
+	}
+	if s.TargetSnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetSnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CopyClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3011,6 +4675,14 @@ type CreateClusterInput struct {
 	// the Amazon Redshift cluster can use to retrieve and store keys in an HSM.
 	HsmConfigurationIdentifier *string `type:"string"`
 
+	// A list of AWS Identity and Access Management (IAM) roles that can be used
+	// by the cluster to access other AWS services. You must supply the IAM roles
+	// in their Amazon Resource Name (ARN) format. You can supply up to 10 IAM roles
+	// in a single request.
+	//
+	// A cluster can have up to 10 IAM roles associated at any time.
+	IamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
+
 	// The AWS Key Management Service (KMS) key ID of the encryption key that you
 	// want to use to encrypt data in the cluster.
 	KmsKeyId *string `type:"string"`
@@ -3110,6 +4782,28 @@ func (s CreateClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.MasterUserPassword == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterUserPassword"))
+	}
+	if s.MasterUsername == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterUsername"))
+	}
+	if s.NodeType == nil {
+		invalidParams.Add(request.NewErrParamRequired("NodeType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3168,6 +4862,25 @@ func (s CreateClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterParameterGroupInput"}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.ParameterGroupFamily == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupFamily"))
+	}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateClusterParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3215,6 +4928,22 @@ func (s CreateClusterSecurityGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterSecurityGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterSecurityGroupInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateClusterSecurityGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3260,6 +4989,22 @@ func (s CreateClusterSnapshotInput) String() string {
 // GoString returns the string representation
 func (s CreateClusterSnapshotInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterSnapshotInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateClusterSnapshotOutput struct {
@@ -3311,6 +5056,25 @@ func (s CreateClusterSubnetGroupInput) String() string {
 // GoString returns the string representation
 func (s CreateClusterSubnetGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterSubnetGroupInput"}
+	if s.ClusterSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSubnetGroupName"))
+	}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.SubnetIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateClusterSubnetGroupOutput struct {
@@ -3398,6 +5162,22 @@ func (s CreateEventSubscriptionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateEventSubscriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateEventSubscriptionInput"}
+	if s.SnsTopicArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnsTopicArn"))
+	}
+	if s.SubscriptionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubscriptionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3434,6 +5214,19 @@ func (s CreateHsmClientCertificateInput) String() string {
 // GoString returns the string representation
 func (s CreateHsmClientCertificateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHsmClientCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHsmClientCertificateInput"}
+	if s.HsmClientCertificateIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmClientCertificateIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateHsmClientCertificateOutput struct {
@@ -3492,6 +5285,34 @@ func (s CreateHsmConfigurationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHsmConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHsmConfigurationInput"}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.HsmConfigurationIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmConfigurationIdentifier"))
+	}
+	if s.HsmIpAddress == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmIpAddress"))
+	}
+	if s.HsmPartitionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmPartitionName"))
+	}
+	if s.HsmPartitionPassword == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmPartitionPassword"))
+	}
+	if s.HsmServerPublicCertificate == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmServerPublicCertificate"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateHsmConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3544,6 +5365,19 @@ func (s CreateSnapshotCopyGrantInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateSnapshotCopyGrantInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateSnapshotCopyGrantInput"}
+	if s.SnapshotCopyGrantName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotCopyGrantName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateSnapshotCopyGrantOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3591,6 +5425,22 @@ func (s CreateTagsInput) String() string {
 // GoString returns the string representation
 func (s CreateTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTagsInput"}
+	if s.ResourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceName"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateTagsOutput struct {
@@ -3677,6 +5527,19 @@ func (s DeleteClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3716,6 +5579,19 @@ func (s DeleteClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterParameterGroupInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3745,6 +5621,19 @@ func (s DeleteClusterSecurityGroupInput) String() string {
 // GoString returns the string representation
 func (s DeleteClusterSecurityGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterSecurityGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterSecurityGroupInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteClusterSecurityGroupOutput struct {
@@ -3788,6 +5677,19 @@ func (s DeleteClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterSnapshotInput"}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3822,6 +5724,19 @@ func (s DeleteClusterSubnetGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterSubnetGroupInput"}
+	if s.ClusterSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSubnetGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterSubnetGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3851,6 +5766,19 @@ func (s DeleteEventSubscriptionInput) String() string {
 // GoString returns the string representation
 func (s DeleteEventSubscriptionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteEventSubscriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteEventSubscriptionInput"}
+	if s.SubscriptionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubscriptionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteEventSubscriptionOutput struct {
@@ -3884,6 +5812,19 @@ func (s DeleteHsmClientCertificateInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHsmClientCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHsmClientCertificateInput"}
+	if s.HsmClientCertificateIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmClientCertificateIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteHsmClientCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3913,6 +5854,19 @@ func (s DeleteHsmConfigurationInput) String() string {
 // GoString returns the string representation
 func (s DeleteHsmConfigurationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHsmConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHsmConfigurationInput"}
+	if s.HsmConfigurationIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmConfigurationIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteHsmConfigurationOutput struct {
@@ -3945,6 +5899,19 @@ func (s DeleteSnapshotCopyGrantInput) String() string {
 // GoString returns the string representation
 func (s DeleteSnapshotCopyGrantInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteSnapshotCopyGrantInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteSnapshotCopyGrantInput"}
+	if s.SnapshotCopyGrantName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotCopyGrantName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteSnapshotCopyGrantOutput struct {
@@ -3981,6 +5948,22 @@ func (s DeleteTagsInput) String() string {
 // GoString returns the string representation
 func (s DeleteTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTagsInput"}
+	if s.ResourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceName"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteTagsOutput struct {
@@ -4117,6 +6100,19 @@ func (s DescribeClusterParametersInput) String() string {
 // GoString returns the string representation
 func (s DescribeClusterParametersInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeClusterParametersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeClusterParametersInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the output from the DescribeClusterParameters action.
@@ -4593,6 +6589,19 @@ func (s DescribeDefaultClusterParametersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeDefaultClusterParametersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeDefaultClusterParametersInput"}
+	if s.ParameterGroupFamily == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupFamily"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeDefaultClusterParametersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4984,6 +6993,19 @@ func (s DescribeLoggingStatusInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeLoggingStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeLoggingStatusInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeOrderableClusterOptionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5190,6 +7212,19 @@ func (s DescribeResizeInput) String() string {
 // GoString returns the string representation
 func (s DescribeResizeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeResizeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeResizeInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes the result of a cluster resize operation.
@@ -5502,6 +7537,19 @@ func (s DisableLoggingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableLoggingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableLoggingInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DisableSnapshotCopyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5521,6 +7569,19 @@ func (s DisableSnapshotCopyInput) String() string {
 // GoString returns the string representation
 func (s DisableSnapshotCopyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableSnapshotCopyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableSnapshotCopyInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DisableSnapshotCopyOutput struct {
@@ -5625,6 +7686,22 @@ func (s EnableLoggingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableLoggingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableLoggingInput"}
+	if s.BucketName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BucketName"))
+	}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type EnableSnapshotCopyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5662,6 +7739,22 @@ func (s EnableSnapshotCopyInput) String() string {
 // GoString returns the string representation
 func (s EnableSnapshotCopyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableSnapshotCopyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableSnapshotCopyInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.DestinationRegion == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationRegion"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type EnableSnapshotCopyOutput struct {
@@ -6005,6 +8098,63 @@ func (s LoggingStatus) GoString() string {
 	return s.String()
 }
 
+type ModifyClusterIamRolesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Zero or more IAM roles (in their ARN format) to associate with the cluster.
+	// You can associate up to 10 IAM roles with a single cluster in a single request.
+	AddIamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
+
+	// The unique identifier of the cluster for which you want to associate or disassociate
+	// IAM roles.
+	ClusterIdentifier *string `type:"string" required:"true"`
+
+	// Zero or more IAM roles (in their ARN format) to disassociate from the cluster.
+	// You can disassociate up to 10 IAM roles from a single cluster in a single
+	// request.
+	RemoveIamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
+}
+
+// String returns the string representation
+func (s ModifyClusterIamRolesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClusterIamRolesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterIamRolesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterIamRolesInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type ModifyClusterIamRolesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes a cluster.
+	Cluster *Cluster `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyClusterIamRolesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClusterIamRolesOutput) GoString() string {
+	return s.String()
+}
+
 type ModifyClusterInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6186,6 +8336,19 @@ func (s ModifyClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6230,6 +8393,22 @@ func (s ModifyClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterParameterGroupInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+	if s.Parameters == nil {
+		invalidParams.Add(request.NewErrParamRequired("Parameters"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyClusterSubnetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6252,6 +8431,22 @@ func (s ModifyClusterSubnetGroupInput) String() string {
 // GoString returns the string representation
 func (s ModifyClusterSubnetGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterSubnetGroupInput"}
+	if s.ClusterSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSubnetGroupName"))
+	}
+	if s.SubnetIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifyClusterSubnetGroupOutput struct {
@@ -6329,6 +8524,19 @@ func (s ModifyEventSubscriptionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyEventSubscriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyEventSubscriptionInput"}
+	if s.SubscriptionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubscriptionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6376,6 +8584,22 @@ func (s ModifySnapshotCopyRetentionPeriodInput) String() string {
 // GoString returns the string representation
 func (s ModifySnapshotCopyRetentionPeriodInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifySnapshotCopyRetentionPeriodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifySnapshotCopyRetentionPeriodInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.RetentionPeriod == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionPeriod"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifySnapshotCopyRetentionPeriodOutput struct {
@@ -6533,6 +8757,19 @@ func (s PurchaseReservedNodeOfferingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PurchaseReservedNodeOfferingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PurchaseReservedNodeOfferingInput"}
+	if s.ReservedNodeOfferingId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservedNodeOfferingId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PurchaseReservedNodeOfferingOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6566,6 +8803,19 @@ func (s RebootClusterInput) String() string {
 // GoString returns the string representation
 func (s RebootClusterInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RebootClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RebootClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RebootClusterOutput struct {
@@ -6741,6 +8991,19 @@ func (s ResetClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResetClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResetClusterParameterGroupInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RestoreFromClusterSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6815,6 +9078,14 @@ type RestoreFromClusterSnapshotInput struct {
 	// Specifies the name of the HSM configuration that contains the information
 	// the Amazon Redshift cluster can use to retrieve and store keys in an HSM.
 	HsmConfigurationIdentifier *string `type:"string"`
+
+	// A list of AWS Identity and Access Management (IAM) roles that can be used
+	// by the cluster to access other AWS services. You must supply the IAM roles
+	// in their Amazon Resource Name (ARN) format. You can supply up to 10 IAM roles
+	// in a single request.
+	//
+	// A cluster can have up to 10 IAM roles associated at any time.
+	IamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
 
 	// The AWS Key Management Service (KMS) key ID of the encryption key that you
 	// want to use to encrypt data in the cluster that you restore from a shared
@@ -6893,6 +9164,22 @@ func (s RestoreFromClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RestoreFromClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RestoreFromClusterSnapshotInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RestoreFromClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6965,7 +9252,8 @@ type RestoreTableFromClusterSnapshotInput struct {
 	// The name of the source database that contains the table to restore from.
 	SourceDatabaseName *string `type:"string" required:"true"`
 
-	// The name of the source schema that contains the table to restore from.
+	// The name of the source schema that contains the table to restore from. If
+	// you do not specify a SourceSchemaName value, the default is public.
 	SourceSchemaName *string `type:"string"`
 
 	// The name of the source table to restore from.
@@ -6986,6 +9274,31 @@ func (s RestoreTableFromClusterSnapshotInput) String() string {
 // GoString returns the string representation
 func (s RestoreTableFromClusterSnapshotInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RestoreTableFromClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RestoreTableFromClusterSnapshotInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.NewTableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("NewTableName"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+	if s.SourceDatabaseName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceDatabaseName"))
+	}
+	if s.SourceTableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceTableName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RestoreTableFromClusterSnapshotOutput struct {
@@ -7040,6 +9353,19 @@ func (s RevokeClusterSecurityGroupIngressInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RevokeClusterSecurityGroupIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RevokeClusterSecurityGroupIngressInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RevokeClusterSecurityGroupIngressOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7083,6 +9409,22 @@ func (s RevokeSnapshotAccessInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RevokeSnapshotAccessInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RevokeSnapshotAccessInput"}
+	if s.AccountWithRestoreAccess == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountWithRestoreAccess"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RevokeSnapshotAccessOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7118,6 +9460,19 @@ func (s RotateEncryptionKeyInput) String() string {
 // GoString returns the string representation
 func (s RotateEncryptionKeyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RotateEncryptionKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RotateEncryptionKeyInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RotateEncryptionKeyOutput struct {
@@ -7316,7 +9671,7 @@ type TableRestoreStatus struct {
 	ClusterIdentifier *string `type:"string"`
 
 	// A description of the status of the table restore request. Status values include
-	// SUCCEEDED, FAILED, CANCELLED, PENDING, IN_PROGRESS.
+	// SUCCEEDED, FAILED, CANCELED, PENDING, IN_PROGRESS.
 	Message *string `type:"string"`
 
 	// The name of the table to create as a result of the table restore request.
@@ -7343,7 +9698,7 @@ type TableRestoreStatus struct {
 
 	// A value that describes the current state of the table restore request.
 	//
-	// Valid Values: SUCCEEDED, FAILED, CANCELLED, PENDING, IN_PROGRESS
+	// Valid Values: SUCCEEDED, FAILED, CANCELED, PENDING, IN_PROGRESS
 	Status *string `type:"string" enum:"TableRestoreStatusType"`
 
 	// The unique identifier for the table restore request.

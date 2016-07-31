@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/joyent/gosdc/cloudapi"
 )
@@ -34,6 +35,9 @@ func resourceMachine() *schema.Resource {
 		Read:   resourceMachineRead,
 		Update: resourceMachineUpdate,
 		Delete: resourceMachineDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceMachineImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -108,17 +112,53 @@ func resourceMachine() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
-			"networks": {
-				Description: "desired network IDs",
-				Type:        schema.TypeList,
-				Optional:    true,
+			"nic": {
+				Description: "network interface",
+				Type:        schema.TypeSet,
 				Computed:    true,
-				// TODO: this really should ForceNew but the Network IDs don't seem to
-				// be returned by the API, meaning if we track them here TF will replace
-				// the resource on every run.
-				// ForceNew:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+				Optional:    true,
+				Set: func(v interface{}) int {
+					m := v.(map[string]interface{})
+					return hashcode.String(m["network"].(string))
+				},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ip": {
+							Description: "NIC's IPv4 address",
+							Computed:    true,
+							Type:        schema.TypeString,
+						},
+						"mac": {
+							Description: "NIC's MAC address",
+							Computed:    true,
+							Type:        schema.TypeString,
+						},
+						"primary": {
+							Description: "Whether this is the machine's primary NIC",
+							Computed:    true,
+							Type:        schema.TypeBool,
+						},
+						"netmask": {
+							Description: "IPv4 netmask",
+							Computed:    true,
+							Type:        schema.TypeString,
+						},
+						"gateway": {
+							Description: "IPv4 gateway",
+							Computed:    true,
+							Type:        schema.TypeString,
+						},
+						"state": {
+							Description: "describes the state of the NIC (e.g. provisioning, running, or stopped)",
+							Computed:    true,
+							Type:        schema.TypeString,
+						},
+						"network": {
+							Description: "Network ID this NIC is attached to",
+							Required:    true,
+							Type:        schema.TypeString,
+						},
+					},
 				},
 			},
 			"firewall_enabled": {
@@ -126,6 +166,14 @@ func resourceMachine() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
+			},
+			"domain_names": {
+				Description: "list of domain names from Triton's CNS",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 
 			// computed resources from metadata
@@ -153,6 +201,18 @@ func resourceMachine() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 			},
+
+			// deprecated fields
+			"networks": {
+				Description: "desired network IDs",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
+				Deprecated:  "Networks is deprecated, please use `nic`",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -163,6 +223,11 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	var networks []string
 	for _, network := range d.Get("networks").([]interface{}) {
 		networks = append(networks, network.(string))
+	}
+	nics := d.Get("nic").(*schema.Set)
+	for _, nicI := range nics.List() {
+		nic := nicI.(map[string]interface{})
+		networks = append(networks, nic["network"].(string))
 	}
 
 	metadata := map[string]string{}
@@ -221,6 +286,11 @@ func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	nics, err := client.ListNICs(d.Id())
+	if err != nil {
+		return err
+	}
+
 	d.SetId(machine.Id)
 	d.Set("name", machine.Name)
 	d.Set("type", machine.Type)
@@ -235,8 +305,31 @@ func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("package", machine.Package)
 	d.Set("image", machine.Image)
 	d.Set("primaryip", machine.PrimaryIP)
-	d.Set("networks", machine.Networks)
 	d.Set("firewall_enabled", machine.FirewallEnabled)
+	d.Set("domain_names", machine.DomainNames)
+
+	// create and update NICs
+	var (
+		machineNICs []map[string]interface{}
+		networks    []string
+	)
+	for _, nic := range nics {
+		machineNICs = append(
+			machineNICs,
+			map[string]interface{}{
+				"ip":      nic.IP,
+				"mac":     nic.MAC,
+				"primary": nic.Primary,
+				"netmask": nic.Netmask,
+				"gateway": nic.Gateway,
+				"state":   nic.State,
+				"network": nic.Network,
+			},
+		)
+		networks = append(networks, nic.Network)
+	}
+	d.Set("nic", machineNICs)
+	d.Set("networks", networks)
 
 	// computed attributes from metadata
 	for schemaName, metadataKey := range resourceMachineMetadataKeys {
@@ -349,6 +442,41 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("firewall_enabled")
 	}
 
+	if d.HasChange("nic") {
+		o, n := d.GetChange("nic")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		oldNICs := o.(*schema.Set)
+		newNICs := o.(*schema.Set)
+
+		// add new NICs that are not in old NICs
+		for _, nicI := range newNICs.Difference(oldNICs).List() {
+			nic := nicI.(map[string]interface{})
+			fmt.Printf("adding %+v\n", nic)
+			_, err := client.AddNIC(d.Id(), nic["network"].(string))
+			if err != nil {
+				return err
+			}
+		}
+
+		// remove old NICs that are not in new NICs
+		for _, nicI := range oldNICs.Difference(newNICs).List() {
+			nic := nicI.(map[string]interface{})
+			fmt.Printf("removing %+v\n", nic)
+			err := client.RemoveNIC(d.Id(), nic["mac"].(string))
+			if err != nil {
+				return err
+			}
+		}
+
+		d.SetPartial("nic")
+	}
+
 	// metadata stuff
 	metadata := map[string]string{}
 	for schemaName, metadataKey := range resourceMachineMetadataKeys {
@@ -365,7 +493,12 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		err = waitFor(
 			func() (bool, error) {
 				machine, err := client.GetMachine(d.Id())
-				return reflect.DeepEqual(machine.Metadata, metadata), err
+				for k, v := range metadata {
+					if provider_v, ok := machine.Metadata[k]; !ok || v != provider_v {
+						return false, err
+					}
+				}
+				return true, err
 			},
 			machineStateChangeCheckInterval,
 			1*time.Minute,
@@ -446,4 +579,8 @@ func resourceMachineValidateName(value interface{}, name string) (warnings []str
 	}
 
 	return warnings, errors
+}
+
+func resourceMachineImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	return []*schema.ResourceData{d}, nil
 }

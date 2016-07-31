@@ -2,12 +2,12 @@ package github
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"os"
 )
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {

@@ -24,22 +24,26 @@ A variable configuration looks like the following:
 
 ```
 variable "key" {
-    type = "string"
+  type = "string"
 }
 
 variable "images" {
-    type = "map"
+  type = "map"
 
-	default = {
-		us-east-1 = "image-1234"
-		us-west-2 = "image-4567"
-	}
+  default = {
+    us-east-1 = "image-1234"
+    us-west-2 = "image-4567"
+  }
+}
+
+variable "zones" {
+  default = ["us-east-1a", "us-east-1b"]
 }
 ```
 
 ## Description
 
-The `variable`  block configures a single input variable for
+The `variable` block configures a single input variable for
 a Terraform configuration. Multiple variables blocks can be used to
 add multiple variables.
 
@@ -51,18 +55,14 @@ Within the block (the `{ }`) is configuration for the variable.
 These are the parameters that can be set:
 
   * `type` (optional) - If set this defines the type of the variable.
-    Valid values are `string` and `map`. In older versions of Terraform
-    this parameter did not exist, and the type was inferred from the
-    default value, defaulting to `string` if no default was set. If a
-    type is not specified, the previous behavior is maintained. It is
-    recommended to set variable types explicitly in preference to relying
-    on inferrence - this allows variables of type `map` to be set in the
-    `terraform.tfvars` file without requiring a default value to be set.
+    Valid values are `string`, `list`, and `map`. If this field is omitted, the
+    variable type will be inferred based on the `default`. If no `default` is
+    provided, the type is assumed to be `string`.
 
-  * `default` (optional) - If set, this sets a default value
-    for the variable. If this isn't set, the variable is required
-    and Terraform will error if not set. The default value can be
-    a string or a mapping. This is covered in more detail below.
+  * `default` (optional) - This sets a default value for the variable.
+    If no default is provided, the variable is considered required and
+    Terraform will error if it is not set. The default value can be any of the
+    data types Terraform supports. This is covered in more detail below.
 
   * `description` (optional) - A human-friendly description for
     the variable. This is primarily for documentation for users
@@ -72,19 +72,16 @@ These are the parameters that can be set:
 
 ------
 
-**Default values** can be either strings or maps, and if specified
-must match the declared type of the variable. If no value is supplied
-for a variable of type `map`, the values must be supplied in a
-`terraform.tfvars` file - they cannot be input via the console.
+**Default values** can be strings, lists, or maps. If a default is specified,
+it must match the declared type of the variable.
 
 String values are simple and represent a basic key to value
 mapping where the key is the variable name. An example is:
 
 ```
 variable "key" {
-    type = "string"
-
-	default = "value"
+  type    = "string"
+  default = "value"
 }
 ```
 
@@ -95,16 +92,24 @@ An example:
 
 ```
 variable "images" {
-    type = "map"
-
-	default = {
-		us-east-1 = "image-1234"
-		us-west-2 = "image-4567"
-	}
+  type = "map"
+  default = {
+    us-east-1 = "image-1234"
+    us-west-2 = "image-4567"
+  }
 }
 ```
 
-The usage of maps, strings, etc. is documented fully in the
+A list can also be useful to store certain variables. For example:
+
+```
+variable "users" {
+  type    = "list"
+  default = ["admin", "ubuntu"]
+}
+```
+
+The usage of maps, list, strings, etc. is documented fully in the
 [interpolation syntax](/docs/configuration/interpolation.html)
 page.
 
@@ -114,9 +119,9 @@ The full syntax is:
 
 ```
 variable NAME {
-	[type = TYPE]
-	[default = DEFAULT]
-	[description = DESCRIPTION]
+  [type = TYPE]
+  [default = DEFAULT]
+  [description = DESCRIPTION]
 }
 ```
 
@@ -125,9 +130,14 @@ where `DEFAULT` is:
 ```
 VALUE
 
+[
+  VALUE,
+  ...
+]
+
 {
-	KEY = VALUE
-	...
+  KEY = VALUE
+  ...
 }
 ```
 
@@ -147,13 +157,61 @@ The variable can be set via an environment variable:
 
 ```
 $ TF_VAR_image=foo terraform apply
-...
+```
+
+Maps and lists can be specified using environment variables as well using
+[HCL](/docs/configuration/syntax.html#HCL) syntax in the value.
+
+Given the variable declarations:
+
+```
+variable "somelist" {
+  type = "list"
+}
+```
+
+The variable could be set like so:
+
+```
+$ TF_VAR_somelist='["ami-abc123", "ami-bcd234"]' terraform plan
+```
+
+Similarly, for a map declared like:
+
+```
+variable "somemap" {
+  type = "map"
+}
+```
+
+The value can be set like this:
+
+```
+$ TF_VAR_somemap='{foo = "bar", baz = "qux"}' terraform plan
 ```
 
 ## Variable Files
 
+<a id="variable-files"></a>
+
 Variables can be collected in files and passed all at once using the 
-`-var-file=foo` flag. 
+`-var-file=foo.tfvars` flag. The format for variables in `.tfvars`
+files is [HCL](/docs/configuration/syntax.html#HCL), with top level key/value
+pairs:
+
+
+```
+foo = "bar"
+xyz = "abc"
+somelist = [
+  "one",
+  "two",
+]
+somemap = {
+  foo = "bar"
+  bax = "qux"
+}
+```
 
 The flag can be used multiple times per command invocation:
 
@@ -161,26 +219,22 @@ The flag can be used multiple times per command invocation:
 terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
 ```
 
-**Note** If a variable is defined in more than one file passed, the last 
-variable file (reading left to right) will be the definition used. Put more 
+**Note** If a variable is defined in more than one file passed, the last
+variable file (reading left to right) will be the definition used. Put more
 simply, the last time a variable is defined is the one which will be used.
 
-##Example: 
+### Precedence example:
 
 Both these files have the variable `baz` defined:
 
 _foo.tfvars_
 ```
-variable "baz" { 
-    default = "foo"
-}
+baz = "foo"
 ```
 
 _bar.tfvars_
 ```
-variable "baz" { 
-    default = "bar"
-}
+baz = "bar"
 ```
 
 When they are passed in the following order:
@@ -191,5 +245,3 @@ terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
 
 The result will be that `baz` will contain the value `bar` because `bar.tfvars`
 has the last definition loaded.
-
-

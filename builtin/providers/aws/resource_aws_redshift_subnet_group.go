@@ -19,6 +19,9 @@ func resourceAwsRedshiftSubnetGroup() *schema.Resource {
 		Read:   resourceAwsRedshiftSubnetGroupRead,
 		Update: resourceAwsRedshiftSubnetGroupUpdate,
 		Delete: resourceAwsRedshiftSubnetGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -30,7 +33,8 @@ func resourceAwsRedshiftSubnetGroup() *schema.Resource {
 
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "Managed by Terraform",
 			},
 
 			"subnet_ids": &schema.Schema{

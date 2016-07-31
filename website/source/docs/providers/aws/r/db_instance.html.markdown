@@ -58,7 +58,7 @@ The following arguments are supported:
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB instance is deleted. If omitted, no final snapshot will be
     made.
-* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB instance is deleted. If true is specified, no DBSnapshot is created. If false is specified, a DB snapshot is created before the DB instance is deleted. Default is true.
+* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB instance is deleted. If true is specified, no DBSnapshot is created. If false is specified, a DB snapshot is created before the DB instance is deleted, using the value from `final_snapshot_identifier`. Default is true.
 * `copy_tags_to_snapshot` – (Optional, boolean) On delete, copy all Instance `tags` to
 the final snapshot (if `final_snapshot_identifier` is specified). Default
 `false`
@@ -78,12 +78,13 @@ the final snapshot (if `final_snapshot_identifier` is specified). Default
   See [RDS Maintenance Window docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html) for more.
 * `multi_az` - (Optional) Specifies if the RDS instance is multi-AZ
 * `port` - (Optional) The port on which the DB accepts connections.
-* `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible.
+* `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible. Defaults to `false`.
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate.
 * `security_group_names` - (Optional/Deprecated) List of DB Security Groups to associate.
     Only used for [DB Instances on the _EC2-Classic_ Platform](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html#USER_VPC.FindDefaultVPC).
 * `db_subnet_group_name` - (Optional) Name of DB subnet group. DB instance will be created in the VPC associated with the DB subnet group. If unspecified, will be created in the `default` VPC, or in EC2 Classic, if available.
 * `parameter_group_name` - (Optional) Name of the DB parameter group to associate.
+* `option_group_name` - (Optional) Name of the DB option group to associate.
 * `storage_encrypted` - (Optional) Specifies whether the DB instance is encrypted. The default is `false` if not specified.
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is
@@ -98,10 +99,13 @@ database, and to use this value as the source database. This correlates to the
 * `license_model` - (Optional, but required for some DB engines, i.e. Oracle SE1) License model information for this DB instance.
 * `auto_minor_version_upgrade` - (Optional) Indicates that minor engine upgrades will be applied automatically to the DB instance during the maintenance window. Defaults to true.
 * `allow_major_version_upgrade` - (Optional) Indicates that major version upgrades are allowed. Changing this parameter does not result in an outage and the change is asynchronously applied as soon as possible.
-* `monitoring_role_arn` - (Optional) The ARN for the IAM role that permits RDS to send 
-enhanced monitoring metrics to CloudWatch Logs. You can find more information on the [AWS Documentation](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.html) 
+* `monitoring_role_arn` - (Optional) The ARN for the IAM role that permits RDS to send
+enhanced monitoring metrics to CloudWatch Logs. You can find more information on the [AWS Documentation](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.html)
 what IAM permissions are needed to allow Enhanced Monitoring for RDS Instances.
 * `monitoring_interval` - (Optional) The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB instance. To disable collecting Enhanced Monitoring metrics, specify 0. The default is 0. Valid Values: 0, 1, 5, 10, 15, 30, 60.
+* `kms_key_id` - (Optional) The ARN for the KMS encryption key.
+* `character_set_name` - (Optional) The character set name to use for DB encoding in Oracle instances. This can't be changed.
+[Oracle Character Sets Supported in Amazon RDS](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.OracleCharacterSets.html)
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
@@ -131,5 +135,17 @@ The following attributes are exported:
 * `username` - The master username for the database
 * `storage_encrypted` - Specifies whether the DB instance is encrypted
 
+On Oracle instances the following is exported additionally:
+
+* `character_set_name` - The character set used on Oracle instances.
+
 [1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
 [2]: https://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+
+## Import
+
+DB Instances can be imported using the `identifier`, e.g. 
+
+```
+$ terraform import aws_db_instance.default mydb-rds-instance
+```

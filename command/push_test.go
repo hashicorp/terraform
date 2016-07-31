@@ -10,6 +10,7 @@ import (
 	"sort"
 	"testing"
 
+	atlas "github.com/hashicorp/atlas-go/v1"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -61,7 +62,7 @@ func TestPush_good(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 
-	variables := make(map[string]string)
+	variables := make(map[string]interface{})
 	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
@@ -115,14 +116,16 @@ func TestPush_input(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	variables := map[string]string{
+	variables := map[string]interface{}{
 		"foo": "foo",
 	}
+
 	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
 		t.Fatalf("bad: %#v", client.UpsertOptions.Variables)
 	}
 }
 
+// We want a variable from atlas to fill a missing variable locally
 func TestPush_inputPartial(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
@@ -142,8 +145,10 @@ func TestPush_inputPartial(t *testing.T) {
 	defer os.Remove(archivePath)
 
 	client := &mockPushClient{
-		File:      archivePath,
-		GetResult: map[string]string{"foo": "bar"},
+		File: archivePath,
+		GetResult: map[string]atlas.TFVar{
+			"foo": atlas.TFVar{Key: "foo", Value: "bar"},
+		},
 	}
 	ui := new(cli.MockUi)
 	c := &PushCommand{
@@ -170,12 +175,13 @@ func TestPush_inputPartial(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	variables := map[string]string{
-		"foo": "bar",
-		"bar": "foo",
+	expectedTFVars := []atlas.TFVar{
+		{Key: "bar", Value: "foo"},
+		{Key: "foo", Value: "bar"},
 	}
-	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
-		t.Fatalf("bad: %#v", client.UpsertOptions)
+	if !reflect.DeepEqual(client.UpsertOptions.TFVars, expectedTFVars) {
+		t.Logf("expected: %#v", expectedTFVars)
+		t.Fatalf("got:      %#v", client.UpsertOptions.TFVars)
 	}
 }
 
@@ -208,8 +214,11 @@ func TestPush_localOverride(t *testing.T) {
 
 	client := &mockPushClient{File: archivePath}
 	// Provided vars should override existing ones
-	client.GetResult = map[string]string{
-		"foo": "old",
+	client.GetResult = map[string]atlas.TFVar{
+		"foo": atlas.TFVar{
+			Key:   "foo",
+			Value: "old",
+		},
 	}
 	ui := new(cli.MockUi)
 	c := &PushCommand{
@@ -247,12 +256,11 @@ func TestPush_localOverride(t *testing.T) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
 
-	variables := map[string]string{
-		"foo": "bar",
-		"bar": "foo",
-	}
-	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
-		t.Fatalf("bad: %#v", client.UpsertOptions)
+	expectedTFVars := pushTFVars()
+
+	if !reflect.DeepEqual(client.UpsertOptions.TFVars, expectedTFVars) {
+		t.Logf("expected: %#v", expectedTFVars)
+		t.Fatalf("got:    %#v", client.UpsertOptions.TFVars)
 	}
 }
 
@@ -285,8 +293,11 @@ func TestPush_preferAtlas(t *testing.T) {
 
 	client := &mockPushClient{File: archivePath}
 	// Provided vars should override existing ones
-	client.GetResult = map[string]string{
-		"foo": "old",
+	client.GetResult = map[string]atlas.TFVar{
+		"foo": atlas.TFVar{
+			Key:   "foo",
+			Value: "old",
+		},
 	}
 	ui := new(cli.MockUi)
 	c := &PushCommand{
@@ -323,12 +334,17 @@ func TestPush_preferAtlas(t *testing.T) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
 
-	variables := map[string]string{
-		"foo": "old",
-		"bar": "foo",
+	// change the expected response to match our change
+	expectedTFVars := pushTFVars()
+	for i, v := range expectedTFVars {
+		if v.Key == "foo" {
+			expectedTFVars[i] = atlas.TFVar{Key: "foo", Value: "old"}
+		}
 	}
-	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
-		t.Fatalf("bad: %#v", client.UpsertOptions)
+
+	if !reflect.DeepEqual(expectedTFVars, client.UpsertOptions.TFVars) {
+		t.Logf("expected: %#v", expectedTFVars)
+		t.Fatalf("got:      %#v", client.UpsertOptions.TFVars)
 	}
 }
 
@@ -394,12 +410,15 @@ func TestPush_tfvars(t *testing.T) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
 
-	variables := map[string]string{
-		"foo": "bar",
-		"bar": "foo",
-	}
-	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
-		t.Fatalf("bad: %#v", client.UpsertOptions)
+	//now check TFVars
+	tfvars := pushTFVars()
+
+	for i, expected := range tfvars {
+		got := client.UpsertOptions.TFVars[i]
+		if got != expected {
+			t.Logf("%2d expected: %#v", i, expected)
+			t.Logf("        got: %#v", got)
+		}
 	}
 }
 
@@ -562,4 +581,26 @@ func testArchiveStr(t *testing.T, path string) []string {
 
 	sort.Strings(result)
 	return result
+}
+
+func pushTFVars() []atlas.TFVar {
+	return []atlas.TFVar{
+		{"bar", "foo", false},
+		{"baz", `{
+  A      = "a"
+  interp = "${file("t.txt")}"
+}
+`, true},
+		{"fob", `["a", "quotes \"in\" quotes"]` + "\n", true},
+		{"foo", "bar", false},
+	}
+}
+
+// the structure returned from the push-tfvars test fixture
+func pushTFVarsMap() map[string]atlas.TFVar {
+	vars := make(map[string]atlas.TFVar)
+	for _, v := range pushTFVars() {
+		vars[v.Key] = v
+	}
+	return vars
 }

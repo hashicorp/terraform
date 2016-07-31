@@ -12,7 +12,28 @@ import (
 
 const opBatchCheckLayerAvailability = "BatchCheckLayerAvailability"
 
-// BatchCheckLayerAvailabilityRequest generates a request for the BatchCheckLayerAvailability operation.
+// BatchCheckLayerAvailabilityRequest generates a "aws/request.Request" representing the
+// client's request for the BatchCheckLayerAvailability operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the BatchCheckLayerAvailability method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the BatchCheckLayerAvailabilityRequest method.
+//    req, resp := client.BatchCheckLayerAvailabilityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) BatchCheckLayerAvailabilityRequest(input *BatchCheckLayerAvailabilityInput) (req *request.Request, output *BatchCheckLayerAvailabilityOutput) {
 	op := &request.Operation{
 		Name:       opBatchCheckLayerAvailability,
@@ -43,7 +64,28 @@ func (c *ECR) BatchCheckLayerAvailability(input *BatchCheckLayerAvailabilityInpu
 
 const opBatchDeleteImage = "BatchDeleteImage"
 
-// BatchDeleteImageRequest generates a request for the BatchDeleteImage operation.
+// BatchDeleteImageRequest generates a "aws/request.Request" representing the
+// client's request for the BatchDeleteImage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the BatchDeleteImage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the BatchDeleteImageRequest method.
+//    req, resp := client.BatchDeleteImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) BatchDeleteImageRequest(input *BatchDeleteImageInput) (req *request.Request, output *BatchDeleteImageOutput) {
 	op := &request.Operation{
 		Name:       opBatchDeleteImage,
@@ -71,7 +113,28 @@ func (c *ECR) BatchDeleteImage(input *BatchDeleteImageInput) (*BatchDeleteImageO
 
 const opBatchGetImage = "BatchGetImage"
 
-// BatchGetImageRequest generates a request for the BatchGetImage operation.
+// BatchGetImageRequest generates a "aws/request.Request" representing the
+// client's request for the BatchGetImage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the BatchGetImage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the BatchGetImageRequest method.
+//    req, resp := client.BatchGetImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) BatchGetImageRequest(input *BatchGetImageInput) (req *request.Request, output *BatchGetImageOutput) {
 	op := &request.Operation{
 		Name:       opBatchGetImage,
@@ -99,7 +162,28 @@ func (c *ECR) BatchGetImage(input *BatchGetImageInput) (*BatchGetImageOutput, er
 
 const opCompleteLayerUpload = "CompleteLayerUpload"
 
-// CompleteLayerUploadRequest generates a request for the CompleteLayerUpload operation.
+// CompleteLayerUploadRequest generates a "aws/request.Request" representing the
+// client's request for the CompleteLayerUpload operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CompleteLayerUpload method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CompleteLayerUploadRequest method.
+//    req, resp := client.CompleteLayerUploadRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) CompleteLayerUploadRequest(input *CompleteLayerUploadInput) (req *request.Request, output *CompleteLayerUploadOutput) {
 	op := &request.Operation{
 		Name:       opCompleteLayerUpload,
@@ -131,7 +215,28 @@ func (c *ECR) CompleteLayerUpload(input *CompleteLayerUploadInput) (*CompleteLay
 
 const opCreateRepository = "CreateRepository"
 
-// CreateRepositoryRequest generates a request for the CreateRepository operation.
+// CreateRepositoryRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRepository operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateRepository method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateRepositoryRequest method.
+//    req, resp := client.CreateRepositoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) CreateRepositoryRequest(input *CreateRepositoryInput) (req *request.Request, output *CreateRepositoryOutput) {
 	op := &request.Operation{
 		Name:       opCreateRepository,
@@ -158,7 +263,28 @@ func (c *ECR) CreateRepository(input *CreateRepositoryInput) (*CreateRepositoryO
 
 const opDeleteRepository = "DeleteRepository"
 
-// DeleteRepositoryRequest generates a request for the DeleteRepository operation.
+// DeleteRepositoryRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRepository operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRepository method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRepositoryRequest method.
+//    req, resp := client.DeleteRepositoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req *request.Request, output *DeleteRepositoryOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRepository,
@@ -186,7 +312,28 @@ func (c *ECR) DeleteRepository(input *DeleteRepositoryInput) (*DeleteRepositoryO
 
 const opDeleteRepositoryPolicy = "DeleteRepositoryPolicy"
 
-// DeleteRepositoryPolicyRequest generates a request for the DeleteRepositoryPolicy operation.
+// DeleteRepositoryPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRepositoryPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRepositoryPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRepositoryPolicyRequest method.
+//    req, resp := client.DeleteRepositoryPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) DeleteRepositoryPolicyRequest(input *DeleteRepositoryPolicyInput) (req *request.Request, output *DeleteRepositoryPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRepositoryPolicy,
@@ -213,7 +360,28 @@ func (c *ECR) DeleteRepositoryPolicy(input *DeleteRepositoryPolicyInput) (*Delet
 
 const opDescribeRepositories = "DescribeRepositories"
 
-// DescribeRepositoriesRequest generates a request for the DescribeRepositories operation.
+// DescribeRepositoriesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeRepositories operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeRepositories method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeRepositoriesRequest method.
+//    req, resp := client.DescribeRepositoriesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) DescribeRepositoriesRequest(input *DescribeRepositoriesInput) (req *request.Request, output *DescribeRepositoriesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRepositories,
@@ -240,7 +408,28 @@ func (c *ECR) DescribeRepositories(input *DescribeRepositoriesInput) (*DescribeR
 
 const opGetAuthorizationToken = "GetAuthorizationToken"
 
-// GetAuthorizationTokenRequest generates a request for the GetAuthorizationToken operation.
+// GetAuthorizationTokenRequest generates a "aws/request.Request" representing the
+// client's request for the GetAuthorizationToken operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetAuthorizationToken method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetAuthorizationTokenRequest method.
+//    req, resp := client.GetAuthorizationTokenRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) GetAuthorizationTokenRequest(input *GetAuthorizationTokenInput) (req *request.Request, output *GetAuthorizationTokenOutput) {
 	op := &request.Operation{
 		Name:       opGetAuthorizationToken,
@@ -274,7 +463,28 @@ func (c *ECR) GetAuthorizationToken(input *GetAuthorizationTokenInput) (*GetAuth
 
 const opGetDownloadUrlForLayer = "GetDownloadUrlForLayer"
 
-// GetDownloadUrlForLayerRequest generates a request for the GetDownloadUrlForLayer operation.
+// GetDownloadUrlForLayerRequest generates a "aws/request.Request" representing the
+// client's request for the GetDownloadUrlForLayer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDownloadUrlForLayer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDownloadUrlForLayerRequest method.
+//    req, resp := client.GetDownloadUrlForLayerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) GetDownloadUrlForLayerRequest(input *GetDownloadUrlForLayerInput) (req *request.Request, output *GetDownloadUrlForLayerOutput) {
 	op := &request.Operation{
 		Name:       opGetDownloadUrlForLayer,
@@ -305,7 +515,28 @@ func (c *ECR) GetDownloadUrlForLayer(input *GetDownloadUrlForLayerInput) (*GetDo
 
 const opGetRepositoryPolicy = "GetRepositoryPolicy"
 
-// GetRepositoryPolicyRequest generates a request for the GetRepositoryPolicy operation.
+// GetRepositoryPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetRepositoryPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRepositoryPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRepositoryPolicyRequest method.
+//    req, resp := client.GetRepositoryPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) GetRepositoryPolicyRequest(input *GetRepositoryPolicyInput) (req *request.Request, output *GetRepositoryPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetRepositoryPolicy,
@@ -332,7 +563,28 @@ func (c *ECR) GetRepositoryPolicy(input *GetRepositoryPolicyInput) (*GetReposito
 
 const opInitiateLayerUpload = "InitiateLayerUpload"
 
-// InitiateLayerUploadRequest generates a request for the InitiateLayerUpload operation.
+// InitiateLayerUploadRequest generates a "aws/request.Request" representing the
+// client's request for the InitiateLayerUpload operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the InitiateLayerUpload method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the InitiateLayerUploadRequest method.
+//    req, resp := client.InitiateLayerUploadRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) InitiateLayerUploadRequest(input *InitiateLayerUploadInput) (req *request.Request, output *InitiateLayerUploadOutput) {
 	op := &request.Operation{
 		Name:       opInitiateLayerUpload,
@@ -362,7 +614,28 @@ func (c *ECR) InitiateLayerUpload(input *InitiateLayerUploadInput) (*InitiateLay
 
 const opListImages = "ListImages"
 
-// ListImagesRequest generates a request for the ListImages operation.
+// ListImagesRequest generates a "aws/request.Request" representing the
+// client's request for the ListImages operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListImages method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListImagesRequest method.
+//    req, resp := client.ListImagesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) ListImagesRequest(input *ListImagesInput) (req *request.Request, output *ListImagesOutput) {
 	op := &request.Operation{
 		Name:       opListImages,
@@ -389,7 +662,28 @@ func (c *ECR) ListImages(input *ListImagesInput) (*ListImagesOutput, error) {
 
 const opPutImage = "PutImage"
 
-// PutImageRequest generates a request for the PutImage operation.
+// PutImageRequest generates a "aws/request.Request" representing the
+// client's request for the PutImage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutImage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutImageRequest method.
+//    req, resp := client.PutImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) PutImageRequest(input *PutImageInput) (req *request.Request, output *PutImageOutput) {
 	op := &request.Operation{
 		Name:       opPutImage,
@@ -419,7 +713,28 @@ func (c *ECR) PutImage(input *PutImageInput) (*PutImageOutput, error) {
 
 const opSetRepositoryPolicy = "SetRepositoryPolicy"
 
-// SetRepositoryPolicyRequest generates a request for the SetRepositoryPolicy operation.
+// SetRepositoryPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the SetRepositoryPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetRepositoryPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetRepositoryPolicyRequest method.
+//    req, resp := client.SetRepositoryPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) SetRepositoryPolicyRequest(input *SetRepositoryPolicyInput) (req *request.Request, output *SetRepositoryPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetRepositoryPolicy,
@@ -446,7 +761,28 @@ func (c *ECR) SetRepositoryPolicy(input *SetRepositoryPolicyInput) (*SetReposito
 
 const opUploadLayerPart = "UploadLayerPart"
 
-// UploadLayerPartRequest generates a request for the UploadLayerPart operation.
+// UploadLayerPartRequest generates a "aws/request.Request" representing the
+// client's request for the UploadLayerPart operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UploadLayerPart method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UploadLayerPartRequest method.
+//    req, resp := client.UploadLayerPartRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ECR) UploadLayerPartRequest(input *UploadLayerPartInput) (req *request.Request, output *UploadLayerPartOutput) {
 	op := &request.Operation{
 		Name:       opUploadLayerPart,
@@ -489,7 +825,7 @@ type AuthorizationData struct {
 
 	// The registry URL to use for this authorization token in a docker login command.
 	// The Amazon ECR registry URL format is https://aws_account_id.dkr.ecr.region.amazonaws.com.
-	// For example, https://012345678910.dkr.ecr.us-east-1.amazonaws.com.
+	// For example, https://012345678910.dkr.ecr.us-east-1.amazonaws.com..
 	ProxyEndpoint *string `locationName:"proxyEndpoint" type:"string"`
 }
 
@@ -525,6 +861,28 @@ func (s BatchCheckLayerAvailabilityInput) String() string {
 // GoString returns the string representation
 func (s BatchCheckLayerAvailabilityInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchCheckLayerAvailabilityInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchCheckLayerAvailabilityInput"}
+	if s.LayerDigests == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerDigests"))
+	}
+	if s.LayerDigests != nil && len(s.LayerDigests) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LayerDigests", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type BatchCheckLayerAvailabilityOutput struct {
@@ -575,6 +933,28 @@ func (s BatchDeleteImageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchDeleteImageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchDeleteImageInput"}
+	if s.ImageIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImageIds"))
+	}
+	if s.ImageIds != nil && len(s.ImageIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImageIds", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type BatchDeleteImageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -618,6 +998,28 @@ func (s BatchGetImageInput) String() string {
 // GoString returns the string representation
 func (s BatchGetImageInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchGetImageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchGetImageInput"}
+	if s.ImageIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImageIds"))
+	}
+	if s.ImageIds != nil && len(s.ImageIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImageIds", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type BatchGetImageOutput struct {
@@ -668,6 +1070,31 @@ func (s CompleteLayerUploadInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CompleteLayerUploadInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CompleteLayerUploadInput"}
+	if s.LayerDigests == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerDigests"))
+	}
+	if s.LayerDigests != nil && len(s.LayerDigests) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LayerDigests", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CompleteLayerUploadOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -713,6 +1140,22 @@ func (s CreateRepositoryInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateRepositoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateRepositoryInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateRepositoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -754,6 +1197,22 @@ func (s DeleteRepositoryInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRepositoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRepositoryInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteRepositoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -792,6 +1251,22 @@ func (s DeleteRepositoryPolicyInput) String() string {
 // GoString returns the string representation
 func (s DeleteRepositoryPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRepositoryPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRepositoryPolicyInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteRepositoryPolicyOutput struct {
@@ -856,6 +1331,22 @@ func (s DescribeRepositoriesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeRepositoriesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeRepositoriesInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.RepositoryNames != nil && len(s.RepositoryNames) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryNames", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeRepositoriesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -896,6 +1387,19 @@ func (s GetAuthorizationTokenInput) String() string {
 // GoString returns the string representation
 func (s GetAuthorizationTokenInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetAuthorizationTokenInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetAuthorizationTokenInput"}
+	if s.RegistryIds != nil && len(s.RegistryIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RegistryIds", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type GetAuthorizationTokenOutput struct {
@@ -940,6 +1444,25 @@ func (s GetDownloadUrlForLayerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDownloadUrlForLayerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDownloadUrlForLayerInput"}
+	if s.LayerDigest == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerDigest"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GetDownloadUrlForLayerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -979,6 +1502,22 @@ func (s GetRepositoryPolicyInput) String() string {
 // GoString returns the string representation
 func (s GetRepositoryPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetRepositoryPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetRepositoryPolicyInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type GetRepositoryPolicyOutput struct {
@@ -1095,6 +1634,22 @@ func (s InitiateLayerUploadInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InitiateLayerUploadInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InitiateLayerUploadInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type InitiateLayerUploadOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1201,6 +1756,25 @@ func (s ListImagesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListImagesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListImagesInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ListImagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1249,6 +1823,25 @@ func (s PutImageInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutImageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutImageInput"}
+	if s.ImageManifest == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImageManifest"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PutImageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1281,6 +1874,10 @@ type Repository struct {
 
 	// The name of the repository.
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+
+	// The URI for the repository. You can use this URI for Docker push and pull
+	// operations.
+	RepositoryUri *string `locationName:"repositoryUri" type:"string"`
 }
 
 // String returns the string representation
@@ -1320,6 +1917,25 @@ func (s SetRepositoryPolicyInput) String() string {
 // GoString returns the string representation
 func (s SetRepositoryPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetRepositoryPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetRepositoryPolicyInput"}
+	if s.PolicyText == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyText"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetRepositoryPolicyOutput struct {
@@ -1379,6 +1995,34 @@ func (s UploadLayerPartInput) String() string {
 // GoString returns the string representation
 func (s UploadLayerPartInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UploadLayerPartInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UploadLayerPartInput"}
+	if s.LayerPartBlob == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerPartBlob"))
+	}
+	if s.PartFirstByte == nil {
+		invalidParams.Add(request.NewErrParamRequired("PartFirstByte"))
+	}
+	if s.PartLastByte == nil {
+		invalidParams.Add(request.NewErrParamRequired("PartLastByte"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+	if s.UploadId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UploadId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UploadLayerPartOutput struct {

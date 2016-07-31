@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -176,22 +176,23 @@ func (s *HostService) AddHost(p *AddHostParams) (*AddHostResponse, error) {
 }
 
 type AddHostResponse struct {
-	Averageload             int64  `json:"averageload,omitempty"`
-	Capabilities            string `json:"capabilities,omitempty"`
-	Clusterid               string `json:"clusterid,omitempty"`
-	Clustername             string `json:"clustername,omitempty"`
-	Clustertype             string `json:"clustertype,omitempty"`
-	Cpuallocated            string `json:"cpuallocated,omitempty"`
-	Cpunumber               int    `json:"cpunumber,omitempty"`
-	Cpusockets              int    `json:"cpusockets,omitempty"`
-	Cpuspeed                int64  `json:"cpuspeed,omitempty"`
-	Cpuused                 string `json:"cpuused,omitempty"`
-	Cpuwithoverprovisioning string `json:"cpuwithoverprovisioning,omitempty"`
-	Created                 string `json:"created,omitempty"`
-	Disconnected            string `json:"disconnected,omitempty"`
-	Disksizeallocated       int64  `json:"disksizeallocated,omitempty"`
-	Disksizetotal           int64  `json:"disksizetotal,omitempty"`
-	Events                  string `json:"events,omitempty"`
+	Averageload             int64             `json:"averageload,omitempty"`
+	Capabilities            string            `json:"capabilities,omitempty"`
+	Clusterid               string            `json:"clusterid,omitempty"`
+	Clustername             string            `json:"clustername,omitempty"`
+	Clustertype             string            `json:"clustertype,omitempty"`
+	Cpuallocated            string            `json:"cpuallocated,omitempty"`
+	Cpunumber               int               `json:"cpunumber,omitempty"`
+	Cpusockets              int               `json:"cpusockets,omitempty"`
+	Cpuspeed                int64             `json:"cpuspeed,omitempty"`
+	Cpuused                 string            `json:"cpuused,omitempty"`
+	Cpuwithoverprovisioning string            `json:"cpuwithoverprovisioning,omitempty"`
+	Created                 string            `json:"created,omitempty"`
+	Details                 map[string]string `json:"details,omitempty"`
+	Disconnected            string            `json:"disconnected,omitempty"`
+	Disksizeallocated       int64             `json:"disksizeallocated,omitempty"`
+	Disksizetotal           int64             `json:"disksizetotal,omitempty"`
+	Events                  string            `json:"events,omitempty"`
 	Gpugroup                []struct {
 		Gpugroupname string `json:"gpugroupname,omitempty"`
 		Vgpu         []struct {
@@ -302,23 +303,24 @@ func (s *HostService) ReconnectHost(p *ReconnectHostParams) (*ReconnectHostRespo
 }
 
 type ReconnectHostResponse struct {
-	JobID                   string `json:"jobid,omitempty"`
-	Averageload             int64  `json:"averageload,omitempty"`
-	Capabilities            string `json:"capabilities,omitempty"`
-	Clusterid               string `json:"clusterid,omitempty"`
-	Clustername             string `json:"clustername,omitempty"`
-	Clustertype             string `json:"clustertype,omitempty"`
-	Cpuallocated            string `json:"cpuallocated,omitempty"`
-	Cpunumber               int    `json:"cpunumber,omitempty"`
-	Cpusockets              int    `json:"cpusockets,omitempty"`
-	Cpuspeed                int64  `json:"cpuspeed,omitempty"`
-	Cpuused                 string `json:"cpuused,omitempty"`
-	Cpuwithoverprovisioning string `json:"cpuwithoverprovisioning,omitempty"`
-	Created                 string `json:"created,omitempty"`
-	Disconnected            string `json:"disconnected,omitempty"`
-	Disksizeallocated       int64  `json:"disksizeallocated,omitempty"`
-	Disksizetotal           int64  `json:"disksizetotal,omitempty"`
-	Events                  string `json:"events,omitempty"`
+	JobID                   string            `json:"jobid,omitempty"`
+	Averageload             int64             `json:"averageload,omitempty"`
+	Capabilities            string            `json:"capabilities,omitempty"`
+	Clusterid               string            `json:"clusterid,omitempty"`
+	Clustername             string            `json:"clustername,omitempty"`
+	Clustertype             string            `json:"clustertype,omitempty"`
+	Cpuallocated            string            `json:"cpuallocated,omitempty"`
+	Cpunumber               int               `json:"cpunumber,omitempty"`
+	Cpusockets              int               `json:"cpusockets,omitempty"`
+	Cpuspeed                int64             `json:"cpuspeed,omitempty"`
+	Cpuused                 string            `json:"cpuused,omitempty"`
+	Cpuwithoverprovisioning string            `json:"cpuwithoverprovisioning,omitempty"`
+	Created                 string            `json:"created,omitempty"`
+	Details                 map[string]string `json:"details,omitempty"`
+	Disconnected            string            `json:"disconnected,omitempty"`
+	Disksizeallocated       int64             `json:"disksizeallocated,omitempty"`
+	Disksizetotal           int64             `json:"disksizetotal,omitempty"`
+	Events                  string            `json:"events,omitempty"`
 	Gpugroup                []struct {
 		Gpugroupname string `json:"gpugroupname,omitempty"`
 		Vgpu         []struct {
@@ -454,22 +456,23 @@ func (s *HostService) UpdateHost(p *UpdateHostParams) (*UpdateHostResponse, erro
 }
 
 type UpdateHostResponse struct {
-	Averageload             int64  `json:"averageload,omitempty"`
-	Capabilities            string `json:"capabilities,omitempty"`
-	Clusterid               string `json:"clusterid,omitempty"`
-	Clustername             string `json:"clustername,omitempty"`
-	Clustertype             string `json:"clustertype,omitempty"`
-	Cpuallocated            string `json:"cpuallocated,omitempty"`
-	Cpunumber               int    `json:"cpunumber,omitempty"`
-	Cpusockets              int    `json:"cpusockets,omitempty"`
-	Cpuspeed                int64  `json:"cpuspeed,omitempty"`
-	Cpuused                 string `json:"cpuused,omitempty"`
-	Cpuwithoverprovisioning string `json:"cpuwithoverprovisioning,omitempty"`
-	Created                 string `json:"created,omitempty"`
-	Disconnected            string `json:"disconnected,omitempty"`
-	Disksizeallocated       int64  `json:"disksizeallocated,omitempty"`
-	Disksizetotal           int64  `json:"disksizetotal,omitempty"`
-	Events                  string `json:"events,omitempty"`
+	Averageload             int64             `json:"averageload,omitempty"`
+	Capabilities            string            `json:"capabilities,omitempty"`
+	Clusterid               string            `json:"clusterid,omitempty"`
+	Clustername             string            `json:"clustername,omitempty"`
+	Clustertype             string            `json:"clustertype,omitempty"`
+	Cpuallocated            string            `json:"cpuallocated,omitempty"`
+	Cpunumber               int               `json:"cpunumber,omitempty"`
+	Cpusockets              int               `json:"cpusockets,omitempty"`
+	Cpuspeed                int64             `json:"cpuspeed,omitempty"`
+	Cpuused                 string            `json:"cpuused,omitempty"`
+	Cpuwithoverprovisioning string            `json:"cpuwithoverprovisioning,omitempty"`
+	Created                 string            `json:"created,omitempty"`
+	Details                 map[string]string `json:"details,omitempty"`
+	Disconnected            string            `json:"disconnected,omitempty"`
+	Disksizeallocated       int64             `json:"disksizeallocated,omitempty"`
+	Disksizetotal           int64             `json:"disksizetotal,omitempty"`
+	Events                  string            `json:"events,omitempty"`
 	Gpugroup                []struct {
 		Gpugroupname string `json:"gpugroupname,omitempty"`
 		Vgpu         []struct {
@@ -655,23 +658,24 @@ func (s *HostService) PrepareHostForMaintenance(p *PrepareHostForMaintenancePara
 }
 
 type PrepareHostForMaintenanceResponse struct {
-	JobID                   string `json:"jobid,omitempty"`
-	Averageload             int64  `json:"averageload,omitempty"`
-	Capabilities            string `json:"capabilities,omitempty"`
-	Clusterid               string `json:"clusterid,omitempty"`
-	Clustername             string `json:"clustername,omitempty"`
-	Clustertype             string `json:"clustertype,omitempty"`
-	Cpuallocated            string `json:"cpuallocated,omitempty"`
-	Cpunumber               int    `json:"cpunumber,omitempty"`
-	Cpusockets              int    `json:"cpusockets,omitempty"`
-	Cpuspeed                int64  `json:"cpuspeed,omitempty"`
-	Cpuused                 string `json:"cpuused,omitempty"`
-	Cpuwithoverprovisioning string `json:"cpuwithoverprovisioning,omitempty"`
-	Created                 string `json:"created,omitempty"`
-	Disconnected            string `json:"disconnected,omitempty"`
-	Disksizeallocated       int64  `json:"disksizeallocated,omitempty"`
-	Disksizetotal           int64  `json:"disksizetotal,omitempty"`
-	Events                  string `json:"events,omitempty"`
+	JobID                   string            `json:"jobid,omitempty"`
+	Averageload             int64             `json:"averageload,omitempty"`
+	Capabilities            string            `json:"capabilities,omitempty"`
+	Clusterid               string            `json:"clusterid,omitempty"`
+	Clustername             string            `json:"clustername,omitempty"`
+	Clustertype             string            `json:"clustertype,omitempty"`
+	Cpuallocated            string            `json:"cpuallocated,omitempty"`
+	Cpunumber               int               `json:"cpunumber,omitempty"`
+	Cpusockets              int               `json:"cpusockets,omitempty"`
+	Cpuspeed                int64             `json:"cpuspeed,omitempty"`
+	Cpuused                 string            `json:"cpuused,omitempty"`
+	Cpuwithoverprovisioning string            `json:"cpuwithoverprovisioning,omitempty"`
+	Created                 string            `json:"created,omitempty"`
+	Details                 map[string]string `json:"details,omitempty"`
+	Disconnected            string            `json:"disconnected,omitempty"`
+	Disksizeallocated       int64             `json:"disksizeallocated,omitempty"`
+	Disksizetotal           int64             `json:"disksizetotal,omitempty"`
+	Events                  string            `json:"events,omitempty"`
 	Gpugroup                []struct {
 		Gpugroupname string `json:"gpugroupname,omitempty"`
 		Vgpu         []struct {
@@ -782,23 +786,24 @@ func (s *HostService) CancelHostMaintenance(p *CancelHostMaintenanceParams) (*Ca
 }
 
 type CancelHostMaintenanceResponse struct {
-	JobID                   string `json:"jobid,omitempty"`
-	Averageload             int64  `json:"averageload,omitempty"`
-	Capabilities            string `json:"capabilities,omitempty"`
-	Clusterid               string `json:"clusterid,omitempty"`
-	Clustername             string `json:"clustername,omitempty"`
-	Clustertype             string `json:"clustertype,omitempty"`
-	Cpuallocated            string `json:"cpuallocated,omitempty"`
-	Cpunumber               int    `json:"cpunumber,omitempty"`
-	Cpusockets              int    `json:"cpusockets,omitempty"`
-	Cpuspeed                int64  `json:"cpuspeed,omitempty"`
-	Cpuused                 string `json:"cpuused,omitempty"`
-	Cpuwithoverprovisioning string `json:"cpuwithoverprovisioning,omitempty"`
-	Created                 string `json:"created,omitempty"`
-	Disconnected            string `json:"disconnected,omitempty"`
-	Disksizeallocated       int64  `json:"disksizeallocated,omitempty"`
-	Disksizetotal           int64  `json:"disksizetotal,omitempty"`
-	Events                  string `json:"events,omitempty"`
+	JobID                   string            `json:"jobid,omitempty"`
+	Averageload             int64             `json:"averageload,omitempty"`
+	Capabilities            string            `json:"capabilities,omitempty"`
+	Clusterid               string            `json:"clusterid,omitempty"`
+	Clustername             string            `json:"clustername,omitempty"`
+	Clustertype             string            `json:"clustertype,omitempty"`
+	Cpuallocated            string            `json:"cpuallocated,omitempty"`
+	Cpunumber               int               `json:"cpunumber,omitempty"`
+	Cpusockets              int               `json:"cpusockets,omitempty"`
+	Cpuspeed                int64             `json:"cpuspeed,omitempty"`
+	Cpuused                 string            `json:"cpuused,omitempty"`
+	Cpuwithoverprovisioning string            `json:"cpuwithoverprovisioning,omitempty"`
+	Created                 string            `json:"created,omitempty"`
+	Details                 map[string]string `json:"details,omitempty"`
+	Disconnected            string            `json:"disconnected,omitempty"`
+	Disksizeallocated       int64             `json:"disksizeallocated,omitempty"`
+	Disksizetotal           int64             `json:"disksizetotal,omitempty"`
+	Events                  string            `json:"events,omitempty"`
 	Gpugroup                []struct {
 		Gpugroupname string `json:"gpugroupname,omitempty"`
 		Vgpu         []struct {
@@ -1032,11 +1037,17 @@ func (s *HostService) NewListHostsParams() *ListHostsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *HostService) GetHostID(name string) (string, error) {
+func (s *HostService) GetHostID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListHostsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListHosts(p)
 	if err != nil {
@@ -1062,13 +1073,13 @@ func (s *HostService) GetHostID(name string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *HostService) GetHostByName(name string) (*Host, int, error) {
-	id, err := s.GetHostID(name)
+func (s *HostService) GetHostByName(name string, opts ...OptionFunc) (*Host, int, error) {
+	id, err := s.GetHostID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetHostByID(id)
+	r, count, err := s.GetHostByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -1076,11 +1087,17 @@ func (s *HostService) GetHostByName(name string) (*Host, int, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *HostService) GetHostByID(id string) (*Host, int, error) {
+func (s *HostService) GetHostByID(id string, opts ...OptionFunc) (*Host, int, error) {
 	p := &ListHostsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListHosts(p)
 	if err != nil {
@@ -1122,22 +1139,23 @@ type ListHostsResponse struct {
 }
 
 type Host struct {
-	Averageload             int64  `json:"averageload,omitempty"`
-	Capabilities            string `json:"capabilities,omitempty"`
-	Clusterid               string `json:"clusterid,omitempty"`
-	Clustername             string `json:"clustername,omitempty"`
-	Clustertype             string `json:"clustertype,omitempty"`
-	Cpuallocated            string `json:"cpuallocated,omitempty"`
-	Cpunumber               int    `json:"cpunumber,omitempty"`
-	Cpusockets              int    `json:"cpusockets,omitempty"`
-	Cpuspeed                int64  `json:"cpuspeed,omitempty"`
-	Cpuused                 string `json:"cpuused,omitempty"`
-	Cpuwithoverprovisioning string `json:"cpuwithoverprovisioning,omitempty"`
-	Created                 string `json:"created,omitempty"`
-	Disconnected            string `json:"disconnected,omitempty"`
-	Disksizeallocated       int64  `json:"disksizeallocated,omitempty"`
-	Disksizetotal           int64  `json:"disksizetotal,omitempty"`
-	Events                  string `json:"events,omitempty"`
+	Averageload             int64             `json:"averageload,omitempty"`
+	Capabilities            string            `json:"capabilities,omitempty"`
+	Clusterid               string            `json:"clusterid,omitempty"`
+	Clustername             string            `json:"clustername,omitempty"`
+	Clustertype             string            `json:"clustertype,omitempty"`
+	Cpuallocated            string            `json:"cpuallocated,omitempty"`
+	Cpunumber               int               `json:"cpunumber,omitempty"`
+	Cpusockets              int               `json:"cpusockets,omitempty"`
+	Cpuspeed                int64             `json:"cpuspeed,omitempty"`
+	Cpuused                 string            `json:"cpuused,omitempty"`
+	Cpuwithoverprovisioning string            `json:"cpuwithoverprovisioning,omitempty"`
+	Created                 string            `json:"created,omitempty"`
+	Details                 map[string]string `json:"details,omitempty"`
+	Disconnected            string            `json:"disconnected,omitempty"`
+	Disksizeallocated       int64             `json:"disksizeallocated,omitempty"`
+	Disksizetotal           int64             `json:"disksizetotal,omitempty"`
+	Events                  string            `json:"events,omitempty"`
 	Gpugroup                []struct {
 		Gpugroupname string `json:"gpugroupname,omitempty"`
 		Vgpu         []struct {
@@ -1179,6 +1197,122 @@ type Host struct {
 	Version              string `json:"version,omitempty"`
 	Zoneid               string `json:"zoneid,omitempty"`
 	Zonename             string `json:"zonename,omitempty"`
+}
+
+type ListHostTagsParams struct {
+	p map[string]interface{}
+}
+
+func (p *ListHostTagsParams) toURLValues() url.Values {
+	u := url.Values{}
+	if p.p == nil {
+		return u
+	}
+	if v, found := p.p["keyword"]; found {
+		u.Set("keyword", v.(string))
+	}
+	if v, found := p.p["page"]; found {
+		vv := strconv.Itoa(v.(int))
+		u.Set("page", vv)
+	}
+	if v, found := p.p["pagesize"]; found {
+		vv := strconv.Itoa(v.(int))
+		u.Set("pagesize", vv)
+	}
+	return u
+}
+
+func (p *ListHostTagsParams) SetKeyword(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["keyword"] = v
+	return
+}
+
+func (p *ListHostTagsParams) SetPage(v int) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["page"] = v
+	return
+}
+
+func (p *ListHostTagsParams) SetPagesize(v int) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["pagesize"] = v
+	return
+}
+
+// You should always use this function to get a new ListHostTagsParams instance,
+// as then you are sure you have configured all required params
+func (s *HostService) NewListHostTagsParams() *ListHostTagsParams {
+	p := &ListHostTagsParams{}
+	p.p = make(map[string]interface{})
+	return p
+}
+
+// This is a courtesy helper function, which in some cases may not work as expected!
+func (s *HostService) GetHostTagID(keyword string, opts ...OptionFunc) (string, error) {
+	p := &ListHostTagsParams{}
+	p.p = make(map[string]interface{})
+
+	p.p["keyword"] = keyword
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
+	l, err := s.ListHostTags(p)
+	if err != nil {
+		return "", err
+	}
+
+	if l.Count == 0 {
+		return "", fmt.Errorf("No match found for %s: %+v", keyword, l)
+	}
+
+	if l.Count == 1 {
+		return l.HostTags[0].Id, nil
+	}
+
+	if l.Count > 1 {
+		for _, v := range l.HostTags {
+			if v.Name == keyword {
+				return v.Id, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
+}
+
+// Lists host tags
+func (s *HostService) ListHostTags(p *ListHostTagsParams) (*ListHostTagsResponse, error) {
+	resp, err := s.cs.newRequest("listHostTags", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	var r ListHostTagsResponse
+	if err := json.Unmarshal(resp, &r); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+type ListHostTagsResponse struct {
+	Count    int        `json:"count"`
+	HostTags []*HostTag `json:"hosttag"`
+}
+
+type HostTag struct {
+	Hostid int64  `json:"hostid,omitempty"`
+	Id     string `json:"id,omitempty"`
+	Name   string `json:"name,omitempty"`
 }
 
 type FindHostsForMigrationParams struct {
@@ -1396,6 +1530,10 @@ func (p *UpdateHostPasswordParams) toURLValues() url.Values {
 	if v, found := p.p["password"]; found {
 		u.Set("password", v.(string))
 	}
+	if v, found := p.p["update_passwd_on_host"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("update_passwd_on_host", vv)
+	}
 	if v, found := p.p["username"]; found {
 		u.Set("username", v.(string))
 	}
@@ -1423,6 +1561,14 @@ func (p *UpdateHostPasswordParams) SetPassword(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["password"] = v
+	return
+}
+
+func (p *UpdateHostPasswordParams) SetUpdate_passwd_on_host(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["update_passwd_on_host"] = v
 	return
 }
 
@@ -1693,22 +1839,23 @@ func (s *HostService) AddBaremetalHost(p *AddBaremetalHostParams) (*AddBaremetal
 }
 
 type AddBaremetalHostResponse struct {
-	Averageload             int64  `json:"averageload,omitempty"`
-	Capabilities            string `json:"capabilities,omitempty"`
-	Clusterid               string `json:"clusterid,omitempty"`
-	Clustername             string `json:"clustername,omitempty"`
-	Clustertype             string `json:"clustertype,omitempty"`
-	Cpuallocated            string `json:"cpuallocated,omitempty"`
-	Cpunumber               int    `json:"cpunumber,omitempty"`
-	Cpusockets              int    `json:"cpusockets,omitempty"`
-	Cpuspeed                int64  `json:"cpuspeed,omitempty"`
-	Cpuused                 string `json:"cpuused,omitempty"`
-	Cpuwithoverprovisioning string `json:"cpuwithoverprovisioning,omitempty"`
-	Created                 string `json:"created,omitempty"`
-	Disconnected            string `json:"disconnected,omitempty"`
-	Disksizeallocated       int64  `json:"disksizeallocated,omitempty"`
-	Disksizetotal           int64  `json:"disksizetotal,omitempty"`
-	Events                  string `json:"events,omitempty"`
+	Averageload             int64             `json:"averageload,omitempty"`
+	Capabilities            string            `json:"capabilities,omitempty"`
+	Clusterid               string            `json:"clusterid,omitempty"`
+	Clustername             string            `json:"clustername,omitempty"`
+	Clustertype             string            `json:"clustertype,omitempty"`
+	Cpuallocated            string            `json:"cpuallocated,omitempty"`
+	Cpunumber               int               `json:"cpunumber,omitempty"`
+	Cpusockets              int               `json:"cpusockets,omitempty"`
+	Cpuspeed                int64             `json:"cpuspeed,omitempty"`
+	Cpuused                 string            `json:"cpuused,omitempty"`
+	Cpuwithoverprovisioning string            `json:"cpuwithoverprovisioning,omitempty"`
+	Created                 string            `json:"created,omitempty"`
+	Details                 map[string]string `json:"details,omitempty"`
+	Disconnected            string            `json:"disconnected,omitempty"`
+	Disksizeallocated       int64             `json:"disksizeallocated,omitempty"`
+	Disksizetotal           int64             `json:"disksizetotal,omitempty"`
+	Events                  string            `json:"events,omitempty"`
 	Gpugroup                []struct {
 		Gpugroupname string `json:"gpugroupname,omitempty"`
 		Vgpu         []struct {
@@ -2043,4 +2190,107 @@ type DedicatedHost struct {
 	Hostid          string `json:"hostid,omitempty"`
 	Hostname        string `json:"hostname,omitempty"`
 	Id              string `json:"id,omitempty"`
+}
+
+type AddGloboDnsHostParams struct {
+	p map[string]interface{}
+}
+
+func (p *AddGloboDnsHostParams) toURLValues() url.Values {
+	u := url.Values{}
+	if p.p == nil {
+		return u
+	}
+	if v, found := p.p["password"]; found {
+		u.Set("password", v.(string))
+	}
+	if v, found := p.p["physicalnetworkid"]; found {
+		u.Set("physicalnetworkid", v.(string))
+	}
+	if v, found := p.p["url"]; found {
+		u.Set("url", v.(string))
+	}
+	if v, found := p.p["username"]; found {
+		u.Set("username", v.(string))
+	}
+	return u
+}
+
+func (p *AddGloboDnsHostParams) SetPassword(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["password"] = v
+	return
+}
+
+func (p *AddGloboDnsHostParams) SetPhysicalnetworkid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["physicalnetworkid"] = v
+	return
+}
+
+func (p *AddGloboDnsHostParams) SetUrl(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["url"] = v
+	return
+}
+
+func (p *AddGloboDnsHostParams) SetUsername(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["username"] = v
+	return
+}
+
+// You should always use this function to get a new AddGloboDnsHostParams instance,
+// as then you are sure you have configured all required params
+func (s *HostService) NewAddGloboDnsHostParams(password string, physicalnetworkid string, url string, username string) *AddGloboDnsHostParams {
+	p := &AddGloboDnsHostParams{}
+	p.p = make(map[string]interface{})
+	p.p["password"] = password
+	p.p["physicalnetworkid"] = physicalnetworkid
+	p.p["url"] = url
+	p.p["username"] = username
+	return p
+}
+
+// Adds the GloboDNS external host
+func (s *HostService) AddGloboDnsHost(p *AddGloboDnsHostParams) (*AddGloboDnsHostResponse, error) {
+	resp, err := s.cs.newRequest("addGloboDnsHost", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	var r AddGloboDnsHostResponse
+	if err := json.Unmarshal(resp, &r); err != nil {
+		return nil, err
+	}
+
+	// If we have a async client, we need to wait for the async result
+	if s.cs.async {
+		b, err := s.cs.GetAsyncJobResult(r.JobID, s.cs.timeout)
+		if err != nil {
+			if err == AsyncTimeoutErr {
+				return &r, err
+			}
+			return nil, err
+		}
+
+		if err := json.Unmarshal(b, &r); err != nil {
+			return nil, err
+		}
+	}
+	return &r, nil
+}
+
+type AddGloboDnsHostResponse struct {
+	JobID       string `json:"jobid,omitempty"`
+	Displaytext string `json:"displaytext,omitempty"`
+	Success     bool   `json:"success,omitempty"`
 }

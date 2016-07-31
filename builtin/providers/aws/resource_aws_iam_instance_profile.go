@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -23,18 +24,23 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
 			"create_date": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
 			"unique_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8196-L8201
 					value := v.(string)
@@ -49,12 +55,33 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 					return
 				},
 			},
+
+			"name_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8196-L8201
+					value := v.(string)
+					if len(value) > 64 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 64 characters, name is limited to 128", k))
+					}
+					if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q must match [\\w+=,.@-]", k))
+					}
+					return
+				},
+			},
+
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
 				ForceNew: true,
 			},
+
 			"roles": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -67,7 +94,15 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 
 func resourceAwsIamInstanceProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
-	name := d.Get("name").(string)
+
+	var name string
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		name = resource.PrefixedUniqueId(v.(string))
+	} else {
+		name = resource.UniqueId()
+	}
 
 	request := &iam.CreateInstanceProfileInput{
 		InstanceProfileName: aws.String(name),

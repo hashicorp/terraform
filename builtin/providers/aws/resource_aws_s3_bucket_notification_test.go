@@ -452,7 +452,7 @@ resource "aws_lambda_permission" "allow_bucket" {
 
 resource "aws_lambda_function" "func" {
     filename = "test-fixtures/lambdatest.zip"
-    function_name = "example_lambda_name"
+    function_name = "example_lambda_name_%d"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
 }
@@ -475,7 +475,7 @@ resource "aws_s3_bucket_notification" "notification" {
 		filter_suffix = ".png"
 	}
 }
-`, randInt, randInt)
+`, randInt, randInt, randInt)
 }
 
 func testAccAWSS3BucketConfigWithTopicNotificationWithoutFilter(randInt int) string {

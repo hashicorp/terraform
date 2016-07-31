@@ -64,8 +64,8 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	case *ast.Index:
 		tc := &typeCheckIndex{n}
 		result, err = tc.TypeCheck(v)
-	case *ast.Concat:
-		tc := &typeCheckConcat{n}
+	case *ast.Output:
+		tc := &typeCheckOutput{n}
 		result, err = tc.TypeCheck(v)
 	case *ast.LiteralNode:
 		tc := &typeCheckLiteral{n}
@@ -199,7 +199,7 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 
 			return nil, fmt.Errorf(
 				"%s: argument %d should be %s, got %s",
-				tc.n.Func, i+1, expected, args[i])
+				tc.n.Func, i+1, expected.Printable(), args[i].Printable())
 		}
 	}
 
@@ -219,7 +219,7 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 				return nil, fmt.Errorf(
 					"%s: argument %d should be %s, got %s",
 					tc.n.Func, realI,
-					function.VariadicType, t)
+					function.VariadicType.Printable(), t.Printable())
 			}
 		}
 	}
@@ -230,11 +230,11 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	return tc.n, nil
 }
 
-type typeCheckConcat struct {
-	n *ast.Concat
+type typeCheckOutput struct {
+	n *ast.Output
 }
 
-func (tc *typeCheckConcat) TypeCheck(v *TypeCheck) (ast.Node, error) {
+func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	n := tc.n
 	types := make([]ast.Type, len(n.Exprs))
 	for i, _ := range n.Exprs {
@@ -244,6 +244,12 @@ func (tc *typeCheckConcat) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	// If there is only one argument and it is a list, we evaluate to a list
 	if len(types) == 1 && types[0] == ast.TypeList {
 		v.StackPush(ast.TypeList)
+		return n, nil
+	}
+
+	// If there is only one argument and it is a map, we evaluate to a map
+	if len(types) == 1 && types[0] == ast.TypeMap {
+		v.StackPush(ast.TypeMap)
 		return n, nil
 	}
 

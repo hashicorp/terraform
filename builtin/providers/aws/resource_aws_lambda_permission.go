@@ -189,7 +189,24 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 		statement, err = findLambdaPolicyStatementById(&policy, d.Id())
 		return resource.RetryableError(err)
 	})
+
 	if err != nil {
+		// Missing whole policy or Lambda function (API error)
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "ResourceNotFoundException" {
+				log.Printf("[WARN] No Lambda Permission Policy found: %v", input)
+				d.SetId("")
+				return nil
+			}
+		}
+
+		// Missing permission inside valid policy
+		if nfErr, ok := err.(*resource.NotFoundError); ok {
+			log.Printf("[WARN] %s", nfErr)
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
@@ -313,7 +330,11 @@ func findLambdaPolicyStatementById(policy *LambdaPolicy, id string) (
 		}
 	}
 
-	return nil, fmt.Errorf("Failed to find statement %q in Lambda policy:\n%s", id, policy.Statement)
+	return nil, &resource.NotFoundError{
+		LastRequest:  id,
+		LastResponse: policy,
+		Message:      fmt.Sprintf("Failed to find statement %q in Lambda policy:\n%s", id, policy.Statement),
+	}
 }
 
 func getQualifierFromLambdaAliasOrVersionArn(arn string) (string, error) {

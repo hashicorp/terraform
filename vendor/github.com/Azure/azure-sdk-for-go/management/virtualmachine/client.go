@@ -209,7 +209,7 @@ func (vm VirtualMachineClient) StartRole(cloudServiceName, deploymentName, roleN
 	return vm.client.SendAzurePostRequest(requestURL, startRoleOperationBytes)
 }
 
-func (vm VirtualMachineClient) ShutdownRole(cloudServiceName, deploymentName, roleName string) (management.OperationID, error) {
+func (vm VirtualMachineClient) ShutdownRole(cloudServiceName, deploymentName, roleName string, postaction PostShutdownAction) (management.OperationID, error) {
 	if cloudServiceName == "" {
 		return "", fmt.Errorf(errParamNotSpecified, "cloudServiceName")
 	}
@@ -221,7 +221,8 @@ func (vm VirtualMachineClient) ShutdownRole(cloudServiceName, deploymentName, ro
 	}
 
 	shutdownRoleOperationBytes, err := xml.Marshal(ShutdownRoleOperation{
-		OperationType: "ShutdownRoleOperation",
+		OperationType:      "ShutdownRoleOperation",
+		PostShutdownAction: postaction,
 	})
 	if err != nil {
 		return "", err

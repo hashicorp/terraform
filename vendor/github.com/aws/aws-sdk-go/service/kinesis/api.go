@@ -4,6 +4,7 @@
 package kinesis
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -14,7 +15,28 @@ import (
 
 const opAddTagsToStream = "AddTagsToStream"
 
-// AddTagsToStreamRequest generates a request for the AddTagsToStream operation.
+// AddTagsToStreamRequest generates a "aws/request.Request" representing the
+// client's request for the AddTagsToStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddTagsToStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddTagsToStreamRequest method.
+//    req, resp := client.AddTagsToStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) AddTagsToStreamRequest(input *AddTagsToStreamInput) (req *request.Request, output *AddTagsToStreamOutput) {
 	op := &request.Operation{
 		Name:       opAddTagsToStream,
@@ -47,7 +69,28 @@ func (c *Kinesis) AddTagsToStream(input *AddTagsToStreamInput) (*AddTagsToStream
 
 const opCreateStream = "CreateStream"
 
-// CreateStreamRequest generates a request for the CreateStream operation.
+// CreateStreamRequest generates a "aws/request.Request" representing the
+// client's request for the CreateStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateStreamRequest method.
+//    req, resp := client.CreateStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *request.Request, output *CreateStreamOutput) {
 	op := &request.Operation{
 		Name:       opCreateStream,
@@ -67,11 +110,10 @@ func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *request.Re
 	return
 }
 
-// Creates a Amazon Kinesis stream. A stream captures and transports data records
+// Creates an Amazon Kinesis stream. A stream captures and transports data records
 // that are continuously emitted from different data sources or producers. Scale-out
-// within an Amazon Kinesis stream is explicitly supported by means of shards,
-// which are uniquely identified groups of data records in an Amazon Kinesis
-// stream.
+// within a stream is explicitly supported by means of shards, which are uniquely
+// identified groups of data records in a stream.
 //
 // You specify and control the number of shards that a stream is composed of.
 // Each shard can support reads up to 5 transactions per second, up to a maximum
@@ -96,8 +138,9 @@ func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *request.Re
 //
 //  Have more than five streams in the CREATING state at any point in time.
 // Create more shards than are authorized for your account.  For the default
-// shard limit for an AWS account, see Amazon Kinesis Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html).
-// If you need to increase this limit, contact AWS Support (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html).
+// shard limit for an AWS account, see Streams Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html)
+// in the Amazon Kinesis Streams Developer Guide. If you need to increase this
+// limit, contact AWS Support (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html).
 //
 // You can use DescribeStream to check the stream status, which is returned
 // in StreamStatus.
@@ -111,7 +154,28 @@ func (c *Kinesis) CreateStream(input *CreateStreamInput) (*CreateStreamOutput, e
 
 const opDecreaseStreamRetentionPeriod = "DecreaseStreamRetentionPeriod"
 
-// DecreaseStreamRetentionPeriodRequest generates a request for the DecreaseStreamRetentionPeriod operation.
+// DecreaseStreamRetentionPeriodRequest generates a "aws/request.Request" representing the
+// client's request for the DecreaseStreamRetentionPeriod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DecreaseStreamRetentionPeriod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DecreaseStreamRetentionPeriodRequest method.
+//    req, resp := client.DecreaseStreamRetentionPeriodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) DecreaseStreamRetentionPeriodRequest(input *DecreaseStreamRetentionPeriodInput) (req *request.Request, output *DecreaseStreamRetentionPeriodOutput) {
 	op := &request.Operation{
 		Name:       opDecreaseStreamRetentionPeriod,
@@ -131,9 +195,9 @@ func (c *Kinesis) DecreaseStreamRetentionPeriodRequest(input *DecreaseStreamRete
 	return
 }
 
-// Decreases the stream's retention period, which is the length of time data
-// records are accessible after they are added to the stream. The minimum value
-// of a stream’s retention period is 24 hours.
+// Decreases the Amazon Kinesis stream's retention period, which is the length
+// of time data records are accessible after they are added to the stream. The
+// minimum value of a stream's retention period is 24 hours.
 //
 // This operation may result in lost data. For example, if the stream's retention
 // period is 48 hours and is decreased to 24 hours, any data already in the
@@ -146,7 +210,28 @@ func (c *Kinesis) DecreaseStreamRetentionPeriod(input *DecreaseStreamRetentionPe
 
 const opDeleteStream = "DeleteStream"
 
-// DeleteStreamRequest generates a request for the DeleteStream operation.
+// DeleteStreamRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteStreamRequest method.
+//    req, resp := client.DeleteStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) DeleteStreamRequest(input *DeleteStreamInput) (req *request.Request, output *DeleteStreamOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStream,
@@ -166,9 +251,10 @@ func (c *Kinesis) DeleteStreamRequest(input *DeleteStreamInput) (req *request.Re
 	return
 }
 
-// Deletes a stream and all its shards and data. You must shut down any applications
-// that are operating on the stream before you delete the stream. If an application
-// attempts to operate on a deleted stream, it will receive the exception ResourceNotFoundException.
+// Deletes an Amazon Kinesis stream and all its shards and data. You must shut
+// down any applications that are operating on the stream before you delete
+// the stream. If an application attempts to operate on a deleted stream, it
+// will receive the exception ResourceNotFoundException.
 //
 // If the stream is in the ACTIVE state, you can delete it. After a DeleteStream
 // request, the specified stream is in the DELETING state until Amazon Kinesis
@@ -193,7 +279,28 @@ func (c *Kinesis) DeleteStream(input *DeleteStreamInput) (*DeleteStreamOutput, e
 
 const opDescribeStream = "DescribeStream"
 
-// DescribeStreamRequest generates a request for the DescribeStream operation.
+// DescribeStreamRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeStreamRequest method.
+//    req, resp := client.DescribeStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) DescribeStreamRequest(input *DescribeStreamInput) (req *request.Request, output *DescribeStreamOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStream,
@@ -217,15 +324,15 @@ func (c *Kinesis) DescribeStreamRequest(input *DescribeStreamInput) (req *reques
 	return
 }
 
-// Describes the specified stream.
+// Describes the specified Amazon Kinesis stream.
 //
 // The information about the stream includes its current status, its Amazon
 // Resource Name (ARN), and an array of shard objects. For each shard object,
 // there is information about the hash key and sequence number ranges that the
 // shard spans, and the IDs of any earlier shards that played in a role in creating
 // the shard. A sequence number is the identifier associated with every record
-// ingested in the Amazon Kinesis stream. The sequence number is assigned when
-// a record is put into the stream.
+// ingested in the stream. The sequence number is assigned when a record is
+// put into the stream.
 //
 // You can limit the number of returned shards using the Limit parameter. The
 // number of shards in a stream may be too large to return from a single call
@@ -238,6 +345,10 @@ func (c *Kinesis) DescribeStreamRequest(input *DescribeStreamInput) (req *reques
 // this ID in the ExclusiveStartShardId parameter in a subsequent request to
 // DescribeStream.
 //
+// There are no guarantees about the chronological order shards returned in
+// DescribeStream results. If you want to process shards in chronological order,
+// use ParentShardId to track lineage to the oldest shard.
+//
 // DescribeStream has a limit of 10 transactions per second per account.
 func (c *Kinesis) DescribeStream(input *DescribeStreamInput) (*DescribeStreamOutput, error) {
 	req, out := c.DescribeStreamRequest(input)
@@ -245,6 +356,23 @@ func (c *Kinesis) DescribeStream(input *DescribeStreamInput) (*DescribeStreamOut
 	return out, err
 }
 
+// DescribeStreamPages iterates over the pages of a DescribeStream operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeStream method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeStream operation.
+//    pageNum := 0
+//    err := client.DescribeStreamPages(params,
+//        func(page *DescribeStreamOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Kinesis) DescribeStreamPages(input *DescribeStreamInput, fn func(p *DescribeStreamOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeStreamRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -253,9 +381,126 @@ func (c *Kinesis) DescribeStreamPages(input *DescribeStreamInput, fn func(p *Des
 	})
 }
 
+const opDisableEnhancedMonitoring = "DisableEnhancedMonitoring"
+
+// DisableEnhancedMonitoringRequest generates a "aws/request.Request" representing the
+// client's request for the DisableEnhancedMonitoring operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableEnhancedMonitoring method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableEnhancedMonitoringRequest method.
+//    req, resp := client.DisableEnhancedMonitoringRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *Kinesis) DisableEnhancedMonitoringRequest(input *DisableEnhancedMonitoringInput) (req *request.Request, output *EnhancedMonitoringOutput) {
+	op := &request.Operation{
+		Name:       opDisableEnhancedMonitoring,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisableEnhancedMonitoringInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &EnhancedMonitoringOutput{}
+	req.Data = output
+	return
+}
+
+// Disables enhanced monitoring.
+func (c *Kinesis) DisableEnhancedMonitoring(input *DisableEnhancedMonitoringInput) (*EnhancedMonitoringOutput, error) {
+	req, out := c.DisableEnhancedMonitoringRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opEnableEnhancedMonitoring = "EnableEnhancedMonitoring"
+
+// EnableEnhancedMonitoringRequest generates a "aws/request.Request" representing the
+// client's request for the EnableEnhancedMonitoring operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableEnhancedMonitoring method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableEnhancedMonitoringRequest method.
+//    req, resp := client.EnableEnhancedMonitoringRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *Kinesis) EnableEnhancedMonitoringRequest(input *EnableEnhancedMonitoringInput) (req *request.Request, output *EnhancedMonitoringOutput) {
+	op := &request.Operation{
+		Name:       opEnableEnhancedMonitoring,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &EnableEnhancedMonitoringInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &EnhancedMonitoringOutput{}
+	req.Data = output
+	return
+}
+
+// Enables enhanced Amazon Kinesis stream monitoring for shard-level metrics.
+func (c *Kinesis) EnableEnhancedMonitoring(input *EnableEnhancedMonitoringInput) (*EnhancedMonitoringOutput, error) {
+	req, out := c.EnableEnhancedMonitoringRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opGetRecords = "GetRecords"
 
-// GetRecordsRequest generates a request for the GetRecords operation.
+// GetRecordsRequest generates a "aws/request.Request" representing the
+// client's request for the GetRecords operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRecords method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRecordsRequest method.
+//    req, resp := client.GetRecordsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Request, output *GetRecordsOutput) {
 	op := &request.Operation{
 		Name:       opGetRecords,
@@ -273,7 +518,7 @@ func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Reques
 	return
 }
 
-// Gets data records from a shard.
+// Gets data records from an Amazon Kinesis stream's shard.
 //
 // Specify a shard iterator using the ShardIterator parameter. The shard iterator
 // specifies the position in the shard from which you want to start reading
@@ -282,7 +527,9 @@ func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Reques
 // Note that it might take multiple calls to get to a portion of the shard that
 // contains records.
 //
-// You can scale by provisioning multiple shards. Your application should have
+// You can scale by provisioning multiple shards per stream while considering
+// service limits (for more information, see Streams Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html)
+// in the Amazon Kinesis Streams Developer Guide). Your application should have
 // one thread per shard, each reading continuously from its stream. To read
 // from a stream continually, call GetRecords in a loop. Use GetShardIterator
 // to get the shard iterator to specify in the first GetRecords call. GetRecords
@@ -300,7 +547,7 @@ func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Reques
 // maximum number of records that GetRecords can return. Consider your average
 // record size when determining this limit.
 //
-// The size of the data returned by GetRecords will vary depending on the utilization
+// The size of the data returned by GetRecords varies depending on the utilization
 // of the shard. The maximum size of data that GetRecords can return is 10 MB.
 // If a call returns this amount of data, subsequent calls made within the next
 // 5 seconds throw ProvisionedThroughputExceededException. If there is insufficient
@@ -312,17 +559,18 @@ func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Reques
 //
 // To detect whether the application is falling behind in processing, you can
 // use the MillisBehindLatest response attribute. You can also monitor the stream
-// using CloudWatch metrics (see Monitoring Amazon Kinesis (http://docs.aws.amazon.com/kinesis/latest/dev/monitoring.html)
-// in the Amazon Kinesis Developer Guide).
+// using CloudWatch metrics and other mechanisms (see Monitoring (http://docs.aws.amazon.com/kinesis/latest/dev/monitoring.html)
+// in the Amazon Kinesis Streams Developer Guide).
 //
 // Each Amazon Kinesis record includes a value, ApproximateArrivalTimestamp,
-// that is set when an Amazon Kinesis stream successfully receives and stores
-// a record. This is commonly referred to as a server-side timestamp, which
-// is different than a client-side timestamp, where the timestamp is set when
-// a data producer creates or sends the record to a stream. The timestamp has
-// millisecond precision. There are no guarantees about the timestamp accuracy,
-// or that the timestamp is always increasing. For example, records in a shard
-// or across a stream might have timestamps that are out of order.
+// that is set when a stream successfully receives and stores a record. This
+// is commonly referred to as a server-side timestamp, whereas a client-side
+// timestamp is set when a data producer creates or sends the record to a stream
+// (a data producer is any data source putting data records into a stream, for
+// example with PutRecords). The timestamp has millisecond precision. There
+// are no guarantees about the timestamp accuracy, or that the timestamp is
+// always increasing. For example, records in a shard or across a stream might
+// have timestamps that are out of order.
 func (c *Kinesis) GetRecords(input *GetRecordsInput) (*GetRecordsOutput, error) {
 	req, out := c.GetRecordsRequest(input)
 	err := req.Send()
@@ -331,7 +579,28 @@ func (c *Kinesis) GetRecords(input *GetRecordsInput) (*GetRecordsOutput, error) 
 
 const opGetShardIterator = "GetShardIterator"
 
-// GetShardIteratorRequest generates a request for the GetShardIterator operation.
+// GetShardIteratorRequest generates a "aws/request.Request" representing the
+// client's request for the GetShardIterator operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetShardIterator method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetShardIteratorRequest method.
+//    req, resp := client.GetShardIteratorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) GetShardIteratorRequest(input *GetShardIteratorInput) (req *request.Request, output *GetShardIteratorOutput) {
 	op := &request.Operation{
 		Name:       opGetShardIterator,
@@ -349,40 +618,41 @@ func (c *Kinesis) GetShardIteratorRequest(input *GetShardIteratorInput) (req *re
 	return
 }
 
-// Gets a shard iterator. A shard iterator expires five minutes after it is
-// returned to the requester.
+// Gets an Amazon Kinesis shard iterator. A shard iterator expires five minutes
+// after it is returned to the requester.
 //
-// A shard iterator specifies the position in the shard from which to start
-// reading data records sequentially. A shard iterator specifies this position
-// using the sequence number of a data record in a shard. A sequence number
-// is the identifier associated with every record ingested in the Amazon Kinesis
-// stream. The sequence number is assigned when a record is put into the stream.
+// A shard iterator specifies the shard position from which to start reading
+// data records sequentially. The position is specified using the sequence number
+// of a data record in a shard. A sequence number is the identifier associated
+// with every record ingested in the stream, and is assigned when a record is
+// put into the stream. Each stream has one or more shards.
 //
 // You must specify the shard iterator type. For example, you can set the ShardIteratorType
 // parameter to read exactly from the position denoted by a specific sequence
 // number by using the AT_SEQUENCE_NUMBER shard iterator type, or right after
 // the sequence number by using the AFTER_SEQUENCE_NUMBER shard iterator type,
 // using sequence numbers returned by earlier calls to PutRecord, PutRecords,
-// GetRecords, or DescribeStream. You can specify the shard iterator type TRIM_HORIZON
-// in the request to cause ShardIterator to point to the last untrimmed record
-// in the shard in the system, which is the oldest data record in the shard.
-// Or you can point to just after the most recent record in the shard, by using
-// the shard iterator type LATEST, so that you always read the most recent data
-// in the shard.
+// GetRecords, or DescribeStream. In the request, you can specify the shard
+// iterator type AT_TIMESTAMP to read records from an arbitrary point in time,
+// TRIM_HORIZON to cause ShardIterator to point to the last untrimmed record
+// in the shard in the system (the oldest data record in the shard), or LATEST
+// so that you always read the most recent data in the shard.
 //
-// When you repeatedly read from an Amazon Kinesis stream use a GetShardIterator
-// request to get the first shard iterator for use in your first GetRecords
-// request and then use the shard iterator returned by the GetRecords request
-// in NextShardIterator for subsequent reads. A new shard iterator is returned
-// by every GetRecords request in NextShardIterator, which you use in the ShardIterator
-// parameter of the next GetRecords request.
+// When you read repeatedly from a stream, use a GetShardIterator request to
+// get the first shard iterator for use in your first GetRecords request and
+// for subsequent reads use the shard iterator returned by the GetRecords request
+// in NextShardIterator. A new shard iterator is returned by every GetRecords
+// request in NextShardIterator, which you use in the ShardIterator parameter
+// of the next GetRecords request.
 //
 // If a GetShardIterator request is made too often, you receive a ProvisionedThroughputExceededException.
-// For more information about throughput limits, see GetRecords.
+// For more information about throughput limits, see GetRecords, and Streams
+// Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html)
+// in the Amazon Kinesis Streams Developer Guide.
 //
-// If the shard is closed, the iterator can't return more data, and GetShardIterator
-// returns null for its ShardIterator. A shard can be closed using SplitShard
-// or MergeShards.
+// If the shard is closed, GetShardIterator returns a valid iterator for the
+// last sequence number of the shard. Note that a shard can be closed as a result
+// of using SplitShard or MergeShards.
 //
 // GetShardIterator has a limit of 5 transactions per second per account per
 // open shard.
@@ -394,7 +664,28 @@ func (c *Kinesis) GetShardIterator(input *GetShardIteratorInput) (*GetShardItera
 
 const opIncreaseStreamRetentionPeriod = "IncreaseStreamRetentionPeriod"
 
-// IncreaseStreamRetentionPeriodRequest generates a request for the IncreaseStreamRetentionPeriod operation.
+// IncreaseStreamRetentionPeriodRequest generates a "aws/request.Request" representing the
+// client's request for the IncreaseStreamRetentionPeriod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the IncreaseStreamRetentionPeriod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the IncreaseStreamRetentionPeriodRequest method.
+//    req, resp := client.IncreaseStreamRetentionPeriodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) IncreaseStreamRetentionPeriodRequest(input *IncreaseStreamRetentionPeriodInput) (req *request.Request, output *IncreaseStreamRetentionPeriodOutput) {
 	op := &request.Operation{
 		Name:       opIncreaseStreamRetentionPeriod,
@@ -414,15 +705,15 @@ func (c *Kinesis) IncreaseStreamRetentionPeriodRequest(input *IncreaseStreamRete
 	return
 }
 
-// Increases the stream's retention period, which is the length of time data
-// records are accessible after they are added to the stream. The maximum value
-// of a stream’s retention period is 168 hours (7 days).
+// Increases the Amazon Kinesis stream's retention period, which is the length
+// of time data records are accessible after they are added to the stream. The
+// maximum value of a stream's retention period is 168 hours (7 days).
 //
 // Upon choosing a longer stream retention period, this operation will increase
 // the time period records are accessible that have not yet expired. However,
-// it will not make previous data that has expired (older than the stream’s
+// it will not make previous data that has expired (older than the stream's
 // previous retention period) accessible after the operation has been called.
-// For example, if a stream’s retention period is set to 24 hours and is increased
+// For example, if a stream's retention period is set to 24 hours and is increased
 // to 168 hours, any data that is older than 24 hours will remain inaccessible
 // to consumer applications.
 func (c *Kinesis) IncreaseStreamRetentionPeriod(input *IncreaseStreamRetentionPeriodInput) (*IncreaseStreamRetentionPeriodOutput, error) {
@@ -433,7 +724,28 @@ func (c *Kinesis) IncreaseStreamRetentionPeriod(input *IncreaseStreamRetentionPe
 
 const opListStreams = "ListStreams"
 
-// ListStreamsRequest generates a request for the ListStreams operation.
+// ListStreamsRequest generates a "aws/request.Request" representing the
+// client's request for the ListStreams operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListStreams method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListStreamsRequest method.
+//    req, resp := client.ListStreamsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) ListStreamsRequest(input *ListStreamsInput) (req *request.Request, output *ListStreamsOutput) {
 	op := &request.Operation{
 		Name:       opListStreams,
@@ -457,14 +769,14 @@ func (c *Kinesis) ListStreamsRequest(input *ListStreamsInput) (req *request.Requ
 	return
 }
 
-// Lists your streams.
+// Lists your Amazon Kinesis streams.
 //
-//  The number of streams may be too large to return from a single call to
-// ListStreams. You can limit the number of returned streams using the Limit
-// parameter. If you do not specify a value for the Limit parameter, Amazon
-// Kinesis uses the default limit, which is currently 10.
+// The number of streams may be too large to return from a single call to ListStreams.
+// You can limit the number of returned streams using the Limit parameter. If
+// you do not specify a value for the Limit parameter, Amazon Kinesis uses the
+// default limit, which is currently 10.
 //
-//  You can detect if there are more streams available to list by using the
+// You can detect if there are more streams available to list by using the
 // HasMoreStreams flag from the returned output. If there are more streams available,
 // you can request more streams by using the name of the last stream returned
 // by the ListStreams request in the ExclusiveStartStreamName parameter in a
@@ -479,6 +791,23 @@ func (c *Kinesis) ListStreams(input *ListStreamsInput) (*ListStreamsOutput, erro
 	return out, err
 }
 
+// ListStreamsPages iterates over the pages of a ListStreams operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListStreams method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListStreams operation.
+//    pageNum := 0
+//    err := client.ListStreamsPages(params,
+//        func(page *ListStreamsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *Kinesis) ListStreamsPages(input *ListStreamsInput, fn func(p *ListStreamsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListStreamsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -489,7 +818,28 @@ func (c *Kinesis) ListStreamsPages(input *ListStreamsInput, fn func(p *ListStrea
 
 const opListTagsForStream = "ListTagsForStream"
 
-// ListTagsForStreamRequest generates a request for the ListTagsForStream operation.
+// ListTagsForStreamRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTagsForStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsForStreamRequest method.
+//    req, resp := client.ListTagsForStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) ListTagsForStreamRequest(input *ListTagsForStreamInput) (req *request.Request, output *ListTagsForStreamOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForStream,
@@ -516,7 +866,28 @@ func (c *Kinesis) ListTagsForStream(input *ListTagsForStreamInput) (*ListTagsFor
 
 const opMergeShards = "MergeShards"
 
-// MergeShardsRequest generates a request for the MergeShards operation.
+// MergeShardsRequest generates a "aws/request.Request" representing the
+// client's request for the MergeShards operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the MergeShards method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the MergeShardsRequest method.
+//    req, resp := client.MergeShardsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) MergeShardsRequest(input *MergeShardsInput) (req *request.Request, output *MergeShardsOutput) {
 	op := &request.Operation{
 		Name:       opMergeShards,
@@ -536,20 +907,21 @@ func (c *Kinesis) MergeShardsRequest(input *MergeShardsInput) (req *request.Requ
 	return
 }
 
-// Merges two adjacent shards in a stream and combines them into a single shard
-// to reduce the stream's capacity to ingest and transport data. Two shards
-// are considered adjacent if the union of the hash key ranges for the two shards
-// form a contiguous set with no gaps. For example, if you have two shards,
-// one with a hash key range of 276...381 and the other with a hash key range
-// of 382...454, then you could merge these two shards into a single shard that
-// would have a hash key range of 276...454. After the merge, the single child
-// shard receives data for all hash key values covered by the two parent shards.
+// Merges two adjacent shards in an Amazon Kinesis stream and combines them
+// into a single shard to reduce the stream's capacity to ingest and transport
+// data. Two shards are considered adjacent if the union of the hash key ranges
+// for the two shards form a contiguous set with no gaps. For example, if you
+// have two shards, one with a hash key range of 276...381 and the other with
+// a hash key range of 382...454, then you could merge these two shards into
+// a single shard that would have a hash key range of 276...454. After the merge,
+// the single child shard receives data for all hash key values covered by the
+// two parent shards.
 //
 // MergeShards is called when there is a need to reduce the overall capacity
 // of a stream because of excess capacity that is not being used. You must specify
 // the shard to be merged and the adjacent shard for a stream. For more information
 // about merging shards, see Merge Two Shards (http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-resharding-merge.html)
-// in the Amazon Kinesis Developer Guide.
+// in the Amazon Kinesis Streams Developer Guide.
 //
 // If the stream is in the ACTIVE state, you can call MergeShards. If a stream
 // is in the CREATING, UPDATING, or DELETING state, MergeShards returns a ResourceInUseException.
@@ -579,7 +951,28 @@ func (c *Kinesis) MergeShards(input *MergeShardsInput) (*MergeShardsOutput, erro
 
 const opPutRecord = "PutRecord"
 
-// PutRecordRequest generates a request for the PutRecord operation.
+// PutRecordRequest generates a "aws/request.Request" representing the
+// client's request for the PutRecord operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRecord method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRecordRequest method.
+//    req, resp := client.PutRecordRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *request.Request, output *PutRecordOutput) {
 	op := &request.Operation{
 		Name:       opPutRecord,
@@ -597,11 +990,10 @@ func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *request.Request,
 	return
 }
 
-// Writes a single data record from a producer into an Amazon Kinesis stream.
-// Call PutRecord to send data from the producer into the Amazon Kinesis stream
-// for real-time ingestion and subsequent processing, one record at a time.
-// Each shard can support writes up to 1,000 records per second, up to a maximum
-// data write total of 1 MB per second.
+// Writes a single data record into an Amazon Kinesis stream. Call PutRecord
+// to send data into the stream for real-time ingestion and subsequent processing,
+// one record at a time. Each shard can support writes up to 1,000 records per
+// second, up to a maximum data write total of 1 MB per second.
 //
 // You must specify the name of the stream that captures, stores, and transports
 // the data; a partition key; and the data blob itself.
@@ -610,9 +1002,9 @@ func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *request.Request,
 // file, geographic/location data, website clickstream data, and so on.
 //
 // The partition key is used by Amazon Kinesis to distribute data across shards.
-// Amazon Kinesis segregates the data records that belong to a data stream into
-// multiple shards, using the partition key associated with each data record
-// to determine which shard a given data record belongs to.
+// Amazon Kinesis segregates the data records that belong to a stream into multiple
+// shards, using the partition key associated with each data record to determine
+// which shard a given data record belongs to.
 //
 // Partition keys are Unicode strings, with a maximum length limit of 256 characters
 // for each key. An MD5 hash function is used to map partition keys to 128-bit
@@ -620,23 +1012,22 @@ func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *request.Request,
 // key ranges of the shards. You can override hashing the partition key to determine
 // the shard by explicitly specifying a hash value using the ExplicitHashKey
 // parameter. For more information, see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/developing-producers-with-sdk.html#kinesis-using-sdk-java-add-data-to-stream)
-// in the Amazon Kinesis Developer Guide.
+// in the Amazon Kinesis Streams Developer Guide.
 //
 // PutRecord returns the shard ID of where the data record was placed and the
 // sequence number that was assigned to the data record.
 //
-// Sequence numbers generally increase over time. To guarantee strictly increasing
-// ordering, use the SequenceNumberForOrdering parameter. For more information,
-// see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/developing-producers-with-sdk.html#kinesis-using-sdk-java-add-data-to-stream)
-// in the Amazon Kinesis Developer Guide.
+// Sequence numbers increase over time and are specific to a shard within a
+// stream, not across all shards within a stream. To guarantee strictly increasing
+// ordering, write serially to a shard and use the SequenceNumberForOrdering
+// parameter. For more information, see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/developing-producers-with-sdk.html#kinesis-using-sdk-java-add-data-to-stream)
+// in the Amazon Kinesis Streams Developer Guide.
 //
 // If a PutRecord request cannot be processed because of insufficient provisioned
 // throughput on the shard involved in the request, PutRecord throws ProvisionedThroughputExceededException.
 //
-// By default, data records are accessible for only 24 hours from the time
-// that they are added to an Amazon Kinesis stream. This retention period can
-// be modified using the DecreaseStreamRetentionPeriod and IncreaseStreamRetentionPeriod
-// operations.
+// Data records are accessible for only 24 hours from the time that they are
+// added to a stream.
 func (c *Kinesis) PutRecord(input *PutRecordInput) (*PutRecordOutput, error) {
 	req, out := c.PutRecordRequest(input)
 	err := req.Send()
@@ -645,7 +1036,28 @@ func (c *Kinesis) PutRecord(input *PutRecordInput) (*PutRecordOutput, error) {
 
 const opPutRecords = "PutRecords"
 
-// PutRecordsRequest generates a request for the PutRecords operation.
+// PutRecordsRequest generates a "aws/request.Request" representing the
+// client's request for the PutRecords operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRecords method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRecordsRequest method.
+//    req, resp := client.PutRecordsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *request.Request, output *PutRecordsOutput) {
 	op := &request.Operation{
 		Name:       opPutRecords,
@@ -663,10 +1075,9 @@ func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *request.Reques
 	return
 }
 
-// Writes multiple data records from a producer into an Amazon Kinesis stream
-// in a single call (also referred to as a PutRecords request). Use this operation
-// to send data from a data producer into the Amazon Kinesis stream for data
-// ingestion and processing.
+// Writes multiple data records into an Amazon Kinesis stream in a single call
+// (also referred to as a PutRecords request). Use this operation to send data
+// into the stream for data ingestion and processing.
 //
 // Each PutRecords request can support up to 500 records. Each record in the
 // request can be as large as 1 MB, up to a limit of 5 MB for the entire request,
@@ -687,13 +1098,13 @@ func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *request.Reques
 // to map associated data records to shards. As a result of this hashing mechanism,
 // all data records with the same partition key map to the same shard within
 // the stream. For more information, see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/developing-producers-with-sdk.html#kinesis-using-sdk-java-add-data-to-stream)
-// in the Amazon Kinesis Developer Guide.
+// in the Amazon Kinesis Streams Developer Guide.
 //
 // Each record in the Records array may include an optional parameter, ExplicitHashKey,
 // which overrides the partition key to shard mapping. This parameter allows
 // a data producer to determine explicitly the shard where the record is stored.
 // For more information, see Adding Multiple Records with PutRecords (http://docs.aws.amazon.com/kinesis/latest/dev/developing-producers-with-sdk.html#kinesis-using-sdk-java-putrecords)
-// in the Amazon Kinesis Developer Guide.
+// in the Amazon Kinesis Streams Developer Guide.
 //
 // The PutRecords response includes an array of response Records. Each record
 // in the response array directly correlates with a record in the request array
@@ -718,7 +1129,7 @@ func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *request.Reques
 // exception including the account ID, stream name, and shard ID of the record
 // that was throttled. For more information about partially successful responses,
 // see Adding Multiple Records with PutRecords (http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-add-data-to-stream.html#kinesis-using-sdk-java-putrecords)
-// in the Amazon Kinesis Developer Guide.
+// in the Amazon Kinesis Streams Developer Guide.
 //
 // By default, data records are accessible for only 24 hours from the time
 // that they are added to an Amazon Kinesis stream. This retention period can
@@ -732,7 +1143,28 @@ func (c *Kinesis) PutRecords(input *PutRecordsInput) (*PutRecordsOutput, error) 
 
 const opRemoveTagsFromStream = "RemoveTagsFromStream"
 
-// RemoveTagsFromStreamRequest generates a request for the RemoveTagsFromStream operation.
+// RemoveTagsFromStreamRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveTagsFromStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveTagsFromStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveTagsFromStreamRequest method.
+//    req, resp := client.RemoveTagsFromStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) RemoveTagsFromStreamRequest(input *RemoveTagsFromStreamInput) (req *request.Request, output *RemoveTagsFromStreamOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTagsFromStream,
@@ -752,7 +1184,8 @@ func (c *Kinesis) RemoveTagsFromStreamRequest(input *RemoveTagsFromStreamInput) 
 	return
 }
 
-// Deletes tags from the specified Amazon Kinesis stream.
+// Removes tags from the specified Amazon Kinesis stream. Removed tags are deleted
+// and cannot be recovered after this operation successfully completes.
 //
 // If you specify a tag that does not exist, it is ignored.
 func (c *Kinesis) RemoveTagsFromStream(input *RemoveTagsFromStreamInput) (*RemoveTagsFromStreamOutput, error) {
@@ -763,7 +1196,28 @@ func (c *Kinesis) RemoveTagsFromStream(input *RemoveTagsFromStreamInput) (*Remov
 
 const opSplitShard = "SplitShard"
 
-// SplitShardRequest generates a request for the SplitShard operation.
+// SplitShardRequest generates a "aws/request.Request" representing the
+// client's request for the SplitShard operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SplitShard method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SplitShardRequest method.
+//    req, resp := client.SplitShardRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *Kinesis) SplitShardRequest(input *SplitShardInput) (req *request.Request, output *SplitShardOutput) {
 	op := &request.Operation{
 		Name:       opSplitShard,
@@ -783,24 +1237,23 @@ func (c *Kinesis) SplitShardRequest(input *SplitShardInput) (req *request.Reques
 	return
 }
 
-// Splits a shard into two new shards in the stream, to increase the stream's
-// capacity to ingest and transport data. SplitShard is called when there is
-// a need to increase the overall capacity of stream because of an expected
-// increase in the volume of data records being ingested.
+// Splits a shard into two new shards in the Amazon Kinesis stream to increase
+// the stream's capacity to ingest and transport data. SplitShard is called
+// when there is a need to increase the overall capacity of a stream because
+// of an expected increase in the volume of data records being ingested.
 //
 // You can also use SplitShard when a shard appears to be approaching its maximum
-// utilization, for example, when the set of producers sending data into the
-// specific shard are suddenly sending more than previously anticipated. You
-// can also call SplitShard to increase stream capacity, so that more Amazon
-// Kinesis applications can simultaneously read data from the stream for real-time
-// processing.
+// utilization; for example, the producers sending data into the specific shard
+// are suddenly sending more than previously anticipated. You can also call
+// SplitShard to increase stream capacity, so that more Amazon Kinesis applications
+// can simultaneously read data from the stream for real-time processing.
 //
 // You must specify the shard to be split and the new hash key, which is the
 // position in the shard where the shard gets split in two. In many cases, the
 // new hash key might simply be the average of the beginning and ending hash
 // key, but it can be any hash key value in the range being mapped into the
 // shard. For more information about splitting shards, see Split a Shard (http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-resharding-split.html)
-// in the Amazon Kinesis Developer Guide.
+// in the Amazon Kinesis Streams Developer Guide.
 //
 // You can use DescribeStream to determine the shard ID and hash key values
 // for the ShardToSplit and NewStartingHashKey parameters that are specified
@@ -821,12 +1274,12 @@ func (c *Kinesis) SplitShardRequest(input *SplitShardInput) (req *request.Reques
 // If you try to create more shards than are authorized for your account, you
 // receive a LimitExceededException.
 //
-// For the default shard limit for an AWS account, see Amazon Kinesis Limits
-// (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html).
-// If you need to increase this limit, contact AWS Support (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html).
+// For the default shard limit for an AWS account, see Streams Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html)
+// in the Amazon Kinesis Streams Developer Guide. If you need to increase this
+// limit, contact AWS Support (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html).
 //
-// If you try to operate on too many streams in parallel using CreateStream,
-// DeleteStream, MergeShards or SplitShard, you receive a LimitExceededException.
+// If you try to operate on too many streams simultaneously using CreateStream,
+// DeleteStream, MergeShards, and/or SplitShard, you receive a LimitExceededException.
 //
 // SplitShard has limit of 5 transactions per second per account.
 func (c *Kinesis) SplitShard(input *SplitShardInput) (*SplitShardOutput, error) {
@@ -854,6 +1307,28 @@ func (s AddTagsToStreamInput) String() string {
 // GoString returns the string representation
 func (s AddTagsToStreamInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsToStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsToStreamInput"}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AddTagsToStreamOutput struct {
@@ -884,7 +1359,7 @@ type CreateStreamInput struct {
 	// A name to identify the stream. The stream name is scoped to the AWS account
 	// used by the application that creates the stream. It is also scoped by region.
 	// That is, two streams in two different AWS accounts can have the same name,
-	// and two streams in the same AWS account, but in two different regions, can
+	// and two streams in the same AWS account but in two different regions can
 	// have the same name.
 	StreamName *string `min:"1" type:"string" required:"true"`
 }
@@ -897,6 +1372,28 @@ func (s CreateStreamInput) String() string {
 // GoString returns the string representation
 func (s CreateStreamInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateStreamInput"}
+	if s.ShardCount == nil {
+		invalidParams.Add(request.NewErrParamRequired("ShardCount"))
+	}
+	if s.ShardCount != nil && *s.ShardCount < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("ShardCount", 1))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateStreamOutput struct {
@@ -935,6 +1432,28 @@ func (s DecreaseStreamRetentionPeriodInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DecreaseStreamRetentionPeriodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DecreaseStreamRetentionPeriodInput"}
+	if s.RetentionPeriodHours == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionPeriodHours"))
+	}
+	if s.RetentionPeriodHours != nil && *s.RetentionPeriodHours < 24 {
+		invalidParams.Add(request.NewErrParamMinValue("RetentionPeriodHours", 24))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DecreaseStreamRetentionPeriodOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -965,6 +1484,22 @@ func (s DeleteStreamInput) String() string {
 // GoString returns the string representation
 func (s DeleteStreamInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteStreamInput"}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteStreamOutput struct {
@@ -1005,6 +1540,28 @@ func (s DescribeStreamInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeStreamInput"}
+	if s.ExclusiveStartShardId != nil && len(*s.ExclusiveStartShardId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ExclusiveStartShardId", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output for DescribeStream.
 type DescribeStreamOutput struct {
 	_ struct{} `type:"structure"`
@@ -1021,6 +1578,163 @@ func (s DescribeStreamOutput) String() string {
 
 // GoString returns the string representation
 func (s DescribeStreamOutput) GoString() string {
+	return s.String()
+}
+
+// Represents the input for DisableEnhancedMonitoring.
+type DisableEnhancedMonitoringInput struct {
+	_ struct{} `type:"structure"`
+
+	// List of shard-level metrics to disable.
+	//
+	// The following are the valid shard-level metrics. The value "ALL" disables
+	// every metric.
+	//
+	//   IncomingBytes   IncomingRecords   OutgoingBytes   OutgoingRecords   WriteProvisionedThroughputExceeded
+	//   ReadProvisionedThroughputExceeded   IteratorAgeMilliseconds   ALL   For
+	// more information, see Monitoring the Amazon Kinesis Streams Service with
+	// Amazon CloudWatch (http://docs.aws.amazon.com/kinesis/latest/dev/monitoring-with-cloudwatch.html)
+	// in the Amazon Kinesis Streams Developer Guide.
+	ShardLevelMetrics []*string `min:"1" type:"list" required:"true"`
+
+	// The name of the Amazon Kinesis stream for which to disable enhanced monitoring.
+	StreamName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DisableEnhancedMonitoringInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisableEnhancedMonitoringInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableEnhancedMonitoringInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableEnhancedMonitoringInput"}
+	if s.ShardLevelMetrics == nil {
+		invalidParams.Add(request.NewErrParamRequired("ShardLevelMetrics"))
+	}
+	if s.ShardLevelMetrics != nil && len(s.ShardLevelMetrics) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ShardLevelMetrics", 1))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Represents the input for EnableEnhancedMonitoring.
+type EnableEnhancedMonitoringInput struct {
+	_ struct{} `type:"structure"`
+
+	// List of shard-level metrics to enable.
+	//
+	// The following are the valid shard-level metrics. The value "ALL" enables
+	// every metric.
+	//
+	//   IncomingBytes   IncomingRecords   OutgoingBytes   OutgoingRecords   WriteProvisionedThroughputExceeded
+	//   ReadProvisionedThroughputExceeded   IteratorAgeMilliseconds   ALL   For
+	// more information, see Monitoring the Amazon Kinesis Streams Service with
+	// Amazon CloudWatch (http://docs.aws.amazon.com/kinesis/latest/dev/monitoring-with-cloudwatch.html)
+	// in the Amazon Kinesis Streams Developer Guide.
+	ShardLevelMetrics []*string `min:"1" type:"list" required:"true"`
+
+	// The name of the stream for which to enable enhanced monitoring.
+	StreamName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s EnableEnhancedMonitoringInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EnableEnhancedMonitoringInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableEnhancedMonitoringInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableEnhancedMonitoringInput"}
+	if s.ShardLevelMetrics == nil {
+		invalidParams.Add(request.NewErrParamRequired("ShardLevelMetrics"))
+	}
+	if s.ShardLevelMetrics != nil && len(s.ShardLevelMetrics) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ShardLevelMetrics", 1))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Represents enhanced metrics types.
+type EnhancedMetrics struct {
+	_ struct{} `type:"structure"`
+
+	// List of shard-level metrics.
+	//
+	// The following are the valid shard-level metrics. The value "ALL" enhances
+	// every metric.
+	//
+	//   IncomingBytes   IncomingRecords   OutgoingBytes   OutgoingRecords   WriteProvisionedThroughputExceeded
+	//   ReadProvisionedThroughputExceeded   IteratorAgeMilliseconds   ALL   For
+	// more information, see Monitoring the Amazon Kinesis Streams Service with
+	// Amazon CloudWatch (http://docs.aws.amazon.com/kinesis/latest/dev/monitoring-with-cloudwatch.html)
+	// in the Amazon Kinesis Streams Developer Guide.
+	ShardLevelMetrics []*string `min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s EnhancedMetrics) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EnhancedMetrics) GoString() string {
+	return s.String()
+}
+
+// Represents the output for EnableEnhancedMonitoring and DisableEnhancedMonitoring.
+type EnhancedMonitoringOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Represents the current state of the metrics that are in the enhanced state
+	// before the operation.
+	CurrentShardLevelMetrics []*string `min:"1" type:"list"`
+
+	// Represents the list of all the metrics that would be in the enhanced state
+	// after the operation.
+	DesiredShardLevelMetrics []*string `min:"1" type:"list"`
+
+	// The name of the Amazon Kinesis stream.
+	StreamName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s EnhancedMonitoringOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EnhancedMonitoringOutput) GoString() string {
 	return s.String()
 }
 
@@ -1046,6 +1760,25 @@ func (s GetRecordsInput) String() string {
 // GoString returns the string representation
 func (s GetRecordsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetRecordsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetRecordsInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.ShardIterator == nil {
+		invalidParams.Add(request.NewErrParamRequired("ShardIterator"))
+	}
+	if s.ShardIterator != nil && len(*s.ShardIterator) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ShardIterator", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output for GetRecords.
@@ -1081,29 +1814,40 @@ func (s GetRecordsOutput) GoString() string {
 type GetShardIteratorInput struct {
 	_ struct{} `type:"structure"`
 
-	// The shard ID of the shard to get the iterator for.
+	// The shard ID of the Amazon Kinesis shard to get the iterator for.
 	ShardId *string `min:"1" type:"string" required:"true"`
 
 	// Determines how the shard iterator is used to start reading data records from
 	// the shard.
 	//
-	// The following are the valid shard iterator types:
+	// The following are the valid Amazon Kinesis shard iterator types:
 	//
-	//  AT_SEQUENCE_NUMBER - Start reading exactly from the position denoted by
-	// a specific sequence number. AFTER_SEQUENCE_NUMBER - Start reading right after
-	// the position denoted by a specific sequence number. TRIM_HORIZON - Start
-	// reading at the last untrimmed record in the shard in the system, which is
-	// the oldest data record in the shard. LATEST - Start reading just after the
-	// most recent record in the shard, so that you always read the most recent
-	// data in the shard.
+	//  AT_SEQUENCE_NUMBER - Start reading from the position denoted by a specific
+	// sequence number, provided in the value StartingSequenceNumber. AFTER_SEQUENCE_NUMBER
+	// - Start reading right after the position denoted by a specific sequence number,
+	// provided in the value StartingSequenceNumber. AT_TIMESTAMP - Start reading
+	// from the position denoted by a specific timestamp, provided in the value
+	// Timestamp. TRIM_HORIZON - Start reading at the last untrimmed record in the
+	// shard in the system, which is the oldest data record in the shard. LATEST
+	// - Start reading just after the most recent record in the shard, so that you
+	// always read the most recent data in the shard.
 	ShardIteratorType *string `type:"string" required:"true" enum:"ShardIteratorType"`
 
-	// The sequence number of the data record in the shard from which to start reading
-	// from.
+	// The sequence number of the data record in the shard from which to start reading.
+	// Used with shard iterator type AT_SEQUENCE_NUMBER and AFTER_SEQUENCE_NUMBER.
 	StartingSequenceNumber *string `type:"string"`
 
-	// The name of the stream.
+	// The name of the Amazon Kinesis stream.
 	StreamName *string `min:"1" type:"string" required:"true"`
+
+	// The timestamp of the data record from which to start reading. Used with shard
+	// iterator type AT_TIMESTAMP. A timestamp is the Unix epoch date with precision
+	// in milliseconds. For example, 2016-04-04T19:58:46.480-00:00 or 1459799926.480.
+	// If a record with this exact timestamp does not exist, the iterator returned
+	// is for the next (later) record. If the timestamp is older than the current
+	// trim horizon, the iterator returned is for the oldest untrimmed data record
+	// (TRIM_HORIZON).
+	Timestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
 }
 
 // String returns the string representation
@@ -1114,6 +1858,31 @@ func (s GetShardIteratorInput) String() string {
 // GoString returns the string representation
 func (s GetShardIteratorInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetShardIteratorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetShardIteratorInput"}
+	if s.ShardId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ShardId"))
+	}
+	if s.ShardId != nil && len(*s.ShardId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ShardId", 1))
+	}
+	if s.ShardIteratorType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ShardIteratorType"))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output for GetShardIterator.
@@ -1180,6 +1949,28 @@ func (s IncreaseStreamRetentionPeriodInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *IncreaseStreamRetentionPeriodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "IncreaseStreamRetentionPeriodInput"}
+	if s.RetentionPeriodHours == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionPeriodHours"))
+	}
+	if s.RetentionPeriodHours != nil && *s.RetentionPeriodHours < 24 {
+		invalidParams.Add(request.NewErrParamMinValue("RetentionPeriodHours", 24))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type IncreaseStreamRetentionPeriodOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1213,6 +2004,22 @@ func (s ListStreamsInput) String() string {
 // GoString returns the string representation
 func (s ListStreamsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListStreamsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListStreamsInput"}
+	if s.ExclusiveStartStreamName != nil && len(*s.ExclusiveStartStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ExclusiveStartStreamName", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output for ListStreams.
@@ -1264,6 +2071,28 @@ func (s ListTagsForStreamInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForStreamInput"}
+	if s.ExclusiveStartTagKey != nil && len(*s.ExclusiveStartTagKey) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ExclusiveStartTagKey", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output for ListTagsForStream.
 type ListTagsForStreamOutput struct {
 	_ struct{} `type:"structure"`
@@ -1311,6 +2140,34 @@ func (s MergeShardsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MergeShardsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MergeShardsInput"}
+	if s.AdjacentShardToMerge == nil {
+		invalidParams.Add(request.NewErrParamRequired("AdjacentShardToMerge"))
+	}
+	if s.AdjacentShardToMerge != nil && len(*s.AdjacentShardToMerge) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AdjacentShardToMerge", 1))
+	}
+	if s.ShardToMerge == nil {
+		invalidParams.Add(request.NewErrParamRequired("ShardToMerge"))
+	}
+	if s.ShardToMerge != nil && len(*s.ShardToMerge) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ShardToMerge", 1))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type MergeShardsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1347,8 +2204,8 @@ type PutRecordInput struct {
 	// that maps the partition key and associated data to a specific shard. Specifically,
 	// an MD5 hash function is used to map partition keys to 128-bit integer values
 	// and to map associated data records to shards. As a result of this hashing
-	// mechanism, all data records with the same partition key will map to the same
-	// shard within the stream.
+	// mechanism, all data records with the same partition key map to the same shard
+	// within the stream.
 	PartitionKey *string `min:"1" type:"string" required:"true"`
 
 	// Guarantees strictly increasing sequence numbers, for puts from the same client
@@ -1370,6 +2227,31 @@ func (s PutRecordInput) String() string {
 // GoString returns the string representation
 func (s PutRecordInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRecordInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRecordInput"}
+	if s.Data == nil {
+		invalidParams.Add(request.NewErrParamRequired("Data"))
+	}
+	if s.PartitionKey == nil {
+		invalidParams.Add(request.NewErrParamRequired("PartitionKey"))
+	}
+	if s.PartitionKey != nil && len(*s.PartitionKey) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PartitionKey", 1))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output for PutRecord.
@@ -1417,6 +2299,38 @@ func (s PutRecordsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRecordsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRecordsInput"}
+	if s.Records == nil {
+		invalidParams.Add(request.NewErrParamRequired("Records"))
+	}
+	if s.Records != nil && len(s.Records) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Records", 1))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+	if s.Records != nil {
+		for i, v := range s.Records {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Records", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // PutRecords results.
 type PutRecordsOutput struct {
 	_ struct{} `type:"structure"`
@@ -1426,9 +2340,9 @@ type PutRecordsOutput struct {
 
 	// An array of successfully and unsuccessfully processed record results, correlated
 	// with the request by natural ordering. A record that is successfully added
-	// to your Amazon Kinesis stream includes SequenceNumber and ShardId in the
-	// result. A record that fails to be added to your Amazon Kinesis stream includes
-	// ErrorCode and ErrorMessage in the result.
+	// to a stream includes SequenceNumber and ShardId in the result. A record that
+	// fails to be added to a stream includes ErrorCode and ErrorMessage in the
+	// result.
 	Records []*PutRecordsResultEntry `min:"1" type:"list" required:"true"`
 }
 
@@ -1479,11 +2393,29 @@ func (s PutRecordsRequestEntry) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRecordsRequestEntry) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRecordsRequestEntry"}
+	if s.Data == nil {
+		invalidParams.Add(request.NewErrParamRequired("Data"))
+	}
+	if s.PartitionKey == nil {
+		invalidParams.Add(request.NewErrParamRequired("PartitionKey"))
+	}
+	if s.PartitionKey != nil && len(*s.PartitionKey) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PartitionKey", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the result of an individual record from a PutRecords request.
-// A record that is successfully added to your Amazon Kinesis stream includes
-// SequenceNumber and ShardId in the result. A record that fails to be added
-// to your Amazon Kinesis stream includes ErrorCode and ErrorMessage in the
-// result.
+// A record that is successfully added to a stream includes SequenceNumber and
+// ShardId in the result. A record that fails to be added to the stream includes
+// ErrorCode and ErrorMessage in the result.
 type PutRecordsResultEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -1569,6 +2501,28 @@ func (s RemoveTagsFromStreamInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsFromStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsFromStreamInput"}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+	if s.TagKeys != nil && len(s.TagKeys) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TagKeys", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RemoveTagsFromStreamOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1609,20 +2563,20 @@ func (s SequenceNumberRange) GoString() string {
 type Shard struct {
 	_ struct{} `type:"structure"`
 
-	// The shard Id of the shard adjacent to the shard's parent.
+	// The shard ID of the shard adjacent to the shard's parent.
 	AdjacentParentShardId *string `min:"1" type:"string"`
 
 	// The range of possible hash key values for the shard, which is a set of ordered
 	// contiguous positive integers.
 	HashKeyRange *HashKeyRange `type:"structure" required:"true"`
 
-	// The shard Id of the shard's parent.
+	// The shard ID of the shard's parent.
 	ParentShardId *string `min:"1" type:"string"`
 
 	// The range of possible sequence numbers for the shard.
 	SequenceNumberRange *SequenceNumberRange `type:"structure" required:"true"`
 
-	// The unique identifier of the shard within the Amazon Kinesis stream.
+	// The unique identifier of the shard within the stream.
 	ShardId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -1666,6 +2620,31 @@ func (s SplitShardInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SplitShardInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SplitShardInput"}
+	if s.NewStartingHashKey == nil {
+		invalidParams.Add(request.NewErrParamRequired("NewStartingHashKey"))
+	}
+	if s.ShardToSplit == nil {
+		invalidParams.Add(request.NewErrParamRequired("ShardToSplit"))
+	}
+	if s.ShardToSplit != nil && len(*s.ShardToSplit) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ShardToSplit", 1))
+	}
+	if s.StreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StreamName"))
+	}
+	if s.StreamName != nil && len(*s.StreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SplitShardOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1684,6 +2663,9 @@ func (s SplitShardOutput) GoString() string {
 type StreamDescription struct {
 	_ struct{} `type:"structure"`
 
+	// Represents the current enhanced monitoring settings of the stream.
+	EnhancedMonitoring []*EnhancedMetrics `type:"list" required:"true"`
+
 	// If set to true, more shards in the stream are available to describe.
 	HasMoreShards *bool `type:"boolean" required:"true"`
 
@@ -1699,16 +2681,15 @@ type StreamDescription struct {
 	// The name of the stream being described.
 	StreamName *string `min:"1" type:"string" required:"true"`
 
-	// The current status of the stream being described.
+	// The current status of the stream being described. The stream status is one
+	// of the following states:
 	//
-	// The stream status is one of the following states:
-	//
-	//   CREATING - The stream is being created. Amazon Kinesis immediately returns
-	// and sets StreamStatus to CREATING.  DELETING - The stream is being deleted.
+	//  CREATING - The stream is being created. Amazon Kinesis immediately returns
+	// and sets StreamStatus to CREATING. DELETING - The stream is being deleted.
 	// The specified stream is in the DELETING state until Amazon Kinesis completes
-	// the deletion.  ACTIVE - The stream exists and is ready for read and write
+	// the deletion. ACTIVE - The stream exists and is ready for read and write
 	// operations or deletion. You should perform read and write operations only
-	// on an ACTIVE stream.  UPDATING - Shards in the stream are being merged or
+	// on an ACTIVE stream. UPDATING - Shards in the stream are being merged or
 	// split. Read and write operations continue to work while the stream is in
 	// the UPDATING state.
 	StreamStatus *string `type:"string" required:"true" enum:"StreamStatus"`
@@ -1749,6 +2730,25 @@ func (s Tag) GoString() string {
 }
 
 const (
+	// @enum MetricsName
+	MetricsNameIncomingBytes = "IncomingBytes"
+	// @enum MetricsName
+	MetricsNameIncomingRecords = "IncomingRecords"
+	// @enum MetricsName
+	MetricsNameOutgoingBytes = "OutgoingBytes"
+	// @enum MetricsName
+	MetricsNameOutgoingRecords = "OutgoingRecords"
+	// @enum MetricsName
+	MetricsNameWriteProvisionedThroughputExceeded = "WriteProvisionedThroughputExceeded"
+	// @enum MetricsName
+	MetricsNameReadProvisionedThroughputExceeded = "ReadProvisionedThroughputExceeded"
+	// @enum MetricsName
+	MetricsNameIteratorAgeMilliseconds = "IteratorAgeMilliseconds"
+	// @enum MetricsName
+	MetricsNameAll = "ALL"
+)
+
+const (
 	// @enum ShardIteratorType
 	ShardIteratorTypeAtSequenceNumber = "AT_SEQUENCE_NUMBER"
 	// @enum ShardIteratorType
@@ -1757,6 +2757,8 @@ const (
 	ShardIteratorTypeTrimHorizon = "TRIM_HORIZON"
 	// @enum ShardIteratorType
 	ShardIteratorTypeLatest = "LATEST"
+	// @enum ShardIteratorType
+	ShardIteratorTypeAtTimestamp = "AT_TIMESTAMP"
 )
 
 const (

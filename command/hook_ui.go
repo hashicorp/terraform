@@ -7,12 +7,15 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 )
+
+const periodicUiTimer = 10 * time.Second
 
 type UiHook struct {
 	terraform.NilHook
@@ -22,10 +25,17 @@ type UiHook struct {
 
 	l         sync.Mutex
 	once      sync.Once
-	resources map[string]uiResourceOp
+	resources map[string]uiResourceState
 	ui        cli.Ui
 }
 
+// uiResourceState tracks the state of a single resource
+type uiResourceState struct {
+	Op    uiResourceOp
+	Start time.Time
+}
+
+// uiResourceOp is an enum for operations on a resource
 type uiResourceOp byte
 
 const (
@@ -51,7 +61,10 @@ func (h *UiHook) PreApply(
 	}
 
 	h.l.Lock()
-	h.resources[id] = op
+	h.resources[id] = uiResourceState{
+		Op:    op,
+		Start: time.Now().Round(time.Second),
+	}
 	h.l.Unlock()
 
 	var operation string
@@ -71,8 +84,10 @@ func (h *UiHook) PreApply(
 	// Get all the attributes that are changing, and sort them. Also
 	// determine the longest key so that we can align them all.
 	keyLen := 0
-	keys := make([]string, 0, len(d.Attributes))
-	for key, _ := range d.Attributes {
+
+	dAttrs := d.CopyAttributes()
+	keys := make([]string, 0, len(dAttrs))
+	for key, _ := range dAttrs {
 		// Skip the ID since we do that specially
 		if key == "id" {
 			continue
@@ -87,18 +102,24 @@ func (h *UiHook) PreApply(
 
 	// Go through and output each attribute
 	for _, attrK := range keys {
-		attrDiff := d.Attributes[attrK]
+		attrDiff, _ := d.GetAttribute(attrK)
 
 		v := attrDiff.New
+		u := attrDiff.Old
 		if attrDiff.NewComputed {
 			v = "<computed>"
+		}
+
+		if attrDiff.Sensitive {
+			u = "<sensitive>"
+			v = "<sensitive>"
 		}
 
 		attrBuf.WriteString(fmt.Sprintf(
 			"  %s:%s %#v => %#v\n",
 			attrK,
 			strings.Repeat(" ", keyLen-len(attrK)),
-			attrDiff.Old,
+			u,
 			v))
 	}
 
@@ -113,7 +134,45 @@ func (h *UiHook) PreApply(
 		operation,
 		attrString)))
 
+	// Set a timer to show an operation is still happening
+	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id) })
+
 	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) stillApplying(id string) {
+	// Grab the operation. We defer the lock here to avoid the "still..."
+	// message showing up after a completion message.
+	h.l.Lock()
+	defer h.l.Unlock()
+	state, ok := h.resources[id]
+
+	// If the resource is out of the map it means we're done with it
+	if !ok {
+		return
+	}
+
+	var msg string
+	switch state.Op {
+	case uiResourceModify:
+		msg = "Still modifying..."
+	case uiResourceDestroy:
+		msg = "Still destroying..."
+	case uiResourceCreate:
+		msg = "Still creating..."
+	case uiResourceUnknown:
+		return
+	}
+
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold]%s: %s (%s elapsed)[reset_bold]",
+		id,
+		msg,
+		time.Now().Round(time.Second).Sub(state.Start),
+	)))
+
+	// Reschedule
+	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id) })
 }
 
 func (h *UiHook) PostApply(
@@ -123,12 +182,12 @@ func (h *UiHook) PostApply(
 	id := n.HumanId()
 
 	h.l.Lock()
-	op := h.resources[id]
+	state := h.resources[id]
 	delete(h.resources, id)
 	h.l.Unlock()
 
 	var msg string
-	switch op {
+	switch state.Op {
 	case uiResourceModify:
 		msg = "Modifications complete"
 	case uiResourceDestroy:
@@ -194,9 +253,45 @@ func (h *UiHook) PreRefresh(
 	h.once.Do(h.init)
 
 	id := n.HumanId()
+
+	var stateIdSuffix string
+	// Data resources refresh before they have ids, whereas managed
+	// resources are only refreshed when they have ids.
+	if s.ID != "" {
+		stateIdSuffix = fmt.Sprintf(" (ID: %s)", s.ID)
+	}
+
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Refreshing state... (ID: %s)",
-		id, s.ID)))
+		"[reset][bold]%s: Refreshing state...%s",
+		id, stateIdSuffix)))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PreImportState(
+	n *terraform.InstanceInfo,
+	id string) (terraform.HookAction, error) {
+	h.once.Do(h.init)
+
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold]%s: Importing from ID %q...",
+		n.HumanId(), id)))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostImportState(
+	n *terraform.InstanceInfo,
+	s []*terraform.InstanceState) (terraform.HookAction, error) {
+	h.once.Do(h.init)
+
+	id := n.HumanId()
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold][green]%s: Import complete!", id)))
+	for _, s := range s {
+		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+			"[reset][green]  Imported %s (ID: %s)",
+			s.Ephemeral.Type, s.ID)))
+	}
+
 	return terraform.HookActionContinue, nil
 }
 
@@ -205,7 +300,7 @@ func (h *UiHook) init() {
 		panic("colorize not given")
 	}
 
-	h.resources = make(map[string]uiResourceOp)
+	h.resources = make(map[string]uiResourceState)
 
 	// Wrap the ui so that it is safe for concurrency regardless of the
 	// underlying reader/writer that is in place.

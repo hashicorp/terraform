@@ -146,7 +146,51 @@ func resourceContainerCluster() *schema.Resource {
 				Default:  "default",
 				ForceNew: true,
 			},
-
+			"subnetwork": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"addons_config": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"http_load_balancing": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							ForceNew: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"disabled": &schema.Schema{
+										Type:     schema.TypeBool,
+										Optional: true,
+										ForceNew: true,
+									},
+								},
+							},
+						},
+						"horizontal_pod_autoscaling": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							ForceNew: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"disabled": &schema.Schema{
+										Type:     schema.TypeBool,
+										Optional: true,
+										ForceNew: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			"node_config": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -249,6 +293,28 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		cluster.Network = v.(string)
 	}
 
+	if v, ok := d.GetOk("subnetwork"); ok {
+		cluster.Subnetwork = v.(string)
+	}
+
+	if v, ok := d.GetOk("addons_config"); ok {
+		addonsConfig := v.([]interface{})[0].(map[string]interface{})
+		cluster.AddonsConfig = &container.AddonsConfig{}
+
+		if v, ok := addonsConfig["http_load_balancing"]; ok {
+			addon := v.([]interface{})[0].(map[string]interface{})
+			cluster.AddonsConfig.HttpLoadBalancing = &container.HttpLoadBalancing{
+				Disabled: addon["disabled"].(bool),
+			}
+		}
+
+		if v, ok := addonsConfig["horizontal_pod_autoscaling"]; ok {
+			addon := v.([]interface{})[0].(map[string]interface{})
+			cluster.AddonsConfig.HorizontalPodAutoscaling = &container.HorizontalPodAutoscaling{
+				Disabled: addon["disabled"].(bool),
+			}
+		}
+	}
 	if v, ok := d.GetOk("node_config"); ok {
 		nodeConfigs := v.([]interface{})
 		if len(nodeConfigs) > 1 {
@@ -360,6 +426,7 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("logging_service", cluster.LoggingService)
 	d.Set("monitoring_service", cluster.MonitoringService)
 	d.Set("network", cluster.Network)
+	d.Set("subnetwork", cluster.Subnetwork)
 	d.Set("node_config", flattenClusterNodeConfig(cluster.NodeConfig))
 	d.Set("instance_group_urls", cluster.InstanceGroupUrls)
 

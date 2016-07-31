@@ -61,5 +61,5 @@ type CapabilitiesResponse struct {
 		NetworkId string `json:"networkId"`
 		Type      string `json:"type"`
 		AccountID string `json:"accountID"`
-	} `json:deployableNetworks`
+	} `json:"deployableNetworks"`
 }

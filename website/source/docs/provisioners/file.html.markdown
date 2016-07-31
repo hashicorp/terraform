@@ -24,6 +24,12 @@ resource "aws_instance" "web" {
         destination = "/etc/myapp.conf"
     }
 
+    # Copies the string in content into /tmp/file.log
+    provisioner "file" {
+        content = "ami used: ${self.ami}"
+        destination = "/tmp/file.log"
+    }
+
     # Copies the configs.d folder to /etc/configs.d
     provisioner "file" {
         source = "conf/configs.d"
@@ -42,8 +48,14 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `source` - (Required) This is the source file or folder. It can be specified as relative
-  to the current working directory or as an absolute path.
+* `source` - This is the source file or folder. It can be specified as relative
+  to the current working directory or as an absolute path. This cannot be provided with `content`.
+
+* `content` - This is the content to copy on the destination. If destination is a file,
+  the content will be written on that file, in case of a directory a file named
+  *tf-file-content* is created. It's recommended to use a file as destination. A
+  [`template_file`](/docs/providers/template/r/file.html) might be referenced in here, or
+  any interpolation syntax for that matter. This cannot be provided with `source`.
 
 * `destination` - (Required) This is the destination path. It must be specified as an
   absolute path.

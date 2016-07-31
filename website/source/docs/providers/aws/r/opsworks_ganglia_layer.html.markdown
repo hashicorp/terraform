@@ -40,6 +40,7 @@ The following arguments are supported:
 * `username` - (Optiona) The username to use for Ganglia. Defaults to "opsworks".
 * `use_ebs_optimized_instances` - (Optional) Whether to use EBS-optimized instances.
 * `ebs_volume` - (Optional) `ebs_volume` blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+* `custom_json` - (Optional) Custom JSON attributes to apply to the layer.
 
 The following extra optional arguments, all lists of Chef recipe names, allow
 custom Chef recipes to be applied to layer instances at the five different

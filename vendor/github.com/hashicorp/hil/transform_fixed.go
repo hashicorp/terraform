@@ -14,7 +14,7 @@ func FixedValueTransform(root ast.Node, Value *ast.LiteralNode) ast.Node {
 	// We visit the nodes in top-down order
 	result := root
 	switch n := result.(type) {
-	case *ast.Concat:
+	case *ast.Output:
 		for i, v := range n.Exprs {
 			n.Exprs[i] = FixedValueTransform(v, Value)
 		}

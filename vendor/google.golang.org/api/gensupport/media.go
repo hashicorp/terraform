@@ -165,7 +165,9 @@ func CombineBodyMedia(body io.Reader, bodyContentType string, media io.Reader, m
 
 func typeHeader(contentType string) textproto.MIMEHeader {
 	h := make(textproto.MIMEHeader)
-	h.Set("Content-Type", contentType)
+	if contentType != "" {
+		h.Set("Content-Type", contentType)
+	}
 	return h
 }
 

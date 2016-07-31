@@ -260,6 +260,33 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 	t.Fatalf("bad: %#v", visits)
 }
 
+func TestAcyclicGraph_ReverseDepthFirstWalk_WithRemoval(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(3, 2))
+	g.Connect(BasicEdge(2, 1))
+
+	var visits []Vertex
+	var lock sync.Mutex
+	err := g.ReverseDepthFirstWalk([]Vertex{1}, func(v Vertex, d int) error {
+		lock.Lock()
+		defer lock.Unlock()
+		visits = append(visits, v)
+		g.Remove(v)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []Vertex{1, 2, 3}
+	if !reflect.DeepEqual(visits, expected) {
+		t.Fatalf("expected: %#v, got: %#v", expected, visits)
+	}
+}
+
 const testGraphTransReductionStr = `
 1
   2

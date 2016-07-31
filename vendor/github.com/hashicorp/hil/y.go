@@ -484,17 +484,17 @@ parserdefault:
 		{
 			parserResult = parserDollar[1].node
 
-			// We want to make sure that the top value is always a Concat
-			// so that the return value is always a string type from an
+			// We want to make sure that the top value is always an Output
+			// so that the return value is always a string, list of map from an
 			// interpolation.
 			//
 			// The logic for checking for a LiteralNode is a little annoying
 			// because functionally the AST is the same, but we do that because
 			// it makes for an easy literal check later (to check if a string
 			// has any interpolations).
-			if _, ok := parserDollar[1].node.(*ast.Concat); !ok {
+			if _, ok := parserDollar[1].node.(*ast.Output); !ok {
 				if n, ok := parserDollar[1].node.(*ast.LiteralNode); !ok || n.Typex != ast.TypeString {
-					parserResult = &ast.Concat{
+					parserResult = &ast.Output{
 						Exprs: []ast.Node{parserDollar[1].node},
 						Posx:  parserDollar[1].node.Pos(),
 					}
@@ -512,13 +512,13 @@ parserdefault:
 		//line lang.y:71
 		{
 			var result []ast.Node
-			if c, ok := parserDollar[1].node.(*ast.Concat); ok {
+			if c, ok := parserDollar[1].node.(*ast.Output); ok {
 				result = append(c.Exprs, parserDollar[2].node)
 			} else {
 				result = []ast.Node{parserDollar[1].node, parserDollar[2].node}
 			}
 
-			parserVAL.node = &ast.Concat{
+			parserVAL.node = &ast.Output{
 				Exprs: result,
 				Posx:  result[0].Pos(),
 			}

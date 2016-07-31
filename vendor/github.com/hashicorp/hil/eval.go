@@ -23,9 +23,76 @@ type EvalConfig struct {
 // semantic check on an AST tree. This will be called with the root node.
 type SemanticChecker func(ast.Node) error
 
+// EvalType represents the type of the output returned from a HIL
+// evaluation.
+type EvalType uint32
+
+const (
+	TypeInvalid EvalType = 0
+	TypeString  EvalType = 1 << iota
+	TypeList
+	TypeMap
+)
+
+//go:generate stringer -type=EvalType
+
+// EvaluationResult is a struct returned from the hil.Eval function,
+// representing the result of an interpolation. Results are returned in their
+// "natural" Go structure rather than in terms of the HIL AST.  For the types
+// currently implemented, this means that the Value field can be interpreted as
+// the following Go types:
+//     TypeInvalid: undefined
+//     TypeString:  string
+//     TypeList:    []interface{}
+//     TypeMap:     map[string]interface{}
+type EvaluationResult struct {
+	Type  EvalType
+	Value interface{}
+}
+
+// InvalidResult is a structure representing the result of a HIL interpolation
+// which has invalid syntax, missing variables, or some other type of error.
+// The error is described out of band in the accompanying error return value.
+var InvalidResult = EvaluationResult{Type: TypeInvalid, Value: nil}
+
+func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
+	output, outputType, err := internalEval(root, config)
+	if err != nil {
+		return InvalidResult, err
+	}
+
+	switch outputType {
+	case ast.TypeList:
+		val, err := VariableToInterface(ast.Variable{
+			Type:  ast.TypeList,
+			Value: output,
+		})
+		return EvaluationResult{
+			Type:  TypeList,
+			Value: val,
+		}, err
+	case ast.TypeMap:
+		val, err := VariableToInterface(ast.Variable{
+			Type:  ast.TypeMap,
+			Value: output,
+		})
+		return EvaluationResult{
+			Type: TypeMap,
+			Value: val,
+		}, err
+	case ast.TypeString:
+		return EvaluationResult{
+			Type:  TypeString,
+			Value: output,
+		}, nil
+	default:
+		return InvalidResult, fmt.Errorf("unknown type %s as interpolation output", outputType)
+	}
+}
+
 // Eval evaluates the given AST tree and returns its output value, the type
 // of the output, and any error that occurred.
-func Eval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, error) {
+func internalEval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, error) {
 	// Copy the scope so we can add our builtins
 	if config == nil {
 		config = new(EvalConfig)
@@ -145,8 +212,8 @@ func evalNode(raw ast.Node) (EvalNode, error) {
 		return &evalIndex{n}, nil
 	case *ast.Call:
 		return &evalCall{n}, nil
-	case *ast.Concat:
-		return &evalConcat{n}, nil
+	case *ast.Output:
+		return &evalOutput{n}, nil
 	case *ast.LiteralNode:
 		return &evalLiteralNode{n}, nil
 	case *ast.VariableAccess:
@@ -278,9 +345,9 @@ func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key in
 	return value.Value, value.Type, nil
 }
 
-type evalConcat struct{ *ast.Concat }
+type evalOutput struct{ *ast.Output }
 
-func (v *evalConcat) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
+func (v *evalOutput) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
 	// The expressions should all be on the stack in reverse
 	// order. So pop them off, reverse their order, and concatenate.
 	nodes := make([]*ast.LiteralNode, 0, len(v.Exprs))
@@ -288,9 +355,12 @@ func (v *evalConcat) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type,
 		nodes = append(nodes, stack.Pop().(*ast.LiteralNode))
 	}
 
-	// Special case the single list
+	// Special case the single list and map
 	if len(nodes) == 1 && nodes[0].Typex == ast.TypeList {
 		return nodes[0].Value, ast.TypeList, nil
+	}
+	if len(nodes) == 1 && nodes[0].Typex == ast.TypeMap {
+		return nodes[0].Value, ast.TypeMap, nil
 	}
 
 	// Otherwise concatenate the strings

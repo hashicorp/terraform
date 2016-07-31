@@ -85,11 +85,7 @@ func (c *Config) loadAndValidate() error {
 		}
 	}
 
-	versionString := terraform.Version
-	prerelease := terraform.VersionPrerelease
-	if len(prerelease) > 0 {
-		versionString = fmt.Sprintf("%s-%s", versionString, prerelease)
-	}
+	versionString := terraform.VersionString()
 	userAgent := fmt.Sprintf(
 		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
 

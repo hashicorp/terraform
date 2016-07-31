@@ -17,6 +17,9 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 		Read:   resourceAwsRDSClusterInstanceRead,
 		Update: resourceAwsRDSClusterInstanceUpdate,
 		Delete: resourceAwsRDSClusterInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"identifier": &schema.Schema{
@@ -58,12 +61,39 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
-				ForceNew: true,
 			},
 
 			"instance_class": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			"db_parameter_group_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			// apply_immediately is used to determine when the update modifications
+			// take place.
+			// See http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html
+			"apply_immediately": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+
+			"kms_key_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"storage_encrypted": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 				ForceNew: true,
 			},
 
@@ -82,6 +112,10 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		Engine:              aws.String("aurora"),
 		PubliclyAccessible:  aws.Bool(d.Get("publicly_accessible").(bool)),
 		Tags:                tags,
+	}
+
+	if attr, ok := d.GetOk("db_parameter_group_name"); ok {
+		createOpts.DBParameterGroupName = aws.String(attr.(string))
 	}
 
 	if v := d.Get("identifier").(string); v != "" {
@@ -168,6 +202,14 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	}
 
 	d.Set("publicly_accessible", db.PubliclyAccessible)
+	d.Set("cluster_identifier", db.DBClusterIdentifier)
+	d.Set("instance_class", db.DBInstanceClass)
+	d.Set("identifier", db.DBInstanceIdentifier)
+	d.Set("storage_encrypted", db.StorageEncrypted)
+
+	if len(db.DBParameterGroups) > 0 {
+		d.Set("db_parameter_group_name", db.DBParameterGroups[0].DBParameterGroupName)
+	}
 
 	// Fetch and save tags
 	arn, err := buildRDSARN(d.Id(), meta)
@@ -184,6 +226,50 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 
 func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
+	requestUpdate := false
+
+	req := &rds.ModifyDBInstanceInput{
+		ApplyImmediately:     aws.Bool(d.Get("apply_immediately").(bool)),
+		DBInstanceIdentifier: aws.String(d.Id()),
+	}
+
+	if d.HasChange("db_parameter_group_name") {
+		req.DBParameterGroupName = aws.String(d.Get("db_parameter_group_name").(string))
+		requestUpdate = true
+
+	}
+
+	if d.HasChange("instance_class") {
+		req.DBInstanceClass = aws.String(d.Get("instance_class").(string))
+		requestUpdate = true
+
+	}
+
+	log.Printf("[DEBUG] Send DB Instance Modification request: %#v", requestUpdate)
+	if requestUpdate {
+		log.Printf("[DEBUG] DB Instance Modification request: %#v", req)
+		_, err := conn.ModifyDBInstance(req)
+		if err != nil {
+			return fmt.Errorf("Error modifying DB Instance %s: %s", d.Id(), err)
+		}
+
+		// reuse db_instance refresh func
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"creating", "backing-up", "modifying"},
+			Target:     []string{"available"},
+			Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
+			Timeout:    40 * time.Minute,
+			MinTimeout: 10 * time.Second,
+			Delay:      10 * time.Second,
+		}
+
+		// Wait, catching any errors
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return err
+		}
+
+	}
 
 	if arn, err := buildRDSARN(d.Id(), meta); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {

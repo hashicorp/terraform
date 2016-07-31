@@ -28,13 +28,15 @@ resource in your configuration and change it to the following:
 
 ```
 resource "aws_instance" "example" {
-	ami = "ami-b8b061d0"
-	instance_type = "t1.micro"
+  ami           = "ami-13be557e"
+  instance_type = "t2.micro"
 }
 ```
 
-We've changed the AMI from being an Ubuntu 14.04 AMI to being
-an Ubuntu 12.04 AMI. Terraform configurations are meant to be
+~> **Note:** EC2 Classic users please use AMI `ami-2106ed4c` and type `t1.micro`
+
+We've changed the AMI from being an Ubuntu 14.04 LTS AMI to being
+an Ubuntu 16.04 LTS AMI. Terraform configurations are meant to be
 changed like this. You can also completely remove resources
 and Terraform will know to destroy the old one.
 
@@ -47,15 +49,18 @@ $ terraform plan
 ...
 
 -/+ aws_instance.example
-    ami:               "ami-408c7f28" => "ami-b8b061d0" (forces new resource)
-    availability_zone: "us-east-1c" => "<computed>"
-    key_name:          "" => "<computed>"
-    private_dns:       "domU-12-31-39-12-38-AB.compute-1.internal" => "<computed>"
-    private_ip:        "10.200.59.89" => "<computed>"
-    public_dns:        "ec2-54-81-21-192.compute-1.amazonaws.com" => "<computed>"
-    public_ip:         "54.81.21.192" => "<computed>"
-    security_groups:   "" => "<computed>"
-    subnet_id:         "" => "<computed>"
+    ami:                      "ami-0d729a60" => "ami-13be557e" (forces new resource)
+    availability_zone:        "us-east-1a" => "<computed>"
+    ebs_block_device.#:       "0" => "<computed>"
+    ephemeral_block_device.#: "0" => "<computed>"
+    instance_state:           "running" => "<computed>"
+    instance_type:            "t2.micro" => "t2.micro"
+    private_dns:              "ip-172-31-17-94.ec2.internal" => "<computed>"
+    private_ip:               "172.31.17.94" => "<computed>"
+    public_dns:               "ec2-54-82-183-4.compute-1.amazonaws.com" => "<computed>"
+    public_ip:                "54.82.183.4" => "<computed>"
+    subnet_id:                "subnet-1497024d" => "<computed>"
+    vpc_security_group_ids.#: "1" => "<computed>"
 ```
 
 The prefix "-/+" means that Terraform will destroy and recreate
@@ -77,11 +82,33 @@ the change.
 
 ```
 $ terraform apply
+aws_instance.example: Refreshing state... (ID: i-64c268fe)
 aws_instance.example: Destroying...
-aws_instance.example: Modifying...
-  ami: "ami-408c7f28" => "ami-b8b061d0"
+aws_instance.example: Destruction complete
+aws_instance.example: Creating...
+  ami:                      "" => "ami-13be557e"
+  availability_zone:        "" => "<computed>"
+  ebs_block_device.#:       "" => "<computed>"
+  ephemeral_block_device.#: "" => "<computed>"
+  instance_state:           "" => "<computed>"
+  instance_type:            "" => "t2.micro"
+  key_name:                 "" => "<computed>"
+  placement_group:          "" => "<computed>"
+  private_dns:              "" => "<computed>"
+  private_ip:               "" => "<computed>"
+  public_dns:               "" => "<computed>"
+  public_ip:                "" => "<computed>"
+  root_block_device.#:      "" => "<computed>"
+  security_groups.#:        "" => "<computed>"
+  source_dest_check:        "" => "true"
+  subnet_id:                "" => "<computed>"
+  tenancy:                  "" => "<computed>"
+  vpc_security_group_ids.#: "" => "<computed>"
+aws_instance.example: Still creating... (10s elapsed)
+aws_instance.example: Still creating... (20s elapsed)
+aws_instance.example: Creation complete
 
-Apply complete! Resources: 0 added, 1 changed, 1 destroyed.
+Apply complete! Resources: 1 added, 0 changed, 1 destroyed.
 
 ...
 ```

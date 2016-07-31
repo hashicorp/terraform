@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,6 +20,9 @@ func resourceAwsCustomerGateway() *schema.Resource {
 		Read:   resourceAwsCustomerGatewayRead,
 		Update: resourceAwsCustomerGatewayUpdate,
 		Delete: resourceAwsCustomerGatewayDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"bgp_asn": &schema.Schema{
@@ -144,11 +148,25 @@ func resourceAwsCustomerGatewayRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("[ERROR] Error finding CustomerGateway: %s", d.Id())
 	}
 
+	if *resp.CustomerGateways[0].State == "deleted" {
+		log.Printf("[INFO] Customer Gateway is in `deleted` state: %s", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	customerGateway := resp.CustomerGateways[0]
-	d.Set("bgp_asn", customerGateway.BgpAsn)
 	d.Set("ip_address", customerGateway.IpAddress)
 	d.Set("type", customerGateway.Type)
 	d.Set("tags", tagsToMap(customerGateway.Tags))
+
+	if *customerGateway.BgpAsn != "" {
+		val, err := strconv.ParseInt(*customerGateway.BgpAsn, 0, 0)
+		if err != nil {
+			return fmt.Errorf("error parsing bgp_asn: %s", err)
+		}
+
+		d.Set("bgp_asn", int(val))
+	}
 
 	return nil
 }

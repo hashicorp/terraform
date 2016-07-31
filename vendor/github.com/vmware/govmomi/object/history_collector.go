@@ -60,7 +60,7 @@ func (h HistoryCollector) Rewind(ctx context.Context) error {
 	return err
 }
 
-func (h HistoryCollector) SetPageSize(ctx context.Context, maxCount int) error {
+func (h HistoryCollector) SetPageSize(ctx context.Context, maxCount int32) error {
 	req := types.SetCollectorPageSize{
 		This:     h.Reference(),
 		MaxCount: maxCount,

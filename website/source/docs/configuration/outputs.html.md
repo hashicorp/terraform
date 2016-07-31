@@ -30,7 +30,7 @@ An output configuration looks like the following:
 
 ```
 output "address" {
-	value = "${aws_instance.web.public_dns}"
+ value = "${aws_instance.web.public_dns}"
 }
 ```
 
@@ -44,9 +44,11 @@ the output variable.
 Within the block (the `{ }`) is configuration for the output.
 These are the parameters that can be set:
 
-  * `value` (required, string) - The value of the output. This must
-    be a string. This usually includes an interpolation since outputs
-    that are static aren't usually useful.
+  * `value` (required) - The value of the output. This can be a string, list,
+    or map. This usually includes an interpolation since outputs that are
+    static aren't usually useful.
+
+  * `sensitive` (optional, boolean) - See below.
 
 ## Syntax
 
@@ -54,6 +56,30 @@ The full syntax is:
 
 ```
 output NAME {
-	value = VALUE
+  value = VALUE
 }
 ```
+
+## Sensitive Outputs
+
+Outputs can be marked as containing sensitive material by setting the
+`sensitive` attribute to `true`, like this:
+
+```
+output "sensitive" {
+  sensitive = true
+  value     = VALUE
+}
+```
+
+When outputs are displayed on-screen following a `terraform apply` or
+`terraform refresh`, sensitive outputs are redacted, with `<sensitive>`
+displayed in place of their value.
+
+### Limitations of Sensitive Outputs
+
+* The values of sensitive outputs are still stored in the Terraform
+  state, and available using the `terraform output` command, so cannot be
+  relied on as a sole means of protecting values.
+* Sensitivity is not tracked internally, so if the output is interpolated in
+  another module into a resource, the value will be displayed.

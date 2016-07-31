@@ -4,6 +4,7 @@
 package elasticsearchservice
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -14,7 +15,28 @@ import (
 
 const opAddTags = "AddTags"
 
-// AddTagsRequest generates a request for the AddTags operation.
+// AddTagsRequest generates a "aws/request.Request" representing the
+// client's request for the AddTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddTagsRequest method.
+//    req, resp := client.AddTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) AddTagsRequest(input *AddTagsInput) (req *request.Request, output *AddTagsOutput) {
 	op := &request.Operation{
 		Name:       opAddTags,
@@ -46,7 +68,28 @@ func (c *ElasticsearchService) AddTags(input *AddTagsInput) (*AddTagsOutput, err
 
 const opCreateElasticsearchDomain = "CreateElasticsearchDomain"
 
-// CreateElasticsearchDomainRequest generates a request for the CreateElasticsearchDomain operation.
+// CreateElasticsearchDomainRequest generates a "aws/request.Request" representing the
+// client's request for the CreateElasticsearchDomain operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateElasticsearchDomain method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateElasticsearchDomainRequest method.
+//    req, resp := client.CreateElasticsearchDomainRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) CreateElasticsearchDomainRequest(input *CreateElasticsearchDomainInput) (req *request.Request, output *CreateElasticsearchDomainOutput) {
 	op := &request.Operation{
 		Name:       opCreateElasticsearchDomain,
@@ -75,7 +118,28 @@ func (c *ElasticsearchService) CreateElasticsearchDomain(input *CreateElasticsea
 
 const opDeleteElasticsearchDomain = "DeleteElasticsearchDomain"
 
-// DeleteElasticsearchDomainRequest generates a request for the DeleteElasticsearchDomain operation.
+// DeleteElasticsearchDomainRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteElasticsearchDomain operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteElasticsearchDomain method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteElasticsearchDomainRequest method.
+//    req, resp := client.DeleteElasticsearchDomainRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) DeleteElasticsearchDomainRequest(input *DeleteElasticsearchDomainInput) (req *request.Request, output *DeleteElasticsearchDomainOutput) {
 	op := &request.Operation{
 		Name:       opDeleteElasticsearchDomain,
@@ -103,7 +167,28 @@ func (c *ElasticsearchService) DeleteElasticsearchDomain(input *DeleteElasticsea
 
 const opDescribeElasticsearchDomain = "DescribeElasticsearchDomain"
 
-// DescribeElasticsearchDomainRequest generates a request for the DescribeElasticsearchDomain operation.
+// DescribeElasticsearchDomainRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeElasticsearchDomain operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeElasticsearchDomain method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeElasticsearchDomainRequest method.
+//    req, resp := client.DescribeElasticsearchDomainRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) DescribeElasticsearchDomainRequest(input *DescribeElasticsearchDomainInput) (req *request.Request, output *DescribeElasticsearchDomainOutput) {
 	op := &request.Operation{
 		Name:       opDescribeElasticsearchDomain,
@@ -131,7 +216,28 @@ func (c *ElasticsearchService) DescribeElasticsearchDomain(input *DescribeElasti
 
 const opDescribeElasticsearchDomainConfig = "DescribeElasticsearchDomainConfig"
 
-// DescribeElasticsearchDomainConfigRequest generates a request for the DescribeElasticsearchDomainConfig operation.
+// DescribeElasticsearchDomainConfigRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeElasticsearchDomainConfig operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeElasticsearchDomainConfig method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeElasticsearchDomainConfigRequest method.
+//    req, resp := client.DescribeElasticsearchDomainConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) DescribeElasticsearchDomainConfigRequest(input *DescribeElasticsearchDomainConfigInput) (req *request.Request, output *DescribeElasticsearchDomainConfigOutput) {
 	op := &request.Operation{
 		Name:       opDescribeElasticsearchDomainConfig,
@@ -160,7 +266,28 @@ func (c *ElasticsearchService) DescribeElasticsearchDomainConfig(input *Describe
 
 const opDescribeElasticsearchDomains = "DescribeElasticsearchDomains"
 
-// DescribeElasticsearchDomainsRequest generates a request for the DescribeElasticsearchDomains operation.
+// DescribeElasticsearchDomainsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeElasticsearchDomains operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeElasticsearchDomains method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeElasticsearchDomainsRequest method.
+//    req, resp := client.DescribeElasticsearchDomainsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) DescribeElasticsearchDomainsRequest(input *DescribeElasticsearchDomainsInput) (req *request.Request, output *DescribeElasticsearchDomainsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeElasticsearchDomains,
@@ -188,7 +315,28 @@ func (c *ElasticsearchService) DescribeElasticsearchDomains(input *DescribeElast
 
 const opListDomainNames = "ListDomainNames"
 
-// ListDomainNamesRequest generates a request for the ListDomainNames operation.
+// ListDomainNamesRequest generates a "aws/request.Request" representing the
+// client's request for the ListDomainNames operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListDomainNames method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListDomainNamesRequest method.
+//    req, resp := client.ListDomainNamesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) ListDomainNamesRequest(input *ListDomainNamesInput) (req *request.Request, output *ListDomainNamesOutput) {
 	op := &request.Operation{
 		Name:       opListDomainNames,
@@ -216,7 +364,28 @@ func (c *ElasticsearchService) ListDomainNames(input *ListDomainNamesInput) (*Li
 
 const opListTags = "ListTags"
 
-// ListTagsRequest generates a request for the ListTags operation.
+// ListTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsRequest method.
+//    req, resp := client.ListTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) ListTagsRequest(input *ListTagsInput) (req *request.Request, output *ListTagsOutput) {
 	op := &request.Operation{
 		Name:       opListTags,
@@ -243,7 +412,28 @@ func (c *ElasticsearchService) ListTags(input *ListTagsInput) (*ListTagsOutput, 
 
 const opRemoveTags = "RemoveTags"
 
-// RemoveTagsRequest generates a request for the RemoveTags operation.
+// RemoveTagsRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveTagsRequest method.
+//    req, resp := client.RemoveTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, output *RemoveTagsOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTags,
@@ -272,7 +462,28 @@ func (c *ElasticsearchService) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOu
 
 const opUpdateElasticsearchDomainConfig = "UpdateElasticsearchDomainConfig"
 
-// UpdateElasticsearchDomainConfigRequest generates a request for the UpdateElasticsearchDomainConfig operation.
+// UpdateElasticsearchDomainConfigRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateElasticsearchDomainConfig operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateElasticsearchDomainConfig method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateElasticsearchDomainConfigRequest method.
+//    req, resp := client.UpdateElasticsearchDomainConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ElasticsearchService) UpdateElasticsearchDomainConfigRequest(input *UpdateElasticsearchDomainConfigInput) (req *request.Request, output *UpdateElasticsearchDomainConfigOutput) {
 	op := &request.Operation{
 		Name:       opUpdateElasticsearchDomainConfig,
@@ -344,6 +555,32 @@ func (s AddTagsInput) String() string {
 // GoString returns the string representation
 func (s AddTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsInput"}
+	if s.ARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("ARN"))
+	}
+	if s.TagList == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagList"))
+	}
+	if s.TagList != nil {
+		for i, v := range s.TagList {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "TagList", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AddTagsOutput struct {
@@ -431,6 +668,22 @@ func (s CreateElasticsearchDomainInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateElasticsearchDomainInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateElasticsearchDomainInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of a CreateElasticsearchDomain operation. Contains the status
 // of the newly created Elasticsearch domain.
 type CreateElasticsearchDomainOutput struct {
@@ -467,6 +720,22 @@ func (s DeleteElasticsearchDomainInput) String() string {
 // GoString returns the string representation
 func (s DeleteElasticsearchDomainInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteElasticsearchDomainInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteElasticsearchDomainInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of a DeleteElasticsearchDomain request. Contains the status of
@@ -508,6 +777,22 @@ func (s DescribeElasticsearchDomainConfigInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeElasticsearchDomainConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeElasticsearchDomainConfigInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of a DescribeElasticsearchDomainConfig request. Contains the configuration
 // information of the requested domain.
 type DescribeElasticsearchDomainConfigOutput struct {
@@ -546,6 +831,22 @@ func (s DescribeElasticsearchDomainInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeElasticsearchDomainInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeElasticsearchDomainInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of a DescribeElasticsearchDomain request. Contains the status
 // of the domain specified in the request.
 type DescribeElasticsearchDomainOutput struct {
@@ -582,6 +883,19 @@ func (s DescribeElasticsearchDomainsInput) String() string {
 // GoString returns the string representation
 func (s DescribeElasticsearchDomainsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeElasticsearchDomainsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeElasticsearchDomainsInput"}
+	if s.DomainNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of a DescribeElasticsearchDomains request. Contains the status
@@ -881,6 +1195,19 @@ func (s ListTagsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsInput"}
+	if s.ARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("ARN"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of a ListTags operation. Contains tags for all requested Elasticsearch
 // domains.
 type ListTagsOutput struct {
@@ -953,6 +1280,22 @@ func (s RemoveTagsInput) String() string {
 // GoString returns the string representation
 func (s RemoveTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsInput"}
+	if s.ARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("ARN"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RemoveTagsOutput struct {
@@ -1035,6 +1378,25 @@ func (s Tag) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Tag) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Tag"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Container for the parameters to the UpdateElasticsearchDomain operation.
 // Specifies the type and number of instances in the domain cluster.
 type UpdateElasticsearchDomainConfigInput struct {
@@ -1071,6 +1433,22 @@ func (s UpdateElasticsearchDomainConfigInput) String() string {
 // GoString returns the string representation
 func (s UpdateElasticsearchDomainConfigInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateElasticsearchDomainConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateElasticsearchDomainConfigInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of an UpdateElasticsearchDomain request. Contains the status of

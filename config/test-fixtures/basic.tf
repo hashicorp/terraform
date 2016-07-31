@@ -24,6 +24,14 @@ provider "do" {
   api_key = "${var.foo}"
 }
 
+data "do" "simple" {
+    foo = "baz"
+}
+
+data "do" "depends" {
+    depends_on = ["data.do.simple"]
+}
+
 resource "aws_security_group" "firewall" {
     count = 5
 }

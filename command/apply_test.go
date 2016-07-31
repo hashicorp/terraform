@@ -886,6 +886,100 @@ func TestApply_stateNoExist(t *testing.T) {
 	}
 }
 
+func TestApply_sensitiveOutput(t *testing.T) {
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	statePath := testTempFile(t)
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply-sensitive-output"),
+	}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "notsensitive = Hello world") {
+		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", output)
+	}
+	if !strings.Contains(output, "sensitive = <sensitive>") {
+		t.Fatalf("bad: output should contain 'sensitive' output\n%s", output)
+	}
+}
+
+func TestApply_stateFuture(t *testing.T) {
+	originalState := testState()
+	originalState.TFVersion = "99.99.99"
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("should fail")
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	newState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !newState.Equal(originalState) {
+		t.Fatalf("bad: %#v", newState)
+	}
+	if newState.TFVersion != originalState.TFVersion {
+		t.Fatalf("bad: %#v", newState)
+	}
+}
+
+func TestApply_statePast(t *testing.T) {
+	originalState := testState()
+	originalState.TFVersion = "0.1.0"
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
 func TestApply_vars(t *testing.T) {
 	statePath := testTempFile(t)
 
@@ -1232,6 +1326,59 @@ func TestApply_disableBackup(t *testing.T) {
 	}
 }
 
+// -state-out wasn't taking effect when a plan is supplied. GH-7264
+func TestApply_stateOutWithPlan(t *testing.T) {
+	p := testProvider()
+	ui := new(cli.MockUi)
+
+	tmpDir := testTempDir(t)
+	defer os.RemoveAll(tmpDir)
+
+	statePath := filepath.Join(tmpDir, "state.tfstate")
+	planPath := filepath.Join(tmpDir, "terraform.tfplan")
+
+	args := []string{
+		"-state", statePath,
+		"-out", planPath,
+		testFixturePath("plan"),
+	}
+
+	// Run plan first to get a current plan file
+	pc := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+	if code := pc.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// now run apply with the generated plan
+	stateOutPath := filepath.Join(tmpDir, "state-new.tfstate")
+
+	args = []string{
+		"-state", statePath,
+		"-state-out", stateOutPath,
+		planPath,
+	}
+
+	ac := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+	if code := ac.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// now make sure we wrote out our new state
+	if _, err := os.Stat(stateOutPath); err != nil {
+		t.Fatalf("missing new state file: %s", err)
+	}
+}
+
 func testHttpServer(t *testing.T) net.Listener {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -1267,16 +1414,20 @@ const applyVarFileJSON = `
 
 const testApplyDisableBackupStr = `
 ID = bar
+Tainted = false
 `
 
 const testApplyDisableBackupStateStr = `
 ID = bar
+Tainted = false
 `
 
 const testApplyStateStr = `
 ID = bar
+Tainted = false
 `
 
 const testApplyStateDiffStr = `
 ID = bar
+Tainted = false
 `

@@ -59,6 +59,8 @@ Environment variables can be used to set variables. The environment variables mu
 ```
 export TF_VAR_region=us-west-1
 export TF_VAR_ami=ami-049d8641
+export TF_VAR_alist='[1,2,3]'
+export TF_VAR_amap='{ foo = "bar", baz = "qux" }'
 ```
 
 For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/docs/configuration/variables.html).

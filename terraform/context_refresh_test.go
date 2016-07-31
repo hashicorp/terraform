@@ -324,10 +324,9 @@ func TestContext2Refresh_modules(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "bar",
-							},
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
 						},
 					},
 				},
@@ -452,8 +451,12 @@ func TestContext2Refresh_output(t *testing.T) {
 						},
 					},
 
-					Outputs: map[string]string{
-						"foo": "foo",
+					Outputs: map[string]*OutputState{
+						"foo": &OutputState{
+							Type:      "string",
+							Sensitive: false,
+							Value:     "foo",
+						},
 					},
 				},
 			},
@@ -496,6 +499,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 							},
 						},
 					},
+					Outputs: map[string]*OutputState{},
 				},
 			},
 		},
@@ -566,6 +570,76 @@ func TestContext2Refresh_state(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_dataState(t *testing.T) {
+	p := testProvider("null")
+	m := testModule(t, "refresh-data-resource-basic")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				// Intentionally no resources since data resources are
+				// supposed to refresh themselves even if they didn't
+				// already exist.
+				Resources: map[string]*ResourceState{},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	p.ReadDataDiffFn = nil
+	p.ReadDataDiffReturn = &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"inputs.#": {
+				Old:  "0",
+				New:  "1",
+				Type: DiffAttrInput,
+			},
+			"inputs.test": {
+				Old:  "",
+				New:  "yes",
+				Type: DiffAttrInput,
+			},
+			"outputs.#": {
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+				Type:        DiffAttrOutput,
+			},
+		},
+	}
+
+	p.ReadDataApplyFn = nil
+	p.ReadDataApplyReturn = &InstanceState{
+		ID: "-",
+	}
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !p.ReadDataDiffCalled {
+		t.Fatal("ReadDataDiff should have been called")
+	}
+	if !p.ReadDataApplyCalled {
+		t.Fatal("ReadDataApply should have been called")
+	}
+
+	mod := s.RootModule()
+	if got := mod.Resources["data.null_data_source.testing"].Primary.ID; got != "-" {
+		t.Fatalf("resource id is %q; want %s", got, "-")
+	}
+	if !reflect.DeepEqual(mod.Resources["data.null_data_source.testing"].Primary, p.ReadDataApplyReturn) {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+}
+
 func TestContext2Refresh_tainted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
@@ -576,10 +650,9 @@ func TestContext2Refresh_tainted(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "bar",
-							},
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
 						},
 					},
 				},
@@ -596,7 +669,8 @@ func TestContext2Refresh_tainted(t *testing.T) {
 
 	p.RefreshFn = nil
 	p.RefreshReturn = &InstanceState{
-		ID: "foo",
+		ID:      "foo",
+		Tainted: true,
 	}
 
 	s, err := ctx.Refresh()
@@ -738,9 +812,15 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 						},
 					},
 				},
-				Outputs: map[string]string{
-					"id":            "i-bcd234",
-					"grandchild_id": "i-cde345",
+				Outputs: map[string]*OutputState{
+					"id": &OutputState{
+						Value: "i-bcd234",
+						Type:  "string",
+					},
+					"grandchild_id": &OutputState{
+						Value: "i-cde345",
+						Type:  "string",
+					},
 				},
 			},
 			&ModuleState{
@@ -752,8 +832,11 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 						},
 					},
 				},
-				Outputs: map[string]string{
-					"id": "i-cde345",
+				Outputs: map[string]*OutputState{
+					"id": &OutputState{
+						Value: "i-cde345",
+						Type:  "string",
+					},
 				},
 			},
 		},

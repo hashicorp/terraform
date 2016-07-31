@@ -24,6 +24,13 @@ func resourceAwsLambdaFunction() *schema.Resource {
 		Update: resourceAwsLambdaFunctionUpdate,
 		Delete: resourceAwsLambdaFunctionDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("function_name", d.Id())
+				return []*schema.ResourceData{d}, nil
+			},
+		},
+
 		Schema: map[string]*schema.Schema{
 			"filename": &schema.Schema{
 				Type:          schema.TypeString,
@@ -230,7 +237,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	getFunctionOutput, err := conn.GetFunction(params)
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" && !d.IsNewResource() {
 			d.SetId("")
 			return nil
 		}
@@ -297,10 +304,11 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	codeUpdate := false
-	if v, ok := d.GetOk("filename"); ok && d.HasChange("source_code_hash") {
-		file, err := loadFileContent(v.(string))
+	if d.HasChange("filename") || d.HasChange("source_code_hash") {
+		name := d.Get("filename").(string)
+		file, err := loadFileContent(name)
 		if err != nil {
-			return fmt.Errorf("Unable to load %q: %s", v.(string), err)
+			return fmt.Errorf("Unable to load %q: %s", name, err)
 		}
 		codeReq.ZipFile = file
 		codeUpdate = true
@@ -312,8 +320,8 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		codeUpdate = true
 	}
 
-	log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
 	if codeUpdate {
+		log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
 		_, err := conn.UpdateFunctionCode(codeReq)
 		if err != nil {
 			return fmt.Errorf("Error modifying Lambda Function Code %s: %s", d.Id(), err)
@@ -352,8 +360,8 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		configUpdate = true
 	}
 
-	log.Printf("[DEBUG] Send Update Lambda Function Configuration request: %#v", configReq)
 	if configUpdate {
+		log.Printf("[DEBUG] Send Update Lambda Function Configuration request: %#v", configReq)
 		_, err := conn.UpdateFunctionConfiguration(configReq)
 		if err != nil {
 			return fmt.Errorf("Error modifying Lambda Function Configuration %s: %s", d.Id(), err)

@@ -14,9 +14,10 @@ func TestAccAWSFlowLog_basic(t *testing.T) {
 	var flowLog ec2.FlowLog
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckFlowLogDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_flow_log.test_flow_log",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccFlowLogConfig_basic,
@@ -33,9 +34,10 @@ func TestAccAWSFlowLog_subnet(t *testing.T) {
 	var flowLog ec2.FlowLog
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckFlowLogDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_flow_log.test_flow_log_subnet",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccFlowLogConfig_subnet,

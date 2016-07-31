@@ -354,7 +354,7 @@ resource "aws_s3_bucket_object" "object" {
 	bucket = "${aws_s3_bucket.object_bucket_2.bucket}"
 	key = "test-key"
 	content = "stuff"
-	kms_key_id = "${aws_kms_key.kms_key_1.key_id}"
+	kms_key_id = "${aws_kms_key.kms_key_1.arn}"
 }
 `, randInt)
 }

@@ -1,8 +1,9 @@
 package ssh
 
 import (
-	"golang.org/x/crypto/ssh"
 	"log"
+
+	"golang.org/x/crypto/ssh"
 )
 
 // An implementation of ssh.KeyboardInteractiveChallenge that simply sends

@@ -36,7 +36,7 @@ resource "google_compute_instance" "www" {
   tags = ["www-node"]
 
   disk {
-    image = "ubuntu-os-cloud/ubuntu-1404-trusty-v20160314"
+    image = "ubuntu-os-cloud/ubuntu-1404-trusty-v20160602"
   }
 
   network_interface {
@@ -70,7 +70,7 @@ resource "google_compute_instance" "www" {
     }
     inline = [
       "chmod +x ${var.install_script_dest_path}",
-      "${var.install_script_dest_path} ${count.index}"
+      "sudo ${var.install_script_dest_path} ${count.index}"
     ]
   }
 

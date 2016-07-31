@@ -30,7 +30,6 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.IntVar(
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -79,21 +78,15 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if refresh {
-		c.Ui.Output("Refreshing Terraform state prior to plan...\n")
-		state, err := ctx.Refresh()
+		c.Ui.Output("Refreshing Terraform state in-memory prior to plan...")
+		c.Ui.Output("The refreshed state will be used to calculate this plan, but")
+		c.Ui.Output("will not be persisted to local or remote state storage.\n")
+		_, err := ctx.Refresh()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
 		c.Ui.Output("")
-
-		if state != nil {
-			log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-			if err := c.Meta.PersistState(state); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
-				return 1
-			}
-		}
 	}
 
 	plan, err := ctx.Plan()
@@ -164,10 +157,6 @@ Usage: terraform plan [options] [dir]
 
 Options:
 
-  -backup=path        Path to backup the existing state file before
-                      modifying. Defaults to the "-state-out" path with
-                      ".backup" extension. Set to "-" to disable backup.
-
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.
 
@@ -219,7 +208,7 @@ The Terraform execution plan has been generated and is shown below.
 Resources are shown in alphabetical order for quick scanning. Green resources
 will be created (or destroyed and then created if an existing resource
 exists), yellow resources are being changed in-place, and red resources
-will be destroyed.
+will be destroyed. Cyan entries are data sources to be read.
 
 Note: You didn't specify an "-out" parameter to save this plan, so when
 "apply" is called, Terraform can't guarantee this is what will execute.
@@ -230,7 +219,7 @@ The Terraform execution plan has been generated and is shown below.
 Resources are shown in alphabetical order for quick scanning. Green resources
 will be created (or destroyed and then created if an existing resource
 exists), yellow resources are being changed in-place, and red resources
-will be destroyed.
+will be destroyed. Cyan entries are data sources to be read.
 
 Your plan was also saved to the path below. Call the "apply" subcommand
 with this plan file and Terraform will exactly execute this execution

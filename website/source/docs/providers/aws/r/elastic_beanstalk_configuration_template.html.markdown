@@ -43,15 +43,14 @@ The following arguments are supported:
 off of. Example stacks can be found in the [Amazon API documentation][1]
 
 
-<a id="option-settings"></a>
 ## Option Settings
 
 The `setting` field supports the following format:
 
-* `namespace` - (Optional) unique namespace identifying the option's 
-  associated AWS resource
-* `name` - (Optional) name of the configuration option
-* `value` - (Optional) value for the configuration option
+* `namespace` - unique namespace identifying the option's associated AWS resource
+* `name` - name of the configuration option
+* `value` - value for the configuration option
+* `resource` - (Optional) resource name for [scheduled action](http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html#command-options-general-autoscalingscheduledaction)
 
 ## Attributes Reference
 

@@ -86,7 +86,7 @@ func initHandlers(s *Session) {
 //
 // Example:
 //     // Create a copy of the current session, configured for the us-west-2 region.
-//     sess.Copy(&aws.Config{Region: aws.String("us-west-2"})
+//     sess.Copy(&aws.Config{Region: aws.String("us-west-2")})
 func (s *Session) Copy(cfgs ...*aws.Config) *Session {
 	newSession := &Session{
 		Config:   s.Config.Copy(cfgs...),

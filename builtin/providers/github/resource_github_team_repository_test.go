@@ -127,7 +127,7 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccGithubTeamRepositoryConfig = `
+var testAccGithubTeamRepositoryConfig string = fmt.Sprintf(`
 resource "github_team" "test_team" {
 	name = "foo"
 	description = "Terraform acc test group"
@@ -135,12 +135,12 @@ resource "github_team" "test_team" {
 
 resource "github_team_repository" "test_team_test_repo" {
 	team_id = "${github_team.test_team.id}"
-	repository = "test-repo"
+	repository = "%s"
 	permission = "pull"
 }
-`
+`, testRepo)
 
-const testAccGithubTeamRepositoryUpdateConfig = `
+var testAccGithubTeamRepositoryUpdateConfig string = fmt.Sprintf(`
 resource "github_team" "test_team" {
 	name = "foo"
 	description = "Terraform acc test group"
@@ -148,7 +148,7 @@ resource "github_team" "test_team" {
 
 resource "github_team_repository" "test_team_test_repo" {
 	team_id = "${github_team.test_team.id}"
-	repository = "test-repo"
+	repository = "%s"
 	permission = "push"
 }
-`
+`, testRepo)

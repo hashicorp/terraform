@@ -37,7 +37,6 @@ resource "aws_subnet" "bar" {
 
 resource "aws_redshift_subnet_group" "foo" {
 	name = "foo"
-	description = "foo description"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 }
 `
@@ -48,7 +47,7 @@ resource "aws_redshift_subnet_group" "foo" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the Redshift Subnet group.
-* `description` - (Required) The description of the Redshift Subnet group.
+* `description` - (Optional) The description of the Redshift Subnet group. Defaults to "Managed by Terraform".
 * `subnet_ids` - (Optional) An array of VPC subnet IDs..
 
 ## Attributes Reference
@@ -57,3 +56,10 @@ The following attributes are exported:
 
 * `id` - The Redshift Subnet group ID.
 
+## Import
+
+Redshift subnet groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_redshift_subnet_group.testgroup1 test-cluster-subnet-group
+```

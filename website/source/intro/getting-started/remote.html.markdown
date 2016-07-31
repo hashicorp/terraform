@@ -12,8 +12,8 @@ from a local machine. This is great for testing and development,
 however in production environments it is more responsible to run
 Terraform remotely and store a master Terraform state remotely.
 
-[Atlas](https://atlas.hashicorp.com/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform)
-is HashiCorp's solution for Terraform remote runs and
+[Atlas](https://atlas.hashicorp.com/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform),
+HashiCorp's solution for Terraform remote, runs an
 infrastructure version control. Running Terraform
 in Atlas allows teams to easily version, audit, and collaborate
 on infrastructure changes. Each proposed change generates
@@ -29,9 +29,9 @@ from long-running Terraform processes.
 You can learn how to use Terraform remotely with our [interactive tutorial](https://atlas.hashicorp.com/tutorial/terraform/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform)
 or you can follow the outlined steps below.
 
-First, If you don't have an Atlas account, you can [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform). 
+First, If you don't have an Atlas account, you can [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform).
 
-In order for the Terraform CLI to gain access to your Atlas account you're going to need to generate an access key. From the main menu, select your username in the top right corner to access your profile. Under `Personal`, click on the `Tokens` tab and hit generate. 
+In order for the Terraform CLI to gain access to your Atlas account you're going to need to generate an access key. From the main menu, select your username in the left side navigation menu to access your profile. Under `Personal`, click on the `Tokens` tab and hit generate.
 
 For the purposes of this tutorial you can use this token by exporting it to your local shell session:
 
@@ -41,11 +41,11 @@ $ export ATLAS_TOKEN=ATLAS_ACCESS_TOKEN
 Replace `ATLAS_ACCESS_TOKEN` with the token generated earlier
 
 Then configure [Terraform remote state storage](/docs/commands/remote.html) with the command:
- 		 
-```	
+
+```
 $ terraform remote config -backend-config="name=ATLAS_USERNAME/getting-started"
 ```
- 		 
+
 Replace `ATLAS_USERNAME` with your Atlas username.
 
 Before you [push](/docs/commands/push.html) your Terraform configuration to Atlas you'll need to start a local version control system with at least one commit. Here is an example using `git`.
@@ -70,7 +70,7 @@ infrastructure changes.
 Running Terraform in Atlas creates a complete history of
 infrastructure changes, a sort of version control
 for infrastructure. Similar to application version control
-systems such as Git or Subversion, this makes changes to 
+systems such as Git or Subversion, this makes changes to
 infrastructure an auditable, repeatable,
 and collaborative process. With so much relying on the
 stability of your infrastructure, version control is a

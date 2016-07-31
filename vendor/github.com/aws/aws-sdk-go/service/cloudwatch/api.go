@@ -4,6 +4,7 @@
 package cloudwatch
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -14,7 +15,28 @@ import (
 
 const opDeleteAlarms = "DeleteAlarms"
 
-// DeleteAlarmsRequest generates a request for the DeleteAlarms operation.
+// DeleteAlarmsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteAlarms operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteAlarms method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteAlarmsRequest method.
+//    req, resp := client.DeleteAlarmsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DeleteAlarmsRequest(input *DeleteAlarmsInput) (req *request.Request, output *DeleteAlarmsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAlarms,
@@ -43,7 +65,28 @@ func (c *CloudWatch) DeleteAlarms(input *DeleteAlarmsInput) (*DeleteAlarmsOutput
 
 const opDescribeAlarmHistory = "DescribeAlarmHistory"
 
-// DescribeAlarmHistoryRequest generates a request for the DescribeAlarmHistory operation.
+// DescribeAlarmHistoryRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAlarmHistory operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAlarmHistory method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAlarmHistoryRequest method.
+//    req, resp := client.DescribeAlarmHistoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DescribeAlarmHistoryRequest(input *DescribeAlarmHistoryInput) (req *request.Request, output *DescribeAlarmHistoryOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAlarmHistory,
@@ -79,6 +122,23 @@ func (c *CloudWatch) DescribeAlarmHistory(input *DescribeAlarmHistoryInput) (*De
 	return out, err
 }
 
+// DescribeAlarmHistoryPages iterates over the pages of a DescribeAlarmHistory operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeAlarmHistory method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeAlarmHistory operation.
+//    pageNum := 0
+//    err := client.DescribeAlarmHistoryPages(params,
+//        func(page *DescribeAlarmHistoryOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatch) DescribeAlarmHistoryPages(input *DescribeAlarmHistoryInput, fn func(p *DescribeAlarmHistoryOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeAlarmHistoryRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -89,7 +149,28 @@ func (c *CloudWatch) DescribeAlarmHistoryPages(input *DescribeAlarmHistoryInput,
 
 const opDescribeAlarms = "DescribeAlarms"
 
-// DescribeAlarmsRequest generates a request for the DescribeAlarms operation.
+// DescribeAlarmsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAlarms operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAlarms method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAlarmsRequest method.
+//    req, resp := client.DescribeAlarmsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DescribeAlarmsRequest(input *DescribeAlarmsInput) (req *request.Request, output *DescribeAlarmsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAlarms,
@@ -122,6 +203,23 @@ func (c *CloudWatch) DescribeAlarms(input *DescribeAlarmsInput) (*DescribeAlarms
 	return out, err
 }
 
+// DescribeAlarmsPages iterates over the pages of a DescribeAlarms operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeAlarms method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeAlarms operation.
+//    pageNum := 0
+//    err := client.DescribeAlarmsPages(params,
+//        func(page *DescribeAlarmsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatch) DescribeAlarmsPages(input *DescribeAlarmsInput, fn func(p *DescribeAlarmsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeAlarmsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -132,7 +230,28 @@ func (c *CloudWatch) DescribeAlarmsPages(input *DescribeAlarmsInput, fn func(p *
 
 const opDescribeAlarmsForMetric = "DescribeAlarmsForMetric"
 
-// DescribeAlarmsForMetricRequest generates a request for the DescribeAlarmsForMetric operation.
+// DescribeAlarmsForMetricRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAlarmsForMetric operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAlarmsForMetric method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAlarmsForMetricRequest method.
+//    req, resp := client.DescribeAlarmsForMetricRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DescribeAlarmsForMetricRequest(input *DescribeAlarmsForMetricInput) (req *request.Request, output *DescribeAlarmsForMetricOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAlarmsForMetric,
@@ -160,7 +279,28 @@ func (c *CloudWatch) DescribeAlarmsForMetric(input *DescribeAlarmsForMetricInput
 
 const opDisableAlarmActions = "DisableAlarmActions"
 
-// DisableAlarmActionsRequest generates a request for the DisableAlarmActions operation.
+// DisableAlarmActionsRequest generates a "aws/request.Request" representing the
+// client's request for the DisableAlarmActions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableAlarmActions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableAlarmActionsRequest method.
+//    req, resp := client.DisableAlarmActionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DisableAlarmActionsRequest(input *DisableAlarmActionsInput) (req *request.Request, output *DisableAlarmActionsOutput) {
 	op := &request.Operation{
 		Name:       opDisableAlarmActions,
@@ -190,7 +330,28 @@ func (c *CloudWatch) DisableAlarmActions(input *DisableAlarmActionsInput) (*Disa
 
 const opEnableAlarmActions = "EnableAlarmActions"
 
-// EnableAlarmActionsRequest generates a request for the EnableAlarmActions operation.
+// EnableAlarmActionsRequest generates a "aws/request.Request" representing the
+// client's request for the EnableAlarmActions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableAlarmActions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableAlarmActionsRequest method.
+//    req, resp := client.EnableAlarmActionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) EnableAlarmActionsRequest(input *EnableAlarmActionsInput) (req *request.Request, output *EnableAlarmActionsOutput) {
 	op := &request.Operation{
 		Name:       opEnableAlarmActions,
@@ -219,7 +380,28 @@ func (c *CloudWatch) EnableAlarmActions(input *EnableAlarmActionsInput) (*Enable
 
 const opGetMetricStatistics = "GetMetricStatistics"
 
-// GetMetricStatisticsRequest generates a request for the GetMetricStatistics operation.
+// GetMetricStatisticsRequest generates a "aws/request.Request" representing the
+// client's request for the GetMetricStatistics operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetMetricStatistics method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetMetricStatisticsRequest method.
+//    req, resp := client.GetMetricStatisticsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput) (req *request.Request, output *GetMetricStatisticsOutput) {
 	op := &request.Operation{
 		Name:       opGetMetricStatistics,
@@ -272,7 +454,28 @@ func (c *CloudWatch) GetMetricStatistics(input *GetMetricStatisticsInput) (*GetM
 
 const opListMetrics = "ListMetrics"
 
-// ListMetricsRequest generates a request for the ListMetrics operation.
+// ListMetricsRequest generates a "aws/request.Request" representing the
+// client's request for the ListMetrics operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListMetrics method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListMetricsRequest method.
+//    req, resp := client.ListMetricsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) ListMetricsRequest(input *ListMetricsInput) (req *request.Request, output *ListMetricsOutput) {
 	op := &request.Operation{
 		Name:       opListMetrics,
@@ -311,6 +514,23 @@ func (c *CloudWatch) ListMetrics(input *ListMetricsInput) (*ListMetricsOutput, e
 	return out, err
 }
 
+// ListMetricsPages iterates over the pages of a ListMetrics operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListMetrics method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListMetrics operation.
+//    pageNum := 0
+//    err := client.ListMetricsPages(params,
+//        func(page *ListMetricsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatch) ListMetricsPages(input *ListMetricsInput, fn func(p *ListMetricsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListMetricsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -321,7 +541,28 @@ func (c *CloudWatch) ListMetricsPages(input *ListMetricsInput, fn func(p *ListMe
 
 const opPutMetricAlarm = "PutMetricAlarm"
 
-// PutMetricAlarmRequest generates a request for the PutMetricAlarm operation.
+// PutMetricAlarmRequest generates a "aws/request.Request" representing the
+// client's request for the PutMetricAlarm operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutMetricAlarm method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutMetricAlarmRequest method.
+//    req, resp := client.PutMetricAlarmRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *request.Request, output *PutMetricAlarmOutput) {
 	op := &request.Operation{
 		Name:       opPutMetricAlarm,
@@ -380,7 +621,28 @@ func (c *CloudWatch) PutMetricAlarm(input *PutMetricAlarmInput) (*PutMetricAlarm
 
 const opPutMetricData = "PutMetricData"
 
-// PutMetricDataRequest generates a request for the PutMetricData operation.
+// PutMetricDataRequest generates a "aws/request.Request" representing the
+// client's request for the PutMetricData operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutMetricData method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutMetricDataRequest method.
+//    req, resp := client.PutMetricDataRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) PutMetricDataRequest(input *PutMetricDataInput) (req *request.Request, output *PutMetricDataOutput) {
 	op := &request.Operation{
 		Name:       opPutMetricData,
@@ -424,7 +686,28 @@ func (c *CloudWatch) PutMetricData(input *PutMetricDataInput) (*PutMetricDataOut
 
 const opSetAlarmState = "SetAlarmState"
 
-// SetAlarmStateRequest generates a request for the SetAlarmState operation.
+// SetAlarmStateRequest generates a "aws/request.Request" representing the
+// client's request for the SetAlarmState operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetAlarmState method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetAlarmStateRequest method.
+//    req, resp := client.SetAlarmStateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *request.Request, output *SetAlarmStateOutput) {
 	op := &request.Operation{
 		Name:       opSetAlarmState,
@@ -546,6 +829,19 @@ func (s DeleteAlarmsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteAlarmsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteAlarmsInput"}
+	if s.AlarmNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteAlarmsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -591,6 +887,22 @@ func (s DescribeAlarmHistoryInput) String() string {
 // GoString returns the string representation
 func (s DescribeAlarmHistoryInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAlarmHistoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAlarmHistoryInput"}
+	if s.AlarmName != nil && len(*s.AlarmName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AlarmName", 1))
+	}
+	if s.MaxRecords != nil && *s.MaxRecords < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxRecords", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the DescribeAlarmHistory action.
@@ -648,6 +960,41 @@ func (s DescribeAlarmsForMetricInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAlarmsForMetricInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAlarmsForMetricInput"}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.Period != nil && *s.Period < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 60))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for the DescribeAlarmsForMetric action.
 type DescribeAlarmsForMetricOutput struct {
 	_ struct{} `type:"structure"`
@@ -700,6 +1047,25 @@ func (s DescribeAlarmsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAlarmsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAlarmsInput"}
+	if s.ActionPrefix != nil && len(*s.ActionPrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ActionPrefix", 1))
+	}
+	if s.AlarmNamePrefix != nil && len(*s.AlarmNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AlarmNamePrefix", 1))
+	}
+	if s.MaxRecords != nil && *s.MaxRecords < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxRecords", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for the DescribeAlarms action.
 type DescribeAlarmsOutput struct {
 	_ struct{} `type:"structure"`
@@ -745,6 +1111,28 @@ func (s Dimension) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Dimension) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Dimension"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+	if s.Value != nil && len(*s.Value) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Value", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The DimensionFilter data type is used to filter ListMetrics results.
 type DimensionFilter struct {
 	_ struct{} `type:"structure"`
@@ -769,6 +1157,25 @@ func (s DimensionFilter) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DimensionFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DimensionFilter"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Value != nil && len(*s.Value) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Value", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DisableAlarmActionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -784,6 +1191,19 @@ func (s DisableAlarmActionsInput) String() string {
 // GoString returns the string representation
 func (s DisableAlarmActionsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableAlarmActionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableAlarmActionsInput"}
+	if s.AlarmNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DisableAlarmActionsOutput struct {
@@ -815,6 +1235,19 @@ func (s EnableAlarmActionsInput) String() string {
 // GoString returns the string representation
 func (s EnableAlarmActionsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableAlarmActionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableAlarmActionsInput"}
+	if s.AlarmNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type EnableAlarmActionsOutput struct {
@@ -883,6 +1316,56 @@ func (s GetMetricStatisticsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetMetricStatisticsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetMetricStatisticsInput"}
+	if s.EndTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndTime"))
+	}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.Period == nil {
+		invalidParams.Add(request.NewErrParamRequired("Period"))
+	}
+	if s.Period != nil && *s.Period < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 60))
+	}
+	if s.StartTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartTime"))
+	}
+	if s.Statistics == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statistics"))
+	}
+	if s.Statistics != nil && len(s.Statistics) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Statistics", 1))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for the GetMetricStatistics action.
 type GetMetricStatisticsOutput struct {
 	_ struct{} `type:"structure"`
@@ -929,6 +1412,32 @@ func (s ListMetricsInput) String() string {
 // GoString returns the string representation
 func (s ListMetricsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListMetricsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListMetricsInput"}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the ListMetrics action.
@@ -1115,6 +1624,37 @@ func (s MetricDatum) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MetricDatum) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MetricDatum"}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.StatisticValues != nil {
+		if err := s.StatisticValues.Validate(); err != nil {
+			invalidParams.AddNested("StatisticValues", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PutMetricAlarmInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1228,6 +1768,65 @@ func (s PutMetricAlarmInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutMetricAlarmInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutMetricAlarmInput"}
+	if s.AlarmName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmName"))
+	}
+	if s.AlarmName != nil && len(*s.AlarmName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AlarmName", 1))
+	}
+	if s.ComparisonOperator == nil {
+		invalidParams.Add(request.NewErrParamRequired("ComparisonOperator"))
+	}
+	if s.EvaluationPeriods == nil {
+		invalidParams.Add(request.NewErrParamRequired("EvaluationPeriods"))
+	}
+	if s.EvaluationPeriods != nil && *s.EvaluationPeriods < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("EvaluationPeriods", 1))
+	}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.Period == nil {
+		invalidParams.Add(request.NewErrParamRequired("Period"))
+	}
+	if s.Period != nil && *s.Period < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 60))
+	}
+	if s.Statistic == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statistic"))
+	}
+	if s.Threshold == nil {
+		invalidParams.Add(request.NewErrParamRequired("Threshold"))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PutMetricAlarmOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1264,6 +1863,35 @@ func (s PutMetricDataInput) String() string {
 // GoString returns the string representation
 func (s PutMetricDataInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutMetricDataInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutMetricDataInput"}
+	if s.MetricData == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricData"))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.MetricData != nil {
+		for i, v := range s.MetricData {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "MetricData", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type PutMetricDataOutput struct {
@@ -1309,6 +1937,28 @@ func (s SetAlarmStateInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetAlarmStateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetAlarmStateInput"}
+	if s.AlarmName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AlarmName"))
+	}
+	if s.AlarmName != nil && len(*s.AlarmName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AlarmName", 1))
+	}
+	if s.StateReason == nil {
+		invalidParams.Add(request.NewErrParamRequired("StateReason"))
+	}
+	if s.StateValue == nil {
+		invalidParams.Add(request.NewErrParamRequired("StateValue"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SetAlarmStateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1349,6 +1999,28 @@ func (s StatisticSet) String() string {
 // GoString returns the string representation
 func (s StatisticSet) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StatisticSet) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StatisticSet"}
+	if s.Maximum == nil {
+		invalidParams.Add(request.NewErrParamRequired("Maximum"))
+	}
+	if s.Minimum == nil {
+		invalidParams.Add(request.NewErrParamRequired("Minimum"))
+	}
+	if s.SampleCount == nil {
+		invalidParams.Add(request.NewErrParamRequired("SampleCount"))
+	}
+	if s.Sum == nil {
+		invalidParams.Add(request.NewErrParamRequired("Sum"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 const (

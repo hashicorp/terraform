@@ -12,9 +12,10 @@ import (
 
 func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53HealthCheckDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_health_check.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53HealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53HealthCheckConfig,

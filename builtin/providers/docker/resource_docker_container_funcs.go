@@ -51,6 +51,11 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 
 	if v, ok := d.GetOk("command"); ok {
 		createOpts.Config.Cmd = stringListToStringSlice(v.([]interface{}))
+		for _, v := range createOpts.Config.Cmd {
+			if v == "" {
+				return fmt.Errorf("values for command may not be empty")
+			}
+		}
 	}
 
 	if v, ok := d.GetOk("entrypoint"); ok {
@@ -121,6 +126,14 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 
 	if v, ok := d.GetOk("dns"); ok {
 		hostConfig.DNS = stringSetToStringSlice(v.(*schema.Set))
+	}
+
+	if v, ok := d.GetOk("dns_opts"); ok {
+		hostConfig.DNSOptions = stringSetToStringSlice(v.(*schema.Set))
+	}
+
+	if v, ok := d.GetOk("dns_search"); ok {
+		hostConfig.DNSSearch = stringSetToStringSlice(v.(*schema.Set))
 	}
 
 	if v, ok := d.GetOk("links"); ok {
@@ -252,6 +265,14 @@ func resourceDockerContainerUpdate(d *schema.ResourceData, meta interface{}) err
 func resourceDockerContainerDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*dc.Client)
 
+	// Stop the container before removing if destroy_grace_seconds is defined
+	if d.Get("destroy_grace_seconds").(int) > 0 {
+		var timeout = uint(d.Get("destroy_grace_seconds").(int))
+		if err := client.StopContainer(d.Id(), timeout); err != nil {
+			return fmt.Errorf("Error stopping container %s: %s", d.Id(), err)
+		}
+	}
+
 	removeOpts := dc.RemoveContainerOptions{
 		ID:            d.Id(),
 		RemoveVolumes: true,
@@ -269,6 +290,10 @@ func resourceDockerContainerDelete(d *schema.ResourceData, meta interface{}) err
 func stringListToStringSlice(stringList []interface{}) []string {
 	ret := []string{}
 	for _, v := range stringList {
+		if v == nil {
+			ret = append(ret, "")
+			continue
+		}
 		ret = append(ret, v.(string))
 	}
 	return ret

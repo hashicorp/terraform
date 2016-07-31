@@ -20,7 +20,7 @@ func TestAccAzureRMRoute_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteExists("azurerm_route.test"),
@@ -41,14 +41,14 @@ func TestAccAzureRMRoute_multipleRoutes(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteExists("azurerm_route.test"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteExists("azurerm_route.test1"),

@@ -25,6 +25,8 @@ func TestAccAWSElasticacheSubnetGroup_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar", &csg),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_subnet_group.bar", "description", "Managed by Terraform"),
 				),
 			},
 		},
@@ -160,7 +162,6 @@ resource "aws_elasticache_subnet_group" "bar" {
     // that we correctly handle the fact that the API
     // normalizes names to lowercase.
     name = "tf-TEST-cache-subnet-%03d"
-    description = "tf-test-cache-subnet-group-descr"
     subnet_ids = ["${aws_subnet.foo.id}"]
 }
 `

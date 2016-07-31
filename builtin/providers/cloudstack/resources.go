@@ -4,15 +4,11 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
-
-// UnlimitedResourceID is a "special" ID to define an unlimited resource
-const UnlimitedResourceID = "-1"
 
 // Define a regexp for parsing the port
 var splitPorts = regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
@@ -28,11 +24,11 @@ func (e *retrieveError) Error() error {
 }
 
 func setValueOrID(d *schema.ResourceData, key string, value string, id string) {
-	if isID(d.Get(key).(string)) {
+	if cloudstack.IsID(d.Get(key).(string)) {
 		// If the given id is an empty string, check if the configured value matches
 		// the UnlimitedResourceID in which case we set id to UnlimitedResourceID
-		if id == "" && d.Get(key).(string) == UnlimitedResourceID {
-			id = UnlimitedResourceID
+		if id == "" && d.Get(key).(string) == cloudstack.UnlimitedResourceID {
+			id = cloudstack.UnlimitedResourceID
 		}
 
 		d.Set(key, id)
@@ -41,9 +37,9 @@ func setValueOrID(d *schema.ResourceData, key string, value string, id string) {
 	}
 }
 
-func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string, e *retrieveError) {
+func retrieveID(cs *cloudstack.CloudStackClient, name string, value string, opts ...cloudstack.OptionFunc) (id string, e *retrieveError) {
 	// If the supplied value isn't a ID, try to retrieve the ID ourselves
-	if isID(value) {
+	if cloudstack.IsID(value) {
 		return value, nil
 	}
 
@@ -53,8 +49,6 @@ func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string,
 	switch name {
 	case "disk_offering":
 		id, err = cs.DiskOffering.GetDiskOfferingID(value)
-	case "virtual_machine":
-		id, err = cs.VirtualMachine.GetVirtualMachineID(value)
 	case "service_offering":
 		id, err = cs.ServiceOffering.GetServiceOfferingID(value)
 	case "network_offering":
@@ -63,25 +57,8 @@ func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string,
 		id, err = cs.Project.GetProjectID(value)
 	case "vpc_offering":
 		id, err = cs.VPC.GetVPCOfferingID(value)
-	case "vpc":
-		id, err = cs.VPC.GetVPCID(value)
-	case "network":
-		id, err = cs.Network.GetNetworkID(value)
 	case "zone":
 		id, err = cs.Zone.GetZoneID(value)
-	case "ip_address":
-		p := cs.Address.NewListPublicIpAddressesParams()
-		p.SetIpaddress(value)
-		l, e := cs.Address.ListPublicIpAddresses(p)
-		if e != nil {
-			err = e
-			break
-		}
-		if l.Count == 1 {
-			id = l.PublicIpAddresses[0].Id
-			break
-		}
-		err = fmt.Errorf("Could not find ID of IP address: %s", value)
 	case "os_type":
 		p := cs.GuestOS.NewListOsTypesParams()
 		p.SetDescription(value)
@@ -109,7 +86,7 @@ func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string,
 
 func retrieveTemplateID(cs *cloudstack.CloudStackClient, zoneid, value string) (id string, e *retrieveError) {
 	// If the supplied value isn't a ID, try to retrieve the ID ourselves
-	if isID(value) {
+	if cloudstack.IsID(value) {
 		return value, nil
 	}
 
@@ -121,12 +98,6 @@ func retrieveTemplateID(cs *cloudstack.CloudStackClient, zoneid, value string) (
 	}
 
 	return id, nil
-}
-
-// ID can be either a UUID or a UnlimitedResourceID
-func isID(id string) bool {
-	re := regexp.MustCompile(`^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|-1)$`)
-	return re.MatchString(id)
 }
 
 // RetryFunc is the function retried n times
@@ -150,45 +121,8 @@ func Retry(n int, f RetryFunc) (interface{}, error) {
 	return nil, lastErr
 }
 
-// This is a temporary helper function to support both the new
-// cidr_list and the deprecated source_cidr parameter
-func retrieveCidrList(rule map[string]interface{}) []string {
-	sourceCidr := rule["source_cidr"].(string)
-	if sourceCidr != "" {
-		return []string{sourceCidr}
-	}
-
-	var cidrList []string
-	for _, cidr := range rule["cidr_list"].(*schema.Set).List() {
-		cidrList = append(cidrList, cidr.(string))
-	}
-
-	return cidrList
-}
-
-// This is a temporary helper function to support both the new
-// cidr_list and the deprecated source_cidr parameter
-func setCidrList(rule map[string]interface{}, cidrList string) {
-	sourceCidr := rule["source_cidr"].(string)
-	if sourceCidr != "" {
-		rule["source_cidr"] = cidrList
-		return
-	}
-
-	cidrs := &schema.Set{F: schema.HashString}
-	for _, cidr := range strings.Split(cidrList, ",") {
-		cidrs.Add(cidr)
-	}
-
-	rule["cidr_list"] = cidrs
-}
-
-type projectidSetter interface {
-	SetProjectid(string)
-}
-
 // If there is a project supplied, we retrieve and set the project id
-func setProjectid(p projectidSetter, cs *cloudstack.CloudStackClient, d *schema.ResourceData) error {
+func setProjectid(p cloudstack.ProjectIDSetter, cs *cloudstack.CloudStackClient, d *schema.ResourceData) error {
 	if project, ok := d.GetOk("project"); ok {
 		projectid, e := retrieveID(cs, "project", project.(string))
 		if e != nil {

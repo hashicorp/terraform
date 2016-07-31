@@ -4,6 +4,7 @@
 package elb
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -12,7 +13,28 @@ import (
 
 const opAddTags = "AddTags"
 
-// AddTagsRequest generates a request for the AddTags operation.
+// AddTagsRequest generates a "aws/request.Request" representing the
+// client's request for the AddTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddTagsRequest method.
+//    req, resp := client.AddTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) AddTagsRequest(input *AddTagsInput) (req *request.Request, output *AddTagsOutput) {
 	op := &request.Operation{
 		Name:       opAddTags,
@@ -46,7 +68,28 @@ func (c *ELB) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 
 const opApplySecurityGroupsToLoadBalancer = "ApplySecurityGroupsToLoadBalancer"
 
-// ApplySecurityGroupsToLoadBalancerRequest generates a request for the ApplySecurityGroupsToLoadBalancer operation.
+// ApplySecurityGroupsToLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the ApplySecurityGroupsToLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ApplySecurityGroupsToLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ApplySecurityGroupsToLoadBalancerRequest method.
+//    req, resp := client.ApplySecurityGroupsToLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) ApplySecurityGroupsToLoadBalancerRequest(input *ApplySecurityGroupsToLoadBalancerInput) (req *request.Request, output *ApplySecurityGroupsToLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opApplySecurityGroupsToLoadBalancer,
@@ -78,7 +121,28 @@ func (c *ELB) ApplySecurityGroupsToLoadBalancer(input *ApplySecurityGroupsToLoad
 
 const opAttachLoadBalancerToSubnets = "AttachLoadBalancerToSubnets"
 
-// AttachLoadBalancerToSubnetsRequest generates a request for the AttachLoadBalancerToSubnets operation.
+// AttachLoadBalancerToSubnetsRequest generates a "aws/request.Request" representing the
+// client's request for the AttachLoadBalancerToSubnets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachLoadBalancerToSubnets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachLoadBalancerToSubnetsRequest method.
+//    req, resp := client.AttachLoadBalancerToSubnetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) AttachLoadBalancerToSubnetsRequest(input *AttachLoadBalancerToSubnetsInput) (req *request.Request, output *AttachLoadBalancerToSubnetsOutput) {
 	op := &request.Operation{
 		Name:       opAttachLoadBalancerToSubnets,
@@ -111,7 +175,28 @@ func (c *ELB) AttachLoadBalancerToSubnets(input *AttachLoadBalancerToSubnetsInpu
 
 const opConfigureHealthCheck = "ConfigureHealthCheck"
 
-// ConfigureHealthCheckRequest generates a request for the ConfigureHealthCheck operation.
+// ConfigureHealthCheckRequest generates a "aws/request.Request" representing the
+// client's request for the ConfigureHealthCheck operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ConfigureHealthCheck method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ConfigureHealthCheckRequest method.
+//    req, resp := client.ConfigureHealthCheckRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) ConfigureHealthCheckRequest(input *ConfigureHealthCheckInput) (req *request.Request, output *ConfigureHealthCheckOutput) {
 	op := &request.Operation{
 		Name:       opConfigureHealthCheck,
@@ -142,7 +227,28 @@ func (c *ELB) ConfigureHealthCheck(input *ConfigureHealthCheckInput) (*Configure
 
 const opCreateAppCookieStickinessPolicy = "CreateAppCookieStickinessPolicy"
 
-// CreateAppCookieStickinessPolicyRequest generates a request for the CreateAppCookieStickinessPolicy operation.
+// CreateAppCookieStickinessPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateAppCookieStickinessPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateAppCookieStickinessPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateAppCookieStickinessPolicyRequest method.
+//    req, resp := client.CreateAppCookieStickinessPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateAppCookieStickinessPolicyRequest(input *CreateAppCookieStickinessPolicyInput) (req *request.Request, output *CreateAppCookieStickinessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opCreateAppCookieStickinessPolicy,
@@ -183,7 +289,28 @@ func (c *ELB) CreateAppCookieStickinessPolicy(input *CreateAppCookieStickinessPo
 
 const opCreateLBCookieStickinessPolicy = "CreateLBCookieStickinessPolicy"
 
-// CreateLBCookieStickinessPolicyRequest generates a request for the CreateLBCookieStickinessPolicy operation.
+// CreateLBCookieStickinessPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLBCookieStickinessPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLBCookieStickinessPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLBCookieStickinessPolicyRequest method.
+//    req, resp := client.CreateLBCookieStickinessPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateLBCookieStickinessPolicyRequest(input *CreateLBCookieStickinessPolicyInput) (req *request.Request, output *CreateLBCookieStickinessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opCreateLBCookieStickinessPolicy,
@@ -226,7 +353,28 @@ func (c *ELB) CreateLBCookieStickinessPolicy(input *CreateLBCookieStickinessPoli
 
 const opCreateLoadBalancer = "CreateLoadBalancer"
 
-// CreateLoadBalancerRequest generates a request for the CreateLoadBalancer operation.
+// CreateLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLoadBalancerRequest method.
+//    req, resp := client.CreateLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *request.Request, output *CreateLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opCreateLoadBalancer,
@@ -264,7 +412,28 @@ func (c *ELB) CreateLoadBalancer(input *CreateLoadBalancerInput) (*CreateLoadBal
 
 const opCreateLoadBalancerListeners = "CreateLoadBalancerListeners"
 
-// CreateLoadBalancerListenersRequest generates a request for the CreateLoadBalancerListeners operation.
+// CreateLoadBalancerListenersRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLoadBalancerListeners operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLoadBalancerListeners method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLoadBalancerListenersRequest method.
+//    req, resp := client.CreateLoadBalancerListenersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateLoadBalancerListenersRequest(input *CreateLoadBalancerListenersInput) (req *request.Request, output *CreateLoadBalancerListenersOutput) {
 	op := &request.Operation{
 		Name:       opCreateLoadBalancerListeners,
@@ -297,7 +466,28 @@ func (c *ELB) CreateLoadBalancerListeners(input *CreateLoadBalancerListenersInpu
 
 const opCreateLoadBalancerPolicy = "CreateLoadBalancerPolicy"
 
-// CreateLoadBalancerPolicyRequest generates a request for the CreateLoadBalancerPolicy operation.
+// CreateLoadBalancerPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLoadBalancerPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLoadBalancerPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLoadBalancerPolicyRequest method.
+//    req, resp := client.CreateLoadBalancerPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateLoadBalancerPolicyRequest(input *CreateLoadBalancerPolicyInput) (req *request.Request, output *CreateLoadBalancerPolicyOutput) {
 	op := &request.Operation{
 		Name:       opCreateLoadBalancerPolicy,
@@ -328,7 +518,28 @@ func (c *ELB) CreateLoadBalancerPolicy(input *CreateLoadBalancerPolicyInput) (*C
 
 const opDeleteLoadBalancer = "DeleteLoadBalancer"
 
-// DeleteLoadBalancerRequest generates a request for the DeleteLoadBalancer operation.
+// DeleteLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteLoadBalancerRequest method.
+//    req, resp := client.DeleteLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *request.Request, output *DeleteLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLoadBalancer,
@@ -364,7 +575,28 @@ func (c *ELB) DeleteLoadBalancer(input *DeleteLoadBalancerInput) (*DeleteLoadBal
 
 const opDeleteLoadBalancerListeners = "DeleteLoadBalancerListeners"
 
-// DeleteLoadBalancerListenersRequest generates a request for the DeleteLoadBalancerListeners operation.
+// DeleteLoadBalancerListenersRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLoadBalancerListeners operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteLoadBalancerListeners method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteLoadBalancerListenersRequest method.
+//    req, resp := client.DeleteLoadBalancerListenersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DeleteLoadBalancerListenersRequest(input *DeleteLoadBalancerListenersInput) (req *request.Request, output *DeleteLoadBalancerListenersOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLoadBalancerListeners,
@@ -391,7 +623,28 @@ func (c *ELB) DeleteLoadBalancerListeners(input *DeleteLoadBalancerListenersInpu
 
 const opDeleteLoadBalancerPolicy = "DeleteLoadBalancerPolicy"
 
-// DeleteLoadBalancerPolicyRequest generates a request for the DeleteLoadBalancerPolicy operation.
+// DeleteLoadBalancerPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLoadBalancerPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteLoadBalancerPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteLoadBalancerPolicyRequest method.
+//    req, resp := client.DeleteLoadBalancerPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DeleteLoadBalancerPolicyRequest(input *DeleteLoadBalancerPolicyInput) (req *request.Request, output *DeleteLoadBalancerPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLoadBalancerPolicy,
@@ -419,7 +672,28 @@ func (c *ELB) DeleteLoadBalancerPolicy(input *DeleteLoadBalancerPolicyInput) (*D
 
 const opDeregisterInstancesFromLoadBalancer = "DeregisterInstancesFromLoadBalancer"
 
-// DeregisterInstancesFromLoadBalancerRequest generates a request for the DeregisterInstancesFromLoadBalancer operation.
+// DeregisterInstancesFromLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the DeregisterInstancesFromLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeregisterInstancesFromLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeregisterInstancesFromLoadBalancerRequest method.
+//    req, resp := client.DeregisterInstancesFromLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DeregisterInstancesFromLoadBalancerRequest(input *DeregisterInstancesFromLoadBalancerInput) (req *request.Request, output *DeregisterInstancesFromLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opDeregisterInstancesFromLoadBalancer,
@@ -454,7 +728,28 @@ func (c *ELB) DeregisterInstancesFromLoadBalancer(input *DeregisterInstancesFrom
 
 const opDescribeInstanceHealth = "DescribeInstanceHealth"
 
-// DescribeInstanceHealthRequest generates a request for the DescribeInstanceHealth operation.
+// DescribeInstanceHealthRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInstanceHealth operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInstanceHealth method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInstanceHealthRequest method.
+//    req, resp := client.DescribeInstanceHealthRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeInstanceHealthRequest(input *DescribeInstanceHealthInput) (req *request.Request, output *DescribeInstanceHealthOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstanceHealth,
@@ -486,7 +781,28 @@ func (c *ELB) DescribeInstanceHealth(input *DescribeInstanceHealthInput) (*Descr
 
 const opDescribeLoadBalancerAttributes = "DescribeLoadBalancerAttributes"
 
-// DescribeLoadBalancerAttributesRequest generates a request for the DescribeLoadBalancerAttributes operation.
+// DescribeLoadBalancerAttributesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoadBalancerAttributes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoadBalancerAttributes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoadBalancerAttributesRequest method.
+//    req, resp := client.DescribeLoadBalancerAttributesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeLoadBalancerAttributesRequest(input *DescribeLoadBalancerAttributesInput) (req *request.Request, output *DescribeLoadBalancerAttributesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancerAttributes,
@@ -513,7 +829,28 @@ func (c *ELB) DescribeLoadBalancerAttributes(input *DescribeLoadBalancerAttribut
 
 const opDescribeLoadBalancerPolicies = "DescribeLoadBalancerPolicies"
 
-// DescribeLoadBalancerPoliciesRequest generates a request for the DescribeLoadBalancerPolicies operation.
+// DescribeLoadBalancerPoliciesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoadBalancerPolicies operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoadBalancerPolicies method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoadBalancerPoliciesRequest method.
+//    req, resp := client.DescribeLoadBalancerPoliciesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeLoadBalancerPoliciesRequest(input *DescribeLoadBalancerPoliciesInput) (req *request.Request, output *DescribeLoadBalancerPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancerPolicies,
@@ -547,7 +884,28 @@ func (c *ELB) DescribeLoadBalancerPolicies(input *DescribeLoadBalancerPoliciesIn
 
 const opDescribeLoadBalancerPolicyTypes = "DescribeLoadBalancerPolicyTypes"
 
-// DescribeLoadBalancerPolicyTypesRequest generates a request for the DescribeLoadBalancerPolicyTypes operation.
+// DescribeLoadBalancerPolicyTypesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoadBalancerPolicyTypes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoadBalancerPolicyTypes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoadBalancerPolicyTypesRequest method.
+//    req, resp := client.DescribeLoadBalancerPolicyTypesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeLoadBalancerPolicyTypesRequest(input *DescribeLoadBalancerPolicyTypesInput) (req *request.Request, output *DescribeLoadBalancerPolicyTypesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancerPolicyTypes,
@@ -577,7 +935,28 @@ func (c *ELB) DescribeLoadBalancerPolicyTypes(input *DescribeLoadBalancerPolicyT
 
 const opDescribeLoadBalancers = "DescribeLoadBalancers"
 
-// DescribeLoadBalancersRequest generates a request for the DescribeLoadBalancers operation.
+// DescribeLoadBalancersRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoadBalancers operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoadBalancers method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoadBalancersRequest method.
+//    req, resp := client.DescribeLoadBalancersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeLoadBalancersRequest(input *DescribeLoadBalancersInput) (req *request.Request, output *DescribeLoadBalancersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancers,
@@ -609,6 +988,23 @@ func (c *ELB) DescribeLoadBalancers(input *DescribeLoadBalancersInput) (*Describ
 	return out, err
 }
 
+// DescribeLoadBalancersPages iterates over the pages of a DescribeLoadBalancers operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeLoadBalancers method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeLoadBalancers operation.
+//    pageNum := 0
+//    err := client.DescribeLoadBalancersPages(params,
+//        func(page *DescribeLoadBalancersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *ELB) DescribeLoadBalancersPages(input *DescribeLoadBalancersInput, fn func(p *DescribeLoadBalancersOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeLoadBalancersRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -619,7 +1015,28 @@ func (c *ELB) DescribeLoadBalancersPages(input *DescribeLoadBalancersInput, fn f
 
 const opDescribeTags = "DescribeTags"
 
-// DescribeTagsRequest generates a request for the DescribeTags operation.
+// DescribeTagsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeTagsRequest method.
+//    req, resp := client.DescribeTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Request, output *DescribeTagsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTags,
@@ -646,7 +1063,28 @@ func (c *ELB) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, error
 
 const opDetachLoadBalancerFromSubnets = "DetachLoadBalancerFromSubnets"
 
-// DetachLoadBalancerFromSubnetsRequest generates a request for the DetachLoadBalancerFromSubnets operation.
+// DetachLoadBalancerFromSubnetsRequest generates a "aws/request.Request" representing the
+// client's request for the DetachLoadBalancerFromSubnets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachLoadBalancerFromSubnets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachLoadBalancerFromSubnetsRequest method.
+//    req, resp := client.DetachLoadBalancerFromSubnetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DetachLoadBalancerFromSubnetsRequest(input *DetachLoadBalancerFromSubnetsInput) (req *request.Request, output *DetachLoadBalancerFromSubnetsOutput) {
 	op := &request.Operation{
 		Name:       opDetachLoadBalancerFromSubnets,
@@ -678,7 +1116,28 @@ func (c *ELB) DetachLoadBalancerFromSubnets(input *DetachLoadBalancerFromSubnets
 
 const opDisableAvailabilityZonesForLoadBalancer = "DisableAvailabilityZonesForLoadBalancer"
 
-// DisableAvailabilityZonesForLoadBalancerRequest generates a request for the DisableAvailabilityZonesForLoadBalancer operation.
+// DisableAvailabilityZonesForLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the DisableAvailabilityZonesForLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableAvailabilityZonesForLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableAvailabilityZonesForLoadBalancerRequest method.
+//    req, resp := client.DisableAvailabilityZonesForLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DisableAvailabilityZonesForLoadBalancerRequest(input *DisableAvailabilityZonesForLoadBalancerInput) (req *request.Request, output *DisableAvailabilityZonesForLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opDisableAvailabilityZonesForLoadBalancer,
@@ -716,7 +1175,28 @@ func (c *ELB) DisableAvailabilityZonesForLoadBalancer(input *DisableAvailability
 
 const opEnableAvailabilityZonesForLoadBalancer = "EnableAvailabilityZonesForLoadBalancer"
 
-// EnableAvailabilityZonesForLoadBalancerRequest generates a request for the EnableAvailabilityZonesForLoadBalancer operation.
+// EnableAvailabilityZonesForLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the EnableAvailabilityZonesForLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableAvailabilityZonesForLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableAvailabilityZonesForLoadBalancerRequest method.
+//    req, resp := client.EnableAvailabilityZonesForLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) EnableAvailabilityZonesForLoadBalancerRequest(input *EnableAvailabilityZonesForLoadBalancerInput) (req *request.Request, output *EnableAvailabilityZonesForLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opEnableAvailabilityZonesForLoadBalancer,
@@ -750,7 +1230,28 @@ func (c *ELB) EnableAvailabilityZonesForLoadBalancer(input *EnableAvailabilityZo
 
 const opModifyLoadBalancerAttributes = "ModifyLoadBalancerAttributes"
 
-// ModifyLoadBalancerAttributesRequest generates a request for the ModifyLoadBalancerAttributes operation.
+// ModifyLoadBalancerAttributesRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyLoadBalancerAttributes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyLoadBalancerAttributes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyLoadBalancerAttributesRequest method.
+//    req, resp := client.ModifyLoadBalancerAttributesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAttributesInput) (req *request.Request, output *ModifyLoadBalancerAttributesOutput) {
 	op := &request.Operation{
 		Name:       opModifyLoadBalancerAttributes,
@@ -790,7 +1291,28 @@ func (c *ELB) ModifyLoadBalancerAttributes(input *ModifyLoadBalancerAttributesIn
 
 const opRegisterInstancesWithLoadBalancer = "RegisterInstancesWithLoadBalancer"
 
-// RegisterInstancesWithLoadBalancerRequest generates a request for the RegisterInstancesWithLoadBalancer operation.
+// RegisterInstancesWithLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the RegisterInstancesWithLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RegisterInstancesWithLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RegisterInstancesWithLoadBalancerRequest method.
+//    req, resp := client.RegisterInstancesWithLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) RegisterInstancesWithLoadBalancerRequest(input *RegisterInstancesWithLoadBalancerInput) (req *request.Request, output *RegisterInstancesWithLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opRegisterInstancesWithLoadBalancer,
@@ -844,7 +1366,28 @@ func (c *ELB) RegisterInstancesWithLoadBalancer(input *RegisterInstancesWithLoad
 
 const opRemoveTags = "RemoveTags"
 
-// RemoveTagsRequest generates a request for the RemoveTags operation.
+// RemoveTagsRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveTagsRequest method.
+//    req, resp := client.RemoveTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, output *RemoveTagsOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTags,
@@ -871,7 +1414,28 @@ func (c *ELB) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOutput, error) {
 
 const opSetLoadBalancerListenerSSLCertificate = "SetLoadBalancerListenerSSLCertificate"
 
-// SetLoadBalancerListenerSSLCertificateRequest generates a request for the SetLoadBalancerListenerSSLCertificate operation.
+// SetLoadBalancerListenerSSLCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the SetLoadBalancerListenerSSLCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetLoadBalancerListenerSSLCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetLoadBalancerListenerSSLCertificateRequest method.
+//    req, resp := client.SetLoadBalancerListenerSSLCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) SetLoadBalancerListenerSSLCertificateRequest(input *SetLoadBalancerListenerSSLCertificateInput) (req *request.Request, output *SetLoadBalancerListenerSSLCertificateOutput) {
 	op := &request.Operation{
 		Name:       opSetLoadBalancerListenerSSLCertificate,
@@ -904,7 +1468,28 @@ func (c *ELB) SetLoadBalancerListenerSSLCertificate(input *SetLoadBalancerListen
 
 const opSetLoadBalancerPoliciesForBackendServer = "SetLoadBalancerPoliciesForBackendServer"
 
-// SetLoadBalancerPoliciesForBackendServerRequest generates a request for the SetLoadBalancerPoliciesForBackendServer operation.
+// SetLoadBalancerPoliciesForBackendServerRequest generates a "aws/request.Request" representing the
+// client's request for the SetLoadBalancerPoliciesForBackendServer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetLoadBalancerPoliciesForBackendServer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetLoadBalancerPoliciesForBackendServerRequest method.
+//    req, resp := client.SetLoadBalancerPoliciesForBackendServerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) SetLoadBalancerPoliciesForBackendServerRequest(input *SetLoadBalancerPoliciesForBackendServerInput) (req *request.Request, output *SetLoadBalancerPoliciesForBackendServerOutput) {
 	op := &request.Operation{
 		Name:       opSetLoadBalancerPoliciesForBackendServer,
@@ -941,7 +1526,28 @@ func (c *ELB) SetLoadBalancerPoliciesForBackendServer(input *SetLoadBalancerPoli
 
 const opSetLoadBalancerPoliciesOfListener = "SetLoadBalancerPoliciesOfListener"
 
-// SetLoadBalancerPoliciesOfListenerRequest generates a request for the SetLoadBalancerPoliciesOfListener operation.
+// SetLoadBalancerPoliciesOfListenerRequest generates a "aws/request.Request" representing the
+// client's request for the SetLoadBalancerPoliciesOfListener operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetLoadBalancerPoliciesOfListener method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetLoadBalancerPoliciesOfListenerRequest method.
+//    req, resp := client.SetLoadBalancerPoliciesOfListenerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) SetLoadBalancerPoliciesOfListenerRequest(input *SetLoadBalancerPoliciesOfListenerInput) (req *request.Request, output *SetLoadBalancerPoliciesOfListenerOutput) {
 	op := &request.Operation{
 		Name:       opSetLoadBalancerPoliciesOfListener,
@@ -999,6 +1605,19 @@ func (s AccessLog) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AccessLog) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AccessLog"}
+	if s.Enabled == nil {
+		invalidParams.Add(request.NewErrParamRequired("Enabled"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AddTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1017,6 +1636,35 @@ func (s AddTagsInput) String() string {
 // GoString returns the string representation
 func (s AddTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsInput"}
+	if s.LoadBalancerNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerNames"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AddTagsOutput struct {
@@ -1097,6 +1745,22 @@ func (s ApplySecurityGroupsToLoadBalancerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ApplySecurityGroupsToLoadBalancerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ApplySecurityGroupsToLoadBalancerInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.SecurityGroups == nil {
+		invalidParams.Add(request.NewErrParamRequired("SecurityGroups"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ApplySecurityGroupsToLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1133,6 +1797,22 @@ func (s AttachLoadBalancerToSubnetsInput) String() string {
 // GoString returns the string representation
 func (s AttachLoadBalancerToSubnetsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AttachLoadBalancerToSubnetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AttachLoadBalancerToSubnetsInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.Subnets == nil {
+		invalidParams.Add(request.NewErrParamRequired("Subnets"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AttachLoadBalancerToSubnetsOutput struct {
@@ -1193,6 +1873,27 @@ func (s ConfigureHealthCheckInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConfigureHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConfigureHealthCheckInput"}
+	if s.HealthCheck == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheck"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.HealthCheck != nil {
+		if err := s.HealthCheck.Validate(); err != nil {
+			invalidParams.AddNested("HealthCheck", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ConfigureHealthCheckOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1232,6 +1933,19 @@ func (s ConnectionDraining) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConnectionDraining) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConnectionDraining"}
+	if s.Enabled == nil {
+		invalidParams.Add(request.NewErrParamRequired("Enabled"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Information about the ConnectionSettings attribute.
 type ConnectionSettings struct {
 	_ struct{} `type:"structure"`
@@ -1249,6 +1963,22 @@ func (s ConnectionSettings) String() string {
 // GoString returns the string representation
 func (s ConnectionSettings) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConnectionSettings) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConnectionSettings"}
+	if s.IdleTimeout == nil {
+		invalidParams.Add(request.NewErrParamRequired("IdleTimeout"))
+	}
+	if s.IdleTimeout != nil && *s.IdleTimeout < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("IdleTimeout", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateAppCookieStickinessPolicyInput struct {
@@ -1274,6 +2004,25 @@ func (s CreateAppCookieStickinessPolicyInput) String() string {
 // GoString returns the string representation
 func (s CreateAppCookieStickinessPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateAppCookieStickinessPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateAppCookieStickinessPolicyInput"}
+	if s.CookieName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CookieName"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.PolicyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateAppCookieStickinessPolicyOutput struct {
@@ -1315,6 +2064,22 @@ func (s CreateLBCookieStickinessPolicyInput) String() string {
 // GoString returns the string representation
 func (s CreateLBCookieStickinessPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateLBCookieStickinessPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateLBCookieStickinessPolicyInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.PolicyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateLBCookieStickinessPolicyOutput struct {
@@ -1392,6 +2157,45 @@ func (s CreateLoadBalancerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateLoadBalancerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateLoadBalancerInput"}
+	if s.Listeners == nil {
+		invalidParams.Add(request.NewErrParamRequired("Listeners"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+	if s.Listeners != nil {
+		for i, v := range s.Listeners {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Listeners", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateLoadBalancerListenersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1410,6 +2214,32 @@ func (s CreateLoadBalancerListenersInput) String() string {
 // GoString returns the string representation
 func (s CreateLoadBalancerListenersInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateLoadBalancerListenersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateLoadBalancerListenersInput"}
+	if s.Listeners == nil {
+		invalidParams.Add(request.NewErrParamRequired("Listeners"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.Listeners != nil {
+		for i, v := range s.Listeners {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Listeners", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateLoadBalancerListenersOutput struct {
@@ -1470,6 +2300,25 @@ func (s CreateLoadBalancerPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateLoadBalancerPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateLoadBalancerPolicyInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.PolicyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyName"))
+	}
+	if s.PolicyTypeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyTypeName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateLoadBalancerPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1502,6 +2351,19 @@ func (s CrossZoneLoadBalancing) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CrossZoneLoadBalancing) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CrossZoneLoadBalancing"}
+	if s.Enabled == nil {
+		invalidParams.Add(request.NewErrParamRequired("Enabled"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1517,6 +2379,19 @@ func (s DeleteLoadBalancerInput) String() string {
 // GoString returns the string representation
 func (s DeleteLoadBalancerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteLoadBalancerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteLoadBalancerInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteLoadBalancerListenersInput struct {
@@ -1537,6 +2412,22 @@ func (s DeleteLoadBalancerListenersInput) String() string {
 // GoString returns the string representation
 func (s DeleteLoadBalancerListenersInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteLoadBalancerListenersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteLoadBalancerListenersInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.LoadBalancerPorts == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerPorts"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteLoadBalancerListenersOutput struct {
@@ -1588,6 +2479,22 @@ func (s DeleteLoadBalancerPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteLoadBalancerPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteLoadBalancerPolicyInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.PolicyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteLoadBalancerPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1620,6 +2527,22 @@ func (s DeregisterInstancesFromLoadBalancerInput) String() string {
 // GoString returns the string representation
 func (s DeregisterInstancesFromLoadBalancerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeregisterInstancesFromLoadBalancerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeregisterInstancesFromLoadBalancerInput"}
+	if s.Instances == nil {
+		invalidParams.Add(request.NewErrParamRequired("Instances"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeregisterInstancesFromLoadBalancerOutput struct {
@@ -1659,6 +2582,19 @@ func (s DescribeInstanceHealthInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeInstanceHealthInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeInstanceHealthInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeInstanceHealthOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1691,6 +2627,19 @@ func (s DescribeLoadBalancerAttributesInput) String() string {
 // GoString returns the string representation
 func (s DescribeLoadBalancerAttributesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeLoadBalancerAttributesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeLoadBalancerAttributesInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeLoadBalancerAttributesOutput struct {
@@ -1807,6 +2756,19 @@ func (s DescribeLoadBalancersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeLoadBalancersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeLoadBalancersInput"}
+	if s.PageSize != nil && *s.PageSize < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("PageSize", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1843,6 +2805,22 @@ func (s DescribeTagsInput) String() string {
 // GoString returns the string representation
 func (s DescribeTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeTagsInput"}
+	if s.LoadBalancerNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerNames"))
+	}
+	if s.LoadBalancerNames != nil && len(s.LoadBalancerNames) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LoadBalancerNames", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeTagsOutput struct {
@@ -1882,6 +2860,22 @@ func (s DetachLoadBalancerFromSubnetsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DetachLoadBalancerFromSubnetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DetachLoadBalancerFromSubnetsInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.Subnets == nil {
+		invalidParams.Add(request.NewErrParamRequired("Subnets"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DetachLoadBalancerFromSubnetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1919,6 +2913,22 @@ func (s DisableAvailabilityZonesForLoadBalancerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableAvailabilityZonesForLoadBalancerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableAvailabilityZonesForLoadBalancerInput"}
+	if s.AvailabilityZones == nil {
+		invalidParams.Add(request.NewErrParamRequired("AvailabilityZones"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DisableAvailabilityZonesForLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1954,6 +2964,22 @@ func (s EnableAvailabilityZonesForLoadBalancerInput) String() string {
 // GoString returns the string representation
 func (s EnableAvailabilityZonesForLoadBalancerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableAvailabilityZonesForLoadBalancerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableAvailabilityZonesForLoadBalancerInput"}
+	if s.AvailabilityZones == nil {
+		invalidParams.Add(request.NewErrParamRequired("AvailabilityZones"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type EnableAvailabilityZonesForLoadBalancerOutput struct {
@@ -2024,6 +3050,43 @@ func (s HealthCheck) String() string {
 // GoString returns the string representation
 func (s HealthCheck) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *HealthCheck) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "HealthCheck"}
+	if s.HealthyThreshold == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthyThreshold"))
+	}
+	if s.HealthyThreshold != nil && *s.HealthyThreshold < 2 {
+		invalidParams.Add(request.NewErrParamMinValue("HealthyThreshold", 2))
+	}
+	if s.Interval == nil {
+		invalidParams.Add(request.NewErrParamRequired("Interval"))
+	}
+	if s.Interval != nil && *s.Interval < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Interval", 1))
+	}
+	if s.Target == nil {
+		invalidParams.Add(request.NewErrParamRequired("Target"))
+	}
+	if s.Timeout == nil {
+		invalidParams.Add(request.NewErrParamRequired("Timeout"))
+	}
+	if s.Timeout != nil && *s.Timeout < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Timeout", 1))
+	}
+	if s.UnhealthyThreshold == nil {
+		invalidParams.Add(request.NewErrParamRequired("UnhealthyThreshold"))
+	}
+	if s.UnhealthyThreshold != nil && *s.UnhealthyThreshold < 2 {
+		invalidParams.Add(request.NewErrParamMinValue("UnhealthyThreshold", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The ID of a back-end instance.
@@ -2175,6 +3238,28 @@ func (s Listener) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Listener) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Listener"}
+	if s.InstancePort == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstancePort"))
+	}
+	if s.InstancePort != nil && *s.InstancePort < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("InstancePort", 1))
+	}
+	if s.LoadBalancerPort == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerPort"))
+	}
+	if s.Protocol == nil {
+		invalidParams.Add(request.NewErrParamRequired("Protocol"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The policies enabled for a listener.
 type ListenerDescription struct {
 	_ struct{} `type:"structure"`
@@ -2247,6 +3332,36 @@ func (s LoadBalancerAttributes) String() string {
 // GoString returns the string representation
 func (s LoadBalancerAttributes) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *LoadBalancerAttributes) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "LoadBalancerAttributes"}
+	if s.AccessLog != nil {
+		if err := s.AccessLog.Validate(); err != nil {
+			invalidParams.AddNested("AccessLog", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ConnectionDraining != nil {
+		if err := s.ConnectionDraining.Validate(); err != nil {
+			invalidParams.AddNested("ConnectionDraining", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ConnectionSettings != nil {
+		if err := s.ConnectionSettings.Validate(); err != nil {
+			invalidParams.AddNested("ConnectionSettings", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.CrossZoneLoadBalancing != nil {
+		if err := s.CrossZoneLoadBalancing.Validate(); err != nil {
+			invalidParams.AddNested("CrossZoneLoadBalancing", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Information about a load balancer.
@@ -2344,6 +3459,27 @@ func (s ModifyLoadBalancerAttributesInput) String() string {
 // GoString returns the string representation
 func (s ModifyLoadBalancerAttributesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyLoadBalancerAttributesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyLoadBalancerAttributesInput"}
+	if s.LoadBalancerAttributes == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerAttributes"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.LoadBalancerAttributes != nil {
+		if err := s.LoadBalancerAttributes.Validate(); err != nil {
+			invalidParams.AddNested("LoadBalancerAttributes", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifyLoadBalancerAttributesOutput struct {
@@ -2537,6 +3673,22 @@ func (s RegisterInstancesWithLoadBalancerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterInstancesWithLoadBalancerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterInstancesWithLoadBalancerInput"}
+	if s.Instances == nil {
+		invalidParams.Add(request.NewErrParamRequired("Instances"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RegisterInstancesWithLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2575,6 +3727,35 @@ func (s RemoveTagsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsInput"}
+	if s.LoadBalancerNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerNames"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RemoveTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2610,6 +3791,25 @@ func (s SetLoadBalancerListenerSSLCertificateInput) String() string {
 // GoString returns the string representation
 func (s SetLoadBalancerListenerSSLCertificateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetLoadBalancerListenerSSLCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetLoadBalancerListenerSSLCertificateInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.LoadBalancerPort == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerPort"))
+	}
+	if s.SSLCertificateId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SSLCertificateId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetLoadBalancerListenerSSLCertificateOutput struct {
@@ -2650,6 +3850,25 @@ func (s SetLoadBalancerPoliciesForBackendServerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetLoadBalancerPoliciesForBackendServerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetLoadBalancerPoliciesForBackendServerInput"}
+	if s.InstancePort == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstancePort"))
+	}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.PolicyNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SetLoadBalancerPoliciesForBackendServerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2686,6 +3905,25 @@ func (s SetLoadBalancerPoliciesOfListenerInput) String() string {
 // GoString returns the string representation
 func (s SetLoadBalancerPoliciesOfListenerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetLoadBalancerPoliciesOfListenerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetLoadBalancerPoliciesOfListenerInput"}
+	if s.LoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerName"))
+	}
+	if s.LoadBalancerPort == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerPort"))
+	}
+	if s.PolicyNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetLoadBalancerPoliciesOfListenerOutput struct {
@@ -2744,6 +3982,22 @@ func (s Tag) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Tag) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Tag"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The tags associated with a load balancer.
 type TagDescription struct {
 	_ struct{} `type:"structure"`
@@ -2781,4 +4035,17 @@ func (s TagKeyOnly) String() string {
 // GoString returns the string representation
 func (s TagKeyOnly) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagKeyOnly) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagKeyOnly"}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }

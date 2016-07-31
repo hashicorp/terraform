@@ -11,7 +11,27 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
+const none = "none"
+
 func resourceCloudStackNetwork() *schema.Resource {
+	aclidSchema := &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Default:  none,
+	}
+
+	aclidSchema.StateFunc = func(v interface{}) string {
+		value := v.(string)
+
+		if value == none {
+			aclidSchema.ForceNew = true
+		} else {
+			aclidSchema.ForceNew = false
+		}
+
+		return value
+	}
+
 	return &schema.Resource{
 		Create: resourceCloudStackNetworkCreate,
 		Read:   resourceCloudStackNetworkRead,
@@ -71,35 +91,15 @@ func resourceCloudStackNetwork() *schema.Resource {
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
 			},
 
-			"vpc": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `vpc_id` field instead",
-			},
-
-			"acl_id": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"aclid"},
-			},
-
-			"aclid": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `acl_id` field instead",
-			},
+			"acl_id": aclidSchema,
 
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -136,45 +136,46 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	if !ok {
 		displaytext = name
 	}
+
 	// Create a new parameter struct
 	p := cs.Network.NewCreateNetworkParams(displaytext.(string), name, networkofferingid, zoneid)
 
-	m, err := parseCIDR(d)
+	// Get the network offering to check if it supports specifying IP ranges
+	no, _, err := cs.NetworkOffering.GetNetworkOfferingByID(networkofferingid)
+	if err != nil {
+		return err
+	}
+
+	m, err := parseCIDR(d, no.Specifyipranges)
 	if err != nil {
 		return err
 	}
 
 	// Set the needed IP config
-	p.SetStartip(m["startip"])
 	p.SetGateway(m["gateway"])
-	p.SetEndip(m["endip"])
 	p.SetNetmask(m["netmask"])
+
+	// Only set the start IP if we have one
+	if startip, ok := m["startip"]; ok {
+		p.SetStartip(startip)
+	}
+
+	// Only set the end IP if we have one
+	if endip, ok := m["endip"]; ok {
+		p.SetEndip(endip)
+	}
 
 	if vlan, ok := d.GetOk("vlan"); ok {
 		p.SetVlan(strconv.Itoa(vlan.(int)))
 	}
 
 	// Check is this network needs to be created in a VPC
-	vpc, ok := d.GetOk("vpc_id")
-	if !ok {
-		vpc, ok = d.GetOk("vpc")
-	}
-	if ok {
-		// Retrieve the vpc ID
-		vpcid, e := retrieveID(cs, "vpc", vpc.(string))
-		if e != nil {
-			return e.Error()
-		}
-
-		// Set the vpcid
-		p.SetVpcid(vpcid)
+	if vpcid, ok := d.GetOk("vpc_id"); ok {
+		// Set the vpc id
+		p.SetVpcid(vpcid.(string))
 
 		// Since we're in a VPC, check if we want to assiciate an ACL list
-		aclid, ok := d.GetOk("acl_id")
-		if !ok {
-			aclid, ok = d.GetOk("acl")
-		}
-		if ok {
+		if aclid, ok := d.GetOk("acl_id"); ok && aclid.(string) != none {
 			// Set the acl ID
 			p.SetAclid(aclid.(string))
 		}
@@ -205,7 +206,10 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the virtual machine details
-	n, count, err := cs.Network.GetNetworkByID(d.Id())
+	n, count, err := cs.Network.GetNetworkByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf(
@@ -221,18 +225,12 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("display_text", n.Displaytext)
 	d.Set("cidr", n.Cidr)
 	d.Set("gateway", n.Gateway)
+	d.Set("vpc_id", n.Vpcid)
 
-	_, vpcID := d.GetOk("vpc_id")
-	_, vpc := d.GetOk("vpc")
-	if vpcID || vpc {
-		d.Set("vpc_id", n.Vpcid)
+	if n.Aclid == "" {
+		n.Aclid = none
 	}
-
-	_, aclID := d.GetOk("acl_id")
-	_, acl := d.GetOk("aclid")
-	if aclID || acl {
-		d.Set("acl_id", n.Aclid)
-	}
+	d.Set("acl_id", n.Aclid)
 
 	// Read the tags and store them in a map
 	tags := make(map[string]interface{})
@@ -290,6 +288,17 @@ func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 			"Error updating network %s: %s", name, err)
 	}
 
+	// Replace the ACL if the ID has changed
+	if d.HasChange("acl_id") {
+		p := cs.NetworkACL.NewReplaceNetworkACLListParams(d.Get("acl_id").(string))
+		p.SetNetworkid(d.Id())
+
+		_, err := cs.NetworkACL.ReplaceNetworkACLList(p)
+		if err != nil {
+			return fmt.Errorf("Error replacing ACL: %s", err)
+		}
+	}
+
 	// Update tags if they have changed
 	if d.HasChange("tags") {
 		err = setTags(cs, d, "network")
@@ -322,7 +331,7 @@ func resourceCloudStackNetworkDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func parseCIDR(d *schema.ResourceData) (map[string]string, error) {
+func parseCIDR(d *schema.ResourceData, specifyiprange bool) (map[string]string, error) {
 	m := make(map[string]string, 4)
 
 	cidr := d.Get("cidr").(string)
@@ -344,13 +353,13 @@ func parseCIDR(d *schema.ResourceData) (map[string]string, error) {
 
 	if startip, ok := d.GetOk("startip"); ok {
 		m["startip"] = startip.(string)
-	} else {
+	} else if specifyiprange {
 		m["startip"] = fmt.Sprintf("%d.%d.%d.%d", sub[0], sub[1], sub[2], sub[3]+2)
 	}
 
 	if endip, ok := d.GetOk("endip"); ok {
 		m["endip"] = endip.(string)
-	} else {
+	} else if specifyiprange {
 		m["endip"] = fmt.Sprintf("%d.%d.%d.%d",
 			sub[0]+(0xff-msk[0]), sub[1]+(0xff-msk[1]), sub[2]+(0xff-msk[2]), sub[3]+(0xff-msk[3]-1))
 	}

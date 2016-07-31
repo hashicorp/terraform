@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ func (s *NATService) NewEnableStaticNatParams(ipaddressid string, virtualmachine
 	return p
 }
 
-// Enables static nat for given ip address
+// Enables static NAT for given IP address
 func (s *NATService) EnableStaticNat(p *EnableStaticNatParams) (*EnableStaticNatResponse, error) {
 	resp, err := s.cs.newRequest("enableStaticNat", p.toURLValues())
 	if err != nil {
@@ -202,7 +202,7 @@ func (s *NATService) NewCreateIpForwardingRuleParams(ipaddressid string, protoco
 	return p
 }
 
-// Creates an ip forwarding rule
+// Creates an IP forwarding rule
 func (s *NATService) CreateIpForwardingRule(p *CreateIpForwardingRuleParams) (*CreateIpForwardingRuleResponse, error) {
 	resp, err := s.cs.newRequest("createIpForwardingRule", p.toURLValues())
 	if err != nil {
@@ -300,7 +300,7 @@ func (s *NATService) NewDeleteIpForwardingRuleParams(id string) *DeleteIpForward
 	return p
 }
 
-// Deletes an ip forwarding rule
+// Deletes an IP forwarding rule
 func (s *NATService) DeleteIpForwardingRule(p *DeleteIpForwardingRuleParams) (*DeleteIpForwardingRuleResponse, error) {
 	resp, err := s.cs.newRequest("deleteIpForwardingRule", p.toURLValues())
 	if err != nil {
@@ -481,11 +481,17 @@ func (s *NATService) NewListIpForwardingRulesParams() *ListIpForwardingRulesPara
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NATService) GetIpForwardingRuleByID(id string) (*IpForwardingRule, int, error) {
+func (s *NATService) GetIpForwardingRuleByID(id string, opts ...OptionFunc) (*IpForwardingRule, int, error) {
 	p := &ListIpForwardingRulesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListIpForwardingRules(p)
 	if err != nil {
@@ -498,21 +504,6 @@ func (s *NATService) GetIpForwardingRuleByID(id string) (*IpForwardingRule, int,
 	}
 
 	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListIpForwardingRules(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
-	}
-
-	if l.Count == 0 {
 		return nil, l.Count, fmt.Errorf("No match found for %s: %+v", id, l)
 	}
 
@@ -522,7 +513,7 @@ func (s *NATService) GetIpForwardingRuleByID(id string) (*IpForwardingRule, int,
 	return nil, l.Count, fmt.Errorf("There is more then one result for IpForwardingRule UUID: %s!", id)
 }
 
-// List the ip forwarding rules
+// List the IP forwarding rules
 func (s *NATService) ListIpForwardingRules(p *ListIpForwardingRulesParams) (*ListIpForwardingRulesResponse, error) {
 	resp, err := s.cs.newRequest("listIpForwardingRules", p.toURLValues())
 	if err != nil {
@@ -604,7 +595,7 @@ func (s *NATService) NewDisableStaticNatParams(ipaddressid string) *DisableStati
 	return p
 }
 
-// Disables static rule for given ip address
+// Disables static rule for given IP address
 func (s *NATService) DisableStaticNat(p *DisableStaticNatParams) (*DisableStaticNatResponse, error) {
 	resp, err := s.cs.newRequest("disableStaticNat", p.toURLValues())
 	if err != nil {

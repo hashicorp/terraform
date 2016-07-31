@@ -1,4 +1,7 @@
 module "foo" {
     source = "./foo"
-    nodes = [1,2,3]
+    nodes = {
+        key1 = "value1"
+        key2 = "value2"
+    }
 }

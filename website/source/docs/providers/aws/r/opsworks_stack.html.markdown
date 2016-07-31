@@ -37,6 +37,7 @@ The following arguments are supported:
 * `service_role_arn` - (Required) The ARN of an IAM role that the OpsWorks service will act as.
 * `default_instance_profile_arn` - (Required) The ARN of an IAM Instance Profile that created instances
   will have by default.
+* `agent_version` - (Optional) If set to `"LATEST"`, OpsWorks will automatically install the latest version.
 * `berkshelf_version` - (Optional) If `manage_berkshelf` is enabled, the version of Berkshelf to use.
 * `color` - (Optional) Color to paint next to the stack's resources in the OpsWorks console.
 * `default_availability_zone` - (Optional) Name of the availability zone where instances will be created
@@ -59,6 +60,7 @@ The following arguments are supported:
 * `use_opsworks_security_groups` - (Optional) Boolean value controlling whether the standard OpsWorks
   security groups apply to created instances.
 * `vpc_id` - (Optional) The id of the VPC that this stack belongs to.
+* `custom_json` - (Optional) Custom JSON attributes to apply to the entire stack.
 
 The `custom_cookbooks_source` block supports the following arguments:
 

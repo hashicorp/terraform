@@ -33,6 +33,7 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 					// with non-converging diffs.
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: validateElastiCacheClusterId,
 			},
 			"configuration_endpoint": &schema.Schema{
 				Type:     schema.TypeString,

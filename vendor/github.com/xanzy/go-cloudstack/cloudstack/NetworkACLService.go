@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -407,7 +407,7 @@ func (s *NetworkACLService) NewUpdateNetworkACLItemParams(id string) *UpdateNetw
 	return p
 }
 
-// Updates ACL Item with specified Id
+// Updates ACL item with specified ID
 func (s *NetworkACLService) UpdateNetworkACLItem(p *UpdateNetworkACLItemParams) (*UpdateNetworkACLItemResponse, error) {
 	resp, err := s.cs.newRequest("updateNetworkACLItem", p.toURLValues())
 	if err != nil {
@@ -502,7 +502,7 @@ func (s *NetworkACLService) NewDeleteNetworkACLParams(id string) *DeleteNetworkA
 	return p
 }
 
-// Deletes a Network ACL
+// Deletes a network ACL
 func (s *NetworkACLService) DeleteNetworkACL(p *DeleteNetworkACLParams) (*DeleteNetworkACLResponse, error) {
 	resp, err := s.cs.newRequest("deleteNetworkACL", p.toURLValues())
 	if err != nil {
@@ -744,11 +744,17 @@ func (s *NetworkACLService) NewListNetworkACLsParams() *ListNetworkACLsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkACLService) GetNetworkACLByID(id string) (*NetworkACL, int, error) {
+func (s *NetworkACLService) GetNetworkACLByID(id string, opts ...OptionFunc) (*NetworkACL, int, error) {
 	p := &ListNetworkACLsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListNetworkACLs(p)
 	if err != nil {
@@ -758,21 +764,6 @@ func (s *NetworkACLService) GetNetworkACLByID(id string) (*NetworkACL, int, erro
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListNetworkACLs(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -899,7 +890,7 @@ func (s *NetworkACLService) NewCreateNetworkACLListParams(name string, vpcid str
 	return p
 }
 
-// Creates a Network ACL for the given VPC
+// Creates a network ACL for the given VPC
 func (s *NetworkACLService) CreateNetworkACLList(p *CreateNetworkACLListParams) (*CreateNetworkACLListResponse, error) {
 	resp, err := s.cs.newRequest("createNetworkACLList", p.toURLValues())
 	if err != nil {
@@ -974,7 +965,7 @@ func (s *NetworkACLService) NewDeleteNetworkACLListParams(id string) *DeleteNetw
 	return p
 }
 
-// Deletes a Network ACL
+// Deletes a network ACL
 func (s *NetworkACLService) DeleteNetworkACLList(p *DeleteNetworkACLListParams) (*DeleteNetworkACLListResponse, error) {
 	resp, err := s.cs.newRequest("deleteNetworkACLList", p.toURLValues())
 	if err != nil {
@@ -1063,7 +1054,7 @@ func (s *NetworkACLService) NewReplaceNetworkACLListParams(aclid string) *Replac
 	return p
 }
 
-// Replaces ACL associated with a Network or private gateway
+// Replaces ACL associated with a network or private gateway
 func (s *NetworkACLService) ReplaceNetworkACLList(p *ReplaceNetworkACLListParams) (*ReplaceNetworkACLListResponse, error) {
 	resp, err := s.cs.newRequest("replaceNetworkACLList", p.toURLValues())
 	if err != nil {
@@ -1267,25 +1258,21 @@ func (s *NetworkACLService) NewListNetworkACLListsParams() *ListNetworkACLListsP
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkACLService) GetNetworkACLListID(name string) (string, error) {
+func (s *NetworkACLService) GetNetworkACLListID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListNetworkACLListsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListNetworkACLLists(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListNetworkACLLists(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1307,13 +1294,13 @@ func (s *NetworkACLService) GetNetworkACLListID(name string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkACLService) GetNetworkACLListByName(name string) (*NetworkACLList, int, error) {
-	id, err := s.GetNetworkACLListID(name)
+func (s *NetworkACLService) GetNetworkACLListByName(name string, opts ...OptionFunc) (*NetworkACLList, int, error) {
+	id, err := s.GetNetworkACLListID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetNetworkACLListByID(id)
+	r, count, err := s.GetNetworkACLListByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -1321,11 +1308,17 @@ func (s *NetworkACLService) GetNetworkACLListByName(name string) (*NetworkACLLis
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkACLService) GetNetworkACLListByID(id string) (*NetworkACLList, int, error) {
+func (s *NetworkACLService) GetNetworkACLListByID(id string, opts ...OptionFunc) (*NetworkACLList, int, error) {
 	p := &ListNetworkACLListsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListNetworkACLLists(p)
 	if err != nil {
@@ -1335,21 +1328,6 @@ func (s *NetworkACLService) GetNetworkACLListByID(id string) (*NetworkACLList, i
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListNetworkACLLists(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1444,7 +1422,7 @@ func (s *NetworkACLService) NewUpdateNetworkACLListParams(id string) *UpdateNetw
 	return p
 }
 
-// Updates Network ACL list
+// Updates network ACL list
 func (s *NetworkACLService) UpdateNetworkACLList(p *UpdateNetworkACLListParams) (*UpdateNetworkACLListResponse, error) {
 	resp, err := s.cs.newRequest("updateNetworkACLList", p.toURLValues())
 	if err != nil {

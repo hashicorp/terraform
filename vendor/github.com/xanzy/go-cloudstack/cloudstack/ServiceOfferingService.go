@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -111,6 +111,9 @@ func (p *CreateServiceOfferingParams) toURLValues() url.Values {
 	if v, found := p.p["offerha"]; found {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("offerha", vv)
+	}
+	if v, found := p.p["provisioningtype"]; found {
+		u.Set("provisioningtype", v.(string))
 	}
 	if v, found := p.p["serviceofferingdetails"]; found {
 		i := 0
@@ -300,6 +303,14 @@ func (p *CreateServiceOfferingParams) SetOfferha(v bool) {
 	return
 }
 
+func (p *CreateServiceOfferingParams) SetProvisioningtype(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["provisioningtype"] = v
+	return
+}
+
 func (p *CreateServiceOfferingParams) SetServiceofferingdetails(v map[string]string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -387,6 +398,7 @@ type CreateServiceOfferingResponse struct {
 	Name                      string            `json:"name,omitempty"`
 	Networkrate               int               `json:"networkrate,omitempty"`
 	Offerha                   bool              `json:"offerha,omitempty"`
+	Provisioningtype          string            `json:"provisioningtype,omitempty"`
 	Serviceofferingdetails    map[string]string `json:"serviceofferingdetails,omitempty"`
 	Storagetype               string            `json:"storagetype,omitempty"`
 	Systemvmtype              string            `json:"systemvmtype,omitempty"`
@@ -551,6 +563,7 @@ type UpdateServiceOfferingResponse struct {
 	Name                      string            `json:"name,omitempty"`
 	Networkrate               int               `json:"networkrate,omitempty"`
 	Offerha                   bool              `json:"offerha,omitempty"`
+	Provisioningtype          string            `json:"provisioningtype,omitempty"`
 	Serviceofferingdetails    map[string]string `json:"serviceofferingdetails,omitempty"`
 	Storagetype               string            `json:"storagetype,omitempty"`
 	Systemvmtype              string            `json:"systemvmtype,omitempty"`
@@ -572,12 +585,20 @@ func (p *ListServiceOfferingsParams) toURLValues() url.Values {
 	if v, found := p.p["id"]; found {
 		u.Set("id", v.(string))
 	}
+	if v, found := p.p["isrecursive"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("isrecursive", vv)
+	}
 	if v, found := p.p["issystem"]; found {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("issystem", vv)
 	}
 	if v, found := p.p["keyword"]; found {
 		u.Set("keyword", v.(string))
+	}
+	if v, found := p.p["listall"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("listall", vv)
 	}
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
@@ -615,6 +636,14 @@ func (p *ListServiceOfferingsParams) SetId(v string) {
 	return
 }
 
+func (p *ListServiceOfferingsParams) SetIsrecursive(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["isrecursive"] = v
+	return
+}
+
 func (p *ListServiceOfferingsParams) SetIssystem(v bool) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -628,6 +657,14 @@ func (p *ListServiceOfferingsParams) SetKeyword(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["keyword"] = v
+	return
+}
+
+func (p *ListServiceOfferingsParams) SetListall(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["listall"] = v
 	return
 }
 
@@ -680,11 +717,17 @@ func (s *ServiceOfferingService) NewListServiceOfferingsParams() *ListServiceOff
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ServiceOfferingService) GetServiceOfferingID(name string) (string, error) {
+func (s *ServiceOfferingService) GetServiceOfferingID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListServiceOfferingsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListServiceOfferings(p)
 	if err != nil {
@@ -710,13 +753,13 @@ func (s *ServiceOfferingService) GetServiceOfferingID(name string) (string, erro
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ServiceOfferingService) GetServiceOfferingByName(name string) (*ServiceOffering, int, error) {
-	id, err := s.GetServiceOfferingID(name)
+func (s *ServiceOfferingService) GetServiceOfferingByName(name string, opts ...OptionFunc) (*ServiceOffering, int, error) {
+	id, err := s.GetServiceOfferingID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetServiceOfferingByID(id)
+	r, count, err := s.GetServiceOfferingByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -724,11 +767,17 @@ func (s *ServiceOfferingService) GetServiceOfferingByName(name string) (*Service
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ServiceOfferingService) GetServiceOfferingByID(id string) (*ServiceOffering, int, error) {
+func (s *ServiceOfferingService) GetServiceOfferingByID(id string, opts ...OptionFunc) (*ServiceOffering, int, error) {
 	p := &ListServiceOfferingsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListServiceOfferings(p)
 	if err != nil {
@@ -796,6 +845,7 @@ type ServiceOffering struct {
 	Name                      string            `json:"name,omitempty"`
 	Networkrate               int               `json:"networkrate,omitempty"`
 	Offerha                   bool              `json:"offerha,omitempty"`
+	Provisioningtype          string            `json:"provisioningtype,omitempty"`
 	Serviceofferingdetails    map[string]string `json:"serviceofferingdetails,omitempty"`
 	Storagetype               string            `json:"storagetype,omitempty"`
 	Systemvmtype              string            `json:"systemvmtype,omitempty"`

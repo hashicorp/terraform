@@ -32,6 +32,9 @@ func ignoreMissingProperty(ref types.ManagedObjectReference, p types.MissingProp
 		case "environmentBrowser":
 			// See https://github.com/vmware/govmomi/pull/242
 			return true
+		case "alarmActionsEnabled":
+			// Seen with vApp child VM
+			return true
 		}
 	}
 

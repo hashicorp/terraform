@@ -403,7 +403,7 @@ func resourceAwsElasticSearchDomainDelete(d *schema.ResourceData, meta interface
 	}
 
 	log.Printf("[DEBUG] Waiting for ElasticSearch domain %q to be deleted", d.Get("domain_name").(string))
-	err = resource.Retry(15*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(30*time.Minute, func() *resource.RetryError {
 		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
 			DomainName: aws.String(d.Get("domain_name").(string)),
 		})

@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,14 +17,16 @@ func TestAccAWSVpcEndpoint_basic(t *testing.T) {
 	var endpoint ec2.VpcEndpoint
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVpcEndpointDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpc_endpoint.second-private-s3",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpcEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccVpcEndpointWithRouteTableAndPolicyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcEndpointExists("aws_vpc_endpoint.second-private-s3", &endpoint),
+					testAccCheckVpcEndpointPrefixListAvailable("aws_vpc_endpoint.second-private-s3"),
 				),
 			},
 		},
@@ -35,9 +38,10 @@ func TestAccAWSVpcEndpoint_withRouteTableAndPolicy(t *testing.T) {
 	var routeTable ec2.RouteTable
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVpcEndpointDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpc_endpoint.second-private-s3",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpcEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccVpcEndpointWithRouteTableAndPolicyConfig,
@@ -111,6 +115,25 @@ func testAccCheckVpcEndpointExists(n string, endpoint *ec2.VpcEndpoint) resource
 		}
 
 		*endpoint = *resp.VpcEndpoints[0]
+
+		return nil
+	}
+}
+
+func testAccCheckVpcEndpointPrefixListAvailable(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		prefixListID := rs.Primary.Attributes["prefix_list_id"]
+		if prefixListID == "" {
+			return fmt.Errorf("Prefix list ID not available")
+		}
+		if !strings.HasPrefix(prefixListID, "pl") {
+			return fmt.Errorf("Prefix list ID does not appear to be a valid value: '%s'", prefixListID)
+		}
 
 		return nil
 	}

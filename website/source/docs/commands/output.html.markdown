@@ -13,13 +13,16 @@ an output variable from the state file.
 
 ## Usage
 
-Usage: `terraform output [options] NAME`
+Usage: `terraform output [options] [NAME]`
 
-By default, `output` requires only a variable name and looks in the
-current directory for the state file to query.
+With no additional arguments, `output` will display all the outputs for the root module.
+If an output `NAME` is specified, only the value of that output is printed.
 
 The command-line flags are all optional. The list of available flags are:
 
+* `-json` - If specified, the outputs are formatted as a JSON object, with
+    a key per output. If `NAME` is specified, only the output specified will be
+    returned. This can be piped into tools such as `jq` for further processing.
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
 * `-module=module_name` - The module path which has needed output.
     By default this is the root path. Other modules can be specified by

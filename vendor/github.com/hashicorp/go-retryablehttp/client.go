@@ -80,6 +80,12 @@ func NewRequest(method, url string, body io.ReadSeeker) (*Request, error) {
 	return &Request{body, httpReq}, nil
 }
 
+// RequestLogHook allows a function to run before each retry. The HTTP
+// request which will be made, and the retry number (0 for the initial
+// request) are available to users. The internal logger is exposed to
+// consumers.
+type RequestLogHook func(*log.Logger, *http.Request, int)
+
 // Client is used to make HTTP requests. It adds additional functionality
 // like automatic retries to tolerate minor outages.
 type Client struct {
@@ -89,6 +95,10 @@ type Client struct {
 	RetryWaitMin time.Duration // Minimum time to wait
 	RetryWaitMax time.Duration // Maximum time to wait
 	RetryMax     int           // Maximum number of retries
+
+	// RequestLogHook allows a user-supplied function to be called
+	// before each retry.
+	RequestLogHook RequestLogHook
 }
 
 // NewClient creates a new Client with default settings.
@@ -114,6 +124,10 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 			if _, err := req.body.Seek(0, 0); err != nil {
 				return nil, fmt.Errorf("failed to seek body: %v", err)
 			}
+		}
+
+		if c.RequestLogHook != nil {
+			c.RequestLogHook(c.Logger, req.Request, i)
 		}
 
 		// Attempt the request

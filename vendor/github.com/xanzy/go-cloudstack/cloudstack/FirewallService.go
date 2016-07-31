@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,56 @@ import (
 	"strconv"
 	"strings"
 )
+
+// Helper function for maintaining backwards compatibility
+func convertFirewallServiceResponse(b []byte) ([]byte, error) {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, err
+	}
+
+	if _, ok := raw["firewallrule"]; ok {
+		return convertFirewallServiceListResponse(b)
+	}
+
+	for _, k := range []string{"endport", "startport"} {
+		if sVal, ok := raw[k].(string); ok {
+			iVal, err := strconv.Atoi(sVal)
+			if err != nil {
+				return nil, err
+			}
+			raw[k] = iVal
+		}
+	}
+
+	return json.Marshal(raw)
+}
+
+// Helper function for maintaining backwards compatibility
+func convertFirewallServiceListResponse(b []byte) ([]byte, error) {
+	var rawList struct {
+		Count         int                      `json:"count"`
+		FirewallRules []map[string]interface{} `json:"firewallrule"`
+	}
+
+	if err := json.Unmarshal(b, &rawList); err != nil {
+		return nil, err
+	}
+
+	for _, r := range rawList.FirewallRules {
+		for _, k := range []string{"endport", "startport"} {
+			if sVal, ok := r[k].(string); ok {
+				iVal, err := strconv.Atoi(sVal)
+				if err != nil {
+					return nil, err
+				}
+				r[k] = iVal
+			}
+		}
+	}
+
+	return json.Marshal(rawList)
+}
 
 type ListPortForwardingRulesParams struct {
 	p map[string]interface{}
@@ -198,11 +248,17 @@ func (s *FirewallService) NewListPortForwardingRulesParams() *ListPortForwarding
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *FirewallService) GetPortForwardingRuleByID(id string) (*PortForwardingRule, int, error) {
+func (s *FirewallService) GetPortForwardingRuleByID(id string, opts ...OptionFunc) (*PortForwardingRule, int, error) {
 	p := &ListPortForwardingRulesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListPortForwardingRules(p)
 	if err != nil {
@@ -212,21 +268,6 @@ func (s *FirewallService) GetPortForwardingRuleByID(id string) (*PortForwardingR
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListPortForwardingRules(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -242,6 +283,11 @@ func (s *FirewallService) GetPortForwardingRuleByID(id string) (*PortForwardingR
 // Lists all port forwarding rules for an IP address.
 func (s *FirewallService) ListPortForwardingRules(p *ListPortForwardingRulesParams) (*ListPortForwardingRulesResponse, error) {
 	resp, err := s.cs.newRequest("listPortForwardingRules", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -460,6 +506,11 @@ func (s *FirewallService) CreatePortForwardingRule(p *CreatePortForwardingRulePa
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r CreatePortForwardingRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -476,6 +527,11 @@ func (s *FirewallService) CreatePortForwardingRule(p *CreatePortForwardingRulePa
 		}
 
 		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err = convertFirewallServiceResponse(b)
 		if err != nil {
 			return nil, err
 		}
@@ -558,6 +614,11 @@ func (s *FirewallService) DeletePortForwardingRule(p *DeletePortForwardingRulePa
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r DeletePortForwardingRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -570,6 +631,11 @@ func (s *FirewallService) DeletePortForwardingRule(p *DeletePortForwardingRulePa
 			if err == AsyncTimeoutErr {
 				return &r, err
 			}
+			return nil, err
+		}
+
+		b, err = convertFirewallServiceResponse(b)
+		if err != nil {
 			return nil, err
 		}
 
@@ -605,23 +671,15 @@ func (p *UpdatePortForwardingRuleParams) toURLValues() url.Values {
 	if v, found := p.p["id"]; found {
 		u.Set("id", v.(string))
 	}
-	if v, found := p.p["ipaddressid"]; found {
-		u.Set("ipaddressid", v.(string))
-	}
-	if v, found := p.p["privateip"]; found {
-		u.Set("privateip", v.(string))
-	}
 	if v, found := p.p["privateport"]; found {
-		u.Set("privateport", v.(string))
-	}
-	if v, found := p.p["protocol"]; found {
-		u.Set("protocol", v.(string))
-	}
-	if v, found := p.p["publicport"]; found {
-		u.Set("publicport", v.(string))
+		vv := strconv.Itoa(v.(int))
+		u.Set("privateport", vv)
 	}
 	if v, found := p.p["virtualmachineid"]; found {
 		u.Set("virtualmachineid", v.(string))
+	}
+	if v, found := p.p["vmguestip"]; found {
+		u.Set("vmguestip", v.(string))
 	}
 	return u
 }
@@ -650,43 +708,11 @@ func (p *UpdatePortForwardingRuleParams) SetId(v string) {
 	return
 }
 
-func (p *UpdatePortForwardingRuleParams) SetIpaddressid(v string) {
-	if p.p == nil {
-		p.p = make(map[string]interface{})
-	}
-	p.p["ipaddressid"] = v
-	return
-}
-
-func (p *UpdatePortForwardingRuleParams) SetPrivateip(v string) {
-	if p.p == nil {
-		p.p = make(map[string]interface{})
-	}
-	p.p["privateip"] = v
-	return
-}
-
-func (p *UpdatePortForwardingRuleParams) SetPrivateport(v string) {
+func (p *UpdatePortForwardingRuleParams) SetPrivateport(v int) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
 	}
 	p.p["privateport"] = v
-	return
-}
-
-func (p *UpdatePortForwardingRuleParams) SetProtocol(v string) {
-	if p.p == nil {
-		p.p = make(map[string]interface{})
-	}
-	p.p["protocol"] = v
-	return
-}
-
-func (p *UpdatePortForwardingRuleParams) SetPublicport(v string) {
-	if p.p == nil {
-		p.p = make(map[string]interface{})
-	}
-	p.p["publicport"] = v
 	return
 }
 
@@ -695,6 +721,14 @@ func (p *UpdatePortForwardingRuleParams) SetVirtualmachineid(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["virtualmachineid"] = v
+	return
+}
+
+func (p *UpdatePortForwardingRuleParams) SetVmguestip(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["vmguestip"] = v
 	return
 }
 
@@ -707,9 +741,14 @@ func (s *FirewallService) NewUpdatePortForwardingRuleParams(id string) *UpdatePo
 	return p
 }
 
-// Updates a port forwarding rule.  Only the private port and the virtual machine can be updated.
+// Updates a port forwarding rule. Only the private port and the virtual machine can be updated.
 func (s *FirewallService) UpdatePortForwardingRule(p *UpdatePortForwardingRuleParams) (*UpdatePortForwardingRuleResponse, error) {
 	resp, err := s.cs.newRequest("updatePortForwardingRule", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -730,6 +769,11 @@ func (s *FirewallService) UpdatePortForwardingRule(p *UpdatePortForwardingRulePa
 		}
 
 		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err = convertFirewallServiceResponse(b)
 		if err != nil {
 			return nil, err
 		}
@@ -900,9 +944,14 @@ func (s *FirewallService) NewCreateFirewallRuleParams(ipaddressid string, protoc
 	return p
 }
 
-// Creates a firewall rule for a given ip address
+// Creates a firewall rule for a given IP address
 func (s *FirewallService) CreateFirewallRule(p *CreateFirewallRuleParams) (*CreateFirewallRuleResponse, error) {
 	resp, err := s.cs.newRequest("createFirewallRule", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -927,6 +976,11 @@ func (s *FirewallService) CreateFirewallRule(p *CreateFirewallRuleParams) (*Crea
 			return nil, err
 		}
 
+		b, err = convertFirewallServiceResponse(b)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := json.Unmarshal(b, &r); err != nil {
 			return nil, err
 		}
@@ -937,7 +991,7 @@ func (s *FirewallService) CreateFirewallRule(p *CreateFirewallRuleParams) (*Crea
 type CreateFirewallRuleResponse struct {
 	JobID       string `json:"jobid,omitempty"`
 	Cidrlist    string `json:"cidrlist,omitempty"`
-	Endport     string `json:"endport,omitempty"`
+	Endport     int    `json:"endport,omitempty"`
 	Fordisplay  bool   `json:"fordisplay,omitempty"`
 	Icmpcode    int    `json:"icmpcode,omitempty"`
 	Icmptype    int    `json:"icmptype,omitempty"`
@@ -946,7 +1000,7 @@ type CreateFirewallRuleResponse struct {
 	Ipaddressid string `json:"ipaddressid,omitempty"`
 	Networkid   string `json:"networkid,omitempty"`
 	Protocol    string `json:"protocol,omitempty"`
-	Startport   string `json:"startport,omitempty"`
+	Startport   int    `json:"startport,omitempty"`
 	State       string `json:"state,omitempty"`
 	Tags        []struct {
 		Account      string `json:"account,omitempty"`
@@ -1001,6 +1055,11 @@ func (s *FirewallService) DeleteFirewallRule(p *DeleteFirewallRuleParams) (*Dele
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r DeleteFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1013,6 +1072,11 @@ func (s *FirewallService) DeleteFirewallRule(p *DeleteFirewallRuleParams) (*Dele
 			if err == AsyncTimeoutErr {
 				return &r, err
 			}
+			return nil, err
+		}
+
+		b, err = convertFirewallServiceResponse(b)
+		if err != nil {
 			return nil, err
 		}
 
@@ -1203,11 +1267,17 @@ func (s *FirewallService) NewListFirewallRulesParams() *ListFirewallRulesParams 
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *FirewallService) GetFirewallRuleByID(id string) (*FirewallRule, int, error) {
+func (s *FirewallService) GetFirewallRuleByID(id string, opts ...OptionFunc) (*FirewallRule, int, error) {
 	p := &ListFirewallRulesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListFirewallRules(p)
 	if err != nil {
@@ -1217,21 +1287,6 @@ func (s *FirewallService) GetFirewallRuleByID(id string) (*FirewallRule, int, er
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListFirewallRules(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1251,6 +1306,11 @@ func (s *FirewallService) ListFirewallRules(p *ListFirewallRulesParams) (*ListFi
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r ListFirewallRulesResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1265,7 +1325,7 @@ type ListFirewallRulesResponse struct {
 
 type FirewallRule struct {
 	Cidrlist    string `json:"cidrlist,omitempty"`
-	Endport     string `json:"endport,omitempty"`
+	Endport     int    `json:"endport,omitempty"`
 	Fordisplay  bool   `json:"fordisplay,omitempty"`
 	Icmpcode    int    `json:"icmpcode,omitempty"`
 	Icmptype    int    `json:"icmptype,omitempty"`
@@ -1274,7 +1334,7 @@ type FirewallRule struct {
 	Ipaddressid string `json:"ipaddressid,omitempty"`
 	Networkid   string `json:"networkid,omitempty"`
 	Protocol    string `json:"protocol,omitempty"`
-	Startport   string `json:"startport,omitempty"`
+	Startport   int    `json:"startport,omitempty"`
 	State       string `json:"state,omitempty"`
 	Tags        []struct {
 		Account      string `json:"account,omitempty"`
@@ -1352,6 +1412,11 @@ func (s *FirewallService) UpdateFirewallRule(p *UpdateFirewallRuleParams) (*Upda
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r UpdateFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1372,6 +1437,11 @@ func (s *FirewallService) UpdateFirewallRule(p *UpdateFirewallRuleParams) (*Upda
 			return nil, err
 		}
 
+		b, err = convertFirewallServiceResponse(b)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := json.Unmarshal(b, &r); err != nil {
 			return nil, err
 		}
@@ -1382,7 +1452,7 @@ func (s *FirewallService) UpdateFirewallRule(p *UpdateFirewallRuleParams) (*Upda
 type UpdateFirewallRuleResponse struct {
 	JobID       string `json:"jobid,omitempty"`
 	Cidrlist    string `json:"cidrlist,omitempty"`
-	Endport     string `json:"endport,omitempty"`
+	Endport     int    `json:"endport,omitempty"`
 	Fordisplay  bool   `json:"fordisplay,omitempty"`
 	Icmpcode    int    `json:"icmpcode,omitempty"`
 	Icmptype    int    `json:"icmptype,omitempty"`
@@ -1391,7 +1461,7 @@ type UpdateFirewallRuleResponse struct {
 	Ipaddressid string `json:"ipaddressid,omitempty"`
 	Networkid   string `json:"networkid,omitempty"`
 	Protocol    string `json:"protocol,omitempty"`
-	Startport   string `json:"startport,omitempty"`
+	Startport   int    `json:"startport,omitempty"`
 	State       string `json:"state,omitempty"`
 	Tags        []struct {
 		Account      string `json:"account,omitempty"`
@@ -1541,6 +1611,11 @@ func (s *FirewallService) CreateEgressFirewallRule(p *CreateEgressFirewallRulePa
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r CreateEgressFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1561,6 +1636,11 @@ func (s *FirewallService) CreateEgressFirewallRule(p *CreateEgressFirewallRulePa
 			return nil, err
 		}
 
+		b, err = convertFirewallServiceResponse(b)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := json.Unmarshal(b, &r); err != nil {
 			return nil, err
 		}
@@ -1571,7 +1651,7 @@ func (s *FirewallService) CreateEgressFirewallRule(p *CreateEgressFirewallRulePa
 type CreateEgressFirewallRuleResponse struct {
 	JobID       string `json:"jobid,omitempty"`
 	Cidrlist    string `json:"cidrlist,omitempty"`
-	Endport     string `json:"endport,omitempty"`
+	Endport     int    `json:"endport,omitempty"`
 	Fordisplay  bool   `json:"fordisplay,omitempty"`
 	Icmpcode    int    `json:"icmpcode,omitempty"`
 	Icmptype    int    `json:"icmptype,omitempty"`
@@ -1580,7 +1660,7 @@ type CreateEgressFirewallRuleResponse struct {
 	Ipaddressid string `json:"ipaddressid,omitempty"`
 	Networkid   string `json:"networkid,omitempty"`
 	Protocol    string `json:"protocol,omitempty"`
-	Startport   string `json:"startport,omitempty"`
+	Startport   int    `json:"startport,omitempty"`
 	State       string `json:"state,omitempty"`
 	Tags        []struct {
 		Account      string `json:"account,omitempty"`
@@ -1628,9 +1708,14 @@ func (s *FirewallService) NewDeleteEgressFirewallRuleParams(id string) *DeleteEg
 	return p
 }
 
-// Deletes an ggress firewall rule
+// Deletes an egress firewall rule
 func (s *FirewallService) DeleteEgressFirewallRule(p *DeleteEgressFirewallRuleParams) (*DeleteEgressFirewallRuleResponse, error) {
 	resp, err := s.cs.newRequest("deleteEgressFirewallRule", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -1647,6 +1732,11 @@ func (s *FirewallService) DeleteEgressFirewallRule(p *DeleteEgressFirewallRulePa
 			if err == AsyncTimeoutErr {
 				return &r, err
 			}
+			return nil, err
+		}
+
+		b, err = convertFirewallServiceResponse(b)
+		if err != nil {
 			return nil, err
 		}
 
@@ -1685,9 +1775,6 @@ func (p *ListEgressFirewallRulesParams) toURLValues() url.Values {
 	if v, found := p.p["id"]; found {
 		u.Set("id", v.(string))
 	}
-	if v, found := p.p["id"]; found {
-		u.Set("id", v.(string))
-	}
 	if v, found := p.p["ipaddressid"]; found {
 		u.Set("ipaddressid", v.(string))
 	}
@@ -1701,9 +1788,6 @@ func (p *ListEgressFirewallRulesParams) toURLValues() url.Values {
 	if v, found := p.p["listall"]; found {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("listall", vv)
-	}
-	if v, found := p.p["networkid"]; found {
-		u.Set("networkid", v.(string))
 	}
 	if v, found := p.p["networkid"]; found {
 		u.Set("networkid", v.(string))
@@ -1843,11 +1927,17 @@ func (s *FirewallService) NewListEgressFirewallRulesParams() *ListEgressFirewall
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *FirewallService) GetEgressFirewallRuleByID(id string) (*EgressFirewallRule, int, error) {
+func (s *FirewallService) GetEgressFirewallRuleByID(id string, opts ...OptionFunc) (*EgressFirewallRule, int, error) {
 	p := &ListEgressFirewallRulesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListEgressFirewallRules(p)
 	if err != nil {
@@ -1860,21 +1950,6 @@ func (s *FirewallService) GetEgressFirewallRuleByID(id string) (*EgressFirewallR
 	}
 
 	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListEgressFirewallRules(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
-	}
-
-	if l.Count == 0 {
 		return nil, l.Count, fmt.Errorf("No match found for %s: %+v", id, l)
 	}
 
@@ -1884,9 +1959,14 @@ func (s *FirewallService) GetEgressFirewallRuleByID(id string) (*EgressFirewallR
 	return nil, l.Count, fmt.Errorf("There is more then one result for EgressFirewallRule UUID: %s!", id)
 }
 
-// Lists all egress firewall rules for network id.
+// Lists all egress firewall rules for network ID.
 func (s *FirewallService) ListEgressFirewallRules(p *ListEgressFirewallRulesParams) (*ListEgressFirewallRulesResponse, error) {
 	resp, err := s.cs.newRequest("listEgressFirewallRules", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -1905,7 +1985,7 @@ type ListEgressFirewallRulesResponse struct {
 
 type EgressFirewallRule struct {
 	Cidrlist    string `json:"cidrlist,omitempty"`
-	Endport     string `json:"endport,omitempty"`
+	Endport     int    `json:"endport,omitempty"`
 	Fordisplay  bool   `json:"fordisplay,omitempty"`
 	Icmpcode    int    `json:"icmpcode,omitempty"`
 	Icmptype    int    `json:"icmptype,omitempty"`
@@ -1914,7 +1994,7 @@ type EgressFirewallRule struct {
 	Ipaddressid string `json:"ipaddressid,omitempty"`
 	Networkid   string `json:"networkid,omitempty"`
 	Protocol    string `json:"protocol,omitempty"`
-	Startport   string `json:"startport,omitempty"`
+	Startport   int    `json:"startport,omitempty"`
 	State       string `json:"state,omitempty"`
 	Tags        []struct {
 		Account      string `json:"account,omitempty"`
@@ -1992,6 +2072,11 @@ func (s *FirewallService) UpdateEgressFirewallRule(p *UpdateEgressFirewallRulePa
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r UpdateEgressFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2012,6 +2097,11 @@ func (s *FirewallService) UpdateEgressFirewallRule(p *UpdateEgressFirewallRulePa
 			return nil, err
 		}
 
+		b, err = convertFirewallServiceResponse(b)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := json.Unmarshal(b, &r); err != nil {
 			return nil, err
 		}
@@ -2022,7 +2112,7 @@ func (s *FirewallService) UpdateEgressFirewallRule(p *UpdateEgressFirewallRulePa
 type UpdateEgressFirewallRuleResponse struct {
 	JobID       string `json:"jobid,omitempty"`
 	Cidrlist    string `json:"cidrlist,omitempty"`
-	Endport     string `json:"endport,omitempty"`
+	Endport     int    `json:"endport,omitempty"`
 	Fordisplay  bool   `json:"fordisplay,omitempty"`
 	Icmpcode    int    `json:"icmpcode,omitempty"`
 	Icmptype    int    `json:"icmptype,omitempty"`
@@ -2031,7 +2121,7 @@ type UpdateEgressFirewallRuleResponse struct {
 	Ipaddressid string `json:"ipaddressid,omitempty"`
 	Networkid   string `json:"networkid,omitempty"`
 	Protocol    string `json:"protocol,omitempty"`
-	Startport   string `json:"startport,omitempty"`
+	Startport   int    `json:"startport,omitempty"`
 	State       string `json:"state,omitempty"`
 	Tags        []struct {
 		Account      string `json:"account,omitempty"`
@@ -2134,6 +2224,11 @@ func (s *FirewallService) AddPaloAltoFirewall(p *AddPaloAltoFirewallParams) (*Ad
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r AddPaloAltoFirewallResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2150,6 +2245,11 @@ func (s *FirewallService) AddPaloAltoFirewall(p *AddPaloAltoFirewallParams) (*Ad
 		}
 
 		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err = convertFirewallServiceResponse(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2220,6 +2320,11 @@ func (s *FirewallService) DeletePaloAltoFirewall(p *DeletePaloAltoFirewallParams
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r DeletePaloAltoFirewallResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2232,6 +2337,11 @@ func (s *FirewallService) DeletePaloAltoFirewall(p *DeletePaloAltoFirewallParams
 			if err == AsyncTimeoutErr {
 				return &r, err
 			}
+			return nil, err
+		}
+
+		b, err = convertFirewallServiceResponse(b)
+		if err != nil {
 			return nil, err
 		}
 
@@ -2299,6 +2409,11 @@ func (s *FirewallService) ConfigurePaloAltoFirewall(p *ConfigurePaloAltoFirewall
 		return nil, err
 	}
 
+	resp, err = convertFirewallServiceResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
 	var r ConfigurePaloAltoFirewallResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2315,6 +2430,11 @@ func (s *FirewallService) ConfigurePaloAltoFirewall(p *ConfigurePaloAltoFirewall
 		}
 
 		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err = convertFirewallServiceResponse(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2426,6 +2546,11 @@ func (s *FirewallService) NewListPaloAltoFirewallsParams() *ListPaloAltoFirewall
 // lists Palo Alto firewall devices in a physical network
 func (s *FirewallService) ListPaloAltoFirewalls(p *ListPaloAltoFirewallsParams) (*ListPaloAltoFirewallsResponse, error) {
 	resp, err := s.cs.newRequest("listPaloAltoFirewalls", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}

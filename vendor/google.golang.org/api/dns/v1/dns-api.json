@@ -1,11 +1,11 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"ye6orv2F-1npMW3u9suM3a7C5Bo/zoueaaoAZQGFJohVmI5skQDTvqg\"",
+ "etag": "\"bRFOOrZKfO9LweMbPqu0kcu6De8/YvTvEjSR_sXxd8XvUihYx8e9Xjo\"",
  "discoveryVersion": "v1",
  "id": "dns:v1",
  "name": "dns",
  "version": "v1",
- "revision": "20150729",
+ "revision": "20160209",
  "title": "Google Cloud DNS API",
  "description": "The Google Cloud DNS API provides services for configuring and serving authoritative DNS records.",
  "ownerDomain": "google.com",
@@ -115,7 +115,7 @@
     },
     "startTime": {
      "type": "string",
-     "description": "The time that this operation was started by the server. This is in RFC3339 text format."
+     "description": "The time that this operation was started by the server (output only). This is in RFC3339 text format."
     },
     "status": {
      "type": "string",

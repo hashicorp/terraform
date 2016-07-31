@@ -28,8 +28,8 @@ func resourceCloudStackDisk() *schema.Resource {
 				Default:  false,
 			},
 
-			"device": &schema.Schema{
-				Type:     schema.TypeString,
+			"device_id": &schema.Schema{
+				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
@@ -51,7 +51,7 @@ func resourceCloudStackDisk() *schema.Resource {
 				Default:  false,
 			},
 
-			"virtual_machine": &schema.Schema{
+			"virtual_machine_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -59,6 +59,7 @@ func resourceCloudStackDisk() *schema.Resource {
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -78,7 +79,8 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	name := d.Get("name").(string)
 
 	// Create a new parameter struct
-	p := cs.Volume.NewCreateVolumeParams(name)
+	p := cs.Volume.NewCreateVolumeParams()
+	p.SetName(name)
 
 	// Retrieve the disk_offering ID
 	diskofferingid, e := retrieveID(cs, "disk_offering", d.Get("disk_offering").(string))
@@ -115,10 +117,10 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	// Set the volume ID and partials
 	d.SetId(r.Id)
 	d.SetPartial("name")
-	d.SetPartial("device")
+	d.SetPartial("device_id")
 	d.SetPartial("disk_offering")
 	d.SetPartial("size")
-	d.SetPartial("virtual_machine")
+	d.SetPartial("virtual_machine_id")
 	d.SetPartial("project")
 	d.SetPartial("zone")
 
@@ -140,7 +142,10 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the volume details
-	v, count, err := cs.Volume.GetVolumeByID(d.Id())
+	v, count, err := cs.Volume.GetVolumeByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			d.SetId("")
@@ -151,7 +156,7 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("name", v.Name)
-	d.Set("attach", v.Attached != "")           // If attached this will contain a timestamp when attached
+	d.Set("attach", v.Attached != "")           // If attached this contains a timestamp when attached
 	d.Set("size", int(v.Size/(1024*1024*1024))) // Needed to get GB's again
 
 	setValueOrID(d, "disk_offering", v.Diskofferingname, v.Diskofferingid)
@@ -159,26 +164,8 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 	setValueOrID(d, "zone", v.Zonename, v.Zoneid)
 
 	if v.Attached != "" {
-		// Get the virtual machine details
-		vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(v.Virtualmachineid)
-		if err != nil {
-			return err
-		}
-
-		// Get the guest OS type details
-		os, _, err := cs.GuestOS.GetOsTypeByID(vm.Guestosid)
-		if err != nil {
-			return err
-		}
-
-		// Get the guest OS category details
-		c, _, err := cs.GuestOS.GetOsCategoryByID(os.Oscategoryid)
-		if err != nil {
-			return err
-		}
-
-		d.Set("device", retrieveDeviceName(v.Deviceid, c.Name))
-		setValueOrID(d, "virtual_machine", v.Vmname, v.Virtualmachineid)
+		d.Set("device_id", int(v.Deviceid))
+		d.Set("virtual_machine_id", v.Virtualmachineid)
 	}
 
 	return nil
@@ -228,9 +215,9 @@ func resourceCloudStackDiskUpdate(d *schema.ResourceData, meta interface{}) erro
 		d.SetPartial("size")
 	}
 
-	// If the device changed, just detach here so we can re-attach the
+	// If the device ID changed, just detach here so we can re-attach the
 	// volume at the end of this function
-	if d.HasChange("device") || d.HasChange("virtual_machine") {
+	if d.HasChange("device_id") || d.HasChange("virtual_machine") {
 		// Detach the volume
 		if err := resourceCloudStackDiskDetach(d, meta); err != nil {
 			return fmt.Errorf("Error detaching disk %s from virtual machine: %s", name, err)
@@ -246,8 +233,8 @@ func resourceCloudStackDiskUpdate(d *schema.ResourceData, meta interface{}) erro
 
 		// Set the additional partials
 		d.SetPartial("attach")
-		d.SetPartial("device")
-		d.SetPartial("virtual_machine")
+		d.SetPartial("device_id")
+		d.SetPartial("virtual_machine_id")
 	} else {
 		// Detach the volume
 		if err := resourceCloudStackDiskDetach(d, meta); err != nil {
@@ -288,38 +275,27 @@ func resourceCloudStackDiskDelete(d *schema.ResourceData, meta interface{}) erro
 func resourceCloudStackDiskAttach(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// First check if the disk isn't already attached
-	if attached, err := isAttached(cs, d.Id()); err != nil || attached {
-		return err
-	}
-
-	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(cs, "virtual_machine", d.Get("virtual_machine").(string))
-	if e != nil {
-		return e.Error()
-	}
-
-	// Create a new parameter struct
-	p := cs.Volume.NewAttachVolumeParams(d.Id(), virtualmachineid)
-
-	if device, ok := d.GetOk("device"); ok {
-		// Retrieve the device ID
-		deviceid := retrieveDeviceID(device.(string))
-		if deviceid == -1 {
-			return fmt.Errorf("Device %s is not a valid device", device.(string))
+	if virtualmachineid, ok := d.GetOk("virtual_machine_id"); ok {
+		// First check if the disk isn't already attached
+		if attached, err := isAttached(d, meta); err != nil || attached {
+			return err
 		}
 
-		// Set the device ID
-		p.SetDeviceid(deviceid)
-	}
+		// Create a new parameter struct
+		p := cs.Volume.NewAttachVolumeParams(d.Id(), virtualmachineid.(string))
 
-	// Attach the new volume
-	r, err := Retry(4, retryableAttachVolumeFunc(cs, p))
-	if err != nil {
-		return err
-	}
+		if deviceid, ok := d.GetOk("device_id"); ok {
+			p.SetDeviceid(int64(deviceid.(int)))
+		}
 
-	d.SetId(r.(*cloudstack.AttachVolumeResponse).Id)
+		// Attach the new volume
+		r, err := Retry(10, retryableAttachVolumeFunc(cs, p))
+		if err != nil {
+			return fmt.Errorf("Error attaching volume to VM: %s", err)
+		}
+
+		d.SetId(r.(*cloudstack.AttachVolumeResponse).Id)
+	}
 
 	return nil
 }
@@ -328,7 +304,7 @@ func resourceCloudStackDiskDetach(d *schema.ResourceData, meta interface{}) erro
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Check if the volume is actually attached, before detaching
-	if attached, err := isAttached(cs, d.Id()); err != nil || !attached {
+	if attached, err := isAttached(d, meta); err != nil || !attached {
 		return err
 	}
 
@@ -339,41 +315,43 @@ func resourceCloudStackDiskDetach(d *schema.ResourceData, meta interface{}) erro
 	p.SetId(d.Id())
 
 	// Detach the currently attached volume
-	if _, err := cs.Volume.DetachVolume(p); err != nil {
-		// Retrieve the virtual_machine ID
-		virtualmachineid, e := retrieveID(cs, "virtual_machine", d.Get("virtual_machine").(string))
-		if e != nil {
-			return e.Error()
-		}
+	_, err := cs.Volume.DetachVolume(p)
+	if err != nil {
+		if virtualmachineid, ok := d.GetOk("virtual_machine_id"); ok {
+			// Create a new parameter struct
+			pd := cs.VirtualMachine.NewStopVirtualMachineParams(virtualmachineid.(string))
 
-		// Create a new parameter struct
-		pd := cs.VirtualMachine.NewStopVirtualMachineParams(virtualmachineid)
+			// Stop the virtual machine in order to be able to detach the disk
+			if _, err := cs.VirtualMachine.StopVirtualMachine(pd); err != nil {
+				return err
+			}
 
-		// Stop the virtual machine in order to be able to detach the disk
-		if _, err := cs.VirtualMachine.StopVirtualMachine(pd); err != nil {
-			return err
-		}
+			// Try again to detach the currently attached volume
+			if _, err := cs.Volume.DetachVolume(p); err != nil {
+				return err
+			}
 
-		// Try again to detach the currently attached volume
-		if _, err := cs.Volume.DetachVolume(p); err != nil {
-			return err
-		}
+			// Create a new parameter struct
+			pu := cs.VirtualMachine.NewStartVirtualMachineParams(virtualmachineid.(string))
 
-		// Create a new parameter struct
-		pu := cs.VirtualMachine.NewStartVirtualMachineParams(virtualmachineid)
-
-		// Start the virtual machine again
-		if _, err := cs.VirtualMachine.StartVirtualMachine(pu); err != nil {
-			return err
+			// Start the virtual machine again
+			if _, err := cs.VirtualMachine.StartVirtualMachine(pu); err != nil {
+				return err
+			}
 		}
 	}
 
-	return nil
+	return err
 }
 
-func isAttached(cs *cloudstack.CloudStackClient, id string) (bool, error) {
+func isAttached(d *schema.ResourceData, meta interface{}) (bool, error) {
+	cs := meta.(*cloudstack.CloudStackClient)
+
 	// Get the volume details
-	v, _, err := cs.Volume.GetVolumeByID(id)
+	v, _, err := cs.Volume.GetVolumeByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		return false, err
 	}
@@ -390,117 +368,5 @@ func retryableAttachVolumeFunc(
 			return nil, err
 		}
 		return r, nil
-	}
-}
-
-func retrieveDeviceID(device string) int64 {
-	switch device {
-	case "/dev/xvdb", "D:":
-		return 1
-	case "/dev/xvdc", "E:":
-		return 2
-	case "/dev/xvde", "F:":
-		return 4
-	case "/dev/xvdf", "G:":
-		return 5
-	case "/dev/xvdg", "H:":
-		return 6
-	case "/dev/xvdh", "I:":
-		return 7
-	case "/dev/xvdi", "J:":
-		return 8
-	case "/dev/xvdj", "K:":
-		return 9
-	case "/dev/xvdk", "L:":
-		return 10
-	case "/dev/xvdl", "M:":
-		return 11
-	case "/dev/xvdm", "N:":
-		return 12
-	case "/dev/xvdn", "O:":
-		return 13
-	case "/dev/xvdo", "P:":
-		return 14
-	case "/dev/xvdp", "Q:":
-		return 15
-	default:
-		return -1
-	}
-}
-
-func retrieveDeviceName(device int64, os string) string {
-	switch device {
-	case 1:
-		if os == "Windows" {
-			return "D:"
-		}
-		return "/dev/xvdb"
-	case 2:
-		if os == "Windows" {
-			return "E:"
-		}
-		return "/dev/xvdc"
-	case 4:
-		if os == "Windows" {
-			return "F:"
-		}
-		return "/dev/xvde"
-	case 5:
-		if os == "Windows" {
-			return "G:"
-		}
-		return "/dev/xvdf"
-	case 6:
-		if os == "Windows" {
-			return "H:"
-		}
-		return "/dev/xvdg"
-	case 7:
-		if os == "Windows" {
-			return "I:"
-		}
-		return "/dev/xvdh"
-	case 8:
-		if os == "Windows" {
-			return "J:"
-		}
-		return "/dev/xvdi"
-	case 9:
-		if os == "Windows" {
-			return "K:"
-		}
-		return "/dev/xvdj"
-	case 10:
-		if os == "Windows" {
-			return "L:"
-		}
-		return "/dev/xvdk"
-	case 11:
-		if os == "Windows" {
-			return "M:"
-		}
-		return "/dev/xvdl"
-	case 12:
-		if os == "Windows" {
-			return "N:"
-		}
-		return "/dev/xvdm"
-	case 13:
-		if os == "Windows" {
-			return "O:"
-		}
-		return "/dev/xvdn"
-	case 14:
-		if os == "Windows" {
-			return "P:"
-		}
-		return "/dev/xvdo"
-	case 15:
-		if os == "Windows" {
-			return "Q:"
-		}
-		return "/dev/xvdp"
-	default:
-		return "unknown"
 	}
 }

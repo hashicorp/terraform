@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // RefreshCommand is a cli.Command implementation that refreshes the state
@@ -109,7 +111,7 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
-	if outputs := outputsAsString(newState); outputs != "" {
+	if outputs := outputsAsString(newState, terraform.RootModulePath, ctx.Module().Config().Outputs, true); outputs != "" {
 		c.Ui.Output(c.Colorize().Color(outputs))
 	}
 

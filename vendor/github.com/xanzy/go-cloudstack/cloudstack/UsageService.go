@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,6 +41,9 @@ func (p *AddTrafficTypeParams) toURLValues() url.Values {
 	if v, found := p.p["kvmnetworklabel"]; found {
 		u.Set("kvmnetworklabel", v.(string))
 	}
+	if v, found := p.p["ovm3networklabel"]; found {
+		u.Set("ovm3networklabel", v.(string))
+	}
 	if v, found := p.p["physicalnetworkid"]; found {
 		u.Set("physicalnetworkid", v.(string))
 	}
@@ -80,6 +83,14 @@ func (p *AddTrafficTypeParams) SetKvmnetworklabel(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["kvmnetworklabel"] = v
+	return
+}
+
+func (p *AddTrafficTypeParams) SetOvm3networklabel(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ovm3networklabel"] = v
 	return
 }
 
@@ -172,6 +183,7 @@ type AddTrafficTypeResponse struct {
 	Hypervnetworklabel string `json:"hypervnetworklabel,omitempty"`
 	Id                 string `json:"id,omitempty"`
 	Kvmnetworklabel    string `json:"kvmnetworklabel,omitempty"`
+	Ovm3networklabel   string `json:"ovm3networklabel,omitempty"`
 	Physicalnetworkid  string `json:"physicalnetworkid,omitempty"`
 	Traffictype        string `json:"traffictype,omitempty"`
 	Vmwarenetworklabel string `json:"vmwarenetworklabel,omitempty"`
@@ -313,12 +325,18 @@ func (s *UsageService) NewListTrafficTypesParams(physicalnetworkid string) *List
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *UsageService) GetTrafficTypeID(keyword string, physicalnetworkid string) (string, error) {
+func (s *UsageService) GetTrafficTypeID(keyword string, physicalnetworkid string, opts ...OptionFunc) (string, error) {
 	p := &ListTrafficTypesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["keyword"] = keyword
 	p.p["physicalnetworkid"] = physicalnetworkid
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListTrafficTypes(p)
 	if err != nil {
@@ -390,6 +408,9 @@ func (p *UpdateTrafficTypeParams) toURLValues() url.Values {
 	if v, found := p.p["kvmnetworklabel"]; found {
 		u.Set("kvmnetworklabel", v.(string))
 	}
+	if v, found := p.p["ovm3networklabel"]; found {
+		u.Set("ovm3networklabel", v.(string))
+	}
 	if v, found := p.p["vmwarenetworklabel"]; found {
 		u.Set("vmwarenetworklabel", v.(string))
 	}
@@ -420,6 +441,14 @@ func (p *UpdateTrafficTypeParams) SetKvmnetworklabel(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["kvmnetworklabel"] = v
+	return
+}
+
+func (p *UpdateTrafficTypeParams) SetOvm3networklabel(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ovm3networklabel"] = v
 	return
 }
 
@@ -487,6 +516,7 @@ type UpdateTrafficTypeResponse struct {
 	Hypervnetworklabel string `json:"hypervnetworklabel,omitempty"`
 	Id                 string `json:"id,omitempty"`
 	Kvmnetworklabel    string `json:"kvmnetworklabel,omitempty"`
+	Ovm3networklabel   string `json:"ovm3networklabel,omitempty"`
 	Physicalnetworkid  string `json:"physicalnetworkid,omitempty"`
 	Traffictype        string `json:"traffictype,omitempty"`
 	Vmwarenetworklabel string `json:"vmwarenetworklabel,omitempty"`
@@ -699,6 +729,9 @@ func (p *ListUsageRecordsParams) toURLValues() url.Values {
 		vv := strconv.FormatInt(v.(int64), 10)
 		u.Set("type", vv)
 	}
+	if v, found := p.p["usageid"]; found {
+		u.Set("usageid", v.(string))
+	}
 	return u
 }
 
@@ -779,6 +812,14 @@ func (p *ListUsageRecordsParams) SetType(v int64) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["usageType"] = v
+	return
+}
+
+func (p *ListUsageRecordsParams) SetUsageid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["usageid"] = v
 	return
 }
 
@@ -884,6 +925,58 @@ type ListUsageTypesResponse struct {
 type UsageType struct {
 	Description string `json:"description,omitempty"`
 	Usagetypeid int    `json:"usagetypeid,omitempty"`
+}
+
+type RemoveRawUsageRecordsParams struct {
+	p map[string]interface{}
+}
+
+func (p *RemoveRawUsageRecordsParams) toURLValues() url.Values {
+	u := url.Values{}
+	if p.p == nil {
+		return u
+	}
+	if v, found := p.p["interval"]; found {
+		vv := strconv.Itoa(v.(int))
+		u.Set("interval", vv)
+	}
+	return u
+}
+
+func (p *RemoveRawUsageRecordsParams) SetInterval(v int) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["interval"] = v
+	return
+}
+
+// You should always use this function to get a new RemoveRawUsageRecordsParams instance,
+// as then you are sure you have configured all required params
+func (s *UsageService) NewRemoveRawUsageRecordsParams(interval int) *RemoveRawUsageRecordsParams {
+	p := &RemoveRawUsageRecordsParams{}
+	p.p = make(map[string]interface{})
+	p.p["interval"] = interval
+	return p
+}
+
+// Safely removes raw records from cloud_usage table
+func (s *UsageService) RemoveRawUsageRecords(p *RemoveRawUsageRecordsParams) (*RemoveRawUsageRecordsResponse, error) {
+	resp, err := s.cs.newRequest("removeRawUsageRecords", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	var r RemoveRawUsageRecordsResponse
+	if err := json.Unmarshal(resp, &r); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+type RemoveRawUsageRecordsResponse struct {
+	Displaytext string `json:"displaytext,omitempty"`
+	Success     string `json:"success,omitempty"`
 }
 
 type AddTrafficMonitorParams struct {

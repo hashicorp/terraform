@@ -107,25 +107,37 @@ type EvalValidateResource struct {
 	Config       **ResourceConfig
 	ResourceName string
 	ResourceType string
+	ResourceMode config.ResourceMode
+
+	// IgnoreWarnings means that warnings will not be passed through. This allows
+	// "just-in-time" passes of validation to continue execution through warnings.
+	IgnoreWarnings bool
 }
 
 func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
-	// TODO: test
-
 	provider := *n.Provider
 	cfg := *n.Config
-	warns, errs := provider.ValidateResource(n.ResourceType, cfg)
+	var warns []string
+	var errs []error
+	// Provider entry point varies depending on resource mode, because
+	// managed resources and data resources are two distinct concepts
+	// in the provider abstraction.
+	switch n.ResourceMode {
+	case config.ManagedResourceMode:
+		warns, errs = provider.ValidateResource(n.ResourceType, cfg)
+	case config.DataResourceMode:
+		warns, errs = provider.ValidateDataSource(n.ResourceType, cfg)
+	}
 
-	// If the resouce name doesn't match the name regular
-	// expression, show a warning.
+	// If the resource name doesn't match the name regular
+	// expression, show an error.
 	if !config.NameRegexp.Match([]byte(n.ResourceName)) {
 		errs = append(errs, fmt.Errorf(
 			"%s: resource name can only contain letters, numbers, "+
-				"dashes, and underscores."+
-				n.ResourceName))
+				"dashes, and underscores.", n.ResourceName))
 	}
 
-	if len(warns) == 0 && len(errs) == 0 {
+	if (len(warns) == 0 || n.IgnoreWarnings) && len(errs) == 0 {
 		return nil, nil
 	}
 

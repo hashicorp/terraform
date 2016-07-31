@@ -120,7 +120,8 @@ func buildStruct(value reflect.Value, buf *bytes.Buffer, tag reflect.StructTag) 
 			name = locName
 		}
 
-		fmt.Fprintf(buf, "%q:", name)
+		writeString(name, buf)
+		buf.WriteString(`:`)
 
 		err := buildAny(member, buf, field.Tag)
 		if err != nil {
@@ -167,7 +168,9 @@ func buildMap(value reflect.Value, buf *bytes.Buffer, tag reflect.StructTag) err
 			buf.WriteByte(',')
 		}
 
-		fmt.Fprintf(buf, "%q:", k)
+		writeString(k.String(), buf)
+		buf.WriteString(`:`)
+
 		buildAny(value.MapIndex(k), buf, "")
 	}
 

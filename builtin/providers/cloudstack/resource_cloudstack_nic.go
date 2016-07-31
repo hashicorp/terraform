@@ -1,7 +1,6 @@
 package cloudstack
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -19,16 +18,8 @@ func resourceCloudStackNIC() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				ForceNew: true,
-			},
-
-			"network": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `network_id` field instead",
 			},
 
 			"ip_address": &schema.Schema{
@@ -38,25 +29,10 @@ func resourceCloudStackNIC() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipaddress": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `ip_address` field instead",
-			},
-
 			"virtual_machine_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				ForceNew: true,
-			},
-
-			"virtual_machine": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `virtual_machine_id` field instead",
 			},
 		},
 	}
@@ -65,56 +41,26 @@ func resourceCloudStackNIC() *schema.Resource {
 func resourceCloudStackNICCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	network, ok := d.GetOk("network_id")
-	if !ok {
-		network, ok = d.GetOk("network")
-	}
-	if !ok {
-		return errors.New("Either `network_id` or [deprecated] `network` must be provided.")
-	}
-
-	// Retrieve the network ID
-	networkid, e := retrieveID(cs, "network", network.(string))
-	if e != nil {
-		return e.Error()
-	}
-
-	virtualmachine, ok := d.GetOk("virtual_machine_id")
-	if !ok {
-		virtualmachine, ok = d.GetOk("virtual_machine")
-	}
-	if !ok {
-		return errors.New(
-			"Either `virtual_machine_id` or [deprecated] `virtual_machine` must be provided.")
-	}
-
-	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(cs, "virtual_machine", virtualmachine.(string))
-	if e != nil {
-		return e.Error()
-	}
-
 	// Create a new parameter struct
-	p := cs.VirtualMachine.NewAddNicToVirtualMachineParams(networkid, virtualmachineid)
+	p := cs.VirtualMachine.NewAddNicToVirtualMachineParams(
+		d.Get("network_id").(string),
+		d.Get("virtual_machine_id").(string),
+	)
 
 	// If there is a ipaddres supplied, add it to the parameter struct
-	ipaddress, ok := d.GetOk("ip_address")
-	if !ok {
-		ipaddress, ok = d.GetOk("ipaddress")
-	}
-	if ok {
+	if ipaddress, ok := d.GetOk("ip_address"); ok {
 		p.SetIpaddress(ipaddress.(string))
 	}
 
 	// Create and attach the new NIC
-	r, err := cs.VirtualMachine.AddNicToVirtualMachine(p)
+	r, err := Retry(10, retryableAddNicFunc(cs, p))
 	if err != nil {
 		return fmt.Errorf("Error creating the new NIC: %s", err)
 	}
 
 	found := false
-	for _, n := range r.Nic {
-		if n.Networkid == networkid {
+	for _, n := range r.(*cloudstack.AddNicToVirtualMachineResponse).Nic {
+		if n.Networkid == d.Get("network_id").(string) {
 			d.SetId(n.Id)
 			found = true
 			break
@@ -122,7 +68,7 @@ func resourceCloudStackNICCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if !found {
-		return fmt.Errorf("Could not find NIC ID for network ID: %s", networkid)
+		return fmt.Errorf("Could not find NIC ID for network ID: %s", d.Get("network_id").(string))
 	}
 
 	return resourceCloudStackNICRead(d, meta)
@@ -131,26 +77,11 @@ func resourceCloudStackNICCreate(d *schema.ResourceData, meta interface{}) error
 func resourceCloudStackNICRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	virtualmachine, ok := d.GetOk("virtual_machine_id")
-	if !ok {
-		virtualmachine, ok = d.GetOk("virtual_machine")
-	}
-	if !ok {
-		return errors.New(
-			"Either `virtual_machine_id` or [deprecated] `virtual_machine` must be provided.")
-	}
-
-	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(cs, "virtual_machine", virtualmachine.(string))
-	if e != nil {
-		return e.Error()
-	}
-
 	// Get the virtual machine details
-	vm, count, err := cs.VirtualMachine.GetVirtualMachineByID(virtualmachineid)
+	vm, count, err := cs.VirtualMachine.GetVirtualMachineByID(d.Get("virtual_machine_id").(string))
 	if err != nil {
 		if count == 0 {
-			log.Printf("[DEBUG] Instance %s does no longer exist", d.Get("virtual_machine").(string))
+			log.Printf("[DEBUG] Instance %s does no longer exist", d.Get("virtual_machine_id").(string))
 			d.SetId("")
 			return nil
 		}
@@ -181,23 +112,11 @@ func resourceCloudStackNICRead(d *schema.ResourceData, meta interface{}) error {
 func resourceCloudStackNICDelete(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	virtualmachine, ok := d.GetOk("virtual_machine_id")
-	if !ok {
-		virtualmachine, ok = d.GetOk("virtual_machine")
-	}
-	if !ok {
-		return errors.New(
-			"Either `virtual_machine_id` or [deprecated] `virtual_machine` must be provided.")
-	}
-
-	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(cs, "virtual_machine", virtualmachine.(string))
-	if e != nil {
-		return e.Error()
-	}
-
 	// Create a new parameter struct
-	p := cs.VirtualMachine.NewRemoveNicFromVirtualMachineParams(d.Id(), virtualmachineid)
+	p := cs.VirtualMachine.NewRemoveNicFromVirtualMachineParams(
+		d.Id(),
+		d.Get("virtual_machine_id").(string),
+	)
 
 	// Remove the NIC
 	_, err := cs.VirtualMachine.RemoveNicFromVirtualMachine(p)
@@ -213,4 +132,14 @@ func resourceCloudStackNICDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	return nil
+}
+
+func retryableAddNicFunc(cs *cloudstack.CloudStackClient, p *cloudstack.AddNicToVirtualMachineParams) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		r, err := cs.VirtualMachine.AddNicToVirtualMachine(p)
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
+	}
 }

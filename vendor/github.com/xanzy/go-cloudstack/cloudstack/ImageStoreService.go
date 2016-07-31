@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -131,6 +131,183 @@ type AddImageStoreResponse struct {
 	Zonename     string   `json:"zonename,omitempty"`
 }
 
+type AddImageStoreS3Params struct {
+	p map[string]interface{}
+}
+
+func (p *AddImageStoreS3Params) toURLValues() url.Values {
+	u := url.Values{}
+	if p.p == nil {
+		return u
+	}
+	if v, found := p.p["accesskey"]; found {
+		u.Set("accesskey", v.(string))
+	}
+	if v, found := p.p["bucket"]; found {
+		u.Set("bucket", v.(string))
+	}
+	if v, found := p.p["connectiontimeout"]; found {
+		vv := strconv.Itoa(v.(int))
+		u.Set("connectiontimeout", vv)
+	}
+	if v, found := p.p["connectionttl"]; found {
+		vv := strconv.Itoa(v.(int))
+		u.Set("connectionttl", vv)
+	}
+	if v, found := p.p["endpoint"]; found {
+		u.Set("endpoint", v.(string))
+	}
+	if v, found := p.p["maxerrorretry"]; found {
+		vv := strconv.Itoa(v.(int))
+		u.Set("maxerrorretry", vv)
+	}
+	if v, found := p.p["s3signer"]; found {
+		u.Set("s3signer", v.(string))
+	}
+	if v, found := p.p["secretkey"]; found {
+		u.Set("secretkey", v.(string))
+	}
+	if v, found := p.p["sockettimeout"]; found {
+		vv := strconv.Itoa(v.(int))
+		u.Set("sockettimeout", vv)
+	}
+	if v, found := p.p["usehttps"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("usehttps", vv)
+	}
+	if v, found := p.p["usetcpkeepalive"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("usetcpkeepalive", vv)
+	}
+	return u
+}
+
+func (p *AddImageStoreS3Params) SetAccesskey(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["accesskey"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetBucket(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["bucket"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetConnectiontimeout(v int) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["connectiontimeout"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetConnectionttl(v int) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["connectionttl"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetEndpoint(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["endpoint"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetMaxerrorretry(v int) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["maxerrorretry"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetS3signer(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["s3signer"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetSecretkey(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["secretkey"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetSockettimeout(v int) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["sockettimeout"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetUsehttps(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["usehttps"] = v
+	return
+}
+
+func (p *AddImageStoreS3Params) SetUsetcpkeepalive(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["usetcpkeepalive"] = v
+	return
+}
+
+// You should always use this function to get a new AddImageStoreS3Params instance,
+// as then you are sure you have configured all required params
+func (s *ImageStoreService) NewAddImageStoreS3Params(accesskey string, bucket string, endpoint string, secretkey string) *AddImageStoreS3Params {
+	p := &AddImageStoreS3Params{}
+	p.p = make(map[string]interface{})
+	p.p["accesskey"] = accesskey
+	p.p["bucket"] = bucket
+	p.p["endpoint"] = endpoint
+	p.p["secretkey"] = secretkey
+	return p
+}
+
+// Adds S3 Image Store
+func (s *ImageStoreService) AddImageStoreS3(p *AddImageStoreS3Params) (*AddImageStoreS3Response, error) {
+	resp, err := s.cs.newRequest("addImageStoreS3", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	var r AddImageStoreS3Response
+	if err := json.Unmarshal(resp, &r); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+type AddImageStoreS3Response struct {
+	Details      []string `json:"details,omitempty"`
+	Id           string   `json:"id,omitempty"`
+	Name         string   `json:"name,omitempty"`
+	Protocol     string   `json:"protocol,omitempty"`
+	Providername string   `json:"providername,omitempty"`
+	Scope        string   `json:"scope,omitempty"`
+	Url          string   `json:"url,omitempty"`
+	Zoneid       string   `json:"zoneid,omitempty"`
+	Zonename     string   `json:"zonename,omitempty"`
+}
+
 type ListImageStoresParams struct {
 	p map[string]interface{}
 }
@@ -242,11 +419,17 @@ func (s *ImageStoreService) NewListImageStoresParams() *ListImageStoresParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ImageStoreService) GetImageStoreID(name string) (string, error) {
+func (s *ImageStoreService) GetImageStoreID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListImageStoresParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListImageStores(p)
 	if err != nil {
@@ -272,13 +455,13 @@ func (s *ImageStoreService) GetImageStoreID(name string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ImageStoreService) GetImageStoreByName(name string) (*ImageStore, int, error) {
-	id, err := s.GetImageStoreID(name)
+func (s *ImageStoreService) GetImageStoreByName(name string, opts ...OptionFunc) (*ImageStore, int, error) {
+	id, err := s.GetImageStoreID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetImageStoreByID(id)
+	r, count, err := s.GetImageStoreByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -286,11 +469,17 @@ func (s *ImageStoreService) GetImageStoreByName(name string) (*ImageStore, int, 
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ImageStoreService) GetImageStoreByID(id string) (*ImageStore, int, error) {
+func (s *ImageStoreService) GetImageStoreByID(id string, opts ...OptionFunc) (*ImageStore, int, error) {
 	p := &ListImageStoresParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListImageStores(p)
 	if err != nil {
@@ -375,7 +564,7 @@ func (s *ImageStoreService) NewDeleteImageStoreParams(id string) *DeleteImageSto
 	return p
 }
 
-// Deletes an image store .
+// Deletes an image store or Secondary Storage.
 func (s *ImageStoreService) DeleteImageStore(p *DeleteImageStoreParams) (*DeleteImageStoreResponse, error) {
 	resp, err := s.cs.newRequest("deleteImageStore", p.toURLValues())
 	if err != nil {
@@ -612,11 +801,17 @@ func (s *ImageStoreService) NewListSecondaryStagingStoresParams() *ListSecondary
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ImageStoreService) GetSecondaryStagingStoreID(name string) (string, error) {
+func (s *ImageStoreService) GetSecondaryStagingStoreID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListSecondaryStagingStoresParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListSecondaryStagingStores(p)
 	if err != nil {
@@ -642,13 +837,13 @@ func (s *ImageStoreService) GetSecondaryStagingStoreID(name string) (string, err
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ImageStoreService) GetSecondaryStagingStoreByName(name string) (*SecondaryStagingStore, int, error) {
-	id, err := s.GetSecondaryStagingStoreID(name)
+func (s *ImageStoreService) GetSecondaryStagingStoreByName(name string, opts ...OptionFunc) (*SecondaryStagingStore, int, error) {
+	id, err := s.GetSecondaryStagingStoreID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetSecondaryStagingStoreByID(id)
+	r, count, err := s.GetSecondaryStagingStoreByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -656,11 +851,17 @@ func (s *ImageStoreService) GetSecondaryStagingStoreByName(name string) (*Second
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ImageStoreService) GetSecondaryStagingStoreByID(id string) (*SecondaryStagingStore, int, error) {
+func (s *ImageStoreService) GetSecondaryStagingStoreByID(id string, opts ...OptionFunc) (*SecondaryStagingStore, int, error) {
 	p := &ListSecondaryStagingStoresParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListSecondaryStagingStores(p)
 	if err != nil {

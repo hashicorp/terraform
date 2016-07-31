@@ -1,0 +1,3 @@
+module "middle" {
+    source = "./middle"
+}

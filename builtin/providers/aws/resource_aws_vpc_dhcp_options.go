@@ -19,6 +19,9 @@ func resourceAwsVpcDhcpOptions() *schema.Resource {
 		Read:   resourceAwsVpcDhcpOptionsRead,
 		Update: resourceAwsVpcDhcpOptionsUpdate,
 		Delete: resourceAwsVpcDhcpOptionsDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"domain_name": &schema.Schema{

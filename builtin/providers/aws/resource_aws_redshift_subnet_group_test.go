@@ -25,6 +25,8 @@ func TestAccAWSRedshiftSubnetGroup_basic(t *testing.T) {
 					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
 					resource.TestCheckResourceAttr(
 						"aws_redshift_subnet_group.foo", "subnet_ids.#", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_subnet_group.foo", "description", "Managed by Terraform"),
 				),
 			},
 		},
@@ -175,7 +177,6 @@ resource "aws_subnet" "bar" {
 
 resource "aws_redshift_subnet_group" "foo" {
 	name = "foo"
-	description = "foo description"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 }
 `
@@ -214,7 +215,6 @@ resource "aws_subnet" "foobar" {
 
 resource "aws_redshift_subnet_group" "foo" {
 	name = "foo"
-	description = "foo description"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}", "${aws_subnet.foobar.id}"]
 }
 `
