@@ -63,6 +63,8 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_storage_table":             resourceArmStorageTable(),
 			"azurerm_subnet":                    resourceArmSubnet(),
 			"azurerm_template_deployment":       resourceArmTemplateDeployment(),
+			"azurerm_traffic_manager_endpoint":  resourceArmTrafficManagerEndpoint(),
+			"azurerm_traffic_manager_profile":   resourceArmTrafficManagerProfile(),
 			"azurerm_virtual_machine":           resourceArmVirtualMachine(),
 			"azurerm_virtual_machine_scale_set": resourceArmVirtualMachineScaleSet(),
 			"azurerm_virtual_network":           resourceArmVirtualNetwork(),
