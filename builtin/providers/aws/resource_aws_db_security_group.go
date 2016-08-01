@@ -159,10 +159,15 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	for _, g := range sg.EC2SecurityGroups {
-		rule := map[string]interface{}{
-			"security_group_name":     *g.EC2SecurityGroupName,
-			"security_group_id":       *g.EC2SecurityGroupId,
-			"security_group_owner_id": *g.EC2SecurityGroupOwnerId,
+		rule := map[string]interface{}{}
+		if g.EC2SecurityGroupId != nil {
+			rule["security_group_id"] = *g.EC2SecurityGroupId
+		}
+		if g.EC2SecurityGroupName != nil {
+			rule["security_group_name"] = *g.EC2SecurityGroupName
+		}
+		if g.EC2SecurityGroupOwnerId != nil {
+			rule["security_group_owner_id"] = *g.EC2SecurityGroupOwnerId
 		}
 		rules.Add(rule)
 	}
