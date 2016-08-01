@@ -20,8 +20,6 @@ variable "aws_region" {
 # Ubuntu Trusty 14.04 LTS (x64)
 # (ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-20160714)
 variable "aws_amis" {
-  type = "map"
-  
   default = {
     eu-west-1 = "ami-ed82e39e"
     us-east-1 = "ami-3bdd502c"
