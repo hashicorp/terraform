@@ -17,12 +17,15 @@ variable "aws_region" {
   default = "us-west-2"
 }
 
-# Ubuntu Precise 12.04 LTS (x64)
+# Ubuntu Trusty 14.04 LTS (x64)
+# (ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-20160714)
 variable "aws_amis" {
+  type = "map"
+  
   default = {
-    eu-west-1 = "ami-b1cf19c6"
-    us-east-1 = "ami-de7ab6b6"
-    us-west-1 = "ami-3f75767a"
-    us-west-2 = "ami-21f78e11"
+    eu-west-1 = "ami-ed82e39e"
+    us-east-1 = "ami-3bdd502c"
+    us-west-1 = "ami-48db9d28"
+    us-west-2 = "ami-d732f0b7"
   }
 }
