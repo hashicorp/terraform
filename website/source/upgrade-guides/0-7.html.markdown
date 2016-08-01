@@ -133,3 +133,72 @@ resource "aws_instance" "example" {
   # ...
 }
 ```
+
+## Migrating to native lists and maps
+
+Terraform 0.7 now supports lists and maps as first-class constructs. Although the patterns commonly used in previous versions still work (excepting any compatibility notes), there are now patterns with cleaner syntax available.
+
+For example, a common pattern for exporting a list of values from a module was to use an output with a `join()` interpolation, like this:
+
+```
+output "private_subnets" {
+  value = "${join(",", aws_subnet.private.*.id)}"
+}
+```
+
+When using the value produced by this output in another module, a corresponding `split()` would be used to retrieve individual elements, often parameterized by `count.index`, for example:
+
+```
+subnet_id = "${element(split(",", var.private_subnets), count.index)}"
+```
+
+Using Terraform 0.7, list values can now be passed between modules directly. The above example can read like this for the output:
+
+```
+output "private_subnets" {
+  value = ["${aws_subnet.private.*.id}"]
+}
+```
+
+And then when passed to another module as a `list` type variable, we can index directly using `[]` syntax:
+
+```
+subnet_id = "${var.private_subnets[count.index]}"
+```
+
+Note that indexing syntax does not wrap around if the extent of a list is reached - for example if you are trying to distribute 10 instances across three private subnets. For this behaviour, `element` can still be used:
+
+```
+subnet_id = "${element(var.private_subnets, count.index)}"
+```
+
+## Map value overrides
+
+Previously, individual elements in a map could be overriden by using a dot notation. For example, if the following variable was declared:
+
+```
+variable "amis" {
+  type = "map"
+  default = {
+    us-east-1 = "ami-123456"
+    us-west-2 = "ami-456789"
+    eu-west-1 = "ami-789123"
+  }
+}
+```
+
+The key "us-west-2" could be overriden using `-var "amis.us-west-2=overriden_value"` (or equivalent in an environment variable or `tfvars` file). The syntax for this has now changed - instead maps from the command line will be merged with the default value, with maps from flags taking precedence. The syntax for overriding individual values is now:
+
+```
+-var 'amis = { us-west-2 = "overriden_value" }'
+```
+
+This will give the map the effective value:
+
+```
+{
+  us-east-1 = "ami-123456"
+  us-west-2 = "overriden_value"
+  eu-west-1 = "ami-789123"
+}
+```
