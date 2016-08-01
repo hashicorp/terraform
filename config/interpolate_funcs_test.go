@@ -113,6 +113,81 @@ func TestInterpolateFuncList(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncMap(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// empty input returns empty map
+			{
+				`${map()}`,
+				map[string]interface{}{},
+				false,
+			},
+
+			// odd args is error
+			{
+				`${map("odd")}`,
+				nil,
+				true,
+			},
+
+			// two args returns map w/ one k/v
+			{
+				`${map("hello", "world")}`,
+				map[string]interface{}{"hello": "world"},
+				false,
+			},
+
+			// four args get two k/v
+			{
+				`${map("hello", "world", "what's", "up?")}`,
+				map[string]interface{}{"hello": "world", "what's": "up?"},
+				false,
+			},
+
+			// map of lists is okay
+			{
+				`${map("hello", list("world"), "what's", list("up?"))}`,
+				map[string]interface{}{
+					"hello":  []interface{}{"world"},
+					"what's": []interface{}{"up?"},
+				},
+				false,
+			},
+
+			// map of maps is okay
+			{
+				`${map("hello", map("there", "world"), "what's", map("really", "up?"))}`,
+				map[string]interface{}{
+					"hello":  map[string]interface{}{"there": "world"},
+					"what's": map[string]interface{}{"really": "up?"},
+				},
+				false,
+			},
+
+			// keys have to be strings
+			{
+				`${map(list("listkey"), "val")}`,
+				nil,
+				true,
+			},
+
+			// types have to match
+			{
+				`${map("some", "strings", "also", list("lists"))}`,
+				nil,
+				true,
+			},
+
+			// duplicate keys are an error
+			{
+				`${map("key", "val", "key", "again")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncCompact(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -135,6 +210,13 @@ func TestInterpolateFuncCompact(t *testing.T) {
 				`${compact(split(",", ""))}`,
 				[]interface{}{},
 				false,
+			},
+
+			// errrors on list of lists
+			{
+				`${compact(list(list("a"), list("b")))}`,
+				nil,
+				true,
 			},
 		},
 	})
@@ -427,6 +509,12 @@ func TestInterpolateFuncDistinct(t *testing.T) {
 				nil,
 				true,
 			},
+			// non-flat list is an error
+			{
+				`${distinct(list(list("a"), list("a")))}`,
+				nil,
+				true,
+			},
 		},
 	})
 }
@@ -590,6 +678,7 @@ func TestInterpolateFuncJoin(t *testing.T) {
 		Vars: map[string]ast.Variable{
 			"var.a_list":        interfaceToVariableSwallowError([]string{"foo"}),
 			"var.a_longer_list": interfaceToVariableSwallowError([]string{"foo", "bar", "baz"}),
+			"var.list_of_lists": interfaceToVariableSwallowError([]interface{}{[]string{"foo"}, []string{"bar"}, []string{"baz"}}),
 		},
 		Cases: []testFunctionCase{
 			{
@@ -608,6 +697,17 @@ func TestInterpolateFuncJoin(t *testing.T) {
 				`${join(".", var.a_longer_list)}`,
 				"foo.bar.baz",
 				false,
+			},
+
+			{
+				`${join(".", var.list_of_lists)}`,
+				nil,
+				true,
+			},
+			{
+				`${join(".", list(list("nested")))}`,
+				nil,
+				true,
 			},
 		},
 	})
@@ -803,6 +903,17 @@ func TestInterpolateFuncLength(t *testing.T) {
 				"0",
 				false,
 			},
+			// Works for maps
+			{
+				`${length(map("k", "v"))}`,
+				"1",
+				false,
+			},
+			{
+				`${length(map("k1", "v1", "k2", "v2"))}`,
+				"2",
+				false,
+			},
 		},
 	})
 }
@@ -928,12 +1039,26 @@ func TestInterpolateFuncSplit(t *testing.T) {
 func TestInterpolateFuncLookup(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
-			"var.foo": ast.Variable{
+			"var.foo": {
 				Type: ast.TypeMap,
 				Value: map[string]ast.Variable{
-					"bar": ast.Variable{
+					"bar": {
 						Type:  ast.TypeString,
 						Value: "baz",
+					},
+				},
+			},
+			"var.map_of_lists": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"bar": {
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{
+								Type:  ast.TypeString,
+								Value: "baz",
+							},
+						},
 					},
 				},
 			},
@@ -969,6 +1094,13 @@ func TestInterpolateFuncLookup(t *testing.T) {
 			// Too many args
 			{
 				`${lookup(var.foo, "bar", "", "abc")}`,
+				nil,
+				true,
+			},
+
+			// Cannot lookup into map of lists
+			{
+				`${lookup(var.map_of_lists, "bar")}`,
 				nil,
 				true,
 			},
@@ -1134,6 +1266,13 @@ func TestInterpolateFuncValues(t *testing.T) {
 				nil,
 				true,
 			},
+
+			// Map of lists
+			{
+				`${values(map("one", list()))}`,
+				nil,
+				true,
+			},
 		},
 	})
 }
@@ -1146,9 +1285,10 @@ func interfaceToVariableSwallowError(input interface{}) ast.Variable {
 func TestInterpolateFuncElement(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
-			"var.a_list":       interfaceToVariableSwallowError([]string{"foo", "baz"}),
-			"var.a_short_list": interfaceToVariableSwallowError([]string{"foo"}),
-			"var.empty_list":   interfaceToVariableSwallowError([]interface{}{}),
+			"var.a_list":        interfaceToVariableSwallowError([]string{"foo", "baz"}),
+			"var.a_short_list":  interfaceToVariableSwallowError([]string{"foo"}),
+			"var.empty_list":    interfaceToVariableSwallowError([]interface{}{}),
+			"var.a_nested_list": interfaceToVariableSwallowError([]interface{}{[]string{"foo"}, []string{"baz"}}),
 		},
 		Cases: []testFunctionCase{
 			{
@@ -1187,6 +1327,13 @@ func TestInterpolateFuncElement(t *testing.T) {
 			// Too many args
 			{
 				`${element(var.a_list, "0", "2")}`,
+				nil,
+				true,
+			},
+
+			// Only works on single-level lists
+			{
+				`${element(var.a_nested_list, "0")}`,
 				nil,
 				true,
 			},
@@ -1391,6 +1538,7 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 		}
 
 		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
+		t.Logf("err: %s", err)
 		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
 		}

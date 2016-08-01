@@ -79,6 +79,13 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
+			"passthrough_behavior": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateApiGatewayIntegrationPassthroughBehavior,
+			},
 		},
 	}
 }
@@ -106,6 +113,11 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 		}
 	}
 
+	var passthroughBehavior *string
+	if v, ok := d.GetOk("passthrough_behavior"); ok {
+		passthroughBehavior = aws.String(v.(string))
+	}
+
 	var credentials *string
 	if val, ok := d.GetOk("credentials"); ok {
 		credentials = aws.String(val.(string))
@@ -119,11 +131,12 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 		IntegrationHttpMethod: integrationHttpMethod,
 		Uri: uri,
 		// TODO reimplement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
-		RequestParameters:  aws.StringMap(parameters),
-		RequestTemplates:   aws.StringMap(templates),
-		Credentials:        credentials,
-		CacheNamespace:     nil,
-		CacheKeyParameters: nil,
+		RequestParameters:   aws.StringMap(parameters),
+		RequestTemplates:    aws.StringMap(templates),
+		Credentials:         credentials,
+		CacheNamespace:      nil,
+		CacheKeyParameters:  nil,
+		PassthroughBehavior: passthroughBehavior,
 	})
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Integration: %s", err)
@@ -163,6 +176,7 @@ func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface
 	d.Set("type", integration.Type)
 	d.Set("uri", integration.Uri)
 	d.Set("request_parameters_in_json", aws.StringValueMap(integration.RequestParameters))
+	d.Set("passthrough_behavior", integration.PassthroughBehavior)
 
 	return nil
 }

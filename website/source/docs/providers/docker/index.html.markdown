@@ -41,6 +41,11 @@ resource "docker_image" "ubuntu" {
 }
 ```
 
+## Registry Credentials
+
+The initial (current) version of the Docker provider **doesn't** support registry authentication.
+This limits any use cases to public images for now.
+
 ## Argument Reference
 
 The following arguments are supported:

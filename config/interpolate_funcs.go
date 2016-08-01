@@ -71,6 +71,7 @@ func Funcs() map[string]ast.Function {
 		"length":       interpolationFuncLength(),
 		"list":         interpolationFuncList(),
 		"lower":        interpolationFuncLower(),
+		"map":          interpolationFuncMap(),
 		"md5":          interpolationFuncMd5(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
@@ -123,6 +124,50 @@ func interpolationFuncList() ast.Function {
 	}
 }
 
+// interpolationFuncMap creates a map from the parameters passed
+// to it.
+func interpolationFuncMap() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{},
+		ReturnType:   ast.TypeMap,
+		Variadic:     true,
+		VariadicType: ast.TypeAny,
+		Callback: func(args []interface{}) (interface{}, error) {
+			outputMap := make(map[string]ast.Variable)
+
+			if len(args)%2 != 0 {
+				return nil, fmt.Errorf("requires an even number of arguments, got %d", len(args))
+			}
+
+			var firstType *ast.Type
+			for i := 0; i < len(args); i += 2 {
+				key, ok := args[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("argument %d represents a key, so it must be a string", i+1)
+				}
+				val := args[i+1]
+				variable, err := hil.InterfaceToVariable(val)
+				if err != nil {
+					return nil, err
+				}
+				// Enforce map type homogeneity
+				if firstType == nil {
+					firstType = &variable.Type
+				} else if variable.Type != *firstType {
+					return nil, fmt.Errorf("all map values must have the same type, got %s then %s", firstType.Printable(), variable.Type.Printable())
+				}
+				// Check for duplicate keys
+				if _, ok := outputMap[key]; ok {
+					return nil, fmt.Errorf("argument %d is a duplicate key: %q", i+1, key)
+				}
+				outputMap[key] = variable
+			}
+
+			return outputMap, nil
+		},
+	}
+}
+
 // interpolationFuncCompact strips a list of multi-variable values
 // (e.g. as returned by "split") of any empty strings.
 func interpolationFuncCompact() ast.Function {
@@ -135,13 +180,17 @@ func interpolationFuncCompact() ast.Function {
 
 			var outputList []string
 			for _, val := range inputList {
-				if strVal, ok := val.Value.(string); ok {
-					if strVal == "" {
-						continue
-					}
-
-					outputList = append(outputList, strVal)
+				strVal, ok := val.Value.(string)
+				if !ok {
+					return nil, fmt.Errorf(
+						"compact() may only be used with flat lists, this list contains elements of %s",
+						val.Type.Printable())
 				}
+				if strVal == "" {
+					continue
+				}
+
+				outputList = append(outputList, strVal)
 			}
 			return stringSliceToVariableValue(outputList), nil
 		},
@@ -442,11 +491,16 @@ func interpolationFuncDistinct() ast.Function {
 			var list []string
 
 			if len(args) != 1 {
-				return nil, fmt.Errorf("distinct() excepts only one argument.")
+				return nil, fmt.Errorf("accepts only one argument.")
 			}
 
 			if argument, ok := args[0].([]ast.Variable); ok {
 				for _, element := range argument {
+					if element.Type != ast.TypeString {
+						return nil, fmt.Errorf(
+							"only works for flat lists, this list contains elements of %s",
+							element.Type.Printable())
+					}
 					list = appendIfMissing(list, element.Value.(string))
 				}
 			}
@@ -482,15 +536,13 @@ func interpolationFuncJoin() ast.Function {
 			}
 
 			for _, arg := range args[1:] {
-				if parts, ok := arg.(ast.Variable); ok {
-					for _, part := range parts.Value.([]ast.Variable) {
-						list = append(list, part.Value.(string))
+				for _, part := range arg.([]ast.Variable) {
+					if part.Type != ast.TypeString {
+						return nil, fmt.Errorf(
+							"only works on flat lists, this list contains elements of %s",
+							part.Type.Printable())
 					}
-				}
-				if parts, ok := arg.([]ast.Variable); ok {
-					for _, part := range parts {
-						list = append(list, part.Value.(string))
-					}
+					list = append(list, part.Value.(string))
 				}
 			}
 
@@ -594,9 +646,11 @@ func interpolationFuncLength() ast.Function {
 				return len(typedSubject), nil
 			case []ast.Variable:
 				return len(typedSubject), nil
+			case map[string]ast.Variable:
+				return len(typedSubject), nil
 			}
 
-			return 0, fmt.Errorf("arguments to length() must be a string or list")
+			return 0, fmt.Errorf("arguments to length() must be a string, list, or map")
 		},
 	}
 }
@@ -695,9 +749,9 @@ func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
 				}
 			}
 			if v.Type != ast.TypeString {
-				return "", fmt.Errorf(
-					"lookup for '%s' has bad type %s",
-					args[1].(string), v.Type)
+				return nil, fmt.Errorf(
+					"lookup() may only be used with flat maps, this map contains elements of %s",
+					v.Type.Printable())
 			}
 
 			return v.Value.(string), nil
@@ -726,8 +780,13 @@ func interpolationFuncElement() ast.Function {
 
 			resolvedIndex := index % len(list)
 
-			v := list[resolvedIndex].Value
-			return v, nil
+			v := list[resolvedIndex]
+			if v.Type != ast.TypeString {
+				return nil, fmt.Errorf(
+					"element() may only be used with flat lists, this list contains elements of %s",
+					v.Type.Printable())
+			}
+			return v.Value, nil
 		},
 	}
 }
@@ -748,7 +807,7 @@ func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 
 			sort.Strings(keys)
 
-			//Keys are guaranteed to be strings
+			// Keys are guaranteed to be strings
 			return stringSliceToVariableValue(keys), nil
 		},
 	}

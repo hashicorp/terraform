@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -60,6 +59,8 @@ type ScalewayCache struct {
 
 	// Lock allows ScalewayCache to be used concurrently
 	Lock sync.Mutex `json:"-"`
+
+	hookSave func()
 }
 
 const (
@@ -92,16 +93,16 @@ type ScalewayResolverResult struct {
 type ScalewayResolverResults []ScalewayResolverResult
 
 // NewScalewayResolverResult returns a new ScalewayResolverResult
-func NewScalewayResolverResult(Identifier, Name, Arch string, Type int) ScalewayResolverResult {
+func NewScalewayResolverResult(Identifier, Name, Arch string, Type int) (ScalewayResolverResult, error) {
 	if err := anonuuid.IsUUID(Identifier); err != nil {
-		log.Fatal(err)
+		return ScalewayResolverResult{}, err
 	}
 	return ScalewayResolverResult{
 		Identifier: Identifier,
 		Type:       Type,
 		Name:       Name,
 		Arch:       Arch,
-	}
+	}, nil
 }
 
 func (s ScalewayResolverResults) Len() int {
@@ -160,7 +161,10 @@ REDO:
 }
 
 // NewScalewayCache loads a per-user cache
-func NewScalewayCache() (*ScalewayCache, error) {
+func NewScalewayCache(hookSave func()) (*ScalewayCache, error) {
+	var cache ScalewayCache
+
+	cache.hookSave = hookSave
 	homeDir := os.Getenv("HOME") // *nix
 	if homeDir == "" {           // Windows
 		homeDir = os.Getenv("USERPROFILE")
@@ -169,7 +173,6 @@ func NewScalewayCache() (*ScalewayCache, error) {
 		homeDir = "/tmp"
 	}
 	cachePath := filepath.Join(homeDir, ".scw-cache.db")
-	var cache ScalewayCache
 	cache.Path = cachePath
 	_, err := os.Stat(cachePath)
 	if os.IsNotExist(err) {
@@ -210,13 +213,13 @@ func NewScalewayCache() (*ScalewayCache, error) {
 }
 
 // Clear removes all information from the cache
-func (s *ScalewayCache) Clear() {
-	s.Images = make(map[string][CacheMaxfield]string)
-	s.Snapshots = make(map[string][CacheMaxfield]string)
-	s.Volumes = make(map[string][CacheMaxfield]string)
-	s.Bootscripts = make(map[string][CacheMaxfield]string)
-	s.Servers = make(map[string][CacheMaxfield]string)
-	s.Modified = true
+func (c *ScalewayCache) Clear() {
+	c.Images = make(map[string][CacheMaxfield]string)
+	c.Snapshots = make(map[string][CacheMaxfield]string)
+	c.Volumes = make(map[string][CacheMaxfield]string)
+	c.Bootscripts = make(map[string][CacheMaxfield]string)
+	c.Servers = make(map[string][CacheMaxfield]string)
+	c.Modified = true
 }
 
 // Flush flushes the cache database
@@ -229,8 +232,7 @@ func (c *ScalewayCache) Save() error {
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
 
-	log.Printf("Writing cache file to disk")
-
+	c.hookSave()
 	if c.Modified {
 		file, err := ioutil.TempFile(filepath.Dir(c.Path), filepath.Base(c.Path))
 		if err != nil {
@@ -259,15 +261,19 @@ func (s *ScalewayResolverResult) ComputeRankMatch(needle string) {
 }
 
 // LookUpImages attempts to return identifiers matching a pattern
-func (c *ScalewayCache) LookUpImages(needle string, acceptUUID bool) ScalewayResolverResults {
+func (c *ScalewayCache) LookUpImages(needle string, acceptUUID bool) (ScalewayResolverResults, error) {
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
 
 	var res ScalewayResolverResults
+	var exactMatches ScalewayResolverResults
 
 	if acceptUUID && anonuuid.IsUUID(needle) == nil {
 		if fields, ok := c.Images[needle]; ok {
-			entry := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierImage)
+			entry, err := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierImage)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
@@ -276,41 +282,53 @@ func (c *ScalewayCache) LookUpImages(needle string, acceptUUID bool) ScalewayRes
 	needle = regexp.MustCompile(`^user/`).ReplaceAllString(needle, "")
 	// FIXME: if 'user/' is in needle, only watch for a user image
 	nameRegex := regexp.MustCompile(`(?i)` + regexp.MustCompile(`[_-]`).ReplaceAllString(needle, ".*"))
-	var exactMatches ScalewayResolverResults
 	for identifier, fields := range c.Images {
 		if fields[CacheTitle] == needle {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierImage)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierImage)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			exactMatches = append(exactMatches, entry)
 		}
 		if strings.HasPrefix(identifier, needle) || nameRegex.MatchString(fields[CacheTitle]) {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierImage)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierImage)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		} else if strings.HasPrefix(fields[CacheMarketPlaceUUID], needle) || nameRegex.MatchString(fields[CacheMarketPlaceUUID]) {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierImage)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierImage)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
 	}
 
 	if len(exactMatches) == 1 {
-		return exactMatches
+		return exactMatches, nil
 	}
 
-	return removeDuplicatesResults(res)
+	return removeDuplicatesResults(res), nil
 }
 
 // LookUpSnapshots attempts to return identifiers matching a pattern
-func (c *ScalewayCache) LookUpSnapshots(needle string, acceptUUID bool) ScalewayResolverResults {
+func (c *ScalewayCache) LookUpSnapshots(needle string, acceptUUID bool) (ScalewayResolverResults, error) {
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
 
 	var res ScalewayResolverResults
+	var exactMatches ScalewayResolverResults
 
 	if acceptUUID && anonuuid.IsUUID(needle) == nil {
 		if fields, ok := c.Snapshots[needle]; ok {
-			entry := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierSnapshot)
+			entry, err := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierSnapshot)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
@@ -318,136 +336,168 @@ func (c *ScalewayCache) LookUpSnapshots(needle string, acceptUUID bool) Scaleway
 
 	needle = regexp.MustCompile(`^user/`).ReplaceAllString(needle, "")
 	nameRegex := regexp.MustCompile(`(?i)` + regexp.MustCompile(`[_-]`).ReplaceAllString(needle, ".*"))
-	var exactMatches ScalewayResolverResults
 	for identifier, fields := range c.Snapshots {
 		if fields[CacheTitle] == needle {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierSnapshot)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierSnapshot)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			exactMatches = append(exactMatches, entry)
 		}
 		if strings.HasPrefix(identifier, needle) || nameRegex.MatchString(fields[CacheTitle]) {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierSnapshot)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierSnapshot)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
 	}
 
 	if len(exactMatches) == 1 {
-		return exactMatches
+		return exactMatches, nil
 	}
 
-	return removeDuplicatesResults(res)
+	return removeDuplicatesResults(res), nil
 }
 
 // LookUpVolumes attempts to return identifiers matching a pattern
-func (c *ScalewayCache) LookUpVolumes(needle string, acceptUUID bool) ScalewayResolverResults {
+func (c *ScalewayCache) LookUpVolumes(needle string, acceptUUID bool) (ScalewayResolverResults, error) {
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
 
 	var res ScalewayResolverResults
+	var exactMatches ScalewayResolverResults
 
 	if acceptUUID && anonuuid.IsUUID(needle) == nil {
 		if fields, ok := c.Volumes[needle]; ok {
-			entry := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierVolume)
+			entry, err := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierVolume)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
 	}
 
 	nameRegex := regexp.MustCompile(`(?i)` + regexp.MustCompile(`[_-]`).ReplaceAllString(needle, ".*"))
-	var exactMatches ScalewayResolverResults
 	for identifier, fields := range c.Volumes {
 		if fields[CacheTitle] == needle {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierVolume)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierVolume)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			exactMatches = append(exactMatches, entry)
 		}
 		if strings.HasPrefix(identifier, needle) || nameRegex.MatchString(fields[CacheTitle]) {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierVolume)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierVolume)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
 	}
 
 	if len(exactMatches) == 1 {
-		return exactMatches
+		return exactMatches, nil
 	}
 
-	return removeDuplicatesResults(res)
+	return removeDuplicatesResults(res), nil
 }
 
 // LookUpBootscripts attempts to return identifiers matching a pattern
-func (c *ScalewayCache) LookUpBootscripts(needle string, acceptUUID bool) ScalewayResolverResults {
+func (c *ScalewayCache) LookUpBootscripts(needle string, acceptUUID bool) (ScalewayResolverResults, error) {
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
 
 	var res ScalewayResolverResults
+	var exactMatches ScalewayResolverResults
 
 	if acceptUUID && anonuuid.IsUUID(needle) == nil {
 		if fields, ok := c.Bootscripts[needle]; ok {
-			entry := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierBootscript)
+			entry, err := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierBootscript)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
 	}
 
 	nameRegex := regexp.MustCompile(`(?i)` + regexp.MustCompile(`[_-]`).ReplaceAllString(needle, ".*"))
-	var exactMatches ScalewayResolverResults
 	for identifier, fields := range c.Bootscripts {
 		if fields[CacheTitle] == needle {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierBootscript)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierBootscript)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			exactMatches = append(exactMatches, entry)
 		}
 		if strings.HasPrefix(identifier, needle) || nameRegex.MatchString(fields[CacheTitle]) {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierBootscript)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierBootscript)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
 	}
 
 	if len(exactMatches) == 1 {
-		return exactMatches
+		return exactMatches, nil
 	}
 
-	return removeDuplicatesResults(res)
+	return removeDuplicatesResults(res), nil
 }
 
 // LookUpServers attempts to return identifiers matching a pattern
-func (c *ScalewayCache) LookUpServers(needle string, acceptUUID bool) ScalewayResolverResults {
+func (c *ScalewayCache) LookUpServers(needle string, acceptUUID bool) (ScalewayResolverResults, error) {
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
 
 	var res ScalewayResolverResults
+	var exactMatches ScalewayResolverResults
 
 	if acceptUUID && anonuuid.IsUUID(needle) == nil {
 		if fields, ok := c.Servers[needle]; ok {
-			entry := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierServer)
+			entry, err := NewScalewayResolverResult(needle, fields[CacheTitle], fields[CacheArch], IdentifierServer)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
 	}
 
 	nameRegex := regexp.MustCompile(`(?i)` + regexp.MustCompile(`[_-]`).ReplaceAllString(needle, ".*"))
-	var exactMatches ScalewayResolverResults
 	for identifier, fields := range c.Servers {
 		if fields[CacheTitle] == needle {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierServer)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierServer)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			exactMatches = append(exactMatches, entry)
 		}
 		if strings.HasPrefix(identifier, needle) || nameRegex.MatchString(fields[CacheTitle]) {
-			entry := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierServer)
+			entry, err := NewScalewayResolverResult(identifier, fields[CacheTitle], fields[CacheArch], IdentifierServer)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			res = append(res, entry)
 		}
 	}
 
 	if len(exactMatches) == 1 {
-		return exactMatches
+		return exactMatches, nil
 	}
 
-	return removeDuplicatesResults(res)
+	return removeDuplicatesResults(res), nil
 }
 
 // removeDuplicatesResults transforms an array into a unique array
@@ -492,52 +542,86 @@ func parseNeedle(input string) (identifierType int, needle string) {
 }
 
 // LookUpIdentifiers attempts to return identifiers matching a pattern
-func (c *ScalewayCache) LookUpIdentifiers(needle string) ScalewayResolverResults {
+func (c *ScalewayCache) LookUpIdentifiers(needle string) (ScalewayResolverResults, error) {
 	results := ScalewayResolverResults{}
 
 	identifierType, needle := parseNeedle(needle)
 
 	if identifierType&(IdentifierUnknown|IdentifierServer) > 0 {
-		for _, result := range c.LookUpServers(needle, false) {
-			entry := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierServer)
+		servers, err := c.LookUpServers(needle, false)
+		if err != nil {
+			return ScalewayResolverResults{}, err
+		}
+		for _, result := range servers {
+			entry, err := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierServer)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			results = append(results, entry)
 		}
 	}
 
 	if identifierType&(IdentifierUnknown|IdentifierImage) > 0 {
-		for _, result := range c.LookUpImages(needle, false) {
-			entry := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierImage)
+		images, err := c.LookUpImages(needle, false)
+		if err != nil {
+			return ScalewayResolverResults{}, err
+		}
+		for _, result := range images {
+			entry, err := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierImage)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			results = append(results, entry)
 		}
 	}
 
 	if identifierType&(IdentifierUnknown|IdentifierSnapshot) > 0 {
-		for _, result := range c.LookUpSnapshots(needle, false) {
-			entry := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierSnapshot)
+		snapshots, err := c.LookUpSnapshots(needle, false)
+		if err != nil {
+			return ScalewayResolverResults{}, err
+		}
+		for _, result := range snapshots {
+			entry, err := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierSnapshot)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			results = append(results, entry)
 		}
 	}
 
 	if identifierType&(IdentifierUnknown|IdentifierVolume) > 0 {
-		for _, result := range c.LookUpVolumes(needle, false) {
-			entry := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierVolume)
+		volumes, err := c.LookUpVolumes(needle, false)
+		if err != nil {
+			return ScalewayResolverResults{}, err
+		}
+		for _, result := range volumes {
+			entry, err := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierVolume)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			results = append(results, entry)
 		}
 	}
 
 	if identifierType&(IdentifierUnknown|IdentifierBootscript) > 0 {
-		for _, result := range c.LookUpBootscripts(needle, false) {
-			entry := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierBootscript)
+		bootscripts, err := c.LookUpBootscripts(needle, false)
+		if err != nil {
+			return ScalewayResolverResults{}, err
+		}
+		for _, result := range bootscripts {
+			entry, err := NewScalewayResolverResult(result.Identifier, result.Name, result.Arch, IdentifierBootscript)
+			if err != nil {
+				return ScalewayResolverResults{}, err
+			}
 			entry.ComputeRankMatch(needle)
 			results = append(results, entry)
 		}
 	}
-
-	return results
+	return results, nil
 }
 
 // InsertServer registers a server in the cache
