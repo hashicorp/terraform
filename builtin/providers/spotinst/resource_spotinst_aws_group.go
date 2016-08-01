@@ -1349,7 +1349,7 @@ func expandAwsGroupStrategy(data interface{}) (*spotinst.AwsGroupStrategy, error
 			strategy.Risk = spotinst.Float64(v)
 		}
 
-		if v, ok := m["ondemand_count"].(int); ok && v > 0 {
+		if v, ok := m["ondemand_count"].(int); ok && v >= 0 {
 			strategy.OnDemandCount = spotinst.Int(v)
 		}
 
@@ -1357,7 +1357,7 @@ func expandAwsGroupStrategy(data interface{}) (*spotinst.AwsGroupStrategy, error
 			strategy.AvailabilityVsCost = spotinst.String(v)
 		}
 
-		if v, ok := m["draining_timeout"].(int); ok && v > 0 {
+		if v, ok := m["draining_timeout"].(int); ok && v >= 0 {
 			strategy.DrainingTimeout = spotinst.Int(v)
 		}
 
