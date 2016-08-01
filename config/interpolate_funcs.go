@@ -320,8 +320,6 @@ func interpolationFuncConcat() ast.Function {
 
 			for _, arg := range args {
 				switch arg := arg.(type) {
-				case string:
-					outputList = append(outputList, ast.Variable{Type: ast.TypeString, Value: arg})
 				case []ast.Variable:
 					for _, v := range arg {
 						switch v.Type {
@@ -337,7 +335,7 @@ func interpolationFuncConcat() ast.Function {
 					}
 
 				default:
-					return nil, fmt.Errorf("concat() does not support %T", arg)
+					return nil, fmt.Errorf("concat() does not support type %T", arg)
 				}
 			}
 
