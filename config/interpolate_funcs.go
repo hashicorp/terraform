@@ -311,31 +311,25 @@ func interpolationFuncCoalesce() ast.Function {
 // multiple lists.
 func interpolationFuncConcat() ast.Function {
 	return ast.Function{
-		ArgTypes:     []ast.Type{ast.TypeAny},
+		ArgTypes:     []ast.Type{ast.TypeList},
 		ReturnType:   ast.TypeList,
 		Variadic:     true,
-		VariadicType: ast.TypeAny,
+		VariadicType: ast.TypeList,
 		Callback: func(args []interface{}) (interface{}, error) {
 			var outputList []ast.Variable
 
 			for _, arg := range args {
-				switch arg := arg.(type) {
-				case []ast.Variable:
-					for _, v := range arg {
-						switch v.Type {
-						case ast.TypeString:
-							outputList = append(outputList, v)
-						case ast.TypeList:
-							outputList = append(outputList, v)
-						case ast.TypeMap:
-							outputList = append(outputList, v)
-						default:
-							return nil, fmt.Errorf("concat() does not support lists of %s", v.Type.Printable())
-						}
+				for _, v := range arg.([]ast.Variable) {
+					switch v.Type {
+					case ast.TypeString:
+						outputList = append(outputList, v)
+					case ast.TypeList:
+						outputList = append(outputList, v)
+					case ast.TypeMap:
+						outputList = append(outputList, v)
+					default:
+						return nil, fmt.Errorf("concat() does not support lists of %s", v.Type.Printable())
 					}
-
-				default:
-					return nil, fmt.Errorf("concat() does not support type %T", arg)
 				}
 			}
 
