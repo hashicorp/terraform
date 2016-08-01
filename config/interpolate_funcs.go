@@ -73,6 +73,7 @@ func Funcs() map[string]ast.Function {
 		"lower":        interpolationFuncLower(),
 		"map":          interpolationFuncMap(),
 		"md5":          interpolationFuncMd5(),
+		"merge":        interpolationFuncMerge(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
@@ -894,6 +895,26 @@ func interpolationFuncMd5() ast.Function {
 			h.Write([]byte(s))
 			hash := hex.EncodeToString(h.Sum(nil))
 			return hash, nil
+		},
+	}
+}
+
+func interpolationFuncMerge() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeMap},
+		ReturnType:   ast.TypeMap,
+		Variadic:     true,
+		VariadicType: ast.TypeMap,
+		Callback: func(args []interface{}) (interface{}, error) {
+			outputMap := make(map[string]ast.Variable)
+
+			for _, arg := range args {
+				for k, v := range arg.(map[string]ast.Variable) {
+					outputMap[k] = v
+				}
+			}
+
+			return outputMap, nil
 		},
 	}
 }
