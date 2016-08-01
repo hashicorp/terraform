@@ -83,6 +83,7 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 			"passthrough_behavior": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ValidateFunc: validateApiGatewayIntegrationPassthroughBehavior,
 			},
 		},

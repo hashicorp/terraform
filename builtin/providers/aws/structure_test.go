@@ -477,7 +477,7 @@ func TestExpandParameters(t *testing.T) {
 	}
 }
 
-func TestexpandRedshiftParameters(t *testing.T) {
+func TestExpandRedshiftParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":  "character_set_client",
@@ -502,7 +502,7 @@ func TestexpandRedshiftParameters(t *testing.T) {
 	}
 }
 
-func TestexpandElasticacheParameters(t *testing.T) {
+func TestExpandElasticacheParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "activerehashing",
@@ -584,7 +584,7 @@ func TestFlattenParameters(t *testing.T) {
 	}
 }
 
-func TestflattenRedshiftParameters(t *testing.T) {
+func TestFlattenRedshiftParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*redshift.Parameter
 		Output []map[string]interface{}
@@ -613,7 +613,7 @@ func TestflattenRedshiftParameters(t *testing.T) {
 	}
 }
 
-func TestflattenElasticacheParameters(t *testing.T) {
+func TestFlattenElasticacheParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*elasticache.Parameter
 		Output []map[string]interface{}
@@ -774,7 +774,7 @@ func TestFlattenAttachmentWhenNoInstanceId(t *testing.T) {
 	}
 }
 
-func TestflattenStepAdjustments(t *testing.T) {
+func TestFlattenStepAdjustments(t *testing.T) {
 	expanded := []*autoscaling.StepAdjustment{
 		&autoscaling.StepAdjustment{
 			MetricIntervalLowerBound: aws.Float64(1.0),

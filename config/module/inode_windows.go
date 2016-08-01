@@ -1,3 +1,5 @@
+// +build windows
+
 package module
 
 // no syscall.Stat_t on windows, return 0 for inodes

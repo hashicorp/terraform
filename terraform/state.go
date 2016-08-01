@@ -14,10 +14,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-version"
-	"github.com/satori/go.uuid"
-
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -1331,7 +1330,7 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 		}
 	}
 	if d != nil {
-		for k, diff := range d.Attributes {
+		for k, diff := range d.CopyAttributes() {
 			if diff.NewRemoved {
 				delete(result.Attributes, k)
 				continue

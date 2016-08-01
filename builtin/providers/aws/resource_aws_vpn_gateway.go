@@ -86,7 +86,7 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	if len(vpnGateway.VpcAttachments) == 0 || *vpnGateway.VpcAttachments[0].State == "detached" {
+	if len(vpnGateway.VpcAttachments) == 0 || *vpnGateway.VpcAttachments[0].State == "detached" || *vpnGateway.VpcAttachments[0].State == "deleted" {
 		// Gateway exists but not attached to the VPC
 		d.Set("vpc_id", "")
 	} else {

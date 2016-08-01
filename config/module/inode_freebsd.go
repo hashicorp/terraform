@@ -1,4 +1,4 @@
-// +build linux darwin openbsd solaris
+// +build freebsd
 
 package module
 
@@ -15,7 +15,7 @@ func inode(path string) (uint64, error) {
 		return 0, err
 	}
 	if st, ok := stat.Sys().(*syscall.Stat_t); ok {
-		return st.Ino, nil
+		return uint64(st.Ino), nil
 	}
 	return 0, fmt.Errorf("could not determine file inode")
 }

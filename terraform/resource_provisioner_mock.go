@@ -1,8 +1,11 @@
 package terraform
 
+import "sync"
+
 // MockResourceProvisioner implements ResourceProvisioner but mocks out all the
 // calls for testing purposes.
 type MockResourceProvisioner struct {
+	sync.Mutex
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
@@ -21,6 +24,9 @@ type MockResourceProvisioner struct {
 }
 
 func (p *MockResourceProvisioner) Validate(c *ResourceConfig) ([]string, []error) {
+	p.Lock()
+	defer p.Unlock()
+
 	p.ValidateCalled = true
 	p.ValidateConfig = c
 	if p.ValidateFn != nil {
@@ -33,6 +39,9 @@ func (p *MockResourceProvisioner) Apply(
 	output UIOutput,
 	state *InstanceState,
 	c *ResourceConfig) error {
+	p.Lock()
+	defer p.Unlock()
+
 	p.ApplyCalled = true
 	p.ApplyOutput = output
 	p.ApplyState = state
