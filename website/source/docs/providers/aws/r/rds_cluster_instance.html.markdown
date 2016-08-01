@@ -95,7 +95,7 @@ this instance is a read replica
 
 ## Import
 
-Redshift Cluster Instances can be imported using the `identifier`, e.g.
+RDS Cluster Instances can be imported using the `identifier`, e.g.
 
 ```
 $ terraform import aws_rds_cluster_instance.prod_instance_1 aurora-cluster-instance-1
