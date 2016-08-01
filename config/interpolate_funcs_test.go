@@ -362,17 +362,19 @@ func TestInterpolateFuncConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
 			// String + list
+			// no longer supported, now returns an error
 			{
 				`${concat("a", split(",", "b,c"))}`,
-				[]interface{}{"a", "b", "c"},
-				false,
+				nil,
+				true,
 			},
 
 			// List + string
+			// no longer supported, now returns an error
 			{
 				`${concat(split(",", "a,b"), "c")}`,
-				[]interface{}{"a", "b", "c"},
-				false,
+				nil,
+				true,
 			},
 
 			// Single list
@@ -425,6 +427,14 @@ func TestInterpolateFuncConcat(t *testing.T) {
 				`${concat("${var.maps}", "${var.maps}")}`,
 				[]interface{}{map[string]interface{}{"key1": "a", "key2": "b"}, map[string]interface{}{"key1": "a", "key2": "b"}},
 				false,
+			},
+
+			// multiple strings
+			// no longer supported, now returns an error
+			{
+				`${concat("string1", "string2")}`,
+				nil,
+				true,
 			},
 
 			// mismatched types
@@ -1532,15 +1542,16 @@ type testFunctionCase struct {
 
 func testFunction(t *testing.T, config testFunctionConfig) {
 	for i, tc := range config.Cases {
+		fmt.Println("running", i)
 		ast, err := hil.Parse(tc.Input)
 		if err != nil {
-			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
+			t.Fatalf("Case #%d: input: %#v\nerr: %v", i, tc.Input, err)
 		}
 
 		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
-		t.Logf("err: %s", err)
+		t.Logf("err: %v", err)
 		if err != nil != tc.Error {
-			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
+			t.Fatalf("Case #%d:\ninput: %#v\nerr: %v", i, tc.Input, err)
 		}
 
 		if !reflect.DeepEqual(result.Value, tc.Result) {
