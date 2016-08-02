@@ -47,6 +47,22 @@ func LogOutput() (logOutput io.Writer, err error) {
 	return
 }
 
+// SetOutput checks for a log destination with LogOutput, and calls
+// log.SetOutput with the result. If LogOutput returns nil, SetOutput uses
+// ioutil.Discard. Any error from LogOutout is fatal.
+func SetOutput() {
+	out, err := LogOutput()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if out == nil {
+		out = ioutil.Discard
+	}
+
+	log.SetOutput(out)
+}
+
 // LogLevel returns the current log level string based the environment vars
 func LogLevel() string {
 	envLevel := os.Getenv(EnvLog)

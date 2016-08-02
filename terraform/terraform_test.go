@@ -1,9 +1,11 @@
 package terraform
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,10 +15,24 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/logging"
 )
 
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
+}
 
 func tempDir(t *testing.T) string {
 	dir, err := ioutil.TempDir("", "tf")
