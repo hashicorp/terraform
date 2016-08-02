@@ -76,3 +76,12 @@ tests, but by setting this variable you can force these tests to be skipped.
 export TF_SKIP_REMOTE_TESTS=1
 make test
 ```
+
+## TF_APPLY_REQUIRE_PLAN
+
+When given a value, causes the `terraform apply` command to require a directory
+or plan file to be provided. This protects against accidentally applying
+unplanned transformations. This is especially useful when applying a subset of
+changes with `terraform plan -target ...`. Without this environmental variable
+set, it can be quite simple to apply all transformations, rather than the
+planned subset.

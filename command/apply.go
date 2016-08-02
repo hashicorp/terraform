@@ -66,6 +66,10 @@ func (c *ApplyCommand) Run(args []string) int {
 	} else if len(args) == 1 {
 		configPath = args[0]
 	} else {
+		if os.Getenv("TF_APPLY_REQUIRE_PLAN") != "" {
+			c.Ui.Error("The apply command expects a directory or plan file")
+			return 1
+		}
 		configPath = pwd
 		maybeInit = false
 	}
