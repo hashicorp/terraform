@@ -21,6 +21,12 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 		Delete: resourceAwsElasticSearchDomainDelete,
 
 		Schema: map[string]*schema.Schema{
+			"elasticsearch_version": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 			"access_policies": &schema.Schema{
 				Type:      schema.TypeString,
 				StateFunc: normalizeJson,
@@ -145,6 +151,10 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 		input.AccessPolicies = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("elasticsearch_version"); ok {
+		input.ElasticsearchVersion = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("advanced_options"); ok {
 		input.AdvancedOptions = stringMapToPointers(v.(map[string]interface{}))
 	}
@@ -267,6 +277,7 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	if ds.Endpoint != nil {
 		d.Set("endpoint", *ds.Endpoint)
 	}
+	d.Set("elasticsearch_version", *ds.ElasticsearchVersion)
 
 	err = d.Set("ebs_options", flattenESEBSOptions(ds.EBSOptions))
 	if err != nil {
