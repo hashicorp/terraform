@@ -13,7 +13,9 @@ description: |-
 
 ```
 resource "aws_elasticsearch_domain" "es" {
-	domain_name = "tf-test"
+	domain_name           = "tf-test"
+	elasticsearch_version = "2.3"
+
 	advanced_options {
 		"rest.action.multi.allow_explicit_index" = true
 	}
@@ -37,7 +39,7 @@ CONFIG
 	snapshot_options {
 		automated_snapshot_start_hour = 23
 	}
-	
+
 	tags {
       Domain = "TestDomain"
     }
@@ -49,6 +51,7 @@ CONFIG
 The following arguments are supported:
 
 * `domain_name` - (Required) Name of the domain.
+* `elasticsearch_version` - (Optional) The Elasticsearch version to use.
 * `access_policies` - (Optional) IAM policy document specifying the access policies for the domain
 * `advanced_options` - (Optional) Key-value string pairs to specify advanced configuration options.
 * `ebs_options` - (Optional) EBS related options, see below.

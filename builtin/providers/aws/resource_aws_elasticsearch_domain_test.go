@@ -41,6 +41,8 @@ func TestAccAWSElasticSearchDomain_complex(t *testing.T) {
 				Config: testAccESDomainConfig_complex,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
+					resource.TestCheckResourceAttr(
+						"aws_elasticsearch_domain.example", "elasticsearch_version", "2.3"),
 				),
 			},
 		},
@@ -163,7 +165,8 @@ resource "aws_elasticsearch_domain" "example" {
 
 const testAccESDomainConfig_complex = `
 resource "aws_elasticsearch_domain" "example" {
-  domain_name = "tf-test-2"
+  domain_name           = "tf-test-2"
+  elasticsearch_version = "2.3"
 
   advanced_options {
     "indices.fielddata.cache.size" = 80

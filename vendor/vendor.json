@@ -698,13 +698,13 @@
 			"versionExact": "v1.2.7"
 		},
 		{
-			"checksumSHA1": "TAuizMIsvgeuZhmGTYPA7LOXHvY=",
+			"checksumSHA1": "VAlXnW+WxxWRcCv4xsCoox2kgE0=",
 			"comment": "v1.1.23",
 			"path": "github.com/aws/aws-sdk-go/service/elasticsearchservice",
-			"revision": "565027b24171359f23f883d0fc48c228cdde301d",
-			"revisionTime": "2016-07-21T22:15:38Z",
-			"version": "v1.2.7",
-			"versionExact": "v1.2.7"
+			"revision": "3b8c171554fc7d4fc53b87e25d4926a9e7495c2e",
+			"revisionTime": "2016-07-29T00:51:21Z",
+			"version": "v1.2.10",
+			"versionExact": "v1.2.10"
 		},
 		{
 			"checksumSHA1": "qHuJHGUAuuizD9834MP3gVupfdo=",
