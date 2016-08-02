@@ -23,6 +23,9 @@ func resourceAwsDbSecurityGroup() *schema.Resource {
 		Read:   resourceAwsDbSecurityGroupRead,
 		Update: resourceAwsDbSecurityGroupUpdate,
 		Delete: resourceAwsDbSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{

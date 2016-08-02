@@ -253,6 +253,7 @@ BUG FIXES:
  * provider/aws: Restore Defaults to SQS Queues [GH-7818]
  * provider/aws: Don't delete Lambda function from state on initial call of the Read func [GH-7829]
  * provider/aws: `aws_vpn_gateway` should be removed from state when in deleted state [GH-7861]
+ * provider/aws: Fix aws_route53_record 0-2 migration [GH-7907]
  * provider/azurerm: Fixes terraform crash when using SSH keys with `azurerm_virtual_machine` [GH-6766]
  * provider/azurerm: Fix a bug causing 'diffs do not match' on `azurerm_network_interface` resources [GH-6790]
  * provider/azurerm: Normalizes `availability_set_id` casing to avoid spurious diffs in `azurerm_virtual_machine` [GH-6768]
