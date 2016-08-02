@@ -110,7 +110,7 @@ The supported built-in functions are:
      variables or when parsing module outputs.
      Example: `compact(module.my_asg.load_balancer_names)`
 
-  * `concat(list1, list2)` - Combines two or more lists into a single list.
+  * `concat(list1, list2, ...)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
   * `distinct(list)` - Removes duplicate items from a list. Keeps the first
@@ -132,13 +132,13 @@ The supported built-in functions are:
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
 
-  * `format(format, args...)` - Formats a string according to the given
+  * `format(format, args, ...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
       Good documentation for the syntax can be [found here](https://golang.org/pkg/fmt/).
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index + 1)`.
 
-  * `formatlist(format, args...)` - Formats each element of a list
+  * `formatlist(format, args, ...)` - Formats each element of a list
       according to the given format, similarly to `format`, and returns a list.
       Non-list arguments are repeated for each list element.
       For example, to convert a list of DNS addresses to a list of URLs, you might use:
@@ -171,7 +171,7 @@ The supported built-in functions are:
       * `${length("a,b,c")}` = 5
       * `${length(map("key", "val"))}` = 1
 
-  * `list(items...)` - Returns a list consisting of the arguments to the function.
+  * `list(items, ...)` - Returns a list consisting of the arguments to the function.
       This function provides a way of representing list literals in interpolation.
       * `${list("a", "b", "c")}` returns a list of `"a", "b", "c"`.
       * `${list()}` returns an empty list.
