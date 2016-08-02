@@ -22,9 +22,9 @@ terraform-provider-*    # provider plugins
 terraform-provisioner-* # provisioner plugins
 ```
 
-These binaries needed to all be extracted to somewhere on your `$PATH` for Terraform to work.
+These binaries needed to all be extracted to somewhere in your `$PATH` or in the `~/.terraform.d` directory for Terraform to work.
 
-As of v0.7, these plugins all ship embedded in a single binary. This means that if you just extract the v0.7 archive into a path, you may still have the old separate binaries in your `$PATH`. You'll need to remove them manually.
+As of v0.7, all built-in plugins ship embedded in a single binary. This means that if you just extract the v0.7 archive into a path, you may still have the old separate binaries in your `$PATH`. You'll need to remove them manually.
 
 For example, if you keep Terraform binaries in `/usr/local/bin` you can clear out the old external binaries like this:
 
@@ -32,7 +32,7 @@ For example, if you keep Terraform binaries in `/usr/local/bin` you can clear ou
 rm /usr/local/bin/terraform-*
 ```
 
-External plugin binaries continue to work using the same pattern, but due to updates to the RPC protocol, they will need to be recompiled to be compatible with Terraform v0.7.
+External plugin binaries continue to work using the same pattern, but due to updates to the RPC protocol, they will need to be recompiled to be compatible with Terraform v0.7.x.
 
 ## Maps in Displayed Plans
 
@@ -59,10 +59,10 @@ The `concat()` interpolation function used to work for both lists and strings. I
 "${concat(var.foo, "-suffix")}"     # => Error! No longer supported.
 ```
 
-Instead, you can use nested interpolation braces for string concatenation.
+Instead, you can use variable interpolation for string concatenation.
 
 ```
-"${"${var.foo}-suffix"}"
+"${var.foo}-suffix"
 ```
 
 ### Nested Quotes and Escaping
@@ -101,7 +101,7 @@ For most users, this change will not affect your day-to-day usage of Terraform. 
 
 ## Migrating to Data Sources
 
-With the addition of [Data Sources](/docs/configuration/data-sources.html), there are several resources that were acting as Data Sources that are now deprecated.
+With the addition of [Data Sources](/docs/configuration/data-sources.html), there are several resources that were acting as Data Sources that are now deprecated. Existing configurations will continue to work, but will print a deprecation warning when a data source is used as a resource.
 
  * `atlas_artifact`
  * `template_file`
@@ -174,7 +174,7 @@ subnet_id = "${element(var.private_subnets, count.index)}"
 
 ## Map value overrides
 
-Previously, individual elements in a map could be overriden by using a dot notation. For example, if the following variable was declared:
+Previously, individual elements in a map could be overridden by using a dot notation. For example, if the following variable was declared:
 
 ```
 variable "amis" {
@@ -187,7 +187,7 @@ variable "amis" {
 }
 ```
 
-The key "us-west-2" could be overriden using `-var "amis.us-west-2=overriden_value"` (or equivalent in an environment variable or `tfvars` file). The syntax for this has now changed - instead maps from the command line will be merged with the default value, with maps from flags taking precedence. The syntax for overriding individual values is now:
+The key "us-west-2" could be overridden using `-var "amis.us-west-2=overriden_value"` (or equivalent in an environment variable or `tfvars` file). The syntax for this has now changed - instead maps from the command line will be merged with the default value, with maps from flags taking precedence. The syntax for overriding individual values is now:
 
 ```
 -var 'amis = { us-west-2 = "overriden_value" }'
@@ -202,3 +202,5 @@ This will give the map the effective value:
   eu-west-1 = "ami-789123"
 }
 ```
+
+It's also possible to override the values in a variables file, either in `terraform.tfvars` or specified using the `-var-file` flag. 
