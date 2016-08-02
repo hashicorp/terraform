@@ -498,6 +498,103 @@ func TestInterpolateFuncConcat(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncMerge(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// basic merge
+			{
+				`${merge(map("a", "b"), map("c", "d"))}`,
+				map[string]interface{}{"a": "b", "c": "d"},
+				false,
+			},
+
+			// merge with conflicts is ok, last in wins.
+			{
+				`${merge(map("a", "b", "c", "X"), map("c", "d"))}`,
+				map[string]interface{}{"a": "b", "c": "d"},
+				false,
+			},
+
+			// merge variadic
+			{
+				`${merge(map("a", "b"), map("c", "d"), map("e", "f"))}`,
+				map[string]interface{}{"a": "b", "c": "d", "e": "f"},
+				false,
+			},
+
+			// merge with variables
+			{
+				`${merge(var.maps[0], map("c", "d"))}`,
+				map[string]interface{}{"key1": "a", "key2": "b", "c": "d"},
+				false,
+			},
+
+			// only accept maps
+			{
+				`${merge(map("a", "b"), list("c", "d"))}`,
+				nil,
+				true,
+			},
+
+			// merge maps of maps
+			{
+				`${merge(map("a", var.maps[0]), map("b", var.maps[1]))}`,
+				map[string]interface{}{
+					"b": map[string]interface{}{"key3": "d", "key4": "c"},
+					"a": map[string]interface{}{"key1": "a", "key2": "b"},
+				},
+				false,
+			},
+			// merge maps of lists
+			{
+				`${merge(map("a", list("b")), map("c", list("d", "e")))}`,
+				map[string]interface{}{"a": []interface{}{"b"}, "c": []interface{}{"d", "e"}},
+				false,
+			},
+			// merge map of various kinds
+			{
+				`${merge(map("a", var.maps[0]), map("b", list("c", "d")))}`,
+				map[string]interface{}{"a": map[string]interface{}{"key1": "a", "key2": "b"}, "b": []interface{}{"c", "d"}},
+				false,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.maps": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type: ast.TypeMap,
+						Value: map[string]ast.Variable{
+							"key1": {
+								Type:  ast.TypeString,
+								Value: "a",
+							},
+							"key2": {
+								Type:  ast.TypeString,
+								Value: "b",
+							},
+						},
+					},
+					{
+						Type: ast.TypeMap,
+						Value: map[string]ast.Variable{
+							"key3": {
+								Type:  ast.TypeString,
+								Value: "d",
+							},
+							"key4": {
+								Type:  ast.TypeString,
+								Value: "c",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+}
+
 func TestInterpolateFuncDistinct(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -1542,7 +1639,6 @@ type testFunctionCase struct {
 
 func testFunction(t *testing.T, config testFunctionConfig) {
 	for i, tc := range config.Cases {
-		fmt.Println("running", i)
 		ast, err := hil.Parse(tc.Input)
 		if err != nil {
 			t.Fatalf("Case #%d: input: %#v\nerr: %v", i, tc.Input, err)
