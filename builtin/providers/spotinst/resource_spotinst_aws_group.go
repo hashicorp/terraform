@@ -223,11 +223,10 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"load_balancer_names": &schema.Schema{
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set:      schema.HashString,
 						},
 
 						"monitoring": &schema.Schema{
@@ -262,11 +261,10 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						},
 
 						"security_group_ids": &schema.Schema{
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Required: true,
 							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set:      schema.HashString,
 						},
 
 						"user_data": &schema.Schema{
@@ -441,11 +439,10 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						},
 
 						"security_group_ids": &schema.Schema{
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set:      schema.HashString,
 						},
 
 						"network_interface_id": &schema.Schema{
@@ -1585,17 +1582,12 @@ func expandAwsGroupNetworkInterfaces(data interface{}) ([]*spotinst.AwsGroupComp
 			iface.SubnetID = spotinst.String(v)
 		}
 
-		if v := m["security_group_ids"]; v != nil {
-			var groups []string
-			sgs := v.(*schema.Set).List()
-			if len(sgs) > 0 {
-				for _, v := range sgs {
-					if s, ok := v.(string); ok && s != "" {
-						groups = append(groups, s)
-					}
-				}
-				iface.SecurityGroupsIDs = groups
+		if v, ok := m["security_group_ids"].([]interface{}); ok {
+			ids := make([]string, len(v))
+			for i, j := range v {
+				ids[i] = j.(string)
 			}
+			iface.SecurityGroupsIDs = ids
 		}
 
 		log.Printf("[DEBUG] AwsGroup network interface configuration: %#v\n", iface)
@@ -1707,30 +1699,20 @@ func expandAwsGroupLaunchSpecification(data interface{}) (*spotinst.AwsGroupComp
 			lc.UserData = spotinst.String(base64.StdEncoding.EncodeToString([]byte(v)))
 		}
 
-		if v := m["security_group_ids"]; v != nil {
-			var groups []string
-			sgs := v.(*schema.Set).List()
-			if len(sgs) > 0 {
-				for _, v := range sgs {
-					if s, ok := v.(string); ok && s != "" {
-						groups = append(groups, s)
-					}
-				}
-				lc.SecurityGroupIDs = groups
+		if v, ok := m["security_group_ids"].([]interface{}); ok {
+			ids := make([]string, len(v))
+			for i, j := range v {
+				ids[i] = j.(string)
 			}
+			lc.SecurityGroupIDs = ids
 		}
 
-		if v := m["load_balancer_names"]; v != nil {
-			var names []string
-			elbs := v.(*schema.Set).List()
-			if len(elbs) > 0 {
-				for _, v := range elbs {
-					if s, ok := v.(string); ok && s != "" {
-						names = append(names, s)
-					}
-				}
-				lc.LoadBalancerNames = names
+		if v, ok := m["load_balancer_names"].([]interface{}); ok {
+			names := make([]string, len(v))
+			for i, j := range v {
+				names[i] = j.(string)
 			}
+			lc.LoadBalancerNames = names
 		}
 
 		log.Printf("[DEBUG] AwsGroup launch specification configuration: %#v\n", lc)
