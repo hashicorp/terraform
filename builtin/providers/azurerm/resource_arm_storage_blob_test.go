@@ -2,6 +2,7 @@ package azurerm
 
 import (
 	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"strings"
@@ -103,6 +104,42 @@ func TestAccAzureRMStorageBlob_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMStorageBlob_remote(t *testing.T) {
+	ri := acctest.RandInt()
+	rs1 := strings.ToLower(acctest.RandString(11))
+	rs2 := strings.ToLower(acctest.RandString(11))
+	sourceBlob, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fatalf("Failed to create local source blob file")
+	}
+
+	_, err = sourceBlob.WriteString(rs1)
+	if err != nil {
+		t.Fatalf("Failed to write random test to source blob")
+	}
+
+	err = sourceBlob.Close()
+	if err != nil {
+		t.Fatalf("Failed to close source blob")
+	}
+
+	config := fmt.Sprintf(testAccAzureRMStorageBlob_remote, ri, rs1, sourceBlob.Name(), rs2)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		//CheckDestroy: testCheckAzureRMStorageBlobDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageBlobMatches("azurerm_storage_blob.destination", rs1),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMStorageBlobExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
@@ -135,6 +172,50 @@ func testCheckAzureRMStorageBlobExists(name string) resource.TestCheckFunc {
 
 		if !exists {
 			return fmt.Errorf("Bad: Storage Blob %q (storage container: %q) does not exist", name, storageContainerName)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMStorageBlobMatches(name, expectedContents string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		storageAccountName := rs.Primary.Attributes["storage_account_name"]
+		storageContainerName := rs.Primary.Attributes["storage_container_name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for storage blob: %s", name)
+		}
+
+		armClient := testAccProvider.Meta().(*ArmClient)
+		blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
+		if err != nil {
+			return err
+		}
+		if !accountExists {
+			return fmt.Errorf("Bad: Storage Account %q does not exist", storageAccountName)
+		}
+
+		blob, err := blobClient.GetBlob(storageContainerName, name)
+		if err != nil {
+			return err
+		}
+
+		contents, err := ioutil.ReadAll(blob)
+		if err != nil {
+			return err
+		}
+		defer blob.Close()
+
+		if string(contents) != expectedContents {
+			return fmt.Errorf("Bad: Storage Blob %q (storage container: %q) does not match contents %q (found: %q)", name, storageContainerName, expectedContents, contents)
 		}
 
 		return nil
@@ -210,5 +291,71 @@ resource "azurerm_storage_blob" "test" {
 
     type = "page"
     size = 5120
+}
+`
+
+var testAccAzureRMStorageBlob_remote = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestrg-%d"
+    location = "westus"
+}
+
+resource "azurerm_storage_account" "source" {
+    name = "acctestacc%s"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "westus"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "staging"
+    }
+}
+
+resource "azurerm_storage_container" "source" {
+    name = "source"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_storage_account.source.name}"
+    container_access_type = "blob"
+}
+
+resource "azurerm_storage_blob" "source" {
+    name = "source.vhd"
+
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_storage_account.source.name}"
+    storage_container_name = "${azurerm_storage_container.source.name}"
+
+    type = "block"
+		file_path = "%s"
+}
+
+resource "azurerm_storage_account" "destination" {
+    name = "acctestacc%s"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "westus"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "staging"
+    }
+}
+
+resource "azurerm_storage_container" "destination" {
+    name = "destination"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_storage_account.destination.name}"
+    container_access_type = "private"
+}
+
+resource "azurerm_storage_blob" "destination" {
+    name = "destination.vhd"
+		depends_on = ["azurerm_storage_blob.source"]
+
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_storage_account.destination.name}"
+    storage_container_name = "${azurerm_storage_container.destination.name}"
+
+    type = "block"
+		source_blob_url = "${azurerm_storage_blob.source.url}"
 }
 `

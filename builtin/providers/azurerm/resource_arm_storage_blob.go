@@ -1,10 +1,14 @@
 package azurerm
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -43,11 +47,24 @@ func resourceArmStorageBlob() *schema.Resource {
 				ValidateFunc: validateArmStorageBlobType,
 			},
 			"size": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ForceNew:     true,
-				Default:      0,
-				ValidateFunc: validateArmStorageBlobSize,
+				Type:          schema.TypeInt,
+				Optional:      true,
+				ForceNew:      true,
+				Default:       0,
+				ValidateFunc:  validateArmStorageBlobSize,
+				ConflictsWith: []string{"source_blob_url", "file_path"},
+			},
+			"source_blob_url": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"size", "file_path"},
+			},
+			"file_path": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"source_blob_url", "size"},
 			},
 			"url": {
 				Type:     schema.TypeString,
@@ -102,6 +119,67 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 	switch strings.ToLower(blobType) {
 	case "block":
 		err = blobClient.CreateBlockBlob(cont, name)
+
+		localBlobPath := d.Get("file_path").(string)
+		if localBlobPath != "" {
+			file, err := os.Open(localBlobPath)
+			if err != nil {
+				return fmt.Errorf("Error opening file: %s", err)
+			}
+			defer file.Close()
+
+			fileInfo, err := file.Stat()
+			if err != nil {
+				return fmt.Errorf("Error stating file: %s", err)
+			}
+
+			blockSize := 4000000
+			fileSize := int(fileInfo.Size())
+			var blockList []storage.Block
+
+			for i := 0; i < fileSize; i = i + int(blockSize) {
+				remainder := fileSize - i
+				b := blockSize
+				if b > remainder {
+					b = remainder
+				}
+				buf := make([]byte, b)
+				_, err := file.Read(buf)
+				if err != nil {
+					return fmt.Errorf("Error reading file: %s", err)
+				}
+
+				randData := make([]byte, 10)
+				_, err = rand.Read(randData)
+				if err != nil {
+					return fmt.Errorf("Error reading random bytes for ID: %s", err)
+				}
+
+				blockID := base64.StdEncoding.EncodeToString(randData)
+				blockList = append(blockList, storage.Block{
+					ID:     blockID,
+					Status: storage.BlockStatusUncommitted,
+				})
+
+				err = blobClient.PutBlock(cont, name, blockID, buf)
+				if err != nil {
+					return fmt.Errorf("Error putting block: %s", err)
+				}
+			}
+
+			err = blobClient.PutBlockList(cont, name, blockList)
+			if err != nil {
+				return fmt.Errorf("Error putting block list: %s", err)
+			}
+		}
+
+		sourceBlobURL := d.Get("source_blob_url").(string)
+		if sourceBlobURL != "" {
+			err := blobClient.CopyBlob(cont, name, sourceBlobURL)
+			if err != nil {
+				return fmt.Errorf("Error on copy blob: %s", err)
+			}
+		}
 	case "page":
 		size := int64(d.Get("size").(int))
 		err = blobClient.PutPageBlob(cont, name, size, map[string]string{})
