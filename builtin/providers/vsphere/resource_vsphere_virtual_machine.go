@@ -380,9 +380,9 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Default:  "eager_zeroed",
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
-								if value != "thin" && value != "eager_zeroed" {
+								if value != "thin" && value != "eager_zeroed" && value != "lazy" {
 									errors = append(errors, fmt.Errorf(
-										"only 'thin' and 'eager_zeroed' are supported values for 'type'"))
+										"only 'thin', 'eager_zeroed', and 'lazy' are supported values for 'type'"))
 								}
 								return
 							},
@@ -580,8 +580,15 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor vmdk name was given")
 				}
 
+				var initType string
+				if disk["type"] != "" {
+					initType = disk["type"].(string)
+				} else {
+					initType = "thin"
+				}
+
 				log.Printf("[INFO] Attaching disk: %v", diskPath)
-				err = addHardDisk(vm, size, iops, "thin", datastore, diskPath, controller_type)
+				err = addHardDisk(vm, size, iops, initType, datastore, diskPath, controller_type)
 				if err != nil {
 					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
 					return err
@@ -1298,6 +1305,10 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 			// eager zeroed thick virtual disk
 			backing.ThinProvisioned = types.NewBool(false)
 			backing.EagerlyScrub = types.NewBool(true)
+		} else if diskType == "lazy" {
+			// lazy zeroed thick virtual disk
+			backing.ThinProvisioned = types.NewBool(false)
+			backing.EagerlyScrub = types.NewBool(false)
 		} else if diskType == "thin" {
 			// thin provisioned virtual disk
 			backing.ThinProvisioned = types.NewBool(true)
@@ -1477,6 +1488,7 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 	}
 
 	isThin := initType == "thin"
+	eagerScrub := initType == "eager_zeroed"
 	rpr := rp.Reference()
 	dsr := ds.Reference()
 	return types.VirtualMachineRelocateSpec{
@@ -1489,7 +1501,7 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 				DiskBackingInfo: &types.VirtualDiskFlatVer2BackingInfo{
 					DiskMode:        "persistent",
 					ThinProvisioned: types.NewBool(isThin),
-					EagerlyScrub:    types.NewBool(!isThin),
+					EagerlyScrub:    types.NewBool(eagerScrub),
 				},
 				DiskId: key,
 			},
