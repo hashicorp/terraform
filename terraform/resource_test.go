@@ -88,6 +88,100 @@ func TestResourceConfigGet(t *testing.T) {
 			Key:   "foo.5",
 			Value: nil,
 		},
+
+		// get from map
+		{
+			Config: map[string]interface{}{
+				"mapname": []map[string]interface{}{
+					map[string]interface{}{"key": 1},
+				},
+			},
+			Key:   "mapname.0.key",
+			Value: 1,
+		},
+
+		// get from map with dot in key
+		{
+			Config: map[string]interface{}{
+				"mapname": []map[string]interface{}{
+					map[string]interface{}{"key.name": 1},
+				},
+			},
+			Key:   "mapname.0.key.name",
+			Value: 1,
+		},
+
+		// get from map with overlapping key names
+		{
+			Config: map[string]interface{}{
+				"mapname": []map[string]interface{}{
+					map[string]interface{}{
+						"key.name":   1,
+						"key.name.2": 2,
+					},
+				},
+			},
+			Key:   "mapname.0.key.name.2",
+			Value: 2,
+		},
+		{
+			Config: map[string]interface{}{
+				"mapname": []map[string]interface{}{
+					map[string]interface{}{
+						"key.name":     1,
+						"key.name.foo": 2,
+					},
+				},
+			},
+			Key:   "mapname.0.key.name",
+			Value: 1,
+		},
+		{
+			Config: map[string]interface{}{
+				"mapname": []map[string]interface{}{
+					map[string]interface{}{
+						"listkey": []map[string]interface{}{
+							{"key": 3},
+						},
+					},
+				},
+			},
+			Key:   "mapname.0.listkey.0.key",
+			Value: 3,
+		},
+		// FIXME: this is ambiguous, and matches the nested map
+		//        leaving here to catch this behaviour if it changes.
+		{
+			Config: map[string]interface{}{
+				"mapname": []map[string]interface{}{
+					map[string]interface{}{
+						"key.name":   1,
+						"key.name.0": 2,
+						"key":        map[string]interface{}{"name": 3},
+					},
+				},
+			},
+			Key:   "mapname.0.key.name",
+			Value: 3,
+		},
+		/*
+			// TODO: can't access this nested list at all.
+			// FIXME: key with name matching substring of nested list can panic
+			{
+				Config: map[string]interface{}{
+					"mapname": []map[string]interface{}{
+						map[string]interface{}{
+							"key.name": []map[string]interface{}{
+								{"subkey": 1},
+							},
+							"key": 3,
+						},
+					},
+				},
+				Key:   "mapname.0.key.name.0.subkey",
+				Value: 3,
+			},
+		*/
 	}
 
 	for i, tc := range cases {

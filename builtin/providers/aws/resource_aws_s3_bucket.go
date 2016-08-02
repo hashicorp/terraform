@@ -293,6 +293,13 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+
+			"acceleration_status": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateS3BucketAccelerationStatus,
+			},
 		},
 	}
 }
@@ -391,6 +398,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("lifecycle_rule") {
 		if err := resourceAwsS3BucketLifecycleUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("acceleration_status") {
+		if err := resourceAwsS3BucketAccelerationUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -524,6 +537,16 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 	}
+
+	//read the acceleration status
+	accelerate, err := s3conn.GetBucketAccelerateConfiguration(&s3.GetBucketAccelerateConfigurationInput{
+		Bucket: aws.String(d.Id()),
+	})
+	log.Printf("[DEBUG] S3 bucket: %s, read Acceleration: %v", d.Id(), accelerate)
+	if err != nil {
+		return err
+	}
+	d.Set("acceleration_status", accelerate.Status)
 
 	// Read the logging configuration
 	logging, err := s3conn.GetBucketLogging(&s3.GetBucketLoggingInput{
@@ -1006,7 +1029,7 @@ func WebsiteDomainUrl(region string) string {
 
 	// Frankfurt(and probably future) regions uses different syntax for website endpoints
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteEndpoints.html
-	if region == "eu-central-1" {
+	if region == "eu-central-1" || region == "ap-south-1" {
 		return fmt.Sprintf("s3-website.%s.amazonaws.com", region)
 	}
 
@@ -1090,6 +1113,26 @@ func resourceAwsS3BucketLoggingUpdate(s3conn *s3.S3, d *schema.ResourceData) err
 	_, err := s3conn.PutBucketLogging(i)
 	if err != nil {
 		return fmt.Errorf("Error putting S3 logging: %s", err)
+	}
+
+	return nil
+}
+
+func resourceAwsS3BucketAccelerationUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	enableAcceleration := d.Get("acceleration_status").(string)
+
+	i := &s3.PutBucketAccelerateConfigurationInput{
+		Bucket: aws.String(bucket),
+		AccelerateConfiguration: &s3.AccelerateConfiguration{
+			Status: aws.String(enableAcceleration),
+		},
+	}
+	log.Printf("[DEBUG] S3 put bucket acceleration: %#v", i)
+
+	_, err := s3conn.PutBucketAccelerateConfiguration(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 acceleration: %s", err)
 	}
 
 	return nil
@@ -1288,6 +1331,18 @@ func normalizeRegion(region string) string {
 	}
 
 	return region
+}
+
+func validateS3BucketAccelerationStatus(v interface{}, k string) (ws []string, errors []error) {
+	validTypes := map[string]struct{}{
+		"Enabled":   struct{}{},
+		"Suspended": struct{}{},
+	}
+
+	if _, ok := validTypes[v.(string)]; !ok {
+		errors = append(errors, fmt.Errorf("S3 Bucket Acceleration Status %q is invalid, must be %q or %q", v.(string), "Enabled", "Suspended"))
+	}
+	return
 }
 
 func expirationHash(v interface{}) int {

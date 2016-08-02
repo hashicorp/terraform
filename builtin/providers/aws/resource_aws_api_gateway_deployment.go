@@ -28,7 +28,7 @@ func resourceAwsApiGatewayDeployment() *schema.Resource {
 
 			"stage_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
 			},
 

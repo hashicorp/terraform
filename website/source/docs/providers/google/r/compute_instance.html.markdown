@@ -151,10 +151,6 @@ The `access_config` block supports:
 * `nat_ip` - (Optional) The IP address that will be 1:1 mapped to the instance's
     network ip. If not given, one will be generated.
 
-* `assigned_nat_ip` - (Optional) The IP address that is assigned to the
-    instance. If `nat_ip` is filled, it will appear here. If `nat_ip` is left
-    blank, the ephemeral assigned IP will appear here.
-
 (DEPRECATED) The `network` block supports:
 
 * `source` - (Required) The name of the network to attach this interface to.
@@ -188,3 +184,8 @@ exported:
 * `self_link` - The URI of the created resource.
 
 * `tags_fingerprint` - The unique fingerprint of the tags.
+
+* `network_interface.0.address` - The internal ip address of the instance (usually on the 10.x.x.x range).
+
+* `network_interface.0.access_config.0.assigned_nat_ip` - If the instance has an access config, either the given external ip (in the `nat_ip` field) or the ephemeral (generated) ip (if you didn't provide one).
+

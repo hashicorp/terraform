@@ -60,4 +60,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     v.memory = 4096
     v.cpus = 2
   end
+
+  config.vm.provider "parallels" do |prl|
+    prl.memory = 4096
+    prl.cpus = 2
+  end
 end

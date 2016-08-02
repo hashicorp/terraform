@@ -49,6 +49,34 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3Bucket_acceleration(t *testing.T) {
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithAcceleration(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "acceleration_status", "Enabled"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithoutAcceleration(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "acceleration_status", "Suspended"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSS3Bucket_Policy(t *testing.T) {
 	rInt := acctest.RandInt()
 
@@ -792,6 +820,26 @@ resource "aws_s3_bucket" "bucket" {
 }]
 EOF
 	}
+}
+`, randInt)
+}
+
+func testAccAWSS3BucketConfigWithAcceleration(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	acceleration_status = "Enabled"
+}
+`, randInt)
+}
+
+func testAccAWSS3BucketConfigWithoutAcceleration(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	acceleration_status = "Suspended"
 }
 `, randInt)
 }

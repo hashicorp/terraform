@@ -12,7 +12,28 @@ import (
 
 const opAssumeRole = "AssumeRole"
 
-// AssumeRoleRequest generates a request for the AssumeRole operation.
+// AssumeRoleRequest generates a "aws/request.Request" representing the
+// client's request for the AssumeRole operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssumeRole method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssumeRoleRequest method.
+//    req, resp := client.AssumeRoleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *STS) AssumeRoleRequest(input *AssumeRoleInput) (req *request.Request, output *AssumeRoleOutput) {
 	op := &request.Operation{
 		Name:       opAssumeRole,
@@ -40,8 +61,8 @@ func (c *STS) AssumeRoleRequest(input *AssumeRoleInput) (req *request.Request, o
 // in the IAM User Guide.
 //
 //  Important: You cannot call AssumeRole by using AWS root account credentials;
-// access is denied. You must use IAM user credentials or temporary security
-// credentials to call AssumeRole.
+// access is denied. You must use credentials for an IAM user or an IAM role
+// to call AssumeRole.
 //
 // For cross-account access, imagine that you own multiple accounts and need
 // to access resources in each account. You could create long-term credentials
@@ -127,7 +148,28 @@ func (c *STS) AssumeRole(input *AssumeRoleInput) (*AssumeRoleOutput, error) {
 
 const opAssumeRoleWithSAML = "AssumeRoleWithSAML"
 
-// AssumeRoleWithSAMLRequest generates a request for the AssumeRoleWithSAML operation.
+// AssumeRoleWithSAMLRequest generates a "aws/request.Request" representing the
+// client's request for the AssumeRoleWithSAML operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssumeRoleWithSAML method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssumeRoleWithSAMLRequest method.
+//    req, resp := client.AssumeRoleWithSAMLRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *STS) AssumeRoleWithSAMLRequest(input *AssumeRoleWithSAMLInput) (req *request.Request, output *AssumeRoleWithSAMLOutput) {
 	op := &request.Operation{
 		Name:       opAssumeRoleWithSAML,
@@ -219,7 +261,28 @@ func (c *STS) AssumeRoleWithSAML(input *AssumeRoleWithSAMLInput) (*AssumeRoleWit
 
 const opAssumeRoleWithWebIdentity = "AssumeRoleWithWebIdentity"
 
-// AssumeRoleWithWebIdentityRequest generates a request for the AssumeRoleWithWebIdentity operation.
+// AssumeRoleWithWebIdentityRequest generates a "aws/request.Request" representing the
+// client's request for the AssumeRoleWithWebIdentity operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssumeRoleWithWebIdentity method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssumeRoleWithWebIdentityRequest method.
+//    req, resp := client.AssumeRoleWithWebIdentityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *STS) AssumeRoleWithWebIdentityRequest(input *AssumeRoleWithWebIdentityInput) (req *request.Request, output *AssumeRoleWithWebIdentityOutput) {
 	op := &request.Operation{
 		Name:       opAssumeRoleWithWebIdentity,
@@ -330,7 +393,28 @@ func (c *STS) AssumeRoleWithWebIdentity(input *AssumeRoleWithWebIdentityInput) (
 
 const opDecodeAuthorizationMessage = "DecodeAuthorizationMessage"
 
-// DecodeAuthorizationMessageRequest generates a request for the DecodeAuthorizationMessage operation.
+// DecodeAuthorizationMessageRequest generates a "aws/request.Request" representing the
+// client's request for the DecodeAuthorizationMessage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DecodeAuthorizationMessage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DecodeAuthorizationMessageRequest method.
+//    req, resp := client.DecodeAuthorizationMessageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *STS) DecodeAuthorizationMessageRequest(input *DecodeAuthorizationMessageInput) (req *request.Request, output *DecodeAuthorizationMessageOutput) {
 	op := &request.Operation{
 		Name:       opDecodeAuthorizationMessage,
@@ -388,7 +472,28 @@ func (c *STS) DecodeAuthorizationMessage(input *DecodeAuthorizationMessageInput)
 
 const opGetCallerIdentity = "GetCallerIdentity"
 
-// GetCallerIdentityRequest generates a request for the GetCallerIdentity operation.
+// GetCallerIdentityRequest generates a "aws/request.Request" representing the
+// client's request for the GetCallerIdentity operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetCallerIdentity method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetCallerIdentityRequest method.
+//    req, resp := client.GetCallerIdentityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *STS) GetCallerIdentityRequest(input *GetCallerIdentityInput) (req *request.Request, output *GetCallerIdentityOutput) {
 	op := &request.Operation{
 		Name:       opGetCallerIdentity,
@@ -416,7 +521,28 @@ func (c *STS) GetCallerIdentity(input *GetCallerIdentityInput) (*GetCallerIdenti
 
 const opGetFederationToken = "GetFederationToken"
 
-// GetFederationTokenRequest generates a request for the GetFederationToken operation.
+// GetFederationTokenRequest generates a "aws/request.Request" representing the
+// client's request for the GetFederationToken operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetFederationToken method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetFederationTokenRequest method.
+//    req, resp := client.GetFederationTokenRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *STS) GetFederationTokenRequest(input *GetFederationTokenInput) (req *request.Request, output *GetFederationTokenOutput) {
 	op := &request.Operation{
 		Name:       opGetFederationToken,
@@ -520,7 +646,28 @@ func (c *STS) GetFederationToken(input *GetFederationTokenInput) (*GetFederation
 
 const opGetSessionToken = "GetSessionToken"
 
-// GetSessionTokenRequest generates a request for the GetSessionToken operation.
+// GetSessionTokenRequest generates a "aws/request.Request" representing the
+// client's request for the GetSessionToken operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetSessionToken method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetSessionTokenRequest method.
+//    req, resp := client.GetSessionTokenRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *STS) GetSessionTokenRequest(input *GetSessionTokenInput) (req *request.Request, output *GetSessionTokenOutput) {
 	op := &request.Operation{
 		Name:       opGetSessionToken,

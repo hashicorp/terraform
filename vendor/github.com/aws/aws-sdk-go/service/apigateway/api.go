@@ -14,7 +14,28 @@ import (
 
 const opCreateApiKey = "CreateApiKey"
 
-// CreateApiKeyRequest generates a request for the CreateApiKey operation.
+// CreateApiKeyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateApiKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateApiKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateApiKeyRequest method.
+//    req, resp := client.CreateApiKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request.Request, output *ApiKey) {
 	op := &request.Operation{
 		Name:       opCreateApiKey,
@@ -41,7 +62,28 @@ func (c *APIGateway) CreateApiKey(input *CreateApiKeyInput) (*ApiKey, error) {
 
 const opCreateAuthorizer = "CreateAuthorizer"
 
-// CreateAuthorizerRequest generates a request for the CreateAuthorizer operation.
+// CreateAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the CreateAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateAuthorizerRequest method.
+//    req, resp := client.CreateAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req *request.Request, output *Authorizer) {
 	op := &request.Operation{
 		Name:       opCreateAuthorizer,
@@ -68,7 +110,28 @@ func (c *APIGateway) CreateAuthorizer(input *CreateAuthorizerInput) (*Authorizer
 
 const opCreateBasePathMapping = "CreateBasePathMapping"
 
-// CreateBasePathMappingRequest generates a request for the CreateBasePathMapping operation.
+// CreateBasePathMappingRequest generates a "aws/request.Request" representing the
+// client's request for the CreateBasePathMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateBasePathMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateBasePathMappingRequest method.
+//    req, resp := client.CreateBasePathMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateBasePathMappingRequest(input *CreateBasePathMappingInput) (req *request.Request, output *BasePathMapping) {
 	op := &request.Operation{
 		Name:       opCreateBasePathMapping,
@@ -95,7 +158,28 @@ func (c *APIGateway) CreateBasePathMapping(input *CreateBasePathMappingInput) (*
 
 const opCreateDeployment = "CreateDeployment"
 
-// CreateDeploymentRequest generates a request for the CreateDeployment operation.
+// CreateDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDeployment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateDeployment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateDeploymentRequest method.
+//    req, resp := client.CreateDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateDeploymentRequest(input *CreateDeploymentInput) (req *request.Request, output *Deployment) {
 	op := &request.Operation{
 		Name:       opCreateDeployment,
@@ -123,7 +207,28 @@ func (c *APIGateway) CreateDeployment(input *CreateDeploymentInput) (*Deployment
 
 const opCreateDomainName = "CreateDomainName"
 
-// CreateDomainNameRequest generates a request for the CreateDomainName operation.
+// CreateDomainNameRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDomainName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateDomainName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateDomainNameRequest method.
+//    req, resp := client.CreateDomainNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateDomainNameRequest(input *CreateDomainNameInput) (req *request.Request, output *DomainName) {
 	op := &request.Operation{
 		Name:       opCreateDomainName,
@@ -150,7 +255,28 @@ func (c *APIGateway) CreateDomainName(input *CreateDomainNameInput) (*DomainName
 
 const opCreateModel = "CreateModel"
 
-// CreateModelRequest generates a request for the CreateModel operation.
+// CreateModelRequest generates a "aws/request.Request" representing the
+// client's request for the CreateModel operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateModel method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateModelRequest method.
+//    req, resp := client.CreateModelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateModelRequest(input *CreateModelInput) (req *request.Request, output *Model) {
 	op := &request.Operation{
 		Name:       opCreateModel,
@@ -177,7 +303,28 @@ func (c *APIGateway) CreateModel(input *CreateModelInput) (*Model, error) {
 
 const opCreateResource = "CreateResource"
 
-// CreateResourceRequest generates a request for the CreateResource operation.
+// CreateResourceRequest generates a "aws/request.Request" representing the
+// client's request for the CreateResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateResourceRequest method.
+//    req, resp := client.CreateResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateResourceRequest(input *CreateResourceInput) (req *request.Request, output *Resource) {
 	op := &request.Operation{
 		Name:       opCreateResource,
@@ -204,7 +351,28 @@ func (c *APIGateway) CreateResource(input *CreateResourceInput) (*Resource, erro
 
 const opCreateRestApi = "CreateRestApi"
 
-// CreateRestApiRequest generates a request for the CreateRestApi operation.
+// CreateRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateRestApiRequest method.
+//    req, resp := client.CreateRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateRestApiRequest(input *CreateRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opCreateRestApi,
@@ -231,7 +399,28 @@ func (c *APIGateway) CreateRestApi(input *CreateRestApiInput) (*RestApi, error) 
 
 const opCreateStage = "CreateStage"
 
-// CreateStageRequest generates a request for the CreateStage operation.
+// CreateStageRequest generates a "aws/request.Request" representing the
+// client's request for the CreateStage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateStage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateStageRequest method.
+//    req, resp := client.CreateStageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateStageRequest(input *CreateStageInput) (req *request.Request, output *Stage) {
 	op := &request.Operation{
 		Name:       opCreateStage,
@@ -259,7 +448,28 @@ func (c *APIGateway) CreateStage(input *CreateStageInput) (*Stage, error) {
 
 const opDeleteApiKey = "DeleteApiKey"
 
-// DeleteApiKeyRequest generates a request for the DeleteApiKey operation.
+// DeleteApiKeyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteApiKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteApiKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteApiKeyRequest method.
+//    req, resp := client.DeleteApiKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteApiKeyRequest(input *DeleteApiKeyInput) (req *request.Request, output *DeleteApiKeyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteApiKey,
@@ -288,7 +498,28 @@ func (c *APIGateway) DeleteApiKey(input *DeleteApiKeyInput) (*DeleteApiKeyOutput
 
 const opDeleteAuthorizer = "DeleteAuthorizer"
 
-// DeleteAuthorizerRequest generates a request for the DeleteAuthorizer operation.
+// DeleteAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteAuthorizerRequest method.
+//    req, resp := client.DeleteAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req *request.Request, output *DeleteAuthorizerOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAuthorizer,
@@ -317,7 +548,28 @@ func (c *APIGateway) DeleteAuthorizer(input *DeleteAuthorizerInput) (*DeleteAuth
 
 const opDeleteBasePathMapping = "DeleteBasePathMapping"
 
-// DeleteBasePathMappingRequest generates a request for the DeleteBasePathMapping operation.
+// DeleteBasePathMappingRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteBasePathMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteBasePathMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteBasePathMappingRequest method.
+//    req, resp := client.DeleteBasePathMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteBasePathMappingRequest(input *DeleteBasePathMappingInput) (req *request.Request, output *DeleteBasePathMappingOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBasePathMapping,
@@ -346,7 +598,28 @@ func (c *APIGateway) DeleteBasePathMapping(input *DeleteBasePathMappingInput) (*
 
 const opDeleteClientCertificate = "DeleteClientCertificate"
 
-// DeleteClientCertificateRequest generates a request for the DeleteClientCertificate operation.
+// DeleteClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteClientCertificateRequest method.
+//    req, resp := client.DeleteClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteClientCertificateRequest(input *DeleteClientCertificateInput) (req *request.Request, output *DeleteClientCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteClientCertificate,
@@ -375,7 +648,28 @@ func (c *APIGateway) DeleteClientCertificate(input *DeleteClientCertificateInput
 
 const opDeleteDeployment = "DeleteDeployment"
 
-// DeleteDeploymentRequest generates a request for the DeleteDeployment operation.
+// DeleteDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDeployment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteDeployment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteDeploymentRequest method.
+//    req, resp := client.DeleteDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteDeploymentRequest(input *DeleteDeploymentInput) (req *request.Request, output *DeleteDeploymentOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDeployment,
@@ -405,7 +699,28 @@ func (c *APIGateway) DeleteDeployment(input *DeleteDeploymentInput) (*DeleteDepl
 
 const opDeleteDomainName = "DeleteDomainName"
 
-// DeleteDomainNameRequest generates a request for the DeleteDomainName operation.
+// DeleteDomainNameRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDomainName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteDomainName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteDomainNameRequest method.
+//    req, resp := client.DeleteDomainNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteDomainNameRequest(input *DeleteDomainNameInput) (req *request.Request, output *DeleteDomainNameOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDomainName,
@@ -434,7 +749,28 @@ func (c *APIGateway) DeleteDomainName(input *DeleteDomainNameInput) (*DeleteDoma
 
 const opDeleteIntegration = "DeleteIntegration"
 
-// DeleteIntegrationRequest generates a request for the DeleteIntegration operation.
+// DeleteIntegrationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteIntegration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteIntegration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteIntegrationRequest method.
+//    req, resp := client.DeleteIntegrationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteIntegrationRequest(input *DeleteIntegrationInput) (req *request.Request, output *DeleteIntegrationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteIntegration,
@@ -463,7 +799,28 @@ func (c *APIGateway) DeleteIntegration(input *DeleteIntegrationInput) (*DeleteIn
 
 const opDeleteIntegrationResponse = "DeleteIntegrationResponse"
 
-// DeleteIntegrationResponseRequest generates a request for the DeleteIntegrationResponse operation.
+// DeleteIntegrationResponseRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteIntegrationResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteIntegrationResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteIntegrationResponseRequest method.
+//    req, resp := client.DeleteIntegrationResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteIntegrationResponseRequest(input *DeleteIntegrationResponseInput) (req *request.Request, output *DeleteIntegrationResponseOutput) {
 	op := &request.Operation{
 		Name:       opDeleteIntegrationResponse,
@@ -492,7 +849,28 @@ func (c *APIGateway) DeleteIntegrationResponse(input *DeleteIntegrationResponseI
 
 const opDeleteMethod = "DeleteMethod"
 
-// DeleteMethodRequest generates a request for the DeleteMethod operation.
+// DeleteMethodRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteMethodRequest method.
+//    req, resp := client.DeleteMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteMethodRequest(input *DeleteMethodInput) (req *request.Request, output *DeleteMethodOutput) {
 	op := &request.Operation{
 		Name:       opDeleteMethod,
@@ -521,7 +899,28 @@ func (c *APIGateway) DeleteMethod(input *DeleteMethodInput) (*DeleteMethodOutput
 
 const opDeleteMethodResponse = "DeleteMethodResponse"
 
-// DeleteMethodResponseRequest generates a request for the DeleteMethodResponse operation.
+// DeleteMethodResponseRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteMethodResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteMethodResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteMethodResponseRequest method.
+//    req, resp := client.DeleteMethodResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteMethodResponseRequest(input *DeleteMethodResponseInput) (req *request.Request, output *DeleteMethodResponseOutput) {
 	op := &request.Operation{
 		Name:       opDeleteMethodResponse,
@@ -550,7 +949,28 @@ func (c *APIGateway) DeleteMethodResponse(input *DeleteMethodResponseInput) (*De
 
 const opDeleteModel = "DeleteModel"
 
-// DeleteModelRequest generates a request for the DeleteModel operation.
+// DeleteModelRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteModel operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteModel method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteModelRequest method.
+//    req, resp := client.DeleteModelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteModelRequest(input *DeleteModelInput) (req *request.Request, output *DeleteModelOutput) {
 	op := &request.Operation{
 		Name:       opDeleteModel,
@@ -579,7 +999,28 @@ func (c *APIGateway) DeleteModel(input *DeleteModelInput) (*DeleteModelOutput, e
 
 const opDeleteResource = "DeleteResource"
 
-// DeleteResourceRequest generates a request for the DeleteResource operation.
+// DeleteResourceRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteResourceRequest method.
+//    req, resp := client.DeleteResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteResourceRequest(input *DeleteResourceInput) (req *request.Request, output *DeleteResourceOutput) {
 	op := &request.Operation{
 		Name:       opDeleteResource,
@@ -608,7 +1049,28 @@ func (c *APIGateway) DeleteResource(input *DeleteResourceInput) (*DeleteResource
 
 const opDeleteRestApi = "DeleteRestApi"
 
-// DeleteRestApiRequest generates a request for the DeleteRestApi operation.
+// DeleteRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRestApiRequest method.
+//    req, resp := client.DeleteRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteRestApiRequest(input *DeleteRestApiInput) (req *request.Request, output *DeleteRestApiOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRestApi,
@@ -637,7 +1099,28 @@ func (c *APIGateway) DeleteRestApi(input *DeleteRestApiInput) (*DeleteRestApiOut
 
 const opDeleteStage = "DeleteStage"
 
-// DeleteStageRequest generates a request for the DeleteStage operation.
+// DeleteStageRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteStage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteStage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteStageRequest method.
+//    req, resp := client.DeleteStageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteStageRequest(input *DeleteStageInput) (req *request.Request, output *DeleteStageOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStage,
@@ -666,7 +1149,28 @@ func (c *APIGateway) DeleteStage(input *DeleteStageInput) (*DeleteStageOutput, e
 
 const opFlushStageAuthorizersCache = "FlushStageAuthorizersCache"
 
-// FlushStageAuthorizersCacheRequest generates a request for the FlushStageAuthorizersCache operation.
+// FlushStageAuthorizersCacheRequest generates a "aws/request.Request" representing the
+// client's request for the FlushStageAuthorizersCache operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the FlushStageAuthorizersCache method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the FlushStageAuthorizersCacheRequest method.
+//    req, resp := client.FlushStageAuthorizersCacheRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) FlushStageAuthorizersCacheRequest(input *FlushStageAuthorizersCacheInput) (req *request.Request, output *FlushStageAuthorizersCacheOutput) {
 	op := &request.Operation{
 		Name:       opFlushStageAuthorizersCache,
@@ -695,7 +1199,28 @@ func (c *APIGateway) FlushStageAuthorizersCache(input *FlushStageAuthorizersCach
 
 const opFlushStageCache = "FlushStageCache"
 
-// FlushStageCacheRequest generates a request for the FlushStageCache operation.
+// FlushStageCacheRequest generates a "aws/request.Request" representing the
+// client's request for the FlushStageCache operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the FlushStageCache method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the FlushStageCacheRequest method.
+//    req, resp := client.FlushStageCacheRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) FlushStageCacheRequest(input *FlushStageCacheInput) (req *request.Request, output *FlushStageCacheOutput) {
 	op := &request.Operation{
 		Name:       opFlushStageCache,
@@ -724,7 +1249,28 @@ func (c *APIGateway) FlushStageCache(input *FlushStageCacheInput) (*FlushStageCa
 
 const opGenerateClientCertificate = "GenerateClientCertificate"
 
-// GenerateClientCertificateRequest generates a request for the GenerateClientCertificate operation.
+// GenerateClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the GenerateClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GenerateClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GenerateClientCertificateRequest method.
+//    req, resp := client.GenerateClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GenerateClientCertificateRequest(input *GenerateClientCertificateInput) (req *request.Request, output *ClientCertificate) {
 	op := &request.Operation{
 		Name:       opGenerateClientCertificate,
@@ -751,7 +1297,28 @@ func (c *APIGateway) GenerateClientCertificate(input *GenerateClientCertificateI
 
 const opGetAccount = "GetAccount"
 
-// GetAccountRequest generates a request for the GetAccount operation.
+// GetAccountRequest generates a "aws/request.Request" representing the
+// client's request for the GetAccount operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetAccount method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetAccountRequest method.
+//    req, resp := client.GetAccountRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetAccountRequest(input *GetAccountInput) (req *request.Request, output *Account) {
 	op := &request.Operation{
 		Name:       opGetAccount,
@@ -778,7 +1345,28 @@ func (c *APIGateway) GetAccount(input *GetAccountInput) (*Account, error) {
 
 const opGetApiKey = "GetApiKey"
 
-// GetApiKeyRequest generates a request for the GetApiKey operation.
+// GetApiKeyRequest generates a "aws/request.Request" representing the
+// client's request for the GetApiKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetApiKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetApiKeyRequest method.
+//    req, resp := client.GetApiKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetApiKeyRequest(input *GetApiKeyInput) (req *request.Request, output *ApiKey) {
 	op := &request.Operation{
 		Name:       opGetApiKey,
@@ -805,7 +1393,28 @@ func (c *APIGateway) GetApiKey(input *GetApiKeyInput) (*ApiKey, error) {
 
 const opGetApiKeys = "GetApiKeys"
 
-// GetApiKeysRequest generates a request for the GetApiKeys operation.
+// GetApiKeysRequest generates a "aws/request.Request" representing the
+// client's request for the GetApiKeys operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetApiKeys method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetApiKeysRequest method.
+//    req, resp := client.GetApiKeysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetApiKeysRequest(input *GetApiKeysInput) (req *request.Request, output *GetApiKeysOutput) {
 	op := &request.Operation{
 		Name:       opGetApiKeys,
@@ -836,6 +1445,23 @@ func (c *APIGateway) GetApiKeys(input *GetApiKeysInput) (*GetApiKeysOutput, erro
 	return out, err
 }
 
+// GetApiKeysPages iterates over the pages of a GetApiKeys operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetApiKeys method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetApiKeys operation.
+//    pageNum := 0
+//    err := client.GetApiKeysPages(params,
+//        func(page *GetApiKeysOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetApiKeysPages(input *GetApiKeysInput, fn func(p *GetApiKeysOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetApiKeysRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -846,7 +1472,28 @@ func (c *APIGateway) GetApiKeysPages(input *GetApiKeysInput, fn func(p *GetApiKe
 
 const opGetAuthorizer = "GetAuthorizer"
 
-// GetAuthorizerRequest generates a request for the GetAuthorizer operation.
+// GetAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the GetAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetAuthorizerRequest method.
+//    req, resp := client.GetAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *request.Request, output *Authorizer) {
 	op := &request.Operation{
 		Name:       opGetAuthorizer,
@@ -873,7 +1520,28 @@ func (c *APIGateway) GetAuthorizer(input *GetAuthorizerInput) (*Authorizer, erro
 
 const opGetAuthorizers = "GetAuthorizers"
 
-// GetAuthorizersRequest generates a request for the GetAuthorizers operation.
+// GetAuthorizersRequest generates a "aws/request.Request" representing the
+// client's request for the GetAuthorizers operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetAuthorizers method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetAuthorizersRequest method.
+//    req, resp := client.GetAuthorizersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *request.Request, output *GetAuthorizersOutput) {
 	op := &request.Operation{
 		Name:       opGetAuthorizers,
@@ -900,7 +1568,28 @@ func (c *APIGateway) GetAuthorizers(input *GetAuthorizersInput) (*GetAuthorizers
 
 const opGetBasePathMapping = "GetBasePathMapping"
 
-// GetBasePathMappingRequest generates a request for the GetBasePathMapping operation.
+// GetBasePathMappingRequest generates a "aws/request.Request" representing the
+// client's request for the GetBasePathMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetBasePathMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetBasePathMappingRequest method.
+//    req, resp := client.GetBasePathMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetBasePathMappingRequest(input *GetBasePathMappingInput) (req *request.Request, output *BasePathMapping) {
 	op := &request.Operation{
 		Name:       opGetBasePathMapping,
@@ -927,7 +1616,28 @@ func (c *APIGateway) GetBasePathMapping(input *GetBasePathMappingInput) (*BasePa
 
 const opGetBasePathMappings = "GetBasePathMappings"
 
-// GetBasePathMappingsRequest generates a request for the GetBasePathMappings operation.
+// GetBasePathMappingsRequest generates a "aws/request.Request" representing the
+// client's request for the GetBasePathMappings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetBasePathMappings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetBasePathMappingsRequest method.
+//    req, resp := client.GetBasePathMappingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetBasePathMappingsRequest(input *GetBasePathMappingsInput) (req *request.Request, output *GetBasePathMappingsOutput) {
 	op := &request.Operation{
 		Name:       opGetBasePathMappings,
@@ -958,6 +1668,23 @@ func (c *APIGateway) GetBasePathMappings(input *GetBasePathMappingsInput) (*GetB
 	return out, err
 }
 
+// GetBasePathMappingsPages iterates over the pages of a GetBasePathMappings operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetBasePathMappings method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetBasePathMappings operation.
+//    pageNum := 0
+//    err := client.GetBasePathMappingsPages(params,
+//        func(page *GetBasePathMappingsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetBasePathMappingsPages(input *GetBasePathMappingsInput, fn func(p *GetBasePathMappingsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetBasePathMappingsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -968,7 +1695,28 @@ func (c *APIGateway) GetBasePathMappingsPages(input *GetBasePathMappingsInput, f
 
 const opGetClientCertificate = "GetClientCertificate"
 
-// GetClientCertificateRequest generates a request for the GetClientCertificate operation.
+// GetClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the GetClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetClientCertificateRequest method.
+//    req, resp := client.GetClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetClientCertificateRequest(input *GetClientCertificateInput) (req *request.Request, output *ClientCertificate) {
 	op := &request.Operation{
 		Name:       opGetClientCertificate,
@@ -995,7 +1743,28 @@ func (c *APIGateway) GetClientCertificate(input *GetClientCertificateInput) (*Cl
 
 const opGetClientCertificates = "GetClientCertificates"
 
-// GetClientCertificatesRequest generates a request for the GetClientCertificates operation.
+// GetClientCertificatesRequest generates a "aws/request.Request" representing the
+// client's request for the GetClientCertificates operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetClientCertificates method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetClientCertificatesRequest method.
+//    req, resp := client.GetClientCertificatesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetClientCertificatesRequest(input *GetClientCertificatesInput) (req *request.Request, output *GetClientCertificatesOutput) {
 	op := &request.Operation{
 		Name:       opGetClientCertificates,
@@ -1026,6 +1795,23 @@ func (c *APIGateway) GetClientCertificates(input *GetClientCertificatesInput) (*
 	return out, err
 }
 
+// GetClientCertificatesPages iterates over the pages of a GetClientCertificates operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetClientCertificates method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetClientCertificates operation.
+//    pageNum := 0
+//    err := client.GetClientCertificatesPages(params,
+//        func(page *GetClientCertificatesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetClientCertificatesPages(input *GetClientCertificatesInput, fn func(p *GetClientCertificatesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetClientCertificatesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1036,7 +1822,28 @@ func (c *APIGateway) GetClientCertificatesPages(input *GetClientCertificatesInpu
 
 const opGetDeployment = "GetDeployment"
 
-// GetDeploymentRequest generates a request for the GetDeployment operation.
+// GetDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the GetDeployment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDeployment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDeploymentRequest method.
+//    req, resp := client.GetDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetDeploymentRequest(input *GetDeploymentInput) (req *request.Request, output *Deployment) {
 	op := &request.Operation{
 		Name:       opGetDeployment,
@@ -1063,7 +1870,28 @@ func (c *APIGateway) GetDeployment(input *GetDeploymentInput) (*Deployment, erro
 
 const opGetDeployments = "GetDeployments"
 
-// GetDeploymentsRequest generates a request for the GetDeployments operation.
+// GetDeploymentsRequest generates a "aws/request.Request" representing the
+// client's request for the GetDeployments operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDeployments method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDeploymentsRequest method.
+//    req, resp := client.GetDeploymentsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetDeploymentsRequest(input *GetDeploymentsInput) (req *request.Request, output *GetDeploymentsOutput) {
 	op := &request.Operation{
 		Name:       opGetDeployments,
@@ -1094,6 +1922,23 @@ func (c *APIGateway) GetDeployments(input *GetDeploymentsInput) (*GetDeployments
 	return out, err
 }
 
+// GetDeploymentsPages iterates over the pages of a GetDeployments operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetDeployments method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetDeployments operation.
+//    pageNum := 0
+//    err := client.GetDeploymentsPages(params,
+//        func(page *GetDeploymentsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetDeploymentsPages(input *GetDeploymentsInput, fn func(p *GetDeploymentsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetDeploymentsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1104,7 +1949,28 @@ func (c *APIGateway) GetDeploymentsPages(input *GetDeploymentsInput, fn func(p *
 
 const opGetDomainName = "GetDomainName"
 
-// GetDomainNameRequest generates a request for the GetDomainName operation.
+// GetDomainNameRequest generates a "aws/request.Request" representing the
+// client's request for the GetDomainName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDomainName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDomainNameRequest method.
+//    req, resp := client.GetDomainNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetDomainNameRequest(input *GetDomainNameInput) (req *request.Request, output *DomainName) {
 	op := &request.Operation{
 		Name:       opGetDomainName,
@@ -1132,7 +1998,28 @@ func (c *APIGateway) GetDomainName(input *GetDomainNameInput) (*DomainName, erro
 
 const opGetDomainNames = "GetDomainNames"
 
-// GetDomainNamesRequest generates a request for the GetDomainNames operation.
+// GetDomainNamesRequest generates a "aws/request.Request" representing the
+// client's request for the GetDomainNames operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDomainNames method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDomainNamesRequest method.
+//    req, resp := client.GetDomainNamesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetDomainNamesRequest(input *GetDomainNamesInput) (req *request.Request, output *GetDomainNamesOutput) {
 	op := &request.Operation{
 		Name:       opGetDomainNames,
@@ -1163,6 +2050,23 @@ func (c *APIGateway) GetDomainNames(input *GetDomainNamesInput) (*GetDomainNames
 	return out, err
 }
 
+// GetDomainNamesPages iterates over the pages of a GetDomainNames operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetDomainNames method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetDomainNames operation.
+//    pageNum := 0
+//    err := client.GetDomainNamesPages(params,
+//        func(page *GetDomainNamesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetDomainNamesPages(input *GetDomainNamesInput, fn func(p *GetDomainNamesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetDomainNamesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1173,7 +2077,28 @@ func (c *APIGateway) GetDomainNamesPages(input *GetDomainNamesInput, fn func(p *
 
 const opGetExport = "GetExport"
 
-// GetExportRequest generates a request for the GetExport operation.
+// GetExportRequest generates a "aws/request.Request" representing the
+// client's request for the GetExport operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetExport method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetExportRequest method.
+//    req, resp := client.GetExportRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetExportRequest(input *GetExportInput) (req *request.Request, output *GetExportOutput) {
 	op := &request.Operation{
 		Name:       opGetExport,
@@ -1200,7 +2125,28 @@ func (c *APIGateway) GetExport(input *GetExportInput) (*GetExportOutput, error) 
 
 const opGetIntegration = "GetIntegration"
 
-// GetIntegrationRequest generates a request for the GetIntegration operation.
+// GetIntegrationRequest generates a "aws/request.Request" representing the
+// client's request for the GetIntegration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetIntegration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetIntegrationRequest method.
+//    req, resp := client.GetIntegrationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetIntegrationRequest(input *GetIntegrationInput) (req *request.Request, output *Integration) {
 	op := &request.Operation{
 		Name:       opGetIntegration,
@@ -1227,7 +2173,28 @@ func (c *APIGateway) GetIntegration(input *GetIntegrationInput) (*Integration, e
 
 const opGetIntegrationResponse = "GetIntegrationResponse"
 
-// GetIntegrationResponseRequest generates a request for the GetIntegrationResponse operation.
+// GetIntegrationResponseRequest generates a "aws/request.Request" representing the
+// client's request for the GetIntegrationResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetIntegrationResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetIntegrationResponseRequest method.
+//    req, resp := client.GetIntegrationResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetIntegrationResponseRequest(input *GetIntegrationResponseInput) (req *request.Request, output *IntegrationResponse) {
 	op := &request.Operation{
 		Name:       opGetIntegrationResponse,
@@ -1254,7 +2221,28 @@ func (c *APIGateway) GetIntegrationResponse(input *GetIntegrationResponseInput) 
 
 const opGetMethod = "GetMethod"
 
-// GetMethodRequest generates a request for the GetMethod operation.
+// GetMethodRequest generates a "aws/request.Request" representing the
+// client's request for the GetMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetMethodRequest method.
+//    req, resp := client.GetMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetMethodRequest(input *GetMethodInput) (req *request.Request, output *Method) {
 	op := &request.Operation{
 		Name:       opGetMethod,
@@ -1281,7 +2269,28 @@ func (c *APIGateway) GetMethod(input *GetMethodInput) (*Method, error) {
 
 const opGetMethodResponse = "GetMethodResponse"
 
-// GetMethodResponseRequest generates a request for the GetMethodResponse operation.
+// GetMethodResponseRequest generates a "aws/request.Request" representing the
+// client's request for the GetMethodResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetMethodResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetMethodResponseRequest method.
+//    req, resp := client.GetMethodResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetMethodResponseRequest(input *GetMethodResponseInput) (req *request.Request, output *MethodResponse) {
 	op := &request.Operation{
 		Name:       opGetMethodResponse,
@@ -1308,7 +2317,28 @@ func (c *APIGateway) GetMethodResponse(input *GetMethodResponseInput) (*MethodRe
 
 const opGetModel = "GetModel"
 
-// GetModelRequest generates a request for the GetModel operation.
+// GetModelRequest generates a "aws/request.Request" representing the
+// client's request for the GetModel operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetModel method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetModelRequest method.
+//    req, resp := client.GetModelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetModelRequest(input *GetModelInput) (req *request.Request, output *Model) {
 	op := &request.Operation{
 		Name:       opGetModel,
@@ -1335,7 +2365,28 @@ func (c *APIGateway) GetModel(input *GetModelInput) (*Model, error) {
 
 const opGetModelTemplate = "GetModelTemplate"
 
-// GetModelTemplateRequest generates a request for the GetModelTemplate operation.
+// GetModelTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the GetModelTemplate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetModelTemplate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetModelTemplateRequest method.
+//    req, resp := client.GetModelTemplateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetModelTemplateRequest(input *GetModelTemplateInput) (req *request.Request, output *GetModelTemplateOutput) {
 	op := &request.Operation{
 		Name:       opGetModelTemplate,
@@ -1363,7 +2414,28 @@ func (c *APIGateway) GetModelTemplate(input *GetModelTemplateInput) (*GetModelTe
 
 const opGetModels = "GetModels"
 
-// GetModelsRequest generates a request for the GetModels operation.
+// GetModelsRequest generates a "aws/request.Request" representing the
+// client's request for the GetModels operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetModels method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetModelsRequest method.
+//    req, resp := client.GetModelsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetModelsRequest(input *GetModelsInput) (req *request.Request, output *GetModelsOutput) {
 	op := &request.Operation{
 		Name:       opGetModels,
@@ -1394,6 +2466,23 @@ func (c *APIGateway) GetModels(input *GetModelsInput) (*GetModelsOutput, error) 
 	return out, err
 }
 
+// GetModelsPages iterates over the pages of a GetModels operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetModels method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetModels operation.
+//    pageNum := 0
+//    err := client.GetModelsPages(params,
+//        func(page *GetModelsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetModelsPages(input *GetModelsInput, fn func(p *GetModelsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetModelsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1404,7 +2493,28 @@ func (c *APIGateway) GetModelsPages(input *GetModelsInput, fn func(p *GetModelsO
 
 const opGetResource = "GetResource"
 
-// GetResourceRequest generates a request for the GetResource operation.
+// GetResourceRequest generates a "aws/request.Request" representing the
+// client's request for the GetResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetResourceRequest method.
+//    req, resp := client.GetResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetResourceRequest(input *GetResourceInput) (req *request.Request, output *Resource) {
 	op := &request.Operation{
 		Name:       opGetResource,
@@ -1431,7 +2541,28 @@ func (c *APIGateway) GetResource(input *GetResourceInput) (*Resource, error) {
 
 const opGetResources = "GetResources"
 
-// GetResourcesRequest generates a request for the GetResources operation.
+// GetResourcesRequest generates a "aws/request.Request" representing the
+// client's request for the GetResources operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetResources method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetResourcesRequest method.
+//    req, resp := client.GetResourcesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetResourcesRequest(input *GetResourcesInput) (req *request.Request, output *GetResourcesOutput) {
 	op := &request.Operation{
 		Name:       opGetResources,
@@ -1462,6 +2593,23 @@ func (c *APIGateway) GetResources(input *GetResourcesInput) (*GetResourcesOutput
 	return out, err
 }
 
+// GetResourcesPages iterates over the pages of a GetResources operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetResources method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetResources operation.
+//    pageNum := 0
+//    err := client.GetResourcesPages(params,
+//        func(page *GetResourcesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetResourcesPages(input *GetResourcesInput, fn func(p *GetResourcesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetResourcesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1472,7 +2620,28 @@ func (c *APIGateway) GetResourcesPages(input *GetResourcesInput, fn func(p *GetR
 
 const opGetRestApi = "GetRestApi"
 
-// GetRestApiRequest generates a request for the GetRestApi operation.
+// GetRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the GetRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRestApiRequest method.
+//    req, resp := client.GetRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetRestApiRequest(input *GetRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opGetRestApi,
@@ -1499,7 +2668,28 @@ func (c *APIGateway) GetRestApi(input *GetRestApiInput) (*RestApi, error) {
 
 const opGetRestApis = "GetRestApis"
 
-// GetRestApisRequest generates a request for the GetRestApis operation.
+// GetRestApisRequest generates a "aws/request.Request" representing the
+// client's request for the GetRestApis operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRestApis method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRestApisRequest method.
+//    req, resp := client.GetRestApisRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetRestApisRequest(input *GetRestApisInput) (req *request.Request, output *GetRestApisOutput) {
 	op := &request.Operation{
 		Name:       opGetRestApis,
@@ -1530,6 +2720,23 @@ func (c *APIGateway) GetRestApis(input *GetRestApisInput) (*GetRestApisOutput, e
 	return out, err
 }
 
+// GetRestApisPages iterates over the pages of a GetRestApis operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetRestApis method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetRestApis operation.
+//    pageNum := 0
+//    err := client.GetRestApisPages(params,
+//        func(page *GetRestApisOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetRestApisPages(input *GetRestApisInput, fn func(p *GetRestApisOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetRestApisRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1540,7 +2747,28 @@ func (c *APIGateway) GetRestApisPages(input *GetRestApisInput, fn func(p *GetRes
 
 const opGetSdk = "GetSdk"
 
-// GetSdkRequest generates a request for the GetSdk operation.
+// GetSdkRequest generates a "aws/request.Request" representing the
+// client's request for the GetSdk operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetSdk method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetSdkRequest method.
+//    req, resp := client.GetSdkRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetSdkRequest(input *GetSdkInput) (req *request.Request, output *GetSdkOutput) {
 	op := &request.Operation{
 		Name:       opGetSdk,
@@ -1567,7 +2795,28 @@ func (c *APIGateway) GetSdk(input *GetSdkInput) (*GetSdkOutput, error) {
 
 const opGetStage = "GetStage"
 
-// GetStageRequest generates a request for the GetStage operation.
+// GetStageRequest generates a "aws/request.Request" representing the
+// client's request for the GetStage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetStage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetStageRequest method.
+//    req, resp := client.GetStageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetStageRequest(input *GetStageInput) (req *request.Request, output *Stage) {
 	op := &request.Operation{
 		Name:       opGetStage,
@@ -1594,7 +2843,28 @@ func (c *APIGateway) GetStage(input *GetStageInput) (*Stage, error) {
 
 const opGetStages = "GetStages"
 
-// GetStagesRequest generates a request for the GetStages operation.
+// GetStagesRequest generates a "aws/request.Request" representing the
+// client's request for the GetStages operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetStages method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetStagesRequest method.
+//    req, resp := client.GetStagesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetStagesRequest(input *GetStagesInput) (req *request.Request, output *GetStagesOutput) {
 	op := &request.Operation{
 		Name:       opGetStages,
@@ -1621,7 +2891,28 @@ func (c *APIGateway) GetStages(input *GetStagesInput) (*GetStagesOutput, error) 
 
 const opImportRestApi = "ImportRestApi"
 
-// ImportRestApiRequest generates a request for the ImportRestApi operation.
+// ImportRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the ImportRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportRestApiRequest method.
+//    req, resp := client.ImportRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) ImportRestApiRequest(input *ImportRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opImportRestApi,
@@ -1649,7 +2940,28 @@ func (c *APIGateway) ImportRestApi(input *ImportRestApiInput) (*RestApi, error) 
 
 const opPutIntegration = "PutIntegration"
 
-// PutIntegrationRequest generates a request for the PutIntegration operation.
+// PutIntegrationRequest generates a "aws/request.Request" representing the
+// client's request for the PutIntegration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutIntegration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutIntegrationRequest method.
+//    req, resp := client.PutIntegrationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutIntegrationRequest(input *PutIntegrationInput) (req *request.Request, output *Integration) {
 	op := &request.Operation{
 		Name:       opPutIntegration,
@@ -1676,7 +2988,28 @@ func (c *APIGateway) PutIntegration(input *PutIntegrationInput) (*Integration, e
 
 const opPutIntegrationResponse = "PutIntegrationResponse"
 
-// PutIntegrationResponseRequest generates a request for the PutIntegrationResponse operation.
+// PutIntegrationResponseRequest generates a "aws/request.Request" representing the
+// client's request for the PutIntegrationResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutIntegrationResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutIntegrationResponseRequest method.
+//    req, resp := client.PutIntegrationResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutIntegrationResponseRequest(input *PutIntegrationResponseInput) (req *request.Request, output *IntegrationResponse) {
 	op := &request.Operation{
 		Name:       opPutIntegrationResponse,
@@ -1703,7 +3036,28 @@ func (c *APIGateway) PutIntegrationResponse(input *PutIntegrationResponseInput) 
 
 const opPutMethod = "PutMethod"
 
-// PutMethodRequest generates a request for the PutMethod operation.
+// PutMethodRequest generates a "aws/request.Request" representing the
+// client's request for the PutMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutMethodRequest method.
+//    req, resp := client.PutMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutMethodRequest(input *PutMethodInput) (req *request.Request, output *Method) {
 	op := &request.Operation{
 		Name:       opPutMethod,
@@ -1730,7 +3084,28 @@ func (c *APIGateway) PutMethod(input *PutMethodInput) (*Method, error) {
 
 const opPutMethodResponse = "PutMethodResponse"
 
-// PutMethodResponseRequest generates a request for the PutMethodResponse operation.
+// PutMethodResponseRequest generates a "aws/request.Request" representing the
+// client's request for the PutMethodResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutMethodResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutMethodResponseRequest method.
+//    req, resp := client.PutMethodResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutMethodResponseRequest(input *PutMethodResponseInput) (req *request.Request, output *MethodResponse) {
 	op := &request.Operation{
 		Name:       opPutMethodResponse,
@@ -1757,7 +3132,28 @@ func (c *APIGateway) PutMethodResponse(input *PutMethodResponseInput) (*MethodRe
 
 const opPutRestApi = "PutRestApi"
 
-// PutRestApiRequest generates a request for the PutRestApi operation.
+// PutRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the PutRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRestApiRequest method.
+//    req, resp := client.PutRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutRestApiRequest(input *PutRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opPutRestApi,
@@ -1787,7 +3183,28 @@ func (c *APIGateway) PutRestApi(input *PutRestApiInput) (*RestApi, error) {
 
 const opTestInvokeAuthorizer = "TestInvokeAuthorizer"
 
-// TestInvokeAuthorizerRequest generates a request for the TestInvokeAuthorizer operation.
+// TestInvokeAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the TestInvokeAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TestInvokeAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TestInvokeAuthorizerRequest method.
+//    req, resp := client.TestInvokeAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInput) (req *request.Request, output *TestInvokeAuthorizerOutput) {
 	op := &request.Operation{
 		Name:       opTestInvokeAuthorizer,
@@ -1815,7 +3232,28 @@ func (c *APIGateway) TestInvokeAuthorizer(input *TestInvokeAuthorizerInput) (*Te
 
 const opTestInvokeMethod = "TestInvokeMethod"
 
-// TestInvokeMethodRequest generates a request for the TestInvokeMethod operation.
+// TestInvokeMethodRequest generates a "aws/request.Request" representing the
+// client's request for the TestInvokeMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TestInvokeMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TestInvokeMethodRequest method.
+//    req, resp := client.TestInvokeMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) TestInvokeMethodRequest(input *TestInvokeMethodInput) (req *request.Request, output *TestInvokeMethodOutput) {
 	op := &request.Operation{
 		Name:       opTestInvokeMethod,
@@ -1843,7 +3281,28 @@ func (c *APIGateway) TestInvokeMethod(input *TestInvokeMethodInput) (*TestInvoke
 
 const opUpdateAccount = "UpdateAccount"
 
-// UpdateAccountRequest generates a request for the UpdateAccount operation.
+// UpdateAccountRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateAccount operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateAccount method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateAccountRequest method.
+//    req, resp := client.UpdateAccountRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateAccountRequest(input *UpdateAccountInput) (req *request.Request, output *Account) {
 	op := &request.Operation{
 		Name:       opUpdateAccount,
@@ -1870,7 +3329,28 @@ func (c *APIGateway) UpdateAccount(input *UpdateAccountInput) (*Account, error) 
 
 const opUpdateApiKey = "UpdateApiKey"
 
-// UpdateApiKeyRequest generates a request for the UpdateApiKey operation.
+// UpdateApiKeyRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateApiKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateApiKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateApiKeyRequest method.
+//    req, resp := client.UpdateApiKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateApiKeyRequest(input *UpdateApiKeyInput) (req *request.Request, output *ApiKey) {
 	op := &request.Operation{
 		Name:       opUpdateApiKey,
@@ -1897,7 +3377,28 @@ func (c *APIGateway) UpdateApiKey(input *UpdateApiKeyInput) (*ApiKey, error) {
 
 const opUpdateAuthorizer = "UpdateAuthorizer"
 
-// UpdateAuthorizerRequest generates a request for the UpdateAuthorizer operation.
+// UpdateAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateAuthorizerRequest method.
+//    req, resp := client.UpdateAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req *request.Request, output *Authorizer) {
 	op := &request.Operation{
 		Name:       opUpdateAuthorizer,
@@ -1924,7 +3425,28 @@ func (c *APIGateway) UpdateAuthorizer(input *UpdateAuthorizerInput) (*Authorizer
 
 const opUpdateBasePathMapping = "UpdateBasePathMapping"
 
-// UpdateBasePathMappingRequest generates a request for the UpdateBasePathMapping operation.
+// UpdateBasePathMappingRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateBasePathMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateBasePathMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateBasePathMappingRequest method.
+//    req, resp := client.UpdateBasePathMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateBasePathMappingRequest(input *UpdateBasePathMappingInput) (req *request.Request, output *BasePathMapping) {
 	op := &request.Operation{
 		Name:       opUpdateBasePathMapping,
@@ -1951,7 +3473,28 @@ func (c *APIGateway) UpdateBasePathMapping(input *UpdateBasePathMappingInput) (*
 
 const opUpdateClientCertificate = "UpdateClientCertificate"
 
-// UpdateClientCertificateRequest generates a request for the UpdateClientCertificate operation.
+// UpdateClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateClientCertificateRequest method.
+//    req, resp := client.UpdateClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateClientCertificateRequest(input *UpdateClientCertificateInput) (req *request.Request, output *ClientCertificate) {
 	op := &request.Operation{
 		Name:       opUpdateClientCertificate,
@@ -1978,7 +3521,28 @@ func (c *APIGateway) UpdateClientCertificate(input *UpdateClientCertificateInput
 
 const opUpdateDeployment = "UpdateDeployment"
 
-// UpdateDeploymentRequest generates a request for the UpdateDeployment operation.
+// UpdateDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateDeployment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateDeployment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateDeploymentRequest method.
+//    req, resp := client.UpdateDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateDeploymentRequest(input *UpdateDeploymentInput) (req *request.Request, output *Deployment) {
 	op := &request.Operation{
 		Name:       opUpdateDeployment,
@@ -2005,7 +3569,28 @@ func (c *APIGateway) UpdateDeployment(input *UpdateDeploymentInput) (*Deployment
 
 const opUpdateDomainName = "UpdateDomainName"
 
-// UpdateDomainNameRequest generates a request for the UpdateDomainName operation.
+// UpdateDomainNameRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateDomainName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateDomainName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateDomainNameRequest method.
+//    req, resp := client.UpdateDomainNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateDomainNameRequest(input *UpdateDomainNameInput) (req *request.Request, output *DomainName) {
 	op := &request.Operation{
 		Name:       opUpdateDomainName,
@@ -2032,7 +3617,28 @@ func (c *APIGateway) UpdateDomainName(input *UpdateDomainNameInput) (*DomainName
 
 const opUpdateIntegration = "UpdateIntegration"
 
-// UpdateIntegrationRequest generates a request for the UpdateIntegration operation.
+// UpdateIntegrationRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateIntegration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateIntegration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateIntegrationRequest method.
+//    req, resp := client.UpdateIntegrationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateIntegrationRequest(input *UpdateIntegrationInput) (req *request.Request, output *Integration) {
 	op := &request.Operation{
 		Name:       opUpdateIntegration,
@@ -2059,7 +3665,28 @@ func (c *APIGateway) UpdateIntegration(input *UpdateIntegrationInput) (*Integrat
 
 const opUpdateIntegrationResponse = "UpdateIntegrationResponse"
 
-// UpdateIntegrationResponseRequest generates a request for the UpdateIntegrationResponse operation.
+// UpdateIntegrationResponseRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateIntegrationResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateIntegrationResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateIntegrationResponseRequest method.
+//    req, resp := client.UpdateIntegrationResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateIntegrationResponseRequest(input *UpdateIntegrationResponseInput) (req *request.Request, output *IntegrationResponse) {
 	op := &request.Operation{
 		Name:       opUpdateIntegrationResponse,
@@ -2086,7 +3713,28 @@ func (c *APIGateway) UpdateIntegrationResponse(input *UpdateIntegrationResponseI
 
 const opUpdateMethod = "UpdateMethod"
 
-// UpdateMethodRequest generates a request for the UpdateMethod operation.
+// UpdateMethodRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateMethodRequest method.
+//    req, resp := client.UpdateMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateMethodRequest(input *UpdateMethodInput) (req *request.Request, output *Method) {
 	op := &request.Operation{
 		Name:       opUpdateMethod,
@@ -2113,7 +3761,28 @@ func (c *APIGateway) UpdateMethod(input *UpdateMethodInput) (*Method, error) {
 
 const opUpdateMethodResponse = "UpdateMethodResponse"
 
-// UpdateMethodResponseRequest generates a request for the UpdateMethodResponse operation.
+// UpdateMethodResponseRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateMethodResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateMethodResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateMethodResponseRequest method.
+//    req, resp := client.UpdateMethodResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateMethodResponseRequest(input *UpdateMethodResponseInput) (req *request.Request, output *MethodResponse) {
 	op := &request.Operation{
 		Name:       opUpdateMethodResponse,
@@ -2140,7 +3809,28 @@ func (c *APIGateway) UpdateMethodResponse(input *UpdateMethodResponseInput) (*Me
 
 const opUpdateModel = "UpdateModel"
 
-// UpdateModelRequest generates a request for the UpdateModel operation.
+// UpdateModelRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateModel operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateModel method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateModelRequest method.
+//    req, resp := client.UpdateModelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateModelRequest(input *UpdateModelInput) (req *request.Request, output *Model) {
 	op := &request.Operation{
 		Name:       opUpdateModel,
@@ -2167,7 +3857,28 @@ func (c *APIGateway) UpdateModel(input *UpdateModelInput) (*Model, error) {
 
 const opUpdateResource = "UpdateResource"
 
-// UpdateResourceRequest generates a request for the UpdateResource operation.
+// UpdateResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateResourceRequest method.
+//    req, resp := client.UpdateResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateResourceRequest(input *UpdateResourceInput) (req *request.Request, output *Resource) {
 	op := &request.Operation{
 		Name:       opUpdateResource,
@@ -2194,7 +3905,28 @@ func (c *APIGateway) UpdateResource(input *UpdateResourceInput) (*Resource, erro
 
 const opUpdateRestApi = "UpdateRestApi"
 
-// UpdateRestApiRequest generates a request for the UpdateRestApi operation.
+// UpdateRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateRestApiRequest method.
+//    req, resp := client.UpdateRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateRestApiRequest(input *UpdateRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opUpdateRestApi,
@@ -2221,7 +3953,28 @@ func (c *APIGateway) UpdateRestApi(input *UpdateRestApiInput) (*RestApi, error) 
 
 const opUpdateStage = "UpdateStage"
 
-// UpdateStageRequest generates a request for the UpdateStage operation.
+// UpdateStageRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateStage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateStage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateStageRequest method.
+//    req, resp := client.UpdateStageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateStageRequest(input *UpdateStageInput) (req *request.Request, output *Stage) {
 	op := &request.Operation{
 		Name:       opUpdateStage,
@@ -5138,6 +6891,22 @@ type Integration struct {
 	// Specifies the integration's responses.
 	IntegrationResponses map[string]*IntegrationResponse `locationName:"integrationResponses" type:"map"`
 
+	// Specifies the pass-through behavior for incoming requests based on the Content-Type
+	// header in the request, and the available requestTemplates defined on the
+	// Integration. There are three valid values: WHEN_NO_MATCH, WHEN_NO_TEMPLATES,
+	// and NEVER.
+	//
+	//  WHEN_NO_MATCH passes the request body for unmapped content types through
+	// to the Integration backend without transformation.
+	//
+	// NEVER rejects unmapped content types with an HTTP 415 'Unsupported Media
+	// Type' response.
+	//
+	// WHEN_NO_TEMPLATES will allow pass-through when the Integration has NO content
+	// types mapped to templates. However if there is at least one content type
+	// defined, unmapped content types will be rejected with the same 415 response.
+	PassthroughBehavior *string `locationName:"passthroughBehavior" type:"string"`
+
 	// Represents requests parameters that are sent with the backend request. Request
 	// parameters are represented as a key/value map, with a destination as the
 	// key and a source as the value. A source must match an existing method request
@@ -5148,7 +6917,10 @@ type Integration struct {
 	// unique parameter name.
 	RequestParameters map[string]*string `locationName:"requestParameters" type:"map"`
 
-	// Specifies the integration's request templates.
+	// Represents a map of Velocity templates that are applied on the request payload
+	// based on the value of the Content-Type header sent by the client. The content
+	// type value is the key in this map, and the template (as a String) is the
+	// value.
 	RequestTemplates map[string]*string `locationName:"requestTemplates" type:"map"`
 
 	// Specifies the integration's type. The valid value is HTTP, AWS, or MOCK.
@@ -5477,6 +7249,22 @@ type PutIntegrationInput struct {
 	// or AWS, this field is required.
 	IntegrationHttpMethod *string `locationName:"httpMethod" type:"string"`
 
+	// Specifies the pass-through behavior for incoming requests based on the Content-Type
+	// header in the request, and the available requestTemplates defined on the
+	// Integration. There are three valid values: WHEN_NO_MATCH, WHEN_NO_TEMPLATES,
+	// and NEVER.
+	//
+	//  WHEN_NO_MATCH passes the request body for unmapped content types through
+	// to the Integration backend without transformation.
+	//
+	// NEVER rejects unmapped content types with an HTTP 415 'Unsupported Media
+	// Type' response.
+	//
+	// WHEN_NO_TEMPLATES will allow pass-through when the Integration has NO content
+	// types mapped to templates. However if there is at least one content type
+	// defined, unmapped content types will be rejected with the same 415 response.
+	PassthroughBehavior *string `locationName:"passthroughBehavior" type:"string"`
+
 	// Represents request parameters that are sent with the backend request. Request
 	// parameters are represented as a key/value map, with a destination as the
 	// key and a source as the value. A source must match an existing method request
@@ -5487,9 +7275,10 @@ type PutIntegrationInput struct {
 	// unique parameter name.
 	RequestParameters map[string]*string `locationName:"requestParameters" type:"map"`
 
-	// Specifies the templates used to transform the method request body. Request
-	// templates are represented as a key/value map, with a content-type as the
-	// key and a template as the value.
+	// Represents a map of Velocity templates that are applied on the request payload
+	// based on the value of the Content-Type header sent by the client. The content
+	// type value is the key in this map, and the template (as a String) is the
+	// value.
 	RequestTemplates map[string]*string `locationName:"requestTemplates" type:"map"`
 
 	// Specifies a put integration request's resource ID.

@@ -30,6 +30,13 @@ func (s *Service) Get(id string) (*Response, error) {
 	return status, err
 }
 
+func (s *Service) GetBlueprint(id string) (*BlueprintOperation, error) {
+	url := fmt.Sprintf("%s/operations/%s/status/%s", s.config.BaseURL, s.config.Alias, id)
+	status := &BlueprintOperation{}
+	err := s.client.Get(url, status)
+	return status, err
+}
+
 func (s *Service) Poll(id string, poll chan *Response) error {
 	for {
 		status, err := s.Get(id)
@@ -127,4 +134,36 @@ func (q *QueuedOperation) Status() *Status {
 		st.Href = href
 	}
 	return st
+}
+
+/* BlueprintOperation is a status object representing a running blueprint job
+    {
+      "requestType":"blueprintOperation",
+      "status":"succeeded",
+      "summary":{
+	"blueprintId":51229,
+	"locationId":"CA1",
+	"links":[
+	  {
+	    "rel":"network",
+	    "href":"/v2-experimental/networks/ZZBB/CA1/6955e7c39b5648df91bfb32e5d0aa24b",
+	    "id":"6955e7c39b5648df91bfb32e5d0aa24b"
+	  }
+	]
+      },
+      "source":{"userName":"ack","requestedAt":"2016-03-24T16:47:04Z"}
+    }
+*/
+type BlueprintOperation struct {
+	RequestType string `json:"requestType,omitempty"`
+	Status      string `json:"status,omitempty"`
+	Summary     struct {
+		BlueprintID int       `json:"blueprintId,omitempty"`
+		LocationID  string    `json:"locationId,omitempty"`
+		Links       api.Links `json:"links,omitempty"`
+	} `json:"summary,omitempty"`
+	Source struct {
+		UserName    string    `json:"userName"`
+		RequestedAt time.Time `json:"requestedAt,omitempty"`
+	} `json:"source,omitempty"`
 }

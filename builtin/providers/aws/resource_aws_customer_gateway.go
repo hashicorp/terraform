@@ -20,6 +20,9 @@ func resourceAwsCustomerGateway() *schema.Resource {
 		Read:   resourceAwsCustomerGatewayRead,
 		Update: resourceAwsCustomerGatewayUpdate,
 		Delete: resourceAwsCustomerGatewayDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"bgp_asn": &schema.Schema{
@@ -143,6 +146,12 @@ func resourceAwsCustomerGatewayRead(d *schema.ResourceData, meta interface{}) er
 
 	if len(resp.CustomerGateways) != 1 {
 		return fmt.Errorf("[ERROR] Error finding CustomerGateway: %s", d.Id())
+	}
+
+	if *resp.CustomerGateways[0].State == "deleted" {
+		log.Printf("[INFO] Customer Gateway is in `deleted` state: %s", d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	customerGateway := resp.CustomerGateways[0]

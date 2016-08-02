@@ -347,10 +347,8 @@ func resourceAwsOpsworksApplicationUpdate(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] Updating OpsWorks layer: %s", d.Id())
 
-	var resp *opsworks.UpdateAppOutput
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
-		var cerr error
-		resp, cerr = client.UpdateApp(req)
+		_, cerr := client.UpdateApp(req)
 		if cerr != nil {
 			log.Printf("[INFO] client error")
 			if opserr, ok := cerr.(awserr.Error); ok {
@@ -465,9 +463,6 @@ func resourceAwsOpsworksSetApplicationSource(d *schema.ResourceData, v *opsworks
 		}
 		if v.Revision != nil {
 			m["revision"] = *v.Revision
-		}
-		if v.SshKey != nil {
-			m["ssh_key"] = *v.SshKey
 		}
 		nv = append(nv, m)
 	}

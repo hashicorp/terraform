@@ -40,3 +40,12 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The resource group ID.
+
+
+## Import
+
+Resource Groups can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_resource_group.mygroup /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myresourcegroup
+```

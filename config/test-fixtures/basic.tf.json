@@ -26,6 +26,17 @@
         }
     },
 
+    "data": {
+        "do": {
+            "simple": {
+                "foo": "baz"
+            },
+            "depends": {
+                "depends_on": ["data.do.simple"]
+            }
+        }
+    },
+
     "resource": {
         "aws_instance": {
             "db": {

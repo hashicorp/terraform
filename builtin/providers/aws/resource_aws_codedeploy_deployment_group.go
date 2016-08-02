@@ -177,7 +177,7 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 	if attr, ok := d.GetOk("autoscaling_groups"); ok {
 		input.AutoScalingGroups = expandStringList(attr.(*schema.Set).List())
 	}
-	if attr, ok := d.GetOk("on_premises_instance_tag_filters"); ok {
+	if attr, ok := d.GetOk("on_premises_instance_tag_filter"); ok {
 		onPremFilters := buildOnPremTagFilters(attr.(*schema.Set).List())
 		input.OnPremisesInstanceTagFilters = onPremFilters
 	}
@@ -238,6 +238,12 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 		DeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
 	})
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "DeploymentGroupDoesNotExistException" {
+			log.Printf("[INFO] CodeDeployment DeploymentGroup %s not found", d.Get("deployment_group_name").(string))
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
@@ -298,7 +304,35 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
-	_, err := conn.UpdateDeploymentGroup(&input)
+	// Retry to handle IAM role eventual consistency.
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := conn.UpdateDeploymentGroup(&input)
+		if err != nil {
+			retry := false
+			codedeployErr, ok := err.(awserr.Error)
+			if !ok {
+				return resource.NonRetryableError(err)
+			}
+			if codedeployErr.Code() == "InvalidRoleException" {
+				retry = true
+			}
+			if codedeployErr.Code() == "InvalidTriggerConfigException" {
+				r := regexp.MustCompile("^Topic ARN .+ is not valid$")
+				if r.MatchString(codedeployErr.Message()) {
+					retry = true
+				}
+			}
+			if retry {
+				log.Printf("[DEBUG] Retrying Code Deployment Group Update: %q",
+					codedeployErr.Message())
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
@@ -331,9 +365,15 @@ func buildOnPremTagFilters(configured []interface{}) []*codedeploy.TagFilter {
 		var filter codedeploy.TagFilter
 		m := raw.(map[string]interface{})
 
-		filter.Key = aws.String(m["key"].(string))
-		filter.Type = aws.String(m["type"].(string))
-		filter.Value = aws.String(m["value"].(string))
+		if v, ok := m["key"]; ok {
+			filter.Key = aws.String(v.(string))
+		}
+		if v, ok := m["type"]; ok {
+			filter.Type = aws.String(v.(string))
+		}
+		if v, ok := m["value"]; ok {
+			filter.Value = aws.String(v.(string))
+		}
 
 		filters = append(filters, &filter)
 	}
@@ -381,13 +421,13 @@ func ec2TagFiltersToMap(list []*codedeploy.EC2TagFilter) []map[string]string {
 	result := make([]map[string]string, 0, len(list))
 	for _, tf := range list {
 		l := make(map[string]string)
-		if *tf.Key != "" {
+		if tf.Key != nil && *tf.Key != "" {
 			l["key"] = *tf.Key
 		}
-		if *tf.Value != "" {
+		if tf.Value != nil && *tf.Value != "" {
 			l["value"] = *tf.Value
 		}
-		if *tf.Type != "" {
+		if tf.Type != nil && *tf.Type != "" {
 			l["type"] = *tf.Type
 		}
 		result = append(result, l)
@@ -400,13 +440,13 @@ func onPremisesTagFiltersToMap(list []*codedeploy.TagFilter) []map[string]string
 	result := make([]map[string]string, 0, len(list))
 	for _, tf := range list {
 		l := make(map[string]string)
-		if *tf.Key != "" {
+		if tf.Key != nil && *tf.Key != "" {
 			l["key"] = *tf.Key
 		}
-		if *tf.Value != "" {
+		if tf.Value != nil && *tf.Value != "" {
 			l["value"] = *tf.Value
 		}
-		if *tf.Type != "" {
+		if tf.Type != nil && *tf.Type != "" {
 			l["type"] = *tf.Type
 		}
 		result = append(result, l)

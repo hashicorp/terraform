@@ -27,13 +27,15 @@ func resourceAwsRoute53Record() *schema.Resource {
 		Update: resourceAwsRoute53RecordUpdate,
 		Delete: resourceAwsRoute53RecordDelete,
 
+		SchemaVersion: 2,
+		MigrateState:  resourceAwsRoute53RecordMigrateState,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 				StateFunc: func(v interface{}) string {
-					value := v.(string)
+					value := strings.TrimSuffix(v.(string), ".")
 					return strings.ToLower(value)
 				},
 			},
@@ -68,13 +70,10 @@ func resourceAwsRoute53Record() *schema.Resource {
 				ConflictsWith: []string{"alias"},
 			},
 
-			// Weight uses a special sentinel value to indicate its presence.
-			// Because 0 is a valid value for Weight, we default to -1 so that any
-			// inclusion of a weight (zero or not) will be a usable value
 			"weight": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  -1,
+				Removed:  "Now implemented as weighted_routing_policy; Please see https://www.terraform.io/docs/providers/aws/r/route53_record.html",
 			},
 
 			"set_identifier": &schema.Schema{
@@ -111,6 +110,94 @@ func resourceAwsRoute53Record() *schema.Resource {
 			"failover": &schema.Schema{ // PRIMARY | SECONDARY
 				Type:     schema.TypeString,
 				Optional: true,
+				Removed:  "Now implemented as failover_routing_policy; see docs",
+			},
+
+			"failover_routing_policy": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ConflictsWith: []string{
+					"geolocation_routing_policy",
+					"latency_routing_policy",
+					"weighted_routing_policy",
+				},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+								value := v.(string)
+								if value != "PRIMARY" && value != "SECONDARY" {
+									es = append(es, fmt.Errorf("Failover policy type must be PRIMARY or SECONDARY"))
+								}
+								return
+							},
+						},
+					},
+				},
+			},
+
+			"latency_routing_policy": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ConflictsWith: []string{
+					"failover_routing_policy",
+					"geolocation_routing_policy",
+					"weighted_routing_policy",
+				},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"region": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+
+			"geolocation_routing_policy": &schema.Schema{ // AWS Geolocation
+				Type:     schema.TypeList,
+				Optional: true,
+				ConflictsWith: []string{
+					"failover_routing_policy",
+					"latency_routing_policy",
+					"weighted_routing_policy",
+				},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"continent": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"country": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"subdivision": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+
+			"weighted_routing_policy": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ConflictsWith: []string{
+					"failover_routing_policy",
+					"geolocation_routing_policy",
+					"latency_routing_policy",
+				},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"weight": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
 			},
 
 			"health_check_id": &schema.Schema{ // ID of health check
@@ -289,14 +376,46 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("ttl", record.TTL)
-	// Only set the weight if it's non-nil, otherwise we end up with a 0 weight
-	// which has actual contextual meaning with Route 53 records
-	//   See http://docs.aws.amazon.com/fr_fr/Route53/latest/APIReference/API_ChangeResourceRecordSets_Examples.html
-	if record.Weight != nil {
-		d.Set("weight", record.Weight)
+
+	if record.Failover != nil {
+		v := []map[string]interface{}{{
+			"type": aws.StringValue(record.Failover),
+		}}
+		if err := d.Set("failover_routing_policy", v); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting failover records for: %s, error: %#v", d.Id(), err)
+		}
 	}
+
+	if record.GeoLocation != nil {
+		v := []map[string]interface{}{{
+			"continent":   aws.StringValue(record.GeoLocation.ContinentCode),
+			"country":     aws.StringValue(record.GeoLocation.CountryCode),
+			"subdivision": aws.StringValue(record.GeoLocation.SubdivisionCode),
+		}}
+		if err := d.Set("geolocation_routing_policy", v); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting gelocation records for: %s, error: %#v", d.Id(), err)
+		}
+	}
+
+	if record.Region != nil {
+		v := []map[string]interface{}{{
+			"region": aws.StringValue(record.Region),
+		}}
+		if err := d.Set("latency_routing_policy", v); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting latency records for: %s, error: %#v", d.Id(), err)
+		}
+	}
+
+	if record.Weight != nil {
+		v := []map[string]interface{}{{
+			"weight": aws.Int64Value((record.Weight)),
+		}}
+		if err := d.Set("weighted_routing_policy", v); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting weighted records for: %s, error: %#v", d.Id(), err)
+		}
+	}
+
 	d.Set("set_identifier", record.SetIdentifier)
-	d.Set("failover", record.Failover)
 	d.Set("health_check_id", record.HealthCheckId)
 
 	return nil
@@ -330,6 +449,7 @@ func findRecord(d *schema.ResourceData, meta interface{}) (*route53.ResourceReco
 		}
 		return nil, err
 	}
+
 	en := expandRecordName(d.Get("name").(string), *zoneRecord.HostedZone.Name)
 	log.Printf("[DEBUG] Expanded record name: %s", en)
 	d.Set("fqdn", en)
@@ -479,27 +599,69 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 		}
 	}
 
-	if v, ok := d.GetOk("failover"); ok {
+	if v, ok := d.GetOk("failover_routing_policy"); ok {
 		if _, ok := d.GetOk("set_identifier"); !ok {
-			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "failover" is set`, d.Get("name").(string))
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "failover_routing_policy" is set`, d.Get("name").(string))
 		}
-		rec.Failover = aws.String(v.(string))
+		records := v.([]interface{})
+		if len(records) > 1 {
+			return nil, fmt.Errorf("You can only define a single failover_routing_policy per record")
+		}
+		failover := records[0].(map[string]interface{})
+
+		rec.Failover = aws.String(failover["type"].(string))
 	}
 
 	if v, ok := d.GetOk("health_check_id"); ok {
 		rec.HealthCheckId = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("weighted_routing_policy"); ok {
+		if _, ok := d.GetOk("set_identifier"); !ok {
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "weight_routing_policy" is set`, d.Get("name").(string))
+		}
+		records := v.([]interface{})
+		if len(records) > 1 {
+			return nil, fmt.Errorf("You can only define a single weighed_routing_policy per record")
+		}
+		weight := records[0].(map[string]interface{})
+
+		rec.Weight = aws.Int64(int64(weight["weight"].(int)))
+	}
+
 	if v, ok := d.GetOk("set_identifier"); ok {
 		rec.SetIdentifier = aws.String(v.(string))
 	}
 
-	w := d.Get("weight").(int)
-	if w > -1 {
+	if v, ok := d.GetOk("latency_routing_policy"); ok {
 		if _, ok := d.GetOk("set_identifier"); !ok {
-			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "weight" is set`, d.Get("name").(string))
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "latency_routing_policy" is set`, d.Get("name").(string))
 		}
-		rec.Weight = aws.Int64(int64(w))
+		records := v.([]interface{})
+		if len(records) > 1 {
+			return nil, fmt.Errorf("You can only define a single latency_routing_policy per record")
+		}
+		latency := records[0].(map[string]interface{})
+
+		rec.Region = aws.String(latency["region"].(string))
+	}
+
+	if v, ok := d.GetOk("geolocation_routing_policy"); ok {
+		if _, ok := d.GetOk("set_identifier"); !ok {
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "geolocation_routing_policy" is set`, d.Get("name").(string))
+		}
+		geolocations := v.([]interface{})
+		if len(geolocations) > 1 {
+			return nil, fmt.Errorf("You can only define a single geolocation_routing_policy per record")
+		}
+		geolocation := geolocations[0].(map[string]interface{})
+
+		rec.GeoLocation = &route53.GeoLocation{
+			ContinentCode:   nilString(geolocation["continent"].(string)),
+			CountryCode:     nilString(geolocation["country"].(string)),
+			SubdivisionCode: nilString(geolocation["subdivision"].(string)),
+		}
+		log.Printf("[DEBUG] Creating geolocation: %#v", geolocation)
 	}
 
 	return rec, nil
@@ -533,7 +695,11 @@ func expandRecordName(name, zone string) string {
 	rn := strings.ToLower(strings.TrimSuffix(name, "."))
 	zone = strings.TrimSuffix(zone, ".")
 	if !strings.HasSuffix(rn, zone) {
-		rn = strings.Join([]string{name, zone}, ".")
+		if len(name) == 0 {
+			rn = zone
+		} else {
+			rn = strings.Join([]string{name, zone}, ".")
+		}
 	}
 	return rn
 }
@@ -546,4 +712,14 @@ func resourceAwsRoute53AliasRecordHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%t-", m["evaluate_target_health"].(bool)))
 
 	return hashcode.String(buf.String())
+}
+
+// nilString takes a string as an argument and returns a string
+// pointer. The returned pointer is nil if the string argument is
+// empty, otherwise it is a pointer to a copy of the string.
+func nilString(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return aws.String(s)
 }

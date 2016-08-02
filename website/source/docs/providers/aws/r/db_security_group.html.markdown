@@ -18,7 +18,6 @@ attribute instead.
 ```
 resource "aws_db_security_group" "default" {
     name = "rds_sg"
-    description = "RDS default security group"
 
     ingress {
         cidr = "10.0.0.0/24"
@@ -31,7 +30,7 @@ resource "aws_db_security_group" "default" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the DB security group.
-* `description` - (Required) The description of the DB security group.
+* `description` - (Optional) The description of the DB security group. Defaults to "Managed by Terraform".
 * `ingress` - (Required) A list of ingress rules.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
@@ -50,3 +49,11 @@ The following attributes are exported:
 * `id` - The db security group ID.
 * `arn` - The arn of the DB security group.
 
+
+## Import
+
+DB Security groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_db_security_group.default aws_rds_sg-1
+```

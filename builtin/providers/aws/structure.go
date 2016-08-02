@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
@@ -207,6 +209,13 @@ func expandIPPerms(
 			}
 		}
 
+		if raw, ok := m["prefix_list_ids"]; ok {
+			list := raw.([]interface{})
+			for _, v := range list {
+				perm.PrefixListIds = append(perm.PrefixListIds, &ec2.PrefixListId{PrefixListId: aws.String(v.(string))})
+			}
+		}
+
 		perms[i] = &perm
 	}
 
@@ -293,10 +302,31 @@ func expandOptionConfiguration(configured []interface{}) ([]*rds.OptionConfigura
 			}
 		}
 
+		if raw, ok := data["option_settings"]; ok {
+			o.OptionSettings = expandOptionSetting(raw.(*schema.Set).List())
+		}
+
 		option = append(option, o)
 	}
 
 	return option, nil
+}
+
+func expandOptionSetting(list []interface{}) []*rds.OptionSetting {
+	options := make([]*rds.OptionSetting, 0, len(list))
+
+	for _, oRaw := range list {
+		data := oRaw.(map[string]interface{})
+
+		o := &rds.OptionSetting{
+			Name:  aws.String(data["name"].(string)),
+			Value: aws.String(data["value"].(string)),
+		}
+
+		options = append(options, o)
+	}
+
+	return options
 }
 
 // Takes the result of flatmap.Expand for an array of parameters and
@@ -543,6 +573,7 @@ func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (str
 	return string(byteArray[:n]), nil
 }
 
+// Flattens an array of Options into a []map[string]interface{}
 func flattenOptions(list []*rds.Option) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
@@ -571,6 +602,17 @@ func flattenOptions(list []*rds.Option) []map[string]interface{} {
 				}
 
 				r["db_security_group_memberships"] = dbs
+			}
+			if i.OptionSettings != nil {
+				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
+				for _, j := range i.OptionSettings {
+					settings = append(settings, map[string]interface{}{
+						"name":  *j.Name,
+						"value": *j.Value,
+					})
+				}
+
+				r["option_settings"] = settings
 			}
 			result = append(result, r)
 		}
@@ -612,10 +654,12 @@ func flattenRedshiftParameters(list []*redshift.Parameter) []map[string]interfac
 func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
-		result = append(result, map[string]interface{}{
-			"name":  strings.ToLower(*i.ParameterName),
-			"value": strings.ToLower(*i.ParameterValue),
-		})
+		if i.ParameterValue != nil {
+			result = append(result, map[string]interface{}{
+				"name":  strings.ToLower(*i.ParameterName),
+				"value": strings.ToLower(*i.ParameterValue),
+			})
+		}
 	}
 	return result
 }
@@ -684,7 +728,9 @@ func expandPrivateIPAddresses(ips []interface{}) []*ec2.PrivateIpAddressSpecific
 //Flattens network interface attachment into a map[string]interface
 func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{} {
 	att := make(map[string]interface{})
-	att["instance"] = *a.InstanceId
+	if a.InstanceId != nil {
+		att["instance"] = *a.InstanceId
+	}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentId
 	return att
@@ -958,6 +1004,30 @@ func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
 		}
 	}
 	return strs
+}
+
+func flattenKinesisShardLevelMetrics(list []*kinesis.EnhancedMetrics) []string {
+	if len(list) == 0 {
+		return []string{}
+	}
+	strs := make([]string, 0, len(list[0].ShardLevelMetrics))
+	for _, s := range list[0].ShardLevelMetrics {
+		strs = append(strs, *s)
+	}
+	return strs
+}
+
+func flattenApiGatewayStageKeys(keys []*string) []map[string]interface{} {
+	stageKeys := make([]map[string]interface{}, 0, len(keys))
+	for _, o := range keys {
+		key := make(map[string]interface{})
+		parts := strings.Split(*o, "/")
+		key["stage_name"] = parts[1]
+		key["rest_api_id"] = parts[0]
+
+		stageKeys = append(stageKeys, key)
+	}
+	return stageKeys
 }
 
 func expandApiGatewayStageKeys(d *schema.ResourceData) []*apigateway.StageKey {
@@ -1240,4 +1310,140 @@ func flattenApiGatewayThrottleSettings(settings *apigateway.ThrottleSettings) []
 	}
 
 	return result
+}
+
+// TODO: refactor some of these helper functions and types in the terraform/helper packages
+
+// getStringPtr returns a *string version of the value taken from m, where m
+// can be a map[string]interface{} or a *schema.ResourceData. If the key isn't
+// present or is empty, getNilString returns nil.
+func getStringPtr(m interface{}, key string) *string {
+	switch m := m.(type) {
+	case map[string]interface{}:
+		v := m[key]
+
+		if v == nil {
+			return nil
+		}
+
+		s := v.(string)
+		if s == "" {
+			return nil
+		}
+
+		return &s
+
+	case *schema.ResourceData:
+		if v, ok := m.GetOk(key); ok {
+			if v == nil || v.(string) == "" {
+				return nil
+			}
+			s := v.(string)
+			return &s
+		}
+
+	default:
+		panic("unknown type in getStringPtr")
+	}
+
+	return nil
+}
+
+// getStringPtrList returns a []*string version of the map value. If the key
+// isn't present, getNilStringList returns nil.
+func getStringPtrList(m map[string]interface{}, key string) []*string {
+	if v, ok := m[key]; ok {
+		var stringList []*string
+		for _, i := range v.([]interface{}) {
+			s := i.(string)
+			stringList = append(stringList, &s)
+		}
+
+		return stringList
+	}
+
+	return nil
+}
+
+// a convenience wrapper type for the schema.Set map[string]interface{}
+// Set operations only alter the underlying map if the value is not nil
+type setMap map[string]interface{}
+
+// SetString sets m[key] = *value only if `value != nil`
+func (s setMap) SetString(key string, value *string) {
+	if value == nil {
+		return
+	}
+
+	s[key] = *value
+}
+
+// SetStringMap sets key to value as a map[string]interface{}, stripping any nil
+// values. The value parameter can be a map[string]interface{}, a
+// map[string]*string, or a map[string]string.
+func (s setMap) SetStringMap(key string, value interface{}) {
+	// because these methods are meant to be chained without intermediate
+	// checks for nil, we are likely to get interfaces with dynamic types but
+	// a nil value.
+	if reflect.ValueOf(value).IsNil() {
+		return
+	}
+
+	m := make(map[string]interface{})
+
+	switch value := value.(type) {
+	case map[string]string:
+		for k, v := range value {
+			m[k] = v
+		}
+	case map[string]*string:
+		for k, v := range value {
+			if v == nil {
+				continue
+			}
+			m[k] = *v
+		}
+	case map[string]interface{}:
+		for k, v := range value {
+			if v == nil {
+				continue
+			}
+
+			switch v := v.(type) {
+			case string:
+				m[k] = v
+			case *string:
+				if v != nil {
+					m[k] = *v
+				}
+			default:
+				panic(fmt.Sprintf("unknown type for SetString: %T", v))
+			}
+		}
+	}
+
+	// catch the case where the interface wasn't nil, but we had no non-nil values
+	if len(m) > 0 {
+		s[key] = m
+	}
+}
+
+// Set assigns value to s[key] if value isn't nil
+func (s setMap) Set(key string, value interface{}) {
+	if reflect.ValueOf(value).IsNil() {
+		return
+	}
+
+	s[key] = value
+}
+
+// Map returns the raw map type for a shorter type conversion
+func (s setMap) Map() map[string]interface{} {
+	return map[string]interface{}(s)
+}
+
+// MapList returns the map[string]interface{} as a single element in a slice to
+// match the schema.Set data type used for structs.
+func (s setMap) MapList() []map[string]interface{} {
+	return []map[string]interface{}{s.Map()}
 }

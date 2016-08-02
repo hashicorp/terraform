@@ -67,6 +67,8 @@ The following arguments are supported:
 
 * `internal_dns_name_label` - (Optional) Relative DNS name for this NIC used for internal communications between VMs in the same VNet
 
+* `enable_ip_forwarding` - (Optional) Enables IP Forwarding on the NIC. Defaults to `false`.
+
 * `dns_servers` - (Optional) List of DNS servers IP addresses to use for this NIC, overrides the VNet-level server list
 
 * `ip_configuration` - (Optional) Collection of ipConfigurations associated with this NIC. Each `ip_configuration` block supports fields documented below.

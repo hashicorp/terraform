@@ -23,6 +23,9 @@ func resourceAwsNetworkAcl() *schema.Resource {
 		Read:   resourceAwsNetworkAclRead,
 		Delete: resourceAwsNetworkAclDelete,
 		Update: resourceAwsNetworkAclUpdate,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsNetworkAclImportState,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"vpc_id": &schema.Schema{

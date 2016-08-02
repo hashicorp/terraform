@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
@@ -35,6 +36,14 @@ func (n *GraphNodeConfigVariable) DependableName() []string {
 	return []string{n.Name()}
 }
 
+// RemoveIfNotTargeted implements RemovableIfNotTargeted.
+// When targeting is active, variables that are not targeted should be removed
+// from the graph, because otherwise module variables trying to interpolate
+// their references can fail when they're missing the referent resource node.
+func (n *GraphNodeConfigVariable) RemoveIfNotTargeted() bool {
+	return true
+}
+
 func (n *GraphNodeConfigVariable) DependentOn() []string {
 	// If we don't have any value set, we don't depend on anything
 	if n.Value == nil {
@@ -61,13 +70,16 @@ func (n *GraphNodeConfigVariable) VariableName() string {
 func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
 	// Only include this variable in a destroy edge if the source vertex
 	// "v" has a count dependency on this variable.
+	log.Printf("[DEBUG] DestroyEdgeInclude: Checking: %s", dag.VertexName(v))
 	cv, ok := v.(GraphNodeCountDependent)
 	if !ok {
+		log.Printf("[DEBUG] DestroyEdgeInclude: Not GraphNodeCountDependent: %s", dag.VertexName(v))
 		return false
 	}
 
 	for _, d := range cv.CountDependentOn() {
 		for _, d2 := range n.DependableName() {
+			log.Printf("[DEBUG] DestroyEdgeInclude: d = %s : d2 = %s", d, d2)
 			if d == d2 {
 				return true
 			}
@@ -79,12 +91,30 @@ func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
 
 // GraphNodeNoopPrunable
 func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
+	log.Printf("[DEBUG] Checking variable noop: %s", n.Name())
 	// If we have no diff, always keep this in the graph. We have to do
 	// this primarily for validation: we want to validate that variable
 	// interpolations are valid even if there are no resources that
 	// depend on them.
 	if opts.Diff == nil || opts.Diff.Empty() {
+		log.Printf("[DEBUG] No diff, not a noop")
 		return false
+	}
+
+	// We have to find our our module diff since we do funky things with
+	// the flat node's implementation of Path() below.
+	modDiff := opts.Diff.ModuleByPath(n.ModulePath)
+
+	// If we're destroying, we have no need of variables unless they are depended
+	// on by the count of a resource.
+	if modDiff != nil && modDiff.Destroy {
+		if n.hasDestroyEdgeInPath(opts, nil) {
+			log.Printf("[DEBUG] Variable has destroy edge from %s, not a noop",
+				dag.VertexName(opts.Vertex))
+			return false
+		}
+		log.Printf("[DEBUG] Variable has no included destroy edges: noop!")
+		return true
 	}
 
 	for _, v := range opts.Graph.UpEdges(opts.Vertex).List() {
@@ -93,10 +123,40 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 			continue
 		}
 
+		log.Printf("[DEBUG] Found up edge to %s, var is not noop", dag.VertexName(v))
 		return false
 	}
 
+	log.Printf("[DEBUG] No up edges, treating variable as a noop")
 	return true
+}
+
+// hasDestroyEdgeInPath recursively walks for a destroy edge, ensuring that
+// a variable both has no immediate destroy edges or any in its full module
+// path, ensuring that links do not get severed in the middle.
+func (n *GraphNodeConfigVariable) hasDestroyEdgeInPath(opts *NoopOpts, vertex dag.Vertex) bool {
+	if vertex == nil {
+		vertex = opts.Vertex
+	}
+
+	log.Printf("[DEBUG] hasDestroyEdgeInPath: Looking for destroy edge: %s - %T", dag.VertexName(vertex), vertex)
+	for _, v := range opts.Graph.UpEdges(vertex).List() {
+		if len(opts.Graph.UpEdges(v).List()) > 1 {
+			if n.hasDestroyEdgeInPath(opts, v) == true {
+				return true
+			}
+		}
+
+		// Here we borrow the implementation of DestroyEdgeInclude, whose logic
+		// and semantics are exactly what we want here. We add a check for the
+		// the root node, since we have to always depend on its existance.
+		if cv, ok := vertex.(*GraphNodeConfigVariableFlat); ok {
+			if dag.VertexName(v) == rootNodeName || cv.DestroyEdgeInclude(v) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // GraphNodeProxy impl.
@@ -114,7 +174,7 @@ func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 	// Otherwise, interpolate the value of this variable and set it
 	// within the variables mapping.
 	var config *ResourceConfig
-	variables := make(map[string]string)
+	variables := make(map[string]interface{})
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalInterpolate{
@@ -123,8 +183,14 @@ func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 			},
 
 			&EvalVariableBlock{
-				Config:    &config,
-				Variables: variables,
+				Config:         &config,
+				VariableValues: variables,
+			},
+
+			&EvalCoerceMapVariable{
+				Variables:  variables,
+				ModulePath: n.ModulePath,
+				ModuleTree: n.ModuleTree,
 			},
 
 			&EvalTypeCheckVariable{
@@ -184,4 +250,25 @@ func (n *GraphNodeConfigVariableFlat) Path() []string {
 	}
 
 	return nil
+}
+
+func (n *GraphNodeConfigVariableFlat) Noop(opts *NoopOpts) bool {
+	// First look for provider nodes that depend on this variable downstream
+	modDiff := opts.Diff.ModuleByPath(n.ModulePath)
+	if modDiff != nil && modDiff.Destroy {
+		ds, err := opts.Graph.Descendents(n)
+		if err != nil {
+			log.Printf("[ERROR] Error looking up descendents of %s: %s", n.Name(), err)
+		} else {
+			for _, d := range ds.List() {
+				if _, ok := d.(GraphNodeProvider); ok {
+					log.Printf("[DEBUG] This variable is depended on by a provider, can't be a noop.")
+					return false
+				}
+			}
+		}
+	}
+
+	// Then fall back to existing impl
+	return n.GraphNodeConfigVariable.Noop(opts)
 }

@@ -18,6 +18,9 @@ func resourceAwsNatGateway() *schema.Resource {
 		Create: resourceAwsNatGatewayCreate,
 		Read:   resourceAwsNatGatewayRead,
 		Delete: resourceAwsNatGatewayDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"allocation_id": &schema.Schema{

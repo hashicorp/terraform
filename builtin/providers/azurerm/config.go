@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
+	"net/http/httputil"
 
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
 )
@@ -28,6 +29,7 @@ type ArmClient struct {
 	usageOpsClient         compute.UsageOperationsClient
 	vmExtensionImageClient compute.VirtualMachineExtensionImagesClient
 	vmExtensionClient      compute.VirtualMachineExtensionsClient
+	vmScaleSetClient       compute.VirtualMachineScaleSetsClient
 	vmImageClient          compute.VirtualMachineImagesClient
 	vmClient               compute.VirtualMachinesClient
 
@@ -60,15 +62,31 @@ type ArmClient struct {
 	storageUsageClient   storage.UsageOperationsClient
 
 	deploymentsClient resources.DeploymentsClient
+
+	trafficManagerProfilesClient  trafficmanager.ProfilesClient
+	trafficManagerEndpointsClient trafficmanager.EndpointsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
-			log.Printf("[DEBUG] Sending Azure RM Request %q to %q\n", r.Method, r.URL)
+			// dump request to wire format
+			if dump, err := httputil.DumpRequestOut(r, true); err == nil {
+				log.Printf("[DEBUG] AzureRM Request: \n%s\n", dump)
+			} else {
+				// fallback to basic message
+				log.Printf("[DEBUG] AzureRM Request: %s to %s\n", r.Method, r.URL)
+			}
+
 			resp, err := s.Do(r)
 			if resp != nil {
-				log.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
+				// dump response to wire format
+				if dump, err := httputil.DumpResponse(resp, true); err == nil {
+					log.Printf("[DEBUG] AzureRM Response for %s: \n%s\n", r.URL, dump)
+				} else {
+					// fallback to basic message
+					log.Printf("[DEBUG] AzureRM Response: %s for %s\n", resp.Status, r.URL)
+				}
 			} else {
 				log.Printf("[DEBUG] Request to %s completed with no response", r.URL)
 			}
@@ -77,30 +95,8 @@ func withRequestLogging() autorest.SendDecorator {
 	}
 }
 
-func withPollWatcher() autorest.SendDecorator {
-	return func(s autorest.Sender) autorest.Sender {
-		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
-			fmt.Printf("[DEBUG] Sending Azure RM Request %q to %q\n", r.Method, r.URL)
-			resp, err := s.Do(r)
-			fmt.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
-			if autorest.ResponseRequiresPolling(resp) {
-				fmt.Printf("[DEBUG] Azure RM request will poll %s after %d seconds\n",
-					autorest.GetPollingLocation(resp),
-					int(autorest.GetPollingDelay(resp, time.Duration(0))/time.Second))
-			}
-			return resp, err
-		})
-	}
-}
-
 func setUserAgent(client *autorest.Client) {
-	var version string
-	if terraform.VersionPrerelease != "" {
-		version = fmt.Sprintf("%s-%s", terraform.Version, terraform.VersionPrerelease)
-	} else {
-		version = terraform.Version
-	}
-
+	version := terraform.VersionString()
 	client.UserAgent = fmt.Sprintf("HashiCorp-Terraform-v%s", version)
 }
 
@@ -130,7 +126,23 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	}
 	client.rivieraClient = rivieraClient
 
-	spt, err := azure.NewServicePrincipalToken(c.ClientID, c.ClientSecret, c.TenantID, azure.AzureResourceManagerScope)
+	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(c.TenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// This is necessary because no-one thought about API usability. OAuthConfigForTenant
+	// returns a pointer, which can be nil. NewServicePrincipalToken does not take a pointer.
+	// Consequently we have to nil check this and do _something_ if it is nil, which should
+	// be either an invariant of OAuthConfigForTenant (guarantee the token is not nil if
+	// there is no error), or NewServicePrincipalToken should error out if the configuration
+	// is required and is nil. This is the worst of all worlds, however.
+	if oauthConfig == nil {
+		return nil, fmt.Errorf("Unable to configure OAuthConfig for tenant %s", c.TenantID)
+	}
+
+	spt, err := azure.NewServicePrincipalToken(*oauthConfig, c.ClientID, c.ClientSecret,
+		azure.PublicCloud.ResourceManagerEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +178,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vmic.Authorizer = spt
 	vmic.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmImageClient = vmic
+
+	vmssc := compute.NewVirtualMachineScaleSetsClient(c.SubscriptionID)
+	setUserAgent(&vmssc.Client)
+	vmssc.Authorizer = spt
+	vmssc.Sender = autorest.CreateSender(withRequestLogging())
+	client.vmScaleSetClient = vmssc
 
 	vmc := compute.NewVirtualMachinesClient(c.SubscriptionID)
 	setUserAgent(&vmc.Client)
@@ -284,7 +302,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ssc := storage.NewAccountsClient(c.SubscriptionID)
 	setUserAgent(&ssc.Client)
 	ssc.Authorizer = spt
-	ssc.Sender = autorest.CreateSender(withRequestLogging(), withPollWatcher())
+	ssc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageServiceClient = ssc
 
 	suc := storage.NewUsageOperationsClient(c.SubscriptionID)
@@ -311,47 +329,89 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	dc.Sender = autorest.CreateSender(withRequestLogging())
 	client.deploymentsClient = dc
 
+	tmpc := trafficmanager.NewProfilesClient(c.SubscriptionID)
+	setUserAgent(&tmpc.Client)
+	tmpc.Authorizer = spt
+	tmpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.trafficManagerProfilesClient = tmpc
+
+	tmec := trafficmanager.NewEndpointsClient(c.SubscriptionID)
+	setUserAgent(&tmec.Client)
+	tmec.Authorizer = spt
+	tmec.Sender = autorest.CreateSender(withRequestLogging())
+	client.trafficManagerEndpointsClient = tmec
+
 	return &client, nil
 }
 
-func (armClient *ArmClient) getKeyForStorageAccount(resourceGroupName, storageAccountName string) (string, error) {
-	keys, err := armClient.storageServiceClient.ListKeys(resourceGroupName, storageAccountName)
+func (armClient *ArmClient) getKeyForStorageAccount(resourceGroupName, storageAccountName string) (string, bool, error) {
+	accountKeys, err := armClient.storageServiceClient.ListKeys(resourceGroupName, storageAccountName)
+	if accountKeys.StatusCode == http.StatusNotFound {
+		return "", false, nil
+	}
 	if err != nil {
-		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
+		// We assume this is a transient error rather than a 404 (which is caught above),  so assume the
+		// account still exists.
+		return "", true, fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
 	}
 
-	if keys.Key1 == nil {
-		return "", fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
+	if accountKeys.Keys == nil {
+		return "", false, fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
 	}
 
-	return *keys.Key1, nil
+	keys := *accountKeys.Keys
+	return *keys[0].Value, true, nil
 }
 
-func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.BlobStorageClient, error) {
-	key, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.BlobStorageClient, bool, error) {
+	key, accountExists, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {
-		return nil, err
+		return nil, accountExists, err
+	}
+	if accountExists == false {
+		return nil, false, nil
 	}
 
 	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
 
 	blobClient := storageClient.GetBlobService()
-	return &blobClient, nil
+	return &blobClient, true, nil
 }
-func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.QueueServiceClient, error) {
-	key, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+func (armClient *ArmClient) getTableServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.TableServiceClient, bool, error) {
+	key, accountExists, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {
-		return nil, err
+		return nil, accountExists, err
+	}
+	if accountExists == false {
+		return nil, false, nil
 	}
 
 	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+	}
+
+	tableClient := storageClient.GetTableService()
+	return &tableClient, true, nil
+}
+
+func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.QueueServiceClient, bool, error) {
+	key, accountExists, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+	if err != nil {
+		return nil, accountExists, err
+	}
+	if accountExists == false {
+		return nil, false, nil
+	}
+
+	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	if err != nil {
+		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
 
 	queueClient := storageClient.GetQueueService()
-	return &queueClient, nil
+	return &queueClient, true, nil
 }

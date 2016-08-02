@@ -16,7 +16,7 @@ func TestAccAzureRMNetworkSecurityRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkSecurityRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkSecurityRule_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityRuleExists("azurerm_network_security_rule.test"),
@@ -33,14 +33,14 @@ func TestAccAzureRMNetworkSecurityRule_addingRules(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkSecurityRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkSecurityRule_updateBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityRuleExists("azurerm_network_security_rule.test1"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAzureRMNetworkSecurityRule_updateExtraRule,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityRuleExists("azurerm_network_security_rule.test2"),

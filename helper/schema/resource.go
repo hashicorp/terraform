@@ -14,6 +14,10 @@ import (
 // The Resource schema is an abstraction that allows provider writers to
 // worry only about CRUD operations while off-loading validation, diff
 // generation, etc. to this higher level library.
+//
+// In spite of the name, this struct is not used only for terraform resources,
+// but also for data sources. In the case of data sources, the Create,
+// Update and Delete functions must not be provided.
 type Resource struct {
 	// Schema is the schema for the configuration of this resource.
 	//
@@ -78,6 +82,18 @@ type Resource struct {
 	Update UpdateFunc
 	Delete DeleteFunc
 	Exists ExistsFunc
+
+	// Importer is the ResourceImporter implementation for this resource.
+	// If this is nil, then this resource does not support importing. If
+	// this is non-nil, then it supports importing and ResourceImporter
+	// must be validated. The validity of ResourceImporter is verified
+	// by InternalValidate on Resource.
+	Importer *ResourceImporter
+
+	// If non-empty, this string is emitted as a warning during Validate.
+	// This is a private interface for now, for use by DataSourceResourceShim,
+	// and not for general use. (But maybe later...)
+	deprecationMessage string
 }
 
 // See Resource documentation.
@@ -165,7 +181,40 @@ func (r *Resource) Diff(
 
 // Validate validates the resource configuration against the schema.
 func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	return schemaMap(r.Schema).Validate(c)
+	warns, errs := schemaMap(r.Schema).Validate(c)
+
+	if r.deprecationMessage != "" {
+		warns = append(warns, r.deprecationMessage)
+	}
+
+	return warns, errs
+}
+
+// ReadDataApply loads the data for a data source, given a diff that
+// describes the configuration arguments and desired computed attributes.
+func (r *Resource) ReadDataApply(
+	d *terraform.InstanceDiff,
+	meta interface{},
+) (*terraform.InstanceState, error) {
+
+	// Data sources are always built completely from scratch
+	// on each read, so the source state is always nil.
+	data, err := schemaMap(r.Schema).Data(nil, d)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.Read(data, meta)
+	state := data.State()
+	if state != nil && state.ID == "" {
+		// Data sources can set an ID if they want, but they aren't
+		// required to; we'll provide a placeholder if they don't,
+		// to preserve the invariant that all resources have non-empty
+		// ids.
+		state.ID = "-"
+	}
+
+	return r.recordCurrentSchemaVersion(state), err
 }
 
 // Refresh refreshes the state of the resource.
@@ -226,13 +275,20 @@ func (r *Resource) Refresh(
 // Provider.InternalValidate() will automatically call this for all of
 // the resources it manages, so you don't need to call this manually if it
 // is part of a Provider.
-func (r *Resource) InternalValidate(topSchemaMap schemaMap) error {
+func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error {
 	if r == nil {
 		return errors.New("resource is nil")
 	}
+
+	if !writable {
+		if r.Create != nil || r.Update != nil || r.Delete != nil {
+			return fmt.Errorf("must not implement Create, Update or Delete")
+		}
+	}
+
 	tsm := topSchemaMap
 
-	if r.isTopLevel() {
+	if r.isTopLevel() && writable {
 		// All non-Computed attributes must be ForceNew if Update is not defined
 		if r.Update == nil {
 			nonForceNewAttrs := make([]string, 0)
@@ -260,12 +316,45 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap) error {
 		}
 
 		tsm = schemaMap(r.Schema)
+
+		// If we have an importer, we need to verify the importer.
+		if r.Importer != nil {
+			if err := r.Importer.InternalValidate(); err != nil {
+				return err
+			}
+		}
 	}
 
 	return schemaMap(r.Schema).InternalValidate(tsm)
 }
 
+// Data returns a ResourceData struct for this Resource. Each return value
+// is a separate copy and can be safely modified differently.
+//
+// The data returned from this function has no actual affect on the Resource
+// itself (including the state given to this function).
+//
+// This function is useful for unit tests and ResourceImporter functions.
+func (r *Resource) Data(s *terraform.InstanceState) *ResourceData {
+	result, err := schemaMap(r.Schema).Data(s, nil)
+	if err != nil {
+		// At the time of writing, this isn't possible (Data never returns
+		// non-nil errors). We panic to find this in the future if we have to.
+		// I don't see a reason for Data to ever return an error.
+		panic(err)
+	}
+
+	// Set the schema version to latest by default
+	result.meta = map[string]string{
+		"schema_version": strconv.Itoa(r.SchemaVersion),
+	}
+
+	return result
+}
+
 // TestResourceData Yields a ResourceData filled with this resource's schema for use in unit testing
+//
+// TODO: May be able to be removed with the above ResourceData function.
 func (r *Resource) TestResourceData() *ResourceData {
 	return &ResourceData{
 		schema: r.Schema,

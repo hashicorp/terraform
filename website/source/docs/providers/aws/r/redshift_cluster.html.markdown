@@ -6,7 +6,7 @@ sidebar_current: "docs-aws-resource-redshift-cluster"
 
 # aws\_redshift\_cluster
 
-Provides a Redshift Cluster Resource. 
+Provides a Redshift Cluster Resource.
 
 ## Example Usage
 
@@ -52,9 +52,17 @@ string.
 * `number_of_nodes` - (Optional) The number of compute nodes in the cluster. This parameter is required when the ClusterType parameter is specified as multi-node. Default is 1.
 * `publicly_accessible` - (Optional) If true, the cluster can be accessed from a public network. Default is `true`.
 * `encrypted` - (Optional) If true , the data in the cluster is encrypted at rest.
+* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `encrypted` needs to be set to true
 * `elastic_ip` - (Optional) The Elastic IP (EIP) address for the cluster.
 * `skip_final_snapshot` - (Optional) Determines whether a final snapshot of the cluster is created before Amazon Redshift deletes the cluster. If true , a final cluster snapshot is not created. If false , a final cluster snapshot is created before the cluster is deleted. Default is true.
-* `final_snapshot_identifier` - (Optional) The identifier of the final snapshot that is to be created immediately before deleting the cluster. If this parameter is provided, `skip_final_snapshot` must be false.                                                                                                     
+* `final_snapshot_identifier` - (Optional) The identifier of the final snapshot that is to be created immediately before deleting the cluster. If this parameter is provided, `skip_final_snapshot` must be false.
+* `iam_roles` - (Optional) A list of IAM Role ARNs to associate with the cluster. A Maximum of 10 can be associated to the cluster at any time.
+* `enable_logging` - (Optional) Enables logging information such as queries and connection attempts, for the specified Amazon Redshift cluster. Defaults to `false`.
+* `bucket_name` - (Optional, required when `enable_logging` is `true`) The name of an existing S3 bucket where the log files are to be stored. Must be in the same region as the cluster and the cluster must have read bucket and put object permissions.
+For more information on the permissions required for the bucket, please read the AWS [documentation](http://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing.html#db-auditing-enable-logging)
+* `s3_key_prefix` - (Optional) The prefix applied to the log file names.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
+
 
 ## Attributes Reference
 
@@ -77,5 +85,12 @@ The following attributes are exported:
 * `cluster_parameter_group_name` - The name of the parameter group to be associated with this cluster
 * `cluster_subnet_group_name` - The name of a cluster subnet group to be associated with this cluster
 * `cluster_public_key` - The public key for the cluster
-* `cluster_revision_number` - The specific revision number of the database in the cluster 
-	
+* `cluster_revision_number` - The specific revision number of the database in the cluster
+
+## Import
+
+Redshift Clusters can be imported using the `cluster_identifier`, e.g. 
+
+```
+$ terraform import aws_redshift_cluster.myprodcluster tf-redshift-cluster-12345
+```

@@ -18,6 +18,7 @@ resource "openstack_lb_pool_v1" "pool_1" {
   protocol = "HTTP"
   subnet_id = "12345"
   lb_method = "ROUND_ROBIN"
+  lb_provider = "haproxy"
   monitor_ids = ["67890"]
 }
 ```
@@ -131,6 +132,9 @@ The following arguments are supported:
     members of the pool. The current specification supports 'ROUND_ROBIN' and
     'LEAST_CONNECTIONS' as valid values for this attribute.
 
+* `lb_provider` - (Optional) The backend load balancing provider. For example:
+    `haproxy`, `F5`, etc.
+
 * `tenant_id` - (Optional) The owner of the pool. Required if admin wants to
     create a pool member for another tenant. Changing this creates a new pool.
 
@@ -166,6 +170,7 @@ The following attributes are exported:
 * `protocol` - See Argument Reference above.
 * `subnet_id` - See Argument Reference above.
 * `lb_method` - See Argument Reference above.
+* `lb_provider` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
 * `monitor_id` - See Argument Reference above.
 * `member` - See Argument Reference above.
@@ -173,3 +178,11 @@ The following attributes are exported:
 ## Notes
 
 The `member` block is deprecated in favor of the `openstack_lb_member_v1` resource.
+
+## Import
+
+Load Balancer Pools can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_lb_pool_v1.pool_1 b255e6ba-02ad-43e6-8951-3428ca26b713
+```

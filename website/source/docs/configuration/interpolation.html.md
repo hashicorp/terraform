@@ -9,14 +9,13 @@ description: |-
 # Interpolation Syntax
 
 Embedded within strings in Terraform, whether you're using the
-Terraform syntax or JSON syntax, you can interpolate other values
-into strings. These interpolations are wrapped in `${}`, such as
-`${var.foo}`.
+Terraform syntax or JSON syntax, you can interpolate other values. These
+interpolations are wrapped in `${}`, such as `${var.foo}`.
 
 The interpolation syntax is powerful and allows you to reference
 variables, attributes of resources, call functions, etc.
 
-You can also perform simple math in interpolations, allowing
+You can also perform [simple math](#math) in interpolations, allowing
 you to write expressions such as `${count.index + 1}`.
 
 You can escape interpolation with double dollar signs: `$${foo}`
@@ -26,11 +25,11 @@ will be rendered as a literal `${foo}`.
 
 **To reference user variables**, use the `var.` prefix followed by the
 variable name. For example, `${var.foo}` will interpolate the
-`foo` variable value. If the variable is a mapping, then you
+`foo` variable value. If the variable is a map, then you
 can reference static keys in the map with the syntax
 `var.MAP.KEY`. For example, `${var.amis.us-east-1}` would
 get the value of the `us-east-1` key within the `amis` variable
-that is a mapping.
+that is a map.
 
 **To reference attributes of your own resource**, the syntax is
 `self.ATTRIBUTE`. For example `${self.private_ip_address}` will
@@ -99,7 +98,9 @@ The supported built-in functions are:
   * `cidrsubnet(iprange, newbits, netnum)` - Takes an IP address range in
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
     additional subnet number. For example,
-    ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``.
+    ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``;
+    ``cidrsubnet("2607:f298:6051:516c::/64", 8, 2)`` returns
+    ``2607:f298:6051:516c:200::/72``.
 
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
     the given arguments. At least two arguments must be provided.
@@ -109,15 +110,19 @@ The supported built-in functions are:
      variables or when parsing module outputs.
      Example: `compact(module.my_asg.load_balancer_names)`
 
-  * `concat(list1, list2)` - Combines two or more lists into a single list.
+  * `concat(list1, list2, ...)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
+
+  * `distinct(list)` - Removes duplicate items from a list. Keeps the first
+     occurrence of each element, and removes subsequent occurences. This
+     function is only valid for flat lists. Example: `distinct(var.usernames)`
 
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
       elements, this function will wrap using a standard mod algorithm.
-      A list is only possible with splat variables from resources with
-      a count greater than one.
-      Example: `element(aws_subnet.foo.*.id, count.index)`
+      This function only works on flat lists. Examples:
+      * `element(aws_subnet.foo.*.id, count.index)`
+      * `element(var.list_of_strings, 2)`
 
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
@@ -127,13 +132,13 @@ The supported built-in functions are:
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
 
-  * `format(format, args...)` - Formats a string according to the given
+  * `format(format, args, ...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
       Good documentation for the syntax can be [found here](https://golang.org/pkg/fmt/).
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index + 1)`.
 
-  * `formatlist(format, args...)` - Formats each element of a list
+  * `formatlist(format, args, ...)` - Formats each element of a list
       according to the given format, similarly to `format`, and returns a list.
       Non-list arguments are repeated for each list element.
       For example, to convert a list of DNS addresses to a list of URLs, you might use:
@@ -143,26 +148,55 @@ The supported built-in functions are:
       `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
       Passing lists with different lengths to formatlist results in an error.
 
-  * `index(list, elem)` - Finds the index of a given element in a list. Example:
-      `index(aws_instance.foo.*.tags.Name, "foo-test")`
+  * `index(list, elem)` - Finds the index of a given element in a list.
+      This function only works on flat lists.
+      Example: `index(aws_instance.foo.*.tags.Name, "foo-test")`
 
-  * `join(delim, list)` - Joins the list with the delimiter. A list is
-      only possible with splat variables from resources with a count
-      greater than one. Example: `join(",", aws_instance.foo.*.id)`
+  * `join(delim, list)` - Joins the list with the delimiter for a resultant string.
+      This function works only on flat lists.
+      Examples:
+      * `join(",", aws_instance.foo.*.id)`
+      * `join(",", var.ami_list)`
 
-  * `jsonencode(string)` - Returns a JSON-encoded representation of the given
-    string (including double quotes).
+  * `jsonencode(item)` - Returns a JSON-encoded representation of the given
+    item, which may be a string, list of strings, or map from string to string.
+    Note that if the item is a string, the return value includes the double
+    quotes.
 
-  * `length(list)` - Returns a number of members in a given list
+  * `keys(map)` - Returns a lexically sorted list of the map keys.
+
+  * `length(list)` - Returns a number of members in a given list, map, or string.
       or a number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
       * `${length("a,b,c")}` = 5
+      * `${length(map("key", "val"))}` = 1
 
-  * `lookup(map, key)` - Performs a dynamic lookup into a mapping
+  * `list(items, ...)` - Returns a list consisting of the arguments to the function.
+      This function provides a way of representing list literals in interpolation.
+      * `${list("a", "b", "c")}` returns a list of `"a", "b", "c"`.
+      * `${list()}` returns an empty list.
+
+  * `lookup(map, key [, default])` - Performs a dynamic lookup into a map
       variable. The `map` parameter should be another variable, such
-      as `var.amis`.
+      as `var.amis`. If `key` does not exist in `map`, the interpolation will
+      fail unless you specify a third argument, `default`, which should be a
+      string value to return if no `key` is found in `map`. This function
+      only works on flat maps and will return an error for maps that
+      include nested lists or maps.
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
+
+  * `map(key, value, ...)` - Returns a map consisting of the key/value pairs
+    specified as arguments. Every odd argument must be a string key, and every
+    even argument must have the same type as the other values specified.
+    Duplicate keys are not allowed. Examples:
+    * `map("hello", "world")`
+    * `map("us-east", list("a", "b", "c"), "us-west", list("b", "c", "d"))`
+
+  * `merge(map1, map2, ...)` - Returns the union of 2 or more maps. The maps
+	are consumed in the order provided, and duplciate keys overwrite previous
+	entries.
+	* `${merge(map("a", "b"), map("c", "d"))}` returns `{"a": "b", "c": "d"}`
 
   * `md5(string)` - Returns a (conventional) hexadecimal representation of the
     MD5 hash of the given string.
@@ -177,17 +211,22 @@ The supported built-in functions are:
 
   * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-1 hash of the given string.
-    Example: `"${sha1(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+    Example: `"${sha1("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
   * `sha256(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-256 hash of the given string.
-    Example: `"${sha256(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+    Example: `"${sha256("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
   * `signum(int)` - Returns -1 for negative numbers, 0 for 0 and 1 for positive numbers.
       This function is useful when you need to set a value for the first resource and
       a different value for the rest of the resources.
       Example: `element(split(",", var.r53_failover_policy), signum(count.index))`
       where the 0th index points to `PRIMARY` and 1st to `FAILOVER`
+
+  * `sort(list)` - Returns a lexographically sorted list of the strings contained in
+      the list passed as an argument. Sort may only be used with lists which contain only
+      strings.
+      Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`
 
   * `split(delim, string)` - Splits the string previously created by `join`
       back into a list. This is useful for pushing lists through module
@@ -202,6 +241,10 @@ The supported built-in functions are:
   * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
 
   * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
+
+  * `values(map)` - Returns a list of the map values, in the order of the keys
+    returned by the `keys` function. This function only works on flat maps and
+    will return an error for maps that include nested lists or maps.
 
 ## Templates
 
@@ -266,6 +309,8 @@ With this, we will build a list of `template_file.web_init` resources which we c
 use in combination with our list of `aws_instance.web` resources.
 
 ## Math
+
+<a id="math"></a>
 
 Simple math can be performed in interpolations:
 

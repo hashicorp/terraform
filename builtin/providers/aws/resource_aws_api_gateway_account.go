@@ -18,6 +18,9 @@ func resourceAwsApiGatewayAccount() *schema.Resource {
 		Read:   resourceAwsApiGatewayAccountRead,
 		Update: resourceAwsApiGatewayAccountUpdate,
 		Delete: resourceAwsApiGatewayAccountDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"cloudwatch_role_arn": &schema.Schema{

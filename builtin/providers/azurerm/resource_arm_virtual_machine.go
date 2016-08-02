@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
+	"net/url"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -21,42 +21,43 @@ func resourceArmVirtualMachine() *schema.Resource {
 		Delete: resourceArmVirtualMachineDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"plan": &schema.Schema{
+			"plan": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"publisher": &schema.Schema{
+						"publisher": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"product": &schema.Schema{
+						"product": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -65,45 +66,50 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Set: resourceArmVirtualMachinePlanHash,
 			},
 
-			"availability_set_id": &schema.Schema{
+			"availability_set_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				StateFunc: func(id interface{}) string {
+					return strings.ToLower(id.(string))
+				},
+			},
+
+			"license_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"license_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
-			"vm_size": &schema.Schema{
+			"vm_size": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"storage_image_reference": &schema.Schema{
+			"storage_image_reference": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"publisher": &schema.Schema{
+						"publisher": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"offer": &schema.Schema{
+						"offer": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"sku": &schema.Schema{
+						"sku": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"version": &schema.Schema{
+						"version": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -113,38 +119,39 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Set: resourceArmVirtualMachineStorageImageReferenceHash,
 			},
 
-			"storage_os_disk": &schema.Schema{
+			"storage_os_disk": {
 				Type:     schema.TypeSet,
 				Required: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"os_type": &schema.Schema{
+						"os_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"vhd_uri": &schema.Schema{
+						"vhd_uri": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"image_uri": &schema.Schema{
+						"image_uri": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"caching": &schema.Schema{
+						"caching": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"create_option": &schema.Schema{
+						"create_option": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -153,27 +160,33 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Set: resourceArmVirtualMachineStorageOsDiskHash,
 			},
 
-			"storage_data_disk": &schema.Schema{
+			"delete_os_disk_on_termination": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
+			"storage_data_disk": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"vhd_uri": &schema.Schema{
+						"vhd_uri": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"create_option": &schema.Schema{
+						"create_option": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"disk_size_gb": &schema.Schema{
+						"disk_size_gb": {
 							Type:     schema.TypeInt,
 							Required: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -186,7 +199,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							},
 						},
 
-						"lun": &schema.Schema{
+						"lun": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -194,28 +207,35 @@ func resourceArmVirtualMachine() *schema.Resource {
 				},
 			},
 
-			"os_profile": &schema.Schema{
+			"delete_data_disks_on_termination": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
+			"os_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"computer_name": &schema.Schema{
+						"computer_name": {
 							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							ForceNew: true,
+							Required: true,
 						},
 
-						"admin_username": &schema.Schema{
+						"admin_username": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"admin_password": &schema.Schema{
+						"admin_password": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"custom_data": &schema.Schema{
+						"custom_data": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -225,53 +245,54 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Set: resourceArmVirtualMachineStorageOsProfileHash,
 			},
 
-			"os_profile_windows_config": &schema.Schema{
+			"os_profile_windows_config": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"provision_vm_agent": &schema.Schema{
+						"provision_vm_agent": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"enable_automatic_upgrades": &schema.Schema{
+						"enable_automatic_upgrades": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"winrm": &schema.Schema{
-							Type:     schema.TypeSet,
+						"winrm": {
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"protocol": &schema.Schema{
+									"protocol": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"certificate_url": &schema.Schema{
+									"certificate_url": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
 								},
 							},
 						},
-						"additional_unattend_config": &schema.Schema{
-							Type:     schema.TypeSet,
+						"additional_unattend_config": {
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"pass": &schema.Schema{
+									"pass": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"component": &schema.Schema{
+									"component": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"setting_name": &schema.Schema{
+									"setting_name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"content": &schema.Schema{
+									"content": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -283,25 +304,26 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Set: resourceArmVirtualMachineStorageOsProfileWindowsConfigHash,
 			},
 
-			"os_profile_linux_config": &schema.Schema{
+			"os_profile_linux_config": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"disable_password_authentication": &schema.Schema{
+						"disable_password_authentication": {
 							Type:     schema.TypeBool,
 							Required: true,
 						},
-						"ssh_keys": &schema.Schema{
+						"ssh_keys": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"path": &schema.Schema{
+									"path": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"key_data": &schema.Schema{
+									"key_data": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
@@ -313,26 +335,26 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Set: resourceArmVirtualMachineStorageOsProfileLinuxConfigHash,
 			},
 
-			"os_profile_secrets": &schema.Schema{
+			"os_profile_secrets": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"source_vault_id": &schema.Schema{
+						"source_vault_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"vault_certificates": &schema.Schema{
-							Type:     schema.TypeSet,
+						"vault_certificates": {
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"certificate_url": &schema.Schema{
+									"certificate_url": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"certificate_store": &schema.Schema{
+									"certificate_store": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
@@ -343,11 +365,13 @@ func resourceArmVirtualMachine() *schema.Resource {
 				},
 			},
 
-			"network_interface_ids": &schema.Schema{
+			"network_interface_ids": {
 				Type:     schema.TypeSet,
 				Required: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Set: schema.HashString,
 			},
 
 			"tags": tagsSchema(),
@@ -432,24 +456,20 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		vm.Plan = plan
 	}
 
-	resp, vmErr := vmClient.CreateOrUpdate(resGroup, name, vm)
+	_, vmErr := vmClient.CreateOrUpdate(resGroup, name, vm, make(chan struct{}))
 	if vmErr != nil {
 		return vmErr
 	}
 
-	d.SetId(*resp.ID)
+	read, err := vmClient.Get(resGroup, name, "")
+	if err != nil {
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Virtual Machine %s (resource group %s) ID", name, resGroup)
+	}
 
-	log.Printf("[DEBUG] Waiting for Virtual Machine (%s) to become available", name)
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"Creating", "Updating"},
-		Target:     []string{"Succeeded"},
-		Refresh:    virtualMachineStateRefreshFunc(client, resGroup, name),
-		Timeout:    20 * time.Minute,
-		MinTimeout: 10 * time.Second,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Virtual Machine (%s) to become available: %s", name, err)
-	}
+	d.SetId(*read.ID)
 
 	return resourceArmVirtualMachineRead(d, meta)
 }
@@ -480,7 +500,7 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if resp.Properties.AvailabilitySet != nil {
-		d.Set("availability_set_id", resp.Properties.AvailabilitySet.ID)
+		d.Set("availability_set_id", strings.ToLower(*resp.Properties.AvailabilitySet.ID))
 	}
 
 	d.Set("vm_size", resp.Properties.HardwareProfile.VMSize)
@@ -506,7 +526,7 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if resp.Properties.OsProfile.WindowsConfiguration != nil {
-		if err := d.Set("os_profile_windows_config", schema.NewSet(resourceArmVirtualMachineStorageOsProfileWindowsConfigHash, flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.Properties.OsProfile.WindowsConfiguration))); err != nil {
+		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.Properties.OsProfile.WindowsConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Windows Configuration: %#v", err)
 		}
 	}
@@ -544,20 +564,72 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualMachines"]
 
-	_, err = vmClient.Delete(resGroup, name)
+	if _, err = vmClient.Delete(resGroup, name, make(chan struct{})); err != nil {
+		return err
+	}
 
-	return err
-}
+	// delete OS Disk if opted in
+	if deleteOsDisk := d.Get("delete_os_disk_on_termination").(bool); deleteOsDisk {
+		log.Printf("[INFO] delete_os_disk_on_termination is enabled, deleting")
 
-func virtualMachineStateRefreshFunc(client *ArmClient, resourceGroupName string, vmName string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		res, err := client.vmClient.Get(resourceGroupName, vmName, "")
+		osDisk, err := expandAzureRmVirtualMachineOsDisk(d)
 		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in virtualMachineStateRefreshFunc to Azure ARM for Virtual Machine '%s' (RG: '%s'): %s", vmName, resourceGroupName, err)
+			return fmt.Errorf("Error expanding OS Disk: %s", err)
 		}
 
-		return res, *res.Properties.ProvisioningState, nil
+		if err = resourceArmVirtualMachineDeleteVhd(*osDisk.Vhd.URI, resGroup, meta); err != nil {
+			return fmt.Errorf("Error deleting OS Disk VHD: %s", err)
+		}
 	}
+
+	// delete Data disks if opted in
+	if deleteDataDisks := d.Get("delete_data_disks_on_termination").(bool); deleteDataDisks {
+		log.Printf("[INFO] delete_data_disks_on_termination is enabled, deleting each data disk")
+
+		disks, err := expandAzureRmVirtualMachineDataDisk(d)
+		if err != nil {
+			return fmt.Errorf("Error expanding Data Disks: %s", err)
+		}
+
+		for _, disk := range disks {
+			if err = resourceArmVirtualMachineDeleteVhd(*disk.Vhd.URI, resGroup, meta); err != nil {
+				return fmt.Errorf("Error deleting Data Disk VHD: %s", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func resourceArmVirtualMachineDeleteVhd(uri, resGroup string, meta interface{}) error {
+	vhdURL, err := url.Parse(uri)
+	if err != nil {
+		return fmt.Errorf("Cannot parse Disk VHD URI: %s", err)
+	}
+
+	// VHD URI is in the form: https://storageAccountName.blob.core.windows.net/containerName/blobName
+	storageAccountName := strings.Split(vhdURL.Host, ".")[0]
+	path := strings.Split(strings.TrimPrefix(vhdURL.Path, "/"), "/")
+	containerName := path[0]
+	blobName := path[1]
+
+	blobClient, saExists, err := meta.(*ArmClient).getBlobStorageClientForStorageAccount(resGroup, storageAccountName)
+	if err != nil {
+		return fmt.Errorf("Error creating blob store client for VHD deletion: %s", err)
+	}
+
+	if !saExists {
+		log.Printf("[INFO] Storage Account %q doesn't exist so the VHD blob won't exist", storageAccountName)
+		return nil
+	}
+
+	log.Printf("[INFO] Deleting VHD blob %s", blobName)
+	_, err = blobClient.DeleteBlobIfExists(containerName, blobName, nil)
+	if err != nil {
+		return fmt.Errorf("Error deleting VHD blob: %s", err)
+	}
+
+	return nil
 }
 
 func resourceArmVirtualMachinePlanHash(v interface{}) int {
@@ -585,18 +657,6 @@ func resourceArmVirtualMachineStorageOsProfileHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["admin_username"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["computer_name"].(string)))
-	return hashcode.String(buf.String())
-}
-
-func resourceArmVirtualMachineStorageDataDiskHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["create_option"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["disk_size_gb"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["lun"].(int)))
-
 	return hashcode.String(buf.String())
 }
 
@@ -747,7 +807,10 @@ func flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(config *compute.W
 			c["pass"] = i.PassName
 			c["component"] = i.ComponentName
 			c["setting_name"] = i.SettingName
-			c["content"] = *i.Content
+
+			if i.Content != nil {
+				c["content"] = *i.Content
+			}
 
 			content = append(content, c)
 		}
@@ -795,10 +858,6 @@ func flattenAzureRmVirtualMachineOsDisk(disk *compute.OSDisk) []interface{} {
 func expandAzureRmVirtualMachinePlan(d *schema.ResourceData) (*compute.Plan, error) {
 	planConfigs := d.Get("plan").(*schema.Set).List()
 
-	if len(planConfigs) != 1 {
-		return nil, fmt.Errorf("Cannot specify more than one plan.")
-	}
-
 	planConfig := planConfigs[0].(map[string]interface{})
 
 	publisher := planConfig["publisher"].(string)
@@ -815,17 +874,15 @@ func expandAzureRmVirtualMachinePlan(d *schema.ResourceData) (*compute.Plan, err
 func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSProfile, error) {
 	osProfiles := d.Get("os_profile").(*schema.Set).List()
 
-	if len(osProfiles) != 1 {
-		return nil, fmt.Errorf("[ERROR] Only 1 OS Profile Can be specified for an Azure RM Virtual Machine")
-	}
-
 	osProfile := osProfiles[0].(map[string]interface{})
 
 	adminUsername := osProfile["admin_username"].(string)
 	adminPassword := osProfile["admin_password"].(string)
+	computerName := osProfile["computer_name"].(string)
 
 	profile := &compute.OSProfile{
 		AdminUsername: &adminUsername,
+		ComputerName:  &computerName,
 	}
 
 	if adminPassword != "" {
@@ -859,9 +916,6 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 		}
 	}
 
-	if v := osProfile["computer_name"].(string); v != "" {
-		profile.ComputerName = &v
-	}
 	if v := osProfile["custom_data"].(string); v != "" {
 		profile.CustomData = &v
 	}
@@ -884,7 +938,7 @@ func expandAzureRmVirtualMachineOsProfileSecrets(d *schema.ResourceData) *[]comp
 		}
 
 		if v := config["vault_certificates"]; v != nil {
-			certsConfig := v.(*schema.Set).List()
+			certsConfig := v.([]interface{})
 			certs := make([]compute.VaultCertificate, 0, len(certsConfig))
 			for _, certConfig := range certsConfig {
 				config := certConfig.(map[string]interface{})
@@ -911,10 +965,6 @@ func expandAzureRmVirtualMachineOsProfileSecrets(d *schema.ResourceData) *[]comp
 func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*compute.LinuxConfiguration, error) {
 	osProfilesLinuxConfig := d.Get("os_profile_linux_config").(*schema.Set).List()
 
-	if len(osProfilesLinuxConfig) != 1 {
-		return nil, fmt.Errorf("[ERROR] Only 1 OS Profile Linux Config Can be specified for an Azure RM Virtual Machine")
-	}
-
 	linuxConfig := osProfilesLinuxConfig[0].(map[string]interface{})
 	disablePasswordAuth := linuxConfig["disable_password_authentication"].(bool)
 
@@ -923,9 +973,13 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 	}
 
 	linuxKeys := linuxConfig["ssh_keys"].([]interface{})
-	sshPublicKeys := make([]compute.SSHPublicKey, 0, len(linuxKeys))
+	sshPublicKeys := []compute.SSHPublicKey{}
 	for _, key := range linuxKeys {
-		sshKey := key.(map[string]interface{})
+
+		sshKey, ok := key.(map[string]interface{})
+		if !ok {
+			continue
+		}
 		path := sshKey["path"].(string)
 		keyData := sshKey["key_data"].(string)
 
@@ -947,10 +1001,6 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (*compute.WindowsConfiguration, error) {
 	osProfilesWindowsConfig := d.Get("os_profile_windows_config").(*schema.Set).List()
 
-	if len(osProfilesWindowsConfig) != 1 {
-		return nil, fmt.Errorf("[ERROR] Only 1 OS Profile Windows Config Can be specified for an Azure RM Virtual Machine")
-	}
-
 	osProfileConfig := osProfilesWindowsConfig[0].(map[string]interface{})
 	config := &compute.WindowsConfiguration{}
 
@@ -965,7 +1015,7 @@ func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (
 	}
 
 	if v := osProfileConfig["winrm"]; v != nil {
-		winRm := v.(*schema.Set).List()
+		winRm := v.([]interface{})
 		if len(winRm) > 0 {
 			winRmListners := make([]compute.WinRMListener, 0, len(winRm))
 			for _, winRmConfig := range winRm {
@@ -987,7 +1037,7 @@ func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (
 		}
 	}
 	if v := osProfileConfig["additional_unattend_config"]; v != nil {
-		additionalConfig := v.(*schema.Set).List()
+		additionalConfig := v.([]interface{})
 		if len(additionalConfig) > 0 {
 			additionalConfigContent := make([]compute.AdditionalUnattendContent, 0, len(additionalConfig))
 			for _, addConfig := range additionalConfig {
@@ -1021,8 +1071,8 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 		name := config["name"].(string)
 		vhd := config["vhd_uri"].(string)
 		createOption := config["create_option"].(string)
-		lun := config["lun"].(int)
-		disk_size := config["disk_size_gb"].(int)
+		lun := int32(config["lun"].(int))
+		disk_size := int32(config["disk_size_gb"].(int))
 
 		data_disk := compute.DataDisk{
 			Name: &name,
@@ -1042,10 +1092,6 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 
 func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute.ImageReference, error) {
 	storageImageRefs := d.Get("storage_image_reference").(*schema.Set).List()
-
-	if len(storageImageRefs) != 1 {
-		return nil, fmt.Errorf("Cannot specify more than one storage_image_reference.")
-	}
 
 	storageImageRef := storageImageRefs[0].(map[string]interface{})
 
@@ -1083,10 +1129,6 @@ func expandAzureRmVirtualMachineNetworkProfile(d *schema.ResourceData) compute.N
 
 func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk, error) {
 	disks := d.Get("storage_os_disk").(*schema.Set).List()
-
-	if len(disks) != 1 {
-		return nil, fmt.Errorf("[ERROR] Only 1 OS Disk Can be specified for an Azure RM Virtual Machine")
-	}
 
 	disk := disks[0].(map[string]interface{})
 

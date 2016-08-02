@@ -76,6 +76,12 @@ The following arguments are supported:
 * `cacert_file` - (Optional) Specify a custom CA certificate when communicating
     over SSL. If omitted, the `OS_CACERT` environment variable is used.
 
+* `cert` - (Optional) Specify client certificate file for SSL client
+    authentication. If omitted the `OS_CERT` environment variable is used.
+
+* `key` - (Optional) Specify client private key file for SSL client
+    authentication. If omitted the `OS_KEY` environment variable is used.
+
 * `endpoint_type` - (Optional) Specify which type of endpoint to use from the
     service catalog. It can be set using the OS_ENDPOINT_TYPE environment
     variable. If not set, public endpoints is used.

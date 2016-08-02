@@ -7,12 +7,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSDBOptionGroup_basic(t *testing.T) {
 	var v rds.OptionGroup
+	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,12 +22,64 @@ func TestAccAWSDBOptionGroup_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSDBOptionGroupBasicConfig,
+				Config: testAccAWSDBOptionGroupBasicConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
 					testAccCheckAWSDBOptionGroupAttributes(&v),
 					resource.TestCheckResourceAttr(
-						"aws_db_option_group.bar", "name", "option-group-test-terraform"),
+						"aws_db_option_group.bar", "name", rName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBOptionGroup_basicDestroyWithInstance(t *testing.T) {
+	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBOptionGroupBasicDestroyConfig(rName),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBOptionGroup_OptionSettings(t *testing.T) {
+	var v rds.OptionGroup
+	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBOptionGroupOptionSettings(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "name", rName),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "option.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "option.961211605.option_settings.129825347.value", "UTC"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSDBOptionGroupOptionSettings_update(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "name", rName),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "option.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "option.2422743510.option_settings.1350509764.value", "US/Pacific"),
 				),
 			},
 		},
@@ -34,6 +88,7 @@ func TestAccAWSDBOptionGroup_basic(t *testing.T) {
 
 func TestAccAWSDBOptionGroup_sqlServerOptionsUpdate(t *testing.T) {
 	var v rds.OptionGroup
+	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -41,20 +96,20 @@ func TestAccAWSDBOptionGroup_sqlServerOptionsUpdate(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSDBOptionGroupSqlServerEEOptions,
+				Config: testAccAWSDBOptionGroupSqlServerEEOptions(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
 					resource.TestCheckResourceAttr(
-						"aws_db_option_group.bar", "name", "option-group-test-terraform"),
+						"aws_db_option_group.bar", "name", rName),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccAWSDBOptionGroupSqlServerEEOptions_update,
+				Config: testAccAWSDBOptionGroupSqlServerEEOptions_update(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
 					resource.TestCheckResourceAttr(
-						"aws_db_option_group.bar", "name", "option-group-test-terraform"),
+						"aws_db_option_group.bar", "name", rName),
 					resource.TestCheckResourceAttr(
 						"aws_db_option_group.bar", "option.#", "1"),
 				),
@@ -65,6 +120,7 @@ func TestAccAWSDBOptionGroup_sqlServerOptionsUpdate(t *testing.T) {
 
 func TestAccAWSDBOptionGroup_multipleOptions(t *testing.T) {
 	var v rds.OptionGroup
+	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -72,11 +128,11 @@ func TestAccAWSDBOptionGroup_multipleOptions(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSDBOptionGroupMultipleOptions,
+				Config: testAccAWSDBOptionGroupMultipleOptions(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
 					resource.TestCheckResourceAttr(
-						"aws_db_option_group.bar", "name", "option-group-test-terraform"),
+						"aws_db_option_group.bar", "name", rName),
 					resource.TestCheckResourceAttr(
 						"aws_db_option_group.bar", "option.#", "2"),
 				),
@@ -207,27 +263,101 @@ func testAccCheckAWSDBOptionGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccAWSDBOptionGroupBasicConfig = `
+func testAccAWSDBOptionGroupBasicConfig(r string) string {
+	return fmt.Sprintf(`
 resource "aws_db_option_group" "bar" {
-  name                     = "option-group-test-terraform"
+  name                     = "%s"
   option_group_description = "Test option group for terraform"
   engine_name              = "mysql"
   major_engine_version     = "5.6"
 }
-`
+`, r)
+}
 
-const testAccAWSDBOptionGroupSqlServerEEOptions = `
+func testAccAWSDBOptionGroupBasicDestroyConfig(r string) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6.21"
+	instance_class = "db.t2.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+
+
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
+	# validation error).
+	maintenance_window = "Fri:09:00-Fri:09:30"
+
+	backup_retention_period = 0
+
+	option_group_name = "${aws_db_option_group.bar.name}"
+}
+
 resource "aws_db_option_group" "bar" {
-  name                     = "option-group-test-terraform"
+  name                     = "%s"
+  option_group_description = "Test option group for terraform"
+  engine_name              = "mysql"
+  major_engine_version     = "5.6"
+}
+`, r)
+}
+
+func testAccAWSDBOptionGroupOptionSettings(r string) string {
+	return fmt.Sprintf(`
+resource "aws_db_option_group" "bar" {
+  name                     = "%s"
+  option_group_description = "Test option group for terraform"
+  engine_name              = "oracle-ee"
+  major_engine_version     = "11.2"
+
+  option {
+    option_name = "Timezone"
+    option_settings {
+      name = "TIME_ZONE"
+      value = "UTC"
+    }
+  }
+}
+`, r)
+}
+
+func testAccAWSDBOptionGroupOptionSettings_update(r string) string {
+	return fmt.Sprintf(`
+resource "aws_db_option_group" "bar" {
+  name                     = "%s"
+  option_group_description = "Test option group for terraform"
+  engine_name              = "oracle-ee"
+  major_engine_version     = "11.2"
+
+  option {
+    option_name = "Timezone"
+    option_settings {
+      name = "TIME_ZONE"
+      value = "US/Pacific"
+    }
+  }
+}
+`, r)
+}
+
+func testAccAWSDBOptionGroupSqlServerEEOptions(r string) string {
+	return fmt.Sprintf(`
+resource "aws_db_option_group" "bar" {
+  name                     = "%s"
   option_group_description = "Test option group for terraform"
   engine_name              = "sqlserver-ee"
   major_engine_version     = "11.00"
 }
-`
+`, r)
+}
 
-const testAccAWSDBOptionGroupSqlServerEEOptions_update = `
+func testAccAWSDBOptionGroupSqlServerEEOptions_update(r string) string {
+	return fmt.Sprintf(`
 resource "aws_db_option_group" "bar" {
-  name                     = "option-group-test-terraform"
+  name                     = "%s"
   option_group_description = "Test option group for terraform"
   engine_name              = "sqlserver-ee"
   major_engine_version     = "11.00"
@@ -236,11 +366,13 @@ resource "aws_db_option_group" "bar" {
     option_name = "Mirroring"
   }
 }
-`
+`, r)
+}
 
-const testAccAWSDBOptionGroupMultipleOptions = `
+func testAccAWSDBOptionGroupMultipleOptions(r string) string {
+	return fmt.Sprintf(`
 resource "aws_db_option_group" "bar" {
-  name                     = "option-group-test-terraform"
+  name                     = "%s"
   option_group_description = "Test option group for terraform"
   engine_name              = "oracle-se"
   major_engine_version     = "11.2"
@@ -253,4 +385,5 @@ resource "aws_db_option_group" "bar" {
     option_name = "XMLDB"
   }
 }
-`
+`, r)
+}

@@ -14,7 +14,6 @@ Provides an RDS DB parameter group resource.
 resource "aws_db_parameter_group" "default" {
     name = "rds-pg"
     family = "mysql5.6"
-    description = "RDS default parameter group"
 
   	parameter {
    	  name = "character_set_server"
@@ -34,7 +33,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the DB parameter group.
 * `family` - (Required) The family of the DB parameter group.
-* `description` - (Required) The description of the DB parameter group.
+* `description` - (Optional) The description of the DB parameter group. Defaults to "Managed by Terraform".
 * `parameter` - (Optional) A list of DB parameters to apply.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
@@ -52,3 +51,11 @@ The following attributes are exported:
 
 * `id` - The db parameter group name.
 * `arn` - The ARN of the db parameter group.
+
+## Import
+
+DB Parameter groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_db_parameter_group.rds_pg rds-pg
+```

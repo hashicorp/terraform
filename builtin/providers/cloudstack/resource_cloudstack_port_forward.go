@@ -1,8 +1,8 @@
 package cloudstack
 
 import (
-	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -23,18 +23,9 @@ func resourceCloudStackPortForward() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"ip_address_id": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"ipaddress"},
-			},
-
-			"ipaddress": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Deprecated:    "Please use the `ip_address_id` field instead",
-				ConflictsWith: []string{"ip_address_id"},
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"managed": &schema.Schema{
@@ -71,13 +62,7 @@ func resourceCloudStackPortForward() *schema.Resource {
 
 						"virtual_machine_id": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
-						},
-
-						"virtual_machine": &schema.Schema{
-							Type:       schema.TypeString,
-							Optional:   true,
-							Deprecated: "Please use the `virtual_machine_id` field instead",
+							Required: true,
 						},
 
 						"uuid": &schema.Schema{
@@ -92,29 +77,8 @@ func resourceCloudStackPortForward() *schema.Resource {
 }
 
 func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{}) error {
-	cs := meta.(*cloudstack.CloudStackClient)
-
-	ipaddress, ok := d.GetOk("ip_address_id")
-	if !ok {
-		ipaddress, ok = d.GetOk("ipaddress")
-	}
-	if !ok {
-		return errors.New("Either `ip_address_id` or [deprecated] `ipaddress` must be provided.")
-	}
-
-	// Retrieve the ipaddress ID
-	ipaddressid, e := retrieveID(
-		cs,
-		"ip_address",
-		ipaddress.(string),
-		cloudstack.WithProject(d.Get("project").(string)),
-	)
-	if e != nil {
-		return e.Error()
-	}
-
 	// We need to set this upfront in order to be able to save a partial state
-	d.SetId(ipaddressid)
+	d.SetId(d.Get("ip_address_id").(string))
 
 	// Create all forwards that are configured
 	if nrs := d.Get("forward").(*schema.Set); nrs.Len() > 0 {
@@ -134,11 +98,7 @@ func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{
 	return resourceCloudStackPortForwardRead(d, meta)
 }
 
-func createPortForwards(
-	d *schema.ResourceData,
-	meta interface{},
-	forwards *schema.Set,
-	nrs *schema.Set) error {
+func createPortForwards(d *schema.ResourceData, meta interface{}, forwards *schema.Set, nrs *schema.Set) error {
 	var errs *multierror.Error
 
 	var wg sync.WaitGroup
@@ -173,10 +133,8 @@ func createPortForwards(
 
 	return errs.ErrorOrNil()
 }
-func createPortForward(
-	d *schema.ResourceData,
-	meta interface{},
-	forward map[string]interface{}) error {
+
+func createPortForward(d *schema.ResourceData, meta interface{}, forward map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Make sure all required parameters are there
@@ -184,28 +142,8 @@ func createPortForward(
 		return err
 	}
 
-	virtualmachine, ok := forward["virtual_machine_id"]
-	if !ok {
-		virtualmachine, ok = forward["virtual_machine"]
-	}
-	if !ok {
-		return errors.New(
-			"Either `virtual_machine_id` or [deprecated] `virtual_machine` must be provided.")
-	}
-
-	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(
-		cs,
-		"virtual_machine",
-		virtualmachine.(string),
-		cloudstack.WithProject(d.Get("project").(string)),
-	)
-	if e != nil {
-		return e.Error()
-	}
-
 	vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(
-		virtualmachineid,
+		forward["virtual_machine_id"].(string),
 		cloudstack.WithProject(d.Get("project").(string)),
 	)
 	if err != nil {
@@ -235,6 +173,22 @@ func createPortForward(
 
 func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
+
+	// First check if the IP address is still associated
+	_, count, err := cs.Address.GetPublicIpAddressByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
+	if err != nil {
+		if count == 0 {
+			log.Printf(
+				"[DEBUG] IP address with ID %s is no longer associated", d.Id())
+			d.SetId("")
+			return nil
+		}
+
+		return err
+	}
 
 	// Get all the forwards from the running environment
 	p := cs.Firewall.NewListPortForwardingRulesParams()
@@ -387,11 +341,7 @@ func resourceCloudStackPortForwardDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func deletePortForwards(
-	d *schema.ResourceData,
-	meta interface{},
-	forwards *schema.Set,
-	ors *schema.Set) error {
+func deletePortForwards(d *schema.ResourceData, meta interface{}, forwards *schema.Set, ors *schema.Set) error {
 	var errs *multierror.Error
 
 	var wg sync.WaitGroup
@@ -427,10 +377,7 @@ func deletePortForwards(
 	return errs.ErrorOrNil()
 }
 
-func deletePortForward(
-	d *schema.ResourceData,
-	meta interface{},
-	forward map[string]interface{}) error {
+func deletePortForward(d *schema.ResourceData, meta interface{}, forward map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create the parameter struct

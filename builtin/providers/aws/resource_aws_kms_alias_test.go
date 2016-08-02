@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -160,10 +161,10 @@ resource "aws_kms_key" "single" {
 }
 
 resource "aws_kms_alias" "one" {
-    name = "alias/tf-acc-key-alias-one"
+    name = "alias/tf-acc-key-alias-%s"
     target_key_id = "${aws_kms_key.single.key_id}"
 }
 resource "aws_kms_alias" "two" {
-    name = "alias/tf-acc-key-alias-two"
+    name = "alias/tf-acc-key-alias-%s"
     target_key_id = "${aws_kms_key.single.key_id}"
-}`, kmsAliasTimestamp)
+}`, kmsAliasTimestamp, acctest.RandString(5), acctest.RandString(5))

@@ -1,8 +1,6 @@
 package resource
 
 import (
-	"errors"
-	"fmt"
 	"log"
 	"math"
 	"time"
@@ -28,6 +26,7 @@ type StateChangeConf struct {
 	Target         []string         // Target state
 	Timeout        time.Duration    // The amount of time to wait before timeout
 	MinTimeout     time.Duration    // Smallest time to wait before refreshes
+	PollInterval   time.Duration    // Override MinTimeout/backoff and only poll this often
 	NotFoundChecks int              // Number of times to allow not found
 
 	// This is to work around inconsistent APIs
@@ -74,14 +73,20 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 		time.Sleep(conf.Delay)
 
 		var err error
+		var wait time.Duration
 		for tries := 0; ; tries++ {
 			// Wait between refreshes using an exponential backoff
-			wait := time.Duration(math.Pow(2, float64(tries))) *
-				100 * time.Millisecond
-			if wait < conf.MinTimeout {
-				wait = conf.MinTimeout
-			} else if wait > 10*time.Second {
-				wait = 10 * time.Second
+			// If a poll interval has been specified, choose that interval
+			if conf.PollInterval > 0 && conf.PollInterval < 180*time.Second {
+				wait = conf.PollInterval
+			} else {
+				wait = time.Duration(math.Pow(2, float64(tries))) *
+					100 * time.Millisecond
+				if wait < conf.MinTimeout {
+					wait = conf.MinTimeout
+				} else if wait > 10*time.Second {
+					wait = 10 * time.Second
+				}
 			}
 
 			log.Printf("[TRACE] Waiting %s before next try", wait)
@@ -109,7 +114,9 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				// not finding it for awhile, and if so, report an error.
 				notfoundTick += 1
 				if notfoundTick > conf.NotFoundChecks {
-					resulterr = errors.New("couldn't find resource")
+					resulterr = &NotFoundError{
+						LastError: resulterr,
+					}
 					return
 				}
 			} else {
@@ -138,10 +145,11 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				}
 
 				if !found {
-					resulterr = fmt.Errorf(
-						"unexpected state '%s', wanted target '%s'",
-						currentState,
-						conf.Target)
+					resulterr = &UnexpectedStateError{
+						LastError:     resulterr,
+						State:         currentState,
+						ExpectedState: conf.Target,
+					}
 					return
 				}
 			}
@@ -152,8 +160,9 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 	case <-doneCh:
 		return result, resulterr
 	case <-time.After(conf.Timeout):
-		return nil, fmt.Errorf(
-			"timeout while waiting for state to become '%s'",
-			conf.Target)
+		return nil, &TimeoutError{
+			LastError:     resulterr,
+			ExpectedState: conf.Target,
+		}
 	}
 }

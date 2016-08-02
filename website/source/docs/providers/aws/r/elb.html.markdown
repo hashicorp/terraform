@@ -10,6 +10,12 @@ description: |-
 
 Provides an Elastic Load Balancer resource.
 
+~> **NOTE on ELB Instances and ELB Attachments:** Terraform currently
+provides both a standalone [ELB Attachment resource](elb_attachment.html)
+(describing an instance attached to an ELB), and an ELB resource with
+`instances` defined in-line. At this time you cannot use an ELB with in-line
+instaces in conjunction with a ELB Attachment resources. Doing so will cause a
+conflict and will overwrite attachments.
 ## Example Usage
 
 ```
@@ -73,7 +79,7 @@ The following arguments are supported:
 * `internal` - (Optional) If true, ELB will be an internal ELB.
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Optional) A health_check block. Health Check documented below.
-* `cross_zone_load_balancing` - (Optional) Enable cross-zone load balancing.
+* `cross_zone_load_balancing` - (Optional) Enable cross-zone load balancing. Default: `true`
 * `idle_timeout` - (Optional) The time in seconds that the connection is allowed to be idle. Default: 60.
 * `connection_draining` - (Optional) Boolean to enable connection draining.
 * `connection_draining_timeout` - (Optional) The time in seconds to allow for connections to drain. 
@@ -82,13 +88,13 @@ The following arguments are supported:
 Exactly one of `availability_zones` or `subnets` must be specified: this
 determines if the ELB exists in a VPC or in EC2-classic.
 
-Access Logs support the following:
+Access Logs (`access_logs`) support the following:
 
 * `bucket` - (Required) The S3 bucket name to store the logs in.
 * `bucket_prefix` - (Optional) The S3 bucket prefix. Logs are stored in the root if not configured.
 * `interval` - (Optional) The publishing interval in minutes. Default: 60 minutes.
 
-Listeners support the following:
+Listeners (`listener`) support the following:
 
 * `instance_port` - (Required) The port on the instance to route to
 * `instance_protocol` - (Required) The protocol to use to the instance. Valid
@@ -99,7 +105,7 @@ Listeners support the following:
 * `ssl_certificate_id` - (Optional) The ARN of an SSL certificate you have
 uploaded to AWS IAM. **Only valid when `lb_protocol` is either HTTPS or SSL**
 
-Health Check supports the following:
+Health Check (`health_check`) supports the following:
 
 * `healthy_threshold` - (Required) The number of checks before the instance is declared healthy.
 * `unhealthy_threshold` - (Required) The number of checks before the instance is declared unhealthy.
@@ -122,3 +128,11 @@ The following attributes are exported:
   part of your inbound rules for your load balancer's back-end application
   instances. Only available on ELBs launched in a VPC.
 * `zone_id` - The canonical hosted zone ID of the ELB (to be used in a Route 53 Alias record)
+
+## Import
+
+ELBs can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_elb.bar elb-production-12345
+```

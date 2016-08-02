@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"math/rand"
@@ -45,6 +46,31 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 						"aws_db_instance.bar", "username", "foo"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_kmsKey(t *testing.T) {
+	var v rds.DBInstance
+	keyRegex := regexp.MustCompile("^arn:aws:kms:")
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	config := fmt.Sprintf(testAccAWSDBInstanceConfigKmsKeyId, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+					resource.TestMatchResourceAttr(
+						"aws_db_instance.bar", "kms_key_id", keyRegex),
 				),
 			},
 		},
@@ -144,6 +170,69 @@ func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 					testAccCheckAWSDBInstanceExists("aws_db_instance.enhanced_monitoring", &dbInstance),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.enhanced_monitoring", "monitoring_interval", "5"),
+				),
+			},
+		},
+	})
+}
+
+// Regression test for https://github.com/hashicorp/terraform/issues/3760 .
+// We apply a plan, then change just the iops. If the apply succeeds, we
+// consider this a pass, as before in 3760 the request would fail
+func TestAccAWS_separate_DBInstance_iops_update(t *testing.T) {
+	var v rds.DBInstance
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccSnapshotInstanceConfig_iopsUpdate(rName, 1000),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccSnapshotInstanceConfig_iopsUpdate(rName, 2000),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_portUpdate(t *testing.T) {
+	var v rds.DBInstance
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccSnapshotInstanceConfig_mysqlPort(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "port", "3306"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccSnapshotInstanceConfig_updateMysqlPort(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "port", "3305"),
 				),
 			},
 		},
@@ -404,6 +493,51 @@ resource "aws_db_instance" "bar" {
 	parameter_group_name = "default.mysql5.6"
 }`
 
+var testAccAWSDBInstanceConfigKmsKeyId = `
+resource "aws_kms_key" "foo" {
+    description = "Terraform acc test %s"
+    policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_db_instance" "bar" {
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6.21"
+	instance_class = "db.m3.medium"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+
+
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
+	# validation error).
+	maintenance_window = "Fri:09:00-Fri:09:30"
+
+	backup_retention_period = 0
+	storage_encrypted = true
+	kms_key_id = "${aws_kms_key.foo.arn}"
+
+	parameter_group_name = "default.mysql5.6"
+}
+`
+
 var testAccAWSDBInstanceConfigWithOptionGroup = fmt.Sprintf(`
 
 resource "aws_db_option_group" "bar" {
@@ -482,6 +616,8 @@ resource "aws_db_instance" "snapshot" {
 	security_group_names = ["default"]
 	backup_retention_period = 1
 
+	publicly_accessible = true
+
 	parameter_group_name = "default.mysql5.6"
 
 	skip_final_snapshot = false
@@ -507,6 +643,7 @@ resource "aws_db_instance" "no_snapshot" {
 	instance_class = "db.t1.micro"
 	name = "baz"
 	password = "barbarbarbar"
+	publicly_accessible = true
 	username = "foo"
     security_group_names = ["default"]
 	backup_retention_period = 1
@@ -570,3 +707,59 @@ resource "aws_db_instance" "enhanced_monitoring" {
 	skip_final_snapshot = true
 }
 `
+
+func testAccSnapshotInstanceConfig_iopsUpdate(rName string, iops int) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+
+  apply_immediately = true
+
+  storage_type      = "io1"
+  allocated_storage = 200
+  iops              = %d
+}`, rName, iops)
+}
+
+func testAccSnapshotInstanceConfig_mysqlPort(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  port = 3306
+  allocated_storage = 10
+
+  apply_immediately = true
+}`, rName)
+}
+
+func testAccSnapshotInstanceConfig_updateMysqlPort(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  port = 3305
+  allocated_storage = 10
+
+  apply_immediately = true
+}`, rName)
+}

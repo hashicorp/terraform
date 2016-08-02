@@ -18,6 +18,9 @@ func resourceAwsApiGatewayApiKey() *schema.Resource {
 		Read:   resourceAwsApiGatewayApiKeyRead,
 		Update: resourceAwsApiGatewayApiKeyUpdate,
 		Delete: resourceAwsApiGatewayApiKeyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -28,7 +31,8 @@ func resourceAwsApiGatewayApiKey() *schema.Resource {
 
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "Managed by Terraform",
 			},
 
 			"enabled": &schema.Schema{
@@ -96,6 +100,7 @@ func resourceAwsApiGatewayApiKeyRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", apiKey.Name)
 	d.Set("description", apiKey.Description)
 	d.Set("enabled", apiKey.Enabled)
+	d.Set("stage_key", flattenApiGatewayStageKeys(apiKey.StageKeys))
 
 	return nil
 }

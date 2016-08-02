@@ -18,6 +18,9 @@ func resourceAwsVpc() *schema.Resource {
 		Read:   resourceAwsVpcRead,
 		Update: resourceAwsVpcUpdate,
 		Delete: resourceAwsVpcDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"cidr_block": &schema.Schema{

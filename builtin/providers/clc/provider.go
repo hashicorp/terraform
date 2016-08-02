@@ -203,3 +203,26 @@ func parseAdditionalDisks(d *schema.ResourceData) ([]server.Disk, error) {
 	}
 	return disks, nil
 }
+
+func parsePackages(d *schema.ResourceData) ([]server.Package, error) {
+	var pkgs []server.Package
+	if e := d.Get("packages"); e != nil {
+		for _, e := range e.([]interface{}) {
+			m := e.(map[string]interface{})
+			id := m["id"].(string)
+			delete(m, "id")
+			ms := make(map[string]string)
+			for k, v := range m {
+				if s, ok := v.(string); ok {
+					ms[k] = s
+				}
+			}
+			p := server.Package{
+				ID:     id,
+				Params: ms,
+			}
+			pkgs = append(pkgs, p)
+		}
+	}
+	return pkgs, nil
+}

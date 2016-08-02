@@ -25,7 +25,7 @@ since Terraform loads all files ending in `.tf` in a directory.
 variable "access_key" {}
 variable "secret_key" {}
 variable "region" {
-	default = "us-east-1"
+  default = "us-east-1"
 }
 ```
 
@@ -41,9 +41,9 @@ Next, replace the AWS provider configuration with the following:
 
 ```
 provider "aws" {
-	access_key = "${var.access_key}"
-	secret_key = "${var.secret_key}"
-	region = "${var.region}"
+  access_key = "${var.access_key}"
+  secret_key = "${var.secret_key}"
+  region     = "${var.region}"
 }
 ```
 
@@ -56,11 +56,6 @@ the AWS provider with the given variables.
 There are multiple ways to assign variables. Below is also the order
 in which variable values are chosen. If they're found in an option first
 below, then the options below are ignored.
-
-**UI Input:** If you execute `terraform plan` or apply without doing
-anything, Terraform will ask you to input the variables interactively.
-These variables are not saved, but provides a nice user experience for
-getting started with Terraform.
 
 **Command-line flags:** You can set it directly on the command-line with the
 `-var` flag. Any command in Terraform that inspects the configuration
@@ -107,37 +102,51 @@ $ terraform plan \
   -var-file="production.tfvars"
 ```
 
+**UI Input:** If you execute `terraform plan` or apply without doing
+anything, Terraform will ask you to input the variables interactively.
+These variables are not saved, but provides a nice user experience for
+getting started with Terraform. (UI Input is only supported for string
+variables - list and map variables must be populated via one of the
+other mechanisms.
+
+**Variable Defaults**: If no value is assigned to a variable via any of these
+methods and the variable has a `default` key in its declaration, that value
+will be used for the variable.
+
 <a id="mappings"></a>
-## Mappings
+<a id="maps"></a>
+## Maps
 
 We've replaced our sensitive strings with variables, but we still
 are hardcoding AMIs. Unfortunately, AMIs are specific to the region
 that is in use. One option is to just ask the user to input the proper
 AMI for the region, but Terraform can do better than that with
-_mappings_.
+_maps_.
 
-Mappings are a way to create variables that are lookup tables. An example
-will show this best. Let's extract our AMIs into a mapping and add
+Maps are a way to create variables that are lookup tables. An example
+will show this best. Let's extract our AMIs into a map and add
 support for the "us-west-2" region as well:
 
 ```
 variable "amis" {
-	default = {
-		us-east-1 = "ami-13be557e"
-		us-west-2 = "ami-06b94666"
-	}
+  type = "map"
+  default = {
+    us-east-1 = "ami-13be557e"
+    us-west-2 = "ami-06b94666"
+  }
 }
 ```
 
-A variable becomes a mapping when it has a default value that is a
-map like above. There is no way to create a required map.
+A variable can have a "map" type assigned explicitly, or it can be implicitly
+declared as a map by specifying a default value that is a map. The above
+demonstrates both.
 
 Then, replace the "aws\_instance" with the following:
 
 ```
 resource "aws_instance" "example" {
-	ami = "${lookup(var.amis, var.region)}"
-	instance_type = "t2.micro"
+  ami           = "${lookup(var.amis, var.region)}"
+  instance_type = "t2.micro"
 }
 ```
 
@@ -147,39 +156,40 @@ key is `var.region`, which specifies that the value of the region
 variables is the key.
 
 While we don't use it in our example, it is worth noting that you
-can also do a static lookup of a mapping directly with
-`${var.amis.us-east-1}`.
+can also do a static lookup of a map directly with
+`${var.amis["us-east-1"]}`.
 
-<a id="assigning-mappings"></a>
-## Assigning Mappings
+<a id="assigning-maps"></a>
+## Assigning Maps
 
-We set defaults above, but mappings can also be set using the `-var` and
-`-var-file` values. For example, if the user wanted to specify an alternate AMI
-for us-east-1:
+We set defaults above, but maps can also be set using the `-var` and
+`-var-file` values. For example:
 
 ```
-$ terraform plan -var 'amis.us-east-1=foo'
+$ terraform plan -var 'amis={ us-east-1 = "foo", us-west-2 = "bar" }'
 ...
 ```
 
 **Note**: even if every key will be assigned as input, the variable must be
-established as a mapping by setting its default to `{}`.
+established as a map by setting its default to `{}`.
 
-Here is an example of setting a mapping's keys from a file. Starting with these
+Here is an example of setting a map's keys from a file. Starting with these
 variable definitions:
 
 ```
 variable "region" {}
 variable "amis" {
-  default = {}
+  type = "map"
 }
 ```
 
 You can specify keys in a `terraform.tfvars` file:
 
 ```
-amis.us-east-1 = "ami-abc123"
-amis.us-west-2 = "ami-def456"
+amis = {
+  us-east-1 = "ami-abc123"
+  us-west-2 = "ami-def456"
+}
 ```
 
 And access them via `lookup()`:
@@ -206,7 +216,7 @@ Outputs:
 ## Next
 
 Terraform provides variables for parameterizing your configurations.
-Mappings let you build lookup tables in cases where that makes sense.
+Maps let you build lookup tables in cases where that makes sense.
 Setting and using variables is uniform throughout your configurations.
 
 In the next section, we'll take a look at

@@ -2,44 +2,42 @@ package azurerm
 
 import (
 	"fmt"
-	"log"
-	"net/http"
 	"reflect"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
+	"sync"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
-	"sync"
 )
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"subscription_id": &schema.Schema{
+			"subscription_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
 			},
 
-			"client_id": &schema.Schema{
+			"client_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID", ""),
 			},
 
-			"client_secret": &schema.Schema{
+			"client_secret": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET", ""),
 			},
 
-			"tenant_id": &schema.Schema{
+			"tenant_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
@@ -47,37 +45,44 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"azurerm_availability_set":       resourceArmAvailabilitySet(),
-			"azurerm_cdn_endpoint":           resourceArmCdnEndpoint(),
-			"azurerm_cdn_profile":            resourceArmCdnProfile(),
-			"azurerm_dns_a_record":           resourceArmDnsARecord(),
-			"azurerm_dns_aaaa_record":        resourceArmDnsAAAARecord(),
-			"azurerm_dns_cname_record":       resourceArmDnsCNameRecord(),
-			"azurerm_dns_mx_record":          resourceArmDnsMxRecord(),
-			"azurerm_dns_ns_record":          resourceArmDnsNsRecord(),
-			"azurerm_dns_srv_record":         resourceArmDnsSrvRecord(),
-			"azurerm_dns_txt_record":         resourceArmDnsTxtRecord(),
-			"azurerm_dns_zone":               resourceArmDnsZone(),
-			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
-			"azurerm_network_interface":      resourceArmNetworkInterface(),
-			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
-			"azurerm_network_security_rule":  resourceArmNetworkSecurityRule(),
-			"azurerm_public_ip":              resourceArmPublicIp(),
-			"azurerm_resource_group":         resourceArmResourceGroup(),
-			"azurerm_route":                  resourceArmRoute(),
-			"azurerm_route_table":            resourceArmRouteTable(),
-			"azurerm_search_service":         resourceArmSearchService(),
-			"azurerm_sql_database":           resourceArmSqlDatabase(),
-			"azurerm_sql_firewall_rule":      resourceArmSqlFirewallRule(),
-			"azurerm_sql_server":             resourceArmSqlServer(),
-			"azurerm_storage_account":        resourceArmStorageAccount(),
-			"azurerm_storage_blob":           resourceArmStorageBlob(),
-			"azurerm_storage_container":      resourceArmStorageContainer(),
-			"azurerm_storage_queue":          resourceArmStorageQueue(),
-			"azurerm_subnet":                 resourceArmSubnet(),
-			"azurerm_template_deployment":    resourceArmTemplateDeployment(),
-			"azurerm_virtual_machine":        resourceArmVirtualMachine(),
-			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
+			// These resources use the Azure ARM SDK
+			"azurerm_availability_set":          resourceArmAvailabilitySet(),
+			"azurerm_cdn_endpoint":              resourceArmCdnEndpoint(),
+			"azurerm_cdn_profile":               resourceArmCdnProfile(),
+			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
+			"azurerm_network_interface":         resourceArmNetworkInterface(),
+			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
+			"azurerm_network_security_rule":     resourceArmNetworkSecurityRule(),
+			"azurerm_public_ip":                 resourceArmPublicIp(),
+			"azurerm_route":                     resourceArmRoute(),
+			"azurerm_route_table":               resourceArmRouteTable(),
+			"azurerm_storage_account":           resourceArmStorageAccount(),
+			"azurerm_storage_blob":              resourceArmStorageBlob(),
+			"azurerm_storage_container":         resourceArmStorageContainer(),
+			"azurerm_storage_queue":             resourceArmStorageQueue(),
+			"azurerm_storage_table":             resourceArmStorageTable(),
+			"azurerm_subnet":                    resourceArmSubnet(),
+			"azurerm_template_deployment":       resourceArmTemplateDeployment(),
+			"azurerm_traffic_manager_endpoint":  resourceArmTrafficManagerEndpoint(),
+			"azurerm_traffic_manager_profile":   resourceArmTrafficManagerProfile(),
+			"azurerm_virtual_machine":           resourceArmVirtualMachine(),
+			"azurerm_virtual_machine_scale_set": resourceArmVirtualMachineScaleSet(),
+			"azurerm_virtual_network":           resourceArmVirtualNetwork(),
+
+			// These resources use the Riviera SDK
+			"azurerm_dns_a_record":      resourceArmDnsARecord(),
+			"azurerm_dns_aaaa_record":   resourceArmDnsAAAARecord(),
+			"azurerm_dns_cname_record":  resourceArmDnsCNameRecord(),
+			"azurerm_dns_mx_record":     resourceArmDnsMxRecord(),
+			"azurerm_dns_ns_record":     resourceArmDnsNsRecord(),
+			"azurerm_dns_srv_record":    resourceArmDnsSrvRecord(),
+			"azurerm_dns_txt_record":    resourceArmDnsTxtRecord(),
+			"azurerm_dns_zone":          resourceArmDnsZone(),
+			"azurerm_resource_group":    resourceArmResourceGroup(),
+			"azurerm_search_service":    resourceArmSearchService(),
+			"azurerm_sql_database":      resourceArmSqlDatabase(),
+			"azurerm_sql_firewall_rule": resourceArmSqlFirewallRule(),
+			"azurerm_sql_server":        resourceArmSqlServer(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -195,39 +200,6 @@ func registerAzureResourceProvidersWithSubscription(client *riviera.Client) erro
 func azureRMNormalizeLocation(location interface{}) string {
 	input := location.(string)
 	return strings.Replace(strings.ToLower(input), " ", "", -1)
-}
-
-// pollIndefinitelyAsNeeded is a terrible hack which is necessary because the Azure
-// Storage API (and perhaps others) can have response times way beyond the default
-// retry timeouts, with no apparent upper bound. This effectively causes the client
-// to continue polling when it reaches the configured timeout. My investigations
-// suggest that this is neccesary when deleting and recreating a storage account with
-// the same name in a short (though undetermined) time period.
-//
-// It is possible that this will give Terraform the appearance of being slow in
-// future: I have attempted to mitigate this by logging whenever this happens. We
-// may want to revisit this with configurable timeouts in the future as clearly
-// unbounded wait loops is not ideal. It does seem preferable to the current situation
-// where our polling loop will time out _with an operation in progress_, but no ID
-// for the resource - so the state will not know about it, and conflicts will occur
-// on the next run.
-func pollIndefinitelyAsNeeded(client autorest.Client, response *http.Response, acceptableCodes ...int) (*http.Response, error) {
-	var resp *http.Response
-	var err error
-
-	for {
-		resp, err = client.PollAsNeeded(response, acceptableCodes...)
-		if err != nil {
-			if resp.StatusCode != http.StatusAccepted {
-				log.Printf("[DEBUG] Starting new polling loop for %q", response.Request.URL.Path)
-				continue
-			}
-
-			return resp, err
-		}
-
-		return resp, nil
-	}
 }
 
 // armMutexKV is the instance of MutexKV for ARM resources

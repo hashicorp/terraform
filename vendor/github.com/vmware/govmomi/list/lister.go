@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2016 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -119,6 +119,7 @@ func traversable(ref types.ManagedObjectReference) bool {
 		// It doesn't matter from the perspective of the lister.
 	case "HostSystem":
 	case "VirtualApp":
+	case "StoragePod":
 	default:
 		return false
 	}

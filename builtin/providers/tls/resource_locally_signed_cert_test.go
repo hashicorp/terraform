@@ -47,7 +47,11 @@ EOT
                     }
                 `, testCertRequest, testCACert, testCAPrivateKey),
 				Check: func(s *terraform.State) error {
-					got := s.RootModule().Outputs["cert_pem"]
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
 					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE----") {
 						return fmt.Errorf("key is missing cert PEM preamble")
 					}

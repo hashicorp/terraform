@@ -5,11 +5,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/cloudflare/cloudflare-go"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-
-	// NOTE: Temporary until they merge my PR:
-	"github.com/mitchellh/cloudflare-go"
 )
 
 func TestAccCloudFlareRecord_Basic(t *testing.T) {

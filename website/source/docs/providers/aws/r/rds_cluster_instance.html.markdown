@@ -62,6 +62,12 @@ and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
 Default `false`. See the documentation on [Creating DB Instances][6] for more
 details on controlling this property.
 * `db_subnet_group_name` - (Required if `publicly_accessible = false`, Optional otherwise) A DB subnet group to associate with this DB instance. **NOTE:** This must match the `db_subnet_group_name` of the attached [`aws_rds_cluster`](/docs/providers/aws/r/rds_cluster.html).
+* `db_parameter_group_name` - (Optional) The name of the DB parameter group to associate with this instance.
+* `apply_immediately` - (Optional) Specifies whether any database modifications
+     are applied immediately, or during the next maintenance window. Default is`false`.
+* `storage_encrypted` - (Optional) Specifies whether the DB cluster instance is encrypted. The default is `false` if not specified.
+* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to true
+* `tags` - (Optional) A mapping of tags to assign to the instance.
 
 ## Attributes Reference
 
@@ -74,7 +80,7 @@ The following attributes are exported:
 this instance is a read replica
 * `allocated_storage` - The amount of allocated storage
 * `availability_zones` - The availability zone of the instance
-* `endpoint` - The IP address for this instance. May not be writable
+* `endpoint` - The DNS address for this instance. May not be writable
 * `engine` - The database engine
 * `engine_version` - The database engine version
 * `database_name` - The database name
@@ -86,3 +92,11 @@ this instance is a read replica
 [4]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html
 [5]: /docs/configuration/resources.html#count
 [6]: https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+
+## Import
+
+RDS Cluster Instances can be imported using the `identifier`, e.g.
+
+```
+$ terraform import aws_rds_cluster_instance.prod_instance_1 aurora-cluster-instance-1
+```

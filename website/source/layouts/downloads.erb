@@ -5,6 +5,14 @@
 				<li<%= sidebar_current("downloads-terraform") %>>
 				<a href="/downloads.html">Download Terraform</a>
 				</li>
+
+				<li<%= sidebar_current(/^upgrade-guides/) %>>
+				<a href="/upgrade-guides/index.html">Upgrade Guides</a>
+				<ul class="nav">
+					<li<%= sidebar_current("upgrade-guides-0-7") %>>
+					<a href="/upgrade-guides/0-7.html">Upgrading to v0.7</a>
+					</li>
+        </ul>
 			</ul>
 		</div>
 	<% end %>

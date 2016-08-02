@@ -1,6 +1,8 @@
 package command
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"sort"
@@ -17,7 +19,10 @@ func (c *OutputCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
 	var module string
+	var jsonOutput bool
+
 	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -74,18 +79,18 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if name == "" {
-		ks := make([]string, 0, len(mod.Outputs))
-		for k, _ := range mod.Outputs {
-			ks = append(ks, k)
-		}
-		sort.Strings(ks)
+		if jsonOutput {
+			jsonOutputs, err := json.MarshalIndent(mod.Outputs, "", "    ")
+			if err != nil {
+				return 1
+			}
 
-		for _, k := range ks {
-			v := mod.Outputs[k]
-
-			c.Ui.Output(fmt.Sprintf("%s = %s", k, v))
+			c.Ui.Output(string(jsonOutputs))
+			return 0
+		} else {
+			c.Ui.Output(outputsAsString(state, modPath, nil, false))
+			return 0
 		}
-		return 0
 	}
 
 	v, ok := mod.Outputs[name]
@@ -98,8 +103,143 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(v)
+	if jsonOutput {
+		jsonOutputs, err := json.MarshalIndent(v, "", "    ")
+		if err != nil {
+			return 1
+		}
+
+		c.Ui.Output(string(jsonOutputs))
+	} else {
+		switch output := v.Value.(type) {
+		case string:
+			c.Ui.Output(output)
+			return 0
+		case []interface{}:
+			c.Ui.Output(formatListOutput("", "", output))
+			return 0
+		case map[string]interface{}:
+			c.Ui.Output(formatMapOutput("", "", output))
+			return 0
+		default:
+			c.Ui.Error(fmt.Sprintf("Unknown output type: %T", v.Type))
+			return 1
+		}
+	}
+
 	return 0
+}
+
+func formatNestedList(indent string, outputList []interface{}) string {
+	outputBuf := new(bytes.Buffer)
+	outputBuf.WriteString(fmt.Sprintf("%s[", indent))
+
+	lastIdx := len(outputList) - 1
+
+	for i, value := range outputList {
+		outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, "    ", value))
+		if i != lastIdx {
+			outputBuf.WriteString(",")
+		}
+	}
+
+	outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
+	return strings.TrimPrefix(outputBuf.String(), "\n")
+}
+
+func formatListOutput(indent, outputName string, outputList []interface{}) string {
+	keyIndent := ""
+
+	outputBuf := new(bytes.Buffer)
+
+	if outputName != "" {
+		outputBuf.WriteString(fmt.Sprintf("%s%s = [", indent, outputName))
+		keyIndent = "    "
+	}
+
+	lastIdx := len(outputList) - 1
+
+	for i, value := range outputList {
+		switch typedValue := value.(type) {
+		case string:
+			outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, keyIndent, value))
+		case []interface{}:
+			outputBuf.WriteString(fmt.Sprintf("\n%s%s", indent,
+				formatNestedList(indent+keyIndent, typedValue)))
+		case map[string]interface{}:
+			outputBuf.WriteString(fmt.Sprintf("\n%s%s", indent,
+				formatNestedMap(indent+keyIndent, typedValue)))
+		}
+
+		if lastIdx != i {
+			outputBuf.WriteString(",")
+		}
+	}
+
+	if outputName != "" {
+		if len(outputList) > 0 {
+			outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
+		} else {
+			outputBuf.WriteString("]")
+		}
+	}
+
+	return strings.TrimPrefix(outputBuf.String(), "\n")
+}
+
+func formatNestedMap(indent string, outputMap map[string]interface{}) string {
+	ks := make([]string, 0, len(outputMap))
+	for k, _ := range outputMap {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+
+	outputBuf := new(bytes.Buffer)
+	outputBuf.WriteString(fmt.Sprintf("%s{", indent))
+
+	lastIdx := len(outputMap) - 1
+	for i, k := range ks {
+		v := outputMap[k]
+		outputBuf.WriteString(fmt.Sprintf("\n%s%s = %v", indent+"    ", k, v))
+
+		if lastIdx != i {
+			outputBuf.WriteString(",")
+		}
+	}
+
+	outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
+
+	return strings.TrimPrefix(outputBuf.String(), "\n")
+}
+func formatMapOutput(indent, outputName string, outputMap map[string]interface{}) string {
+	ks := make([]string, 0, len(outputMap))
+	for k, _ := range outputMap {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+
+	keyIndent := ""
+
+	outputBuf := new(bytes.Buffer)
+	if outputName != "" {
+		outputBuf.WriteString(fmt.Sprintf("%s%s = {", indent, outputName))
+		keyIndent = "  "
+	}
+
+	for _, k := range ks {
+		v := outputMap[k]
+		outputBuf.WriteString(fmt.Sprintf("\n%s%s%s = %v", indent, keyIndent, k, v))
+	}
+
+	if outputName != "" {
+		if len(outputMap) > 0 {
+			outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
+		} else {
+			outputBuf.WriteString("}")
+		}
+	}
+
+	return strings.TrimPrefix(outputBuf.String(), "\n")
 }
 
 func (c *OutputCommand) Help() string {
@@ -118,6 +258,9 @@ Options:
 
   -module=name     If specified, returns the outputs for a
                    specific module
+
+  -json            If specified, machine readable output will be
+                   printed in JSON format
 
 `
 	return strings.TrimSpace(helpText)

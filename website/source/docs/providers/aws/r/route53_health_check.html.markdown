@@ -56,3 +56,11 @@ The following arguments are supported:
 
 At least one of either `fqdn` or `ip_address` must be specified.
 
+
+## Import
+
+Route53 Health Checks can be imported using the `health check id`, e.g. 
+
+```
+$ terraform import aws_route53_health_check.http_check abcdef11-2222-3333-4444-555555fedcba
+```

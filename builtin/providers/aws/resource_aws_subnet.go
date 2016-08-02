@@ -18,6 +18,9 @@ func resourceAwsSubnet() *schema.Resource {
 		Read:   resourceAwsSubnetRead,
 		Update: resourceAwsSubnetUpdate,
 		Delete: resourceAwsSubnetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"vpc_id": &schema.Schema{

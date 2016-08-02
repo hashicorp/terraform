@@ -73,3 +73,5 @@ The following attributes are exported
 
 * `id` - the `key` of the resource supplied above
 * `etag` - the ETag generated for the object (an MD5 sum of the object content).
+* `version_id` - A unique version ID value for the object, if bucket versioning
+is enabled.

@@ -42,3 +42,13 @@ The following attributes are exported:
 * `id` - The delegation set ID
 * `name_servers` - A list of authoritative name servers for the hosted zone
   (effectively a list of NS records).
+
+
+
+## Import
+
+Route53 Delegation Sets can be imported using the `delegation set id`, e.g. 
+
+```
+$ terraform import aws_route53_delegation_set.set1 N1PA6795SAMPLE
+```

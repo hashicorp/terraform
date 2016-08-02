@@ -1,4 +1,11 @@
 {
+    "data": {
+        "do": {
+            "depends": {
+                "hello": "world"
+            }
+        }
+    },
     "resource": {
         "aws_instance": {
             "web": {

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -19,6 +21,9 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 		Read:   resourceAwsDbOptionGroupRead,
 		Update: resourceAwsDbOptionGroupUpdate,
 		Delete: resourceAwsDbOptionGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -55,6 +60,22 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 						"option_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+						},
+						"option_settings": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"value": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
 						},
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -109,7 +130,7 @@ func resourceAwsDbOptionGroupCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 	params := &rds.DescribeOptionGroupsInput{
-		OptionGroupName: aws.String(d.Get("name").(string)),
+		OptionGroupName: aws.String(d.Id()),
 	}
 
 	log.Printf("[DEBUG] Describe DB Option Group: %#v", params)
@@ -127,7 +148,7 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	var option *rds.OptionGroup
 	for _, ogl := range options.OptionGroupsList {
-		if *ogl.OptionGroupName == d.Get("name").(string) {
+		if *ogl.OptionGroupName == d.Id() {
 			option = ogl
 			break
 		}
@@ -137,6 +158,7 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Unable to find Option Group: %#v", options.OptionGroupsList)
 	}
 
+	d.Set("name", option.OptionGroupName)
 	d.Set("major_engine_version", option.MajorEngineVersion)
 	d.Set("engine_name", option.EngineName)
 	d.Set("option_group_description", option.OptionGroupDescription)
@@ -172,6 +194,15 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
+func optionInList(optionName string, list []*string) bool {
+	for _, opt := range list {
+		if *opt == optionName {
+			return true
+		}
+	}
+	return false
+}
+
 func resourceAwsDbOptionGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 	if d.HasChange("option") {
@@ -190,9 +221,22 @@ func resourceAwsDbOptionGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			return addErr
 		}
 
-		removeOptions, removeErr := flattenOptionConfigurationNames(os.Difference(ns).List())
-		if removeErr != nil {
-			return removeErr
+		addingOptionNames, err := flattenOptionNames(ns.Difference(os).List())
+		if err != nil {
+			return err
+		}
+
+		removeOptions := []*string{}
+		opts, err := flattenOptionNames(os.Difference(ns).List())
+		if err != nil {
+			return err
+		}
+
+		for _, optionName := range opts {
+			if optionInList(*optionName, addingOptionNames) {
+				continue
+			}
+			removeOptions = append(removeOptions, optionName)
 		}
 
 		modifyOpts := &rds.ModifyOptionGroupInput{
@@ -209,7 +253,7 @@ func resourceAwsDbOptionGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		log.Printf("[DEBUG] Modify DB Option Group: %s", modifyOpts)
-		_, err := rdsconn.ModifyOptionGroup(modifyOpts)
+		_, err = rdsconn.ModifyOptionGroup(modifyOpts)
 		if err != nil {
 			return fmt.Errorf("Error modifying DB Option Group: %s", err)
 		}
@@ -236,15 +280,26 @@ func resourceAwsDbOptionGroupDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	log.Printf("[DEBUG] Delete DB Option Group: %#v", deleteOpts)
-	_, err := rdsconn.DeleteOptionGroup(deleteOpts)
-	if err != nil {
-		return fmt.Errorf("Error Deleting DB Option Group: %s", err)
+	ret := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		_, err := rdsconn.DeleteOptionGroup(deleteOpts)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "InvalidOptionGroupStateFault" {
+					log.Printf("[DEBUG] AWS believes the RDS Option Group is still in use, retrying")
+					return resource.RetryableError(awsErr)
+				}
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	if ret != nil {
+		return fmt.Errorf("Error Deleting DB Option Group: %s", ret)
 	}
-
 	return nil
 }
 
-func flattenOptionConfigurationNames(configured []interface{}) ([]*string, error) {
+func flattenOptionNames(configured []interface{}) ([]*string, error) {
 	var optionNames []*string
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
@@ -262,6 +317,19 @@ func resourceAwsDbOptionHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%d-", m["port"].(int)))
 	}
 
+	for _, oRaw := range m["option_settings"].(*schema.Set).List() {
+		o := oRaw.(map[string]interface{})
+		buf.WriteString(fmt.Sprintf("%s-", o["name"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", o["value"].(string)))
+	}
+
+	for _, vpcRaw := range m["vpc_security_group_memberships"].(*schema.Set).List() {
+		buf.WriteString(fmt.Sprintf("%s-", vpcRaw.(string)))
+	}
+
+	for _, sgRaw := range m["db_security_group_memberships"].(*schema.Set).List() {
+		buf.WriteString(fmt.Sprintf("%s-", sgRaw.(string)))
+	}
 	return hashcode.String(buf.String())
 }
 

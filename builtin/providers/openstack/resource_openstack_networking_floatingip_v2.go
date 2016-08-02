@@ -20,6 +20,9 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 		Read:   resourceNetworkFloatingIPV2Read,
 		Update: resourceNetworkFloatingIPV2Update,
 		Delete: resourceNetworkFloatingIPV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -39,6 +42,17 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 				DefaultFunc: schema.EnvDefaultFunc("OS_POOL_NAME", nil),
 			},
 			"port_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"tenant_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+			"fixed_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -64,6 +78,8 @@ func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 	createOpts := floatingips.CreateOpts{
 		FloatingNetworkID: poolID,
 		PortID:            d.Get("port_id").(string),
+		TenantID:          d.Get("tenant_id").(string),
+		FixedIP:           d.Get("fixed_ip").(string),
 	}
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	floatingIP, err := floatingips.Create(networkingClient, createOpts).Extract()
@@ -102,11 +118,13 @@ func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("address", floatingIP.FloatingIP)
 	d.Set("port_id", floatingIP.PortID)
+	d.Set("fixed_ip", floatingIP.FixedIP)
 	poolName, err := getNetworkName(d, meta, floatingIP.FloatingNetworkID)
 	if err != nil {
 		return fmt.Errorf("Error retrieving floating IP pool name: %s", err)
 	}
 	d.Set("pool", poolName)
+	d.Set("tenant_id", floatingIP.TenantID)
 
 	return nil
 }

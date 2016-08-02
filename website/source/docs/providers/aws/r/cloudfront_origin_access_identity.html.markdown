@@ -34,10 +34,18 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 The following attributes are exported:
 
 * `id` - The identifier for the distribution. For example: `EDFDVBD632BHDS5`.
-* `caller_reference` - Internal value used by CloudFront to allow future updates to the origin access identity.
-* `cloudfront_access_identity_path` - A shortcut to the full path for the origin access identity to use in CloudFront, see below.
-* `etag` - The current version of the origin access identity's information. For example: E2QWRUHAPOMQZL.
-* `s3_canonical_user_id` - The Amazon S3 canonical user ID for the origin access identity, which you use when giving the origin access identity read permission to an object in Amazon S3.
+* `caller_reference` - Internal value used by CloudFront to allow future
+   updates to the origin access identity.
+* `cloudfront_access_identity_path` - A shortcut to the full path for the
+   origin access identity to use in CloudFront, see below.
+* `etag` - The current version of the origin access identity's information.
+   For example: `E2QWRUHAPOMQZL`.
+* `iam_arn` - A pre-generated ARN for use in S3 bucket policies (see below).
+   Example: `arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity
+   E2QWRUHAPOMQZL`.
+* `s3_canonical_user_id` - The Amazon S3 canonical user ID for the origin
+   access identity, which you use when giving the origin access identity read
+   permission to an object in Amazon S3.
 
 ## Using With CloudFront
 
@@ -53,6 +61,52 @@ s3_origin_config {
 }
 ```
 
+### Updating your bucket policy
+
+Note that the AWS API may translate the `s3_canonical_user_id` `CanonicalUser`
+principal into an `AWS` IAM ARN principal when supplied in an
+[`aws_s3_bucket`][4] bucket policy, causing spurious diffs in Terraform. If
+you see this behaviour, use the `iam_arn` instead:
+
+```
+data "aws_iam_policy_document" "s3_policy" {
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["${module.names.s3_endpoint_arn_base}/*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
+    }
+  }
+
+  statement {
+    actions   = ["s3:ListBucket"]
+    resources = ["${module.names.s3_endpoint_arn_base}"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
+    }
+  }
+}
+
+aws_s3_bucket "bucket" {
+  ...
+  policy = "${data.aws_iam_policy_document.s3_policy}"
+}
+```
+
 [1]: http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html
 [2]: http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html
 [3]: /docs/providers/aws/r/cloudfront_distribution.html
+[4]: /docs/providers/aws/r/s3_bucket.html
+
+
+## Import
+
+Cloudfront Origin Access Identities can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_cloudfront_origin_access_identity.origin_access E74FTE3AEXAMPLE
+```

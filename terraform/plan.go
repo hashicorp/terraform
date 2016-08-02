@@ -24,7 +24,7 @@ type Plan struct {
 	Diff    *Diff
 	Module  *module.Tree
 	State   *State
-	Vars    map[string]string
+	Vars    map[string]interface{}
 	Targets []string
 
 	once sync.Once
@@ -34,12 +34,17 @@ type Plan struct {
 //
 // The following fields in opts are overridden by the plan: Config,
 // Diff, State, Variables.
-func (p *Plan) Context(opts *ContextOpts) *Context {
+func (p *Plan) Context(opts *ContextOpts) (*Context, error) {
 	opts.Diff = p.Diff
 	opts.Module = p.Module
 	opts.State = p.State
-	opts.Variables = p.Vars
 	opts.Targets = p.Targets
+
+	opts.Variables = make(map[string]interface{})
+	for k, v := range p.Vars {
+		opts.Variables[k] = v
+	}
+
 	return NewContext(opts)
 }
 
@@ -65,7 +70,7 @@ func (p *Plan) init() {
 		}
 
 		if p.Vars == nil {
-			p.Vars = make(map[string]string)
+			p.Vars = make(map[string]interface{})
 		}
 	})
 }

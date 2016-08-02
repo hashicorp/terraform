@@ -169,9 +169,9 @@ type GroupDefaults struct {
 	CPU          string `json:"cpu,omitempty"`
 	MemoryGB     string `json:"memoryGB,omitempty"`
 	NetworkID    string `json:"networkId,omitempty"`
-	primaryDns   string `json:"primaryDns,omitempty"`
-	secondaryDns string `json:"secondaryDns,omitempty"`
-	templateName string `json:"templateName,omitempty"`
+	PrimaryDns   string `json:"primaryDns,omitempty"`
+	SecondaryDns string `json:"secondaryDns,omitempty"`
+	TemplateName string `json:"templateName,omitempty"`
 }
 
 // request body for /v2/groups/ALIAS/ID/horizontalAutoscalePolicy

@@ -84,8 +84,10 @@ func (h *UiHook) PreApply(
 	// Get all the attributes that are changing, and sort them. Also
 	// determine the longest key so that we can align them all.
 	keyLen := 0
-	keys := make([]string, 0, len(d.Attributes))
-	for key, _ := range d.Attributes {
+
+	dAttrs := d.CopyAttributes()
+	keys := make([]string, 0, len(dAttrs))
+	for key, _ := range dAttrs {
 		// Skip the ID since we do that specially
 		if key == "id" {
 			continue
@@ -100,18 +102,24 @@ func (h *UiHook) PreApply(
 
 	// Go through and output each attribute
 	for _, attrK := range keys {
-		attrDiff := d.Attributes[attrK]
+		attrDiff, _ := d.GetAttribute(attrK)
 
 		v := attrDiff.New
+		u := attrDiff.Old
 		if attrDiff.NewComputed {
 			v = "<computed>"
+		}
+
+		if attrDiff.Sensitive {
+			u = "<sensitive>"
+			v = "<sensitive>"
 		}
 
 		attrBuf.WriteString(fmt.Sprintf(
 			"  %s:%s %#v => %#v\n",
 			attrK,
 			strings.Repeat(" ", keyLen-len(attrK)),
-			attrDiff.Old,
+			u,
 			v))
 	}
 
@@ -245,9 +253,45 @@ func (h *UiHook) PreRefresh(
 	h.once.Do(h.init)
 
 	id := n.HumanId()
+
+	var stateIdSuffix string
+	// Data resources refresh before they have ids, whereas managed
+	// resources are only refreshed when they have ids.
+	if s.ID != "" {
+		stateIdSuffix = fmt.Sprintf(" (ID: %s)", s.ID)
+	}
+
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Refreshing state... (ID: %s)",
-		id, s.ID)))
+		"[reset][bold]%s: Refreshing state...%s",
+		id, stateIdSuffix)))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PreImportState(
+	n *terraform.InstanceInfo,
+	id string) (terraform.HookAction, error) {
+	h.once.Do(h.init)
+
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold]%s: Importing from ID %q...",
+		n.HumanId(), id)))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostImportState(
+	n *terraform.InstanceInfo,
+	s []*terraform.InstanceState) (terraform.HookAction, error) {
+	h.once.Do(h.init)
+
+	id := n.HumanId()
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold][green]%s: Import complete!", id)))
+	for _, s := range s {
+		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+			"[reset][green]  Imported %s (ID: %s)",
+			s.Ephemeral.Type, s.ID)))
+	}
+
 	return terraform.HookActionContinue, nil
 }
 

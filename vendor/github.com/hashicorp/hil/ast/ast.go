@@ -55,3 +55,24 @@ const (
 	TypeList
 	TypeMap
 )
+
+func (t Type) Printable() string {
+	switch t {
+	case TypeInvalid:
+		return "invalid type"
+	case TypeAny:
+		return "any type"
+	case TypeString:
+		return "type string"
+	case TypeInt:
+		return "type int"
+	case TypeFloat:
+		return "type float"
+	case TypeList:
+		return "type list"
+	case TypeMap:
+		return "type map"
+	default:
+		return "unknown type"
+	}
+}

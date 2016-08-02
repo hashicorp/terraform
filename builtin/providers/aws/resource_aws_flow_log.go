@@ -15,6 +15,9 @@ func resourceAwsFlowLog() *schema.Resource {
 		Create: resourceAwsLogFlowCreate,
 		Read:   resourceAwsLogFlowRead,
 		Delete: resourceAwsLogFlowDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"iam_role_arn": &schema.Schema{

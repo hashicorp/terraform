@@ -18,13 +18,17 @@ resource "aws_db_option_group" "bar" {
   major_engine_version = "11.00"
 
   option {
-	option_name = "mirroring"
+    option_name = "Timezone"
+    option_settings {
+      name = "TIME_ZONE"
+      value = "UTC"
+    }
   }
 
   option {
- 	option_name = "TDE"
+    option_name = "TDE"
   }
-	
+
   apply_immediately = true
 }
 ```
@@ -43,12 +47,26 @@ The following arguments are supported:
 Option blocks support the following:
 
 * `option_name` - (Required) The Name of the Option (e.g. MEMCACHED).
+* `option_settings` - (Optional) A list of option settings to apply.
 * `port` - (Optional) The Port number when connecting to the Option (e.g. 11211).
 * `db_security_group_memberships` - (Optional) A list of DB Security Groups for which the option is enabled.
 * `vpc_security_group_memberships` - (Optional) A list of VPC Security Groups for which the option is enabled.
+
+Option Settings blocks support the following:
+
+* `name` - (Optional) The Name of the setting.
+* `value` - (Optional) The Value of the setting.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `arn` - The ARN of the db option group.
+
+## Import
+
+DB Option groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_db_option_group.bar mysql-option-group
+```

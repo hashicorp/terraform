@@ -21,6 +21,9 @@ func resourceAwsNetworkInterface() *schema.Resource {
 		Read:   resourceAwsNetworkInterfaceRead,
 		Update: resourceAwsNetworkInterfaceUpdate,
 		Delete: resourceAwsNetworkInterfaceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 
@@ -193,7 +196,9 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 		conn := meta.(*AWSClient).ec2conn
 		_, detach_err := conn.DetachNetworkInterface(detach_request)
 		if detach_err != nil {
-			return fmt.Errorf("Error detaching ENI: %s", detach_err)
+			if awsErr, _ := detach_err.(awserr.Error); awsErr.Code() != "InvalidAttachmentID.NotFound" {
+				return fmt.Errorf("Error detaching ENI: %s", detach_err)
+			}
 		}
 
 		log.Printf("[DEBUG] Waiting for ENI (%s) to become dettached", eniId)

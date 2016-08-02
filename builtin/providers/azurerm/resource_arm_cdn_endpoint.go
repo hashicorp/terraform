@@ -6,11 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -22,71 +20,72 @@ func resourceArmCdnEndpoint() *schema.Resource {
 		Delete: resourceArmCdnEndpointDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"profile_name": &schema.Schema{
+			"profile_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"origin_host_header": &schema.Schema{
+			"origin_host_header": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"is_http_allowed": &schema.Schema{
+			"is_http_allowed": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"is_https_allowed": &schema.Schema{
+			"is_https_allowed": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"origin": &schema.Schema{
+			"origin": {
 				Type:     schema.TypeSet,
 				Required: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"host_name": &schema.Schema{
+						"host_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"http_port": &schema.Schema{
+						"http_port": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 						},
 
-						"https_port": &schema.Schema{
+						"https_port": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
@@ -96,34 +95,36 @@ func resourceArmCdnEndpoint() *schema.Resource {
 				Set: resourceArmCdnEndpointOriginHash,
 			},
 
-			"origin_path": &schema.Schema{
+			"origin_path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"querystring_caching_behaviour": &schema.Schema{
+			"querystring_caching_behaviour": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "IgnoreQueryString",
 				ValidateFunc: validateCdnEndpointQuerystringCachingBehaviour,
 			},
 
-			"content_types_to_compress": &schema.Schema{
+			"content_types_to_compress": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Set: schema.HashString,
 			},
 
-			"is_compression_enabled": &schema.Schema{
+			"is_compression_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"host_name": &schema.Schema{
+			"host_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -149,7 +150,7 @@ func resourceArmCdnEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	caching_behaviour := d.Get("querystring_caching_behaviour").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
-	properties := cdn.EndpointPropertiesCreateUpdateParameters{
+	properties := cdn.EndpointPropertiesCreateParameters{
 		IsHTTPAllowed:              &http_allowed,
 		IsHTTPSAllowed:             &https_allowed,
 		IsCompressionEnabled:       &compression_enabled,
@@ -191,23 +192,20 @@ func resourceArmCdnEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 		Tags:       expandTags(tags),
 	}
 
-	resp, err := cdnEndpointsClient.Create(name, cdnEndpoint, profileName, resGroup)
+	_, err := cdnEndpointsClient.Create(name, cdnEndpoint, profileName, resGroup, make(chan struct{}))
 	if err != nil {
 		return err
 	}
 
-	d.SetId(*resp.ID)
+	read, err := cdnEndpointsClient.Get(name, profileName, resGroup)
+	if err != nil {
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read CND Endpoint %s/%s (resource group %s) ID", profileName, name, resGroup)
+	}
 
-	log.Printf("[DEBUG] Waiting for CDN Endpoint (%s) to become available", name)
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"Accepted", "Updating", "Creating"},
-		Target:  []string{"Succeeded"},
-		Refresh: cdnEndpointStateRefreshFunc(client, resGroup, profileName, name),
-		Timeout: 10 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for CDN Endpoint (%s) to become available: %s", name, err)
-	}
+	d.SetId(*read.ID)
 
 	return resourceArmCdnEndpointRead(d, meta)
 }
@@ -273,21 +271,11 @@ func resourceArmCdnEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	caching_behaviour := d.Get("querystring_caching_behaviour").(string)
 	newTags := d.Get("tags").(map[string]interface{})
 
-	properties := cdn.EndpointPropertiesCreateUpdateParameters{
+	properties := cdn.EndpointPropertiesUpdateParameters{
 		IsHTTPAllowed:              &http_allowed,
 		IsHTTPSAllowed:             &https_allowed,
 		IsCompressionEnabled:       &compression_enabled,
 		QueryStringCachingBehavior: cdn.QueryStringCachingBehavior(caching_behaviour),
-	}
-
-	if d.HasChange("origin") {
-		origins, originsErr := expandAzureRmCdnEndpointOrigins(d)
-		if originsErr != nil {
-			return fmt.Errorf("Error Building list of CDN Endpoint Origins: %s", originsErr)
-		}
-		if len(origins) > 0 {
-			properties.Origins = &origins
-		}
 	}
 
 	if d.HasChange("origin_host_header") {
@@ -316,7 +304,7 @@ func resourceArmCdnEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 		Properties: &properties,
 	}
 
-	_, err := cdnEndpointsClient.Update(name, updateProps, profileName, resGroup)
+	_, err := cdnEndpointsClient.Update(name, updateProps, profileName, resGroup, make(chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM update request to update CDN Endpoint %q: %s", name, err)
 	}
@@ -338,29 +326,15 @@ func resourceArmCdnEndpointDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 	name := id.Path["endpoints"]
 
-	accResp, err := client.DeleteIfExists(name, profileName, resGroup)
+	accResp, err := client.DeleteIfExists(name, profileName, resGroup, make(chan struct{}))
 	if err != nil {
 		if accResp.StatusCode == http.StatusNotFound {
 			return nil
 		}
 		return fmt.Errorf("Error issuing AzureRM delete request for CDN Endpoint %q: %s", name, err)
 	}
-	_, err = pollIndefinitelyAsNeeded(client.Client, accResp.Response, http.StatusNotFound)
-	if err != nil {
-		return fmt.Errorf("Error polling for AzureRM delete request for CDN Endpoint %q: %s", name, err)
-	}
 
 	return err
-}
-
-func cdnEndpointStateRefreshFunc(client *ArmClient, resourceGroupName string, profileName string, name string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		res, err := client.cdnEndpointsClient.Get(name, profileName, resourceGroupName)
-		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in cdnEndpointStateRefreshFunc to Azure ARM for CDN Endpoint '%s' (RG: '%s'): %s", name, resourceGroupName, err)
-		}
-		return res, string(res.Properties.ProvisioningState), nil
-	}
 }
 
 func validateCdnEndpointQuerystringCachingBehaviour(v interface{}, k string) (ws []string, errors []error) {
@@ -400,13 +374,13 @@ func expandAzureRmCdnEndpointOrigins(d *schema.ResourceData) ([]cdn.DeepCreatedO
 		}
 
 		if v, ok := data["https_port"]; ok {
-			https_port := v.(int)
+			https_port := int32(v.(int))
 			properties.HTTPSPort = &https_port
 
 		}
 
 		if v, ok := data["http_port"]; ok {
-			http_port := v.(int)
+			http_port := int32(v.(int))
 			properties.HTTPPort = &http_port
 		}
 

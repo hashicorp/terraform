@@ -19,3 +19,7 @@ package types
 func NewBool(v bool) *bool {
 	return &v
 }
+
+func NewReference(r ManagedObjectReference) *ManagedObjectReference {
+	return &r
+}

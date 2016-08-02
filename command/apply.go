@@ -251,7 +251,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if !c.Destroy {
-		if outputs := outputsAsString(state, ctx.Module().Config().Outputs); outputs != "" {
+		if outputs := outputsAsString(state, terraform.RootModulePath, ctx.Module().Config().Outputs, true); outputs != "" {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
@@ -377,46 +377,53 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *terraform.State, schema []*config.Output) string {
+func outputsAsString(state *terraform.State, modPath []string, schema []*config.Output, includeHeader bool) string {
 	if state == nil {
 		return ""
 	}
 
-	outputs := state.RootModule().Outputs
+	outputs := state.ModuleByPath(modPath).Outputs
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
 		schemaMap := make(map[string]*config.Output)
-		for _, s := range schema {
-			schemaMap[s.Name] = s
+		if schema != nil {
+			for _, s := range schema {
+				schemaMap[s.Name] = s
+			}
 		}
 
-		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
+		if includeHeader {
+			outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
+		}
 
 		// Output the outputs in alphabetical order
 		keyLen := 0
-		keys := make([]string, 0, len(outputs))
+		ks := make([]string, 0, len(outputs))
 		for key, _ := range outputs {
-			keys = append(keys, key)
+			ks = append(ks, key)
 			if len(key) > keyLen {
 				keyLen = len(key)
 			}
 		}
-		sort.Strings(keys)
+		sort.Strings(ks)
 
-		for _, k := range keys {
+		for _, k := range ks {
+			schema, ok := schemaMap[k]
+			if ok && schema.Sensitive {
+				outputBuf.WriteString(fmt.Sprintf("%s = <sensitive>\n", k))
+				continue
+			}
+
 			v := outputs[k]
-
-			if schemaMap[k].Sensitive {
-				outputBuf.WriteString(fmt.Sprintf(
-					"  %s%s = <sensitive>\n",
-					k,
-					strings.Repeat(" ", keyLen-len(k))))
-			} else {
-				outputBuf.WriteString(fmt.Sprintf(
-					"  %s%s = %s\n",
-					k,
-					strings.Repeat(" ", keyLen-len(k)),
-					v))
+			switch typedV := v.Value.(type) {
+			case string:
+				outputBuf.WriteString(fmt.Sprintf("%s = %s\n", k, typedV))
+			case []interface{}:
+				outputBuf.WriteString(formatListOutput("", k, typedV))
+				outputBuf.WriteString("\n")
+			case map[string]interface{}:
+				outputBuf.WriteString(formatMapOutput("", k, typedV))
+				outputBuf.WriteString("\n")
 			}
 		}
 	}

@@ -28,7 +28,7 @@ func TestAccAWSRedshiftParameterGroup_withParameters(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_redshift_parameter_group.bar", "family", "redshift-1.0"),
 					resource.TestCheckResourceAttr(
-						"aws_redshift_parameter_group.bar", "description", "Test parameter group for terraform"),
+						"aws_redshift_parameter_group.bar", "description", "Managed by Terraform"),
 					resource.TestCheckResourceAttr(
 						"aws_redshift_parameter_group.bar", "parameter.490804664.name", "require_ssl"),
 					resource.TestCheckResourceAttr(
@@ -190,7 +190,6 @@ const testAccAWSRedshiftParameterGroupConfig = `
 resource "aws_redshift_parameter_group" "bar" {
 	name = "parameter-group-test-terraform"
 	family = "redshift-1.0"
-	description = "Test parameter group for terraform"
 	parameter {
 	  name = "require_ssl"
 	  value = "true"

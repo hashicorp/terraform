@@ -35,6 +35,28 @@ func TestAccNetworkingV2SecGroupRule_basic(t *testing.T) {
 	})
 }
 
+func TestAccNetworkingV2SecGroupRule_lowerCaseCIDR(t *testing.T) {
+	var security_group_1 groups.SecGroup
+	var security_group_rule_1 rules.SecGroupRule
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2SecGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2SecGroupRule_lowerCaseCIDR,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2SecGroupExists(t, "openstack_networking_secgroup_v2.sg_foo", &security_group_1),
+					testAccCheckNetworkingV2SecGroupRuleExists(t, "openstack_networking_secgroup_rule_v2.sr_foo", &security_group_rule_1),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_secgroup_rule_v2.sr_foo", "remote_ip_prefix", "2001:558:fc00::/39"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckNetworkingV2SecGroupRuleDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -109,9 +131,24 @@ var testAccNetworkingV2SecGroupRule_basic = fmt.Sprintf(`
   resource "openstack_networking_secgroup_rule_v2" "sr_bar" {
     direction = "ingress"
     ethertype = "IPv4"
-    port_range_max = 80 
+    port_range_max = 80
     port_range_min = 80
     protocol = "tcp"
     remote_group_id = "${openstack_networking_secgroup_v2.sg_foo.id}"
     security_group_id = "${openstack_networking_secgroup_v2.sg_bar.id}"
+  }`)
+
+var testAccNetworkingV2SecGroupRule_lowerCaseCIDR = fmt.Sprintf(`
+  resource "openstack_networking_secgroup_v2" "sg_foo" {
+    name = "security_group_1"
+    description = "terraform security group rule acceptance test"
+  }
+  resource "openstack_networking_secgroup_rule_v2" "sr_foo" {
+    direction = "ingress"
+    ethertype = "IPv6"
+    port_range_max = 22
+    port_range_min = 22
+    protocol = "tcp"
+    remote_ip_prefix = "2001:558:FC00::/39"
+    security_group_id = "${openstack_networking_secgroup_v2.sg_foo.id}"
   }`)

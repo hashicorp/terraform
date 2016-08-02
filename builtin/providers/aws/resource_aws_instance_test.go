@@ -105,6 +105,56 @@ func TestAccAWSInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_GP2IopsDevice(t *testing.T) {
+	var v ec2.Instance
+
+	testCheck := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+
+			// Map out the block devices by name, which should be unique.
+			blockDevices := make(map[string]*ec2.InstanceBlockDeviceMapping)
+			for _, blockDevice := range v.BlockDeviceMappings {
+				blockDevices[*blockDevice.DeviceName] = blockDevice
+			}
+
+			// Check if the root block device exists.
+			if _, ok := blockDevices["/dev/sda1"]; !ok {
+				return fmt.Errorf("block device doesn't exist: /dev/sda1")
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		IDRefreshIgnore: []string{
+			"ephemeral_block_device", "user_data", "security_groups", "vpc_security_groups"},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceGP2IopsDevice,
+				//Config: testAccInstanceConfigBlockDevices,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.0.volume_size", "11"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.0.volume_type", "gp2"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.0.iops", "100"),
+					testCheck(),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_blockDevices(t *testing.T) {
 	var v ec2.Instance
 
@@ -738,6 +788,24 @@ resource "aws_instance" "foo" {
 }
 `
 
+const testAccInstanceGP2IopsDevice = `
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-55a7ea65"
+
+	# In order to attach an encrypted volume to an instance you need to have an
+	# m3.medium or larger. See "Supported Instance Types" in:
+	# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
+	instance_type = "m3.medium"
+
+	root_block_device {
+		volume_type = "gp2"
+		volume_size = 11
+		iops = 330
+	}
+}
+`
+
 const testAccInstanceConfigBlockDevices = `
 resource "aws_instance" "foo" {
 	# us-west-2
@@ -1045,6 +1113,9 @@ resource "aws_instance" "foo" {
   ami = "ami-408c7f28"
   instance_type = "t1.micro"
   key_name = "${aws_key_pair.debugging.key_name}"
+	tags {
+		Name = "testAccInstanceConfigKeyPair_TestAMI"
+	}
 }
 `
 

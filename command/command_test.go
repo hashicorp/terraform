@@ -1,7 +1,9 @@
 package command
 
 import (
+	"flag"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -25,6 +28,19 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
 }
 
 func tempDir(t *testing.T) string {
@@ -116,6 +132,7 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 // testState returns a test State structure that we use for a lot of tests.
 func testState() *terraform.State {
 	return &terraform.State{
+		Version: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
 				Path: []string{"root"},
@@ -127,6 +144,7 @@ func testState() *terraform.State {
 						},
 					},
 				},
+				Outputs: map[string]*terraform.OutputState{},
 			},
 		},
 	}
@@ -224,21 +242,7 @@ func testProvider() *terraform.MockResourceProvider {
 }
 
 func testTempFile(t *testing.T) string {
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	result := tf.Name()
-
-	if err := tf.Close(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Remove(result); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return result
+	return filepath.Join(testTempDir(t), "state.tfstate")
 }
 
 func testTempDir(t *testing.T) string {

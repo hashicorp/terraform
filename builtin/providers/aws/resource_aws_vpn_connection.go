@@ -51,6 +51,9 @@ func resourceAwsVpnConnection() *schema.Resource {
 		Read:   resourceAwsVpnConnectionRead,
 		Update: resourceAwsVpnConnectionUpdate,
 		Delete: resourceAwsVpnConnectionDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"vpn_gateway_id": &schema.Schema{

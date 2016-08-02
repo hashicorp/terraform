@@ -14,33 +14,36 @@ func resourceArmLocalNetworkGateway() *schema.Resource {
 		Read:   resourceArmLocalNetworkGatewayRead,
 		Update: resourceArmLocalNetworkGatewayCreate,
 		Delete: resourceArmLocalNetworkGatewayDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"gateway_address": &schema.Schema{
+			"gateway_address": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"address_space": &schema.Schema{
+			"address_space": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Schema{
@@ -65,7 +68,7 @@ func resourceArmLocalNetworkGatewayCreate(d *schema.ResourceData, meta interface
 		prefixes = append(prefixes, pref.(string))
 	}
 
-	resp, err := lnetClient.CreateOrUpdate(resGroup, name, network.LocalNetworkGateway{
+	gateway := network.LocalNetworkGateway{
 		Name:     &name,
 		Location: &location,
 		Properties: &network.LocalNetworkGatewayPropertiesFormat{
@@ -74,12 +77,22 @@ func resourceArmLocalNetworkGatewayCreate(d *schema.ResourceData, meta interface
 			},
 			GatewayIPAddress: &ipAddress,
 		},
-	})
+	}
+
+	_, err := lnetClient.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error creating Azure ARM Local Network Gateway '%s': %s", name, err)
 	}
 
-	d.SetId(*resp.ID)
+	read, err := lnetClient.Get(resGroup, name)
+	if err != nil {
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Virtual Network %s (resource group %s) ID", name, resGroup)
+	}
+
+	d.SetId(*read.ID)
 
 	return resourceArmLocalNetworkGatewayRead(d, meta)
 }
@@ -105,6 +118,8 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error reading the state of Azure ARM local network gateway '%s': %s", name, err)
 	}
 
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
 	d.Set("gateway_address", resp.Properties.GatewayIPAddress)
 
 	prefs := []string{}
@@ -127,7 +142,7 @@ func resourceArmLocalNetworkGatewayDelete(d *schema.ResourceData, meta interface
 	name := id.Path["localNetworkGateways"]
 	resGroup := id.ResourceGroup
 
-	_, err = lnetClient.Delete(resGroup, name)
+	_, err = lnetClient.Delete(resGroup, name, make(chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM delete request of local network gateway '%s': %s", name, err)
 	}

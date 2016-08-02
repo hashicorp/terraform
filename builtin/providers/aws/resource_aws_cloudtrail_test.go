@@ -176,7 +176,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 				Config: testAccAWSCloudTrailConfig_tags(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
-					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "2"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.%", "2"),
 					testAccCheckCloudTrailLoadTags(&trail, &trailTags),
 					testAccCheckCloudTrailCheckTags(&trailTags, map[string]string{"Foo": "moo", "Pooh": "hi"}),
 					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
@@ -187,7 +187,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 				Config: testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
-					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "3"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.%", "3"),
 					testAccCheckCloudTrailLoadTags(&trail, &trailTagsModified),
 					testAccCheckCloudTrailCheckTags(&trailTagsModified, map[string]string{"Foo": "moo", "Moo": "boom", "Pooh": "hi"}),
 					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
@@ -198,7 +198,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 				Config: testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
-					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "0"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.%", "0"),
 					testAccCheckCloudTrailLoadTags(&trail, &trailTagsModified),
 					testAccCheckCloudTrailCheckTags(&trailTagsModified, map[string]string{}),
 					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
@@ -617,23 +617,33 @@ POLICY
 `
 
 func testAccAWSCloudTrailConfig_tags(cloudTrailRandInt int) string {
-	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-		`tags {
+	tagsString := `tags {
 		Foo = "moo"
 		Pooh = "hi"
-	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+	}`
+	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+		cloudTrailRandInt,
+		tagsString,
+		cloudTrailRandInt,
+		cloudTrailRandInt,
+		cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt int) string {
-	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-		`tags {
+	tagsString := `tags {
 		Foo = "moo"
 		Pooh = "hi"
 		Moo = "boom"
-	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+	}`
+	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+		cloudTrailRandInt,
+		tagsString,
+		cloudTrailRandInt,
+		cloudTrailRandInt,
+		cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt int) string {
 	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-		"", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+		cloudTrailRandInt, "", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }

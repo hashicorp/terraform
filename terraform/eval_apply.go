@@ -35,9 +35,9 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Remove any output values from the diff
-	for k, ad := range diff.Attributes {
+	for k, ad := range diff.CopyAttributes() {
 		if ad.Type == DiffAttrOutput {
-			delete(diff.Attributes, k)
+			diff.DelAttribute(k)
 		}
 	}
 
@@ -49,7 +49,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Flag if we're creating a new instance
 	if n.CreateNew != nil {
-		*n.CreateNew = state.ID == "" && !diff.Destroy || diff.RequiresNew()
+		*n.CreateNew = state.ID == "" && !diff.GetDestroy() || diff.RequiresNew()
 	}
 
 	{
@@ -139,7 +139,6 @@ type EvalApplyProvisioners struct {
 	Resource       *config.Resource
 	InterpResource *Resource
 	CreateNew      *bool
-	Tainted        *bool
 	Error          *error
 }
 
@@ -159,9 +158,7 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 
 	if n.Error != nil && *n.Error != nil {
 		// We're already errored creating, so mark as tainted and continue
-		if n.Tainted != nil {
-			*n.Tainted = true
-		}
+		state.Tainted = true
 
 		// We're already tainted, so just return out
 		return nil, nil
@@ -180,10 +177,10 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	// If there are no errors, then we append it to our output error
 	// if we have one, otherwise we just output it.
 	err := n.apply(ctx)
-	if n.Tainted != nil {
-		*n.Tainted = err != nil
-	}
 	if err != nil {
+		// Provisioning failed, so mark the resource as tainted
+		state.Tainted = true
+
 		if n.Error != nil {
 			*n.Error = multierror.Append(*n.Error, err)
 		} else {

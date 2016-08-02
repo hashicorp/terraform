@@ -116,7 +116,7 @@ func testAccCheckCustomerGateway(gatewayResource string) resource.TestCheckFunc 
 
 const testAccCustomerGatewayConfig = `
 resource "aws_customer_gateway" "foo" {
-	bgp_asn = 60000
+	bgp_asn = 65000
 	ip_address = "172.0.0.1"
 	type = "ipsec.1"
 	tags {
@@ -128,7 +128,7 @@ resource "aws_customer_gateway" "foo" {
 // Add the Another: "tag" tag.
 const testAccCustomerGatewayConfigUpdateTags = `
 resource "aws_customer_gateway" "foo" {
-	bgp_asn = 60000
+	bgp_asn = 65000
 	ip_address = "172.0.0.1"
 	type = "ipsec.1"
 	tags {
@@ -141,7 +141,7 @@ resource "aws_customer_gateway" "foo" {
 // Change the ip_address.
 const testAccCustomerGatewayConfigForceReplace = `
 resource "aws_customer_gateway" "foo" {
-	bgp_asn = 60000
+	bgp_asn = 65000
 	ip_address = "172.10.10.1"
 	type = "ipsec.1"
 	tags {

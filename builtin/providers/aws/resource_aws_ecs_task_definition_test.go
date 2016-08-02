@@ -74,6 +74,22 @@ func TestAccAWSEcsTaskDefinition_withEcsService(t *testing.T) {
 	})
 }
 
+func TestAccAWSEcsTaskDefinition_withTaskRoleArn(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsTaskDefinitionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsTaskDefinitionWithTaskRoleArn,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSEcsTaskDefinitionDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ecsconn
 
@@ -163,6 +179,69 @@ TASK_DEFINITION
 var testAccAWSEcsTaskDefinitionWithScratchVolume = `
 resource "aws_ecs_task_definition" "sleep" {
   family = "terraform-acc-sc-volume-test"
+  container_definitions = <<TASK_DEFINITION
+[
+  {
+    "name": "sleep",
+    "image": "busybox",
+    "cpu": 10,
+    "command": ["sleep","360"],
+    "memory": 10,
+    "essential": true
+  }
+]
+TASK_DEFINITION
+
+  volume {
+    name = "database_scratch"
+  }
+}
+`
+
+var testAccAWSEcsTaskDefinitionWithTaskRoleArn = `
+resource "aws_iam_role" "role_test" {
+  name = "tf_old_name"
+  path = "/test/"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "role_test" {
+  name = "role_update_test"
+  role = "${aws_iam_role.role_test.id}"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "arn:aws:s3:::*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_ecs_task_definition" "sleep" {
+  family = "terraform-acc-sc-volume-test"
+  task_role_arn = "${aws_iam_role.role_test.arn}"
   container_definitions = <<TASK_DEFINITION
 [
   {
