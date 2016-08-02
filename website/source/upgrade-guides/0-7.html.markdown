@@ -134,6 +134,8 @@ resource "aws_instance" "example" {
 }
 ```
 
+<a id="listmap"></a>
+
 ## Migrating to native lists and maps
 
 Terraform 0.7 now supports lists and maps as first-class constructs. Although the patterns commonly used in previous versions still work (excepting any compatibility notes), there are now patterns with cleaner syntax available.
