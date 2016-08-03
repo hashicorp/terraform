@@ -98,9 +98,13 @@ func (p *Provider) Export() (*terraform.ResourceProviderSchema, error) {
 
 	result.Schema = schemaMap(p.Schema).Export()
 	result.Resources = make(map[string]terraform.SchemaInfo)
+	result.DataSources = make(map[string]terraform.SchemaInfo)
 
 	for k, r := range p.ResourcesMap {
 		result.Resources[k] = r.Export()
+	}
+	for k, ds := range p.DataSourcesMap {
+		result.DataSources[k] = ds.Export()
 	}
 
 	return result, nil

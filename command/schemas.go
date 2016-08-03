@@ -159,6 +159,8 @@ func getOrErrorResult(context *terraform.ContextOpts, name string, expectedType 
 		s, e = getProviderSchema(context.Providers, name)
 	case "resource":
 		s, e = getResourceSchema(context.Providers, name)
+	case "data-source":
+		s, e = getDataSourceSchema(context.Providers, name)
 	case "provisioner":
 		s, e = getProvisionerSchema(context.Provisioners, name)
 	case "any":
@@ -189,6 +191,12 @@ func getAnythingOrErrorResult(context *terraform.ContextOpts, name string) inter
 	a, e = getResourceSchema(context.Providers, name)
 	if e != nil {
 		return errorResult{resultBase{name, "resource"}, e.Error()}
+	} else if a != nil {
+		return a
+	}
+	a, e = getDataSourceSchema(context.Providers, name)
+	if e != nil {
+		return errorResult{resultBase{name, "data-source"}, e.Error()}
 	} else if a != nil {
 		return a
 	}
@@ -276,6 +284,26 @@ func getResourceSchema(providers map[string]terraform.ResourceProviderFactory, n
 					return nil, fmt.Errorf("Cannot get schema for resource '%s': %s\n", k, err)
 				}
 				extended := resourceResourceSchema{resultBase{k, "resource"}, k, export.Resources[n.Name]}
+				return extended, nil
+			}
+		}
+	}
+	return nil, nil
+}
+
+func getDataSourceSchema(providers map[string]terraform.ResourceProviderFactory, name string) (interface{}, error) {
+	for k, v := range providers {
+		if provider, err := v(); err == nil {
+			data_sources := provider.DataSources()
+			for _, n := range data_sources {
+				if n.Name != name {
+					continue
+				}
+				export, err := provider.Export()
+				if err != nil {
+					return nil, fmt.Errorf("Cannot get schema for resource '%s': %s\n", k, err)
+				}
+				extended := resourceResourceSchema{resultBase{k, "data-source"}, k, export.DataSources[n.Name]}
 				return extended, nil
 			}
 		}

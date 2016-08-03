@@ -161,8 +161,9 @@ type SchemaElements []SchemaElement
 type SchemaInfo map[string]SchemaElements
 
 type ResourceProviderSchema struct {
-	Schema    SchemaInfo            `json:"schema"`
-	Resources map[string]SchemaInfo `json:"resources"`
+	Schema      SchemaInfo            `json:"schema"`
+	Resources   map[string]SchemaInfo `json:"resources"`
+	DataSources map[string]SchemaInfo `json:"data-sources"`
 }
 
 func init() {
