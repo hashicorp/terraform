@@ -31,6 +31,7 @@ func dataSourceDockerRegistryImage() *schema.Resource {
 
 func dataSourceDockerRegistryImageRead(d *schema.ResourceData, meta interface{}) error {
 	pullOpts := parseImageOptions(d.Get("name").(string))
+	authConfigs := meta.(*ProviderConfig).AuthConfigs
 
 	// Use the official Docker Hub if a registry isn't specified
 	if pullOpts.Registry == "" {
@@ -49,7 +50,15 @@ func dataSourceDockerRegistryImageRead(d *schema.ResourceData, meta interface{})
 		pullOpts.Tag = "latest"
 	}
 
-	digest, err := getImageDigest(pullOpts.Registry, pullOpts.Repository, pullOpts.Tag, "", "")
+	username := ""
+	password := ""
+
+	if auth, ok := authConfigs.Configs[normalizeRegistryAddress(pullOpts.Registry)]; ok {
+		username = auth.Username
+		password = auth.Password
+	}
+
+	digest, err := getImageDigest(pullOpts.Registry, pullOpts.Repository, pullOpts.Tag, username, password)
 
 	if err != nil {
 		return fmt.Errorf("Got error when attempting to fetch image version from registry: %s", err)

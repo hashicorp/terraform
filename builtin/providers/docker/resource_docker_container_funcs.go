@@ -16,7 +16,7 @@ var (
 
 func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) error {
 	var err error
-	client := meta.(*dc.Client)
+	client := meta.(*ProviderConfig).DockerClient
 
 	var data Data
 	if err := fetchLocalImages(&data, client); err != nil {
@@ -196,7 +196,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceDockerContainerRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dc.Client)
+	client := meta.(*ProviderConfig).DockerClient
 
 	apiContainer, err := fetchDockerContainer(d.Id(), client)
 	if err != nil {
@@ -263,7 +263,7 @@ func resourceDockerContainerUpdate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceDockerContainerDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dc.Client)
+	client := meta.(*ProviderConfig).DockerClient
 
 	// Stop the container before removing if destroy_grace_seconds is defined
 	if d.Get("destroy_grace_seconds").(int) > 0 {

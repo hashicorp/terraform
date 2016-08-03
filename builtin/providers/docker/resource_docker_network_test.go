@@ -37,7 +37,7 @@ func testAccNetwork(n string, network *dc.Network) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*dc.Client)
+		client := testAccProvider.Meta().(*ProviderConfig).DockerClient
 		networks, err := client.ListNetworks()
 		if err != nil {
 			return err

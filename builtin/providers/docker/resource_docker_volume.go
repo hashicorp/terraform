@@ -40,7 +40,7 @@ func resourceDockerVolume() *schema.Resource {
 }
 
 func resourceDockerVolumeCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dc.Client)
+	client := meta.(*ProviderConfig).DockerClient
 
 	createOpts := dc.CreateVolumeOptions{}
 	if v, ok := d.GetOk("name"); ok {
@@ -71,7 +71,7 @@ func resourceDockerVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceDockerVolumeRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dc.Client)
+	client := meta.(*ProviderConfig).DockerClient
 
 	var err error
 	var retVolume *dc.Volume
@@ -91,7 +91,7 @@ func resourceDockerVolumeRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDockerVolumeDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dc.Client)
+	client := meta.(*ProviderConfig).DockerClient
 
 	if err := client.RemoveVolume(d.Id()); err != nil && err != dc.ErrNoSuchVolume {
 		return fmt.Errorf("Error deleting volume %s: %s", d.Id(), err)

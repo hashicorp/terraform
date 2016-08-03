@@ -8,6 +8,7 @@ import (
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"os"
 )
 
 var contentDigestRegexp = regexp.MustCompile(`\A[A-Za-z0-9_\+\.-]+:[A-Fa-f0-9]+\z`)
@@ -54,7 +55,7 @@ func TestAccDockerImage_destroy(t *testing.T) {
 					continue
 				}
 
-				client := testAccProvider.Meta().(*dc.Client)
+				client := testAccProvider.Meta().(*ProviderConfig).DockerClient
 				_, err := client.InspectImage(rs.Primary.Attributes["latest"])
 				if err != nil {
 					return err
@@ -89,13 +90,32 @@ func TestAccDockerImage_data(t *testing.T) {
 	})
 }
 
+func TestAccDockerImage_data_private(t *testing.T) {
+	registry := os.Getenv("DOCKER_REGISTRY_ADDRESS")
+	image := os.Getenv("DOCKER_PRIVATE_IMAGE")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                  func() { testAccPreCheck(t) },
+		Providers:                 testAccProviders,
+		PreventPostDestroyRefresh: true,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccDockerImageFromDataPrivateConfig, registry, image),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("docker_image.foobarzoobaz", "latest", contentDigestRegexp),
+				),
+			},
+		},
+	})
+}
+
 func testAccDockerImageDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "docker_image" {
 			continue
 		}
 
-		client := testAccProvider.Meta().(*dc.Client)
+		client := testAccProvider.Meta().(*ProviderConfig).DockerClient
 		_, err := client.InspectImage(rs.Primary.Attributes["latest"])
 		if err == nil {
 			return fmt.Errorf("Image still exists")
@@ -132,5 +152,23 @@ data "docker_registry_image" "foobarbaz" {
 resource "docker_image" "foobarbaz" {
 	name = "${data.docker_registry_image.foobarbaz.name}"
 	pull_trigger = "${data.docker_registry_image.foobarbaz.sha256_digest}"
+}
+`
+
+const testAccDockerImageFromDataPrivateConfig = `
+provider "docker" {
+	alias = "private"
+	registry_auth {
+		address = "%s"
+	}
+}
+data "docker_registry_image" "foobarzoobaz" {
+	provider = "docker.private"
+	name = "%s"
+}
+resource "docker_image" "foobarzoobaz" {
+	provider = "docker.private"
+	name = "${data.docker_registry_image.foobarzoobaz.name}"
+	pull_trigger = "${data.docker_registry_image.foobarzoobaz.sha256_digest}"
 }
 `

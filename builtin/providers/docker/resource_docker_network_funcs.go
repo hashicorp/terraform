@@ -8,7 +8,7 @@ import (
 )
 
 func resourceDockerNetworkCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dc.Client)
+	client := meta.(*ProviderConfig).DockerClient
 
 	createOpts := dc.CreateNetworkOptions{
 		Name: d.Get("name").(string),
@@ -57,7 +57,7 @@ func resourceDockerNetworkCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceDockerNetworkRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dc.Client)
+	client := meta.(*ProviderConfig).DockerClient
 
 	var err error
 	var retNetwork *dc.Network
@@ -79,7 +79,7 @@ func resourceDockerNetworkRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDockerNetworkDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dc.Client)
+	client := meta.(*ProviderConfig).DockerClient
 
 	if err := client.RemoveNetwork(d.Id()); err != nil {
 		if _, ok := err.(*dc.NoSuchNetwork); !ok {
