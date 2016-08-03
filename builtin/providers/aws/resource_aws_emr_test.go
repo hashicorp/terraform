@@ -89,8 +89,6 @@ resource "aws_emr" "tf-test-cluster" {
   release_label = "emr-4.6.0"
   applications  = ["Spark"]
 
-  use_default_roles = true
-
   master_instance_type = "m3.xlarge"
   core_instance_type   = "m3.xlarge"
   core_instance_count  = 1

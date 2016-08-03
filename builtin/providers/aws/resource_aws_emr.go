@@ -28,10 +28,6 @@ func resourceAwsEMR() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"use_default_roles": &schema.Schema{
-				Type:     schema.TypeBool,
-				Required: true,
-			},
 			"master_instance_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -85,6 +81,10 @@ func resourceAwsEMR() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"instance_profile": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -115,6 +115,10 @@ func resourceAwsEMR() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"service_role": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -131,7 +135,8 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	coreInstanceCount := d.Get("core_instance_count").(int)
 
 	applications := d.Get("applications").(*schema.Set).List()
-	var userKey, subnet, extraMasterSecGrp, extraSlaveSecGrp, emrMasterSecGrp, emrSlaveSecGrp string
+	var userKey, subnet, extraMasterSecGrp, extraSlaveSecGrp, emrMasterSecGrp, emrSlaveSecGrp, instanceProfile, serviceRole string
+	instanceProfile = "EMR_EC2_DefaultRole"
 	ec2Attributes := d.Get("ec2_attributes").([]interface{})
 	if len(ec2Attributes) == 1 {
 		attributes := ec2Attributes[0].(map[string]interface{})
@@ -141,6 +146,16 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		extraSlaveSecGrp = attributes["additional_slave_security_groups"].(string)
 		emrMasterSecGrp = attributes["emr_managed_master_security_group"].(string)
 		emrSlaveSecGrp = attributes["emr_managed_slave_security_group"].(string)
+
+		if len(strings.TrimSpace(attributes["instance_profile"].(string))) != 0 {
+			instanceProfile = strings.TrimSpace(attributes["instance_profile"].(string))
+		}
+	}
+
+	if v, ok := d.GetOk("service_role"); ok {
+		serviceRole = v.(string)
+	} else {
+		serviceRole = "EMR_DefaultRole"
 	}
 
 	emrApps := expandApplications(applications)
@@ -166,9 +181,9 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		Name:         aws.String(d.Get("name").(string)),
 		Applications: emrApps,
 
-		JobFlowRole:       aws.String("EMR_EC2_DefaultRole"),
+		JobFlowRole:       aws.String(instanceProfile),
 		ReleaseLabel:      aws.String(d.Get("release_label").(string)),
-		ServiceRole:       aws.String("EMR_DefaultRole"),
+		ServiceRole:       aws.String(serviceRole),
 		VisibleToAllUsers: aws.Bool(true),
 	}
 
