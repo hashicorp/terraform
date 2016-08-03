@@ -648,7 +648,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					size = int64(disk["size"].(int))
 				}
 				iops := int64(disk["iops"].(int))
-				controller_type := disk["controller_type"].(controllerType)
+				controller_type := controllerType(disk["controller_type"].(string))
 
 				var mo mo.VirtualMachine
 				vm.Properties(context.TODO(), vm.Reference(), []string{"summary", "config"}, &mo)
