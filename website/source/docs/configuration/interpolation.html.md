@@ -165,8 +165,7 @@ The supported built-in functions are:
 
   * `keys(map)` - Returns a lexically sorted list of the map keys.
 
-  * `length(list)` - Returns a number of members in a given list, map, or string.
-      or a number of characters in a given string.
+  * `length(list)` - Returns a number of members in a given list or map, or a number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
       * `${length("a,b,c")}` = 5
       * `${length(map("key", "val"))}` = 1
