@@ -70,7 +70,8 @@ func (c *SchemasCommand) Run(args []string) int {
 	cmdFlags := flag.NewFlagSet("schemas", flag.ContinueOnError)
 	cmdFlags.BoolVar(&indent, "indent", false, "Indent output")
 	cmdFlags.BoolVar(&inJson, "json", false, "In JSON format")
-	cmdFlags.StringVar(&expectedType, "type", "any", "In JSON format")
+	cmdFlags.StringVar(&expectedType, "type", "any", "Type of object: provisioner, provider, resource, "+
+		"data-source, function. Should be specified if there's two objects with same name")
 	expectedType = strings.ToLower(expectedType)
 	// Temporarily disabled due to not-implemented xml serializer for SchemaInfo (which is map[string]interface{})
 	//cmdFlags.BoolVar(&inXml, "xml", false, "In XML format")
