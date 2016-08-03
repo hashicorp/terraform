@@ -666,7 +666,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					vmWorkingPath := split[1]
 					diskPath = vmWorkingPath + disk["name"].(string)
 				default:
-					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor vmdk name was given")
+					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor disk name was given")
 				}
 
 				var initType provisioningType
