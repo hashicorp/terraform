@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
+BASEDIR="$(readlink -f $(dirname $0))"
+
 # Check gofmt
 echo "==> Checking that code complies with gofmt requirements..."
-gofmt_files=$(gofmt -l `find . -name '*.go' | grep -v vendor`)
+gofmt_files=$(gofmt -l `find "$BASEDIR/.." -name '*.go' | grep -v vendor`)
 if [[ -n ${gofmt_files} ]]; then
     echo 'gofmt needs running on the following files:'
     echo "${gofmt_files}"

@@ -1,6 +1,7 @@
+BASEDIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 TEST?=$$(go list ./... | grep -v '/terraform/vendor/' | grep -v '/builtin/bins/')
 VETARGS?=-all
-GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
+GOFMT_FILES?=$$(find $(BASEDIR) -name '*.go' | grep -v vendor)
 
 default: test vet
 
@@ -11,15 +12,15 @@ tools:
 
 # bin generates the releaseable binaries for Terraform
 bin: fmtcheck generate
-	@TF_RELEASE=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+	@TF_RELEASE=1 sh -c "'$(BASEDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing Terraform locally. These are put
 # into ./bin/ as well as $GOPATH/bin
 dev: fmtcheck generate
-	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+	@TF_DEV=1 sh -c "'$(BASEDIR)/scripts/build.sh'"
 
 quickdev: generate
-	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+	@TF_DEV=1 sh -c "'$(BASEDIR)/scripts/build.sh'"
 
 # Shorthand for quickly building the core of Terraform. Note that some
 # changes will require a rebuild of everything, in which case the dev
@@ -87,6 +88,6 @@ fmt:
 	gofmt -w $(GOFMT_FILES)
 
 fmtcheck:
-	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
+	@sh -c "'$(BASEDIR)/scripts/gofmtcheck.sh'"
 
 .PHONY: bin default generate test vet fmt fmtcheck tools
