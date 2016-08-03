@@ -154,6 +154,12 @@ versions. Refer to vCenter documentation for supported configurations.  ```
 In order to skip the customization step for unsupported operating systems, use
 the `skip_customization` argument on the virtual machine resource.
 
+## Virtual Networking support
+
+Virtual Networking is supported. One may create [Distributed Virtual Switches and Portgroups](https://pubs.vmware.com/vsphere-51/index.jsp?topic=%2Fcom.vmware.wssdk.pg.doc%2FPG_Networking.11.3.html).
+
+Association between hosts and switches cannot be done using this tool as of now.
+
 ## Acceptance Tests
 
 The VMware vSphere provider's acceptance tests require the above provider
