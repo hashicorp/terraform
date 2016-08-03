@@ -226,7 +226,8 @@ The `scheduling` block supports:
 * `on_host_maintenance` - (Optional) Defines the maintenance behavior for this
     instance.
 
-* `preemptible` - (Optional) Allows instance to be preempted. Read more on this
+* `preemptible` - (Optional) Allows instance to be preempted. This defaults to
+    false. Read more on this
     [here](https://cloud.google.com/compute/docs/instances/preemptible).
 
 ## Attributes Reference
