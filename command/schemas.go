@@ -59,6 +59,11 @@ type functionsSchema struct {
 	Functions map[string]FunctionInfo `json:"schema"`
 }
 
+type allSchema struct {
+	resultBase
+	Names []string `json:"names"`
+}
+
 func (c *SchemasCommand) Run(args []string) int {
 	var indent bool
 	var inJson bool
@@ -180,6 +185,10 @@ func getOrErrorResult(context *terraform.ContextOpts, name string, expectedType 
 func getAnythingOrErrorResult(context *terraform.ContextOpts, name string) interface{} {
 	if name == "functions" {
 		return functionsSchema{resultBase{"functions", "functions"}, getInterpolationFunctions()}
+	}
+	var names = getAllNames(context, name)
+	if names != nil {
+		return allSchema{resultBase{name, "names"}, names}
 	}
 	var a interface{}
 	var e error
@@ -327,4 +336,65 @@ func getProvisionerSchema(providers map[string]terraform.ResourceProvisionerFact
 		}
 	}
 	return nil, nil
+}
+
+func getAllNames(context *terraform.ContextOpts, name string) []string {
+	if name == "providers" {
+		return getAllProviders(context)
+	}
+	if name == "provisioners" {
+		return getAllProvisioners(context)
+	}
+	if name == "resources" {
+		return getAllResources(context)
+	}
+	if name == "data-sources" {
+		return getAllDataSources(context)
+	}
+	return nil
+}
+
+func getAllProviders(context *terraform.ContextOpts) []string {
+	providers := context.Providers
+	result := make([]string, 0, len(providers))
+	for name := range providers {
+		result = append(result, name)
+	}
+	return result
+}
+
+func getAllProvisioners(context *terraform.ContextOpts) []string {
+	provisioners := context.Provisioners
+	result := make([]string, 0, len(provisioners))
+	for name := range provisioners {
+		result = append(result, name)
+	}
+	return result
+}
+
+func getAllResources(context *terraform.ContextOpts) []string {
+	providers := context.Providers
+	result := make([]string, 0)
+	for _, v := range providers {
+		if provider, err := v(); err == nil {
+			resources := provider.Resources()
+			for _, r := range resources {
+				result = append(result, r.Name)
+			}
+		}
+	}
+	return result
+}
+func getAllDataSources(context *terraform.ContextOpts) []string {
+	providers := context.Providers
+	result := make([]string, 0)
+	for _, v := range providers {
+		if provider, err := v(); err == nil {
+			sources := provider.DataSources()
+			for _, ds := range sources {
+				result = append(result, ds.Name)
+			}
+		}
+	}
+	return result
 }
