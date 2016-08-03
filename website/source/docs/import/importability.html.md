@@ -21,9 +21,9 @@ would be grateful.
 To make a resource importable, please see the
 [plugin documentation on writing a resource](/docs/plugins/provider.html).
 
-# Currently Available to Import
+## Currently Available to Import
 
-# AWS
+### AWS
 
 * aws_api_gateway_account
 * aws_api_gateway_key
@@ -94,7 +94,7 @@ To make a resource importable, please see the
 * aws_vpn_gateway
 
 
-# Azure
+### Azure (Resource Manager)
 
 * azurerm_availability_set
 * azurerm_dns_zone
@@ -107,7 +107,7 @@ To make a resource importable, please see the
 * azurerm_storage_account
 * azurerm_virtual_network
 
-# DigitalOcean
+### DigitalOcean
 
 * digitalocean_domain
 * digitalocean_droplet
@@ -116,11 +116,11 @@ To make a resource importable, please see the
 * digitalocean_tag
 * digitalocean_volume
 
-# Fastly
+### Fastly
 
 * fastly_service_v1
 
-# OpenStack
+### OpenStack
 
 * openstack_blockstorage_volume_v1
 * openstack_blockstorage_volume_v2
@@ -143,7 +143,7 @@ To make a resource importable, please see the
 * openstack_networking_subnet_v2
 
 
-# Triton
+### Triton
 
 * triton_firewall_rule
 * triton_key
