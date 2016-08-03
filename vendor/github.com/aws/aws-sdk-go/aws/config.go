@@ -19,7 +19,7 @@ type RequestRetryer interface{}
 // all clients will use the {defaults.DefaultConfig} structure.
 type Config struct {
 	// Enables verbose error printing of all credential chain errors.
-	// Should be used when wanting to see all errors while attempting to retreive
+	// Should be used when wanting to see all errors while attempting to retrieve
 	// credentials.
 	CredentialsChainVerboseErrors *bool
 
@@ -112,8 +112,8 @@ type Config struct {
 	// `ExpectContinueTimeout` for information on adjusting the continue wait timeout.
 	// https://golang.org/pkg/net/http/#Transport
 	//
-	// You should use this flag to disble 100-Continue if you experiance issues
-	// with proxies or thrid party S3 compatible services.
+	// You should use this flag to disble 100-Continue if you experience issues
+	// with proxies or third party S3 compatible services.
 	S3Disable100Continue *bool
 
 	// Set this to `true` to enable S3 Accelerate feature. For all operations compatible

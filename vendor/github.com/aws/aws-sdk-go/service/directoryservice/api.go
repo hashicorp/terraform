@@ -11,6 +11,58 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 )
 
+const opAddIpRoutes = "AddIpRoutes"
+
+// AddIpRoutesRequest generates a "aws/request.Request" representing the
+// client's request for the AddIpRoutes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddIpRoutes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddIpRoutesRequest method.
+//    req, resp := client.AddIpRoutesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) AddIpRoutesRequest(input *AddIpRoutesInput) (req *request.Request, output *AddIpRoutesOutput) {
+	op := &request.Operation{
+		Name:       opAddIpRoutes,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AddIpRoutesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &AddIpRoutesOutput{}
+	req.Data = output
+	return
+}
+
+// If the DNS server for your on-premises domain uses a publicly addressable
+// IP address, you must add a CIDR address block to correctly route traffic
+// to and from your Microsoft AD on Amazon Web Services. AddIpRoutes adds this
+// address block. You can also use AddIpRoutes to facilitate routing traffic
+// that uses public IP ranges from your Microsoft AD on AWS to a peer VPC.
+func (c *DirectoryService) AddIpRoutes(input *AddIpRoutesInput) (*AddIpRoutesOutput, error) {
+	req, out := c.AddIpRoutesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opAddTagsToResource = "AddTagsToResource"
 
 // AddTagsToResourceRequest generates a "aws/request.Request" representing the
@@ -54,7 +106,7 @@ func (c *DirectoryService) AddTagsToResourceRequest(input *AddTagsToResourceInpu
 
 // Adds or overwrites one or more tags for the specified Amazon Directory Services
 // directory. Each directory can have a maximum of 10 tags. Each tag consists
-// of a key and optional value. Tag keys must be unique per resource.
+// of a key and optional value. Tag keys must be unique to each resource.
 func (c *DirectoryService) AddTagsToResource(input *AddTagsToResourceInput) (*AddTagsToResourceOutput, error) {
 	req, out := c.AddTagsToResourceRequest(input)
 	err := req.Send()
@@ -1261,6 +1313,54 @@ func (c *DirectoryService) GetSnapshotLimits(input *GetSnapshotLimitsInput) (*Ge
 	return out, err
 }
 
+const opListIpRoutes = "ListIpRoutes"
+
+// ListIpRoutesRequest generates a "aws/request.Request" representing the
+// client's request for the ListIpRoutes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListIpRoutes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListIpRoutesRequest method.
+//    req, resp := client.ListIpRoutesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) ListIpRoutesRequest(input *ListIpRoutesInput) (req *request.Request, output *ListIpRoutesOutput) {
+	op := &request.Operation{
+		Name:       opListIpRoutes,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListIpRoutesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListIpRoutesOutput{}
+	req.Data = output
+	return
+}
+
+// Lists the address blocks that you have added to a directory.
+func (c *DirectoryService) ListIpRoutes(input *ListIpRoutesInput) (*ListIpRoutesOutput, error) {
+	req, out := c.ListIpRoutesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
@@ -1358,6 +1458,54 @@ func (c *DirectoryService) RegisterEventTopicRequest(input *RegisterEventTopicIn
 // Active status.
 func (c *DirectoryService) RegisterEventTopic(input *RegisterEventTopicInput) (*RegisterEventTopicOutput, error) {
 	req, out := c.RegisterEventTopicRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opRemoveIpRoutes = "RemoveIpRoutes"
+
+// RemoveIpRoutesRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveIpRoutes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveIpRoutes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveIpRoutesRequest method.
+//    req, resp := client.RemoveIpRoutesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) RemoveIpRoutesRequest(input *RemoveIpRoutesInput) (req *request.Request, output *RemoveIpRoutesOutput) {
+	op := &request.Operation{
+		Name:       opRemoveIpRoutes,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RemoveIpRoutesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RemoveIpRoutesOutput{}
+	req.Data = output
+	return
+}
+
+// Removes IP address blocks from a directory.
+func (c *DirectoryService) RemoveIpRoutes(input *RemoveIpRoutesInput) (*RemoveIpRoutesOutput, error) {
+	req, out := c.RemoveIpRoutesRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -1615,10 +1763,109 @@ func (c *DirectoryService) VerifyTrust(input *VerifyTrustInput) (*VerifyTrustOut
 	return out, err
 }
 
+type AddIpRoutesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Identifier (ID) of the directory to which to add the address block.
+	DirectoryId *string `type:"string" required:"true"`
+
+	// IP address blocks, using CIDR format, of the traffic to route. This is often
+	// the IP address block of the DNS server used for your on-premises domain.
+	IpRoutes []*IpRoute `type:"list" required:"true"`
+
+	// If set to true, updates the inbound and outbound rules of the security group
+	// that has the description: "AWS created security group for directory ID directory
+	// controllers." Following are the new rules:
+	//
+	// Inbound:
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 88, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 123, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 138, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 389, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 464, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 445, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 88, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 135, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 445, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 464, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 636, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 1024-65535, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 3268-33269, Source: 0.0.0.0/0
+	//
+	//   Type: DNS (UDP), Protocol: UDP, Range: 53, Source: 0.0.0.0/0
+	//
+	//   Type: DNS (TCP), Protocol: TCP, Range: 53, Source: 0.0.0.0/0
+	//
+	//   Type: LDAP, Protocol: TCP, Range: 389, Source: 0.0.0.0/0
+	//
+	//   Type: All ICMP, Protocol: All, Range: N/A, Source: 0.0.0.0/0
+	//
+	//    Outbound:
+	//
+	//   Type: All traffic, Protocol: All, Range: All, Destination: 0.0.0.0/0
+	//
+	//   These security rules impact an internal network interface that is not
+	// exposed publicly.
+	UpdateSecurityGroupForDirectoryControllers *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s AddIpRoutesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddIpRoutesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddIpRoutesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddIpRoutesInput"}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+	if s.IpRoutes == nil {
+		invalidParams.Add(request.NewErrParamRequired("IpRoutes"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type AddIpRoutesOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s AddIpRoutesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddIpRoutesOutput) GoString() string {
+	return s.String()
+}
+
 type AddTagsToResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ID of the directory to which to add the tag.
+	// Identifier (ID) for the directory to which to add the tag.
 	ResourceId *string `type:"string" required:"true"`
 
 	// The tags to be assigned to the Amazon Directory Services directory.
@@ -3532,6 +3779,123 @@ func (s GetSnapshotLimitsOutput) GoString() string {
 	return s.String()
 }
 
+// IP address block. This is often the address block of the DNS server used
+// for your on-premises domain.
+type IpRoute struct {
+	_ struct{} `type:"structure"`
+
+	// IP address block using CIDR format, for example 10.0.0.0/24. This is often
+	// the address block of the DNS server used for your on-premises domain. For
+	// a single IP address use a CIDR address block with /32. For example 10.0.0.0/32.
+	CidrIp *string `type:"string"`
+
+	// Description of the address block.
+	Description *string `type:"string"`
+}
+
+// String returns the string representation
+func (s IpRoute) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IpRoute) GoString() string {
+	return s.String()
+}
+
+// Information about one or more IP address blocks.
+type IpRouteInfo struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time the address block was added to the directory.
+	AddedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// IP address block in the IpRoute.
+	CidrIp *string `type:"string"`
+
+	// Description of the IpRouteInfo.
+	Description *string `type:"string"`
+
+	// Identifier (ID) of the directory associated with the IP addresses.
+	DirectoryId *string `type:"string"`
+
+	// The status of the IP address block.
+	IpRouteStatusMsg *string `type:"string" enum:"IpRouteStatusMsg"`
+
+	// The reason for the IpRouteStatusMsg.
+	IpRouteStatusReason *string `type:"string"`
+}
+
+// String returns the string representation
+func (s IpRouteInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IpRouteInfo) GoString() string {
+	return s.String()
+}
+
+type ListIpRoutesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Identifier (ID) of the directory for which you want to retrieve the IP addresses.
+	DirectoryId *string `type:"string" required:"true"`
+
+	// Maximum number of items to return. If this value is zero, the maximum number
+	// of items is specified by the limitations of the operation.
+	Limit *int64 `type:"integer"`
+
+	// The ListIpRoutes.NextToken value from a previous call to ListIpRoutes. Pass
+	// null if this is the first call.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListIpRoutesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListIpRoutesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListIpRoutesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListIpRoutesInput"}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type ListIpRoutesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of IpRoutes.
+	IpRoutesInfo []*IpRouteInfo `type:"list"`
+
+	// If not null, more results are available. Pass this value for the NextToken
+	// parameter in a subsequent call to ListIpRoutes to retrieve the next set of
+	// items.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListIpRoutesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListIpRoutesOutput) GoString() string {
+	return s.String()
+}
+
 type ListTagsForResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3541,7 +3905,7 @@ type ListTagsForResourceInput struct {
 	// Reserved for future use.
 	NextToken *string `type:"string"`
 
-	// The ID of the directory for which you want to retrieve tags.
+	// Identifier (ID) of the directory for which you want to retrieve tags.
 	ResourceId *string `type:"string" required:"true"`
 }
 
@@ -3711,10 +4075,60 @@ func (s RegisterEventTopicOutput) GoString() string {
 	return s.String()
 }
 
+type RemoveIpRoutesInput struct {
+	_ struct{} `type:"structure"`
+
+	// IP address blocks that you want to remove.
+	CidrIps []*string `type:"list" required:"true"`
+
+	// Identifier (ID) of the directory from which you want to remove the IP addresses.
+	DirectoryId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s RemoveIpRoutesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveIpRoutesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveIpRoutesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveIpRoutesInput"}
+	if s.CidrIps == nil {
+		invalidParams.Add(request.NewErrParamRequired("CidrIps"))
+	}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type RemoveIpRoutesOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s RemoveIpRoutesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveIpRoutesOutput) GoString() string {
+	return s.String()
+}
+
 type RemoveTagsFromResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ID of the directory from which to remove the tag.
+	// Identifier (ID) of the directory from which to remove the tag.
 	ResourceId *string `type:"string" required:"true"`
 
 	// The tag key (name) of the tag to be removed.
@@ -3869,16 +4283,14 @@ func (s SnapshotLimits) GoString() string {
 type Tag struct {
 	_ struct{} `type:"structure"`
 
-	// A key is the required name of the tag. The string value can be from 1 to
-	// 128 Unicode characters in length and cannot be prefixed with "aws:". The
-	// string can only contain only the set of Unicode letters, digits, white-space,
-	// '_', '.', '/', '=', '+', '-' (Java regex: "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-]*)$").
+	// Required name of the tag. The string value can be Unicode characters and
+	// cannot be prefixed with "aws:". The string can contain only the set of Unicode
+	// letters, digits, white-space, '_', '.', '/', '=', '+', '-' (Java regex: "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-]*)$").
 	Key *string `min:"1" type:"string" required:"true"`
 
-	// A value is the optional value of the tag. The string value can be from 1
-	// to 256 Unicode characters in length. The string can only contain only the
-	// set of Unicode letters, digits, white-space, '_', '.', '/', '=', '+', '-'
-	// (Java regex: "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-]*)$").
+	// The optional value of the tag. The string value can be Unicode characters.
+	// The string can contain only the set of Unicode letters, digits, white-space,
+	// '_', '.', '/', '=', '+', '-' (Java regex: "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-]*)$").
 	Value *string `type:"string" required:"true"`
 }
 
@@ -4165,6 +4577,21 @@ const (
 	DirectoryTypeAdconnector = "ADConnector"
 	// @enum DirectoryType
 	DirectoryTypeMicrosoftAd = "MicrosoftAD"
+)
+
+const (
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgAdding = "Adding"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgAdded = "Added"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgRemoving = "Removing"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgRemoved = "Removed"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgAddFailed = "AddFailed"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgRemoveFailed = "RemoveFailed"
 )
 
 const (
