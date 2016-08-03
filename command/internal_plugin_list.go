@@ -37,6 +37,7 @@ import (
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
 	postgresqlprovider "github.com/hashicorp/terraform/builtin/providers/postgresql"
 	powerdnsprovider "github.com/hashicorp/terraform/builtin/providers/powerdns"
+	profitbricksprovider "github.com/hashicorp/terraform/builtin/providers/profitbricks"
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
 	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
@@ -91,6 +92,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"packet":       packetprovider.Provider,
 	"postgresql":   postgresqlprovider.Provider,
 	"powerdns":     powerdnsprovider.Provider,
+	"profitbricks": profitbricksprovider.Provider,
 	"random":       randomprovider.Provider,
 	"rundeck":      rundeckprovider.Provider,
 	"scaleway":     scalewayprovider.Provider,

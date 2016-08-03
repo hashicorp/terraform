@@ -1481,6 +1481,12 @@
 			"revision": "42fa80f2ac6ed17a977ce826074bd3009593fa9d"
 		},
 		{
+			"checksumSHA1": "atkFfe1CrxF+Cz4p4Z78RMXC0Kg=",
+			"path": "github.com/profitbricks/profitbricks-sdk-go",
+			"revision": "ccbdd70b24ec5c6cd000a34aba264d708c106af9",
+			"revisionTime": "2016-07-28T11:13:56Z"
+		},
+		{
 			"checksumSHA1": "4Q/JrLYYcwGRPVpd6sJ5yW/E9GQ=",
 			"path": "github.com/rackspace/gophercloud",
 			"revision": "985a863d6dd5f928b485dbc8ef440813aafa39ad",
