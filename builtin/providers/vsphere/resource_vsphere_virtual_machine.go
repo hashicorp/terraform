@@ -553,6 +553,126 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
+func updateHandleDiskChange(d *schema.ResourceData, vm *object.VirtualMachine, finder *find.Finder) error {
+	var err error
+	oldDisks, newDisks := d.GetChange("disk")
+	oldDiskSet := oldDisks.(*schema.Set)
+	newDiskSet := newDisks.(*schema.Set)
+
+	addedDisks := newDiskSet.Difference(oldDiskSet)
+	removedDisks := oldDiskSet.Difference(newDiskSet)
+
+	// Removed disks
+	for _, diskRaw := range removedDisks.List() {
+		if disk, ok := diskRaw.(map[string]interface{}); ok {
+			devices, err := vm.Device(context.TODO())
+			if err != nil {
+				return fmt.Errorf("[ERROR] Update Remove Disk - Could not get virtual device list: %v", err)
+			}
+			virtualDisk := devices.FindByKey(int32(disk["key"].(int)))
+
+			keep := false
+			if v, ok := disk["keep_on_remove"].(bool); ok {
+				keep = v
+			}
+
+			err = vm.RemoveDevice(context.TODO(), keep, virtualDisk)
+			if err != nil {
+				return fmt.Errorf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
+			}
+		}
+	}
+	// Added disks
+	for _, diskRaw := range addedDisks.List() {
+		if disk, ok := diskRaw.(map[string]interface{}); ok {
+
+			var datastore *object.Datastore
+			if disk["datastore"] == "" {
+				datastore, err = finder.DefaultDatastore(context.TODO())
+				if err != nil {
+					return fmt.Errorf("[ERROR] Update Remove Disk - Error finding datastore: %v", err)
+				}
+			} else {
+				datastore, err = finder.Datastore(context.TODO(), disk["datastore"].(string))
+				if err != nil {
+					log.Printf("[ERROR] Couldn't find datastore %v.  %s", disk["datastore"].(string), err)
+					return err
+				}
+			}
+
+			var size int64
+			if disk["size"] == 0 {
+				size = 0
+			} else {
+				size = int64(disk["size"].(int))
+			}
+			iops := int64(disk["iops"].(int))
+			controller_type := controllerType(disk["controller_type"].(string))
+
+			var mo mo.VirtualMachine
+			vm.Properties(context.TODO(), vm.Reference(), []string{"summary", "config"}, &mo)
+
+			var diskPath string
+			switch {
+			case disk["vmdk"] != "":
+				diskPath = disk["vmdk"].(string)
+			case disk["name"] != "":
+				snapshotFullDir := mo.Config.Files.SnapshotDirectory
+				split := strings.Split(snapshotFullDir, " ")
+				if len(split) != 2 {
+					return fmt.Errorf("[ERROR] createVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
+				}
+				vmWorkingPath := split[1]
+				diskPath = vmWorkingPath + disk["name"].(string)
+			default:
+				return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor disk name was given")
+			}
+
+			log.Printf("[INFO] Attaching disk: %v", diskPath)
+			provtype, ok := disk["type"]
+			var proviType provisioningType
+			if !ok {
+				proviType = provisioningTypeThin
+			} else {
+				proviType = provisioningType(provtype.(string))
+			}
+			err = addHardDisk(vm, size, iops,
+				proviType, datastore, diskPath, controller_type)
+			if err != nil {
+				log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
+				return err
+			}
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func updateHandleNICChange(d *schema.ResourceData, configSpec *types.VirtualMachineConfigSpec, finder *find.Finder) (bool, error) {
+	var err error
+	log.Printf("[DEBUG] has change in network_interface")
+	oldNet, newNet := d.GetChange("network_interface")
+	oldNetSet := oldNet.(*schema.Set)
+	newNetSet := newNet.(*schema.Set)
+	log.Printf("[DEBUG] oldNetSet: [[%#v]], newNetSet: [[%#v]]", oldNetSet, newNetSet)
+
+	removedNet := oldNetSet.Difference(newNetSet)
+	addedNet := newNetSet.Difference(oldNetSet)
+
+	var gateway string
+	if gwRaw, ok := d.GetOk("gateway"); ok {
+		gateway = gwRaw.(string)
+	}
+	var rebootRequiredLocal bool
+	if rebootRequiredLocal, err = buildNICChangeSpec(addedNet.List()[:], removedNet.List()[:], gateway, configSpec, finder); err != nil {
+		return true, err
+	}
+	return rebootRequiredLocal, nil
+
+}
+
 func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] VVMU %s", d.Id())
 	// flag if changes have to be applied
@@ -596,119 +716,17 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 
 	if d.HasChange("disk") {
 		hasChanges = true
-		oldDisks, newDisks := d.GetChange("disk")
-		oldDiskSet := oldDisks.(*schema.Set)
-		newDiskSet := newDisks.(*schema.Set)
-
-		addedDisks := newDiskSet.Difference(oldDiskSet)
-		removedDisks := oldDiskSet.Difference(newDiskSet)
-
-		// Removed disks
-		for _, diskRaw := range removedDisks.List() {
-			if disk, ok := diskRaw.(map[string]interface{}); ok {
-				devices, err := vm.Device(context.TODO())
-				if err != nil {
-					return fmt.Errorf("[ERROR] Update Remove Disk - Could not get virtual device list: %v", err)
-				}
-				virtualDisk := devices.FindByKey(int32(disk["key"].(int)))
-
-				keep := false
-				if v, ok := disk["keep_on_remove"].(bool); ok {
-					keep = v
-				}
-
-				err = vm.RemoveDevice(context.TODO(), keep, virtualDisk)
-				if err != nil {
-					return fmt.Errorf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
-				}
-			}
-		}
-		// Added disks
-		for _, diskRaw := range addedDisks.List() {
-			if disk, ok := diskRaw.(map[string]interface{}); ok {
-
-				var datastore *object.Datastore
-				if disk["datastore"] == "" {
-					datastore, err = finder.DefaultDatastore(context.TODO())
-					if err != nil {
-						return fmt.Errorf("[ERROR] Update Remove Disk - Error finding datastore: %v", err)
-					}
-				} else {
-					datastore, err = finder.Datastore(context.TODO(), disk["datastore"].(string))
-					if err != nil {
-						log.Printf("[ERROR] Couldn't find datastore %v.  %s", disk["datastore"].(string), err)
-						return err
-					}
-				}
-
-				var size int64
-				if disk["size"] == 0 {
-					size = 0
-				} else {
-					size = int64(disk["size"].(int))
-				}
-				iops := int64(disk["iops"].(int))
-				controller_type := controllerType(disk["controller_type"].(string))
-
-				var mo mo.VirtualMachine
-				vm.Properties(context.TODO(), vm.Reference(), []string{"summary", "config"}, &mo)
-
-				var diskPath string
-				switch {
-				case disk["vmdk"] != "":
-					diskPath = disk["vmdk"].(string)
-				case disk["name"] != "":
-					snapshotFullDir := mo.Config.Files.SnapshotDirectory
-					split := strings.Split(snapshotFullDir, " ")
-					if len(split) != 2 {
-						return fmt.Errorf("[ERROR] createVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
-					}
-					vmWorkingPath := split[1]
-					diskPath = vmWorkingPath + disk["name"].(string)
-				default:
-					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor disk name was given")
-				}
-
-				var initType provisioningType
-				if disk["type"] != "" {
-					initType = provisioningType(disk["type"].(string))
-				} else {
-					initType = "thin"
-				}
-
-				log.Printf("[INFO] Attaching disk: %v", diskPath)
-				err = addHardDisk(vm, size, iops, initType, datastore, diskPath, controller_type)
-				if err != nil {
-					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
-					return err
-				}
-			}
-			if err != nil {
-				return err
-			}
-		}
+		updateHandleDiskChange(d, vm, finder)
 	}
 
 	if d.HasChange("network_interface") {
 		hasChanges = true
-		log.Printf("[DEBUG] has change in network_interface")
-		oldNet, newNet := d.GetChange("network_interface")
-		oldNetSet := oldNet.(*schema.Set)
-		newNetSet := newNet.(*schema.Set)
-		log.Printf("[DEBUG] oldNetSet: [[%#v]], newNetSet: [[%#v]]", oldNetSet, newNetSet)
-
-		removedNet := oldNetSet.Difference(newNetSet)
-		addedNet := newNetSet.Difference(oldNetSet)
-
-		var gateway string
-		if gwRaw, ok := d.GetOk("gateway"); ok {
-			gateway = gwRaw.(string)
-		}
 		var rebootRequiredLocal bool
-		if rebootRequiredLocal, err = buildNICChangeSpec(addedNet.List()[:], removedNet.List()[:], gateway, &configSpec, finder); err != nil {
+		rebootRequiredLocal, err = updateHandleNICChange(d, &configSpec, finder)
+		rebootRequired = rebootRequired || rebootRequiredLocal
+		if err != nil {
 			return err
 		}
-		rebootRequired = true || rebootRequiredLocal // rebootRequired || rebootRequiredLocal
 	}
 
 	// do nothing if there are no changes
