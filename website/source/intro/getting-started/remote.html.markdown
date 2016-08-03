@@ -31,7 +31,7 @@ or you can follow the outlined steps below.
 
 First, If you don't have an Atlas account, you can [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform).
 
-In order for the Terraform CLI to gain access to your Atlas account you're going to need to generate an access key. From the main menu, select your username in the left side navigation menu to access your profile. Under `Personal`, click on the `Tokens` tab and hit generate.
+The Terraform CLI uses your `Atlas Token` to securely communicate with your Atlas account. To generate a token: from the main menu, select your username in the left side navigation menu to access your profile. Under `Personal`, click on the `Tokens` tab and hit `Generate`.
 
 For the purposes of this tutorial you can use this token by exporting it to your local shell session:
 
