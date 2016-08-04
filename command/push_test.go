@@ -389,6 +389,8 @@ func TestPush_tfvars(t *testing.T) {
 	args := []string{
 		"-var-file", path + "/terraform.tfvars",
 		"-vcs=false",
+		"-var",
+		"bar=1",
 		path,
 	}
 	if code := c.Run(args); code != 0 {
@@ -412,12 +414,19 @@ func TestPush_tfvars(t *testing.T) {
 
 	//now check TFVars
 	tfvars := pushTFVars()
+	// update bar to match cli value
+	for i, v := range tfvars {
+		if v.Key == "bar" {
+			tfvars[i].Value = "1"
+			tfvars[i].IsHCL = true
+		}
+	}
 
 	for i, expected := range tfvars {
 		got := client.UpsertOptions.TFVars[i]
 		if got != expected {
 			t.Logf("%2d expected: %#v", i, expected)
-			t.Logf("        got: %#v", got)
+			t.Fatalf("        got: %#v", got)
 		}
 	}
 }
@@ -589,9 +598,8 @@ func pushTFVars() []atlas.TFVar {
 		{"baz", `{
   A      = "a"
   interp = "${file("t.txt")}"
-}
-`, true},
-		{"fob", `["a", "quotes \"in\" quotes"]` + "\n", true},
+}`, true},
+		{"fob", `["a", "quotes \"in\" quotes"]`, true},
 		{"foo", "bar", false},
 	}
 }
