@@ -107,7 +107,7 @@ func (e *encodeState) encodeInt(i interface{}) error {
 }
 
 func (e *encodeState) encodeFloat(f interface{}) error {
-	_, err := fmt.Fprintf(e, "%f", f)
+	_, err := fmt.Fprintf(e, "%g", f)
 	return err
 }
 
