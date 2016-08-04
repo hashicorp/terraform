@@ -15,6 +15,9 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 		Read:   resourceComputeHttpHealthCheckRead,
 		Delete: resourceComputeHttpHealthCheckDelete,
 		Update: resourceComputeHttpHealthCheckUpdate,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -55,6 +58,7 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"request_path": &schema.Schema{
@@ -220,11 +224,14 @@ func resourceComputeHttpHealthCheckRead(d *schema.ResourceData, meta interface{}
 	d.Set("host", hchk.Host)
 	d.Set("request_path", hchk.RequestPath)
 	d.Set("check_interval_sec", hchk.CheckIntervalSec)
-	d.Set("health_threshold", hchk.HealthyThreshold)
+	d.Set("healthy_threshold", hchk.HealthyThreshold)
 	d.Set("port", hchk.Port)
 	d.Set("timeout_sec", hchk.TimeoutSec)
 	d.Set("unhealthy_threshold", hchk.UnhealthyThreshold)
 	d.Set("self_link", hchk.SelfLink)
+	d.Set("name", hchk.Name)
+	d.Set("description", hchk.Description)
+	d.Set("project", project)
 
 	return nil
 }
