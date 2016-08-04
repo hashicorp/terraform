@@ -39,7 +39,8 @@ The following arguments are supported:
 
 * `state` - (Optional) Allows to filter list of Availability Zones based on their
 current state. Can be either `"available"`, `"information"`, `"impaired"` or
-`"unavailable"` (Default: `"available"`).
+`"unavailable"`. By default the list includes a complete set of Availability Zones
+to which the underlying AWS account has access, regardless of their state.
 
 ## Attributes Reference
 

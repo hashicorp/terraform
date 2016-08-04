@@ -24,7 +24,6 @@ func dataSourceAwsAvailabilityZones() *schema.Resource {
 			"state": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      "available",
 				ValidateFunc: validateStateType,
 			},
 		},
@@ -37,14 +36,17 @@ func dataSourceAwsAvailabilityZonesRead(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Reading Availability Zones.")
 	d.SetId(time.Now().UTC().String())
 
-	request := &ec2.DescribeAvailabilityZonesInput{
-		Filters: []*ec2.Filter{
+	request := &ec2.DescribeAvailabilityZonesInput{}
+
+	if v, ok := d.GetOk("state"); ok {
+		request.Filters = []*ec2.Filter{
 			&ec2.Filter{
 				Name:   aws.String("state"),
-				Values: []*string{aws.String(d.Get("state").(string))},
+				Values: []*string{aws.String(v.(string))},
 			},
-		},
+		}
 	}
+
 	log.Printf("[DEBUG] Availability Zones request options: %#v", *request)
 
 	resp, err := conn.DescribeAvailabilityZones(request)
