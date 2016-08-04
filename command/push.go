@@ -327,25 +327,15 @@ RANGE:
 		case string:
 			tfv.Value = v
 
-		case []interface{}:
-			hcl, err = encodeHCL(v)
-			if err != nil {
-				break RANGE
-			}
-
-			tfv.Value = string(hcl)
-			tfv.IsHCL = true
-
-		case map[string]interface{}:
-			hcl, err = encodeHCL(v)
-			if err != nil {
-				break RANGE
-			}
-
-			tfv.Value = string(hcl)
-			tfv.IsHCL = true
 		default:
-			err = fmt.Errorf("unknown type %T for variable %s", v, k)
+			// everything that's not a string is now HCL encoded
+			hcl, err = encodeHCL(v)
+			if err != nil {
+				break RANGE
+			}
+
+			tfv.Value = string(hcl)
+			tfv.IsHCL = true
 		}
 
 		tfVars = append(tfVars, tfv)
