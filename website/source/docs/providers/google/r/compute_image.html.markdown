@@ -67,6 +67,8 @@ The `raw_disk` block supports:
 
 * `description` - (Optional) The description of the image to be created
 
+* `family` - (Optional) The name of the image family to which this image belongs.
+
 ## Attributes Reference
 
 In addition to the arguments listed above, the following computed attributes are

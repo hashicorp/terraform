@@ -27,6 +27,12 @@ func resourceComputeImage() *schema.Resource {
 				Computed: true,
 			},
 
+			"family": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -78,8 +84,15 @@ func resourceComputeImageCreate(d *schema.ResourceData, meta interface{}) error 
 
 	// Build the image
 	image := &compute.Image{
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+		Name: d.Get("name").(string),
+	}
+
+	if v := d.Get("description"); v != nil {
+		image.Description = v.(string)
+	}
+
+	if v := d.Get("family"); v != nil {
+		image.Family = v.(string)
 	}
 
 	rawDiskEle := d.Get("raw_disk").([]interface{})[0].(map[string]interface{})
