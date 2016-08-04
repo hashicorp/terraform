@@ -101,6 +101,7 @@ The following arguments are supported:
     this configuration option are detailed below.
 
 * `service_account` - (Optional) Service account to attach to the instance.
+    Structure is documented below.
 
 * `tags` - (Optional) Tags to attach to the instance.
 
@@ -151,17 +152,20 @@ The `access_config` block supports:
 * `nat_ip` - (Optional) The IP address that will be 1:1 mapped to the instance's
     network ip. If not given, one will be generated.
 
+The `service_account` block supports:
+
+* `email` - (Optional) The service account e-mail address. If not given, the
+    default Google Compute Engine service account is used.
+
+* `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
+    short names are supported.
+
 (DEPRECATED) The `network` block supports:
 
 * `source` - (Required) The name of the network to attach this interface to.
 
 * `address` - (Optional) The IP address of a reserved IP address to assign
     to this interface.
-
-The `service_account` block supports:
-
-* `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
-    short names are supported.
 
 The `scheduling` block supports:
 
