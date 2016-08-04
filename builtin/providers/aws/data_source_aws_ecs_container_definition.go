@@ -77,7 +77,10 @@ func dataSourceAwsEcsContainerDefinitionRead(d *schema.ResourceData, meta interf
 
 		d.SetId(fmt.Sprintf("%s/%s", aws.StringValue(taskDefinition.TaskDefinitionArn), d.Get("container_name").(string)))
 		d.Set("image", aws.StringValue(def.Image))
-		d.Set("image_digest", strings.Split(aws.StringValue(def.Image), ":")[1])
+		image := aws.StringValue(def.Image)
+		if strings.Contains(image, ":") {
+			d.Set("image_digest", strings.Split(image, ":")[1])
+		}
 		d.Set("cpu", aws.Int64Value(def.Cpu))
 		d.Set("memory", aws.Int64Value(def.Memory))
 		d.Set("disable_networking", aws.BoolValue(def.DisableNetworking))
