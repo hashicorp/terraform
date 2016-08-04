@@ -95,7 +95,9 @@ func (w *walker) Exit(l reflectwalk.Location) error {
 		if v.IsValid() {
 			s := w.cs[len(w.cs)-1]
 			sf := reflect.Indirect(s).FieldByName(f.Name)
-			sf.Set(v)
+			if sf.CanSet() {
+				sf.Set(v)
+			}
 		}
 	case reflectwalk.WalkLoc:
 		// Clear out the slices for GC
@@ -111,16 +113,12 @@ func (w *walker) Map(m reflect.Value) error {
 		return nil
 	}
 
-	// Get the type for the map
-	t := m.Type()
-	mapType := reflect.MapOf(t.Key(), t.Elem())
-
 	// Create the map. If the map itself is nil, then just make a nil map
 	var newMap reflect.Value
 	if m.IsNil() {
-		newMap = reflect.Indirect(reflect.New(mapType))
+		newMap = reflect.Indirect(reflect.New(m.Type()))
 	} else {
-		newMap = reflect.MakeMap(reflect.MapOf(t.Key(), t.Elem()))
+		newMap = reflect.MakeMap(m.Type())
 	}
 
 	w.cs = append(w.cs, newMap)

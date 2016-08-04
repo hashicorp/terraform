@@ -1410,8 +1410,10 @@
 			"revision": "8631ce90f28644f54aeedcb3e389a85174e067d1"
 		},
 		{
+			"checksumSHA1": "86nE93o1VIND0Doe8PuhCXnhUx0=",
 			"path": "github.com/mitchellh/copystructure",
-			"revision": "80adcec1955ee4e97af357c30dee61aadcc02c10"
+			"revision": "cdac8253d00f2ecf0a0b19fbff173a9a72de4f82",
+			"revisionTime": "2016-08-04T03:23:30Z"
 		},
 		{
 			"path": "github.com/mitchellh/go-homedir",
