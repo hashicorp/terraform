@@ -21,6 +21,12 @@ func dataSourceAwsAvailabilityZones() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"state": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "available",
+				ValidateFunc: validateStateType,
+			},
 		},
 	}
 }
@@ -28,25 +34,52 @@ func dataSourceAwsAvailabilityZones() *schema.Resource {
 func dataSourceAwsAvailabilityZonesRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	log.Printf("[DEBUG] Reading availability zones")
+	log.Printf("[DEBUG] Reading Availability Zones.")
 	d.SetId(time.Now().UTC().String())
 
-	req := &ec2.DescribeAvailabilityZonesInput{DryRun: aws.Bool(false)}
-	azresp, err := conn.DescribeAvailabilityZones(req)
+	request := &ec2.DescribeAvailabilityZonesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("state"),
+				Values: []*string{aws.String(d.Get("state").(string))},
+			},
+		},
+	}
+	log.Printf("[DEBUG] Availability Zones request options: %#v", *request)
+
+	resp, err := conn.DescribeAvailabilityZones(request)
 	if err != nil {
-		return fmt.Errorf("Error listing availability zones: %s", err)
+		return fmt.Errorf("Error fetching Availability Zones: %s", err)
 	}
 
-	raw := make([]string, len(azresp.AvailabilityZones))
-	for i, v := range azresp.AvailabilityZones {
+	raw := make([]string, len(resp.AvailabilityZones))
+	for i, v := range resp.AvailabilityZones {
 		raw[i] = *v.ZoneName
 	}
 
 	sort.Strings(raw)
 
 	if err := d.Set("names", raw); err != nil {
-		return fmt.Errorf("[WARN] Error setting availability zones")
+		return fmt.Errorf("[WARN] Error setting Availability Zones: %s", err)
 	}
 
 	return nil
+}
+
+func validateStateType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	validState := map[string]bool{
+		"available":   true,
+		"information": true,
+		"impaired":    true,
+		"unavailable": true,
+	}
+
+	if !validState[value] {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Availability Zone state %q. Valid states are: %q, %q, %q and %q.",
+			k, value, "available", "information", "impaired", "unavailable"))
+	}
+	return
 }
