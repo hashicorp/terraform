@@ -3,10 +3,10 @@ package google
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeAutoscaler() *schema.Resource {
@@ -15,6 +15,9 @@ func resourceComputeAutoscaler() *schema.Resource {
 		Read:   resourceComputeAutoscalerRead,
 		Update: resourceComputeAutoscalerUpdate,
 		Delete: resourceComputeAutoscalerDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -241,6 +244,40 @@ func resourceComputeAutoscalerCreate(d *schema.ResourceData, meta interface{}) e
 	return resourceComputeAutoscalerRead(d, meta)
 }
 
+func flattenAutoscalingPolicy(policy *compute.AutoscalingPolicy) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+	policyMap := make(map[string]interface{})
+	policyMap["max_replicas"] = policy.MaxNumReplicas
+	policyMap["min_replicas"] = policy.MinNumReplicas
+	policyMap["cooldown_period"] = policy.CoolDownPeriodSec
+	if policy.CpuUtilization != nil {
+		cpuUtils := make([]map[string]interface{}, 0, 1)
+		cpuUtil := make(map[string]interface{})
+		cpuUtil["target"] = policy.CpuUtilization.UtilizationTarget
+		cpuUtils = append(cpuUtils, cpuUtil)
+		policyMap["cpu_utilization"] = cpuUtils
+	}
+	if policy.LoadBalancingUtilization != nil {
+		loadBalancingUtils := make([]map[string]interface{}, 0, 1)
+		loadBalancingUtil := make(map[string]interface{})
+		loadBalancingUtil["target"] = policy.LoadBalancingUtilization.UtilizationTarget
+		loadBalancingUtils = append(loadBalancingUtils, loadBalancingUtil)
+		policyMap["load_balancing_utilization"] = loadBalancingUtils
+	}
+	if policy.CustomMetricUtilizations != nil {
+		metricUtils := make([]map[string]interface{}, 0, len(policy.CustomMetricUtilizations))
+		for _, customMetricUtilization := range policy.CustomMetricUtilizations {
+			metricUtil := make(map[string]interface{})
+			metricUtil["target"] = customMetricUtilization.UtilizationTarget
+
+			metricUtils = append(metricUtils, metricUtil)
+		}
+		policyMap["metric"] = metricUtils
+	}
+	result = append(result, policyMap)
+	return result
+}
+
 func resourceComputeAutoscalerRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -249,22 +286,33 @@ func resourceComputeAutoscalerRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	zone := d.Get("zone").(string)
-	scaler, err := config.clientCompute.Autoscalers.Get(
-		project, zone, d.Id()).Do()
+	region, err := getRegion(d, config)
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			log.Printf("[WARN] Removing Autoscalar %q because it's gone", d.Get("name").(string))
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading Autoscaler: %s", err)
+		return err
+	}
+	var getAutoscaler = func(zone string) (interface{}, error) {
+		return config.clientCompute.Autoscalers.Get(project, zone, d.Id()).Do()
 	}
 
+	resource, err := getZonalResourceFromRegion(getAutoscaler, region, config.clientCompute, project)
+	if err != nil {
+		return err
+	}
+	if resource == nil {
+		log.Printf("[WARN] Removing Autoscalar %q because it's gone", d.Get("name").(string))
+		d.SetId("")
+		return nil
+	}
+	scaler := resource.(*compute.Autoscaler)
+	zoneUrl := strings.Split(scaler.Zone, "/")
 	d.Set("self_link", scaler.SelfLink)
+	d.Set("name", scaler.Name)
+	d.Set("target", scaler.Target)
+	d.Set("zone", zoneUrl[len(zoneUrl)-1])
+	d.Set("description", scaler.Description)
+	if scaler.AutoscalingPolicy != nil {
+		d.Set("autoscaling_policy", flattenAutoscalingPolicy(scaler.AutoscalingPolicy))
+	}
 
 	return nil
 }
