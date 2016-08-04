@@ -5,6 +5,7 @@ FEATURES:
 IMPROVEMENTS:
 
 BUG FIXES:
+ * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
 
 ## 0.7.0 (August 2, 2016)
 
