@@ -3,6 +3,7 @@
 FEATURES:
 
 IMPROVEMENTS:
+ * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
 
 BUG FIXES:
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
