@@ -553,6 +553,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
+// updateHandleDiskChange makes disk-related modifications to a VM.
 func updateHandleDiskChange(d *schema.ResourceData, vm *object.VirtualMachine, finder *find.Finder) error {
 	var err error
 	oldDisks, newDisks := d.GetChange("disk")
@@ -650,8 +651,8 @@ func updateHandleDiskChange(d *schema.ResourceData, vm *object.VirtualMachine, f
 	return nil
 }
 
-func updateHandleNICChange(d *schema.ResourceData, configSpec *types.VirtualMachineConfigSpec, finder *find.Finder) (bool, error) {
-	var err error
+// updateHandleNICChange is a utility function that handles NIC changes
+func updateHandleNICChange(d *schema.ResourceData, configSpec *types.VirtualMachineConfigSpec, finder *find.Finder) (rebootRequiredLocal bool, err error) {
 	log.Printf("[DEBUG] has change in network_interface")
 	oldNet, newNet := d.GetChange("network_interface")
 	oldNetSet := oldNet.(*schema.Set)
@@ -665,7 +666,6 @@ func updateHandleNICChange(d *schema.ResourceData, configSpec *types.VirtualMach
 	if gwRaw, ok := d.GetOk("gateway"); ok {
 		gateway = gwRaw.(string)
 	}
-	var rebootRequiredLocal bool
 	if rebootRequiredLocal, err = buildNICChangeSpec(addedNet.List()[:], removedNet.List()[:], gateway, configSpec, finder); err != nil {
 		return true, err
 	}
@@ -1330,6 +1330,7 @@ func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.D
 	return datastore, nil
 }
 
+// setupVirtualMachine sets a virtual machine up accordingly with the contents of the struct
 func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	dc, err := getDatacenter(c, vm.datacenter)
 
