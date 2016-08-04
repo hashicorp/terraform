@@ -166,7 +166,9 @@ func WithBaseURL(baseURL string) PrepareDecorator {
 			r, err := p.Prepare(r)
 			if err == nil {
 				var u *url.URL
-				u, err = url.Parse(baseURL)
+				if u, err = url.Parse(baseURL); err != nil {
+					return r, err
+				}
 				if u.Scheme == "" {
 					err = fmt.Errorf("autorest: No scheme detected in URL %s", baseURL)
 				}
@@ -268,12 +270,8 @@ func WithPath(path string) PrepareDecorator {
 				if r.URL == nil {
 					return r, NewError("autorest", "WithPath", "Invoked with a nil URL")
 				}
-				u := r.URL
-				u.Path = strings.TrimRight(u.Path, "/")
-				if strings.HasPrefix(path, "/") {
-					u.Path = path
-				} else {
-					u.Path += "/" + path
+				if r.URL, err = parseURL(r.URL, path); err != nil {
+					return r, err
 				}
 			}
 			return r, err
@@ -284,7 +282,7 @@ func WithPath(path string) PrepareDecorator {
 // WithEscapedPathParameters returns a PrepareDecorator that replaces brace-enclosed keys within the
 // request path (i.e., http.Request.URL.Path) with the corresponding values from the passed map. The
 // values will be escaped (aka URL encoded) before insertion into the path.
-func WithEscapedPathParameters(pathParameters map[string]interface{}) PrepareDecorator {
+func WithEscapedPathParameters(path string, pathParameters map[string]interface{}) PrepareDecorator {
 	parameters := escapeValueStrings(ensureValueStrings(pathParameters))
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
@@ -294,7 +292,10 @@ func WithEscapedPathParameters(pathParameters map[string]interface{}) PrepareDec
 					return r, NewError("autorest", "WithEscapedPathParameters", "Invoked with a nil URL")
 				}
 				for key, value := range parameters {
-					r.URL.Path = strings.Replace(r.URL.Path, "{"+key+"}", value, -1)
+					path = strings.Replace(path, "{"+key+"}", value, -1)
+				}
+				if r.URL, err = parseURL(r.URL, path); err != nil {
+					return r, err
 				}
 			}
 			return r, err
@@ -304,7 +305,7 @@ func WithEscapedPathParameters(pathParameters map[string]interface{}) PrepareDec
 
 // WithPathParameters returns a PrepareDecorator that replaces brace-enclosed keys within the
 // request path (i.e., http.Request.URL.Path) with the corresponding values from the passed map.
-func WithPathParameters(pathParameters map[string]interface{}) PrepareDecorator {
+func WithPathParameters(path string, pathParameters map[string]interface{}) PrepareDecorator {
 	parameters := ensureValueStrings(pathParameters)
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
@@ -314,12 +315,24 @@ func WithPathParameters(pathParameters map[string]interface{}) PrepareDecorator 
 					return r, NewError("autorest", "WithPathParameters", "Invoked with a nil URL")
 				}
 				for key, value := range parameters {
-					r.URL.Path = strings.Replace(r.URL.Path, "{"+key+"}", value, -1)
+					path = strings.Replace(path, "{"+key+"}", value, -1)
+				}
+
+				if r.URL, err = parseURL(r.URL, path); err != nil {
+					return r, err
 				}
 			}
 			return r, err
 		})
 	}
+}
+
+func parseURL(u *url.URL, path string) (*url.URL, error) {
+	p := strings.TrimRight(u.String(), "/")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return url.Parse(p + path)
 }
 
 // WithQueryParameters returns a PrepareDecorators that encodes and applies the query parameters
@@ -337,7 +350,7 @@ func WithQueryParameters(queryParameters map[string]interface{}) PrepareDecorato
 				for key, value := range parameters {
 					v.Add(key, value)
 				}
-				r.URL.RawQuery = v.Encode()
+				r.URL.RawQuery = createQuery(v)
 			}
 			return r, err
 		})

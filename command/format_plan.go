@@ -78,6 +78,8 @@ func formatPlanModuleExpand(
 			continue
 		}
 
+		dataSource := strings.HasPrefix(name, "data.")
+
 		if moduleName != "" {
 			name = moduleName + "." + name
 		}
@@ -103,7 +105,7 @@ func formatPlanModuleExpand(
 			// Unfortunately by the time we get here we only have the name
 			// to work with, so we need to cheat and exploit knowledge of the
 			// naming scheme for data resources.
-			if strings.HasPrefix(name, "data.") {
+			if dataSource {
 				symbol = "<="
 				color = "cyan"
 			}

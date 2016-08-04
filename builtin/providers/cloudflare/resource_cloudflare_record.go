@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/cloudflare/cloudflare-go"
 	"github.com/hashicorp/terraform/helper/schema"
-
-	// NOTE: Temporary until they merge my PR:
-	"github.com/mitchellh/cloudflare-go"
 )
 
 func resourceCloudFlareRecord() *schema.Resource {
@@ -17,6 +15,8 @@ func resourceCloudFlareRecord() *schema.Resource {
 		Update: resourceCloudFlareRecordUpdate,
 		Delete: resourceCloudFlareRecordDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceCloudFlareRecordMigrateState,
 		Schema: map[string]*schema.Schema{
 			"domain": &schema.Schema{
 				Type:     schema.TypeString,
@@ -103,7 +103,13 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Failed to create record: %s", err)
 	}
 
-	d.SetId(r.ID)
+	// In the Event that the API returns an empty DNS Record, we verify that the
+	// ID returned is not the default ""
+	if r.Result.ID == "" {
+		return fmt.Errorf("Failed to find record in Creat response; Record was empty")
+	}
+
+	d.SetId(r.Result.ID)
 
 	log.Printf("[INFO] CloudFlare Record ID: %s", d.Id())
 

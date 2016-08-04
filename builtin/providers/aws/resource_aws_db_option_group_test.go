@@ -34,6 +34,21 @@ func TestAccAWSDBOptionGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBOptionGroup_basicDestroyWithInstance(t *testing.T) {
+	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBOptionGroupBasicDestroyConfig(rName),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBOptionGroup_OptionSettings(t *testing.T) {
 	var v rds.OptionGroup
 	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
@@ -250,6 +265,37 @@ func testAccCheckAWSDBOptionGroupDestroy(s *terraform.State) error {
 
 func testAccAWSDBOptionGroupBasicConfig(r string) string {
 	return fmt.Sprintf(`
+resource "aws_db_option_group" "bar" {
+  name                     = "%s"
+  option_group_description = "Test option group for terraform"
+  engine_name              = "mysql"
+  major_engine_version     = "5.6"
+}
+`, r)
+}
+
+func testAccAWSDBOptionGroupBasicDestroyConfig(r string) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6.21"
+	instance_class = "db.t2.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+
+
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
+	# validation error).
+	maintenance_window = "Fri:09:00-Fri:09:30"
+
+	backup_retention_period = 0
+
+	option_group_name = "${aws_db_option_group.bar.name}"
+}
+
 resource "aws_db_option_group" "bar" {
   name                     = "%s"
   option_group_description = "Test option group for terraform"

@@ -21,6 +21,10 @@ func resourceAwsRDSClusterParameterGroup() *schema.Resource {
 		Read:   resourceAwsRDSClusterParameterGroupRead,
 		Update: resourceAwsRDSClusterParameterGroupUpdate,
 		Delete: resourceAwsRDSClusterParameterGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,

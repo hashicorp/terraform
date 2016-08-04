@@ -2,11 +2,14 @@ package azurerm
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -16,6 +19,9 @@ func resourceArmStorageAccount() *schema.Resource {
 		Read:   resourceArmStorageAccountRead,
 		Update: resourceArmStorageAccountUpdate,
 		Delete: resourceArmStorageAccountDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -106,7 +112,8 @@ func resourceArmStorageAccount() *schema.Resource {
 }
 
 func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*ArmClient).storageServiceClient
+	client := meta.(*ArmClient)
+	storageClient := client.storageServiceClient
 
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("name").(string)
@@ -114,27 +121,41 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	location := d.Get("location").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
-	opts := storage.AccountCreateParameters{
-		Location: &location,
-		Properties: &storage.AccountPropertiesCreateParameters{
-			AccountType: storage.AccountType(accountType),
-		},
-		Tags: expandTags(tags),
+	sku := storage.Sku{
+		Name: storage.SkuName(accountType),
 	}
 
-	_, err := client.Create(resourceGroupName, storageAccountName, opts, make(chan struct{}))
+	opts := storage.AccountCreateParameters{
+		Location: &location,
+		Sku:      &sku,
+		Tags:     expandTags(tags),
+	}
+
+	_, err := storageClient.Create(resourceGroupName, storageAccountName, opts, make(chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error creating Azure Storage Account '%s': %s", storageAccountName, err)
 	}
 
 	// The only way to get the ID back apparently is to read the resource again
-	read, err := client.GetProperties(resourceGroupName, storageAccountName)
+	read, err := storageClient.GetProperties(resourceGroupName, storageAccountName)
 	if err != nil {
 		return err
 	}
 	if read.ID == nil {
 		return fmt.Errorf("Cannot read Storage Account %s (resource group %s) ID",
 			storageAccountName, resourceGroupName)
+	}
+
+	log.Printf("[DEBUG] Waiting for Storage Account (%s) to become available", storageAccountName)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"Updating", "Creating"},
+		Target:     []string{"Succeeded"},
+		Refresh:    storageAccountStateRefreshFunc(client, resourceGroupName, storageAccountName),
+		Timeout:    30 * time.Minute,
+		MinTimeout: 15 * time.Second,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for Storage Account (%s) to become available: %s", storageAccountName, err)
 	}
 
 	d.SetId(*read.ID)
@@ -159,10 +180,12 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 	if d.HasChange("account_type") {
 		accountType := d.Get("account_type").(string)
 
+		sku := storage.Sku{
+			Name: storage.SkuName(accountType),
+		}
+
 		opts := storage.AccountUpdateParameters{
-			Properties: &storage.AccountPropertiesUpdateParameters{
-				AccountType: storage.AccountType(accountType),
-			},
+			Sku: &sku,
 		}
 		_, err := client.Update(resourceGroupName, storageAccountName, opts)
 		if err != nil {
@@ -215,10 +238,11 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	d.Set("primary_access_key", keys.Key1)
-	d.Set("secondary_access_key", keys.Key2)
+	accessKeys := *keys.Keys
+	d.Set("primary_access_key", accessKeys[0].Value)
+	d.Set("secondary_access_key", accessKeys[1].Value)
 	d.Set("location", resp.Location)
-	d.Set("account_type", resp.Properties.AccountType)
+	d.Set("account_type", resp.Sku.Name)
 	d.Set("primary_location", resp.Properties.PrimaryLocation)
 	d.Set("secondary_location", resp.Properties.SecondaryLocation)
 
@@ -246,6 +270,8 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 			d.Set("secondary_table_endpoint", "")
 		}
 	}
+
+	d.Set("name", resp.Name)
 
 	flattenAndSetTags(d, resp.Tags)
 
@@ -294,4 +320,15 @@ func validateArmStorageAccountType(v interface{}, k string) (ws []string, es []e
 
 	es = append(es, fmt.Errorf("Invalid storage account type %q", input))
 	return
+}
+
+func storageAccountStateRefreshFunc(client *ArmClient, resourceGroupName string, storageAccountName string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		res, err := client.storageServiceClient.GetProperties(resourceGroupName, storageAccountName)
+		if err != nil {
+			return nil, "", fmt.Errorf("Error issuing read request in storageAccountStateRefreshFunc to Azure ARM for Storage Account '%s' (RG: '%s'): %s", storageAccountName, resourceGroupName, err)
+		}
+
+		return res, string(res.Properties.ProvisioningState), nil
+	}
 }

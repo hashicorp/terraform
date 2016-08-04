@@ -86,6 +86,9 @@ The following arguments are supported:
   on both create and update operations. (Takes precedence over
   `min_elb_capacity` behavior.)
   (See also [Waiting for Capacity](#waiting-for-capacity) below.)
+* `protect_from_scale_in` (Optional) Allows setting instance protection. The
+   autoscaling group will not select instances with this setting for terminination
+   during scale in events.
 
 Tags support the following:
 
@@ -175,3 +178,12 @@ If ASG creation takes more than a few minutes, this could indicate one of a
 number of configuration problems. See the [AWS Docs on Load Balancer
 Troubleshooting](https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-troubleshooting.html)
 for more information.
+
+
+## Import
+
+AutoScaling Groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_autoscaling_group.web web-asg
+```

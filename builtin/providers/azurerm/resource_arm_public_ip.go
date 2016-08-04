@@ -17,6 +17,9 @@ func resourceArmPublicIp() *schema.Resource {
 		Read:   resourceArmPublicIpRead,
 		Update: resourceArmPublicIpCreate,
 		Delete: resourceArmPublicIpDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -42,6 +45,9 @@ func resourceArmPublicIp() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validatePublicIpAllocation,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
 
 			"idle_timeout_in_minutes": {
@@ -166,6 +172,10 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
 	}
+
+	d.Set("location", resp.Location)
+	d.Set("name", resp.Name)
+	d.Set("public_ip_address_allocation", strings.ToLower(string(resp.Properties.PublicIPAllocationMethod)))
 
 	if resp.Properties.DNSSettings != nil && resp.Properties.DNSSettings.Fqdn != nil && *resp.Properties.DNSSettings.Fqdn != "" {
 		d.Set("fqdn", resp.Properties.DNSSettings.Fqdn)

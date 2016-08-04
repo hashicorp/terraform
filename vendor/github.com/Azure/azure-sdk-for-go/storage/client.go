@@ -132,7 +132,7 @@ func NewClient(accountName, accountKey, blobServiceBaseURL, apiVersion string, u
 
 	key, err := base64.StdEncoding.DecodeString(accountKey)
 	if err != nil {
-		return c, err
+		return c, fmt.Errorf("azure: malformed storage account key: %v", err)
 	}
 
 	return Client{

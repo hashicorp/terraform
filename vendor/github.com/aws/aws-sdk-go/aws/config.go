@@ -19,7 +19,7 @@ type RequestRetryer interface{}
 // all clients will use the {defaults.DefaultConfig} structure.
 type Config struct {
 	// Enables verbose error printing of all credential chain errors.
-	// Should be used when wanting to see all errors while attempting to retreive
+	// Should be used when wanting to see all errors while attempting to retrieve
 	// credentials.
 	CredentialsChainVerboseErrors *bool
 
@@ -112,8 +112,8 @@ type Config struct {
 	// `ExpectContinueTimeout` for information on adjusting the continue wait timeout.
 	// https://golang.org/pkg/net/http/#Transport
 	//
-	// You should use this flag to disble 100-Continue if you experiance issues
-	// with proxies or thrid party S3 compatible services.
+	// You should use this flag to disble 100-Continue if you experience issues
+	// with proxies or third party S3 compatible services.
 	S3Disable100Continue *bool
 
 	// Set this to `true` to enable S3 Accelerate feature. For all operations compatible
@@ -139,13 +139,18 @@ type Config struct {
 	//
 	EC2MetadataDisableTimeoutOverride *bool
 
+	// SleepDelay is an override for the func the SDK will call when sleeping
+	// during the lifecycle of a request. Specifically this will be used for
+	// request delays. This value should only be used for testing. To adjust
+	// the delay of a request see the aws/client.DefaultRetryer and
+	// aws/request.Retryer.
 	SleepDelay func(time.Duration)
 }
 
 // NewConfig returns a new Config pointer that can be chained with builder methods to
 // set multiple configuration values inline without using pointers.
 //
-//     svc := s3.New(aws.NewConfig().WithRegion("us-west-2").WithMaxRetries(10))
+//     sess := session.New(aws.NewConfig().WithRegion("us-west-2").WithMaxRetries(10))
 //
 func NewConfig() *Config {
 	return &Config{}

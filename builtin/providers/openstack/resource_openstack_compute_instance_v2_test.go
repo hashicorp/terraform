@@ -316,11 +316,11 @@ func TestAccComputeV2Instance_floatingIPAttachAndChange(t *testing.T) {
 }
 
 func TestAccComputeV2Instance_multi_secgroups(t *testing.T) {
-	var instance servers.Server
-	var secgroup secgroups.SecurityGroup
+	var instance_1 servers.Server
+	var secgroup_1 secgroups.SecurityGroup
 	var testAccComputeV2Instance_multi_secgroups = fmt.Sprintf(`
-		resource "openstack_compute_secgroup_v2" "foo" {
-			name = "terraform-test"
+		resource "openstack_compute_secgroup_v2" "secgroup_1" {
+			name = "secgroup_1"
 			description = "a security group"
 			rule {
 				from_port = 22
@@ -330,9 +330,9 @@ func TestAccComputeV2Instance_multi_secgroups(t *testing.T) {
 			}
 		}
 
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["default", "${openstack_compute_secgroup_v2.foo.name}"]
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default", "${openstack_compute_secgroup_v2.secgroup_1.name}"]
 			network {
 				uuid = "%s"
 			}
@@ -347,8 +347,92 @@ func TestAccComputeV2Instance_multi_secgroups(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_multi_secgroups,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.foo", &secgroup),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.secgroup_1", &secgroup_1),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_multi_secgroups_update(t *testing.T) {
+	var instance_1 servers.Server
+	var secgroup_1, secgroup_2 secgroups.SecurityGroup
+	var testAccComputeV2Instance_multi_secgroups_update_1 = fmt.Sprintf(`
+		resource "openstack_compute_secgroup_v2" "secgroup_1" {
+			name = "secgroup_1"
+			description = "a security group"
+			rule {
+				from_port = 22
+				to_port = 22
+				ip_protocol = "tcp"
+				cidr = "0.0.0.0/0"
+			}
+		}
+
+		resource "openstack_compute_secgroup_v2" "secgroup_2" {
+			name = "secgroup_2"
+			description = "another security group"
+			rule {
+				from_port = 80
+				to_port = 80
+				ip_protocol = "tcp"
+				cidr = "0.0.0.0/0"
+			}
+		}
+
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+		}`)
+
+	var testAccComputeV2Instance_multi_secgroups_update_2 = fmt.Sprintf(`
+		resource "openstack_compute_secgroup_v2" "secgroup_1" {
+			name = "secgroup_1"
+			description = "a security group"
+			rule {
+				from_port = 22
+				to_port = 22
+				ip_protocol = "tcp"
+				cidr = "0.0.0.0/0"
+			}
+		}
+
+		resource "openstack_compute_secgroup_v2" "secgroup_2" {
+			name = "secgroup_2"
+			description = "another security group"
+			rule {
+				from_port = 80
+				to_port = 80
+				ip_protocol = "tcp"
+				cidr = "0.0.0.0/0"
+			}
+		}
+
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default", "${openstack_compute_secgroup_v2.secgroup_1.name}", "${openstack_compute_secgroup_v2.secgroup_2.name}"]
+		}`)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_multi_secgroups_update_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.secgroup_1", &secgroup_1),
+					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.secgroup_2", &secgroup_2),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_multi_secgroups_update_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.secgroup_1", &secgroup_1),
+					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.secgroup_2", &secgroup_2),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
 				),
 			},
 		},
@@ -382,6 +466,47 @@ func TestAccComputeV2Instance_bootFromVolumeImage(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceBootVolumeAttachment(&instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_bootFromVolumeImageWithAttachedVolume(t *testing.T) {
+	var instance servers.Server
+	var testAccComputeV2Instance_bootFromVolumeImageWithAttachedVolume = fmt.Sprintf(`
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+  		name = "volume_1"
+  		size = 1
+		}
+
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			block_device {
+				uuid = "%s"
+				source_type = "image"
+				volume_size = 2
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = true
+			}
+
+			volume {
+				volume_id = "${openstack_blockstorage_volume_v1.volume_1.id}"
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_bootFromVolumeImageWithAttachedVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance),
 				),
 			},
 		},
@@ -839,4 +964,32 @@ func testAccCheckComputeV2InstanceInstanceIDsDoNotMatch(
 
 		return nil
 	}
+}
+
+func TestAccComputeV2Instance_stop_before_destroy(t *testing.T) {
+	var instance servers.Server
+	var testAccComputeV2Instance_stop_before_destroy = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+			network {
+				uuid = "%s"
+			}
+			stop_before_destroy = true
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_stop_before_destroy,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+				),
+			},
+		},
+	})
 }

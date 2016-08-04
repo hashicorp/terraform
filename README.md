@@ -83,15 +83,15 @@ Assuming your work is on a branch called `my-feature-branch`, the steps look lik
 
 1. Add the new package to your GOPATH:
 
-```bash
-go get github.com/hashicorp/my-project
-```
+    ```bash
+    go get github.com/hashicorp/my-project
+    ```
 
 2.  Add the new package to your vendor/ directory:
 
-```bash
-govendor add github.com/hashicorp/my-project/package
-```
+    ```bash
+    govendor add github.com/hashicorp/my-project/package
+    ```
 
 3. Review the changes in git and commit them.
 
@@ -101,9 +101,9 @@ To update a dependency:
 
 1. Fetch the dependency:
 
-```bash
-govendor fetch github.com/hashicorp/my-project
-```
+    ```bash
+    govendor fetch github.com/hashicorp/my-project
+    ```
 
 2. Review the changes in git and commit them.
 

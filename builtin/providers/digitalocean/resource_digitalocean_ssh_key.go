@@ -15,6 +15,9 @@ func resourceDigitalOceanSSHKey() *schema.Resource {
 		Read:   resourceDigitalOceanSSHKeyRead,
 		Update: resourceDigitalOceanSSHKeyUpdate,
 		Delete: resourceDigitalOceanSSHKeyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
@@ -84,6 +87,7 @@ func resourceDigitalOceanSSHKeyRead(d *schema.ResourceData, meta interface{}) er
 
 	d.Set("name", key.Name)
 	d.Set("fingerprint", key.Fingerprint)
+	d.Set("public_key", key.PublicKey)
 
 	return nil
 }

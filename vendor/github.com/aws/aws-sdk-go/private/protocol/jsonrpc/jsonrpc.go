@@ -1,4 +1,4 @@
-// Package jsonrpc provides JSON RPC utilities for serialisation of AWS
+// Package jsonrpc provides JSON RPC utilities for serialization of AWS
 // requests and responses.
 package jsonrpc
 

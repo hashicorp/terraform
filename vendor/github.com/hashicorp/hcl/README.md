@@ -81,9 +81,20 @@ FOO
   * Boolean values: `true`, `false`
 
   * Arrays can be made by wrapping it in `[]`. Example:
-    `["foo", "bar", 42]`. Arrays can contain primitives
-    and other arrays, but cannot contain objects. Objects must
-    use the block syntax shown below.
+    `["foo", "bar", 42]`. Arrays can contain primitives,
+    other arrays, and objects. As an alternative, lists
+    of objects can be created with repeated blocks, using
+    this structure:
+
+    ```hcl
+    service {
+        key = "value"
+    }
+
+    service {
+        key = "value"
+    }
+    ```
 
 Objects and nested objects are created using the structure shown below:
 

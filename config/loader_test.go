@@ -132,22 +132,13 @@ func TestLoadFileHeredoc(t *testing.T) {
 }
 
 func TestLoadFileEscapedQuotes(t *testing.T) {
-	c, err := LoadFile(filepath.Join(fixtureDir, "escapedquotes.tf"))
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, err := LoadFile(filepath.Join(fixtureDir, "escapedquotes.tf"))
+	if err == nil {
+		t.Fatalf("expected syntax error as escaped quotes are no longer supported")
 	}
 
-	if c == nil {
-		t.Fatal("config should not be nil")
-	}
-
-	if c.Dir != "" {
-		t.Fatalf("bad: %#v", c.Dir)
-	}
-
-	actual := resourcesStr(c.Resources)
-	if actual != strings.TrimSpace(escapedquotesResourcesStr) {
-		t.Fatalf("bad:\n%s", actual)
+	if !strings.Contains(err.Error(), "syntax error") {
+		t.Fatalf("expected \"syntax error\", got: %s", err)
 	}
 }
 
@@ -785,13 +776,6 @@ aws_instance.test (x1)
   provisioners
     remote-exec
       inline
-`
-
-const escapedquotesResourcesStr = `
-aws_instance.quotes (x1)
-  ami
-  vars
-    user: var.ami
 `
 
 const basicOutputsStr = `

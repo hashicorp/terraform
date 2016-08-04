@@ -19,6 +19,7 @@ func copyDir(dst, src string) error {
 		if err != nil {
 			return err
 		}
+
 		if path == src {
 			return nil
 		}
@@ -35,6 +36,13 @@ func copyDir(dst, src string) error {
 		// The "path" has the src prefixed to it. We need to join our
 		// destination with the path without the src on it.
 		dstPath := filepath.Join(dst, path[len(src):])
+
+		// we don't want to try and copy the same file over itself.
+		if eq, err := sameFile(path, dstPath); eq {
+			return nil
+		} else if err != nil {
+			return err
+		}
 
 		// If we have a directory, make that subdirectory, then continue
 		// the walk.
@@ -73,4 +81,34 @@ func copyDir(dst, src string) error {
 	}
 
 	return filepath.Walk(src, walkFn)
+}
+
+// sameFile tried to determine if to paths are the same file.
+// If the paths don't match, we lookup the inode on supported systems.
+func sameFile(a, b string) (bool, error) {
+	if a == b {
+		return true, nil
+	}
+
+	aIno, err := inode(a)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	bIno, err := inode(b)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	if aIno > 0 && aIno == bIno {
+		return true, nil
+	}
+
+	return false, nil
 }

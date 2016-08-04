@@ -12,6 +12,7 @@ type Config struct {
 	Address    string     `mapstructure:"address"`
 	Scheme     string     `mapstructure:"scheme"`
 	TLS        *TLSConfig `mapstructure:"tls"`
+	Token      string     `mapstructure:"token"`
 }
 
 type TLSConfig struct {
@@ -33,6 +34,7 @@ func (c *Config) Client() (*consulapi.Client, error) {
 	if c.Scheme != "" {
 		config.Scheme = c.Scheme
 	}
+
 	if c.TLS != nil {
 		tlsConfig := &consulapi.TLSConfig{}
 		if c.TLS.CAFile != "" {
@@ -49,6 +51,10 @@ func (c *Config) Client() (*consulapi.Client, error) {
 			return nil, err
 		}
 		config.HttpClient.Transport.(*http.Transport).TLSClientConfig = cc
+	}
+
+	if c.Token != "" {
+		config.Token = c.Token
 	}
 
 	client, err := consulapi.NewClient(config)

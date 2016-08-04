@@ -36,9 +36,9 @@ type Meta struct {
 
 	// Variables for the context (private)
 	autoKey       string
-	autoVariables map[string]string
+	autoVariables map[string]interface{}
 	input         bool
-	variables     map[string]string
+	variables     map[string]interface{}
 
 	// Targets for this context (private)
 	targets []string
@@ -109,14 +109,18 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		f.Close()
 		if err == nil {
 			// Setup our state
-			state, statePath, err := StateFromPlan(m.statePath, plan)
+			state, statePath, err := StateFromPlan(m.statePath, m.stateOutPath, plan)
 			if err != nil {
 				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
 
 			// Set our state
 			m.state = state
-			m.stateOutPath = statePath
+
+			// this is used for printing the saved location later
+			if m.stateOutPath == "" {
+				m.stateOutPath = statePath
+			}
 
 			if len(m.variables) > 0 {
 				return nil, false, fmt.Errorf(
@@ -170,7 +174,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 
 // DataDir returns the directory where local data will be stored.
 func (m *Meta) DataDir() string {
-	dataDir := DefaultDataDirectory
+	dataDir := DefaultDataDir
 	if m.dataDir != "" {
 		dataDir = m.dataDir
 	}
@@ -290,7 +294,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
 	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
 
-	vs := make(map[string]string)
+	vs := make(map[string]interface{})
 	for k, v := range opts.Variables {
 		vs[k] = v
 	}
@@ -311,7 +315,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagKV)(&m.variables), "var", "variables")
+	f.Var((*FlagTypedKV)(&m.variables), "var", "variables")
 	f.Var((*FlagKVFile)(&m.variables), "var-file", "variable file")
 	f.Var((*FlagStringSlice)(&m.targets), "target", "resource to target")
 

@@ -8,16 +8,35 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccState_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+func TestState_basic(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccState_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckStateValue(
-						"terraform_remote_state.foo", "foo", "bar"),
+						"data.terraform_remote_state.foo", "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestState_complexOutputs(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_complexOutputs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue("terraform_remote_state.foo", "backend", "_local"),
+					testAccCheckStateValue("terraform_remote_state.foo", "config.path", "./test-fixtures/complex_outputs.tfstate"),
+					testAccCheckStateValue("terraform_remote_state.foo", "computed_set.#", "2"),
+					testAccCheckStateValue("terraform_remote_state.foo", `map.%`, "2"),
+					testAccCheckStateValue("terraform_remote_state.foo", `map.key`, "test"),
 				),
 			},
 		},
@@ -34,7 +53,7 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
-		v := rs.Primary.Attributes["output."+name]
+		v := rs.Primary.Attributes[name]
 		if v != value {
 			return fmt.Errorf(
 				"Value for %s is %s, not %s", name, v, value)
@@ -45,10 +64,19 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 }
 
 const testAccState_basic = `
-resource "terraform_remote_state" "foo" {
+data "terraform_remote_state" "foo" {
 	backend = "_local"
 
 	config {
 		path = "./test-fixtures/basic.tfstate"
+	}
+}`
+
+const testAccState_complexOutputs = `
+resource "terraform_remote_state" "foo" {
+	backend = "_local"
+
+	config {
+		path = "./test-fixtures/complex_outputs.tfstate"
 	}
 }`

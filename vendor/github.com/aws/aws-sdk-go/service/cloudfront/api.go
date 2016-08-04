@@ -15,7 +15,28 @@ import (
 
 const opCreateCloudFrontOriginAccessIdentity = "CreateCloudFrontOriginAccessIdentity2016_01_28"
 
-// CreateCloudFrontOriginAccessIdentityRequest generates a request for the CreateCloudFrontOriginAccessIdentity operation.
+// CreateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
+// client's request for the CreateCloudFrontOriginAccessIdentity operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateCloudFrontOriginAccessIdentity method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateCloudFrontOriginAccessIdentityRequest method.
+//    req, resp := client.CreateCloudFrontOriginAccessIdentityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCloudFrontOriginAccessIdentityInput) (req *request.Request, output *CreateCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opCreateCloudFrontOriginAccessIdentity,
@@ -42,7 +63,28 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentity(input *CreateCloudFron
 
 const opCreateDistribution = "CreateDistribution2016_01_28"
 
-// CreateDistributionRequest generates a request for the CreateDistribution operation.
+// CreateDistributionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDistribution operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateDistribution method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateDistributionRequest method.
+//    req, resp := client.CreateDistributionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (req *request.Request, output *CreateDistributionOutput) {
 	op := &request.Operation{
 		Name:       opCreateDistribution,
@@ -69,7 +111,28 @@ func (c *CloudFront) CreateDistribution(input *CreateDistributionInput) (*Create
 
 const opCreateInvalidation = "CreateInvalidation2016_01_28"
 
-// CreateInvalidationRequest generates a request for the CreateInvalidation operation.
+// CreateInvalidationRequest generates a "aws/request.Request" representing the
+// client's request for the CreateInvalidation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateInvalidation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateInvalidationRequest method.
+//    req, resp := client.CreateInvalidationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) CreateInvalidationRequest(input *CreateInvalidationInput) (req *request.Request, output *CreateInvalidationOutput) {
 	op := &request.Operation{
 		Name:       opCreateInvalidation,
@@ -96,7 +159,28 @@ func (c *CloudFront) CreateInvalidation(input *CreateInvalidationInput) (*Create
 
 const opCreateStreamingDistribution = "CreateStreamingDistribution2016_01_28"
 
-// CreateStreamingDistributionRequest generates a request for the CreateStreamingDistribution operation.
+// CreateStreamingDistributionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateStreamingDistribution operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateStreamingDistribution method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateStreamingDistributionRequest method.
+//    req, resp := client.CreateStreamingDistributionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDistributionInput) (req *request.Request, output *CreateStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opCreateStreamingDistribution,
@@ -123,7 +207,28 @@ func (c *CloudFront) CreateStreamingDistribution(input *CreateStreamingDistribut
 
 const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIdentity2016_01_28"
 
-// DeleteCloudFrontOriginAccessIdentityRequest generates a request for the DeleteCloudFrontOriginAccessIdentity operation.
+// DeleteCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteCloudFrontOriginAccessIdentity operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteCloudFrontOriginAccessIdentity method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteCloudFrontOriginAccessIdentityRequest method.
+//    req, resp := client.DeleteCloudFrontOriginAccessIdentityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCloudFrontOriginAccessIdentityInput) (req *request.Request, output *DeleteCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCloudFrontOriginAccessIdentity,
@@ -152,7 +257,28 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentity(input *DeleteCloudFron
 
 const opDeleteDistribution = "DeleteDistribution2016_01_28"
 
-// DeleteDistributionRequest generates a request for the DeleteDistribution operation.
+// DeleteDistributionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDistribution operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteDistribution method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteDistributionRequest method.
+//    req, resp := client.DeleteDistributionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) DeleteDistributionRequest(input *DeleteDistributionInput) (req *request.Request, output *DeleteDistributionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDistribution,
@@ -181,7 +307,28 @@ func (c *CloudFront) DeleteDistribution(input *DeleteDistributionInput) (*Delete
 
 const opDeleteStreamingDistribution = "DeleteStreamingDistribution2016_01_28"
 
-// DeleteStreamingDistributionRequest generates a request for the DeleteStreamingDistribution operation.
+// DeleteStreamingDistributionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteStreamingDistribution operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteStreamingDistribution method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteStreamingDistributionRequest method.
+//    req, resp := client.DeleteStreamingDistributionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) DeleteStreamingDistributionRequest(input *DeleteStreamingDistributionInput) (req *request.Request, output *DeleteStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStreamingDistribution,
@@ -210,7 +357,28 @@ func (c *CloudFront) DeleteStreamingDistribution(input *DeleteStreamingDistribut
 
 const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity2016_01_28"
 
-// GetCloudFrontOriginAccessIdentityRequest generates a request for the GetCloudFrontOriginAccessIdentity operation.
+// GetCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
+// client's request for the GetCloudFrontOriginAccessIdentity operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetCloudFrontOriginAccessIdentity method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetCloudFrontOriginAccessIdentityRequest method.
+//    req, resp := client.GetCloudFrontOriginAccessIdentityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) GetCloudFrontOriginAccessIdentityRequest(input *GetCloudFrontOriginAccessIdentityInput) (req *request.Request, output *GetCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opGetCloudFrontOriginAccessIdentity,
@@ -237,7 +405,28 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentity(input *GetCloudFrontOrigi
 
 const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIdentityConfig2016_01_28"
 
-// GetCloudFrontOriginAccessIdentityConfigRequest generates a request for the GetCloudFrontOriginAccessIdentityConfig operation.
+// GetCloudFrontOriginAccessIdentityConfigRequest generates a "aws/request.Request" representing the
+// client's request for the GetCloudFrontOriginAccessIdentityConfig operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetCloudFrontOriginAccessIdentityConfig method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetCloudFrontOriginAccessIdentityConfigRequest method.
+//    req, resp := client.GetCloudFrontOriginAccessIdentityConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigRequest(input *GetCloudFrontOriginAccessIdentityConfigInput) (req *request.Request, output *GetCloudFrontOriginAccessIdentityConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetCloudFrontOriginAccessIdentityConfig,
@@ -264,7 +453,28 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfig(input *GetCloudFron
 
 const opGetDistribution = "GetDistribution2016_01_28"
 
-// GetDistributionRequest generates a request for the GetDistribution operation.
+// GetDistributionRequest generates a "aws/request.Request" representing the
+// client's request for the GetDistribution operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDistribution method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDistributionRequest method.
+//    req, resp := client.GetDistributionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) GetDistributionRequest(input *GetDistributionInput) (req *request.Request, output *GetDistributionOutput) {
 	op := &request.Operation{
 		Name:       opGetDistribution,
@@ -291,7 +501,28 @@ func (c *CloudFront) GetDistribution(input *GetDistributionInput) (*GetDistribut
 
 const opGetDistributionConfig = "GetDistributionConfig2016_01_28"
 
-// GetDistributionConfigRequest generates a request for the GetDistributionConfig operation.
+// GetDistributionConfigRequest generates a "aws/request.Request" representing the
+// client's request for the GetDistributionConfig operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDistributionConfig method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDistributionConfigRequest method.
+//    req, resp := client.GetDistributionConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) GetDistributionConfigRequest(input *GetDistributionConfigInput) (req *request.Request, output *GetDistributionConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetDistributionConfig,
@@ -318,7 +549,28 @@ func (c *CloudFront) GetDistributionConfig(input *GetDistributionConfigInput) (*
 
 const opGetInvalidation = "GetInvalidation2016_01_28"
 
-// GetInvalidationRequest generates a request for the GetInvalidation operation.
+// GetInvalidationRequest generates a "aws/request.Request" representing the
+// client's request for the GetInvalidation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetInvalidation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetInvalidationRequest method.
+//    req, resp := client.GetInvalidationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) GetInvalidationRequest(input *GetInvalidationInput) (req *request.Request, output *GetInvalidationOutput) {
 	op := &request.Operation{
 		Name:       opGetInvalidation,
@@ -345,7 +597,28 @@ func (c *CloudFront) GetInvalidation(input *GetInvalidationInput) (*GetInvalidat
 
 const opGetStreamingDistribution = "GetStreamingDistribution2016_01_28"
 
-// GetStreamingDistributionRequest generates a request for the GetStreamingDistribution operation.
+// GetStreamingDistributionRequest generates a "aws/request.Request" representing the
+// client's request for the GetStreamingDistribution operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetStreamingDistribution method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetStreamingDistributionRequest method.
+//    req, resp := client.GetStreamingDistributionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) GetStreamingDistributionRequest(input *GetStreamingDistributionInput) (req *request.Request, output *GetStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opGetStreamingDistribution,
@@ -372,7 +645,28 @@ func (c *CloudFront) GetStreamingDistribution(input *GetStreamingDistributionInp
 
 const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2016_01_28"
 
-// GetStreamingDistributionConfigRequest generates a request for the GetStreamingDistributionConfig operation.
+// GetStreamingDistributionConfigRequest generates a "aws/request.Request" representing the
+// client's request for the GetStreamingDistributionConfig operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetStreamingDistributionConfig method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetStreamingDistributionConfigRequest method.
+//    req, resp := client.GetStreamingDistributionConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) GetStreamingDistributionConfigRequest(input *GetStreamingDistributionConfigInput) (req *request.Request, output *GetStreamingDistributionConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetStreamingDistributionConfig,
@@ -399,7 +693,28 @@ func (c *CloudFront) GetStreamingDistributionConfig(input *GetStreamingDistribut
 
 const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdentities2016_01_28"
 
-// ListCloudFrontOriginAccessIdentitiesRequest generates a request for the ListCloudFrontOriginAccessIdentities operation.
+// ListCloudFrontOriginAccessIdentitiesRequest generates a "aws/request.Request" representing the
+// client's request for the ListCloudFrontOriginAccessIdentities operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListCloudFrontOriginAccessIdentities method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListCloudFrontOriginAccessIdentitiesRequest method.
+//    req, resp := client.ListCloudFrontOriginAccessIdentitiesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesRequest(input *ListCloudFrontOriginAccessIdentitiesInput) (req *request.Request, output *ListCloudFrontOriginAccessIdentitiesOutput) {
 	op := &request.Operation{
 		Name:       opListCloudFrontOriginAccessIdentities,
@@ -430,6 +745,23 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentities(input *ListCloudFrontO
 	return out, err
 }
 
+// ListCloudFrontOriginAccessIdentitiesPages iterates over the pages of a ListCloudFrontOriginAccessIdentities operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListCloudFrontOriginAccessIdentities method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListCloudFrontOriginAccessIdentities operation.
+//    pageNum := 0
+//    err := client.ListCloudFrontOriginAccessIdentitiesPages(params,
+//        func(page *ListCloudFrontOriginAccessIdentitiesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesPages(input *ListCloudFrontOriginAccessIdentitiesInput, fn func(p *ListCloudFrontOriginAccessIdentitiesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListCloudFrontOriginAccessIdentitiesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -440,7 +772,28 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesPages(input *ListCloudF
 
 const opListDistributions = "ListDistributions2016_01_28"
 
-// ListDistributionsRequest generates a request for the ListDistributions operation.
+// ListDistributionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListDistributions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListDistributions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListDistributionsRequest method.
+//    req, resp := client.ListDistributionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) ListDistributionsRequest(input *ListDistributionsInput) (req *request.Request, output *ListDistributionsOutput) {
 	op := &request.Operation{
 		Name:       opListDistributions,
@@ -471,6 +824,23 @@ func (c *CloudFront) ListDistributions(input *ListDistributionsInput) (*ListDist
 	return out, err
 }
 
+// ListDistributionsPages iterates over the pages of a ListDistributions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListDistributions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListDistributions operation.
+//    pageNum := 0
+//    err := client.ListDistributionsPages(params,
+//        func(page *ListDistributionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudFront) ListDistributionsPages(input *ListDistributionsInput, fn func(p *ListDistributionsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListDistributionsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -481,7 +851,28 @@ func (c *CloudFront) ListDistributionsPages(input *ListDistributionsInput, fn fu
 
 const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2016_01_28"
 
-// ListDistributionsByWebACLIdRequest generates a request for the ListDistributionsByWebACLId operation.
+// ListDistributionsByWebACLIdRequest generates a "aws/request.Request" representing the
+// client's request for the ListDistributionsByWebACLId operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListDistributionsByWebACLId method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListDistributionsByWebACLIdRequest method.
+//    req, resp := client.ListDistributionsByWebACLIdRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) ListDistributionsByWebACLIdRequest(input *ListDistributionsByWebACLIdInput) (req *request.Request, output *ListDistributionsByWebACLIdOutput) {
 	op := &request.Operation{
 		Name:       opListDistributionsByWebACLId,
@@ -508,7 +899,28 @@ func (c *CloudFront) ListDistributionsByWebACLId(input *ListDistributionsByWebAC
 
 const opListInvalidations = "ListInvalidations2016_01_28"
 
-// ListInvalidationsRequest generates a request for the ListInvalidations operation.
+// ListInvalidationsRequest generates a "aws/request.Request" representing the
+// client's request for the ListInvalidations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListInvalidations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListInvalidationsRequest method.
+//    req, resp := client.ListInvalidationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) ListInvalidationsRequest(input *ListInvalidationsInput) (req *request.Request, output *ListInvalidationsOutput) {
 	op := &request.Operation{
 		Name:       opListInvalidations,
@@ -539,6 +951,23 @@ func (c *CloudFront) ListInvalidations(input *ListInvalidationsInput) (*ListInva
 	return out, err
 }
 
+// ListInvalidationsPages iterates over the pages of a ListInvalidations operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListInvalidations method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListInvalidations operation.
+//    pageNum := 0
+//    err := client.ListInvalidationsPages(params,
+//        func(page *ListInvalidationsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudFront) ListInvalidationsPages(input *ListInvalidationsInput, fn func(p *ListInvalidationsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListInvalidationsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -549,7 +978,28 @@ func (c *CloudFront) ListInvalidationsPages(input *ListInvalidationsInput, fn fu
 
 const opListStreamingDistributions = "ListStreamingDistributions2016_01_28"
 
-// ListStreamingDistributionsRequest generates a request for the ListStreamingDistributions operation.
+// ListStreamingDistributionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListStreamingDistributions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListStreamingDistributions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListStreamingDistributionsRequest method.
+//    req, resp := client.ListStreamingDistributionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) ListStreamingDistributionsRequest(input *ListStreamingDistributionsInput) (req *request.Request, output *ListStreamingDistributionsOutput) {
 	op := &request.Operation{
 		Name:       opListStreamingDistributions,
@@ -580,6 +1030,23 @@ func (c *CloudFront) ListStreamingDistributions(input *ListStreamingDistribution
 	return out, err
 }
 
+// ListStreamingDistributionsPages iterates over the pages of a ListStreamingDistributions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListStreamingDistributions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListStreamingDistributions operation.
+//    pageNum := 0
+//    err := client.ListStreamingDistributionsPages(params,
+//        func(page *ListStreamingDistributionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudFront) ListStreamingDistributionsPages(input *ListStreamingDistributionsInput, fn func(p *ListStreamingDistributionsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListStreamingDistributionsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -590,7 +1057,28 @@ func (c *CloudFront) ListStreamingDistributionsPages(input *ListStreamingDistrib
 
 const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIdentity2016_01_28"
 
-// UpdateCloudFrontOriginAccessIdentityRequest generates a request for the UpdateCloudFrontOriginAccessIdentity operation.
+// UpdateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateCloudFrontOriginAccessIdentity operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateCloudFrontOriginAccessIdentity method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateCloudFrontOriginAccessIdentityRequest method.
+//    req, resp := client.UpdateCloudFrontOriginAccessIdentityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityRequest(input *UpdateCloudFrontOriginAccessIdentityInput) (req *request.Request, output *UpdateCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opUpdateCloudFrontOriginAccessIdentity,
@@ -617,7 +1105,28 @@ func (c *CloudFront) UpdateCloudFrontOriginAccessIdentity(input *UpdateCloudFron
 
 const opUpdateDistribution = "UpdateDistribution2016_01_28"
 
-// UpdateDistributionRequest generates a request for the UpdateDistribution operation.
+// UpdateDistributionRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateDistribution operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateDistribution method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateDistributionRequest method.
+//    req, resp := client.UpdateDistributionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (req *request.Request, output *UpdateDistributionOutput) {
 	op := &request.Operation{
 		Name:       opUpdateDistribution,
@@ -644,7 +1153,28 @@ func (c *CloudFront) UpdateDistribution(input *UpdateDistributionInput) (*Update
 
 const opUpdateStreamingDistribution = "UpdateStreamingDistribution2016_01_28"
 
-// UpdateStreamingDistributionRequest generates a request for the UpdateStreamingDistribution operation.
+// UpdateStreamingDistributionRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateStreamingDistribution operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateStreamingDistribution method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateStreamingDistributionRequest method.
+//    req, resp := client.UpdateStreamingDistributionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFront) UpdateStreamingDistributionRequest(input *UpdateStreamingDistributionInput) (req *request.Request, output *UpdateStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opUpdateStreamingDistribution,

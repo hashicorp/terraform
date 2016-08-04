@@ -15,6 +15,9 @@ func resourceAwsCloudFrontOriginAccessIdentity() *schema.Resource {
 		Read:   resourceAwsCloudFrontOriginAccessIdentityRead,
 		Update: resourceAwsCloudFrontOriginAccessIdentityUpdate,
 		Delete: resourceAwsCloudFrontOriginAccessIdentityDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"comment": &schema.Schema{

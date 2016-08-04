@@ -87,3 +87,11 @@ The following attributes are exported:
 * `remote_group_id` - See Argument Reference above.
 * `security_group_id` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
+
+## Import
+
+Security Group Rules can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_networking_secgroup_rule_v2.secgroup_rule_1 aeb68ee3-6e9d-4256-955c-9584a6212745
+```

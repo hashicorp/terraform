@@ -14,7 +14,16 @@ type TerraformConfigVersion struct {
 	Version   int
 	Remotes   []string          `json:"remotes"`
 	Metadata  map[string]string `json:"metadata"`
-	Variables map[string]string `json:"variables"`
+	Variables map[string]string `json:"variables,omitempty"`
+	TFVars    []TFVar           `json:"tf_vars"`
+}
+
+// TFVar is used to serialize a single Terraform variable sent by the
+// manager as a collection of Variables in a Job payload.
+type TFVar struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+	IsHCL bool   `json:"hcl"`
 }
 
 // TerraformConfigLatest returns the latest Terraform configuration version.

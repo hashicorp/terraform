@@ -59,6 +59,13 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"prefix_list_ids": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"security_group_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -198,10 +205,13 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).ec2conn
 	sg_id := d.Get("security_group_id").(string)
 	sg, err := findResourceSecurityGroup(conn, sg_id)
-	if err != nil {
-		log.Printf("[DEBUG] Error finding Secuirty Group (%s) for Rule (%s): %s", sg_id, d.Id(), err)
+	if _, notFound := err.(securityGroupNotFound); notFound {
+		// The security group containing this rule no longer exists.
 		d.SetId("")
 		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("Error finding security group (%s) for rule (%s): %s", sg_id, d.Id(), err)
 	}
 
 	isVPC := sg.VpcId != nil && *sg.VpcId != ""
@@ -305,17 +315,33 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 		GroupIds: []*string{aws.String(id)},
 	}
 	resp, err := conn.DescribeSecurityGroups(req)
+	if err, ok := err.(awserr.Error); ok && err.Code() == "InvalidGroup.NotFound" {
+		return nil, securityGroupNotFound{id, nil}
+	}
 	if err != nil {
 		return nil, err
 	}
-
-	if resp == nil || len(resp.SecurityGroups) != 1 || resp.SecurityGroups[0] == nil {
-		return nil, fmt.Errorf(
-			"Expected to find one security group with ID %q, got: %#v",
-			id, resp.SecurityGroups)
+	if resp == nil {
+		return nil, securityGroupNotFound{id, nil}
+	}
+	if len(resp.SecurityGroups) != 1 || resp.SecurityGroups[0] == nil {
+		return nil, securityGroupNotFound{id, resp.SecurityGroups}
 	}
 
 	return resp.SecurityGroups[0], nil
+}
+
+type securityGroupNotFound struct {
+	id             string
+	securityGroups []*ec2.SecurityGroup
+}
+
+func (err securityGroupNotFound) Error() string {
+	if err.securityGroups == nil {
+		return fmt.Sprintf("No security group with ID %q", err.id)
+	}
+	return fmt.Sprintf("Expected to find one security group with ID %q, got: %#v",
+		err.id, err.securityGroups)
 }
 
 // ByGroupPair implements sort.Interface for []*ec2.UserIDGroupPairs based on
@@ -354,6 +380,19 @@ func findRuleMatch(p *ec2.IpPermission, rules []*ec2.IpPermission, isVPC bool) *
 		for _, ip := range p.IpRanges {
 			for _, rip := range r.IpRanges {
 				if *ip.CidrIp == *rip.CidrIp {
+					remaining--
+				}
+			}
+		}
+
+		if remaining > 0 {
+			continue
+		}
+
+		remaining = len(p.PrefixListIds)
+		for _, pl := range p.PrefixListIds {
+			for _, rpl := range r.PrefixListIds {
+				if *pl.PrefixListId == *rpl.PrefixListId {
 					remaining--
 				}
 			}
@@ -413,6 +452,18 @@ func ipPermissionIDHash(sg_id, ruleType string, ip *ec2.IpPermission) string {
 		}
 	}
 
+	if len(ip.PrefixListIds) > 0 {
+		s := make([]string, len(ip.PrefixListIds))
+		for i, pl := range ip.PrefixListIds {
+			s[i] = *pl.PrefixListId
+		}
+		sort.Strings(s)
+
+		for _, v := range s {
+			buf.WriteString(fmt.Sprintf("%s-", v))
+		}
+	}
+
 	if len(ip.UserIdGroupPairs) > 0 {
 		sort.Sort(ByGroupPair(ip.UserIdGroupPairs))
 		for _, pair := range ip.UserIdGroupPairs {
@@ -447,7 +498,6 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermiss
 	}
 
 	if v, ok := d.GetOk("self"); ok && v.(bool) {
-		// if sg.GroupId != nil {
 		if sg.VpcId != nil && *sg.VpcId != "" {
 			groups[*sg.GroupId] = true
 		} else {
@@ -494,6 +544,18 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermiss
 		}
 	}
 
+	if raw, ok := d.GetOk("prefix_list_ids"); ok {
+		list := raw.([]interface{})
+		perm.PrefixListIds = make([]*ec2.PrefixListId, len(list))
+		for i, v := range list {
+			prefixListID, ok := v.(string)
+			if !ok {
+				return nil, fmt.Errorf("empty element found in prefix_list_ids - consider using the compact function")
+			}
+			perm.PrefixListIds[i] = &ec2.PrefixListId{PrefixListId: aws.String(prefixListID)}
+		}
+	}
+
 	return &perm, nil
 }
 
@@ -511,8 +573,15 @@ func setFromIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup, rule *ec2.IpPe
 
 	d.Set("cidr_blocks", cb)
 
+	var pl []string
+	for _, p := range rule.PrefixListIds {
+		pl = append(pl, *p.PrefixListId)
+	}
+	d.Set("prefix_list_ids", pl)
+
 	if len(rule.UserIdGroupPairs) > 0 {
 		s := rule.UserIdGroupPairs[0]
+
 		if isVPC {
 			d.Set("source_security_group_id", *s.GroupId)
 		} else {

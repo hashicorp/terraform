@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -34,6 +37,9 @@ func resourceAwsSqsQueue() *schema.Resource {
 		Read:   resourceAwsSqsQueueRead,
 		Update: resourceAwsSqsQueueUpdate,
 		Delete: resourceAwsSqsQueueDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -44,27 +50,27 @@ func resourceAwsSqsQueue() *schema.Resource {
 			"delay_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  0,
 			},
 			"max_message_size": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  262144,
 			},
 			"message_retention_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  345600,
 			},
 			"receive_wait_time_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  0,
 			},
 			"visibility_timeout_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  30,
 			},
 			"policy": &schema.Schema{
 				Type:     schema.TypeString,
@@ -189,6 +195,12 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	name, err := extractNameFromSqsQueueUrl(d.Id())
+	if err != nil {
+		return err
+	}
+	d.Set("name", name)
+
 	if attributeOutput.Attributes != nil && len(attributeOutput.Attributes) > 0 {
 		attrmap := attributeOutput.Attributes
 		resource := *resourceAwsSqsQueue()
@@ -224,4 +236,19 @@ func resourceAwsSqsQueueDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func extractNameFromSqsQueueUrl(queue string) (string, error) {
+	//http://sqs.us-west-2.amazonaws.com/123456789012/queueName
+	u, err := url.Parse(queue)
+	if err != nil {
+		return "", err
+	}
+	segments := strings.Split(u.Path, "/")
+	if len(segments) != 3 {
+		return "", fmt.Errorf("SQS Url not parsed correctly")
+	}
+
+	return segments[2], nil
+
 }

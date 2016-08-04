@@ -43,35 +43,40 @@ log_location            STDOUT
 chef_server_url         "{{ .ServerURL }}"
 validation_client_name  "{{ .ValidationClientName }}"
 node_name               "{{ .NodeName }}"
-
 {{ if .UsePolicyfile }}
 use_policyfile true
 policy_group 	 "{{ .PolicyGroup }}"
 policy_name 	 "{{ .PolicyName }}"
-{{ end }}
+{{ end -}}
 
 {{ if .HTTPProxy }}
 http_proxy          "{{ .HTTPProxy }}"
 ENV['http_proxy'] = "{{ .HTTPProxy }}"
 ENV['HTTP_PROXY'] = "{{ .HTTPProxy }}"
-{{ end }}
+{{ end -}}
 
 {{ if .HTTPSProxy }}
 https_proxy          "{{ .HTTPSProxy }}"
 ENV['https_proxy'] = "{{ .HTTPSProxy }}"
 ENV['HTTPS_PROXY'] = "{{ .HTTPSProxy }}"
-{{ end }}
+{{ end -}}
 
 {{ if .NOProxy }}
 no_proxy          "{{ join .NOProxy "," }}"
 ENV['no_proxy'] = "{{ join .NOProxy "," }}"
+{{ end -}}
+
+{{ if .SSLVerifyMode }}
+ssl_verify_mode  {{ .SSLVerifyMode }}
+{{- end -}}
+
+{{ if .DisableReporting }}
+enable_reporting false
+{{ end -}}
+
+{{ if .ClientOptions }}
+{{ join .ClientOptions "\n" }}
 {{ end }}
-
-{{ if .SSLVerifyMode }}ssl_verify_mode {{ .SSLVerifyMode }}{{ end }}
-
-{{ if .DisableReporting }}enable_reporting false{{ end }}
-
-{{ if .ClientOptions }}{{ join .ClientOptions "\n" }}{{ end }}
 `
 
 // Provisioner represents a specificly configured chef provisioner
@@ -450,6 +455,11 @@ func (p *Provisioner) deployConfigFiles(
 		if err := comm.Upload(path.Join(confDir, secretKey), s); err != nil {
 			return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
 		}
+	}
+
+	// Make sure the SSLVerifyMode value is written as a symbol
+	if p.SSLVerifyMode != "" && !strings.HasPrefix(p.SSLVerifyMode, ":") {
+		p.SSLVerifyMode = fmt.Sprintf(":%s", p.SSLVerifyMode)
 	}
 
 	// Make strings.Join available for use within the template

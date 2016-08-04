@@ -17,6 +17,9 @@ func resourceAwsIamUser() *schema.Resource {
 		Read:   resourceAwsIamUserRead,
 		Update: resourceAwsIamUserUpdate,
 		Delete: resourceAwsIamUserDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -45,6 +48,12 @@ func resourceAwsIamUser() *schema.Resource {
 				Default:  "/",
 				ForceNew: true,
 			},
+			"force_destroy": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Delete user even if it has non-Terraform-managed IAM access keys",
+			},
 		},
 	}
 }
@@ -64,14 +73,15 @@ func resourceAwsIamUserCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error creating IAM User %s: %s", name, err)
 	}
+	d.SetId(*createResp.User.UserName)
 	return resourceAwsIamUserReadResult(d, createResp.User)
 }
 
 func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
-	name := d.Get("name").(string)
+
 	request := &iam.GetUserInput{
-		UserName: aws.String(name),
+		UserName: aws.String(d.Id()),
 	}
 
 	getResp, err := iamconn.GetUser(request)
@@ -87,7 +97,6 @@ func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsIamUserReadResult(d *schema.ResourceData, user *iam.User) error {
-	d.SetId(*user.UserName)
 	if err := d.Set("name", user.UserName); err != nil {
 		return err
 	}
@@ -129,44 +138,57 @@ func resourceAwsIamUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	return nil
 }
+
 func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
 	// IAM Users must be removed from all groups before they can be deleted
 	var groups []string
-	var marker *string
-	truncated := aws.Bool(true)
-
-	for *truncated == true {
-		listOpts := iam.ListGroupsForUserInput{
-			UserName: aws.String(d.Id()),
-		}
-
-		if marker != nil {
-			listOpts.Marker = marker
-		}
-
-		r, err := iamconn.ListGroupsForUser(&listOpts)
-		if err != nil {
-			return err
-		}
-
-		for _, g := range r.Groups {
+	listGroups := &iam.ListGroupsForUserInput{
+		UserName: aws.String(d.Id()),
+	}
+	pageOfGroups := func(page *iam.ListGroupsForUserOutput, lastPage bool) (shouldContinue bool) {
+		for _, g := range page.Groups {
 			groups = append(groups, *g.GroupName)
 		}
-
-		// if there's a marker present, we need to save it for pagination
-		if r.Marker != nil {
-			*marker = *r.Marker
-		}
-		*truncated = *r.IsTruncated
+		return !lastPage
 	}
-
+	err := iamconn.ListGroupsForUserPages(listGroups, pageOfGroups)
+	if err != nil {
+		return fmt.Errorf("Error removing user %q from all groups: %s", d.Id(), err)
+	}
 	for _, g := range groups {
 		// use iam group membership func to remove user from all groups
 		log.Printf("[DEBUG] Removing IAM User %s from IAM Group %s", d.Id(), g)
 		if err := removeUsersFromGroup(iamconn, []*string{aws.String(d.Id())}, g); err != nil {
 			return err
+		}
+	}
+
+	// All access keys for the user must be removed
+	if d.Get("force_destroy").(bool) {
+		var accessKeys []string
+		listAccessKeys := &iam.ListAccessKeysInput{
+			UserName: aws.String(d.Id()),
+		}
+		pageOfAccessKeys := func(page *iam.ListAccessKeysOutput, lastPage bool) (shouldContinue bool) {
+			for _, k := range page.AccessKeyMetadata {
+				accessKeys = append(accessKeys, *k.AccessKeyId)
+			}
+			return !lastPage
+		}
+		err = iamconn.ListAccessKeysPages(listAccessKeys, pageOfAccessKeys)
+		if err != nil {
+			return fmt.Errorf("Error removing access keys of user %s: %s", d.Id(), err)
+		}
+		for _, k := range accessKeys {
+			_, err := iamconn.DeleteAccessKey(&iam.DeleteAccessKeyInput{
+				UserName:    aws.String(d.Id()),
+				AccessKeyId: aws.String(k),
+			})
+			if err != nil {
+				return fmt.Errorf("Error deleting access key %s: %s", k, err)
+			}
 		}
 	}
 

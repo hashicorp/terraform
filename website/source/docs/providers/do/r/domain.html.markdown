@@ -35,3 +35,12 @@ The following attributes are exported:
 
 * `id` - The name of the domain
 
+
+
+## Import
+
+Domains can be imported using the `domain name`, e.g. 
+
+```
+terraform import digitalocean_domain.mydomain mytestdomain.com
+```

@@ -29,6 +29,7 @@ import (
 	herokuprovider "github.com/hashicorp/terraform/builtin/providers/heroku"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
+	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
@@ -38,6 +39,7 @@ import (
 	powerdnsprovider "github.com/hashicorp/terraform/builtin/providers/powerdns"
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
+	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
 	softlayerprovider "github.com/hashicorp/terraform/builtin/providers/softlayer"
 	statuscakeprovider "github.com/hashicorp/terraform/builtin/providers/statuscake"
 	templateprovider "github.com/hashicorp/terraform/builtin/providers/template"
@@ -81,6 +83,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"heroku":       herokuprovider.Provider,
 	"influxdb":     influxdbprovider.Provider,
 	"librato":      libratoprovider.Provider,
+	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
 	"mysql":        mysqlprovider.Provider,
 	"null":         nullprovider.Provider,
@@ -90,6 +93,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"powerdns":     powerdnsprovider.Provider,
 	"random":       randomprovider.Provider,
 	"rundeck":      rundeckprovider.Provider,
+	"scaleway":     scalewayprovider.Provider,
 	"softlayer":    softlayerprovider.Provider,
 	"statuscake":   statuscakeprovider.Provider,
 	"template":     templateprovider.Provider,

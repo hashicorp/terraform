@@ -8,7 +8,7 @@
             </li>
 
             <li<%= sidebar_current("docs-azurerm-index") %>>
-              <a href="/docs/providers/azurerm/index.html">Azure Resource Manager Provider</a>
+              <a href="/docs/providers/azurerm/index.html">Microsoft Azure Provider</a>
             </li>
 
             <li<%= sidebar_current(/^docs-azurerm-resource-resource/) %>>
@@ -114,6 +114,14 @@
                   <a href="/docs/providers/azurerm/r/route.html">azurerm_route</a>
                 </li>
 
+                <li<%= sidebar_current("docs-azurerm-resource-network-traffic-manager-profile") %>>
+                  <a href="/docs/providers/azurerm/r/traffic_manager_profile.html">azurerm_traffic_manager_profile</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-traffic-manager-endpoint") %>>
+                  <a href="/docs/providers/azurerm/r/traffic_manager_endpoint.html">azurerm_traffic_manager_endpoint</a>
+                </li>
+
               </ul>
             </li>
 
@@ -165,6 +173,10 @@
                   <a href="/docs/providers/azurerm/r/storage_queue.html">azurerm_storage_queue</a>
                 </li>
 
+                <li<%= sidebar_current("docs-azurerm-resource-storage-table") %>>
+                  <a href="/docs/providers/azurerm/r/storage_table.html">azurerm_storage_table</a>
+                </li>
+
               </ul>
             </li>
 
@@ -191,9 +203,16 @@
                   <a href="/docs/providers/azurerm/r/virtual_machine.html">azurerm_virtual_machine</a>
                 </li>
 
+                <li<%= sidebar_current("docs-azurerm-resource-virtualmachine-scalesets") %>>
+                  <a href="/docs/providers/azurerm/r/virtual_machine_scale_sets.html">azurerm_virtual_machine_scale_set</a>
+                </li>
+
               </ul>
             </li>
 
+            <li>
+              <a href="/docs/providers/azure/index.html">Azure Service Management Provider &raquo;</a>
+            </li>
           </ul>
         </div>
     <% end %>

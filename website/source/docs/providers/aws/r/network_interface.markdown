@@ -53,3 +53,12 @@ The following attributes are exported:
 * `source_dest_check` - Whether source destination checking is enabled
 * `tags` - Tags assigned to the ENI.
 
+
+
+## Import
+
+Network Interfaces can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_network_interface.test eni-e5aa89a3
+```

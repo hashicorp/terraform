@@ -17,6 +17,9 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 		Read:   resourceAwsRDSClusterInstanceRead,
 		Update: resourceAwsRDSClusterInstanceUpdate,
 		Delete: resourceAwsRDSClusterInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"identifier": &schema.Schema{
@@ -78,6 +81,20 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
+			},
+
+			"kms_key_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"storage_encrypted": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
 			},
 
 			"tags": tagsSchema(),
@@ -185,9 +202,13 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	}
 
 	d.Set("publicly_accessible", db.PubliclyAccessible)
+	d.Set("cluster_identifier", db.DBClusterIdentifier)
+	d.Set("instance_class", db.DBInstanceClass)
+	d.Set("identifier", db.DBInstanceIdentifier)
+	d.Set("storage_encrypted", db.StorageEncrypted)
 
 	if len(db.DBParameterGroups) > 0 {
-		d.Set("parameter_group_name", db.DBParameterGroups[0].DBParameterGroupName)
+		d.Set("db_parameter_group_name", db.DBParameterGroups[0].DBParameterGroupName)
 	}
 
 	// Fetch and save tags

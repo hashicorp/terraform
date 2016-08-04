@@ -54,6 +54,9 @@ type interpolationWalkerContextFunc func(reflectwalk.Location, ast.Node)
 
 func (w *interpolationWalker) Enter(loc reflectwalk.Location) error {
 	w.loc = loc
+	if loc == reflectwalk.WalkLoc {
+		w.sliceIndex = -1
+	}
 	return nil
 }
 
@@ -72,6 +75,7 @@ func (w *interpolationWalker) Exit(loc reflectwalk.Location) error {
 		w.cs = w.cs[:len(w.cs)-1]
 	case reflectwalk.SliceElem:
 		w.csKey = w.csKey[:len(w.csKey)-1]
+		w.sliceIndex = -1
 	}
 
 	return nil
@@ -85,7 +89,13 @@ func (w *interpolationWalker) Map(m reflect.Value) error {
 func (w *interpolationWalker) MapElem(m, k, v reflect.Value) error {
 	w.csData = k
 	w.csKey = append(w.csKey, k)
-	w.key = append(w.key, k.String())
+
+	if w.sliceIndex != -1 {
+		w.key = append(w.key, fmt.Sprintf("%d.%s", w.sliceIndex, k.String()))
+	} else {
+		w.key = append(w.key, k.String())
+	}
+
 	w.lastValue = v
 	return nil
 }
@@ -164,6 +174,7 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		} else if replaceVal == UnknownVariableValue {
 			remove = true
 		}
+
 		if remove {
 			w.removeCurrent()
 			return nil

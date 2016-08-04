@@ -164,8 +164,13 @@ func resourceVSphereFileRead(d *schema.ResourceData, meta interface{}) error {
 
 	_, err = ds.Stat(context.TODO(), f.destinationFile)
 	if err != nil {
+		log.Printf("[DEBUG] resourceVSphereFileRead - stat failed on: %v", f.destinationFile)
 		d.SetId("")
-		return err
+
+		_, ok := err.(object.DatastoreNoSuchFileError)
+		if !ok {
+			return err
+		}
 	}
 
 	return nil

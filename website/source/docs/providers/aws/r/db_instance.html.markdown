@@ -78,12 +78,13 @@ the final snapshot (if `final_snapshot_identifier` is specified). Default
   See [RDS Maintenance Window docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html) for more.
 * `multi_az` - (Optional) Specifies if the RDS instance is multi-AZ
 * `port` - (Optional) The port on which the DB accepts connections.
-* `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible.
+* `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible. Defaults to `false`.
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate.
 * `security_group_names` - (Optional/Deprecated) List of DB Security Groups to associate.
     Only used for [DB Instances on the _EC2-Classic_ Platform](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html#USER_VPC.FindDefaultVPC).
 * `db_subnet_group_name` - (Optional) Name of DB subnet group. DB instance will be created in the VPC associated with the DB subnet group. If unspecified, will be created in the `default` VPC, or in EC2 Classic, if available.
 * `parameter_group_name` - (Optional) Name of the DB parameter group to associate.
+* `option_group_name` - (Optional) Name of the DB option group to associate.
 * `storage_encrypted` - (Optional) Specifies whether the DB instance is encrypted. The default is `false` if not specified.
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is
@@ -140,3 +141,11 @@ On Oracle instances the following is exported additionally:
 
 [1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
 [2]: https://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+
+## Import
+
+DB Instances can be imported using the `identifier`, e.g. 
+
+```
+$ terraform import aws_db_instance.default mydb-rds-instance
+```

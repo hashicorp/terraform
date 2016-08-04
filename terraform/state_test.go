@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -335,6 +334,156 @@ func TestStateEqual(t *testing.T) {
 		}
 		if tc.Two.Equal(tc.One) != tc.Result {
 			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+		}
+	}
+}
+
+func TestStateCompareAges(t *testing.T) {
+	cases := []struct {
+		Result   StateAgeComparison
+		Err      bool
+		One, Two *State
+	}{
+		{
+			StateAgeEqual, false,
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+		},
+		{
+			StateAgeReceiverOlder, false,
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+			&State{
+				Lineage: "1",
+				Serial:  3,
+			},
+		},
+		{
+			StateAgeReceiverNewer, false,
+			&State{
+				Lineage: "1",
+				Serial:  3,
+			},
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+		},
+		{
+			StateAgeEqual, true,
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+			&State{
+				Lineage: "2",
+				Serial:  2,
+			},
+		},
+		{
+			StateAgeEqual, true,
+			&State{
+				Lineage: "1",
+				Serial:  3,
+			},
+			&State{
+				Lineage: "2",
+				Serial:  2,
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		result, err := tc.One.CompareAges(tc.Two)
+
+		if err != nil && !tc.Err {
+			t.Errorf(
+				"%d: got error, but want success\n\n%s\n\n%s",
+				i, tc.One, tc.Two,
+			)
+			continue
+		}
+
+		if err == nil && tc.Err {
+			t.Errorf(
+				"%d: got success, but want error\n\n%s\n\n%s",
+				i, tc.One, tc.Two,
+			)
+			continue
+		}
+
+		if result != tc.Result {
+			t.Errorf(
+				"%d: got result %d, but want %d\n\n%s\n\n%s",
+				i, result, tc.Result, tc.One, tc.Two,
+			)
+			continue
+		}
+	}
+}
+
+func TestStateSameLineage(t *testing.T) {
+	cases := []struct {
+		Result   bool
+		One, Two *State
+	}{
+		{
+			true,
+			&State{
+				Lineage: "1",
+			},
+			&State{
+				Lineage: "1",
+			},
+		},
+		{
+			// Empty lineage is compatible with all
+			true,
+			&State{
+				Lineage: "",
+			},
+			&State{
+				Lineage: "1",
+			},
+		},
+		{
+			// Empty lineage is compatible with all
+			true,
+			&State{
+				Lineage: "1",
+			},
+			&State{
+				Lineage: "",
+			},
+		},
+		{
+			false,
+			&State{
+				Lineage: "1",
+			},
+			&State{
+				Lineage: "2",
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		result := tc.One.SameLineage(tc.Two)
+
+		if result != tc.Result {
+			t.Errorf(
+				"%d: got %v, but want %v\n\n%s\n\n%s",
+				i, result, tc.Result, tc.One, tc.Two,
+			)
+			continue
 		}
 	}
 }
@@ -1128,92 +1277,6 @@ func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
 	}
 }
 
-func TestReadUpgradeStateV1toV2(t *testing.T) {
-	// ReadState should transparently detect the old version but will upgrade
-	// it on Write.
-	actual, err := ReadState(strings.NewReader(testV1State))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	buf := new(bytes.Buffer)
-	if err := WriteState(actual, buf); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if actual.Version != 2 {
-		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
-	}
-
-	roundTripped, err := ReadState(buf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !reflect.DeepEqual(actual, roundTripped) {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
-func TestReadUpgradeStateV1toV2_outputs(t *testing.T) {
-	// ReadState should transparently detect the old version but will upgrade
-	// it on Write.
-	actual, err := ReadState(strings.NewReader(testV1StateWithOutputs))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	buf := new(bytes.Buffer)
-	if err := WriteState(actual, buf); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if actual.Version != 2 {
-		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
-	}
-
-	roundTripped, err := ReadState(buf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !reflect.DeepEqual(actual, roundTripped) {
-		spew.Config.DisableMethods = true
-		t.Fatalf("bad:\n%s\n\nround tripped:\n%s\n", spew.Sdump(actual), spew.Sdump(roundTripped))
-		spew.Config.DisableMethods = false
-	}
-}
-
-func TestReadUpgradeState(t *testing.T) {
-	state := &StateV0{
-		Resources: map[string]*ResourceStateV0{
-			"foo": &ResourceStateV0{
-				ID: "bar",
-			},
-		},
-	}
-	buf := new(bytes.Buffer)
-	if err := testWriteStateV0(state, buf); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// ReadState should transparently detect the old
-	// version and upgrade up so the latest.
-	actual, err := ReadState(buf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	upgraded, err := state.upgrade()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !reflect.DeepEqual(actual, upgraded) {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
 func TestReadWriteState(t *testing.T) {
 	state := &State{
 		Serial: 9,
@@ -1285,7 +1348,7 @@ func TestReadStateNewVersion(t *testing.T) {
 	if s != nil {
 		t.Fatalf("unexpected: %#v", s)
 	}
-	if !strings.Contains(err.Error(), "not supported") {
+	if !strings.Contains(err.Error(), "does not support state version") {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -1385,73 +1448,6 @@ func TestWriteStateTFVersion(t *testing.T) {
 	}
 }
 
-func TestUpgradeV0State(t *testing.T) {
-	old := &StateV0{
-		Outputs: map[string]string{
-			"ip": "127.0.0.1",
-		},
-		Resources: map[string]*ResourceStateV0{
-			"foo": &ResourceStateV0{
-				Type: "test_resource",
-				ID:   "bar",
-				Attributes: map[string]string{
-					"key": "val",
-				},
-			},
-			"bar": &ResourceStateV0{
-				Type: "test_resource",
-				ID:   "1234",
-				Attributes: map[string]string{
-					"a": "b",
-				},
-			},
-		},
-		Tainted: map[string]struct{}{
-			"bar": struct{}{},
-		},
-	}
-	state, err := old.upgrade()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(state.Modules) != 1 {
-		t.Fatalf("should only have root module: %#v", state.Modules)
-	}
-	root := state.RootModule()
-
-	if len(root.Outputs) != 1 {
-		t.Fatalf("bad outputs: %v", root.Outputs)
-	}
-	if root.Outputs["ip"].Value != "127.0.0.1" {
-		t.Fatalf("bad outputs: %v", root.Outputs)
-	}
-
-	if len(root.Resources) != 2 {
-		t.Fatalf("bad resources: %v", root.Resources)
-	}
-
-	foo := root.Resources["foo"]
-	if foo.Type != "test_resource" {
-		t.Fatalf("bad: %#v", foo)
-	}
-	if foo.Primary == nil || foo.Primary.ID != "bar" ||
-		foo.Primary.Attributes["key"] != "val" {
-		t.Fatalf("bad: %#v", foo)
-	}
-	if foo.Primary.Tainted {
-		t.Fatalf("bad: %#v", foo)
-	}
-
-	bar := root.Resources["bar"]
-	if bar.Type != "test_resource" {
-		t.Fatalf("bad: %#v", bar)
-	}
-	if !bar.Primary.Tainted {
-		t.Fatalf("bad: %#v", bar)
-	}
-}
-
 func TestParseResourceStateKey(t *testing.T) {
 	cases := []struct {
 		Input       string
@@ -1517,68 +1513,3 @@ func TestParseResourceStateKey(t *testing.T) {
 		}
 	}
 }
-
-const testV1State = `{
-    "version": 1,
-    "serial": 9,
-    "remote": {
-        "type": "http",
-        "config": {
-            "url": "http://my-cool-server.com/"
-        }
-    },
-    "modules": [
-        {
-            "path": [
-                "root"
-            ],
-            "outputs": null,
-            "resources": {
-                "foo": {
-                    "type": "",
-                    "primary": {
-                        "id": "bar"
-                    }
-                }
-            },
-            "depends_on": [
-                "aws_instance.bar"
-            ]
-        }
-    ]
-}
-`
-
-const testV1StateWithOutputs = `{
-    "version": 1,
-    "serial": 9,
-    "remote": {
-        "type": "http",
-        "config": {
-            "url": "http://my-cool-server.com/"
-        }
-    },
-    "modules": [
-        {
-            "path": [
-                "root"
-            ],
-            "outputs": {
-            	"foo": "bar",
-            	"baz": "foo"
-            },
-            "resources": {
-                "foo": {
-                    "type": "",
-                    "primary": {
-                        "id": "bar"
-                    }
-                }
-            },
-            "depends_on": [
-                "aws_instance.bar"
-            ]
-        }
-    ]
-}
-`

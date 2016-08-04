@@ -93,6 +93,8 @@ func (r *RawConfig) Value() interface{} {
 // structure will always successfully decode into its ultimate
 // structure using something like mapstructure.
 func (r *RawConfig) Config() map[string]interface{} {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	return r.config
 }
 

@@ -16,7 +16,7 @@ func TestAccAWSIAMPolicyDocument(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSIAMPolicyDocumentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckStateValue(
@@ -52,7 +52,9 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 
 var testAccAWSIAMPolicyDocumentConfig = `
 data "aws_iam_policy_document" "test" {
+    policy_id = "policy_id"
     statement {
+    	sid = "1"
         actions = [
             "s3:ListAllMyBuckets",
             "s3:GetBucketLocation",
@@ -110,8 +112,10 @@ data "aws_iam_policy_document" "test" {
 
 var testAccAWSIAMPolicyDocumentExpectedJSON = `{
   "Version": "2012-10-17",
+  "Id": "policy_id",
   "Statement": [
     {
+      "Sid": "1",
       "Effect": "Allow",
       "Action": [
         "s3:GetBucketLocation",

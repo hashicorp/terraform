@@ -13,19 +13,19 @@ func dataSourceRemoteState() *schema.Resource {
 		Read: dataSourceRemoteStateRead,
 
 		Schema: map[string]*schema.Schema{
-			"backend": &schema.Schema{
+			"backend": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
 
-			"output": &schema.Schema{
-				Type:     schema.TypeMap,
-				Computed: true,
+			"__has_dynamic_attributes": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
@@ -52,16 +52,24 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	var outputs map[string]interface{}
-	if !state.State().Empty() {
-		outputValueMap := make(map[string]string)
-		for key, output := range state.State().RootModule().Outputs {
-			//This is ok for 0.6.17 as outputs will have been strings
-			outputValueMap[key] = output.Value.(string)
-		}
+	d.SetId(time.Now().UTC().String())
+
+	outputMap := make(map[string]interface{})
+
+	remoteState := state.State()
+	if remoteState.Empty() {
+		log.Println("[DEBUG] empty remote state")
+		return nil
 	}
 
-	d.SetId(time.Now().UTC().String())
-	d.Set("output", outputs)
+	for key, val := range remoteState.RootModule().Outputs {
+		outputMap[key] = val.Value
+	}
+
+	mappedOutputs := remoteStateFlatten(outputMap)
+
+	for key, val := range mappedOutputs {
+		d.UnsafeSetFieldRaw(key, val)
+	}
 	return nil
 }

@@ -11,9 +11,132 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 )
 
+const opAddIpRoutes = "AddIpRoutes"
+
+// AddIpRoutesRequest generates a "aws/request.Request" representing the
+// client's request for the AddIpRoutes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddIpRoutes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddIpRoutesRequest method.
+//    req, resp := client.AddIpRoutesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) AddIpRoutesRequest(input *AddIpRoutesInput) (req *request.Request, output *AddIpRoutesOutput) {
+	op := &request.Operation{
+		Name:       opAddIpRoutes,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AddIpRoutesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &AddIpRoutesOutput{}
+	req.Data = output
+	return
+}
+
+// If the DNS server for your on-premises domain uses a publicly addressable
+// IP address, you must add a CIDR address block to correctly route traffic
+// to and from your Microsoft AD on Amazon Web Services. AddIpRoutes adds this
+// address block. You can also use AddIpRoutes to facilitate routing traffic
+// that uses public IP ranges from your Microsoft AD on AWS to a peer VPC.
+func (c *DirectoryService) AddIpRoutes(input *AddIpRoutesInput) (*AddIpRoutesOutput, error) {
+	req, out := c.AddIpRoutesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opAddTagsToResource = "AddTagsToResource"
+
+// AddTagsToResourceRequest generates a "aws/request.Request" representing the
+// client's request for the AddTagsToResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddTagsToResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddTagsToResourceRequest method.
+//    req, resp := client.AddTagsToResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *request.Request, output *AddTagsToResourceOutput) {
+	op := &request.Operation{
+		Name:       opAddTagsToResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AddTagsToResourceInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &AddTagsToResourceOutput{}
+	req.Data = output
+	return
+}
+
+// Adds or overwrites one or more tags for the specified Amazon Directory Services
+// directory. Each directory can have a maximum of 10 tags. Each tag consists
+// of a key and optional value. Tag keys must be unique to each resource.
+func (c *DirectoryService) AddTagsToResource(input *AddTagsToResourceInput) (*AddTagsToResourceOutput, error) {
+	req, out := c.AddTagsToResourceRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opConnectDirectory = "ConnectDirectory"
 
-// ConnectDirectoryRequest generates a request for the ConnectDirectory operation.
+// ConnectDirectoryRequest generates a "aws/request.Request" representing the
+// client's request for the ConnectDirectory operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ConnectDirectory method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ConnectDirectoryRequest method.
+//    req, resp := client.ConnectDirectoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) ConnectDirectoryRequest(input *ConnectDirectoryInput) (req *request.Request, output *ConnectDirectoryOutput) {
 	op := &request.Operation{
 		Name:       opConnectDirectory,
@@ -40,7 +163,28 @@ func (c *DirectoryService) ConnectDirectory(input *ConnectDirectoryInput) (*Conn
 
 const opCreateAlias = "CreateAlias"
 
-// CreateAliasRequest generates a request for the CreateAlias operation.
+// CreateAliasRequest generates a "aws/request.Request" representing the
+// client's request for the CreateAlias operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateAlias method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateAliasRequest method.
+//    req, resp := client.CreateAliasRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) CreateAliasRequest(input *CreateAliasInput) (req *request.Request, output *CreateAliasOutput) {
 	op := &request.Operation{
 		Name:       opCreateAlias,
@@ -60,7 +204,7 @@ func (c *DirectoryService) CreateAliasRequest(input *CreateAliasInput) (req *req
 
 // Creates an alias for a directory and assigns the alias to the directory.
 // The alias is used to construct the access URL for the directory, such as
-// http://alias.awsapps.com.
+// http://<alias>.awsapps.com.
 //
 //  After an alias has been created, it cannot be deleted or reused, so this
 // operation should only be used when absolutely necessary.
@@ -72,7 +216,28 @@ func (c *DirectoryService) CreateAlias(input *CreateAliasInput) (*CreateAliasOut
 
 const opCreateComputer = "CreateComputer"
 
-// CreateComputerRequest generates a request for the CreateComputer operation.
+// CreateComputerRequest generates a "aws/request.Request" representing the
+// client's request for the CreateComputer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateComputer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateComputerRequest method.
+//    req, resp := client.CreateComputerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) CreateComputerRequest(input *CreateComputerInput) (req *request.Request, output *CreateComputerOutput) {
 	op := &request.Operation{
 		Name:       opCreateComputer,
@@ -100,7 +265,28 @@ func (c *DirectoryService) CreateComputer(input *CreateComputerInput) (*CreateCo
 
 const opCreateConditionalForwarder = "CreateConditionalForwarder"
 
-// CreateConditionalForwarderRequest generates a request for the CreateConditionalForwarder operation.
+// CreateConditionalForwarderRequest generates a "aws/request.Request" representing the
+// client's request for the CreateConditionalForwarder operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateConditionalForwarder method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateConditionalForwarderRequest method.
+//    req, resp := client.CreateConditionalForwarderRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) CreateConditionalForwarderRequest(input *CreateConditionalForwarderInput) (req *request.Request, output *CreateConditionalForwarderOutput) {
 	op := &request.Operation{
 		Name:       opCreateConditionalForwarder,
@@ -129,7 +315,28 @@ func (c *DirectoryService) CreateConditionalForwarder(input *CreateConditionalFo
 
 const opCreateDirectory = "CreateDirectory"
 
-// CreateDirectoryRequest generates a request for the CreateDirectory operation.
+// CreateDirectoryRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDirectory operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateDirectory method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateDirectoryRequest method.
+//    req, resp := client.CreateDirectoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) CreateDirectoryRequest(input *CreateDirectoryInput) (req *request.Request, output *CreateDirectoryOutput) {
 	op := &request.Operation{
 		Name:       opCreateDirectory,
@@ -156,7 +363,28 @@ func (c *DirectoryService) CreateDirectory(input *CreateDirectoryInput) (*Create
 
 const opCreateMicrosoftAD = "CreateMicrosoftAD"
 
-// CreateMicrosoftADRequest generates a request for the CreateMicrosoftAD operation.
+// CreateMicrosoftADRequest generates a "aws/request.Request" representing the
+// client's request for the CreateMicrosoftAD operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateMicrosoftAD method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateMicrosoftADRequest method.
+//    req, resp := client.CreateMicrosoftADRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) CreateMicrosoftADRequest(input *CreateMicrosoftADInput) (req *request.Request, output *CreateMicrosoftADOutput) {
 	op := &request.Operation{
 		Name:       opCreateMicrosoftAD,
@@ -183,7 +411,28 @@ func (c *DirectoryService) CreateMicrosoftAD(input *CreateMicrosoftADInput) (*Cr
 
 const opCreateSnapshot = "CreateSnapshot"
 
-// CreateSnapshotRequest generates a request for the CreateSnapshot operation.
+// CreateSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the CreateSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateSnapshotRequest method.
+//    req, resp := client.CreateSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) CreateSnapshotRequest(input *CreateSnapshotInput) (req *request.Request, output *CreateSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opCreateSnapshot,
@@ -212,7 +461,28 @@ func (c *DirectoryService) CreateSnapshot(input *CreateSnapshotInput) (*CreateSn
 
 const opCreateTrust = "CreateTrust"
 
-// CreateTrustRequest generates a request for the CreateTrust operation.
+// CreateTrustRequest generates a "aws/request.Request" representing the
+// client's request for the CreateTrust operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateTrust method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateTrustRequest method.
+//    req, resp := client.CreateTrustRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) CreateTrustRequest(input *CreateTrustInput) (req *request.Request, output *CreateTrustOutput) {
 	op := &request.Operation{
 		Name:       opCreateTrust,
@@ -246,7 +516,28 @@ func (c *DirectoryService) CreateTrust(input *CreateTrustInput) (*CreateTrustOut
 
 const opDeleteConditionalForwarder = "DeleteConditionalForwarder"
 
-// DeleteConditionalForwarderRequest generates a request for the DeleteConditionalForwarder operation.
+// DeleteConditionalForwarderRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteConditionalForwarder operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteConditionalForwarder method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteConditionalForwarderRequest method.
+//    req, resp := client.DeleteConditionalForwarderRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DeleteConditionalForwarderRequest(input *DeleteConditionalForwarderInput) (req *request.Request, output *DeleteConditionalForwarderOutput) {
 	op := &request.Operation{
 		Name:       opDeleteConditionalForwarder,
@@ -273,7 +564,28 @@ func (c *DirectoryService) DeleteConditionalForwarder(input *DeleteConditionalFo
 
 const opDeleteDirectory = "DeleteDirectory"
 
-// DeleteDirectoryRequest generates a request for the DeleteDirectory operation.
+// DeleteDirectoryRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDirectory operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteDirectory method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteDirectoryRequest method.
+//    req, resp := client.DeleteDirectoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DeleteDirectoryRequest(input *DeleteDirectoryInput) (req *request.Request, output *DeleteDirectoryOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDirectory,
@@ -300,7 +612,28 @@ func (c *DirectoryService) DeleteDirectory(input *DeleteDirectoryInput) (*Delete
 
 const opDeleteSnapshot = "DeleteSnapshot"
 
-// DeleteSnapshotRequest generates a request for the DeleteSnapshot operation.
+// DeleteSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteSnapshotRequest method.
+//    req, resp := client.DeleteSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *request.Request, output *DeleteSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSnapshot,
@@ -327,7 +660,28 @@ func (c *DirectoryService) DeleteSnapshot(input *DeleteSnapshotInput) (*DeleteSn
 
 const opDeleteTrust = "DeleteTrust"
 
-// DeleteTrustRequest generates a request for the DeleteTrust operation.
+// DeleteTrustRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteTrust operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteTrust method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteTrustRequest method.
+//    req, resp := client.DeleteTrustRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DeleteTrustRequest(input *DeleteTrustInput) (req *request.Request, output *DeleteTrustOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTrust,
@@ -355,7 +709,28 @@ func (c *DirectoryService) DeleteTrust(input *DeleteTrustInput) (*DeleteTrustOut
 
 const opDeregisterEventTopic = "DeregisterEventTopic"
 
-// DeregisterEventTopicRequest generates a request for the DeregisterEventTopic operation.
+// DeregisterEventTopicRequest generates a "aws/request.Request" representing the
+// client's request for the DeregisterEventTopic operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeregisterEventTopic method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeregisterEventTopicRequest method.
+//    req, resp := client.DeregisterEventTopicRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DeregisterEventTopicRequest(input *DeregisterEventTopicInput) (req *request.Request, output *DeregisterEventTopicOutput) {
 	op := &request.Operation{
 		Name:       opDeregisterEventTopic,
@@ -382,7 +757,28 @@ func (c *DirectoryService) DeregisterEventTopic(input *DeregisterEventTopicInput
 
 const opDescribeConditionalForwarders = "DescribeConditionalForwarders"
 
-// DescribeConditionalForwardersRequest generates a request for the DescribeConditionalForwarders operation.
+// DescribeConditionalForwardersRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeConditionalForwarders operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeConditionalForwarders method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeConditionalForwardersRequest method.
+//    req, resp := client.DescribeConditionalForwardersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DescribeConditionalForwardersRequest(input *DescribeConditionalForwardersInput) (req *request.Request, output *DescribeConditionalForwardersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConditionalForwarders,
@@ -412,7 +808,28 @@ func (c *DirectoryService) DescribeConditionalForwarders(input *DescribeConditio
 
 const opDescribeDirectories = "DescribeDirectories"
 
-// DescribeDirectoriesRequest generates a request for the DescribeDirectories operation.
+// DescribeDirectoriesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDirectories operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeDirectories method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeDirectoriesRequest method.
+//    req, resp := client.DescribeDirectoriesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DescribeDirectoriesRequest(input *DescribeDirectoriesInput) (req *request.Request, output *DescribeDirectoriesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDirectories,
@@ -450,7 +867,28 @@ func (c *DirectoryService) DescribeDirectories(input *DescribeDirectoriesInput) 
 
 const opDescribeEventTopics = "DescribeEventTopics"
 
-// DescribeEventTopicsRequest generates a request for the DescribeEventTopics operation.
+// DescribeEventTopicsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEventTopics operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEventTopics method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEventTopicsRequest method.
+//    req, resp := client.DescribeEventTopicsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DescribeEventTopicsRequest(input *DescribeEventTopicsInput) (req *request.Request, output *DescribeEventTopicsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEventTopics,
@@ -481,7 +919,28 @@ func (c *DirectoryService) DescribeEventTopics(input *DescribeEventTopicsInput) 
 
 const opDescribeSnapshots = "DescribeSnapshots"
 
-// DescribeSnapshotsRequest generates a request for the DescribeSnapshots operation.
+// DescribeSnapshotsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSnapshots operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSnapshots method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSnapshotsRequest method.
+//    req, resp := client.DescribeSnapshotsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *request.Request, output *DescribeSnapshotsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSnapshots,
@@ -515,7 +974,28 @@ func (c *DirectoryService) DescribeSnapshots(input *DescribeSnapshotsInput) (*De
 
 const opDescribeTrusts = "DescribeTrusts"
 
-// DescribeTrustsRequest generates a request for the DescribeTrusts operation.
+// DescribeTrustsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeTrusts operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeTrusts method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeTrustsRequest method.
+//    req, resp := client.DescribeTrustsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DescribeTrustsRequest(input *DescribeTrustsInput) (req *request.Request, output *DescribeTrustsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTrusts,
@@ -545,7 +1025,28 @@ func (c *DirectoryService) DescribeTrusts(input *DescribeTrustsInput) (*Describe
 
 const opDisableRadius = "DisableRadius"
 
-// DisableRadiusRequest generates a request for the DisableRadius operation.
+// DisableRadiusRequest generates a "aws/request.Request" representing the
+// client's request for the DisableRadius operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableRadius method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableRadiusRequest method.
+//    req, resp := client.DisableRadiusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DisableRadiusRequest(input *DisableRadiusInput) (req *request.Request, output *DisableRadiusOutput) {
 	op := &request.Operation{
 		Name:       opDisableRadius,
@@ -573,7 +1074,28 @@ func (c *DirectoryService) DisableRadius(input *DisableRadiusInput) (*DisableRad
 
 const opDisableSso = "DisableSso"
 
-// DisableSsoRequest generates a request for the DisableSso operation.
+// DisableSsoRequest generates a "aws/request.Request" representing the
+// client's request for the DisableSso operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableSso method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableSsoRequest method.
+//    req, resp := client.DisableSsoRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) DisableSsoRequest(input *DisableSsoInput) (req *request.Request, output *DisableSsoOutput) {
 	op := &request.Operation{
 		Name:       opDisableSso,
@@ -600,7 +1122,28 @@ func (c *DirectoryService) DisableSso(input *DisableSsoInput) (*DisableSsoOutput
 
 const opEnableRadius = "EnableRadius"
 
-// EnableRadiusRequest generates a request for the EnableRadius operation.
+// EnableRadiusRequest generates a "aws/request.Request" representing the
+// client's request for the EnableRadius operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableRadius method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableRadiusRequest method.
+//    req, resp := client.EnableRadiusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) EnableRadiusRequest(input *EnableRadiusInput) (req *request.Request, output *EnableRadiusOutput) {
 	op := &request.Operation{
 		Name:       opEnableRadius,
@@ -628,7 +1171,28 @@ func (c *DirectoryService) EnableRadius(input *EnableRadiusInput) (*EnableRadius
 
 const opEnableSso = "EnableSso"
 
-// EnableSsoRequest generates a request for the EnableSso operation.
+// EnableSsoRequest generates a "aws/request.Request" representing the
+// client's request for the EnableSso operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableSso method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableSsoRequest method.
+//    req, resp := client.EnableSsoRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) EnableSsoRequest(input *EnableSsoInput) (req *request.Request, output *EnableSsoOutput) {
 	op := &request.Operation{
 		Name:       opEnableSso,
@@ -655,7 +1219,28 @@ func (c *DirectoryService) EnableSso(input *EnableSsoInput) (*EnableSsoOutput, e
 
 const opGetDirectoryLimits = "GetDirectoryLimits"
 
-// GetDirectoryLimitsRequest generates a request for the GetDirectoryLimits operation.
+// GetDirectoryLimitsRequest generates a "aws/request.Request" representing the
+// client's request for the GetDirectoryLimits operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDirectoryLimits method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDirectoryLimitsRequest method.
+//    req, resp := client.GetDirectoryLimitsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) GetDirectoryLimitsRequest(input *GetDirectoryLimitsInput) (req *request.Request, output *GetDirectoryLimitsOutput) {
 	op := &request.Operation{
 		Name:       opGetDirectoryLimits,
@@ -682,7 +1267,28 @@ func (c *DirectoryService) GetDirectoryLimits(input *GetDirectoryLimitsInput) (*
 
 const opGetSnapshotLimits = "GetSnapshotLimits"
 
-// GetSnapshotLimitsRequest generates a request for the GetSnapshotLimits operation.
+// GetSnapshotLimitsRequest generates a "aws/request.Request" representing the
+// client's request for the GetSnapshotLimits operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetSnapshotLimits method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetSnapshotLimitsRequest method.
+//    req, resp := client.GetSnapshotLimitsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) GetSnapshotLimitsRequest(input *GetSnapshotLimitsInput) (req *request.Request, output *GetSnapshotLimitsOutput) {
 	op := &request.Operation{
 		Name:       opGetSnapshotLimits,
@@ -707,9 +1313,126 @@ func (c *DirectoryService) GetSnapshotLimits(input *GetSnapshotLimitsInput) (*Ge
 	return out, err
 }
 
+const opListIpRoutes = "ListIpRoutes"
+
+// ListIpRoutesRequest generates a "aws/request.Request" representing the
+// client's request for the ListIpRoutes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListIpRoutes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListIpRoutesRequest method.
+//    req, resp := client.ListIpRoutesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) ListIpRoutesRequest(input *ListIpRoutesInput) (req *request.Request, output *ListIpRoutesOutput) {
+	op := &request.Operation{
+		Name:       opListIpRoutes,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListIpRoutesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListIpRoutesOutput{}
+	req.Data = output
+	return
+}
+
+// Lists the address blocks that you have added to a directory.
+func (c *DirectoryService) ListIpRoutes(input *ListIpRoutesInput) (*ListIpRoutesOutput, error) {
+	req, out := c.ListIpRoutesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opListTagsForResource = "ListTagsForResource"
+
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTagsForResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsForResourceRequest method.
+//    req, resp := client.ListTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListTagsForResourceInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListTagsForResourceOutput{}
+	req.Data = output
+	return
+}
+
+// Lists all tags on an Amazon Directory Services directory.
+func (c *DirectoryService) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opRegisterEventTopic = "RegisterEventTopic"
 
-// RegisterEventTopicRequest generates a request for the RegisterEventTopic operation.
+// RegisterEventTopicRequest generates a "aws/request.Request" representing the
+// client's request for the RegisterEventTopic operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RegisterEventTopic method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RegisterEventTopicRequest method.
+//    req, resp := client.RegisterEventTopicRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) RegisterEventTopicRequest(input *RegisterEventTopicInput) (req *request.Request, output *RegisterEventTopicOutput) {
 	op := &request.Operation{
 		Name:       opRegisterEventTopic,
@@ -739,9 +1462,126 @@ func (c *DirectoryService) RegisterEventTopic(input *RegisterEventTopicInput) (*
 	return out, err
 }
 
+const opRemoveIpRoutes = "RemoveIpRoutes"
+
+// RemoveIpRoutesRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveIpRoutes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveIpRoutes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveIpRoutesRequest method.
+//    req, resp := client.RemoveIpRoutesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) RemoveIpRoutesRequest(input *RemoveIpRoutesInput) (req *request.Request, output *RemoveIpRoutesOutput) {
+	op := &request.Operation{
+		Name:       opRemoveIpRoutes,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RemoveIpRoutesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RemoveIpRoutesOutput{}
+	req.Data = output
+	return
+}
+
+// Removes IP address blocks from a directory.
+func (c *DirectoryService) RemoveIpRoutes(input *RemoveIpRoutesInput) (*RemoveIpRoutesOutput, error) {
+	req, out := c.RemoveIpRoutesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opRemoveTagsFromResource = "RemoveTagsFromResource"
+
+// RemoveTagsFromResourceRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveTagsFromResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveTagsFromResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveTagsFromResourceRequest method.
+//    req, resp := client.RemoveTagsFromResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) (req *request.Request, output *RemoveTagsFromResourceOutput) {
+	op := &request.Operation{
+		Name:       opRemoveTagsFromResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RemoveTagsFromResourceInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RemoveTagsFromResourceOutput{}
+	req.Data = output
+	return
+}
+
+// Removes tags from an Amazon Directory Services directory.
+func (c *DirectoryService) RemoveTagsFromResource(input *RemoveTagsFromResourceInput) (*RemoveTagsFromResourceOutput, error) {
+	req, out := c.RemoveTagsFromResourceRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opRestoreFromSnapshot = "RestoreFromSnapshot"
 
-// RestoreFromSnapshotRequest generates a request for the RestoreFromSnapshot operation.
+// RestoreFromSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the RestoreFromSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RestoreFromSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RestoreFromSnapshotRequest method.
+//    req, resp := client.RestoreFromSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) RestoreFromSnapshotRequest(input *RestoreFromSnapshotInput) (req *request.Request, output *RestoreFromSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opRestoreFromSnapshot,
@@ -776,7 +1616,28 @@ func (c *DirectoryService) RestoreFromSnapshot(input *RestoreFromSnapshotInput) 
 
 const opUpdateConditionalForwarder = "UpdateConditionalForwarder"
 
-// UpdateConditionalForwarderRequest generates a request for the UpdateConditionalForwarder operation.
+// UpdateConditionalForwarderRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateConditionalForwarder operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateConditionalForwarder method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateConditionalForwarderRequest method.
+//    req, resp := client.UpdateConditionalForwarderRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) UpdateConditionalForwarderRequest(input *UpdateConditionalForwarderInput) (req *request.Request, output *UpdateConditionalForwarderOutput) {
 	op := &request.Operation{
 		Name:       opUpdateConditionalForwarder,
@@ -803,7 +1664,28 @@ func (c *DirectoryService) UpdateConditionalForwarder(input *UpdateConditionalFo
 
 const opUpdateRadius = "UpdateRadius"
 
-// UpdateRadiusRequest generates a request for the UpdateRadius operation.
+// UpdateRadiusRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRadius operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateRadius method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateRadiusRequest method.
+//    req, resp := client.UpdateRadiusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) UpdateRadiusRequest(input *UpdateRadiusInput) (req *request.Request, output *UpdateRadiusOutput) {
 	op := &request.Operation{
 		Name:       opUpdateRadius,
@@ -831,7 +1713,28 @@ func (c *DirectoryService) UpdateRadius(input *UpdateRadiusInput) (*UpdateRadius
 
 const opVerifyTrust = "VerifyTrust"
 
-// VerifyTrustRequest generates a request for the VerifyTrust operation.
+// VerifyTrustRequest generates a "aws/request.Request" representing the
+// client's request for the VerifyTrust operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the VerifyTrust method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the VerifyTrustRequest method.
+//    req, resp := client.VerifyTrustRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *DirectoryService) VerifyTrustRequest(input *VerifyTrustInput) (req *request.Request, output *VerifyTrustOutput) {
 	op := &request.Operation{
 		Name:       opVerifyTrust,
@@ -858,6 +1761,165 @@ func (c *DirectoryService) VerifyTrust(input *VerifyTrustInput) (*VerifyTrustOut
 	req, out := c.VerifyTrustRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+type AddIpRoutesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Identifier (ID) of the directory to which to add the address block.
+	DirectoryId *string `type:"string" required:"true"`
+
+	// IP address blocks, using CIDR format, of the traffic to route. This is often
+	// the IP address block of the DNS server used for your on-premises domain.
+	IpRoutes []*IpRoute `type:"list" required:"true"`
+
+	// If set to true, updates the inbound and outbound rules of the security group
+	// that has the description: "AWS created security group for directory ID directory
+	// controllers." Following are the new rules:
+	//
+	// Inbound:
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 88, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 123, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 138, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 389, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 464, Source: 0.0.0.0/0
+	//
+	//   Type: Custom UDP Rule, Protocol: UDP, Range: 445, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 88, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 135, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 445, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 464, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 636, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 1024-65535, Source: 0.0.0.0/0
+	//
+	//   Type: Custom TCP Rule, Protocol: TCP, Range: 3268-33269, Source: 0.0.0.0/0
+	//
+	//   Type: DNS (UDP), Protocol: UDP, Range: 53, Source: 0.0.0.0/0
+	//
+	//   Type: DNS (TCP), Protocol: TCP, Range: 53, Source: 0.0.0.0/0
+	//
+	//   Type: LDAP, Protocol: TCP, Range: 389, Source: 0.0.0.0/0
+	//
+	//   Type: All ICMP, Protocol: All, Range: N/A, Source: 0.0.0.0/0
+	//
+	//    Outbound:
+	//
+	//   Type: All traffic, Protocol: All, Range: All, Destination: 0.0.0.0/0
+	//
+	//   These security rules impact an internal network interface that is not
+	// exposed publicly.
+	UpdateSecurityGroupForDirectoryControllers *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s AddIpRoutesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddIpRoutesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddIpRoutesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddIpRoutesInput"}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+	if s.IpRoutes == nil {
+		invalidParams.Add(request.NewErrParamRequired("IpRoutes"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type AddIpRoutesOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s AddIpRoutesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddIpRoutesOutput) GoString() string {
+	return s.String()
+}
+
+type AddTagsToResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// Identifier (ID) for the directory to which to add the tag.
+	ResourceId *string `type:"string" required:"true"`
+
+	// The tags to be assigned to the Amazon Directory Services directory.
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s AddTagsToResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddTagsToResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsToResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsToResourceInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type AddTagsToResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s AddTagsToResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddTagsToResourceOutput) GoString() string {
+	return s.String()
 }
 
 // Represents a named directory attribute.
@@ -1232,6 +2294,7 @@ func (s *CreateConditionalForwarderInput) Validate() error {
 	return nil
 }
 
+// The result of a CreateConditinalForwarder request.
 type CreateConditionalForwarderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1383,6 +2446,7 @@ func (s *CreateMicrosoftADInput) Validate() error {
 	return nil
 }
 
+// Result of a CreateMicrosoftAD request.
 type CreateMicrosoftADOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1463,6 +2527,7 @@ func (s CreateSnapshotOutput) GoString() string {
 type CreateTrustInput struct {
 	_ struct{} `type:"structure"`
 
+	// The IP addresses of the remote DNS server associated with RemoteDomainName.
 	ConditionalForwarderIpAddrs []*string `type:"list"`
 
 	// The Directory ID of the Microsoft AD in the AWS cloud for which to establish
@@ -1519,6 +2584,7 @@ func (s *CreateTrustInput) Validate() error {
 	return nil
 }
 
+// The result of a CreateTrust request.
 type CreateTrustOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1536,6 +2602,7 @@ func (s CreateTrustOutput) GoString() string {
 	return s.String()
 }
 
+// Deletes a conditional forwarder.
 type DeleteConditionalForwarderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1573,6 +2640,7 @@ func (s *DeleteConditionalForwarderInput) Validate() error {
 	return nil
 }
 
+// The result of a DeleteConditionalForwarder request.
 type DeleteConditionalForwarderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1690,6 +2758,7 @@ func (s DeleteSnapshotOutput) GoString() string {
 type DeleteTrustInput struct {
 	_ struct{} `type:"structure"`
 
+	// Delete a conditional forwarder as part of a DeleteTrustRequest.
 	DeleteAssociatedConditionalForwarder *bool `type:"boolean"`
 
 	// The Trust ID of the trust relationship to be deleted.
@@ -1719,6 +2788,7 @@ func (s *DeleteTrustInput) Validate() error {
 	return nil
 }
 
+// The result of a DeleteTrust request.
 type DeleteTrustOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1777,6 +2847,7 @@ func (s *DeregisterEventTopicInput) Validate() error {
 	return nil
 }
 
+// The result of a DeregisterEventTopic request.
 type DeregisterEventTopicOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1791,6 +2862,7 @@ func (s DeregisterEventTopicOutput) GoString() string {
 	return s.String()
 }
 
+// Describes a conditional forwarder.
 type DescribeConditionalForwardersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1826,6 +2898,7 @@ func (s *DescribeConditionalForwardersInput) Validate() error {
 	return nil
 }
 
+// The result of a DescribeConditionalForwarder request.
 type DescribeConditionalForwardersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1901,6 +2974,7 @@ func (s DescribeDirectoriesOutput) GoString() string {
 	return s.String()
 }
 
+// Describes event topics.
 type DescribeEventTopicsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1925,6 +2999,7 @@ func (s DescribeEventTopicsInput) GoString() string {
 	return s.String()
 }
 
+// The result of a DescribeEventTopic request.
 type DescribeEventTopicsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2035,6 +3110,7 @@ func (s DescribeTrustsInput) GoString() string {
 	return s.String()
 }
 
+// The result of a DescribeTrust request.
 type DescribeTrustsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2074,7 +3150,11 @@ type DirectoryConnectSettings struct {
 	// The username of an account in the on-premises directory that is used to connect
 	// to the directory. This account must have the following privileges:
 	//
-	//  Read users and groups Create computer objects Join computers to the domain
+	//   Read users and groups
+	//
+	//   Create computer objects
+	//
+	//   Join computers to the domain
 	CustomerUserName *string `min:"1" type:"string" required:"true"`
 
 	// A list of subnet identifiers in the VPC in which the AD Connector is created.
@@ -2156,8 +3236,8 @@ func (s DirectoryConnectSettingsDescription) GoString() string {
 type DirectoryDescription struct {
 	_ struct{} `type:"structure"`
 
-	// The access URL for the directory, such as http://alias.awsapps.com. If no
-	// alias has been created for the directory, alias is the directory identifier,
+	// The access URL for the directory, such as http://<alias>.awsapps.com. If
+	// no alias has been created for the directory, <alias> is the directory identifier,
 	// such as d-XXXXXXXXXX.
 	AccessUrl *string `min:"1" type:"string"`
 
@@ -2699,6 +3779,179 @@ func (s GetSnapshotLimitsOutput) GoString() string {
 	return s.String()
 }
 
+// IP address block. This is often the address block of the DNS server used
+// for your on-premises domain.
+type IpRoute struct {
+	_ struct{} `type:"structure"`
+
+	// IP address block using CIDR format, for example 10.0.0.0/24. This is often
+	// the address block of the DNS server used for your on-premises domain. For
+	// a single IP address use a CIDR address block with /32. For example 10.0.0.0/32.
+	CidrIp *string `type:"string"`
+
+	// Description of the address block.
+	Description *string `type:"string"`
+}
+
+// String returns the string representation
+func (s IpRoute) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IpRoute) GoString() string {
+	return s.String()
+}
+
+// Information about one or more IP address blocks.
+type IpRouteInfo struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time the address block was added to the directory.
+	AddedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// IP address block in the IpRoute.
+	CidrIp *string `type:"string"`
+
+	// Description of the IpRouteInfo.
+	Description *string `type:"string"`
+
+	// Identifier (ID) of the directory associated with the IP addresses.
+	DirectoryId *string `type:"string"`
+
+	// The status of the IP address block.
+	IpRouteStatusMsg *string `type:"string" enum:"IpRouteStatusMsg"`
+
+	// The reason for the IpRouteStatusMsg.
+	IpRouteStatusReason *string `type:"string"`
+}
+
+// String returns the string representation
+func (s IpRouteInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IpRouteInfo) GoString() string {
+	return s.String()
+}
+
+type ListIpRoutesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Identifier (ID) of the directory for which you want to retrieve the IP addresses.
+	DirectoryId *string `type:"string" required:"true"`
+
+	// Maximum number of items to return. If this value is zero, the maximum number
+	// of items is specified by the limitations of the operation.
+	Limit *int64 `type:"integer"`
+
+	// The ListIpRoutes.NextToken value from a previous call to ListIpRoutes. Pass
+	// null if this is the first call.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListIpRoutesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListIpRoutesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListIpRoutesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListIpRoutesInput"}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type ListIpRoutesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of IpRoutes.
+	IpRoutesInfo []*IpRouteInfo `type:"list"`
+
+	// If not null, more results are available. Pass this value for the NextToken
+	// parameter in a subsequent call to ListIpRoutes to retrieve the next set of
+	// items.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListIpRoutesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListIpRoutesOutput) GoString() string {
+	return s.String()
+}
+
+type ListTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// Reserved for future use.
+	Limit *int64 `type:"integer"`
+
+	// Reserved for future use.
+	NextToken *string `type:"string"`
+
+	// Identifier (ID) of the directory for which you want to retrieve tags.
+	ResourceId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type ListTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Reserved for future use.
+	NextToken *string `type:"string"`
+
+	// List of tags returned by the ListTagsForResource operation.
+	Tags []*Tag `type:"list"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
 // Contains information about a Remote Authentication Dial In User Service (RADIUS)
 // server.
 type RadiusSettings struct {
@@ -2766,6 +4019,7 @@ func (s *RadiusSettings) Validate() error {
 	return nil
 }
 
+// Registers a new event topic.
 type RegisterEventTopicInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2806,6 +4060,7 @@ func (s *RegisterEventTopicInput) Validate() error {
 	return nil
 }
 
+// The result of a RegisterEventTopic request.
 type RegisterEventTopicOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2817,6 +4072,106 @@ func (s RegisterEventTopicOutput) String() string {
 
 // GoString returns the string representation
 func (s RegisterEventTopicOutput) GoString() string {
+	return s.String()
+}
+
+type RemoveIpRoutesInput struct {
+	_ struct{} `type:"structure"`
+
+	// IP address blocks that you want to remove.
+	CidrIps []*string `type:"list" required:"true"`
+
+	// Identifier (ID) of the directory from which you want to remove the IP addresses.
+	DirectoryId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s RemoveIpRoutesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveIpRoutesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveIpRoutesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveIpRoutesInput"}
+	if s.CidrIps == nil {
+		invalidParams.Add(request.NewErrParamRequired("CidrIps"))
+	}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type RemoveIpRoutesOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s RemoveIpRoutesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveIpRoutesOutput) GoString() string {
+	return s.String()
+}
+
+type RemoveTagsFromResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// Identifier (ID) of the directory from which to remove the tag.
+	ResourceId *string `type:"string" required:"true"`
+
+	// The tag key (name) of the tag to be removed.
+	TagKeys []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s RemoveTagsFromResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveTagsFromResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsFromResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsFromResourceInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type RemoveTagsFromResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s RemoveTagsFromResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveTagsFromResourceOutput) GoString() string {
 	return s.String()
 }
 
@@ -2923,6 +4278,51 @@ func (s SnapshotLimits) GoString() string {
 	return s.String()
 }
 
+// Metadata assigned to an Amazon Directory Services directory consisting of
+// a key-value pair.
+type Tag struct {
+	_ struct{} `type:"structure"`
+
+	// Required name of the tag. The string value can be Unicode characters and
+	// cannot be prefixed with "aws:". The string can contain only the set of Unicode
+	// letters, digits, white-space, '_', '.', '/', '=', '+', '-' (Java regex: "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-]*)$").
+	Key *string `min:"1" type:"string" required:"true"`
+
+	// The optional value of the tag. The string value can be Unicode characters.
+	// The string can contain only the set of Unicode letters, digits, white-space,
+	// '_', '.', '/', '=', '+', '-' (Java regex: "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-]*)$").
+	Value *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Tag) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Tag) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Tag) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Tag"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes a trust relationship between an Microsoft AD in the AWS cloud and
 // an external domain.
 type Trust struct {
@@ -2970,6 +4370,7 @@ func (s Trust) GoString() string {
 	return s.String()
 }
 
+// Updates a conditional forwarder.
 type UpdateConditionalForwarderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3015,6 +4416,7 @@ func (s *UpdateConditionalForwarderInput) Validate() error {
 	return nil
 }
 
+// The result of an UpdateConditionalForwarder request.
 type UpdateConditionalForwarderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3118,6 +4520,7 @@ func (s *VerifyTrustInput) Validate() error {
 	return nil
 }
 
+// Result of a VerifyTrust request.
 type VerifyTrustOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3174,6 +4577,21 @@ const (
 	DirectoryTypeAdconnector = "ADConnector"
 	// @enum DirectoryType
 	DirectoryTypeMicrosoftAd = "MicrosoftAD"
+)
+
+const (
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgAdding = "Adding"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgAdded = "Added"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgRemoving = "Removing"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgRemoved = "Removed"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgAddFailed = "AddFailed"
+	// @enum IpRouteStatusMsg
+	IpRouteStatusMsgRemoveFailed = "RemoveFailed"
 )
 
 const (

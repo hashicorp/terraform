@@ -282,6 +282,10 @@ func NewUserVariable(key string) (*UserVariable, error) {
 		name = name[:idx]
 	}
 
+	if len(elem) > 0 {
+		return nil, fmt.Errorf("Invalid dot index found: 'var.%s.%s'. Values in maps and lists can be referenced using square bracket indexing, like: 'var.mymap[\"key\"]' or 'var.mylist[1]'.", name, elem)
+	}
+
 	return &UserVariable{
 		key: key,
 

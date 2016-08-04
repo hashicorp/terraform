@@ -38,7 +38,7 @@ func (c *RemoteConfigCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.conf.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.conf.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&c.remoteConf.Type, "backend", "atlas", "")
-	cmdFlags.Var((*FlagKV)(&config), "backend-config", "config")
+	cmdFlags.Var((*FlagStringKV)(&config), "backend-config", "config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("\nError parsing CLI flags: %s", err))
@@ -348,8 +348,8 @@ Usage: terraform remote config [options]
 Options:
 
   -backend=Atlas         Specifies the type of remote backend. Must be one
-                         of Atlas, Consul, Etcd, GCS, HTTP, S3, or Swift. Defaults
-                         to Atlas.
+                         of Atlas, Consul, Etcd, GCS, HTTP, MAS, S3, or Swift.
+                         Defaults to Atlas.
 
   -backend-config="k=v"  Specifies configuration for the remote storage
                          backend. This can be specified multiple times.

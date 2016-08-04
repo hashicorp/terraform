@@ -18,6 +18,9 @@ func resourceAwsVpnGateway() *schema.Resource {
 		Read:   resourceAwsVpnGatewayRead,
 		Update: resourceAwsVpnGatewayUpdate,
 		Delete: resourceAwsVpnGatewayDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"availability_zone": &schema.Schema{
@@ -83,7 +86,7 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	if len(vpnGateway.VpcAttachments) == 0 {
+	if len(vpnGateway.VpcAttachments) == 0 || *vpnGateway.VpcAttachments[0].State == "detached" || *vpnGateway.VpcAttachments[0].State == "deleted" {
 		// Gateway exists but not attached to the VPC
 		d.Set("vpc_id", "")
 	} else {

@@ -14,7 +14,28 @@ import (
 
 const opCancelExportTask = "CancelExportTask"
 
-// CancelExportTaskRequest generates a request for the CancelExportTask operation.
+// CancelExportTaskRequest generates a "aws/request.Request" representing the
+// client's request for the CancelExportTask operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelExportTask method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelExportTaskRequest method.
+//    req, resp := client.CancelExportTaskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) CancelExportTaskRequest(input *CancelExportTaskInput) (req *request.Request, output *CancelExportTaskOutput) {
 	op := &request.Operation{
 		Name:       opCancelExportTask,
@@ -43,7 +64,28 @@ func (c *CloudWatchLogs) CancelExportTask(input *CancelExportTaskInput) (*Cancel
 
 const opCreateExportTask = "CreateExportTask"
 
-// CreateExportTaskRequest generates a request for the CreateExportTask operation.
+// CreateExportTaskRequest generates a "aws/request.Request" representing the
+// client's request for the CreateExportTask operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateExportTask method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateExportTaskRequest method.
+//    req, resp := client.CreateExportTaskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) CreateExportTaskRequest(input *CreateExportTaskInput) (req *request.Request, output *CreateExportTaskOutput) {
 	op := &request.Operation{
 		Name:       opCreateExportTask,
@@ -82,7 +124,28 @@ func (c *CloudWatchLogs) CreateExportTask(input *CreateExportTaskInput) (*Create
 
 const opCreateLogGroup = "CreateLogGroup"
 
-// CreateLogGroupRequest generates a request for the CreateLogGroup operation.
+// CreateLogGroupRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLogGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLogGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLogGroupRequest method.
+//    req, resp := client.CreateLogGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) CreateLogGroupRequest(input *CreateLogGroupInput) (req *request.Request, output *CreateLogGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateLogGroup,
@@ -117,7 +180,28 @@ func (c *CloudWatchLogs) CreateLogGroup(input *CreateLogGroupInput) (*CreateLogG
 
 const opCreateLogStream = "CreateLogStream"
 
-// CreateLogStreamRequest generates a request for the CreateLogStream operation.
+// CreateLogStreamRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLogStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLogStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLogStreamRequest method.
+//    req, resp := client.CreateLogStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) CreateLogStreamRequest(input *CreateLogStreamInput) (req *request.Request, output *CreateLogStreamOutput) {
 	op := &request.Operation{
 		Name:       opCreateLogStream,
@@ -152,7 +236,28 @@ func (c *CloudWatchLogs) CreateLogStream(input *CreateLogStreamInput) (*CreateLo
 
 const opDeleteDestination = "DeleteDestination"
 
-// DeleteDestinationRequest generates a request for the DeleteDestination operation.
+// DeleteDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDestination operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteDestination method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteDestinationRequest method.
+//    req, resp := client.DeleteDestinationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DeleteDestinationRequest(input *DeleteDestinationInput) (req *request.Request, output *DeleteDestinationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDestination,
@@ -183,7 +288,28 @@ func (c *CloudWatchLogs) DeleteDestination(input *DeleteDestinationInput) (*Dele
 
 const opDeleteLogGroup = "DeleteLogGroup"
 
-// DeleteLogGroupRequest generates a request for the DeleteLogGroup operation.
+// DeleteLogGroupRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLogGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteLogGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteLogGroupRequest method.
+//    req, resp := client.DeleteLogGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DeleteLogGroupRequest(input *DeleteLogGroupInput) (req *request.Request, output *DeleteLogGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLogGroup,
@@ -213,7 +339,28 @@ func (c *CloudWatchLogs) DeleteLogGroup(input *DeleteLogGroupInput) (*DeleteLogG
 
 const opDeleteLogStream = "DeleteLogStream"
 
-// DeleteLogStreamRequest generates a request for the DeleteLogStream operation.
+// DeleteLogStreamRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLogStream operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteLogStream method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteLogStreamRequest method.
+//    req, resp := client.DeleteLogStreamRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DeleteLogStreamRequest(input *DeleteLogStreamInput) (req *request.Request, output *DeleteLogStreamOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLogStream,
@@ -243,7 +390,28 @@ func (c *CloudWatchLogs) DeleteLogStream(input *DeleteLogStreamInput) (*DeleteLo
 
 const opDeleteMetricFilter = "DeleteMetricFilter"
 
-// DeleteMetricFilterRequest generates a request for the DeleteMetricFilter operation.
+// DeleteMetricFilterRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteMetricFilter operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteMetricFilter method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteMetricFilterRequest method.
+//    req, resp := client.DeleteMetricFilterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DeleteMetricFilterRequest(input *DeleteMetricFilterInput) (req *request.Request, output *DeleteMetricFilterOutput) {
 	op := &request.Operation{
 		Name:       opDeleteMetricFilter,
@@ -272,7 +440,28 @@ func (c *CloudWatchLogs) DeleteMetricFilter(input *DeleteMetricFilterInput) (*De
 
 const opDeleteRetentionPolicy = "DeleteRetentionPolicy"
 
-// DeleteRetentionPolicyRequest generates a request for the DeleteRetentionPolicy operation.
+// DeleteRetentionPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRetentionPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRetentionPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRetentionPolicyRequest method.
+//    req, resp := client.DeleteRetentionPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DeleteRetentionPolicyRequest(input *DeleteRetentionPolicyInput) (req *request.Request, output *DeleteRetentionPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRetentionPolicy,
@@ -302,7 +491,28 @@ func (c *CloudWatchLogs) DeleteRetentionPolicy(input *DeleteRetentionPolicyInput
 
 const opDeleteSubscriptionFilter = "DeleteSubscriptionFilter"
 
-// DeleteSubscriptionFilterRequest generates a request for the DeleteSubscriptionFilter operation.
+// DeleteSubscriptionFilterRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSubscriptionFilter operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteSubscriptionFilter method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteSubscriptionFilterRequest method.
+//    req, resp := client.DeleteSubscriptionFilterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DeleteSubscriptionFilterRequest(input *DeleteSubscriptionFilterInput) (req *request.Request, output *DeleteSubscriptionFilterOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSubscriptionFilter,
@@ -331,7 +541,28 @@ func (c *CloudWatchLogs) DeleteSubscriptionFilter(input *DeleteSubscriptionFilte
 
 const opDescribeDestinations = "DescribeDestinations"
 
-// DescribeDestinationsRequest generates a request for the DescribeDestinations operation.
+// DescribeDestinationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDestinations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeDestinations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeDestinationsRequest method.
+//    req, resp := client.DescribeDestinationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DescribeDestinationsRequest(input *DescribeDestinationsInput) (req *request.Request, output *DescribeDestinationsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDestinations,
@@ -369,6 +600,23 @@ func (c *CloudWatchLogs) DescribeDestinations(input *DescribeDestinationsInput) 
 	return out, err
 }
 
+// DescribeDestinationsPages iterates over the pages of a DescribeDestinations operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeDestinations method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeDestinations operation.
+//    pageNum := 0
+//    err := client.DescribeDestinationsPages(params,
+//        func(page *DescribeDestinationsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatchLogs) DescribeDestinationsPages(input *DescribeDestinationsInput, fn func(p *DescribeDestinationsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeDestinationsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -379,7 +627,28 @@ func (c *CloudWatchLogs) DescribeDestinationsPages(input *DescribeDestinationsIn
 
 const opDescribeExportTasks = "DescribeExportTasks"
 
-// DescribeExportTasksRequest generates a request for the DescribeExportTasks operation.
+// DescribeExportTasksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeExportTasks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeExportTasks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeExportTasksRequest method.
+//    req, resp := client.DescribeExportTasksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *request.Request, output *DescribeExportTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeExportTasks,
@@ -413,7 +682,28 @@ func (c *CloudWatchLogs) DescribeExportTasks(input *DescribeExportTasksInput) (*
 
 const opDescribeLogGroups = "DescribeLogGroups"
 
-// DescribeLogGroupsRequest generates a request for the DescribeLogGroups operation.
+// DescribeLogGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLogGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLogGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLogGroupsRequest method.
+//    req, resp := client.DescribeLogGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DescribeLogGroupsRequest(input *DescribeLogGroupsInput) (req *request.Request, output *DescribeLogGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLogGroups,
@@ -451,6 +741,23 @@ func (c *CloudWatchLogs) DescribeLogGroups(input *DescribeLogGroupsInput) (*Desc
 	return out, err
 }
 
+// DescribeLogGroupsPages iterates over the pages of a DescribeLogGroups operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeLogGroups method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeLogGroups operation.
+//    pageNum := 0
+//    err := client.DescribeLogGroupsPages(params,
+//        func(page *DescribeLogGroupsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatchLogs) DescribeLogGroupsPages(input *DescribeLogGroupsInput, fn func(p *DescribeLogGroupsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeLogGroupsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -461,7 +768,28 @@ func (c *CloudWatchLogs) DescribeLogGroupsPages(input *DescribeLogGroupsInput, f
 
 const opDescribeLogStreams = "DescribeLogStreams"
 
-// DescribeLogStreamsRequest generates a request for the DescribeLogStreams operation.
+// DescribeLogStreamsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLogStreams operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLogStreams method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLogStreamsRequest method.
+//    req, resp := client.DescribeLogStreamsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DescribeLogStreamsRequest(input *DescribeLogStreamsInput) (req *request.Request, output *DescribeLogStreamsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLogStreams,
@@ -500,6 +828,23 @@ func (c *CloudWatchLogs) DescribeLogStreams(input *DescribeLogStreamsInput) (*De
 	return out, err
 }
 
+// DescribeLogStreamsPages iterates over the pages of a DescribeLogStreams operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeLogStreams method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeLogStreams operation.
+//    pageNum := 0
+//    err := client.DescribeLogStreamsPages(params,
+//        func(page *DescribeLogStreamsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatchLogs) DescribeLogStreamsPages(input *DescribeLogStreamsInput, fn func(p *DescribeLogStreamsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeLogStreamsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -510,7 +855,28 @@ func (c *CloudWatchLogs) DescribeLogStreamsPages(input *DescribeLogStreamsInput,
 
 const opDescribeMetricFilters = "DescribeMetricFilters"
 
-// DescribeMetricFiltersRequest generates a request for the DescribeMetricFilters operation.
+// DescribeMetricFiltersRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeMetricFilters operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeMetricFilters method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeMetricFiltersRequest method.
+//    req, resp := client.DescribeMetricFiltersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DescribeMetricFiltersRequest(input *DescribeMetricFiltersInput) (req *request.Request, output *DescribeMetricFiltersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeMetricFilters,
@@ -547,6 +913,23 @@ func (c *CloudWatchLogs) DescribeMetricFilters(input *DescribeMetricFiltersInput
 	return out, err
 }
 
+// DescribeMetricFiltersPages iterates over the pages of a DescribeMetricFilters operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeMetricFilters method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeMetricFilters operation.
+//    pageNum := 0
+//    err := client.DescribeMetricFiltersPages(params,
+//        func(page *DescribeMetricFiltersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatchLogs) DescribeMetricFiltersPages(input *DescribeMetricFiltersInput, fn func(p *DescribeMetricFiltersOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeMetricFiltersRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -557,7 +940,28 @@ func (c *CloudWatchLogs) DescribeMetricFiltersPages(input *DescribeMetricFilters
 
 const opDescribeSubscriptionFilters = "DescribeSubscriptionFilters"
 
-// DescribeSubscriptionFiltersRequest generates a request for the DescribeSubscriptionFilters operation.
+// DescribeSubscriptionFiltersRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSubscriptionFilters operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSubscriptionFilters method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSubscriptionFiltersRequest method.
+//    req, resp := client.DescribeSubscriptionFiltersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) DescribeSubscriptionFiltersRequest(input *DescribeSubscriptionFiltersInput) (req *request.Request, output *DescribeSubscriptionFiltersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSubscriptionFilters,
@@ -595,6 +999,23 @@ func (c *CloudWatchLogs) DescribeSubscriptionFilters(input *DescribeSubscription
 	return out, err
 }
 
+// DescribeSubscriptionFiltersPages iterates over the pages of a DescribeSubscriptionFilters operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeSubscriptionFilters method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeSubscriptionFilters operation.
+//    pageNum := 0
+//    err := client.DescribeSubscriptionFiltersPages(params,
+//        func(page *DescribeSubscriptionFiltersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatchLogs) DescribeSubscriptionFiltersPages(input *DescribeSubscriptionFiltersInput, fn func(p *DescribeSubscriptionFiltersOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeSubscriptionFiltersRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -605,7 +1026,28 @@ func (c *CloudWatchLogs) DescribeSubscriptionFiltersPages(input *DescribeSubscri
 
 const opFilterLogEvents = "FilterLogEvents"
 
-// FilterLogEventsRequest generates a request for the FilterLogEvents operation.
+// FilterLogEventsRequest generates a "aws/request.Request" representing the
+// client's request for the FilterLogEvents operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the FilterLogEvents method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the FilterLogEventsRequest method.
+//    req, resp := client.FilterLogEventsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) FilterLogEventsRequest(input *FilterLogEventsInput) (req *request.Request, output *FilterLogEventsOutput) {
 	op := &request.Operation{
 		Name:       opFilterLogEvents,
@@ -649,6 +1091,23 @@ func (c *CloudWatchLogs) FilterLogEvents(input *FilterLogEventsInput) (*FilterLo
 	return out, err
 }
 
+// FilterLogEventsPages iterates over the pages of a FilterLogEvents operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See FilterLogEvents method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a FilterLogEvents operation.
+//    pageNum := 0
+//    err := client.FilterLogEventsPages(params,
+//        func(page *FilterLogEventsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatchLogs) FilterLogEventsPages(input *FilterLogEventsInput, fn func(p *FilterLogEventsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.FilterLogEventsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -659,7 +1118,28 @@ func (c *CloudWatchLogs) FilterLogEventsPages(input *FilterLogEventsInput, fn fu
 
 const opGetLogEvents = "GetLogEvents"
 
-// GetLogEventsRequest generates a request for the GetLogEvents operation.
+// GetLogEventsRequest generates a "aws/request.Request" representing the
+// client's request for the GetLogEvents operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetLogEvents method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetLogEventsRequest method.
+//    req, resp := client.GetLogEventsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) GetLogEventsRequest(input *GetLogEventsInput) (req *request.Request, output *GetLogEventsOutput) {
 	op := &request.Operation{
 		Name:       opGetLogEvents,
@@ -699,6 +1179,23 @@ func (c *CloudWatchLogs) GetLogEvents(input *GetLogEventsInput) (*GetLogEventsOu
 	return out, err
 }
 
+// GetLogEventsPages iterates over the pages of a GetLogEvents operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetLogEvents method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetLogEvents operation.
+//    pageNum := 0
+//    err := client.GetLogEventsPages(params,
+//        func(page *GetLogEventsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatchLogs) GetLogEventsPages(input *GetLogEventsInput, fn func(p *GetLogEventsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetLogEventsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -709,7 +1206,28 @@ func (c *CloudWatchLogs) GetLogEventsPages(input *GetLogEventsInput, fn func(p *
 
 const opPutDestination = "PutDestination"
 
-// PutDestinationRequest generates a request for the PutDestination operation.
+// PutDestinationRequest generates a "aws/request.Request" representing the
+// client's request for the PutDestination operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutDestination method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutDestinationRequest method.
+//    req, resp := client.PutDestinationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) PutDestinationRequest(input *PutDestinationInput) (req *request.Request, output *PutDestinationOutput) {
 	op := &request.Operation{
 		Name:       opPutDestination,
@@ -746,7 +1264,28 @@ func (c *CloudWatchLogs) PutDestination(input *PutDestinationInput) (*PutDestina
 
 const opPutDestinationPolicy = "PutDestinationPolicy"
 
-// PutDestinationPolicyRequest generates a request for the PutDestinationPolicy operation.
+// PutDestinationPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutDestinationPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutDestinationPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutDestinationPolicyRequest method.
+//    req, resp := client.PutDestinationPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) PutDestinationPolicyRequest(input *PutDestinationPolicyInput) (req *request.Request, output *PutDestinationPolicyOutput) {
 	op := &request.Operation{
 		Name:       opPutDestinationPolicy,
@@ -778,7 +1317,28 @@ func (c *CloudWatchLogs) PutDestinationPolicy(input *PutDestinationPolicyInput) 
 
 const opPutLogEvents = "PutLogEvents"
 
-// PutLogEventsRequest generates a request for the PutLogEvents operation.
+// PutLogEventsRequest generates a "aws/request.Request" representing the
+// client's request for the PutLogEvents operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutLogEvents method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutLogEventsRequest method.
+//    req, resp := client.PutLogEventsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *request.Request, output *PutLogEventsOutput) {
 	op := &request.Operation{
 		Name:       opPutLogEvents,
@@ -819,7 +1379,28 @@ func (c *CloudWatchLogs) PutLogEvents(input *PutLogEventsInput) (*PutLogEventsOu
 
 const opPutMetricFilter = "PutMetricFilter"
 
-// PutMetricFilterRequest generates a request for the PutMetricFilter operation.
+// PutMetricFilterRequest generates a "aws/request.Request" representing the
+// client's request for the PutMetricFilter operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutMetricFilter method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutMetricFilterRequest method.
+//    req, resp := client.PutMetricFilterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) PutMetricFilterRequest(input *PutMetricFilterInput) (req *request.Request, output *PutMetricFilterOutput) {
 	op := &request.Operation{
 		Name:       opPutMetricFilter,
@@ -853,7 +1434,28 @@ func (c *CloudWatchLogs) PutMetricFilter(input *PutMetricFilterInput) (*PutMetri
 
 const opPutRetentionPolicy = "PutRetentionPolicy"
 
-// PutRetentionPolicyRequest generates a request for the PutRetentionPolicy operation.
+// PutRetentionPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutRetentionPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRetentionPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRetentionPolicyRequest method.
+//    req, resp := client.PutRetentionPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) PutRetentionPolicyRequest(input *PutRetentionPolicyInput) (req *request.Request, output *PutRetentionPolicyOutput) {
 	op := &request.Operation{
 		Name:       opPutRetentionPolicy,
@@ -884,7 +1486,28 @@ func (c *CloudWatchLogs) PutRetentionPolicy(input *PutRetentionPolicyInput) (*Pu
 
 const opPutSubscriptionFilter = "PutSubscriptionFilter"
 
-// PutSubscriptionFilterRequest generates a request for the PutSubscriptionFilter operation.
+// PutSubscriptionFilterRequest generates a "aws/request.Request" representing the
+// client's request for the PutSubscriptionFilter operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutSubscriptionFilter method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutSubscriptionFilterRequest method.
+//    req, resp := client.PutSubscriptionFilterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) PutSubscriptionFilterRequest(input *PutSubscriptionFilterInput) (req *request.Request, output *PutSubscriptionFilterOutput) {
 	op := &request.Operation{
 		Name:       opPutSubscriptionFilter,
@@ -926,7 +1549,28 @@ func (c *CloudWatchLogs) PutSubscriptionFilter(input *PutSubscriptionFilterInput
 
 const opTestMetricFilter = "TestMetricFilter"
 
-// TestMetricFilterRequest generates a request for the TestMetricFilter operation.
+// TestMetricFilterRequest generates a "aws/request.Request" representing the
+// client's request for the TestMetricFilter operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TestMetricFilter method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TestMetricFilterRequest method.
+//    req, resp := client.TestMetricFilterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatchLogs) TestMetricFilterRequest(input *TestMetricFilterInput) (req *request.Request, output *TestMetricFilterOutput) {
 	op := &request.Operation{
 		Name:       opTestMetricFilter,

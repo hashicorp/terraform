@@ -163,6 +163,12 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Default:  "1Minute",
 			},
 
+			"protect_from_scale_in": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"tag": autoscalingTagsSchema(),
 		},
 	}
@@ -185,6 +191,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	autoScalingGroupOpts.LaunchConfigurationName = aws.String(d.Get("launch_configuration").(string))
 	autoScalingGroupOpts.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
 	autoScalingGroupOpts.MaxSize = aws.Int64(int64(d.Get("max_size").(int)))
+	autoScalingGroupOpts.NewInstancesProtectedFromScaleIn = aws.Bool(d.Get("protect_from_scale_in").(bool))
 
 	// Availability Zones are optional if VPC Zone Identifer(s) are specified
 	if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
@@ -278,6 +285,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", g.AutoScalingGroupName)
 	d.Set("tag", autoscalingTagDescriptionsToSlice(g.Tags))
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
+	d.Set("protect_from_scale_in", g.NewInstancesProtectedFromScaleIn)
 
 	// If no termination polices are explicitly configured and the upstream state
 	// is only using the "Default" policy, clear the state to make it consistent
@@ -306,6 +314,8 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	opts := autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(d.Id()),
 	}
+
+	opts.NewInstancesProtectedFromScaleIn = aws.Bool(d.Get("protect_from_scale_in").(bool))
 
 	if d.HasChange("default_cooldown") {
 		opts.DefaultCooldown = aws.Int64(int64(d.Get("default_cooldown").(int)))
@@ -602,6 +612,7 @@ func updateASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoSc
 		props := &autoscaling.EnableMetricsCollectionInput{
 			AutoScalingGroupName: aws.String(d.Id()),
 			Metrics:              expandStringList(enabledMetrics.List()),
+			Granularity:          aws.String(d.Get("metrics_granularity").(string)),
 		}
 
 		_, err := conn.EnableMetricsCollection(props)

@@ -14,6 +14,9 @@ Provides access to deployment artifacts managed by Atlas. This can
 be used to dynamically configure instantiation and provisioning
 of resources.
 
+~> **NOTE: This resource is deprecated.**  
+Please use the [Atlas Artifact Data Source](/docs/providers/atlas/d/artifact.html)
+
 ## Example Usage
 
 An artifact can be created that has metadata representing

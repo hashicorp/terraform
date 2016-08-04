@@ -173,7 +173,12 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - stat failed on: %v", vDisk.vmdkPath)
 		d.SetId("")
-		return err
+
+		_, ok := err.(object.DatastoreNoSuchFileError)
+		if !ok {
+			return err
+		}
+		return nil
 	}
 	fileInfo = fileInfo.GetFileInfo()
 	log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - fileinfo: %#v", fileInfo)

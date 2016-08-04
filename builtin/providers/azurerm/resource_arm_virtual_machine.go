@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
@@ -43,6 +44,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -68,6 +70,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 				StateFunc: func(id interface{}) string {
 					return strings.ToLower(id.(string))
 				},
@@ -88,6 +91,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"publisher": {
@@ -118,6 +122,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 			"storage_os_disk": {
 				Type:     schema.TypeSet,
 				Required: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"os_type": {
@@ -153,6 +158,12 @@ func resourceArmVirtualMachine() *schema.Resource {
 					},
 				},
 				Set: resourceArmVirtualMachineStorageOsDiskHash,
+			},
+
+			"delete_os_disk_on_termination": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 
 			"storage_data_disk": {
@@ -196,15 +207,22 @@ func resourceArmVirtualMachine() *schema.Resource {
 				},
 			},
 
+			"delete_data_disks_on_termination": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"os_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"computer_name": {
 							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							ForceNew: true,
+							Required: true,
 						},
 
 						"admin_username": {
@@ -230,6 +248,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 			"os_profile_windows_config": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"provision_vm_agent": {
@@ -241,7 +260,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Optional: true,
 						},
 						"winrm": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -257,7 +276,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							},
 						},
 						"additional_unattend_config": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -288,6 +307,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 			"os_profile_linux_config": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"disable_password_authentication": {
@@ -326,7 +346,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"vault_certificates": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -506,7 +526,7 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if resp.Properties.OsProfile.WindowsConfiguration != nil {
-		if err := d.Set("os_profile_windows_config", schema.NewSet(resourceArmVirtualMachineStorageOsProfileWindowsConfigHash, flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.Properties.OsProfile.WindowsConfiguration))); err != nil {
+		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.Properties.OsProfile.WindowsConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Windows Configuration: %#v", err)
 		}
 	}
@@ -544,9 +564,72 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualMachines"]
 
-	_, err = vmClient.Delete(resGroup, name, make(chan struct{}))
+	if _, err = vmClient.Delete(resGroup, name, make(chan struct{})); err != nil {
+		return err
+	}
 
-	return err
+	// delete OS Disk if opted in
+	if deleteOsDisk := d.Get("delete_os_disk_on_termination").(bool); deleteOsDisk {
+		log.Printf("[INFO] delete_os_disk_on_termination is enabled, deleting")
+
+		osDisk, err := expandAzureRmVirtualMachineOsDisk(d)
+		if err != nil {
+			return fmt.Errorf("Error expanding OS Disk: %s", err)
+		}
+
+		if err = resourceArmVirtualMachineDeleteVhd(*osDisk.Vhd.URI, resGroup, meta); err != nil {
+			return fmt.Errorf("Error deleting OS Disk VHD: %s", err)
+		}
+	}
+
+	// delete Data disks if opted in
+	if deleteDataDisks := d.Get("delete_data_disks_on_termination").(bool); deleteDataDisks {
+		log.Printf("[INFO] delete_data_disks_on_termination is enabled, deleting each data disk")
+
+		disks, err := expandAzureRmVirtualMachineDataDisk(d)
+		if err != nil {
+			return fmt.Errorf("Error expanding Data Disks: %s", err)
+		}
+
+		for _, disk := range disks {
+			if err = resourceArmVirtualMachineDeleteVhd(*disk.Vhd.URI, resGroup, meta); err != nil {
+				return fmt.Errorf("Error deleting Data Disk VHD: %s", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func resourceArmVirtualMachineDeleteVhd(uri, resGroup string, meta interface{}) error {
+	vhdURL, err := url.Parse(uri)
+	if err != nil {
+		return fmt.Errorf("Cannot parse Disk VHD URI: %s", err)
+	}
+
+	// VHD URI is in the form: https://storageAccountName.blob.core.windows.net/containerName/blobName
+	storageAccountName := strings.Split(vhdURL.Host, ".")[0]
+	path := strings.Split(strings.TrimPrefix(vhdURL.Path, "/"), "/")
+	containerName := path[0]
+	blobName := path[1]
+
+	blobClient, saExists, err := meta.(*ArmClient).getBlobStorageClientForStorageAccount(resGroup, storageAccountName)
+	if err != nil {
+		return fmt.Errorf("Error creating blob store client for VHD deletion: %s", err)
+	}
+
+	if !saExists {
+		log.Printf("[INFO] Storage Account %q doesn't exist so the VHD blob won't exist", storageAccountName)
+		return nil
+	}
+
+	log.Printf("[INFO] Deleting VHD blob %s", blobName)
+	_, err = blobClient.DeleteBlobIfExists(containerName, blobName, nil)
+	if err != nil {
+		return fmt.Errorf("Error deleting VHD blob: %s", err)
+	}
+
+	return nil
 }
 
 func resourceArmVirtualMachinePlanHash(v interface{}) int {
@@ -576,18 +659,6 @@ func resourceArmVirtualMachineStorageOsProfileHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["computer_name"].(string)))
 	return hashcode.String(buf.String())
 }
-
-//func resourceArmVirtualMachineStorageDataDiskHash(v interface{}) int {
-//	var buf bytes.Buffer
-//	m := v.(map[string]interface{})
-//	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-//	buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
-//	buf.WriteString(fmt.Sprintf("%s-", m["create_option"].(string)))
-//	buf.WriteString(fmt.Sprintf("%d-", m["disk_size_gb"].(int)))
-//	buf.WriteString(fmt.Sprintf("%d-", m["lun"].(int)))
-//
-//	return hashcode.String(buf.String())
-//}
 
 func resourceArmVirtualMachineStorageOsDiskHash(v interface{}) int {
 	var buf bytes.Buffer
@@ -736,7 +807,10 @@ func flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(config *compute.W
 			c["pass"] = i.PassName
 			c["component"] = i.ComponentName
 			c["setting_name"] = i.SettingName
-			c["content"] = *i.Content
+
+			if i.Content != nil {
+				c["content"] = *i.Content
+			}
 
 			content = append(content, c)
 		}
@@ -784,10 +858,6 @@ func flattenAzureRmVirtualMachineOsDisk(disk *compute.OSDisk) []interface{} {
 func expandAzureRmVirtualMachinePlan(d *schema.ResourceData) (*compute.Plan, error) {
 	planConfigs := d.Get("plan").(*schema.Set).List()
 
-	if len(planConfigs) != 1 {
-		return nil, fmt.Errorf("Cannot specify more than one plan.")
-	}
-
 	planConfig := planConfigs[0].(map[string]interface{})
 
 	publisher := planConfig["publisher"].(string)
@@ -804,17 +874,15 @@ func expandAzureRmVirtualMachinePlan(d *schema.ResourceData) (*compute.Plan, err
 func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSProfile, error) {
 	osProfiles := d.Get("os_profile").(*schema.Set).List()
 
-	if len(osProfiles) != 1 {
-		return nil, fmt.Errorf("[ERROR] Only 1 OS Profile Can be specified for an Azure RM Virtual Machine")
-	}
-
 	osProfile := osProfiles[0].(map[string]interface{})
 
 	adminUsername := osProfile["admin_username"].(string)
 	adminPassword := osProfile["admin_password"].(string)
+	computerName := osProfile["computer_name"].(string)
 
 	profile := &compute.OSProfile{
 		AdminUsername: &adminUsername,
+		ComputerName:  &computerName,
 	}
 
 	if adminPassword != "" {
@@ -848,9 +916,6 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 		}
 	}
 
-	if v := osProfile["computer_name"].(string); v != "" {
-		profile.ComputerName = &v
-	}
 	if v := osProfile["custom_data"].(string); v != "" {
 		profile.CustomData = &v
 	}
@@ -873,7 +938,7 @@ func expandAzureRmVirtualMachineOsProfileSecrets(d *schema.ResourceData) *[]comp
 		}
 
 		if v := config["vault_certificates"]; v != nil {
-			certsConfig := v.(*schema.Set).List()
+			certsConfig := v.([]interface{})
 			certs := make([]compute.VaultCertificate, 0, len(certsConfig))
 			for _, certConfig := range certsConfig {
 				config := certConfig.(map[string]interface{})
@@ -899,10 +964,6 @@ func expandAzureRmVirtualMachineOsProfileSecrets(d *schema.ResourceData) *[]comp
 
 func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*compute.LinuxConfiguration, error) {
 	osProfilesLinuxConfig := d.Get("os_profile_linux_config").(*schema.Set).List()
-
-	if len(osProfilesLinuxConfig) != 1 {
-		return nil, fmt.Errorf("[ERROR] Only 1 OS Profile Linux Config Can be specified for an Azure RM Virtual Machine")
-	}
 
 	linuxConfig := osProfilesLinuxConfig[0].(map[string]interface{})
 	disablePasswordAuth := linuxConfig["disable_password_authentication"].(bool)
@@ -940,10 +1001,6 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (*compute.WindowsConfiguration, error) {
 	osProfilesWindowsConfig := d.Get("os_profile_windows_config").(*schema.Set).List()
 
-	if len(osProfilesWindowsConfig) != 1 {
-		return nil, fmt.Errorf("[ERROR] Only 1 OS Profile Windows Config Can be specified for an Azure RM Virtual Machine")
-	}
-
 	osProfileConfig := osProfilesWindowsConfig[0].(map[string]interface{})
 	config := &compute.WindowsConfiguration{}
 
@@ -958,7 +1015,7 @@ func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (
 	}
 
 	if v := osProfileConfig["winrm"]; v != nil {
-		winRm := v.(*schema.Set).List()
+		winRm := v.([]interface{})
 		if len(winRm) > 0 {
 			winRmListners := make([]compute.WinRMListener, 0, len(winRm))
 			for _, winRmConfig := range winRm {
@@ -980,7 +1037,7 @@ func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (
 		}
 	}
 	if v := osProfileConfig["additional_unattend_config"]; v != nil {
-		additionalConfig := v.(*schema.Set).List()
+		additionalConfig := v.([]interface{})
 		if len(additionalConfig) > 0 {
 			additionalConfigContent := make([]compute.AdditionalUnattendContent, 0, len(additionalConfig))
 			for _, addConfig := range additionalConfig {
@@ -1036,10 +1093,6 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute.ImageReference, error) {
 	storageImageRefs := d.Get("storage_image_reference").(*schema.Set).List()
 
-	if len(storageImageRefs) != 1 {
-		return nil, fmt.Errorf("Cannot specify more than one storage_image_reference.")
-	}
-
 	storageImageRef := storageImageRefs[0].(map[string]interface{})
 
 	publisher := storageImageRef["publisher"].(string)
@@ -1076,10 +1129,6 @@ func expandAzureRmVirtualMachineNetworkProfile(d *schema.ResourceData) compute.N
 
 func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk, error) {
 	disks := d.Get("storage_os_disk").(*schema.Set).List()
-
-	if len(disks) != 1 {
-		return nil, fmt.Errorf("[ERROR] Only 1 OS Disk Can be specified for an Azure RM Virtual Machine")
-	}
 
 	disk := disks[0].(map[string]interface{})
 

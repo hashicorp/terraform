@@ -169,6 +169,7 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"healthy_threshold": &schema.Schema{
@@ -335,10 +336,15 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 
 	lb := describeResp.LoadBalancerDescriptions[0]
 
-	d.Set("name", *lb.LoadBalancerName)
-	d.Set("dns_name", *lb.DNSName)
-	d.Set("zone_id", *lb.CanonicalHostedZoneNameID)
-	d.Set("internal", *lb.Scheme == "internal")
+	d.Set("name", lb.LoadBalancerName)
+	d.Set("dns_name", lb.DNSName)
+	d.Set("zone_id", lb.CanonicalHostedZoneNameID)
+
+	var scheme bool
+	if lb.Scheme != nil {
+		scheme = *lb.Scheme == "internal"
+	}
+	d.Set("internal", scheme)
 	d.Set("availability_zones", flattenStringList(lb.AvailabilityZones))
 	d.Set("instances", flattenInstances(lb.Instances))
 	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
@@ -590,9 +596,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("health_check") {
 		hc := d.Get("health_check").([]interface{})
-		if len(hc) > 1 {
-			return fmt.Errorf("Only one health check per ELB is supported")
-		} else if len(hc) > 0 {
+		if len(hc) > 0 {
 			check := hc[0].(map[string]interface{})
 			configureHealthCheckOpts := elb.ConfigureHealthCheckInput{
 				LoadBalancerName: aws.String(d.Id()),

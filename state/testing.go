@@ -118,9 +118,11 @@ func TestState(t *testing.T, s interface{}) {
 			t.Fatalf("bad: expected %d, got %d", serial, reader.State().Serial)
 		}
 
-		// Check that State() returns a copy
-		reader.State().Serial++
-		if reflect.DeepEqual(reader.State(), current) {
+		// Check that State() returns a copy by modifying the copy and comparing
+		// to the current state.
+		stateCopy := reader.State()
+		stateCopy.Serial++
+		if reflect.DeepEqual(stateCopy, current) {
 			t.Fatal("State() should return a copy")
 		}
 	}

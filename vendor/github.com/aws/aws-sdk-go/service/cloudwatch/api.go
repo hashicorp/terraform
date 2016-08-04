@@ -15,7 +15,28 @@ import (
 
 const opDeleteAlarms = "DeleteAlarms"
 
-// DeleteAlarmsRequest generates a request for the DeleteAlarms operation.
+// DeleteAlarmsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteAlarms operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteAlarms method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteAlarmsRequest method.
+//    req, resp := client.DeleteAlarmsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DeleteAlarmsRequest(input *DeleteAlarmsInput) (req *request.Request, output *DeleteAlarmsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAlarms,
@@ -44,7 +65,28 @@ func (c *CloudWatch) DeleteAlarms(input *DeleteAlarmsInput) (*DeleteAlarmsOutput
 
 const opDescribeAlarmHistory = "DescribeAlarmHistory"
 
-// DescribeAlarmHistoryRequest generates a request for the DescribeAlarmHistory operation.
+// DescribeAlarmHistoryRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAlarmHistory operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAlarmHistory method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAlarmHistoryRequest method.
+//    req, resp := client.DescribeAlarmHistoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DescribeAlarmHistoryRequest(input *DescribeAlarmHistoryInput) (req *request.Request, output *DescribeAlarmHistoryOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAlarmHistory,
@@ -80,6 +122,23 @@ func (c *CloudWatch) DescribeAlarmHistory(input *DescribeAlarmHistoryInput) (*De
 	return out, err
 }
 
+// DescribeAlarmHistoryPages iterates over the pages of a DescribeAlarmHistory operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeAlarmHistory method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeAlarmHistory operation.
+//    pageNum := 0
+//    err := client.DescribeAlarmHistoryPages(params,
+//        func(page *DescribeAlarmHistoryOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatch) DescribeAlarmHistoryPages(input *DescribeAlarmHistoryInput, fn func(p *DescribeAlarmHistoryOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeAlarmHistoryRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -90,7 +149,28 @@ func (c *CloudWatch) DescribeAlarmHistoryPages(input *DescribeAlarmHistoryInput,
 
 const opDescribeAlarms = "DescribeAlarms"
 
-// DescribeAlarmsRequest generates a request for the DescribeAlarms operation.
+// DescribeAlarmsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAlarms operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAlarms method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAlarmsRequest method.
+//    req, resp := client.DescribeAlarmsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DescribeAlarmsRequest(input *DescribeAlarmsInput) (req *request.Request, output *DescribeAlarmsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAlarms,
@@ -123,6 +203,23 @@ func (c *CloudWatch) DescribeAlarms(input *DescribeAlarmsInput) (*DescribeAlarms
 	return out, err
 }
 
+// DescribeAlarmsPages iterates over the pages of a DescribeAlarms operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeAlarms method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeAlarms operation.
+//    pageNum := 0
+//    err := client.DescribeAlarmsPages(params,
+//        func(page *DescribeAlarmsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatch) DescribeAlarmsPages(input *DescribeAlarmsInput, fn func(p *DescribeAlarmsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeAlarmsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -133,7 +230,28 @@ func (c *CloudWatch) DescribeAlarmsPages(input *DescribeAlarmsInput, fn func(p *
 
 const opDescribeAlarmsForMetric = "DescribeAlarmsForMetric"
 
-// DescribeAlarmsForMetricRequest generates a request for the DescribeAlarmsForMetric operation.
+// DescribeAlarmsForMetricRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAlarmsForMetric operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAlarmsForMetric method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAlarmsForMetricRequest method.
+//    req, resp := client.DescribeAlarmsForMetricRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DescribeAlarmsForMetricRequest(input *DescribeAlarmsForMetricInput) (req *request.Request, output *DescribeAlarmsForMetricOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAlarmsForMetric,
@@ -161,7 +279,28 @@ func (c *CloudWatch) DescribeAlarmsForMetric(input *DescribeAlarmsForMetricInput
 
 const opDisableAlarmActions = "DisableAlarmActions"
 
-// DisableAlarmActionsRequest generates a request for the DisableAlarmActions operation.
+// DisableAlarmActionsRequest generates a "aws/request.Request" representing the
+// client's request for the DisableAlarmActions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableAlarmActions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableAlarmActionsRequest method.
+//    req, resp := client.DisableAlarmActionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) DisableAlarmActionsRequest(input *DisableAlarmActionsInput) (req *request.Request, output *DisableAlarmActionsOutput) {
 	op := &request.Operation{
 		Name:       opDisableAlarmActions,
@@ -191,7 +330,28 @@ func (c *CloudWatch) DisableAlarmActions(input *DisableAlarmActionsInput) (*Disa
 
 const opEnableAlarmActions = "EnableAlarmActions"
 
-// EnableAlarmActionsRequest generates a request for the EnableAlarmActions operation.
+// EnableAlarmActionsRequest generates a "aws/request.Request" representing the
+// client's request for the EnableAlarmActions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableAlarmActions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableAlarmActionsRequest method.
+//    req, resp := client.EnableAlarmActionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) EnableAlarmActionsRequest(input *EnableAlarmActionsInput) (req *request.Request, output *EnableAlarmActionsOutput) {
 	op := &request.Operation{
 		Name:       opEnableAlarmActions,
@@ -220,7 +380,28 @@ func (c *CloudWatch) EnableAlarmActions(input *EnableAlarmActionsInput) (*Enable
 
 const opGetMetricStatistics = "GetMetricStatistics"
 
-// GetMetricStatisticsRequest generates a request for the GetMetricStatistics operation.
+// GetMetricStatisticsRequest generates a "aws/request.Request" representing the
+// client's request for the GetMetricStatistics operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetMetricStatistics method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetMetricStatisticsRequest method.
+//    req, resp := client.GetMetricStatisticsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput) (req *request.Request, output *GetMetricStatisticsOutput) {
 	op := &request.Operation{
 		Name:       opGetMetricStatistics,
@@ -245,8 +426,10 @@ func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput)
 // request is 1,440. If you make a request that generates more than 1,440 data
 // points, Amazon CloudWatch returns an error. In such a case, you can alter
 // the request by narrowing the specified time range or increasing the specified
-// period. Alternatively, you can make multiple requests across adjacent time
-// ranges. GetMetricStatistics does not return the data in chronological order.
+// period. A period can be as short as one minute (60 seconds) or as long as
+// one day (86,400 seconds). Alternatively, you can make multiple requests across
+// adjacent time ranges. GetMetricStatistics does not return the data in chronological
+// order.
 //
 //  Amazon CloudWatch aggregates data points based on the length of the period
 // that you specify. For example, if you request statistics with a one-minute
@@ -258,12 +441,15 @@ func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput)
 // query maximum of 50,850 when you call GetMetricStatistics on Amazon EC2 instances
 // with detailed (one-minute) monitoring enabled:
 //
-//  Statistics for up to 400 instances for a span of one hour Statistics for
-// up to 35 instances over a span of 24 hours Statistics for up to 2 instances
-// over a span of 2 weeks   For information about the namespace, metric names,
-// and dimensions that other Amazon Web Services products use to send metrics
-// to CloudWatch, go to Amazon CloudWatch Metrics, Namespaces, and Dimensions
-// Reference (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html)
+//   Statistics for up to 400 instances for a span of one hour
+//
+//   Statistics for up to 35 instances over a span of 24 hours
+//
+//   Statistics for up to 2 instances over a span of 2 weeks
+//
+//    For information about the namespace, metric names, and dimensions that
+// other Amazon Web Services products use to send metrics to CloudWatch, go
+// to Amazon CloudWatch Metrics, Namespaces, and Dimensions Reference (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html)
 // in the Amazon CloudWatch Developer Guide.
 func (c *CloudWatch) GetMetricStatistics(input *GetMetricStatisticsInput) (*GetMetricStatisticsOutput, error) {
 	req, out := c.GetMetricStatisticsRequest(input)
@@ -273,7 +459,28 @@ func (c *CloudWatch) GetMetricStatistics(input *GetMetricStatisticsInput) (*GetM
 
 const opListMetrics = "ListMetrics"
 
-// ListMetricsRequest generates a request for the ListMetrics operation.
+// ListMetricsRequest generates a "aws/request.Request" representing the
+// client's request for the ListMetrics operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListMetrics method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListMetricsRequest method.
+//    req, resp := client.ListMetricsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) ListMetricsRequest(input *ListMetricsInput) (req *request.Request, output *ListMetricsOutput) {
 	op := &request.Operation{
 		Name:       opListMetrics,
@@ -301,17 +508,35 @@ func (c *CloudWatch) ListMetricsRequest(input *ListMetricsInput) (req *request.R
 // metrics can be used with GetMetricStatistics to obtain statistical data for
 // a given metric.
 //
-//  Up to 500 results are returned for any one call. To retrieve further results,
-// use returned NextToken values with subsequent ListMetrics operations.   If
-// you create a metric with the PutMetricData action, allow up to fifteen minutes
-// for the metric to appear in calls to the ListMetrics action. Statistics about
-// the metric, however, are available sooner using GetMetricStatistics.
+//   Up to 500 results are returned for any one call. To retrieve further results,
+// use returned NextToken values with subsequent ListMetrics operations.
+//
+//    If you create a metric with PutMetricData, allow up to fifteen minutes
+// for the metric to appear in calls to ListMetrics. Statistics about the metric,
+// however, are available sooner using GetMetricStatistics.
 func (c *CloudWatch) ListMetrics(input *ListMetricsInput) (*ListMetricsOutput, error) {
 	req, out := c.ListMetricsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// ListMetricsPages iterates over the pages of a ListMetrics operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListMetrics method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListMetrics operation.
+//    pageNum := 0
+//    err := client.ListMetricsPages(params,
+//        func(page *ListMetricsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudWatch) ListMetricsPages(input *ListMetricsInput, fn func(p *ListMetricsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListMetricsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -322,7 +547,28 @@ func (c *CloudWatch) ListMetricsPages(input *ListMetricsInput, fn func(p *ListMe
 
 const opPutMetricAlarm = "PutMetricAlarm"
 
-// PutMetricAlarmRequest generates a request for the PutMetricAlarm operation.
+// PutMetricAlarmRequest generates a "aws/request.Request" representing the
+// client's request for the PutMetricAlarm operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutMetricAlarm method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutMetricAlarmRequest method.
+//    req, resp := client.PutMetricAlarmRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *request.Request, output *PutMetricAlarmOutput) {
 	op := &request.Operation{
 		Name:       opPutMetricAlarm,
@@ -343,26 +589,35 @@ func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *req
 }
 
 // Creates or updates an alarm and associates it with the specified Amazon CloudWatch
-// metric. Optionally, this operation can associate one or more Amazon Simple
-// Notification Service resources with the alarm.
+// metric. Optionally, this operation can associate one or more Amazon SNS resources
+// with the alarm.
 //
 //  When this operation creates an alarm, the alarm state is immediately set
 // to INSUFFICIENT_DATA. The alarm is evaluated and its StateValue is set appropriately.
-// Any actions associated with the StateValue is then executed.
+// Any actions associated with the StateValue are then executed.
 //
-//  When updating an existing alarm, its StateValue is left unchanged.   If
-// you are using an AWS Identity and Access Management (IAM) account to create
-// or modify an alarm, you must have the following Amazon EC2 permissions:
-// ec2:DescribeInstanceStatus and ec2:DescribeInstances for all alarms on Amazon
-// EC2 instance status metrics. ec2:StopInstances for alarms with stop actions.
-// ec2:TerminateInstances for alarms with terminate actions. ec2:DescribeInstanceRecoveryAttribute,
-// and ec2:RecoverInstances for alarms with recover actions.  If you have read/write
-// permissions for Amazon CloudWatch but not for Amazon EC2, you can still create
-// an alarm but the stop or terminate actions won't be performed on the Amazon
-// EC2 instance. However, if you are later granted permission to use the associated
-// Amazon EC2 APIs, the alarm actions you created earlier will be performed.
-// For more information about IAM permissions, see Permissions and Policies
-// (http://docs.aws.amazon.com//IAM/latest/UserGuide/PermissionsAndPolicies.html)
+//  When updating an existing alarm, its StateValue is left unchanged, but
+// it completely overwrites the alarm's previous configuration.
+//
+//   If you are using an AWS Identity and Access Management (IAM) account to
+// create or modify an alarm, you must have the following Amazon EC2 permissions:
+//
+//    ec2:DescribeInstanceStatus and ec2:DescribeInstances for all alarms on
+// Amazon EC2 instance status metrics.
+//
+//    ec2:StopInstances for alarms with stop actions.
+//
+//    ec2:TerminateInstances for alarms with terminate actions.
+//
+//    ec2:DescribeInstanceRecoveryAttribute, and ec2:RecoverInstances for alarms
+// with recover actions.
+//
+//   If you have read/write permissions for Amazon CloudWatch but not for Amazon
+// EC2, you can still create an alarm but the stop or terminate actions won't
+// be performed on the Amazon EC2 instance. However, if you are later granted
+// permission to use the associated Amazon EC2 APIs, the alarm actions you created
+// earlier will be performed. For more information about IAM permissions, see
+// Permissions and Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PermissionsAndPolicies.html)
 // in Using IAM.
 //
 // If you are using an IAM role (e.g., an Amazon EC2 instance profile), you
@@ -381,7 +636,28 @@ func (c *CloudWatch) PutMetricAlarm(input *PutMetricAlarmInput) (*PutMetricAlarm
 
 const opPutMetricData = "PutMetricData"
 
-// PutMetricDataRequest generates a request for the PutMetricData operation.
+// PutMetricDataRequest generates a "aws/request.Request" representing the
+// client's request for the PutMetricData operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutMetricData method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutMetricDataRequest method.
+//    req, resp := client.PutMetricDataRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) PutMetricDataRequest(input *PutMetricDataInput) (req *request.Request, output *PutMetricDataOutput) {
 	op := &request.Operation{
 		Name:       opPutMetricData,
@@ -405,18 +681,19 @@ func (c *CloudWatch) PutMetricDataRequest(input *PutMetricDataInput) (req *reque
 // the data points with the specified metric. If the specified metric does not
 // exist, Amazon CloudWatch creates the metric. When Amazon CloudWatch creates
 // a metric, it can take up to fifteen minutes for the metric to appear in calls
-// to the ListMetrics action.
+// to ListMetrics.
 //
 //  Each PutMetricData request is limited to 8 KB in size for HTTP GET requests
 // and is limited to 40 KB in size for HTTP POST requests.
 //
-// Although the Value parameter accepts numbers of type Double, Amazon CloudWatch
+//  Although the Value parameter accepts numbers of type Double, Amazon CloudWatch
 // rejects values that are either too small or too large. Values must be in
 // the range of 8.515920e-109 to 1.174271e+108 (Base 10) or 2e-360 to 2e360
 // (Base 2). In addition, special values (e.g., NaN, +Infinity, -Infinity) are
-// not supported.  Data that is timestamped 24 hours or more in the past may
-// take in excess of 48 hours to become available from submission time using
-// GetMetricStatistics.
+// not supported.
+//
+//  Data that is timestamped 24 hours or more in the past may take in excess
+// of 48 hours to become available from submission time using GetMetricStatistics.
 func (c *CloudWatch) PutMetricData(input *PutMetricDataInput) (*PutMetricDataOutput, error) {
 	req, out := c.PutMetricDataRequest(input)
 	err := req.Send()
@@ -425,7 +702,28 @@ func (c *CloudWatch) PutMetricData(input *PutMetricDataInput) (*PutMetricDataOut
 
 const opSetAlarmState = "SetAlarmState"
 
-// SetAlarmStateRequest generates a request for the SetAlarmState operation.
+// SetAlarmStateRequest generates a "aws/request.Request" representing the
+// client's request for the SetAlarmState operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetAlarmState method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetAlarmStateRequest method.
+//    req, resp := client.SetAlarmStateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *request.Request, output *SetAlarmStateOutput) {
 	op := &request.Operation{
 		Name:       opSetAlarmState,
@@ -445,15 +743,14 @@ func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *reque
 	return
 }
 
-// Temporarily sets the state of an alarm. When the updated StateValue differs
-// from the previous value, the action configured for the appropriate state
-// is invoked. For example, if your alarm is configured to send an Amazon SNS
-// message when an alarm is triggered, temporarily changing the alarm's state
-// to ALARM will send an Amazon SNS message. This is not a permanent change.
-// The next periodic alarm check (in about a minute) will set the alarm to its
-// actual state. Because the alarm state change happens very quickly, it is
-// typically only visibile in the alarm's History tab in the Amazon CloudWatch
-// console or through DescribeAlarmHistory.
+// Temporarily sets the state of an alarm for testing purposes. When the updated
+// StateValue differs from the previous value, the action configured for the
+// appropriate state is invoked. For example, if your alarm is configured to
+// send an Amazon SNS message when an alarm is triggered, temporarily changing
+// the alarm's state to ALARM sends an Amazon SNS message. The alarm returns
+// to its actual state (often within seconds). Because the alarm state change
+// happens very quickly, it is typically only visible in the alarm's History
+// tab in the Amazon CloudWatch console or through DescribeAlarmHistory.
 func (c *CloudWatch) SetAlarmState(input *SetAlarmStateInput) (*SetAlarmStateOutput, error) {
 	req, out := c.SetAlarmStateRequest(input)
 	err := req.Send()
@@ -530,6 +827,7 @@ func (s Datapoint) GoString() string {
 	return s.String()
 }
 
+// Describes the inputs for DeleteAlarms.
 type DeleteAlarmsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -574,6 +872,7 @@ func (s DeleteAlarmsOutput) GoString() string {
 	return s.String()
 }
 
+// Describes the inputs for DescribeAlarmHistory.
 type DescribeAlarmHistoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -623,7 +922,7 @@ func (s *DescribeAlarmHistoryInput) Validate() error {
 	return nil
 }
 
-// The output for the DescribeAlarmHistory action.
+// The output for DescribeAlarmHistory.
 type DescribeAlarmHistoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -644,6 +943,7 @@ func (s DescribeAlarmHistoryOutput) GoString() string {
 	return s.String()
 }
 
+// Describes the inputs for DescribeAlarmsForMetric.
 type DescribeAlarmsForMetricInput struct {
 	_ struct{} `type:"structure"`
 
@@ -713,7 +1013,7 @@ func (s *DescribeAlarmsForMetricInput) Validate() error {
 	return nil
 }
 
-// The output for the DescribeAlarmsForMetric action.
+// The output for DescribeAlarmsForMetric.
 type DescribeAlarmsForMetricOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -731,6 +1031,7 @@ func (s DescribeAlarmsForMetricOutput) GoString() string {
 	return s.String()
 }
 
+// Describes the inputs for DescribeAlarms.
 type DescribeAlarmsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -784,7 +1085,7 @@ func (s *DescribeAlarmsInput) Validate() error {
 	return nil
 }
 
-// The output for the DescribeAlarms action.
+// The output for DescribeAlarms.
 type DescribeAlarmsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -938,6 +1239,7 @@ func (s DisableAlarmActionsOutput) GoString() string {
 	return s.String()
 }
 
+// Describes the inputs for EnableAlarmActions.
 type EnableAlarmActionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -982,6 +1284,7 @@ func (s EnableAlarmActionsOutput) GoString() string {
 	return s.String()
 }
 
+// Describes the inputs for GetMetricStatistics.
 type GetMetricStatisticsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -999,8 +1302,9 @@ type GetMetricStatisticsInput struct {
 	// The namespace of the metric, with or without spaces.
 	Namespace *string `min:"1" type:"string" required:"true"`
 
-	// The granularity, in seconds, of the returned datapoints. Period must be at
-	// least 60 seconds and must be a multiple of 60. The default value is 60.
+	// The granularity, in seconds, of the returned datapoints. A Period can be
+	// as short as one minute (60 seconds) or as long as one day (86,400 seconds),
+	// and must be a multiple of 60. The default value is 60.
 	Period *int64 `min:"60" type:"integer" required:"true"`
 
 	// The time stamp to use for determining the first datapoint to return. The
@@ -1010,9 +1314,10 @@ type GetMetricStatisticsInput struct {
 	//  The specified start time is rounded down to the nearest value. Datapoints
 	// are returned for start times up to two weeks in the past. Specified start
 	// times that are more than two weeks in the past will not return datapoints
-	// for metrics that are older than two weeks. Data that is timestamped 24 hours
-	// or more in the past may take in excess of 48 hours to become available from
-	// submission time using GetMetricStatistics.
+	// for metrics that are older than two weeks.
+	//
+	// Data that is timestamped 24 hours or more in the past may take in excess
+	// of 48 hours to become available from submission time using GetMetricStatistics.
 	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The metric statistics to return. For information about specific statistics
@@ -1020,7 +1325,9 @@ type GetMetricStatisticsInput struct {
 	// in the Amazon CloudWatch Developer Guide.
 	Statistics []*string `min:"1" type:"list" required:"true"`
 
-	// The unit for the metric.
+	// The specific unit for a given metric. Metrics may be reported in multiple
+	// units. Not supplying a unit results in all units being returned. If the metric
+	// only ever reports one unit, specifying a unit will have no effect.
 	Unit *string `type:"string" enum:"StandardUnit"`
 }
 
@@ -1084,7 +1391,7 @@ func (s *GetMetricStatisticsInput) Validate() error {
 	return nil
 }
 
-// The output for the GetMetricStatistics action.
+// The output for GetMetricStatistics.
 type GetMetricStatisticsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1105,6 +1412,7 @@ func (s GetMetricStatisticsOutput) GoString() string {
 	return s.String()
 }
 
+// Describes the inputs for ListMetrics.
 type ListMetricsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1158,7 +1466,7 @@ func (s *ListMetricsInput) Validate() error {
 	return nil
 }
 
-// The output for the ListMetrics action.
+// The output for ListMetrics.
 type ListMetricsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1183,7 +1491,7 @@ func (s ListMetricsOutput) GoString() string {
 // call ListMetrics, Amazon CloudWatch returns information contained by this
 // data type.
 //
-//  The example in the Examples section publishes two metrics named buffers
+// The example in the Examples section publishes two metrics named buffers
 // and latency. Both metrics are in the examples namespace. Both metrics have
 // two dimensions, InstanceID and InstanceType.
 type Metric struct {
@@ -1249,7 +1557,7 @@ type MetricAlarm struct {
 	// state from any other state. Each action is specified as an Amazon Resource
 	// Name (ARN).
 	//
-	// The current WSDL lists this attribute as UnknownActions.
+	//  The current WSDL lists this attribute as UnknownActions.
 	InsufficientDataActions []*string `type:"list"`
 
 	// The name of the alarm's metric.
@@ -1324,7 +1632,7 @@ type MetricDatum struct {
 
 	// The value for the metric.
 	//
-	// Although the Value parameter accepts numbers of type Double, Amazon CloudWatch
+	//  Although the Value parameter accepts numbers of type Double, Amazon CloudWatch
 	// rejects values that are either too small or too large. Values must be in
 	// the range of 8.515920e-109 to 1.174271e+108 (Base 10) or 2e-360 to 2e360
 	// (Base 2). In addition, special values (e.g., NaN, +Infinity, -Infinity) are
@@ -1373,6 +1681,7 @@ func (s *MetricDatum) Validate() error {
 	return nil
 }
 
+// Describes the inputs for PutMetricAlarm.
 type PutMetricAlarmInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1391,7 +1700,7 @@ type PutMetricAlarmInput struct {
 	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Terminate/1.0
 	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Reboot/1.0
 	//
-	// Note: You must create at least one stop, terminate, or reboot alarm using
+	//  Note: You must create at least one stop, terminate, or reboot alarm using
 	// the Amazon EC2 or CloudWatch console to create the EC2ActionsAccess IAM role
 	// for the first time. After this IAM role is created, you can create stop,
 	// terminate, or reboot alarms using the CLI.
@@ -1425,7 +1734,7 @@ type PutMetricAlarmInput struct {
 	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Terminate/1.0
 	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Reboot/1.0
 	//
-	// Note: You must create at least one stop, terminate, or reboot alarm using
+	//  Note: You must create at least one stop, terminate, or reboot alarm using
 	// the Amazon EC2 or CloudWatch console to create the EC2ActionsAccess IAM role
 	// for the first time. After this IAM role is created, you can create stop,
 	// terminate, or reboot alarms using the CLI.
@@ -1448,7 +1757,7 @@ type PutMetricAlarmInput struct {
 	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Terminate/1.0
 	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Reboot/1.0
 	//
-	// Note: You must create at least one stop, terminate, or reboot alarm using
+	//  Note: You must create at least one stop, terminate, or reboot alarm using
 	// the Amazon EC2 or CloudWatch console to create the EC2ActionsAccess IAM role
 	// for the first time. After this IAM role is created, you can create stop,
 	// terminate, or reboot alarms using the CLI.
@@ -1559,6 +1868,7 @@ func (s PutMetricAlarmOutput) GoString() string {
 	return s.String()
 }
 
+// Describes the inputs for PutMetricData.
 type PutMetricDataInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1626,6 +1936,7 @@ func (s PutMetricDataOutput) GoString() string {
 	return s.String()
 }
 
+// Describes the inputs for SetAlarmState.
 type SetAlarmStateInput struct {
 	_ struct{} `type:"structure"`
 

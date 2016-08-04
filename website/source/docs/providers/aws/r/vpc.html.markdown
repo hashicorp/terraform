@@ -64,3 +64,11 @@ The following attributes are exported:
 
 
 [1]: http://docs.aws.amazon.com/fr_fr/AWSEC2/latest/UserGuide/vpc-classiclink.html
+
+## Import
+
+VPCs can be imported using the `vpc id`, e.g. 
+
+```
+$ terraform import aws_vpc.test_vpc vpc-a01106c2
+```

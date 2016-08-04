@@ -22,7 +22,7 @@ func (n *EvalCheckPreventDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	diff := *n.Diff
 	preventDestroy := n.Resource.Lifecycle.PreventDestroy
 
-	if diff.Destroy && preventDestroy {
+	if diff.GetDestroy() && preventDestroy {
 		return nil, fmt.Errorf(preventDestroyErrStr, n.Resource.Id())
 	}
 

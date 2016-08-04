@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/atlas-go/archive"
 	"github.com/hashicorp/atlas-go/v1"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type PushCommand struct {
@@ -87,6 +88,7 @@ func (c *PushCommand) Run(args []string) int {
 		Path:      configPath,
 		StatePath: c.Meta.statePath,
 	})
+
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -126,6 +128,8 @@ func (c *PushCommand) Run(args []string) int {
 			}
 		}
 
+		client.DefaultHeader.Set(terraform.VersionHeader, terraform.Version)
+
 		if atlasToken != "" {
 			client.Token = atlasToken
 		}
@@ -133,25 +137,46 @@ func (c *PushCommand) Run(args []string) int {
 		c.client = &atlasPushClient{Client: client}
 	}
 
-	// Get the variables we might already have
+	// Get the variables we already have in atlas
 	atlasVars, err := c.client.Get(name)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Error looking up previously pushed configuration: %s", err))
 		return 1
 	}
-	for k, v := range atlasVars {
-		if _, ok := overwriteMap[k]; ok {
-			continue
-		}
 
-		ctx.SetVariable(k, v)
+	// filter any overwrites from the atlas vars
+	for k := range overwriteMap {
+		delete(atlasVars, k)
+	}
+
+	// Set remote variables in the context if we don't have a value here. These
+	// don't have to be correct, it just prevents the Input walk from prompting
+	// the user for input, The atlas variable may be an hcl-encoded object, but
+	// we're just going to set it as the raw string value.
+	ctxVars := ctx.Variables()
+	for k, av := range atlasVars {
+		if _, ok := ctxVars[k]; !ok {
+			ctx.SetVariable(k, av.Value)
+		}
 	}
 
 	// Ask for input
 	if err := ctx.Input(c.InputMode()); err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Error while asking for variable input:\n\n%s", err))
+		return 1
+	}
+
+	// Now that we've gone through the input walk, we can be sure we have all
+	// the variables we're going to get.
+	// We are going to keep these separate from the atlas variables until
+	// upload, so we can notify the user which local variables we're sending.
+	serializedVars, err := tfVars(ctx.Variables())
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"An error has occurred while serializing the variables for uploading:\n"+
+				"%s", err))
 		return 1
 	}
 
@@ -180,17 +205,23 @@ func (c *PushCommand) Run(args []string) int {
 
 	// Output to the user the variables that will be uploaded
 	var setVars []string
-	for k, _ := range ctx.Variables() {
-		if _, ok := overwriteMap[k]; !ok {
-			if _, ok := atlasVars[k]; ok {
-				// Atlas variable not within override, so it came from Atlas
-				continue
-			}
+	// variables to upload
+	var uploadVars []atlas.TFVar
+
+	// Now we can combine the vars for upload to atlas and list the variables
+	// we're uploading for the user
+	for _, sv := range serializedVars {
+		if av, ok := atlasVars[sv.Key]; ok {
+			// this belongs to Atlas
+			uploadVars = append(uploadVars, av)
+		} else {
+			// we're uploading our local version
+			setVars = append(setVars, sv.Key)
+			uploadVars = append(uploadVars, sv)
 		}
 
-		// This variable was set from the local value
-		setVars = append(setVars, k)
 	}
+
 	sort.Strings(setVars)
 	if len(setVars) > 0 {
 		c.Ui.Output(
@@ -211,7 +242,9 @@ func (c *PushCommand) Run(args []string) int {
 		Name:      name,
 		Archive:   archiveR,
 		Variables: ctx.Variables(),
+		TFVars:    uploadVars,
 	}
+
 	c.Ui.Output("Uploading Terraform configuration...")
 	vsn, err := c.client.Upsert(opts)
 	if err != nil {
@@ -269,28 +302,82 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
+func sortedKeys(m map[string]interface{}) []string {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// build the set of TFVars for push
+func tfVars(vars map[string]interface{}) ([]atlas.TFVar, error) {
+	var tfVars []atlas.TFVar
+	var err error
+
+RANGE:
+	for _, k := range sortedKeys(vars) {
+		v := vars[k]
+
+		var hcl []byte
+		tfv := atlas.TFVar{Key: k}
+
+		switch v := v.(type) {
+		case string:
+			tfv.Value = v
+
+		case []interface{}:
+			hcl, err = encodeHCL(v)
+			if err != nil {
+				break RANGE
+			}
+
+			tfv.Value = string(hcl)
+			tfv.IsHCL = true
+
+		case map[string]interface{}:
+			hcl, err = encodeHCL(v)
+			if err != nil {
+				break RANGE
+			}
+
+			tfv.Value = string(hcl)
+			tfv.IsHCL = true
+		default:
+			err = fmt.Errorf("unknown type %T for variable %s", v, k)
+		}
+
+		tfVars = append(tfVars, tfv)
+	}
+
+	return tfVars, err
+}
+
 func (c *PushCommand) Synopsis() string {
 	return "Upload this Terraform module to Atlas to run"
 }
 
-// pushClient is implementd internally to control where pushes go. This is
-// either to Atlas or a mock for testing.
+// pushClient is implemented internally to control where pushes go. This is
+// either to Atlas or a mock for testing. We still return a map to make it
+// easier to check for variable existence when filtering the overrides.
 type pushClient interface {
-	Get(string) (map[string]string, error)
+	Get(string) (map[string]atlas.TFVar, error)
 	Upsert(*pushUpsertOptions) (int, error)
 }
 
 type pushUpsertOptions struct {
 	Name      string
 	Archive   *archive.Archive
-	Variables map[string]string
+	Variables map[string]interface{}
+	TFVars    []atlas.TFVar
 }
 
 type atlasPushClient struct {
 	Client *atlas.Client
 }
 
-func (c *atlasPushClient) Get(name string) (map[string]string, error) {
+func (c *atlasPushClient) Get(name string) (map[string]atlas.TFVar, error) {
 	user, name, err := atlas.ParseSlug(name)
 	if err != nil {
 		return nil, err
@@ -301,9 +388,21 @@ func (c *atlasPushClient) Get(name string) (map[string]string, error) {
 		return nil, err
 	}
 
-	var variables map[string]string
-	if version != nil {
-		variables = version.Variables
+	variables := make(map[string]atlas.TFVar)
+
+	if version == nil {
+		return variables, nil
+	}
+
+	// Variables is superseded by TFVars
+	if version.TFVars == nil {
+		for k, v := range version.Variables {
+			variables[k] = atlas.TFVar{Key: k, Value: v}
+		}
+	} else {
+		for _, v := range version.TFVars {
+			variables[v.Key] = v
+		}
 	}
 
 	return variables, nil
@@ -316,7 +415,7 @@ func (c *atlasPushClient) Upsert(opts *pushUpsertOptions) (int, error) {
 	}
 
 	data := &atlas.TerraformConfigVersion{
-		Variables: opts.Variables,
+		TFVars: opts.TFVars,
 	}
 
 	version, err := c.Client.CreateTerraformConfigVersion(
@@ -333,7 +432,7 @@ type mockPushClient struct {
 
 	GetCalled bool
 	GetName   string
-	GetResult map[string]string
+	GetResult map[string]atlas.TFVar
 	GetError  error
 
 	UpsertCalled  bool
@@ -342,7 +441,7 @@ type mockPushClient struct {
 	UpsertError   error
 }
 
-func (c *mockPushClient) Get(name string) (map[string]string, error) {
+func (c *mockPushClient) Get(name string) (map[string]atlas.TFVar, error) {
 	c.GetCalled = true
 	c.GetName = name
 	return c.GetResult, c.GetError

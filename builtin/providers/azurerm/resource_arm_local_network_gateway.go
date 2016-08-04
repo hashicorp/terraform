@@ -14,6 +14,9 @@ func resourceArmLocalNetworkGateway() *schema.Resource {
 		Read:   resourceArmLocalNetworkGatewayRead,
 		Update: resourceArmLocalNetworkGatewayCreate,
 		Delete: resourceArmLocalNetworkGatewayDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -115,6 +118,8 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error reading the state of Azure ARM local network gateway '%s': %s", name, err)
 	}
 
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
 	d.Set("gateway_address", resp.Properties.GatewayIPAddress)
 
 	prefs := []string{}

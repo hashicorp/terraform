@@ -19,7 +19,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	// We create two metas to track the two states
 	var meta1, meta2 Meta
-	cmdFlags := c.Meta.flagSet("state show")
+	cmdFlags := c.Meta.flagSet("state mv")
 	cmdFlags.StringVar(&meta1.stateOutPath, "backup", "", "backup")
 	cmdFlags.StringVar(&meta1.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&meta2.stateOutPath, "backup-out", "", "backup")

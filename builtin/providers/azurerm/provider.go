@@ -5,13 +5,14 @@ import (
 	"reflect"
 	"strings"
 
+	"sync"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
-	"sync"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -45,24 +46,28 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
-			"azurerm_availability_set":       resourceArmAvailabilitySet(),
-			"azurerm_cdn_endpoint":           resourceArmCdnEndpoint(),
-			"azurerm_cdn_profile":            resourceArmCdnProfile(),
-			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
-			"azurerm_network_interface":      resourceArmNetworkInterface(),
-			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
-			"azurerm_network_security_rule":  resourceArmNetworkSecurityRule(),
-			"azurerm_public_ip":              resourceArmPublicIp(),
-			"azurerm_route":                  resourceArmRoute(),
-			"azurerm_route_table":            resourceArmRouteTable(),
-			"azurerm_storage_account":        resourceArmStorageAccount(),
-			"azurerm_storage_blob":           resourceArmStorageBlob(),
-			"azurerm_storage_container":      resourceArmStorageContainer(),
-			"azurerm_storage_queue":          resourceArmStorageQueue(),
-			"azurerm_subnet":                 resourceArmSubnet(),
-			"azurerm_template_deployment":    resourceArmTemplateDeployment(),
-			"azurerm_virtual_machine":        resourceArmVirtualMachine(),
-			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
+			"azurerm_availability_set":          resourceArmAvailabilitySet(),
+			"azurerm_cdn_endpoint":              resourceArmCdnEndpoint(),
+			"azurerm_cdn_profile":               resourceArmCdnProfile(),
+			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
+			"azurerm_network_interface":         resourceArmNetworkInterface(),
+			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
+			"azurerm_network_security_rule":     resourceArmNetworkSecurityRule(),
+			"azurerm_public_ip":                 resourceArmPublicIp(),
+			"azurerm_route":                     resourceArmRoute(),
+			"azurerm_route_table":               resourceArmRouteTable(),
+			"azurerm_storage_account":           resourceArmStorageAccount(),
+			"azurerm_storage_blob":              resourceArmStorageBlob(),
+			"azurerm_storage_container":         resourceArmStorageContainer(),
+			"azurerm_storage_queue":             resourceArmStorageQueue(),
+			"azurerm_storage_table":             resourceArmStorageTable(),
+			"azurerm_subnet":                    resourceArmSubnet(),
+			"azurerm_template_deployment":       resourceArmTemplateDeployment(),
+			"azurerm_traffic_manager_endpoint":  resourceArmTrafficManagerEndpoint(),
+			"azurerm_traffic_manager_profile":   resourceArmTrafficManagerProfile(),
+			"azurerm_virtual_machine":           resourceArmVirtualMachine(),
+			"azurerm_virtual_machine_scale_set": resourceArmVirtualMachineScaleSet(),
+			"azurerm_virtual_network":           resourceArmVirtualNetwork(),
 
 			// These resources use the Riviera SDK
 			"azurerm_dns_a_record":      resourceArmDnsARecord(),

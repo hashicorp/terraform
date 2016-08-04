@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -15,11 +16,12 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
+	"github.com/satori/go.uuid"
 )
 
 const (
 	// StateVersion is the current version for our state file
-	StateVersion = 2
+	StateVersion = 3
 )
 
 // rootModulePath is the path of the root module
@@ -61,6 +63,14 @@ type State struct {
 	// the State file. It is used to detect potentially conflicting
 	// updates.
 	Serial int64 `json:"serial"`
+
+	// Lineage is set when a new, blank state is created and then
+	// never updated. This allows us to determine whether the serials
+	// of two states can be meaningfully compared.
+	// Apart from the guarantee that collisions between two lineages
+	// are very unlikely, this value is opaque and external callers
+	// should only compare lineage strings byte-for-byte for equality.
+	Lineage string `json:"lineage,omitempty"`
 
 	// Remote is used to track the metadata required to
 	// pull and push state files from a remote storage endpoint.
@@ -382,25 +392,77 @@ func (s *State) Equal(other *State) bool {
 	return true
 }
 
+type StateAgeComparison int
+
+const (
+	StateAgeEqual         StateAgeComparison = 0
+	StateAgeReceiverNewer StateAgeComparison = 1
+	StateAgeReceiverOlder StateAgeComparison = -1
+)
+
+// CompareAges compares one state with another for which is "older".
+//
+// This is a simple check using the state's serial, and is thus only as
+// reliable as the serial itself. In the normal case, only one state
+// exists for a given combination of lineage/serial, but Terraform
+// does not guarantee this and so the result of this method should be
+// used with care.
+//
+// Returns an integer that is negative if the receiver is older than
+// the argument, positive if the converse, and zero if they are equal.
+// An error is returned if the two states are not of the same lineage,
+// in which case the integer returned has no meaning.
+func (s *State) CompareAges(other *State) (StateAgeComparison, error) {
+
+	// nil states are "older" than actual states
+	switch {
+	case s != nil && other == nil:
+		return StateAgeReceiverNewer, nil
+	case s == nil && other != nil:
+		return StateAgeReceiverOlder, nil
+	case s == nil && other == nil:
+		return StateAgeEqual, nil
+	}
+
+	if !s.SameLineage(other) {
+		return StateAgeEqual, fmt.Errorf(
+			"can't compare two states of differing lineage",
+		)
+	}
+
+	switch {
+	case s.Serial < other.Serial:
+		return StateAgeReceiverOlder, nil
+	case s.Serial > other.Serial:
+		return StateAgeReceiverNewer, nil
+	default:
+		return StateAgeEqual, nil
+	}
+}
+
+// SameLineage returns true only if the state given in argument belongs
+// to the same "lineage" of states as the reciever.
+func (s *State) SameLineage(other *State) bool {
+	// If one of the states has no lineage then it is assumed to predate
+	// this concept, and so we'll accept it as belonging to any lineage
+	// so that a lineage string can be assigned to newer versions
+	// without breaking compatibility with older versions.
+	if s.Lineage == "" || other.Lineage == "" {
+		return true
+	}
+
+	return s.Lineage == other.Lineage
+}
+
 // DeepCopy performs a deep copy of the state structure and returns
 // a new structure.
 func (s *State) DeepCopy() *State {
-	if s == nil {
-		return nil
+	copy, err := copystructure.Copy(s)
+	if err != nil {
+		panic(err)
 	}
-	n := &State{
-		Version:   s.Version,
-		TFVersion: s.TFVersion,
-		Serial:    s.Serial,
-		Modules:   make([]*ModuleState, 0, len(s.Modules)),
-	}
-	for _, mod := range s.Modules {
-		n.Modules = append(n.Modules, mod.deepcopy())
-	}
-	if s.Remote != nil {
-		n.Remote = s.Remote.deepcopy()
-	}
-	return n
+
+	return copy.(*State)
 }
 
 // IncrementSerialMaybe increments the serial number of this state
@@ -442,6 +504,16 @@ func (s *State) init() {
 	}
 	if s.ModuleByPath(rootModulePath) == nil {
 		s.AddModule(rootModulePath)
+	}
+	s.EnsureHasLineage()
+}
+
+func (s *State) EnsureHasLineage() {
+	if s.Lineage == "" {
+		s.Lineage = uuid.NewV4().String()
+		log.Printf("[DEBUG] New state was assigned lineage %q\n", s.Lineage)
+	} else {
+		log.Printf("[TRACE] Preserving existing state lineage %q\n", s.Lineage)
 	}
 }
 
@@ -562,8 +634,7 @@ type OutputState struct {
 }
 
 func (s *OutputState) String() string {
-	// This is a v0.6.x implementation only
-	return fmt.Sprintf("%s", s.Value.(string))
+	return fmt.Sprintf("%#v", s.Value)
 }
 
 // Equal compares two OutputState structures for equality. nil values are
@@ -1103,28 +1174,12 @@ func (r *ResourceState) init() {
 }
 
 func (r *ResourceState) deepcopy() *ResourceState {
-	if r == nil {
-		return nil
+	copy, err := copystructure.Copy(r)
+	if err != nil {
+		panic(err)
 	}
 
-	n := &ResourceState{
-		Type:         r.Type,
-		Dependencies: nil,
-		Primary:      r.Primary.DeepCopy(),
-		Provider:     r.Provider,
-	}
-	if r.Dependencies != nil {
-		n.Dependencies = make([]string, len(r.Dependencies))
-		copy(n.Dependencies, r.Dependencies)
-	}
-	if r.Deposed != nil {
-		n.Deposed = make([]*InstanceState, 0, len(r.Deposed))
-		for _, inst := range r.Deposed {
-			n.Deposed = append(n.Deposed, inst.DeepCopy())
-		}
-	}
-
-	return n
+	return copy.(*ResourceState)
 }
 
 // prune is used to remove any instances that are no longer required
@@ -1194,27 +1249,12 @@ func (i *InstanceState) init() {
 }
 
 func (i *InstanceState) DeepCopy() *InstanceState {
-	if i == nil {
-		return nil
+	copy, err := copystructure.Copy(i)
+	if err != nil {
+		panic(err)
 	}
-	n := &InstanceState{
-		ID:        i.ID,
-		Ephemeral: *i.Ephemeral.DeepCopy(),
-		Tainted:   i.Tainted,
-	}
-	if i.Attributes != nil {
-		n.Attributes = make(map[string]string, len(i.Attributes))
-		for k, v := range i.Attributes {
-			n.Attributes[k] = v
-		}
-	}
-	if i.Meta != nil {
-		n.Meta = make(map[string]string, len(i.Meta))
-		for k, v := range i.Meta {
-			n.Meta[k] = v
-		}
-	}
-	return n
+
+	return copy.(*InstanceState)
 }
 
 func (s *InstanceState) Empty() bool {
@@ -1290,7 +1330,7 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 		}
 	}
 	if d != nil {
-		for k, diff := range d.Attributes {
+		for k, diff := range d.CopyAttributes() {
 			if diff.NewRemoved {
 				delete(result.Attributes, k)
 				continue
@@ -1362,21 +1402,35 @@ func (e *EphemeralState) init() {
 }
 
 func (e *EphemeralState) DeepCopy() *EphemeralState {
-	if e == nil {
-		return nil
+	copy, err := copystructure.Copy(e)
+	if err != nil {
+		panic(err)
 	}
-	n := &EphemeralState{}
-	if e.ConnInfo != nil {
-		n.ConnInfo = make(map[string]string, len(e.ConnInfo))
-		for k, v := range e.ConnInfo {
-			n.ConnInfo[k] = v
-		}
-	}
-	return n
+
+	return copy.(*EphemeralState)
 }
 
 type jsonStateVersionIdentifier struct {
 	Version int `json:"version"`
+}
+
+// Check if this is a V0 format - the magic bytes at the start of the file
+// should be "tfstate" if so. We no longer support upgrading this type of
+// state but return an error message explaining to a user how they can
+// upgrade via the 0.6.x series.
+func testForV0State(buf *bufio.Reader) error {
+	start, err := buf.Peek(len("tfstate"))
+	if err != nil {
+		return fmt.Errorf("Failed to check for magic bytes: %v", err)
+	}
+	if string(start) == "tfstate" {
+		return fmt.Errorf("Terraform 0.7 no longer supports upgrading the binary state\n" +
+			"format which was used prior to Terraform 0.3. Please upgrade\n" +
+			"this state file using Terraform 0.6.16 prior to using it with\n" +
+			"Terraform 0.7.")
+	}
+
+	return nil
 }
 
 // ReadState reads a state structure out of a reader in the format that
@@ -1384,18 +1438,8 @@ type jsonStateVersionIdentifier struct {
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
 
-	// Check if this is a V0 format
-	start, err := buf.Peek(len(stateFormatMagic))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to check for magic bytes: %v", err)
-	}
-	if string(start) == stateFormatMagic {
-		// Read the old state
-		old, err := ReadStateV0(buf)
-		if err != nil {
-			return nil, err
-		}
-		return old.upgrade()
+	if err := testForV0State(buf); err != nil {
+		return nil, err
 	}
 
 	// If we are JSON we buffer the whole thing in memory so we can read it twice.
@@ -1414,35 +1458,60 @@ func ReadState(src io.Reader) (*State, error) {
 	case 0:
 		return nil, fmt.Errorf("State version 0 is not supported as JSON.")
 	case 1:
-		old, err := ReadStateV1(jsonBytes)
+		v1State, err := ReadStateV1(jsonBytes)
 		if err != nil {
 			return nil, err
 		}
-		return old.upgrade()
+
+		v2State, err := upgradeStateV1ToV2(v1State)
+		if err != nil {
+			return nil, err
+		}
+
+		v3State, err := upgradeStateV2ToV3(v2State)
+		if err != nil {
+			return nil, err
+		}
+
+		// increment the Serial whenever we upgrade state
+		v3State.Serial++
+		return v3State, nil
 	case 2:
-		state, err := ReadStateV2(jsonBytes)
+		v2State, err := ReadStateV2(jsonBytes)
 		if err != nil {
 			return nil, err
 		}
-		return state, nil
+		v3State, err := upgradeStateV2ToV3(v2State)
+		if err != nil {
+			return nil, err
+		}
+
+		v3State.Serial++
+		return v3State, nil
+	case 3:
+		v3State, err := ReadStateV3(jsonBytes)
+		if err != nil {
+			return nil, err
+		}
+		return v3State, nil
 	default:
-		return nil, fmt.Errorf("State version %d not supported, please update.",
-			versionIdentifier.Version)
+		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+			SemVersion.String(), versionIdentifier.Version)
 	}
 }
 
 func ReadStateV1(jsonBytes []byte) (*stateV1, error) {
-	state := &stateV1{}
-	if err := json.Unmarshal(jsonBytes, state); err != nil {
+	v1State := &stateV1{}
+	if err := json.Unmarshal(jsonBytes, v1State); err != nil {
 		return nil, fmt.Errorf("Decoding state file failed: %v", err)
 	}
 
-	if state.Version != 1 {
+	if v1State.Version != 1 {
 		return nil, fmt.Errorf("Decoded state version did not match the decoder selection: "+
-			"read %d, expected 1", state.Version)
+			"read %d, expected 1", v1State.Version)
 	}
 
-	return state, nil
+	return v1State, nil
 }
 
 func ReadStateV2(jsonBytes []byte) (*State, error) {
@@ -1454,8 +1523,40 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
 	if state.Version > StateVersion {
-		return nil, fmt.Errorf("State version %d not supported, please update.",
-			state.Version)
+		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+			SemVersion.String(), state.Version)
+	}
+
+	// Make sure the version is semantic
+	if state.TFVersion != "" {
+		if _, err := version.NewVersion(state.TFVersion); err != nil {
+			return nil, fmt.Errorf(
+				"State contains invalid version: %s\n\n"+
+					"Terraform validates the version format prior to writing it. This\n"+
+					"means that this is invalid of the state becoming corrupted through\n"+
+					"some external means. Please manually modify the Terraform version\n"+
+					"field to be a proper semantic version.",
+				state.TFVersion)
+		}
+	}
+
+	// Sort it
+	state.sort()
+
+	return state, nil
+}
+
+func ReadStateV3(jsonBytes []byte) (*State, error) {
+	state := &State{}
+	if err := json.Unmarshal(jsonBytes, state); err != nil {
+		return nil, fmt.Errorf("Decoding state file failed: %v", err)
+	}
+
+	// Check the version, this to ensure we don't read a future
+	// version that we don't understand
+	if state.Version > StateVersion {
+		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+			SemVersion.String(), state.Version)
 	}
 
 	// Make sure the version is semantic

@@ -1,4 +1,4 @@
-TEST?=$$(go list ./... | grep -v /vendor/)
+TEST?=$$(go list ./... | grep -v '/terraform/vendor/' | grep -v '/builtin/bins/')
 VETARGS?=-all
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
@@ -29,11 +29,12 @@ core-dev: generate
 
 # Shorthand for quickly testing the core of Terraform (i.e. "not providers")
 core-test: generate
-	@echo "Testing core packages..." && go test -tags 'core' $(shell go list ./... | grep -v -E 'builtin|vendor')
+	@echo "Testing core packages..." && \
+		go test -tags 'core' $(TESTARGS) $(shell go list ./... | grep -v -E 'terraform/(builtin|vendor)')
 
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
-plugin-dev: fmtcheck generate
+plugin-dev: generate
 	go install github.com/hashicorp/terraform/builtin/bins/$(PLUGIN)
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
@@ -79,7 +80,7 @@ generate:
 	@which stringer ; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
-	go generate $$(go list ./... | grep -v /vendor/)
+	go generate $$(go list ./... | grep -v /terraform/vendor/)
 	@go fmt command/internal_plugin_list.go > /dev/null
 
 fmt:

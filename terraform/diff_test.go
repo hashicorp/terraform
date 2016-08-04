@@ -525,6 +525,75 @@ func TestInstanceDiffSame(t *testing.T) {
 			"",
 		},
 
+		// Computed sets may not contain all fields in the original diff, and
+		// because multiple entries for the same set can compute to the same
+		// hash before the values are computed or interpolated, the overall
+		// count can change as well.
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~35964334.bar": &ResourceAttrDiff{
+						Old: "",
+						New: "${var.foo}",
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "2",
+					},
+					"foo.87654323.bar": &ResourceAttrDiff{
+						Old: "",
+						New: "12",
+					},
+					"foo.87654325.bar": &ResourceAttrDiff{
+						Old: "",
+						New: "12",
+					},
+					"foo.87654325.baz": &ResourceAttrDiff{
+						Old: "",
+						New: "12",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// Computed values in maps will fail the "Same" check as well
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.%": &ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.%": &ResourceAttrDiff{
+						Old:         "0",
+						New:         "1",
+						NewComputed: false,
+					},
+					"foo.val": &ResourceAttrDiff{
+						Old: "",
+						New: "something",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
 		// In a DESTROY/CREATE scenario, the plan diff will be run against the
 		// state of the old instance, while the apply diff will be run against an
 		// empty state (because the state is cleared when the destroy runs.)
@@ -573,6 +642,38 @@ func TestInstanceDiffSame(t *testing.T) {
 						RequiresNew: true,
 					},
 					"somemap.#": &ResourceAttrDiff{
+						Old: "1",
+						New: "0",
+					},
+					"somemap.oldkey": &ResourceAttrDiff{
+						Old:        "long ago",
+						New:        "",
+						NewRemoved: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"reqnew": &ResourceAttrDiff{
+						Old:         "",
+						New:         "new",
+						RequiresNew: true,
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"reqnew": &ResourceAttrDiff{
+						Old:         "old",
+						New:         "new",
+						RequiresNew: true,
+					},
+					"somemap.%": &ResourceAttrDiff{
 						Old: "1",
 						New: "0",
 					},

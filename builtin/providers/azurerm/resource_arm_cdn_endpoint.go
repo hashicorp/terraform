@@ -66,6 +66,7 @@ func resourceArmCdnEndpoint() *schema.Resource {
 			"origin": {
 				Type:     schema.TypeSet,
 				Required: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -149,7 +150,7 @@ func resourceArmCdnEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	caching_behaviour := d.Get("querystring_caching_behaviour").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
-	properties := cdn.EndpointPropertiesCreateUpdateParameters{
+	properties := cdn.EndpointPropertiesCreateParameters{
 		IsHTTPAllowed:              &http_allowed,
 		IsHTTPSAllowed:             &https_allowed,
 		IsCompressionEnabled:       &compression_enabled,
@@ -270,21 +271,11 @@ func resourceArmCdnEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	caching_behaviour := d.Get("querystring_caching_behaviour").(string)
 	newTags := d.Get("tags").(map[string]interface{})
 
-	properties := cdn.EndpointPropertiesCreateUpdateParameters{
+	properties := cdn.EndpointPropertiesUpdateParameters{
 		IsHTTPAllowed:              &http_allowed,
 		IsHTTPSAllowed:             &https_allowed,
 		IsCompressionEnabled:       &compression_enabled,
 		QueryStringCachingBehavior: cdn.QueryStringCachingBehavior(caching_behaviour),
-	}
-
-	if d.HasChange("origin") {
-		origins, originsErr := expandAzureRmCdnEndpointOrigins(d)
-		if originsErr != nil {
-			return fmt.Errorf("Error Building list of CDN Endpoint Origins: %s", originsErr)
-		}
-		if len(origins) > 0 {
-			properties.Origins = &origins
-		}
 	}
 
 	if d.HasChange("origin_host_header") {
@@ -313,7 +304,7 @@ func resourceArmCdnEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 		Properties: &properties,
 	}
 
-	_, err := cdnEndpointsClient.Update(name, updateProps, profileName, resGroup)
+	_, err := cdnEndpointsClient.Update(name, updateProps, profileName, resGroup, make(chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM update request to update CDN Endpoint %q: %s", name, err)
 	}

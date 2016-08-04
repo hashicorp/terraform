@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -214,6 +215,8 @@ func TestAccAWSRoute53Record_weighted_basic(t *testing.T) {
 }
 
 func TestAccAWSRoute53Record_alias(t *testing.T) {
+	rs := acctest.RandString(10)
+	config := fmt.Sprintf(testAccRoute53ElbAliasRecord, rs)
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_route53_record.alias",
@@ -221,7 +224,7 @@ func TestAccAWSRoute53Record_alias(t *testing.T) {
 		CheckDestroy:  testAccCheckRoute53RecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRoute53ElbAliasRecord,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53RecordExists("aws_route53_record.alias"),
 				),
@@ -336,6 +339,23 @@ func TestAccAWSRoute53Record_TypeChange(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53Record_empty(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.empty",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordConfigEmptyName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.empty"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).r53conn
 	for _, rs := range s.RootModule().Resources {
@@ -348,9 +368,11 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 		name := parts[1]
 		rType := parts[2]
 
+		en := expandRecordName(name, "notexample.com")
+
 		lopts := &route53.ListResourceRecordSetsInput{
 			HostedZoneId:    aws.String(cleanZoneID(zone)),
-			StartRecordName: aws.String(name),
+			StartRecordName: aws.String(en),
 			StartRecordType: aws.String(rType),
 		}
 
@@ -407,6 +429,7 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 		if len(resp.ResourceRecordSets) == 0 {
 			return fmt.Errorf("Record does not exist")
 		}
+
 		// rec := resp.ResourceRecordSets[0]
 		for _, rec := range resp.ResourceRecordSets {
 			recName := cleanRecordName(*rec.Name)
@@ -758,7 +781,7 @@ resource "aws_route53_record" "alias" {
 }
 
 resource "aws_elb" "main" {
-  name = "foobar-terraform-elb"
+  name = "foobar-terraform-elb-%s"
   availability_zones = ["us-west-2a"]
 
   listener {
@@ -967,5 +990,19 @@ resource "aws_route53_record" "sample" {
   type = "A"
   ttl = "30"
   records = ["127.0.0.1", "8.8.8.8"]
+}
+`
+
+const testAccRoute53RecordConfigEmptyName = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "empty" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = ""
+	type = "A"
+	ttl = "30"
+	records = ["127.0.0.1"]
 }
 `
