@@ -6,9 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"sort"
-	"time"
+	"strconv"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -35,7 +36,6 @@ func dataSourceFastlyIPRangesRead(d *schema.ResourceData, meta interface{}) erro
 	conn := cleanhttp.DefaultClient()
 
 	log.Printf("[DEBUG] Reading IP ranges")
-	d.SetId(time.Now().UTC().String())
 
 	res, err := conn.Get("https://api.fastly.com/public-ip-list")
 
@@ -50,6 +50,8 @@ func dataSourceFastlyIPRangesRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return fmt.Errorf("Error reading response body: %s", err)
 	}
+
+	d.SetId(strconv.Itoa(hashcode.String(string(data))))
 
 	result := new(dataSourceFastlyIPRangesResult)
 
