@@ -121,7 +121,7 @@ func dataSourceAwsIPRangesRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if len(prefixes) == 0 {
-		log.Printf("[WARN] No ip ranges result from filters")
+		return fmt.Errorf(" No IP ranges result from filters")
 	}
 
 	sort.Strings(prefixes)
