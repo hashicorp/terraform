@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -50,7 +50,7 @@ func dataSourceAwsIPRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"sync_token": &schema.Schema{
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 		},
@@ -62,7 +62,6 @@ func dataSourceAwsIPRangesRead(d *schema.ResourceData, meta interface{}) error {
 	conn := cleanhttp.DefaultClient()
 
 	log.Printf("[DEBUG] Reading IP ranges")
-	d.SetId(time.Now().UTC().String())
 
 	res, err := conn.Get("https://ip-ranges.amazonaws.com/ip-ranges.json")
 
@@ -88,7 +87,15 @@ func dataSourceAwsIPRangesRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error setting create date: %s", err)
 	}
 
-	if err := d.Set("sync_token", result.SyncToken); err != nil {
+	syncToken, err := strconv.Atoi(result.SyncToken)
+
+	if err != nil {
+		return fmt.Errorf("Error while converting sync token: %s", err)
+	}
+
+	d.SetId(result.SyncToken)
+
+	if err := d.Set("sync_token", syncToken); err != nil {
 		return fmt.Errorf("Error setting sync token: %s", err)
 	}
 
