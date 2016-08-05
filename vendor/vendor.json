@@ -244,6 +244,12 @@
 			"revision": "0290933f5e8afd933f2823fce32bf2847e6ea603"
 		},
 		{
+			"checksumSHA1": "9PdV/lf2UZTy1GhmQ85JhyM2auA=",
+			"path": "github.com/JamesClonk/vultr/lib",
+			"revision": "f4daffde4646155fa142e64e114f771aa259c7f5",
+			"revisionTime": "2016-05-01T08:11:05Z"
+		},
+		{
 			"path": "github.com/Unknwon/com",
 			"revision": "28b053d5a2923b87ce8c5a08f3af779894a72758"
 		},
@@ -1321,6 +1327,12 @@
 			"revision": "53d1c0a0b003aabfa7ecfa848d856606cb481196"
 		},
 		{
+			"checksumSHA1": "sKheT5xw89Tbu2Q071FQO27CVmE=",
+			"path": "github.com/juju/ratelimit",
+			"revision": "77ed1c8a01217656d2080ad51981f6e99adaa177",
+			"revisionTime": "2015-11-25T20:19:25Z"
+		},
+		{
 			"path": "github.com/kardianos/osext",
 			"revision": "29ae4ffbc9a6fe9fb2bc5029050ce6996ea1d3bc"
 		},
@@ -1402,6 +1414,12 @@
 			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
 		},
 		{
+			"checksumSHA1": "Y89CHl2URaBbobeyCOr4kzbLwYE=",
+			"path": "github.com/miekg/dns",
+			"revision": "5d001d020961ae1c184f9f8152fdc73810481677",
+			"revisionTime": "2016-06-14T16:21:01Z"
+		},
+		{
 			"path": "github.com/mitchellh/cli",
 			"revision": "83f97d41cf100ee5f33944a8815c167d5e4aa272"
 		},
@@ -1458,6 +1476,12 @@
 		{
 			"path": "github.com/nu7hatch/gouuid",
 			"revision": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
+		},
+		{
+			"checksumSHA1": "1T+O5By9lglAD3y77fUC8pXp5Tg=",
+			"path": "github.com/ovh/go-ovh/ovh",
+			"revision": "d2b2eae2511fa5fcd0bdef9f1790ea3979fa35d4",
+			"revisionTime": "2016-06-04T15:31:04Z"
 		},
 		{
 			"path": "github.com/packer-community/winrmcp/winrmcp",
@@ -1857,6 +1881,12 @@
 			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
 		},
 		{
+			"checksumSHA1": "v6hJNRNz/su/DnLdt6uKjjEzodI=",
+			"path": "github.com/weppos/dnsimple-go/dnsimple",
+			"revision": "65c1ca73cb19baf0f8b2b33219b7f57595a3ccb0",
+			"revisionTime": "2016-02-04T12:32:27Z"
+		},
+		{
 			"comment": "2.0.0-6-g5686bcd",
 			"path": "github.com/xanzy/go-cloudstack/cloudstack",
 			"revision": "5686bcde5af20565d8c7a3f66b5441430ac54186"
@@ -1864,6 +1894,78 @@
 		{
 			"path": "github.com/xanzy/ssh-agent",
 			"revision": "ba9c9e33906f58169366275e3450db66139a31a9"
+		},
+		{
+			"checksumSHA1": "OzMApzueLn0SfCkuAtoy5aMBtEk=",
+			"path": "github.com/xenolf/lego/acme",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "9l4lud3YhUjkh65wvMOxP0Vkibo=",
+			"path": "github.com/xenolf/lego/providers/dns/cloudflare",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "AxgdtOepFt9YCI9TSWgBbH+OcNM=",
+			"path": "github.com/xenolf/lego/providers/dns/digitalocean",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "JsIMAs8XEDRm7+PSQ5yTkeNmNQE=",
+			"path": "github.com/xenolf/lego/providers/dns/dnsimple",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "yN/0N1Zg5P1vHw7ztyjDzqq0hhg=",
+			"path": "github.com/xenolf/lego/providers/dns/dyn",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "bBCVJp8rQPBDiRkmDckZ2BG/nLA=",
+			"path": "github.com/xenolf/lego/providers/dns/gandi",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "Dy+FrJMHb2ugp4WKDUtn/Tsc0jI=",
+			"path": "github.com/xenolf/lego/providers/dns/googlecloud",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "sKybs+vzQjT+TbZFbhHZ1W/3Sss=",
+			"path": "github.com/xenolf/lego/providers/dns/namecheap",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "7ZSZHaIdT1aHTTuDRnyRk2xp7FY=",
+			"path": "github.com/xenolf/lego/providers/dns/ovh",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "QMRmc33MRVBo1qQyOk3lVqkOM8Y=",
+			"path": "github.com/xenolf/lego/providers/dns/rfc2136",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "mesJNdqHYguonRh2sr3ew8KnjOY=",
+			"path": "github.com/xenolf/lego/providers/dns/route53",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
+		},
+		{
+			"checksumSHA1": "Zc26smIckdtNeDPquh9YkRoFNKA=",
+			"path": "github.com/xenolf/lego/providers/dns/vultr",
+			"revision": "b7b05e88dbca506e8eac0cc9e4c7ad5e3132da58",
+			"revisionTime": "2016-07-04T13:00:59Z"
 		},
 		{
 			"comment": "v1.5.4-13-g75ce5fb",
@@ -1889,6 +1991,12 @@
 			"revision": "1f22c0103821b9390939b6776727195525381532"
 		},
 		{
+			"checksumSHA1": "lHxT2HoDb53IQpOr4q7em28PKGY=",
+			"path": "golang.org/x/crypto/ocsp",
+			"revision": "f3241ce8505855877cc8a9717bd61a0f7c4ea83c",
+			"revisionTime": "2016-06-10T10:58:35Z"
+		},
+		{
 			"path": "golang.org/x/crypto/ssh",
 			"revision": "1f22c0103821b9390939b6776727195525381532"
 		},
@@ -1903,6 +2011,18 @@
 		{
 			"path": "golang.org/x/net/context/ctxhttp",
 			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e"
+		},
+		{
+			"checksumSHA1": "GIGmSrYACByf5JDIP9ByBZksY80=",
+			"path": "golang.org/x/net/idna",
+			"revision": "3f122ce3dbbe488b7e6a8bdb26f41edec852a40b",
+			"revisionTime": "2016-06-09T04:57:12Z"
+		},
+		{
+			"checksumSHA1": "7gKsI6FUWiBE9JHRsA8LzlIWIdQ=",
+			"path": "golang.org/x/net/publicsuffix",
+			"revision": "3f122ce3dbbe488b7e6a8bdb26f41edec852a40b",
+			"revisionTime": "2016-06-09T04:57:12Z"
 		},
 		{
 			"path": "golang.org/x/oauth2",
@@ -2014,6 +2134,24 @@
 			"comment": "v1.8.5",
 			"path": "gopkg.in/ini.v1",
 			"revision": "77178f22699a4ecafce485fb8d86b7afeb7e3e28"
+		},
+		{
+			"checksumSHA1": "LKz+OTCQIjRCae1xBcDR7Pa+DU0=",
+			"path": "gopkg.in/square/go-jose.v1",
+			"revision": "e3f973b66b91445ec816dd7411ad1b6495a5a2fc",
+			"revisionTime": "2016-05-02T21:53:29Z"
+		},
+		{
+			"checksumSHA1": "NXpzIEnfFqipFF9V1rDUGdjU5FI=",
+			"path": "gopkg.in/square/go-jose.v1/cipher",
+			"revision": "e3f973b66b91445ec816dd7411ad1b6495a5a2fc",
+			"revisionTime": "2016-05-02T21:53:29Z"
+		},
+		{
+			"checksumSHA1": "UYvcpB3og7YJHbRu4feZFxXAU/A=",
+			"path": "gopkg.in/square/go-jose.v1/json",
+			"revision": "e3f973b66b91445ec816dd7411ad1b6495a5a2fc",
+			"revisionTime": "2016-05-02T21:53:29Z"
 		}
 	],
 	"rootPath": "github.com/hashicorp/terraform"

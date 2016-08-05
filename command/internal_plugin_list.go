@@ -6,6 +6,7 @@
 package command
 
 import (
+	acmeprovider "github.com/hashicorp/terraform/builtin/providers/acme"
 	atlasprovider "github.com/hashicorp/terraform/builtin/providers/atlas"
 	awsprovider "github.com/hashicorp/terraform/builtin/providers/aws"
 	azureprovider "github.com/hashicorp/terraform/builtin/providers/azure"
@@ -60,6 +61,7 @@ import (
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
+	"acme":         acmeprovider.Provider,
 	"atlas":        atlasprovider.Provider,
 	"aws":          awsprovider.Provider,
 	"azure":        azureprovider.Provider,

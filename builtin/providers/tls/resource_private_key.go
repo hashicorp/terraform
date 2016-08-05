@@ -79,8 +79,9 @@ func resourcePrivateKey() *schema.Resource {
 			},
 
 			"private_key_pem": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
 			},
 
 			"public_key_pem": &schema.Schema{

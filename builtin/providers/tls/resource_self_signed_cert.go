@@ -50,6 +50,7 @@ func resourceSelfSignedCert() *schema.Resource {
 		Required:    true,
 		Description: "PEM-encoded private key that the certificate will belong to",
 		ForceNew:    true,
+		Sensitive:   true,
 		StateFunc: func(v interface{}) string {
 			return hashForState(v.(string))
 		},
