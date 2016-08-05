@@ -218,6 +218,17 @@ func (f *fakeAtlas) NoConflictAllowed(b bool) {
 }
 
 func (f *fakeAtlas) handler(resp http.ResponseWriter, req *http.Request) {
+	// access tokens should only be sent as a header
+	if req.FormValue("access_token") != "" {
+		http.Error(resp, "access_token in request params", http.StatusBadRequest)
+		return
+	}
+
+	if req.Header.Get(atlasTokenHeader) == "" {
+		http.Error(resp, "missing access token", http.StatusBadRequest)
+		return
+	}
+
 	switch req.Method {
 	case "GET":
 		// Respond with the current stored state.
