@@ -9,6 +9,7 @@ BUG FIXES:
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
  * provider/aws: Add state filter to `aws_availability_zone`s data source [GH-7965]
  * provider/aws: Handle lack of snapshot ID for a volume in `ami_copy` [GH-7995]
+ * provider/aws: Retry association of IAM Role & instance profile [GH-7938]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
 
 ## 0.7.0 (August 2, 2016)
