@@ -38,10 +38,11 @@ The command-line flags are all optional. The list of available flags are:
 * `-input=true` - Whether to ask for input for provider configuration.
 
 * `-state=path` - The path to read and save state files (unless state-out is
-  specified).
+  specified). Ignored when [remote state](/docs/state/remote/index.html) is used.
 
 * `-state-out=path` - Path to write the final state file. By default, this is
-  the state path.
+  the state path. Ignored when [remote state](/docs/state/remote/index.html) is
+  used.
 
 ## Provider Configuration
 
