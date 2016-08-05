@@ -30,7 +30,7 @@ func dataSourceAwsIPRanges() *schema.Resource {
 		Read: dataSourceAwsIPRangesRead,
 
 		Schema: map[string]*schema.Schema{
-			"blocks": &schema.Schema{
+			"cidr_blocks": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -126,7 +126,7 @@ func dataSourceAwsIPRangesRead(d *schema.ResourceData, meta interface{}) error {
 
 	sort.Strings(prefixes)
 
-	if err := d.Set("blocks", prefixes); err != nil {
+	if err := d.Set("cidr_blocks", prefixes); err != nil {
 		return fmt.Errorf("Error setting ip ranges: %s", err)
 	}
 
