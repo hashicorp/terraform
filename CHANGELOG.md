@@ -3,8 +3,16 @@
 FEATURES:
 
 IMPROVEMENTS:
+ * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
+ * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
 
 BUG FIXES:
+ * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
+ * provider/aws: `aws_cloudformation_stack` now respects `timeout_in_minutes` field when waiting for CF API to finish an update operation [GH-7997]
+ * provider/aws: Add state filter to `aws_availability_zone`s data source [GH-7965]
+ * provider/aws: Handle lack of snapshot ID for a volume in `ami_copy` [GH-7995]
+ * provider/aws: Retry association of IAM Role & instance profile [GH-7938]
+ * provider/google: Use resource specific project when making queries/changes [GH-7029]
 
 ## 0.7.0 (August 2, 2016)
 

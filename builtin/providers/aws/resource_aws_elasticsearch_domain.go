@@ -129,6 +129,13 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 					},
 				},
 			},
+			"elasticsearch_version": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "1.5",
+				ForceNew: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -138,7 +145,8 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 	conn := meta.(*AWSClient).esconn
 
 	input := elasticsearch.CreateElasticsearchDomainInput{
-		DomainName: aws.String(d.Get("domain_name").(string)),
+		DomainName:           aws.String(d.Get("domain_name").(string)),
+		ElasticsearchVersion: aws.String(d.Get("elasticsearch_version").(string)),
 	}
 
 	if v, ok := d.GetOk("access_policies"); ok {
@@ -262,8 +270,9 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
-	d.Set("domain_id", *ds.DomainId)
-	d.Set("domain_name", *ds.DomainName)
+	d.Set("domain_id", ds.DomainId)
+	d.Set("domain_name", ds.DomainName)
+	d.Set("elasticsearch_version", ds.ElasticsearchVersion)
 	if ds.Endpoint != nil {
 		d.Set("endpoint", *ds.Endpoint)
 	}
@@ -282,7 +291,7 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 		})
 	}
 
-	d.Set("arn", *ds.ARN)
+	d.Set("arn", ds.ARN)
 
 	listOut, err := conn.ListTags(&elasticsearch.ListTagsInput{
 		ARN: ds.ARN,

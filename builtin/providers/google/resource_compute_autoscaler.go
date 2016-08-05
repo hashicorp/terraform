@@ -233,7 +233,7 @@ func resourceComputeAutoscalerCreate(d *schema.ResourceData, meta interface{}) e
 	// It probably maybe worked, so store the ID now
 	d.SetId(scaler.Name)
 
-	err = computeOperationWaitZone(config, op, zone.Name, "Creating Autoscaler")
+	err = computeOperationWaitZone(config, op, project, zone.Name, "Creating Autoscaler")
 	if err != nil {
 		return err
 	}
@@ -293,7 +293,7 @@ func resourceComputeAutoscalerUpdate(d *schema.ResourceData, meta interface{}) e
 	// It probably maybe worked, so store the ID now
 	d.SetId(scaler.Name)
 
-	err = computeOperationWaitZone(config, op, zone, "Updating Autoscaler")
+	err = computeOperationWaitZone(config, op, project, zone, "Updating Autoscaler")
 	if err != nil {
 		return err
 	}
@@ -316,7 +316,7 @@ func resourceComputeAutoscalerDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error deleting autoscaler: %s", err)
 	}
 
-	err = computeOperationWaitZone(config, op, zone, "Deleting Autoscaler")
+	err = computeOperationWaitZone(config, op, project, zone, "Deleting Autoscaler")
 	if err != nil {
 		return err
 	}
