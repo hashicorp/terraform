@@ -122,8 +122,8 @@ func TestValidateVarsAttribute(t *testing.T) {
 func TestTemplateSharedMemoryRace(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {
-		go func(wg *sync.WaitGroup, t *testing.T, i int) {
-			wg.Add(1)
+		wg.Add(1)
+		go func(t *testing.T, i int) {
 			out, err := execute("don't panic!", map[string]interface{}{})
 			if err != nil {
 				t.Fatalf("err: %s", err)
@@ -132,7 +132,7 @@ func TestTemplateSharedMemoryRace(t *testing.T) {
 				t.Fatalf("bad output: %s", out)
 			}
 			wg.Done()
-		}(&wg, t, i)
+		}(t, i)
 	}
 	wg.Wait()
 }
