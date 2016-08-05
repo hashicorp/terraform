@@ -22,7 +22,7 @@ func dataSourceFastlyIPRanges() *schema.Resource {
 		Read: dataSourceFastlyIPRangesRead,
 
 		Schema: map[string]*schema.Schema{
-			"blocks": &schema.Schema{
+			"cidr_blocks": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -61,7 +61,7 @@ func dataSourceFastlyIPRangesRead(d *schema.ResourceData, meta interface{}) erro
 
 	sort.Strings(result.Addresses)
 
-	if err := d.Set("blocks", result.Addresses); err != nil {
+	if err := d.Set("cidr_blocks", result.Addresses); err != nil {
 		return fmt.Errorf("Error setting ip ranges: %s", err)
 	}
 
