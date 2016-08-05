@@ -62,8 +62,8 @@ The following arguments are supported:
 * `data_source_database_name` - (Optional) The database name.
 * `domains` -  (Optional) A list of virtual host alias.
 * `document_root` - (Optional) Subfolder for the document root.
-* `auto_bundle_on_deploy` - (Optional) Run bundle install when deploying for application of type `rails`.
-* `rails_env` - (Required if `type` = `rails`) The name of the Rails environment for application of type `rails`.
+* `auto_bundle_on_deploy` - (Optional) Run bundle install.
+* `rails_env` - (Required if `type` = `rails`) The name of the Rails environment.
 * `aws_flow_ruby_settings` - (Optional) Specify activity and workflow workers for your app using the aws-flow gem.
 
 An `app_source` block supports the following arguments (can only be defined once per resource):
