@@ -548,9 +548,6 @@ func resourceAwsOpsworksSetApplicationSsl(d *schema.ResourceData, v *opsworks.Ss
 }
 
 func resourceAwsOpsworksApplicationAttributes(d *schema.ResourceData) map[string]*string {
-	if d.Get("type") != opsworks.AppTypeRails {
-		return nil
-	}
 	attributes := make(map[string]*string)
 
 	if val := d.Get("document_root").(string); len(val) > 0 {
@@ -580,9 +577,6 @@ func resourceAwsOpsworksSetApplicationAttributes(d *schema.ResourceData, v map[s
 	d.Set("aws_flow_ruby_settings", nil)
 	d.Set("auto_bundle_on_deploy", nil)
 
-	if d.Get("type") != opsworks.AppTypeRails {
-		return
-	}
 	if val, ok := v[opsworks.AppAttributesKeysDocumentRoot]; ok {
 		d.Set("document_root", val)
 	}
