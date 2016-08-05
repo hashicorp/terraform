@@ -4,6 +4,7 @@ FEATURES:
 
 IMPROVEMENTS:
  * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
+ * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
 
 BUG FIXES:
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
