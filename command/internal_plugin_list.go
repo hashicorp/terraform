@@ -43,6 +43,7 @@ import (
 	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
 	softlayerprovider "github.com/hashicorp/terraform/builtin/providers/softlayer"
 	statuscakeprovider "github.com/hashicorp/terraform/builtin/providers/statuscake"
+	swiftprovider "github.com/hashicorp/terraform/builtin/providers/swift"
 	templateprovider "github.com/hashicorp/terraform/builtin/providers/template"
 	terraformprovider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	testprovider "github.com/hashicorp/terraform/builtin/providers/test"
@@ -98,6 +99,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"scaleway":     scalewayprovider.Provider,
 	"softlayer":    softlayerprovider.Provider,
 	"statuscake":   statuscakeprovider.Provider,
+	"swift":        swiftprovider.Provider,
 	"template":     templateprovider.Provider,
 	"terraform":    terraformprovider.Provider,
 	"test":         testprovider.Provider,

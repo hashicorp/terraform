@@ -1489,6 +1489,12 @@
 			"revision": "eecf4c70c626c7cfbb95c90195bc34d386c74ac6"
 		},
 		{
+			"checksumSHA1": "KwegmJ3YYOWUVqvPuwhKhO2YFFU=",
+			"path": "github.com/ncw/swift",
+			"revision": "2e3a4f189d749f824f92d94fd4ac64d8e5f9503f",
+			"revisionTime": "2016-05-17T16:22:03Z"
+		},
+		{
 			"checksumSHA1": "/iig5lYSPCL3C8J7e4nTAevYNDE=",
 			"comment": "v0.2.0-8-g841842b",
 			"path": "github.com/nesv/go-dynect/dynect",
