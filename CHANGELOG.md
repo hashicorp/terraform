@@ -1,6 +1,7 @@
 ## 0.7.1 (Unreleased)
 
 FEATURES:
+ * **New Resource:** `aws_vpn_gateway_attachment` [GH-7870]
 
 IMPROVEMENTS:
  * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
