@@ -25,6 +25,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"content": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"destination": {
 				Type:     schema.TypeString,
 				Required: true,
