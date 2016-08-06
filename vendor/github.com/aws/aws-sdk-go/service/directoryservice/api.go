@@ -3979,8 +3979,7 @@ type RadiusSettings struct {
 	// The amount of time, in seconds, to wait for the RADIUS server to respond.
 	RadiusTimeout *int64 `min:"1" type:"integer"`
 
-	// The shared secret code that was specified when your RADIUS endpoints were
-	// created.
+	// Not currently used.
 	SharedSecret *string `min:"8" type:"string"`
 
 	// Not currently used.

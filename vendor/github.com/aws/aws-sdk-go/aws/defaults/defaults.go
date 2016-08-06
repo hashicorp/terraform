@@ -90,12 +90,14 @@ func CredChain(cfg *aws.Config, handlers request.Handlers) *credentials.Credenti
 		Providers: []credentials.Provider{
 			&credentials.EnvProvider{},
 			&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
-			remoteCredProvider(*cfg, handlers),
+			RemoteCredProvider(*cfg, handlers),
 		},
 	})
 }
 
-func remoteCredProvider(cfg aws.Config, handlers request.Handlers) credentials.Provider {
+// RemoteCredProvider returns a credenitials provider for the default remote
+// endpoints such as EC2 or ECS Roles.
+func RemoteCredProvider(cfg aws.Config, handlers request.Handlers) credentials.Provider {
 	ecsCredURI := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
 
 	if len(ecsCredURI) > 0 {

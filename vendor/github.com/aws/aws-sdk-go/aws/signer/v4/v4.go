@@ -545,7 +545,7 @@ func (ctx *signingCtx) buildBodyDigest() {
 		} else {
 			hash = hex.EncodeToString(makeSha256Reader(ctx.Body))
 		}
-		if ctx.ServiceName == "s3" {
+		if ctx.ServiceName == "s3" || ctx.ServiceName == "glacier" {
 			ctx.Request.Header.Set("X-Amz-Content-Sha256", hash)
 		}
 	}
