@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/aws/aws-sdk-go/service/datapipeline"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -120,6 +121,7 @@ type AWSClient struct {
 	glacierconn           *glacier.Glacier
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
+	datapipeline          *datapipeline.DataPipeline
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -251,6 +253,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.sesConn = ses.New(sess)
 		client.snsconn = sns.New(sess)
 		client.sqsconn = sqs.New(sess)
+		client.datapipeline = datapipeline.New(sess)
 	}
 
 	if len(errs) > 0 {
