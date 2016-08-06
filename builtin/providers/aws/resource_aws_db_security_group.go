@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -173,29 +171,21 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("ingress", rules)
 
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSSecurityGroupARN(d, meta)
+	arn := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	d.Set("arn", arn)
+	resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+
 	if err != nil {
-		name := "<empty>"
-		if sg.DBSecurityGroupName != nil && *sg.DBSecurityGroupName != "" {
-			name = *sg.DBSecurityGroupName
-		}
-		log.Printf("[DEBUG] Error building ARN for DB Security Group, not setting Tags for DB Security Group %s", name)
-	} else {
-		d.Set("arn", arn)
-		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
-		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
-		}
-		d.Set("tags", tagsToMapRDS(dt))
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	return nil
 }
@@ -204,12 +194,11 @@ func resourceAwsDbSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).rdsconn
 
 	d.Partial(true)
-	if arn, err := buildRDSSecurityGroupARN(d, meta); err == nil {
-		if err := setTagsRDS(conn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+	arn := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	if err := setTagsRDS(conn, d, arn); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	if d.HasChange("ingress") {
@@ -418,16 +407,7 @@ func resourceAwsDbSecurityGroupStateRefreshFunc(
 	}
 }
 
-func buildRDSSecurityGroupARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
-	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:secgrp:%s", region, accountID, d.Id())
-	return arn, nil
+func buildRDSSecurityGroupARN(identifier, accountid, region string) string {
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:secgrp:%s", region, accountid, identifier)
+	return arn
 }

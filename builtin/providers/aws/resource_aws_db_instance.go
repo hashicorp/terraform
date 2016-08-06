@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -693,29 +692,21 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// list tags for resource
 	// set tags
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSARN(d.Id(), meta)
+	arn := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	d.Set("arn", arn)
+	resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+
 	if err != nil {
-		name := "<empty>"
-		if v.DBName != nil && *v.DBName != "" {
-			name = *v.DBName
-		}
-		log.Printf("[DEBUG] Error building ARN for DB Instance, not setting Tags for DB %s", name)
-	} else {
-		d.Set("arn", arn)
-		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
-		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
-		}
-		d.Set("tags", tagsToMapRDS(dt))
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	// Create an empty schema.Set to hold all vpc security group ids
 	ids := &schema.Set{
@@ -975,12 +966,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if arn, err := buildRDSARN(d.Id(), meta); err == nil {
-		if err := setTagsRDS(conn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+	arn := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	if err := setTagsRDS(conn, d, arn); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 	d.Partial(false)
 
@@ -1051,16 +1041,7 @@ func resourceAwsDbInstanceStateRefreshFunc(
 	}
 }
 
-func buildRDSARN(identifier string, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
-	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, accountID, identifier)
-	return arn, nil
+func buildRDSARN(identifier, accountid, region string) string {
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, accountid, identifier)
+	return arn
 }

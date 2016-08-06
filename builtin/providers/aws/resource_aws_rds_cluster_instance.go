@@ -212,13 +212,9 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	}
 
 	// Fetch and save tags
-	arn, err := buildRDSARN(d.Id(), meta)
-	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for RDS Cluster Instance (%s), not setting Tags", *db.DBInstanceIdentifier)
-	} else {
-		if err := saveTagsRDS(conn, d, arn); err != nil {
-			log.Printf("[WARN] Failed to save tags for RDS Cluster Instance (%s): %s", *db.DBClusterIdentifier, err)
-		}
+	arn := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	if err := saveTagsRDS(conn, d, arn); err != nil {
+		log.Printf("[WARN] Failed to save tags for RDS Cluster Instance (%s): %s", *db.DBClusterIdentifier, err)
 	}
 
 	return nil
@@ -271,10 +267,9 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 
 	}
 
-	if arn, err := buildRDSARN(d.Id(), meta); err == nil {
-		if err := setTagsRDS(conn, d, arn); err != nil {
-			return err
-		}
+	arn := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	if err := setTagsRDS(conn, d, arn); err != nil {
+		return err
 	}
 
 	return resourceAwsRDSClusterInstanceRead(d, meta)

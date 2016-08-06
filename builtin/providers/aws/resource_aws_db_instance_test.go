@@ -349,12 +349,9 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			}
 		} else { // snapshot was found
 			// verify we have the tags copied to the snapshot
-			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta())
+			instanceARN := buildRDSARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
 			// tags have a different ARN, just swapping :db: for :snapshot:
 			tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
-			if err != nil {
-				return fmt.Errorf("Error building ARN for tags check with ARN (%s): %s", tagsARN, err)
-			}
 			resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
 				ResourceName: aws.String(tagsARN),
 			})

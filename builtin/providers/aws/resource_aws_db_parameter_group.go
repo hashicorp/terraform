@@ -13,7 +13,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
@@ -149,30 +148,21 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
-	paramGroup := describeResp.DBParameterGroups[0]
-	arn, err := buildRDSPGARN(d, meta)
+	arn := buildRDSPGARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	d.Set("arn", arn)
+	resp, err := rdsconn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+
 	if err != nil {
-		name := "<empty>"
-		if paramGroup.DBParameterGroupName != nil && *paramGroup.DBParameterGroupName != "" {
-			name = *paramGroup.DBParameterGroupName
-		}
-		log.Printf("[DEBUG] Error building ARN for DB Parameter Group, not setting Tags for Param Group %s", name)
-	} else {
-		d.Set("arn", arn)
-		resp, err := rdsconn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
-		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
-		}
-		d.Set("tags", tagsToMapRDS(dt))
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	return nil
 }
@@ -226,12 +216,11 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	if arn, err := buildRDSPGARN(d, meta); err == nil {
-		if err := setTagsRDS(rdsconn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+	arn := buildRDSPGARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	if err := setTagsRDS(rdsconn, d, arn); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	d.Partial(false)
@@ -287,16 +276,7 @@ func resourceAwsDbParameterHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func buildRDSPGARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
-	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:pg:%s", region, accountID, d.Id())
-	return arn, nil
+func buildRDSPGARN(identifier, accountid, region string) string {
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:pg:%s", region, accountid, identifier)
+	return arn
 }

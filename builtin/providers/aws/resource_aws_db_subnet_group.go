@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -131,25 +130,21 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 	// list tags for resource
 	// set tags
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSsubgrpARN(d, meta)
+	arn := buildRDSsubgrpARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	d.Set("arn", arn)
+	resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+
 	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for DB Subnet Group, not setting Tags for group %s", *subnetGroup.DBSubnetGroupName)
-	} else {
-		d.Set("arn", arn)
-		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
-		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
-		}
-		d.Set("tags", tagsToMapRDS(dt))
+		log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
 	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	return nil
 }
@@ -179,12 +174,11 @@ func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if arn, err := buildRDSsubgrpARN(d, meta); err == nil {
-		if err := setTagsRDS(conn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+	arn := buildRDSsubgrpARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	if err := setTagsRDS(conn, d, arn); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	return resourceAwsDbSubnetGroupRead(d, meta)
@@ -228,18 +222,9 @@ func resourceAwsDbSubnetGroupDeleteRefreshFunc(
 	}
 }
 
-func buildRDSsubgrpARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
-	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:subgrp:%s", region, accountID, d.Id())
-	return arn, nil
+func buildRDSsubgrpARN(identifier, accountid, region string) string {
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:subgrp:%s", region, accountid, identifier)
+	return arn
 }
 
 func validateSubnetGroupName(v interface{}, k string) (ws []string, errors []error) {
