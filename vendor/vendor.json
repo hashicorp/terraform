@@ -628,6 +628,12 @@
 			"versionExact": "v1.2.10"
 		},
 		{
+			"checksumSHA1": "yy2qvTeXZdmmOaIOYaAUve4DqqU=",
+			"path": "github.com/aws/aws-sdk-go/service/datapipeline",
+			"revision": "13d7266e75bd078dd0e904106be68b2e52860fd7",
+			"revisionTime": "2016-08-06T21:45:34Z"
+		},
+		{
 			"checksumSHA1": "BiT1NC5G4H7OeNcI7jzkZUzlpr4=",
 			"comment": "v1.1.23",
 			"path": "github.com/aws/aws-sdk-go/service/directoryservice",
