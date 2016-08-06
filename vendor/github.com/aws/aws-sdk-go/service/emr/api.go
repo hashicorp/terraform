@@ -113,18 +113,18 @@ func (c *EMR) AddJobFlowStepsRequest(input *AddJobFlowStepsInput) (req *request.
 // on how to do this, go to Add More than 256 Steps to a Job Flow (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/AddMoreThan256Steps.html)
 // in the Amazon Elastic MapReduce Developer's Guide.
 //
-//  A step specifies the location of a JAR file stored either on the master
+// A step specifies the location of a JAR file stored either on the master
 // node of the job flow or in Amazon S3. Each step is performed by the main
 // function of the main class of the JAR file. The main class can be specified
 // either in the manifest of the JAR or by using the MainFunction parameter
 // of the step.
 //
-//  Elastic MapReduce executes each step in the order listed. For a step to
+// Elastic MapReduce executes each step in the order listed. For a step to
 // be considered complete, the main function must exit with a zero exit code
 // and all Hadoop jobs started while the step was running must have completed
 // and run successfully.
 //
-//  You can only add steps to a job flow that is in one of the following states:
+// You can only add steps to a job flow that is in one of the following states:
 // STARTING, BOOTSTRAPPING, RUNNING, or WAITING.
 func (c *EMR) AddJobFlowSteps(input *AddJobFlowStepsInput) (*AddJobFlowStepsOutput, error) {
 	req, out := c.AddJobFlowStepsRequest(input)
@@ -280,20 +280,22 @@ func (c *EMR) DescribeJobFlowsRequest(input *DescribeJobFlowsInput) (req *reques
 // ListClusters, DescribeCluster, ListSteps, ListInstanceGroups and ListBootstrapActions
 // instead.
 //
-//  DescribeJobFlows returns a list of job flows that match all of the supplied
+// DescribeJobFlows returns a list of job flows that match all of the supplied
 // parameters. The parameters can include a list of job flow IDs, job flow states,
 // and restrictions on job flow creation date and time.
 //
-//  Regardless of supplied parameters, only job flows created within the last
+// Regardless of supplied parameters, only job flows created within the last
 // two months are returned.
 //
-//  If no parameters are supplied, then job flows matching either of the following
+// If no parameters are supplied, then job flows matching either of the following
 // criteria are returned:
 //
-//  Job flows created and completed in the last two weeks  Job flows created
-// within the last two months that are in one of the following states: RUNNING,
-// WAITING, SHUTTING_DOWN, STARTING    Amazon Elastic MapReduce can return a
-// maximum of 512 job flow descriptions.
+//   Job flows created and completed in the last two weeks
+//
+//    Job flows created within the last two months that are in one of the following
+// states: RUNNING, WAITING, SHUTTING_DOWN, STARTING
+//
+//   Amazon Elastic MapReduce can return a maximum of 512 job flow descriptions.
 func (c *EMR) DescribeJobFlows(input *DescribeJobFlowsInput) (*DescribeJobFlowsOutput, error) {
 	req, out := c.DescribeJobFlowsRequest(input)
 	err := req.Send()
@@ -977,7 +979,7 @@ func (c *EMR) SetTerminationProtectionRequest(input *SetTerminationProtectionInp
 // is analogous to calling the Amazon EC2 DisableAPITermination API on all of
 // the EC2 instances in a cluster.
 //
-//  SetTerminationProtection is used to prevent accidental termination of a
+// SetTerminationProtection is used to prevent accidental termination of a
 // job flow and to ensure that in the event of an error, the instances will
 // persist so you can recover any data stored in their ephemeral instance storage.
 //
@@ -1096,7 +1098,7 @@ func (c *EMR) TerminateJobFlowsRequest(input *TerminateJobFlowsInput) (req *requ
 // the job flow is running are stopped. Any log files not already saved are
 // uploaded to Amazon S3 if a LogUri was specified when the job flow was created.
 //
-//  The maximum number of JobFlows allowed is 10. The call to TerminateJobFlows
+// The maximum number of JobFlows allowed is 10. The call to TerminateJobFlows
 // is asynchronous. Depending on the configuration of the job flow, it may take
 // up to 5-20 minutes for the job flow to completely terminate and release allocated
 // resources, such as Amazon EC2 instances.
@@ -1304,12 +1306,16 @@ func (s AddTagsOutput) GoString() string {
 // Flow on the MapR Distribution for Hadoop (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-mapr.html).
 // Currently supported values are:
 //
-//  "mapr-m3" - launch the job flow using MapR M3 Edition. "mapr-m5" - launch
-// the job flow using MapR M5 Edition. "mapr" with the user arguments specifying
-// "--edition,m3" or "--edition,m5" - launch the job flow using MapR M3 or M5
-// Edition, respectively.  In Amazon EMR releases 4.0 and greater, the only
-// accepted parameter is the application name. To pass arguments to applications,
-// you supply a configuration for each application.
+//   "mapr-m3" - launch the job flow using MapR M3 Edition.
+//
+//   "mapr-m5" - launch the job flow using MapR M5 Edition.
+//
+//   "mapr" with the user arguments specifying "--edition,m3" or "--edition,m5"
+// - launch the job flow using MapR M3 or M5 Edition, respectively.
+//
+//    In Amazon EMR releases 4.0 and greater, the only accepted parameter is
+// the application name. To pass arguments to applications, you supply a configuration
+// for each application.
 type Application struct {
 	_ struct{} `type:"structure"`
 
@@ -1409,7 +1415,7 @@ type Cluster struct {
 
 	// Amazon EMR releases 4.x or later.
 	//
-	// The list of Configurations supplied to the EMR cluster.
+	//  The list of Configurations supplied to the EMR cluster.
 	Configurations []*Configuration `type:"list"`
 
 	// Provides information about the EC2 instances in a cluster grouped by category.
@@ -1608,7 +1614,7 @@ func (s Command) GoString() string {
 
 // Amazon EMR releases 4.x or later.
 //
-// Specifies a hardware and software configuration of the EMR cluster. This
+//  Specifies a hardware and software configuration of the EMR cluster. This
 // includes configurations for applications and software bundled with Amazon
 // EMR. The Configuration object is a JSON object which is defined by a classification
 // and a set of properties. Configurations can be nested, so a configuration
@@ -1933,7 +1939,7 @@ type Ec2InstanceAttributes struct {
 	// not specify this value, the job flow is launched in the normal AWS cloud,
 	// outside of a VPC.
 	//
-	//  Amazon VPC currently does not support cluster compute quadruple extra large
+	// Amazon VPC currently does not support cluster compute quadruple extra large
 	// (cc1.4xlarge) instances. Thus, you cannot specify the cc1.4xlarge instance
 	// type for nodes of a job flow launched in a VPC.
 	Ec2SubnetId *string `type:"string"`
@@ -1960,6 +1966,36 @@ func (s Ec2InstanceAttributes) String() string {
 
 // GoString returns the string representation
 func (s Ec2InstanceAttributes) GoString() string {
+	return s.String()
+}
+
+// The details of the step failure. The service attempts to detect the root
+// cause for many common failures.
+type FailureDetails struct {
+	_ struct{} `type:"structure"`
+
+	// The path to the log file where the step failure root cause was originally
+	// recorded.
+	LogFile *string `type:"string"`
+
+	// The descriptive message including the error the EMR service has identified
+	// as the cause of step failure. This is text from an error log that describes
+	// the root cause of the failure.
+	Message *string `type:"string"`
+
+	// The reason for the step failure. In the case where the service cannot successfully
+	// determine the root cause of the failure, it returns "Unknown Error" as a
+	// reason.
+	Reason *string `type:"string"`
+}
+
+// String returns the string representation
+func (s FailureDetails) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FailureDetails) GoString() string {
 	return s.String()
 }
 
@@ -2093,15 +2129,15 @@ type InstanceGroup struct {
 
 	// Amazon EMR releases 4.x or later.
 	//
-	// The list of configurations supplied for an EMR cluster instance group. You
-	// can specify a separate configuration for each instance group (master, core,
-	// and task).
+	//  The list of configurations supplied for an EMR cluster instance group.
+	// You can specify a separate configuration for each instance group (master,
+	// core, and task).
 	Configurations []*Configuration `type:"list"`
 
 	// The EBS block devices that are mapped to this instance group.
 	EbsBlockDevices []*EbsBlockDevice `type:"list"`
 
-	// If the instance group is EBS-optimized. An Amazon EBS–optimized instance
+	// If the instance group is EBS-optimized. An Amazon EBS-optimized instance
 	// uses an optimized configuration stack and provides additional, dedicated
 	// capacity for Amazon EBS I/O.
 	EbsOptimized *bool `type:"boolean"`
@@ -2155,9 +2191,9 @@ type InstanceGroupConfig struct {
 
 	// Amazon EMR releases 4.x or later.
 	//
-	// The list of configurations supplied for an EMR cluster instance group. You
-	// can specify a separate configuration for each instance group (master, core,
-	// and task).
+	//  The list of configurations supplied for an EMR cluster instance group.
+	// You can specify a separate configuration for each instance group (master,
+	// core, and task).
 	Configurations []*Configuration `type:"list"`
 
 	// EBS configurations that will be attached to each Amazon EC2 instance in the
@@ -2600,7 +2636,7 @@ type JobFlowInstancesConfig struct {
 	// the job flow to launch. If you do not specify this value, the job flow is
 	// launched in the normal Amazon Web Services cloud, outside of an Amazon VPC.
 	//
-	//  Amazon VPC currently does not support cluster compute quadruple extra large
+	// Amazon VPC currently does not support cluster compute quadruple extra large
 	// (cc1.4xlarge) instances. Thus you cannot specify the cc1.4xlarge instance
 	// type for nodes of a job flow launched in a Amazon VPC.
 	Ec2SubnetId *string `type:"string"`
@@ -3207,13 +3243,15 @@ type RunJobFlowInput struct {
 	// For Amazon EMR releases 3.x and 2.x. For Amazon EMR releases 4.x and greater,
 	// use ReleaseLabel.
 	//
-	// The version of the Amazon Machine Image (AMI) to use when launching Amazon
+	//  The version of the Amazon Machine Image (AMI) to use when launching Amazon
 	// EC2 instances in the job flow. The following values are valid:
 	//
-	//  The version number of the AMI to use, for example, "2.0."  If the AMI supports
-	// multiple versions of Hadoop (for example, AMI 1.0 supports both Hadoop 0.18
-	// and 0.20) you can use the JobFlowInstancesConfig HadoopVersion parameter
-	// to modify the version of Hadoop from the defaults shown above.
+	//   The version number of the AMI to use, for example, "2.0."
+	//
+	//   If the AMI supports multiple versions of Hadoop (for example, AMI 1.0
+	// supports both Hadoop 0.18 and 0.20) you can use the JobFlowInstancesConfig
+	// HadoopVersion parameter to modify the version of Hadoop from the defaults
+	// shown above.
 	//
 	// For details about the AMI versions currently supported by Amazon Elastic
 	// MapReduce, go to AMI Versions Supported in Elastic MapReduce (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/EnvironmentConfig_AMIVersion.html#ami-versions-supported)
@@ -3222,7 +3260,7 @@ type RunJobFlowInput struct {
 
 	// Amazon EMR releases 4.x or later.
 	//
-	// A list of applications for the cluster. Valid values are: "Hadoop", "Hive",
+	//  A list of applications for the cluster. Valid values are: "Hadoop", "Hive",
 	// "Mahout", "Pig", and "Spark." They are case insensitive.
 	Applications []*Application `type:"list"`
 
@@ -3232,7 +3270,7 @@ type RunJobFlowInput struct {
 
 	// Amazon EMR releases 4.x or later.
 	//
-	// The list of configurations supplied for the EMR cluster you are creating.
+	//  The list of configurations supplied for the EMR cluster you are creating.
 	Configurations []*Configuration `type:"list"`
 
 	// A specification of the number and type of Amazon EC2 instances on which to
@@ -3255,26 +3293,34 @@ type RunJobFlowInput struct {
 	// For Amazon EMR releases 3.x and 2.x. For Amazon EMR releases 4.x and greater,
 	// use Applications.
 	//
-	// A list of strings that indicates third-party software to use with the job
+	//  A list of strings that indicates third-party software to use with the job
 	// flow that accepts a user argument list. EMR accepts and forwards the argument
 	// list to the corresponding installation script as bootstrap action arguments.
 	// For more information, see Launch a Job Flow on the MapR Distribution for
 	// Hadoop (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-mapr.html).
 	// Currently supported values are:
 	//
-	//  "mapr-m3" - launch the cluster using MapR M3 Edition. "mapr-m5" - launch
-	// the cluster using MapR M5 Edition. "mapr" with the user arguments specifying
-	// "--edition,m3" or "--edition,m5" - launch the job flow using MapR M3 or M5
-	// Edition respectively. "mapr-m7" - launch the cluster using MapR M7 Edition.
-	// "hunk" - launch the cluster with the Hunk Big Data Analtics Platform. "hue"-
-	// launch the cluster with Hue installed. "spark" - launch the cluster with
-	// Apache Spark installed. "ganglia" - launch the cluster with the Ganglia Monitoring
-	// System installed.
+	//   "mapr-m3" - launch the cluster using MapR M3 Edition.
+	//
+	//   "mapr-m5" - launch the cluster using MapR M5 Edition.
+	//
+	//   "mapr" with the user arguments specifying "--edition,m3" or "--edition,m5"
+	// - launch the job flow using MapR M3 or M5 Edition respectively.
+	//
+	//   "mapr-m7" - launch the cluster using MapR M7 Edition.
+	//
+	//   "hunk" - launch the cluster with the Hunk Big Data Analtics Platform.
+	//
+	//   "hue"- launch the cluster with Hue installed.
+	//
+	//   "spark" - launch the cluster with Apache Spark installed.
+	//
+	//   "ganglia" - launch the cluster with the Ganglia Monitoring System installed.
 	NewSupportedProducts []*SupportedProductConfig `type:"list"`
 
 	// Amazon EMR releases 4.x or later.
 	//
-	// The release label for the Amazon EMR release. For Amazon EMR 3.x and 2.x
+	//  The release label for the Amazon EMR release. For Amazon EMR 3.x and 2.x
 	// AMIs, use amiVersion instead instead of ReleaseLabel.
 	ReleaseLabel *string `type:"string"`
 
@@ -3288,13 +3334,14 @@ type RunJobFlowInput struct {
 	// For Amazon EMR releases 3.x and 2.x. For Amazon EMR releases 4.x and greater,
 	// use Applications.
 	//
-	// A list of strings that indicates third-party software to use with the job
+	//  A list of strings that indicates third-party software to use with the job
 	// flow. For more information, go to Use Third Party Applications with Amazon
 	// EMR (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-supported-products.html).
 	// Currently supported values are:
 	//
-	//  "mapr-m3" - launch the job flow using MapR M3 Edition. "mapr-m5" - launch
-	// the job flow using MapR M5 Edition.
+	//   "mapr-m3" - launch the job flow using MapR M3 Edition.
+	//
+	//   "mapr-m5" - launch the job flow using MapR M5 Edition.
 	SupportedProducts []*string `type:"list"`
 
 	// A list of tags to associate with a cluster and propagate to Amazon EC2 instances.
@@ -3699,6 +3746,10 @@ func (s StepStateChangeReason) GoString() string {
 type StepStatus struct {
 	_ struct{} `type:"structure"`
 
+	// The details for the step failure including reason, message, and log file
+	// path where the root cause was identified.
+	FailureDetails *FailureDetails `type:"structure"`
+
 	// The execution state of the cluster step.
 	State *string `type:"string" enum:"StepState"`
 
@@ -3877,7 +3928,7 @@ type VolumeSpecification struct {
 	// The number of I/O operations per second (IOPS) that the volume supports.
 	Iops *int64 `type:"integer"`
 
-	// The volume size, in gibibytes (GiB). This can be a number from 1 – 1024.
+	// The volume size, in gibibytes (GiB). This can be a number from 1 - 1024.
 	// If the volume type is EBS-optimized, the minimum value is 10.
 	SizeInGB *int64 `type:"integer" required:"true"`
 
@@ -4035,10 +4086,6 @@ const (
 )
 
 // The type of instance.
-//
-//   A small instance
-//
-//   A large instance
 const (
 	// @enum JobFlowExecutionState
 	JobFlowExecutionStateStarting = "STARTING"

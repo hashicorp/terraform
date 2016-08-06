@@ -19,7 +19,7 @@ import (
 //
 // You can use CloudWatch Logs to:
 //
-//   Monitor Logs from Amazon EC2 Instances in Real-time: You can use CloudWatch
+//    Monitor Logs from Amazon EC2 Instances in Real-time: You can use CloudWatch
 // Logs to monitor applications and systems using log data. For example, CloudWatch
 // Logs can track the number of errors that occur in your application logs and
 // send you a notification whenever the rate of errors exceeds a threshold you
@@ -30,12 +30,12 @@ import (
 // codes in an Apache access log). When the term you are searching for is found,
 // CloudWatch Logs reports the data to a Amazon CloudWatch metric that you specify.
 //
-//   Monitor Amazon CloudTrail Logged Events: You can create alarms in Amazon
+//    Monitor Amazon CloudTrail Logged Events: You can create alarms in Amazon
 // CloudWatch and receive notifications of particular API activity as captured
 // by CloudTrail and use the notification to perform troubleshooting.
 //
-//   Archive Log Data: You can use CloudWatch Logs to store your log data in
-// highly durable storage. You can change the log retention setting so that
+//    Archive Log Data: You can use CloudWatch Logs to store your log data
+// in highly durable storage. You can change the log retention setting so that
 // any log events older than this setting are automatically deleted. The CloudWatch
 // Logs agent makes it easy to quickly send both rotated and non-rotated log
 // data off of a host and into the log service. You can then access the raw

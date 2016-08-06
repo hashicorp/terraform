@@ -130,11 +130,12 @@ type Config struct {
 	// client to create a new http.Client. This options is only meaningful if you're not
 	// already using a custom HTTP client with the SDK. Enabled by default.
 	//
-	// Must be set and provided to the session.New() in order to disable the EC2Metadata
-	// overriding the timeout for default credentials chain.
+	// Must be set and provided to the session.NewSession() in order to disable
+	// the EC2Metadata overriding the timeout for default credentials chain.
 	//
 	// Example:
-	//    sess := session.New(aws.NewConfig().WithEC2MetadataDiableTimeoutOverride(true))
+	//    sess, err := session.NewSession(aws.NewConfig().WithEC2MetadataDiableTimeoutOverride(true))
+	//
 	//    svc := s3.New(sess)
 	//
 	EC2MetadataDisableTimeoutOverride *bool
@@ -150,7 +151,7 @@ type Config struct {
 // NewConfig returns a new Config pointer that can be chained with builder methods to
 // set multiple configuration values inline without using pointers.
 //
-//     sess := session.New(aws.NewConfig().WithRegion("us-west-2").WithMaxRetries(10))
+//     sess, err := session.NewSession(aws.NewConfig().WithRegion("us-west-2").WithMaxRetries(10))
 //
 func NewConfig() *Config {
 	return &Config{}
