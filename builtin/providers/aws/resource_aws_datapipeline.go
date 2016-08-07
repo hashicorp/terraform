@@ -13,6 +13,7 @@ func resourceAwsDataPipeline() *schema.Resource {
 		Create: resourceAwsDataPipelineCreate,
 		Read:   resourceAwsDataPipelineRead,
 		Update: resourceAwsDataPipelineUpdate,
+		Delete: resourceAwsDataPipelineDelete,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -24,7 +25,7 @@ func resourceAwsDataPipeline() *schema.Resource {
 				Optional: true,
 			},
 			"tags": tagsSchema(),
-			"uniqueId": &schema.Schema{
+			"unique_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -39,7 +40,7 @@ func resourceAwsDataPipelineCreate(d *schema.ResourceData, meta interface{}) err
 	input := datapipeline.CreatePipelineInput{
 		Name:        aws.String(d.Get("name").(string)),
 		Description: aws.String(d.Get("description").(string)),
-		UniqueId:    aws.String(d.Get("uniqueId").(string)),
+		UniqueId:    aws.String(d.Get("unique_id").(string)),
 	}
 
 	req, err := conn.CreatePipeline(&input)
@@ -70,7 +71,7 @@ func resourceAwsDataPipelineRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	log.Printf("[DEBUG] CloudTrail received: %s", resp)
+	log.Printf("[DEBUG] DataPipeline received: %s", resp)
 
 	return nil
 }
@@ -88,7 +89,26 @@ func resourceAwsDataPipelineUpdate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	log.Printf("[DEBUG] CloudTrail received: %s", resp)
+	log.Printf("[DEBUG] DataPipeline received: %s", resp)
 
 	return resourceAwsDataPipelineRead(d, meta)
+}
+
+func resourceAwsDataPipelineDelete(d *schema.ResourceData, meta interface{}) error {
+
+	conn := meta.(*AWSClient).datapipeline
+
+	log.Printf("[DEBUG] Deleting DataPipeline: %q", d.Id())
+
+	input := datapipeline.DeletePipelineInput{
+		PipelineId: aws.String(d.Id()),
+	}
+
+	_, err := conn.DeletePipeline(&input)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
