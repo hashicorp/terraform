@@ -347,9 +347,9 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			if newerr.Code() == "DBSnapshotNotFound" {
 				return fmt.Errorf("Snapshot %s not found", snapshot_identifier)
 			}
-		} else { // snapshot was found
+		} else { // snapshot was found,
 			// verify we have the tags copied to the snapshot
-			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta())
+			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
 			// tags have a different ARN, just swapping :db: for :snapshot:
 			tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
 			if err != nil {
