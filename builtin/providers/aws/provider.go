@@ -282,6 +282,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpn_connection":                           resourceAwsVpnConnection(),
 			"aws_vpn_connection_route":                     resourceAwsVpnConnectionRoute(),
 			"aws_vpn_gateway":                              resourceAwsVpnGateway(),
+			"aws_datapipeline":                             resourceAwsDataPipeline(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
