@@ -3,9 +3,10 @@
 FEATURES:
  * **New Resource:** `aws_vpn_gateway_attachment` [GH-7870]
 
-IMPROVEMENTS:
- * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
+IMPROVEMENTS
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
+ * provider/aws: Query all pages of group membership [GH-6726]
+ * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
 
 BUG FIXES:
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
