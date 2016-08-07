@@ -345,6 +345,8 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
+	deleteLingeringLambdaENIs(conn, d)
+
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
 			GroupId: aws.String(d.Id()),
@@ -875,4 +877,69 @@ func protocolForValue(v string) string {
 	// fall through
 	log.Printf("[WARN] Unable to determine valid protocol: no matching protocols found")
 	return protocol
+}
+
+func getLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) []ec2.NetworkInterface {
+	filter := &ec2.Filter{
+		Name:   aws.String("group-id"),
+		Values: []*string{aws.String(d.Id())},
+	}
+	params := &ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{filter},
+	}
+	networkInterfaceResp, err := conn.DescribeNetworkInterfaces(params)
+
+	lambdaENIs := make([]ec2.NetworkInterface, 0)
+	if err != nil {
+		log.Printf("[WARN] Unable to fetch ENIs: %s", err)
+		return lambdaENIs
+	}
+
+	v := networkInterfaceResp.NetworkInterfaces
+	for _, eni := range v {
+		if strings.Contains(*eni.Description, "AWS Lambda VPC ENI") {
+			lambdaENIs = append(lambdaENIs, *eni)
+		}
+	}
+	return lambdaENIs
+}
+
+func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
+	lambdaENIs := getLambdaENIs(conn, d)
+
+	for i := 0; i < len(lambdaENIs); i++ {
+		params := &ec2.DetachNetworkInterfaceInput{
+			AttachmentId: lambdaENIs[i].Attachment.AttachmentId,
+		}
+		_, err := conn.DetachNetworkInterface(params)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	all_enis_detached := false
+	for all_enis_detached == false {
+		all_enis_detached = true
+		lambdaENIs = getLambdaENIs(conn, d)
+		for i := 0; i < len(lambdaENIs); i++ {
+			if *lambdaENIs[i].Status != "available" {
+				all_enis_detached = false
+			}
+		}
+		time.Sleep(time.Second)
+	}
+
+	for i := 0; i < len(lambdaENIs); i++ {
+		params := &ec2.DeleteNetworkInterfaceInput{
+			NetworkInterfaceId: lambdaENIs[i].NetworkInterfaceId,
+		}
+		_, err := conn.DeleteNetworkInterface(params)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
