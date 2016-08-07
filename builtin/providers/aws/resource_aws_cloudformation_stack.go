@@ -268,6 +268,7 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface{}) error {
+	retryTimeout := int64(30)
 	conn := meta.(*AWSClient).cfconn
 
 	input := &cloudformation.UpdateStackInput{
@@ -314,6 +315,13 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	if v, ok := d.GetOk("timeout_in_minutes"); ok {
+		m := int64(v.(int))
+		if m > retryTimeout {
+			retryTimeout = m + 5
+			log.Printf("[DEBUG] CloudFormation timeout: %d", retryTimeout)
+		}
+	}
 	wait := resource.StateChangeConf{
 		Pending: []string{
 			"UPDATE_COMPLETE_CLEANUP_IN_PROGRESS",
@@ -323,7 +331,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 			"UPDATE_ROLLBACK_COMPLETE",
 		},
 		Target:     []string{"UPDATE_COMPLETE"},
-		Timeout:    15 * time.Minute,
+		Timeout:    time.Duration(retryTimeout) * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.DescribeStacks(&cloudformation.DescribeStacksInput{
