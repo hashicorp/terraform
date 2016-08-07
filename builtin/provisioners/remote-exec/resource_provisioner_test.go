@@ -41,59 +41,38 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	}
 }
 
+var expectedCommands = []string{"cd /tmp", "wget http://foobar", "exit 0"}
+
+func TestResourceProvider_CollectCommands_inline(t *testing.T) {
+	p := new(ResourceProvisioner)
+	conf := testConfig(t, map[string]interface{}{
+		"inline": []interface{}{
+			"cd /tmp",
+			"wget http://foobar",
+			"exit 0",
+		},
+	})
+
+	commands, err := p.collectCommands(conf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(commands) != 3 {
+		t.Fatalf("bad: %v", commands)
+	}
+
+	for i, cmd := range commands {
+		if cmd != expectedCommands[i] {
+			t.Fatalf("err: \"%s\" does not equal \"%s\"", cmd, expectedCommands[i])
+		}
+	}
+}
+
 var expectedScriptOut = `cd /tmp
 wget http://foobar
 exit 0
 `
-
-func TestResourceProvider_generateScript(t *testing.T) {
-	p := new(ResourceProvisioner)
-	conf := testConfig(t, map[string]interface{}{
-		"inline": []interface{}{
-			"cd /tmp",
-			"wget http://foobar",
-			"exit 0",
-		},
-	})
-	out, err := p.generateScript(conf)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if out != expectedScriptOut {
-		t.Fatalf("bad: %v", out)
-	}
-}
-
-func TestResourceProvider_CollectScripts_inline(t *testing.T) {
-	p := new(ResourceProvisioner)
-	conf := testConfig(t, map[string]interface{}{
-		"inline": []interface{}{
-			"cd /tmp",
-			"wget http://foobar",
-			"exit 0",
-		},
-	})
-
-	scripts, err := p.collectScripts(conf)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(scripts) != 1 {
-		t.Fatalf("bad: %v", scripts)
-	}
-
-	var out bytes.Buffer
-	_, err = io.Copy(&out, scripts[0])
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if out.String() != expectedScriptOut {
-		t.Fatalf("bad: %v", out.String())
-	}
-}
 
 func TestResourceProvider_CollectScripts_script(t *testing.T) {
 	p := new(ResourceProvisioner)

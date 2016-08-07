@@ -2,12 +2,11 @@ package remoteexec
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -30,6 +29,12 @@ func (p *ResourceProvisioner) Apply(
 		return err
 	}
 
+	// Collect the inline commands
+	commands, err := p.collectCommands(c)
+	if err != nil {
+		return err
+	}
+
 	// Collect the scripts
 	scripts, err := p.collectScripts(c)
 	if err != nil {
@@ -39,10 +44,18 @@ func (p *ResourceProvisioner) Apply(
 		defer s.Close()
 	}
 
-	// Copy and execute each script
-	if err := p.runScripts(o, comm, scripts); err != nil {
-		return err
+	// If remote-exec was configured with "inline", call runCommandsOrScripts
+	// with commands arg, else with scripts arg
+	if commands != nil {
+		if err := p.runCommandsOrScripts(o, comm, commands); err != nil {
+			return err
+		}
+	} else {
+		if err := p.runCommandsOrScripts(o, comm, scripts); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
@@ -63,48 +76,41 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	return
 }
 
-// generateScript takes the configuration and creates a script to be executed
-// from the inline configs
-func (p *ResourceProvisioner) generateScript(c *terraform.ResourceConfig) (string, error) {
-	var lines []string
-	command, ok := c.Config["inline"]
+// collectCommands is used to collect the inline commands
+// we want to execute.
+func (p *ResourceProvisioner) collectCommands(c *terraform.ResourceConfig) ([]string, error) {
+	// Check if inline
+	_, ok := c.Config["inline"]
 	if ok {
-		switch cmd := command.(type) {
-		case string:
-			lines = append(lines, cmd)
-		case []string:
-			lines = append(lines, cmd...)
-		case []interface{}:
-			for _, l := range cmd {
-				lStr, ok := l.(string)
-				if ok {
-					lines = append(lines, lStr)
-				} else {
-					return "", fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
+		var lines []string
+		command, ok := c.Config["inline"]
+		if ok {
+			switch cmd := command.(type) {
+			case string:
+				lines = append(lines, cmd)
+			case []string:
+				lines = append(lines, cmd...)
+			case []interface{}:
+				for _, l := range cmd {
+					lStr, ok := l.(string)
+					if ok {
+						lines = append(lines, lStr)
+					} else {
+						return lines, fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
+					}
 				}
+			default:
+				return lines, fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
 			}
-		default:
-			return "", fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
 		}
+		return lines, nil
 	}
-	lines = append(lines, "")
-	return strings.Join(lines, "\n"), nil
+	return nil, nil
 }
 
 // collectScripts is used to collect all the scripts we need
 // to execute in preparation for copying them.
 func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.ReadCloser, error) {
-	// Check if inline
-	_, ok := c.Config["inline"]
-	if ok {
-		script, err := p.generateScript(c)
-		if err != nil {
-			return nil, err
-		}
-		rc := ioutil.NopCloser(bytes.NewReader([]byte(script)))
-		return []io.ReadCloser{rc}, nil
-	}
-
 	// Collect scripts
 	var scripts []string
 	s, ok := c.Config["script"]
@@ -152,11 +158,28 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 	return fhs, nil
 }
 
-// runScripts is used to copy and execute a set of scripts
-func (p *ResourceProvisioner) runScripts(
+// runCommandsOrScripts either runs commands on the host when inline is used,
+// or transfers and runs scripts in case of script or scripts being used
+func (p *ResourceProvisioner) runCommandsOrScripts(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
-	scripts []io.ReadCloser) error {
+	commandsOrScripts interface{}) error {
+	var commands []string
+	var scripts []io.ReadCloser
+	var arrLength int
+
+	// This should be run either []string or []io.ReadCloser as third argument
+	switch commandsOrScripts.(type) {
+	default:
+		return errors.New("runCommandsOrScripts: argument of unsupported type %T")
+	case []string:
+		commands = commandsOrScripts.([]string)
+		arrLength = len(commands)
+	case []io.ReadCloser:
+		scripts = commandsOrScripts.([]io.ReadCloser)
+		arrLength = len(scripts)
+	}
+
 	// Wait and retry until we establish the connection
 	err := retryFunc(comm.Timeout(), func() error {
 		err := comm.Connect(o)
@@ -167,8 +190,10 @@ func (p *ResourceProvisioner) runScripts(
 	}
 	defer comm.Disconnect()
 
-	for _, script := range scripts {
+	for i := 0; i < arrLength; i++ {
 		var cmd *remote.Cmd
+		var err error
+		var remotePath string
 		outR, outW := io.Pipe()
 		errR, errW := io.Pipe()
 		outDoneCh := make(chan struct{})
@@ -176,24 +201,40 @@ func (p *ResourceProvisioner) runScripts(
 		go p.copyOutput(o, outR, outDoneCh)
 		go p.copyOutput(o, errR, errDoneCh)
 
-		remotePath := comm.ScriptPath()
-		err = retryFunc(comm.Timeout(), func() error {
+		if scripts != nil {
+			remotePath = comm.ScriptPath()
+			err = retryFunc(comm.Timeout(), func() error {
 
-			if err := comm.UploadScript(remotePath, script); err != nil {
-				return fmt.Errorf("Failed to upload script: %v", err)
-			}
+				if err := comm.UploadScript(remotePath, scripts[i]); err != nil {
+					return fmt.Errorf("Failed to upload script: %v", err)
+				}
 
-			cmd = &remote.Cmd{
-				Command: remotePath,
-				Stdout:  outW,
-				Stderr:  errW,
-			}
-			if err := comm.Start(cmd); err != nil {
-				return fmt.Errorf("Error starting script: %v", err)
-			}
+				cmd = &remote.Cmd{
+					Command: remotePath,
+					Stdout:  outW,
+					Stderr:  errW,
+				}
+				if err := comm.Start(cmd); err != nil {
+					return fmt.Errorf("Error starting script: %v", err)
+				}
 
-			return nil
-		})
+				return nil
+			})
+		} else {
+			err = retryFunc(comm.Timeout(), func() error {
+
+				cmd = &remote.Cmd{
+					Command: commands[i],
+					Stdout:  outW,
+					Stderr:  errW,
+				}
+				if err := comm.Start(cmd); err != nil {
+					return fmt.Errorf("Error running command: %v", err)
+				}
+
+				return nil
+			})
+		}
 		if err == nil {
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
@@ -207,17 +248,19 @@ func (p *ResourceProvisioner) runScripts(
 		<-outDoneCh
 		<-errDoneCh
 
-		// Upload a blank follow up file in the same path to prevent residual
-		// script contents from remaining on remote machine
-		empty := bytes.NewReader([]byte(""))
-		if err := comm.Upload(remotePath, empty); err != nil {
-			// This feature is best-effort.
-			log.Printf("[WARN] Failed to upload empty follow up script: %v", err)
-		}
+		if scripts != nil {
+			// Upload a blank follow up file in the same path to prevent residual
+			// script contents from remaining on remote machine
+			empty := bytes.NewReader([]byte(""))
+			if err := comm.Upload(remotePath, empty); err != nil {
+				// This feature is best-effort.
+				log.Printf("[WARN] Failed to upload empty follow up script: %v", err)
+			}
 
-		// If we have an error, return it out now that we've cleaned up
-		if err != nil {
-			return err
+			// If we have an error, return it out now that we've cleaned up
+			if err != nil {
+				return err
+			}
 		}
 	}
 
