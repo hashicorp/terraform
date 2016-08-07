@@ -16,10 +16,10 @@ func TestAccAWSVpnGateway_basic(t *testing.T) {
 
 	testNotEqual := func(*terraform.State) error {
 		if len(v.VpcAttachments) == 0 {
-			return fmt.Errorf("VPN gateway A is not attached")
+			return fmt.Errorf("VPN Gateway A is not attached")
 		}
 		if len(v2.VpcAttachments) == 0 {
-			return fmt.Errorf("VPN gateway B is not attached")
+			return fmt.Errorf("VPN Gateway B is not attached")
 		}
 
 		id1 := v.VpcAttachments[0].VpcId
@@ -58,20 +58,38 @@ func TestAccAWSVpnGateway_basic(t *testing.T) {
 }
 
 func TestAccAWSVpnGateway_reattach(t *testing.T) {
-	var v ec2.VpnGateway
+	var vpc1, vpc2 ec2.Vpc
+	var vgw1, vgw2 ec2.VpnGateway
 
-	genTestStateFunc := func(expectedState string) func(*terraform.State) error {
+	testAttachmentFunc := func(vgw *ec2.VpnGateway, vpc *ec2.Vpc) func(*terraform.State) error {
 		return func(*terraform.State) error {
-			if len(v.VpcAttachments) == 0 {
-				if expectedState != "detached" {
-					return fmt.Errorf("VPN gateway has no VPC attachments")
+			if len(vgw.VpcAttachments) == 0 {
+				return fmt.Errorf("VPN Gateway %q has no VPC attachments.",
+					*vgw.VpnGatewayId)
+			}
+
+			if len(vgw.VpcAttachments) > 1 {
+				count := 0
+				for _, v := range vgw.VpcAttachments {
+					if *v.State == "attached" {
+						count += 1
+					}
 				}
-			} else if len(v.VpcAttachments) == 1 {
-				if *v.VpcAttachments[0].State != expectedState {
-					return fmt.Errorf("Expected VPC gateway VPC attachment to be in '%s' state, but was not: %s", expectedState, v)
+				if count > 1 {
+					return fmt.Errorf(
+						"VPN Gateway %q has an unexpected number of VPC attachments (more than 1): %#v",
+						*vgw.VpnGatewayId, vgw.VpcAttachments)
 				}
-			} else {
-				return fmt.Errorf("VPN gateway has unexpected number of VPC attachments(more than 1): %s", v)
+			}
+
+			if *vgw.VpcAttachments[0].State != "attached" {
+				return fmt.Errorf("Expected VPN Gateway %q to be attached.",
+					*vgw.VpnGatewayId)
+			}
+
+			if *vgw.VpcAttachments[0].VpcId != *vpc.VpcId {
+				return fmt.Errorf("Expected VPN Gateway %q to be attached to VPC %q, but got: %q",
+					*vgw.VpnGatewayId, *vpc.VpcId, *vgw.VpcAttachments[0].VpcId)
 			}
 			return nil
 		}
@@ -84,27 +102,38 @@ func TestAccAWSVpnGateway_reattach(t *testing.T) {
 		CheckDestroy:  testAccCheckVpnGatewayDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccVpnGatewayConfig,
+				Config: testAccCheckVpnGatewayConfigReattach,
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc1),
+					testAccCheckVpcExists("aws_vpc.bar", &vpc2),
 					testAccCheckVpnGatewayExists(
-						"aws_vpn_gateway.foo", &v),
-					genTestStateFunc("attached"),
+						"aws_vpn_gateway.foo", &vgw1),
+					testAccCheckVpnGatewayExists(
+						"aws_vpn_gateway.bar", &vgw2),
+					testAttachmentFunc(&vgw1, &vpc1),
+					testAttachmentFunc(&vgw2, &vpc2),
 				),
 			},
 			resource.TestStep{
-				Config: testAccVpnGatewayConfigDetach,
+				Config: testAccCheckVpnGatewayConfigReattachChange,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpnGatewayExists(
-						"aws_vpn_gateway.foo", &v),
-					genTestStateFunc("detached"),
+						"aws_vpn_gateway.foo", &vgw1),
+					testAccCheckVpnGatewayExists(
+						"aws_vpn_gateway.bar", &vgw2),
+					testAttachmentFunc(&vgw2, &vpc1),
+					testAttachmentFunc(&vgw1, &vpc2),
 				),
 			},
 			resource.TestStep{
-				Config: testAccVpnGatewayConfig,
+				Config: testAccCheckVpnGatewayConfigReattach,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpnGatewayExists(
-						"aws_vpn_gateway.foo", &v),
-					genTestStateFunc("attached"),
+						"aws_vpn_gateway.foo", &vgw1),
+					testAccCheckVpnGatewayExists(
+						"aws_vpn_gateway.bar", &vgw2),
+					testAttachmentFunc(&vgw1, &vpc1),
+					testAttachmentFunc(&vgw2, &vpc2),
 				),
 			},
 		},
@@ -118,7 +147,7 @@ func TestAccAWSVpnGateway_delete(t *testing.T) {
 		return func(s *terraform.State) error {
 			_, ok := s.RootModule().Resources[r]
 			if ok {
-				return fmt.Errorf("VPN Gateway %q should have been deleted", r)
+				return fmt.Errorf("VPN Gateway %q should have been deleted.", r)
 			}
 			return nil
 		}
@@ -159,7 +188,6 @@ func TestAccAWSVpnGateway_tags(t *testing.T) {
 					testAccCheckTags(&v.Tags, "foo", "bar"),
 				),
 			},
-
 			resource.TestStep{
 				Config: testAccCheckVpnGatewayConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
@@ -198,7 +226,7 @@ func testAccCheckVpnGatewayDestroy(s *terraform.State) error {
 			}
 
 			if *v.State != "deleted" {
-				return fmt.Errorf("Expected VpnGateway to be in deleted state, but was not: %s", v)
+				return fmt.Errorf("Expected VPN Gateway to be in deleted state, but was not: %s", v)
 			}
 			return nil
 		}
@@ -235,7 +263,7 @@ func testAccCheckVpnGatewayExists(n string, ig *ec2.VpnGateway) resource.TestChe
 			return err
 		}
 		if len(resp.VpnGateways) == 0 {
-			return fmt.Errorf("VPNGateway not found")
+			return fmt.Errorf("VPN Gateway not found")
 		}
 
 		*ig = *resp.VpnGateways[0]
@@ -270,16 +298,6 @@ resource "aws_vpn_gateway" "foo" {
 }
 `
 
-const testAccVpnGatewayConfigDetach = `
-resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
-}
-
-resource "aws_vpn_gateway" "foo" {
-	vpc_id = ""
-}
-`
-
 const testAccCheckVpnGatewayConfigTags = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
@@ -303,5 +321,41 @@ resource "aws_vpn_gateway" "foo" {
 	tags {
 		bar = "baz"
 	}
+}
+`
+
+const testAccCheckVpnGatewayConfigReattach = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.2.0.0/16"
+}
+
+resource "aws_vpn_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_vpn_gateway" "bar" {
+	vpc_id = "${aws_vpc.bar.id}"
+}
+`
+
+const testAccCheckVpnGatewayConfigReattachChange = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.2.0.0/16"
+}
+
+resource "aws_vpn_gateway" "foo" {
+	vpc_id = "${aws_vpc.bar.id}"
+}
+
+resource "aws_vpn_gateway" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
 }
 `
