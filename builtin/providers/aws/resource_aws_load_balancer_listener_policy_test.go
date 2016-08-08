@@ -22,21 +22,21 @@ func TestAccAWSLoadBalancerListenerPolicy_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSLoadBalancerListenerPolicyConfig_basic0,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.magic-cookie-sticky"),
-					testAccCheckAWSLoadBalancerListenerPolicyState("test-aws-elb-policies-lb", int64(80), "magic-cookie-sticky-policy", true),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.magic-cookie-sticky"),
+					testAccCheckAWSLoadBalancerListenerPolicyState("test-aws-policies-lb", int64(80), "magic-cookie-sticky-policy", true),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSLoadBalancerListenerPolicyConfig_basic1,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.magic-cookie-sticky"),
-					testAccCheckAWSLoadBalancerListenerPolicyState("test-aws-elb-policies-lb", int64(80), "magic-cookie-sticky-policy", true),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.magic-cookie-sticky"),
+					testAccCheckAWSLoadBalancerListenerPolicyState("test-aws-policies-lb", int64(80), "magic-cookie-sticky-policy", true),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSLoadBalancerListenerPolicyConfig_basic2,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLoadBalancerListenerPolicyState("test-aws-elb-policies-lb", int64(80), "magic-cookie-sticky-policy", false),
+					testAccCheckAWSLoadBalancerListenerPolicyState("test-aws-policies-lb", int64(80), "magic-cookie-sticky-policy", false),
 				),
 			},
 		},
@@ -57,7 +57,7 @@ func testAccCheckAWSLoadBalancerListenerPolicyDestroy(s *terraform.State) error 
 
 	for _, rs := range s.RootModule().Resources {
 		switch {
-		case rs.Type == "aws_elb_load_balancer_policy":
+		case rs.Type == "aws_load_balancer_policy":
 			loadBalancerName, policyName := resourceAwsLoadBalancerListenerPoliciesParseId(rs.Primary.ID)
 			out, err := conn.DescribeLoadBalancerPolicies(
 				&elb.DescribeLoadBalancerPoliciesInput{
@@ -73,7 +73,7 @@ func testAccCheckAWSLoadBalancerListenerPolicyDestroy(s *terraform.State) error 
 			if len(out.PolicyDescriptions) > 0 {
 				return fmt.Errorf("Policy still exists")
 			}
-		case rs.Type == "aws_elb_load_listener_policy":
+		case rs.Type == "aws_load_listener_policy":
 			loadBalancerName, _ := resourceAwsLoadBalancerListenerPoliciesParseId(rs.Primary.ID)
 			out, err := conn.DescribeLoadBalancers(
 				&elb.DescribeLoadBalancersInput{
@@ -144,7 +144,7 @@ func testAccCheckAWSLoadBalancerListenerPolicyState(loadBalancerName string, loa
 
 const testAccAWSLoadBalancerListenerPolicyConfig_basic0 = `
 resource "aws_elb" "test-lb" {
-  name = "test-aws-elb-policies-lb"
+  name = "test-aws-policies-lb"
   availability_zones = ["us-east-1a"]
 
   listener {
@@ -159,7 +159,7 @@ resource "aws_elb" "test-lb" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "magic-cookie-sticky" {
+resource "aws_load_balancer_policy" "magic-cookie-sticky" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "magic-cookie-sticky-policy"
   policy_type_name = "AppCookieStickinessPolicyType"
@@ -169,18 +169,18 @@ resource "aws_elb_load_balancer_policy" "magic-cookie-sticky" {
   }
 }
 
-resource "aws_elb_load_balancer_listener_policy" "test-lb-listener-policies-80" {
+resource "aws_load_balancer_listener_policy" "test-lb-listener-policies-80" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   load_balancer_port = 80
   policy_names = [
-    "${aws_elb_load_balancer_policy.magic-cookie-sticky.policy_name}",
+    "${aws_load_balancer_policy.magic-cookie-sticky.policy_name}",
   ]
 }
 `
 
 const testAccAWSLoadBalancerListenerPolicyConfig_basic1 = `
 resource "aws_elb" "test-lb" {
-  name = "test-aws-elb-policies-lb"
+  name = "test-aws-policies-lb"
   availability_zones = ["us-east-1a"]
 
   listener {
@@ -195,7 +195,7 @@ resource "aws_elb" "test-lb" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "magic-cookie-sticky" {
+resource "aws_load_balancer_policy" "magic-cookie-sticky" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "magic-cookie-sticky-policy"
   policy_type_name = "AppCookieStickinessPolicyType"
@@ -205,18 +205,18 @@ resource "aws_elb_load_balancer_policy" "magic-cookie-sticky" {
   }
 }
 
-resource "aws_elb_load_balancer_listener_policy" "test-lb-listener-policies-80" {
+resource "aws_load_balancer_listener_policy" "test-lb-listener-policies-80" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   load_balancer_port = 80
   policy_names = [
-    "${aws_elb_load_balancer_policy.magic-cookie-sticky.policy_name}"
+    "${aws_load_balancer_policy.magic-cookie-sticky.policy_name}"
   ]
 }
 `
 
 const testAccAWSLoadBalancerListenerPolicyConfig_basic2 = `
 resource "aws_elb" "test-lb" {
-  name = "test-aws-elb-policies-lb"
+  name = "test-aws-policies-lb"
   availability_zones = ["us-east-1a"]
 
   listener {

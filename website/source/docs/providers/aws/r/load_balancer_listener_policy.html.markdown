@@ -1,7 +1,7 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_elb_load_balancer_listener_policy"
-sidebar_current: "docs-aws-resource-elb-load-balancer-listener-policy"
+page_title: "AWS: aws_load_balancer_listener_policy"
+sidebar_current: "docs-aws-resource-load-balancer-listener-policy"
 description: |-
   Attaches a load balancer policy to an ELB Listener.
 ---
@@ -31,7 +31,7 @@ resource "aws_elb" "wu-tang" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "wu-tang-ssl" {
+resource "aws_load_balancer_policy" "wu-tang-ssl" {
   load_balancer_name = "${aws_elb.wu-tang.name}"
   policy_name = "wu-tang-ssl"
   policy_type_name = "SSLNegotiationPolicyType"
@@ -45,11 +45,11 @@ resource "aws_elb_load_balancer_policy" "wu-tang-ssl" {
   }
 }
 
-resource "aws_elb_load_balancer_listener_policy" "wu-tang-listener-policies-443" {
+resource "aws_load_balancer_listener_policy" "wu-tang-listener-policies-443" {
   load_balancer_name = "${aws_elb.wu-tang.name}"
   load_balancer_port = 443
   policy_names = [
-    "${aws_elb_load_balancer_policy.wu-tang-ssl.policy_name}"
+    "${aws_load_balancer_policy.wu-tang-ssl.policy_name}"
   ]
 }
 ```
