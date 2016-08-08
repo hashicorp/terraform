@@ -86,7 +86,7 @@ func resourceAwsLoadBalancerPolicyCreate(d *schema.ResourceData, meta interface{
 	d.SetId(fmt.Sprintf("%s:%s",
 		*lbspOpts.LoadBalancerName,
 		*lbspOpts.PolicyName))
-	return nil
+	return resourceAwsLoadBalancerPolicyRead(d, meta)
 }
 
 func resourceAwsLoadBalancerPolicyRead(d *schema.ResourceData, meta interface{}) error {
@@ -176,7 +176,7 @@ func resourceAwsLoadBalancerPolicyUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	return nil
+	return resourceAwsLoadBalancerPolicyRead(d, meta)
 }
 
 func resourceAwsLoadBalancerPolicyDelete(d *schema.ResourceData, meta interface{}) error {
@@ -204,6 +204,8 @@ func resourceAwsLoadBalancerPolicyDelete(d *schema.ResourceData, meta interface{
 	if _, err := elbconn.DeleteLoadBalancerPolicy(request); err != nil {
 		return fmt.Errorf("Error deleting Load Balancer Policy %s: %s", d.Id(), err)
 	}
+
+	d.SetId("")
 	return nil
 }
 
