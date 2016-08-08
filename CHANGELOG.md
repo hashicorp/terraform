@@ -9,6 +9,7 @@ IMPROVEMENTS
  * provider/aws: Query all pages of group membership [GH-6726]
  * provider/aws: Change the way ARNs are built [GH-7151]
  * provider/aws: Add support for Elasticsearch destination to firehose delivery streams [GH-7839]
+ * provider/aws: Retry AttachInternetGateway and increase timeout on `aws_internet_gateway` [GH-7891]
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
  * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
  * provider/google: Support static private IP addresses in `resource_compute_instance` [GH-6310]
