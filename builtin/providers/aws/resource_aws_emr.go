@@ -220,6 +220,36 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
+	emrconn := meta.(*AWSClient).emrconn
+
+	req := &emr.DescribeClusterInput{
+		ClusterId: aws.String(d.Id()),
+	}
+
+	resp, err := emrconn.DescribeCluster(req)
+	if err != nil {
+		return fmt.Errorf("Error reading EMR cluster: %s", err)
+	}
+	fmt.Println(resp)
+
+	if resp.Cluster == nil {
+		d.SetId("")
+		return nil
+	}
+
+	instance := resp.Cluster
+
+	if instance.Status != nil {
+		if *resp.Cluster.Status.State == "TERMINATED" {
+			d.SetId("")
+			return nil
+		}
+
+		if *resp.Cluster.Status.State == "TERMINATED_WITH_ERRORS" {
+			d.SetId("")
+			return nil
+		}
+	}
 
 	return nil
 }
