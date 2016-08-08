@@ -60,10 +60,7 @@ func resourceAwsLoadBalancerBackendServerPoliciesCreate(d *schema.ResourceData, 
 	}
 
 	d.SetId(fmt.Sprintf("%s:%s", *setOpts.LoadBalancerName, strconv.FormatInt(*setOpts.InstancePort, 10)))
-	d.Set("load_balancer_name", setOpts.LoadBalancerName)
-	d.Set("instance_port", setOpts.InstancePort)
-	d.Set("policy_names", flattenStringList(setOpts.PolicyNames))
-	return nil
+	return resourceAwsLoadBalancerBackendServerPoliciesRead(d, meta)
 }
 
 func resourceAwsLoadBalancerBackendServerPoliciesRead(d *schema.ResourceData, meta interface{}) error {
@@ -81,6 +78,7 @@ func resourceAwsLoadBalancerBackendServerPoliciesRead(d *schema.ResourceData, me
 		if ec2err, ok := err.(awserr.Error); ok {
 			if ec2err.Code() == "LoadBalancerNotFound" {
 				return fmt.Errorf("LoadBalancerNotFound: %s", err)
+				d.SetId("")
 			}
 		}
 		return fmt.Errorf("Error retrieving ELB description: %s", err)
@@ -130,6 +128,7 @@ func resourceAwsLoadBalancerBackendServerPoliciesDelete(d *schema.ResourceData, 
 		return fmt.Errorf("Error setting LoadBalancerPoliciesForBackendServer: %s", err)
 	}
 
+	d.SetId("")
 	return nil
 }
 
