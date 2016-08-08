@@ -87,11 +87,11 @@ func resourceComputeImageCreate(d *schema.ResourceData, meta interface{}) error 
 		Name: d.Get("name").(string),
 	}
 
-	if v := d.Get("description"); v != nil {
+	if v, ok := d.GetOk("description"); ok {
 		image.Description = v.(string)
 	}
 
-	if v := d.Get("family"); v != nil {
+	if v, ok := d.GetOk("family"); ok {
 		image.Family = v.(string)
 	}
 
