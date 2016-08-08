@@ -19,6 +19,7 @@ IMPROVEMENTS
 BUG FIXES:
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
  * provider/aws: `aws_cloudformation_stack` now respects `timeout_in_minutes` field when waiting for CF API to finish an update operation [GH-7997]
+ * provider/aws: Prevent errors when `aws_s3_bucket` `acceleration_status` is not available in a given region [GH-7999]
  * provider/aws: Add state filter to `aws_availability_zone`s data source [GH-7965]
  * provider/aws: Handle lack of snapshot ID for a volume in `ami_copy` [GH-7995]
  * provider/aws: Retry association of IAM Role & instance profile [GH-7938]
