@@ -1,6 +1,7 @@
 ## 0.7.1 (Unreleased)
 
 FEATURES:
+ * **New Provider:** `archive` [GH-7322]
  * **New Resource:** `aws_vpn_gateway_attachment` [GH-7870]
 
 IMPROVEMENTS
