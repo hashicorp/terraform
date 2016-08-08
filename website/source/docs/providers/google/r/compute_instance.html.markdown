@@ -139,6 +139,9 @@ The `network_interface` block supports:
     to. The subnetwork must exist in the same region this instance will be
     created in. Either `network` or `subnetwork` must be provided.
 
+* `address` - (Optional) The private IP address to assign to the instance. If
+    empty, the address will be automatically assigned.
+
 * `access_config` - (Optional) Access configurations, i.e. IPs via which this
     instance can be accessed via the Internet. Omit to ensure that the instance
     is not accessible from the Internet (this means that ssh provisioners will
@@ -189,7 +192,7 @@ exported:
 
 * `tags_fingerprint` - The unique fingerprint of the tags.
 
-* `network_interface.0.address` - The internal ip address of the instance (usually on the 10.x.x.x range).
+* `network_interface.0.address` - The internal ip address of the instance, either manually or dynamically assigned.
 
 * `network_interface.0.access_config.0.assigned_nat_ip` - If the instance has an access config, either the given external ip (in the `nat_ip` field) or the ephemeral (generated) ip (if you didn't provide one).
 
