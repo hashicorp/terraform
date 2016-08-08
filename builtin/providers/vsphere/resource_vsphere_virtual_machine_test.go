@@ -398,36 +398,36 @@ func TestAccVSphereVirtualMachine_diskSCSICapacity(t *testing.T) {
 	})
 }
 
-const testAccCheckVSphereVirtualMachineConfig_initType = `
-resource "vsphere_virtual_machine" "thin" {
+const testAccCheckVSphereVirtualMachineConfig_initTypeEager = `
+resource "vsphere_virtual_machine" "thickEagerZero" {
     name = "terraform-test"
 ` + testAccTemplateBasicBody + `
     disk {
-        size = 1
-        iops = 500
-	controller_type = "scsi"
-	name = "one"
+		size = 1
+		iops = 500
+		controller_type = "scsi"
+		name = "one"
     }
     disk {
-        size = 1
-	controller_type = "ide"
-	type = "eager_zeroed"
-	name = "two"
+		size = 1
+		controller_type = "ide"
+		type = "eager_zeroed"
+		name = "two"
     }
 }
 `
 
-func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
+func TestAccVSphereVirtualMachine_diskInitTypeEager(t *testing.T) {
 	var vm virtualMachine
 	basic_vars := setupTemplateBasicBodyVars()
-	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_initType)
+	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_initTypeEager)
 
-	vmName := "vsphere_virtual_machine.thin"
+	vmName := "vsphere_virtual_machine.thickEagerZero"
 
 	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: basic_vars.label, vmName: vmName, numDisks: "3"}.testCheckFuncBasic()
 
-	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_initType)
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_initTypeEager)
 	log.Printf("[DEBUG] template config= %s", config)
 
 	resource.Test(t, resource.TestCase{
@@ -443,6 +443,57 @@ func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
 					resource.TestCheckResourceAttr(vmName, "disk.294918912.type", "eager_zeroed"),
 					resource.TestCheckResourceAttr(vmName, "disk.294918912.controller_type", "ide"),
 					resource.TestCheckResourceAttr(vmName, "disk.1380467090.controller_type", "scsi"),
+				),
+			},
+		},
+	})
+}
+
+const testAccCheckVSphereVirtualMachineConfig_initTypeLazy = `
+resource "vsphere_virtual_machine" "lazy" {
+    name = "terraform-test"
+` + testAccTemplateBasicBody + `
+    disk {
+		size = 1
+		iops = 500
+		controller_type = "scsi"
+		name = "one"
+    }
+    disk {
+		size = 1
+		controller_type = "ide"
+		type = "lazy"
+		name = "two"
+    }
+}
+`
+
+func TestAccVSphereVirtualMachine_diskInitTypeLazy(t *testing.T) {
+	var vm virtualMachine
+	basic_vars := setupTemplateBasicBodyVars()
+	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_initTypeLazy)
+
+	vmName := "vsphere_virtual_machine.lazy"
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: basic_vars.label, vmName: vmName, numDisks: "3"}.testCheckFuncBasic()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_initTypeLazy)
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					// FIXME dynmically calculate the hashes
+					resource.TestCheckResourceAttr(vmName, "disk.692719290.type", "lazy"),
+					resource.TestCheckResourceAttr(vmName, "disk.692719290.controller_type", "ide"),
+					resource.TestCheckResourceAttr(vmName, "disk.531766495.controller_type", "scsi"),
 				),
 			},
 		},
