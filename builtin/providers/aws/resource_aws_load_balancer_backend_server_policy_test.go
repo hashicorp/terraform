@@ -25,24 +25,24 @@ func TestAccAWSLoadBalancerBackendServerPolicy_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSLoadBalancerBackendServerPolicyConfig_basic0,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.test-pubkey-policy0"),
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.test-backend-auth-policy0"),
-					testAccCheckAWSLoadBalancerBackendServerPolicyState("test-aws-elb-policies-lb", "test-backend-auth-policy0", true),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-pubkey-policy0"),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-backend-auth-policy0"),
+					testAccCheckAWSLoadBalancerBackendServerPolicyState("test-aws-policies-lb", "test-backend-auth-policy0", true),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSLoadBalancerBackendServerPolicyConfig_basic1,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.test-pubkey-policy0"),
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.test-pubkey-policy1"),
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.test-backend-auth-policy0"),
-					testAccCheckAWSLoadBalancerBackendServerPolicyState("test-aws-elb-policies-lb", "test-backend-auth-policy0", true),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-pubkey-policy0"),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-pubkey-policy1"),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-backend-auth-policy0"),
+					testAccCheckAWSLoadBalancerBackendServerPolicyState("test-aws-policies-lb", "test-backend-auth-policy0", true),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSLoadBalancerBackendServerPolicyConfig_basic2,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLoadBalancerBackendServerPolicyState("test-aws-elb-policies-lb", "test-backend-auth-policy0", false),
+					testAccCheckAWSLoadBalancerBackendServerPolicyState("test-aws-policies-lb", "test-backend-auth-policy0", false),
 				),
 			},
 		},
@@ -63,7 +63,7 @@ func testAccCheckAWSLoadBalancerBackendServerPolicyDestroy(s *terraform.State) e
 
 	for _, rs := range s.RootModule().Resources {
 		switch {
-		case rs.Type == "aws_elb_load_balancer_policy":
+		case rs.Type == "aws_load_balancer_policy":
 			loadBalancerName, policyName := resourceAwsLoadBalancerBackendServerPoliciesParseId(rs.Primary.ID)
 			out, err := conn.DescribeLoadBalancerPolicies(
 				&elb.DescribeLoadBalancerPoliciesInput{
@@ -79,7 +79,7 @@ func testAccCheckAWSLoadBalancerBackendServerPolicyDestroy(s *terraform.State) e
 			if len(out.PolicyDescriptions) > 0 {
 				return fmt.Errorf("Policy still exists")
 			}
-		case rs.Type == "aws_elb_load_balancer_backend_policy":
+		case rs.Type == "aws_load_balancer_backend_policy":
 			loadBalancerName, policyName := resourceAwsLoadBalancerBackendServerPoliciesParseId(rs.Primary.ID)
 			out, err := conn.DescribeLoadBalancers(
 				&elb.DescribeLoadBalancersInput{
@@ -166,7 +166,7 @@ resource "aws_iam_server_certificate" "test-iam-cert0" {
 }
 
 resource "aws_elb" "test-lb" {
-  name = "test-aws-elb-policies-lb"
+  name = "test-aws-policies-lb"
   availability_zones = ["us-east-1a"]
 
   listener {
@@ -182,7 +182,7 @@ resource "aws_elb" "test-lb" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "test-pubkey-policy0" {
+resource "aws_load_balancer_policy" "test-pubkey-policy0" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "test-pubkey-policy0"
   policy_type_name = "PublicKeyPolicyType"
@@ -192,21 +192,21 @@ resource "aws_elb_load_balancer_policy" "test-pubkey-policy0" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "test-backend-auth-policy0" {
+resource "aws_load_balancer_policy" "test-backend-auth-policy0" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "test-backend-auth-policy0"
   policy_type_name = "BackendServerAuthenticationPolicyType"
   policy_attribute = {
     name = "PublicKeyPolicyName"
-    value = "${aws_elb_load_balancer_policy.test-pubkey-policy0.policy_name}"
+    value = "${aws_load_balancer_policy.test-pubkey-policy0.policy_name}"
   }
 }
 
-resource "aws_elb_load_balancer_backend_server_policy" "test-backend-auth-policies-443" {
+resource "aws_load_balancer_backend_server_policy" "test-backend-auth-policies-443" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   instance_port = 443
   policy_names = [
-    "${aws_elb_load_balancer_policy.test-backend-auth-policy0.policy_name}"
+    "${aws_load_balancer_policy.test-backend-auth-policy0.policy_name}"
   ]
 }
 `
@@ -263,7 +263,7 @@ resource "aws_iam_server_certificate" "test-iam-cert0" {
 }
 
 resource "aws_elb" "test-lb" {
-  name = "test-aws-elb-policies-lb"
+  name = "test-aws-policies-lb"
   availability_zones = ["us-east-1a"]
 
   listener {
@@ -279,7 +279,7 @@ resource "aws_elb" "test-lb" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "test-pubkey-policy0" {
+resource "aws_load_balancer_policy" "test-pubkey-policy0" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "test-pubkey-policy0"
   policy_type_name = "PublicKeyPolicyType"
@@ -289,7 +289,7 @@ resource "aws_elb_load_balancer_policy" "test-pubkey-policy0" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "test-pubkey-policy1" {
+resource "aws_load_balancer_policy" "test-pubkey-policy1" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "test-pubkey-policy1"
   policy_type_name = "PublicKeyPolicyType"
@@ -299,21 +299,21 @@ resource "aws_elb_load_balancer_policy" "test-pubkey-policy1" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "test-backend-auth-policy0" {
+resource "aws_load_balancer_policy" "test-backend-auth-policy0" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "test-backend-auth-policy0"
   policy_type_name = "BackendServerAuthenticationPolicyType"
   policy_attribute = {
     name = "PublicKeyPolicyName"
-    value = "${aws_elb_load_balancer_policy.test-pubkey-policy1.policy_name}"
+    value = "${aws_load_balancer_policy.test-pubkey-policy1.policy_name}"
   }
 }
 
-resource "aws_elb_load_balancer_backend_server_policy" "test-backend-auth-policies-443" {
+resource "aws_load_balancer_backend_server_policy" "test-backend-auth-policies-443" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   instance_port = 443
   policy_names = [
-    "${aws_elb_load_balancer_policy.test-backend-auth-policy0.policy_name}"
+    "${aws_load_balancer_policy.test-backend-auth-policy0.policy_name}"
   ]
 }
 `
@@ -370,7 +370,7 @@ resource "aws_iam_server_certificate" "test-iam-cert0" {
 }
 
 resource "aws_elb" "test-lb" {
-  name = "test-aws-elb-policies-lb"
+  name = "test-aws-policies-lb"
   availability_zones = ["us-east-1a"]
 
   listener {

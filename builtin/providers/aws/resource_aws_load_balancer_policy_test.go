@@ -23,7 +23,7 @@ func TestAccAWSLoadBalancerPolicy_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSLoadBalancerPolicyConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.test-policy"),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-policy"),
 				),
 			},
 		},
@@ -39,13 +39,13 @@ func TestAccAWSLoadBalancerPolicy_updateWhileAssigned(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned0,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.test-policy"),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-policy"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned1,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_elb_load_balancer_policy.test-policy"),
+					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-policy"),
 				),
 			},
 		},
@@ -56,7 +56,7 @@ func testAccCheckAWSLoadBalancerPolicyDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elbconn
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_elb_load_balancer_policy" {
+		if rs.Type != "aws_load_balancer_policy" {
 			continue
 		}
 
@@ -141,7 +141,7 @@ func testAccCheckAWSLoadBalancerPolicyState(elbResource string, policyResource s
 
 const testAccAWSLoadBalancerPolicyConfig_basic = `
 resource "aws_elb" "test-lb" {
-  name = "test-aws-elb-policies-lb"
+  name = "test-aws-policies-lb"
   availability_zones = ["us-east-1a"]
 
   listener {
@@ -156,7 +156,7 @@ resource "aws_elb" "test-lb" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "test-policy" {
+resource "aws_load_balancer_policy" "test-policy" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "test-policy-policy"
   policy_type_name = "AppCookieStickinessPolicyType"
@@ -169,7 +169,7 @@ resource "aws_elb_load_balancer_policy" "test-policy" {
 
 const testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned0 = `
 resource "aws_elb" "test-lb" {
-  name = "test-aws-elb-policies-lb"
+  name = "test-aws-policies-lb"
   availability_zones = ["us-east-1a"]
 
   listener {
@@ -184,7 +184,7 @@ resource "aws_elb" "test-lb" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "test-policy" {
+resource "aws_load_balancer_policy" "test-policy" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "test-policy-policy"
   policy_type_name = "AppCookieStickinessPolicyType"
@@ -194,18 +194,18 @@ resource "aws_elb_load_balancer_policy" "test-policy" {
   }
 }
 
-resource "aws_elb_load_balancer_listener_policy" "test-lb-test-policy-80" {
+resource "aws_load_balancer_listener_policy" "test-lb-test-policy-80" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   load_balancer_port = 80
   policy_names = [
-    "${aws_elb_load_balancer_policy.test-policy.policy_name}"
+    "${aws_load_balancer_policy.test-policy.policy_name}"
   ]
 }
 `
 
 const testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned1 = `
 resource "aws_elb" "test-lb" {
-  name = "test-aws-elb-policies-lb"
+  name = "test-aws-policies-lb"
   availability_zones = ["us-east-1a"]
 
   listener {
@@ -220,7 +220,7 @@ resource "aws_elb" "test-lb" {
   }
 }
 
-resource "aws_elb_load_balancer_policy" "test-policy" {
+resource "aws_load_balancer_policy" "test-policy" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   policy_name = "test-policy-policy"
   policy_type_name = "AppCookieStickinessPolicyType"
@@ -230,11 +230,11 @@ resource "aws_elb_load_balancer_policy" "test-policy" {
   }
 }
 
-resource "aws_elb_load_balancer_listener_policy" "test-lb-test-policy-80" {
+resource "aws_load_balancer_listener_policy" "test-lb-test-policy-80" {
   load_balancer_name = "${aws_elb.test-lb.name}"
   load_balancer_port = 80
   policy_names = [
-    "${aws_elb_load_balancer_policy.test-policy.policy_name}"
+    "${aws_load_balancer_policy.test-policy.policy_name}"
   ]
 }
 `
