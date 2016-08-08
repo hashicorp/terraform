@@ -174,6 +174,8 @@ The following arguments are supported:
 * `lifecycle_rule` - (Optional) A configuration of [object lifecycle management](http://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html) (documented below).
 * `acceleration_status` - (Optional) Sets the accelerate configuration of an existing bucket. Can be `Enabled` or `Suspended`.
 
+~> **NOTE:** You cannot use `acceleration_status` in `cn-north-1` or `us-gov-west-1` 
+
 The `website` object supports the following:
 
 * `index_document` - (Required, unless using `redirect_all_requests_to`) Amazon S3 returns this index document when requests are made to the root domain or any of the subfolders.
