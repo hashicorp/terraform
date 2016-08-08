@@ -1,18 +1,32 @@
 ## 0.7.1 (Unreleased)
 
 FEATURES:
+ * **New Provider:** `archive` [GH-7322]
+ * **New Resource:** `aws_vpn_gateway_attachment` [GH-7870]
 
-IMPROVEMENTS:
- * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
+IMPROVEMENTS
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
+ * provider/aws: Query all pages of group membership [GH-6726]
+ * provider/aws: Change the way ARNs are built [GH-7151]
+ * provider/aws: Add support for Elasticsearch destination to firehose delivery streams [GH-7839]
+ * provider/aws: Retry AttachInternetGateway and increase timeout on `aws_internet_gateway` [GH-7891]
+ * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
+ * provider/google: allows atomic Cloud DNS record changes [GH-6575]
+ * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
+ * provider/google: Support static private IP addresses in `resource_compute_instance` [GH-6310]
+ * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
 
 BUG FIXES:
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
  * provider/aws: `aws_cloudformation_stack` now respects `timeout_in_minutes` field when waiting for CF API to finish an update operation [GH-7997]
+ * provider/aws: Prevent errors when `aws_s3_bucket` `acceleration_status` is not available in a given region [GH-7999]
  * provider/aws: Add state filter to `aws_availability_zone`s data source [GH-7965]
  * provider/aws: Handle lack of snapshot ID for a volume in `ami_copy` [GH-7995]
  * provider/aws: Retry association of IAM Role & instance profile [GH-7938]
+ * provider/aws: Fix `aws_s3_bucket` resource `redirect_all_requests_to` action [GH-7883]
+ * provider/aws: Fix issue updating ElasticBeanstalk Environment Settings [GH-7777]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
+ * provider/google: Fix read for the backend service resource [GH-7476]
 
 ## 0.7.0 (August 2, 2016)
 

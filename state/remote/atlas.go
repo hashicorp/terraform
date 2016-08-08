@@ -23,6 +23,7 @@ import (
 const (
 	// defaultAtlasServer is used when no address is given
 	defaultAtlasServer = "https://atlas.hashicorp.com/"
+	atlasTokenHeader   = "X-Atlas-Token"
 )
 
 func atlasFactory(conf map[string]string) (Client, error) {
@@ -91,6 +92,8 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make HTTP request: %v", err)
 	}
+
+	req.Header.Set(atlasTokenHeader, c.AccessToken)
 
 	// Request the url
 	client, err := c.http()
@@ -170,6 +173,7 @@ func (c *AtlasClient) Put(state []byte) error {
 	}
 
 	// Prepare the request
+	req.Header.Set(atlasTokenHeader, c.AccessToken)
 	req.Header.Set("Content-MD5", b64)
 	req.Header.Set("Content-Type", "application/json")
 	req.ContentLength = int64(len(state))
@@ -204,6 +208,7 @@ func (c *AtlasClient) Delete() error {
 	if err != nil {
 		return fmt.Errorf("Failed to make HTTP request: %v", err)
 	}
+	req.Header.Set(atlasTokenHeader, c.AccessToken)
 
 	// Make the request
 	client, err := c.http()
@@ -249,7 +254,6 @@ func (c *AtlasClient) url() *url.URL {
 	values := url.Values{}
 
 	values.Add("atlas_run_id", c.RunId)
-	values.Add("access_token", c.AccessToken)
 
 	return &url.URL{
 		Scheme:   c.ServerURL.Scheme,

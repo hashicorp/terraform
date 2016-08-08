@@ -27,6 +27,14 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 64 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 64 characters", k))
+					}
+					return
+				},
 			},
 
 			"destination": &schema.Schema{
@@ -36,6 +44,14 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 				StateFunc: func(v interface{}) string {
 					value := v.(string)
 					return strings.ToLower(value)
+				},
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if value != "s3" && value != "redshift" && value != "elasticsearch" {
+						errors = append(errors, fmt.Errorf(
+							"%q must be one of 's3', 'redshift', 'elasticsearch'", k))
+					}
+					return
 				},
 			},
 
@@ -167,6 +183,113 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 				},
 			},
 
+			"elasticsearch_configuration": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"buffering_interval": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  300,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(int)
+								if value < 60 || value > 900 {
+									errors = append(errors, fmt.Errorf(
+										"%q must be in the range from 60 to 900 seconds.", k))
+								}
+								return
+							},
+						},
+
+						"buffering_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  5,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(int)
+								if value < 1 || value > 100 {
+									errors = append(errors, fmt.Errorf(
+										"%q must be in the range from 1 to 100 MB.", k))
+								}
+								return
+							},
+						},
+
+						"domain_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"index_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"index_rotation_period": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "OneDay",
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+								if value != "NoRotation" && value != "OneHour" && value != "OneDay" && value != "OneWeek" && value != "OneMonth" {
+									errors = append(errors, fmt.Errorf(
+										"%q must be one of 'NoRotation', 'OneHour', 'OneDay', 'OneWeek', 'OneMonth'", k))
+								}
+								return
+							},
+						},
+
+						"retry_duration": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  300,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(int)
+								if value < 0 || value > 7200 {
+									errors = append(errors, fmt.Errorf(
+										"%q must be in the range from 0 to 7200 seconds.", k))
+								}
+								return
+							},
+						},
+
+						"role_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"s3_backup_mode": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "FailedDocumentsOnly",
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+								if value != "FailedDocumentsOnly" && value != "AllDocuments" {
+									errors = append(errors, fmt.Errorf(
+										"%q must be one of 'FailedDocumentsOnly', 'AllDocuments'", k))
+								}
+								return
+							},
+						},
+
+						"type_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+								if len(value) > 100 {
+									errors = append(errors, fmt.Errorf(
+										"%q cannot be longer than 100 characters", k))
+								}
+								return
+							},
+						},
+					},
+				},
+			},
+
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -186,15 +309,6 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 			},
 		},
 	}
-}
-
-func validateConfiguration(d *schema.ResourceData) error {
-	destination := d.Get("destination").(string)
-	if destination != "s3" && destination != "redshift" {
-		return fmt.Errorf("[ERROR] Destination must be s3 or redshift")
-	}
-
-	return nil
 }
 
 func createS3Config(d *schema.ResourceData) *firehose.S3DestinationConfiguration {
@@ -289,6 +403,85 @@ func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3Destinati
 	}, nil
 }
 
+func createElasticsearchConfig(d *schema.ResourceData, s3Config *firehose.S3DestinationConfiguration) (*firehose.ElasticsearchDestinationConfiguration, error) {
+	esConfig, ok := d.GetOk("elasticsearch_configuration")
+	if !ok {
+		return nil, fmt.Errorf("[ERR] Error loading Elasticsearch Configuration for Kinesis Firehose: elasticsearch_configuration not found")
+	}
+	esList := esConfig.([]interface{})
+
+	es := esList[0].(map[string]interface{})
+
+	config := &firehose.ElasticsearchDestinationConfiguration{
+		BufferingHints:  extractBufferingHints(es),
+		DomainARN:       aws.String(es["domain_arn"].(string)),
+		IndexName:       aws.String(es["index_name"].(string)),
+		RetryOptions:    extractRetryOptions(es),
+		RoleARN:         aws.String(es["role_arn"].(string)),
+		TypeName:        aws.String(es["type_name"].(string)),
+		S3Configuration: s3Config,
+	}
+
+	if indexRotationPeriod, ok := es["index_rotation_period"]; ok {
+		config.IndexRotationPeriod = aws.String(indexRotationPeriod.(string))
+	}
+	if s3BackupMode, ok := es["s3_backup_mode"]; ok {
+		config.S3BackupMode = aws.String(s3BackupMode.(string))
+	}
+
+	return config, nil
+}
+
+func updateElasticsearchConfig(d *schema.ResourceData, s3Update *firehose.S3DestinationUpdate) (*firehose.ElasticsearchDestinationUpdate, error) {
+	esConfig, ok := d.GetOk("elasticsearch_configuration")
+	if !ok {
+		return nil, fmt.Errorf("[ERR] Error loading Elasticsearch Configuration for Kinesis Firehose: elasticsearch_configuration not found")
+	}
+	esList := esConfig.([]interface{})
+
+	es := esList[0].(map[string]interface{})
+
+	update := &firehose.ElasticsearchDestinationUpdate{
+		BufferingHints: extractBufferingHints(es),
+		DomainARN:      aws.String(es["domain_arn"].(string)),
+		IndexName:      aws.String(es["index_name"].(string)),
+		RetryOptions:   extractRetryOptions(es),
+		RoleARN:        aws.String(es["role_arn"].(string)),
+		TypeName:       aws.String(es["type_name"].(string)),
+		S3Update:       s3Update,
+	}
+
+	if indexRotationPeriod, ok := es["index_rotation_period"]; ok {
+		update.IndexRotationPeriod = aws.String(indexRotationPeriod.(string))
+	}
+
+	return update, nil
+}
+
+func extractBufferingHints(es map[string]interface{}) *firehose.ElasticsearchBufferingHints {
+	bufferingHints := &firehose.ElasticsearchBufferingHints{}
+
+	if bufferingInterval, ok := es["buffering_hints"].(int); ok {
+		bufferingHints.IntervalInSeconds = aws.Int64(int64(bufferingInterval))
+	}
+	if bufferingSize, ok := es["buffering_size"].(int); ok {
+		bufferingHints.SizeInMBs = aws.Int64(int64(bufferingSize))
+	}
+
+	return bufferingHints
+
+}
+
+func extractRetryOptions(es map[string]interface{}) *firehose.ElasticsearchRetryOptions {
+	retryOptions := &firehose.ElasticsearchRetryOptions{}
+
+	if retryDuration, ok := es["retry_duration"].(int); ok {
+		retryOptions.DurationInSeconds = aws.Int64(int64(retryDuration))
+	}
+
+	return retryOptions
+}
+
 func extractCopyCommandConfiguration(redshift map[string]interface{}) *firehose.CopyCommand {
 	cmd := &firehose.CopyCommand{
 		DataTableName: aws.String(redshift["data_table_name"].(string)),
@@ -306,10 +499,6 @@ func extractCopyCommandConfiguration(redshift map[string]interface{}) *firehose.
 func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).firehoseconn
 
-	if err := validateConfiguration(d); err != nil {
-		return err
-	}
-
 	sn := d.Get("name").(string)
 	s3Config := createS3Config(d)
 
@@ -319,6 +508,12 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 
 	if d.Get("destination").(string) == "s3" {
 		createInput.S3DestinationConfiguration = s3Config
+	} else if d.Get("destination").(string) == "elasticsearch" {
+		esConfig, err := createElasticsearchConfig(d, s3Config)
+		if err != nil {
+			return err
+		}
+		createInput.ElasticsearchDestinationConfiguration = esConfig
 	} else {
 		rc, err := createRedshiftConfig(d, s3Config)
 		if err != nil {
@@ -359,7 +554,7 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 		Pending:    []string{"CREATING"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    firehoseStreamStateRefreshFunc(conn, sn),
-		Timeout:    5 * time.Minute,
+		Timeout:    20 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -381,10 +576,6 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).firehoseconn
 
-	if err := validateConfiguration(d); err != nil {
-		return err
-	}
-
 	sn := d.Get("name").(string)
 	s3Config := updateS3Config(d)
 
@@ -396,6 +587,12 @@ func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta
 
 	if d.Get("destination").(string) == "s3" {
 		updateInput.S3DestinationUpdate = s3Config
+	} else if d.Get("destination").(string) == "elasticsearch" {
+		esUpdate, err := updateElasticsearchConfig(d, s3Config)
+		if err != nil {
+			return err
+		}
+		updateInput.ElasticsearchDestinationUpdate = esUpdate
 	} else {
 		rc, err := updateRedshiftConfig(d, s3Config)
 		if err != nil {
@@ -459,7 +656,7 @@ func resourceAwsKinesisFirehoseDeliveryStreamDelete(d *schema.ResourceData, meta
 		Pending:    []string{"DELETING"},
 		Target:     []string{"DESTROYED"},
 		Refresh:    firehoseStreamStateRefreshFunc(conn, sn),
-		Timeout:    5 * time.Minute,
+		Timeout:    20 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

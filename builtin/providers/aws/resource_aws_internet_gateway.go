@@ -168,9 +168,21 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 		d.Id(),
 		d.Get("vpc_id").(string))
 
-	_, err := conn.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
-		InternetGatewayId: aws.String(d.Id()),
-		VpcId:             aws.String(d.Get("vpc_id").(string)),
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		_, err := conn.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
+			InternetGatewayId: aws.String(d.Id()),
+			VpcId:             aws.String(d.Get("vpc_id").(string)),
+		})
+		if err == nil {
+			return nil
+		}
+		if ec2err, ok := err.(awserr.Error); ok {
+			switch ec2err.Code() {
+			case "InvalidInternetGatewayID.NotFound":
+				return resource.RetryableError(err) // retry
+			}
+		}
+		return resource.NonRetryableError(err)
 	})
 	if err != nil {
 		return err
@@ -187,7 +199,7 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 		Pending: []string{"detached", "attaching"},
 		Target:  []string{"available"},
 		Refresh: IGAttachStateRefreshFunc(conn, d.Id(), "available"),
-		Timeout: 1 * time.Minute,
+		Timeout: 4 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
