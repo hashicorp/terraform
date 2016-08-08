@@ -10,6 +10,9 @@ description: |-
 
 Provides an HTTP Method Integration Response for an API Gateway Resource.
 
+-> **Note:** Depends on having `aws_api_gateway_integration` inside your rest api. To ensure this
+you might need to add an explicit `depends_on` for clean runs.
+
 ## Example Usage
 
 ```
