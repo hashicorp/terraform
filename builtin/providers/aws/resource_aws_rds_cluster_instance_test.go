@@ -187,7 +187,7 @@ func testAccCheckAWSClusterInstanceExists(n string, v *rds.DBInstance) resource.
 	}
 }
 
-func testAccAWSCluster_with_InstanceEnhancedMonitor(t *testing.T) {
+func TestAccAWSCluster_withInstanceEnhancedMonitor(t *testing.T) {
 	var v rds.DBInstance
 
 	resource.Test(t, resource.TestCase{
@@ -316,14 +316,14 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
   cluster_identifier      = "${aws_rds_cluster.default.id}"
   instance_class          = "db.r3.large"
   db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
-  monitoring_interval     = "0"
-  monitoring_role_arn     = "${aws_iam_role.tf_enhanced_monitor_role}"
+  monitoring_interval     = "60"
+  monitoring_role_arn     = "${aws_iam_role.tf_enhanced_monitor_role.arn}"
 }
 
 resource "aws_iam_role" "tf_enhanced_monitor_role" {
     name = "tf_enhanced_monitor_role-%d"
     assume_role_policy = <<EOF
-   {
+{
             "Version": "2012-10-17",
             "Statement": [
                 {
@@ -341,7 +341,7 @@ EOF
 
 resource "aws_iam_policy_attachment" "rds_m_attach" {
     name = "AmazonRDSEnhancedMonitoringRole"
-    roles = ["tf_enhanced_monitor_role"]
+    roles = ["${aws_iam_role.tf_enhanced_monitor_role.name}"]
     policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
 
