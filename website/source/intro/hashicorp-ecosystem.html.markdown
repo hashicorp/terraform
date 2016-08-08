@@ -25,6 +25,6 @@ Below are summaries of HashiCorp’s open source projects and a graphic showing 
 
 [Consul](https://www.consul.io/?utm_source=terraform&utm_campaign=HashicorpEcosystem) is a HashiCorp tool for service discovery, service registry, and health checks. In the Atlas workflow Consul is configured at the Packer build stage and identifies the service(s) contained in each artifact. Since Consul is configured at the build phase with Packer, when the artifact is deployed with Terraform, it is fully configured with dependencies and service discovery pre-baked. This greatly reduces the risk of an unhealthy node in production due to configuration failure at runtime.
 
-[Serf](https://www.serfdom.io/?utm_source=terraform&utm_campaign=HashicorpEcosystem) is a HashiCorp tool for cluster membership and failure detection. Consul uses Serf’s gossip protocol as the foundation for service discovery.
+[Serf](https://www.serf.io/?utm_source=terraform&utm_campaign=HashicorpEcosystem) is a HashiCorp tool for cluster membership and failure detection. Consul uses Serf’s gossip protocol as the foundation for service discovery.
 
 [Vagrant](https://www.vagrantup.com/?utm_source=terraform&utm_campaign=HashicorpEcosystem) is a HashiCorp tool for managing development environments that mirror production. Vagrant environments reduce the friction of developing a project and reduce the risk of unexpected behavior appearing after deployment. Vagrant boxes can be built in parallel with production artifacts with Packer to maintain parity between development and production.
