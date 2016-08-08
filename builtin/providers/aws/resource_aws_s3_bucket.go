@@ -556,9 +556,17 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	})
 	log.Printf("[DEBUG] S3 bucket: %s, read Acceleration: %v", d.Id(), accelerate)
 	if err != nil {
-		return err
+		// Amazon S3 Transfer Acceleration might not be supported in the
+		// given region, for example, China (Beijing) and the Government
+		// Cloud does not support this feature at the moment.
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() != "UnsupportedArgument" {
+			return err
+		}
+		log.Printf("[WARN] S3 bucket: %s, the S3 Transfer Accelaration is not supported in the region: %s", d.Id(), meta.(*AWSClient).region)
+	} else {
+		log.Printf("[DEBUG] S3 bucket: %s, read Acceleration: %v", d.Id(), accelerate)
+		d.Set("acceleration_status", accelerate.Status)
 	}
-	d.Set("acceleration_status", accelerate.Status)
 
 	// Read the logging configuration
 	logging, err := s3conn.GetBucketLogging(&s3.GetBucketLoggingInput{
