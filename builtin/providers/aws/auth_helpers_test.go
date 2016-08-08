@@ -648,12 +648,15 @@ func getMockedAwsIamStsApi(endpoints []*iamEndpoint) (func(), *iam.IAM, *sts.STS
 
 	sc := awsCredentials.NewStaticCredentials("accessKey", "secretKey", "")
 
-	sess := session.New(&aws.Config{
+	sess, err := session.NewSession(&aws.Config{
 		Credentials:                   sc,
 		Region:                        aws.String("us-east-1"),
 		Endpoint:                      aws.String(ts.URL),
 		CredentialsChainVerboseErrors: aws.Bool(true),
 	})
+	if err != nil {
+		panic(fmt.Sprintf("Error creating AWS Session: %s", err))
+	}
 	iamConn := iam.New(sess)
 	stsConn := sts.New(sess)
 	return ts.Close, iamConn, stsConn

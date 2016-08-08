@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -25,7 +26,12 @@ func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (
 
 		cfg := &aws.Config{}
 		setOptionalEndpoint(cfg)
-		metadataClient := ec2metadata.New(session.New(cfg))
+		sess, err := session.NewSession(cfg)
+		if err != nil {
+			return "", errwrap.Wrapf("Error creating AWS session: %s", err)
+		}
+
+		metadataClient := ec2metadata.New(sess)
 		info, err := metadataClient.IAMInfo()
 		if err != nil {
 			// This can be triggered when no IAM Role is assigned
@@ -114,7 +120,11 @@ func GetCredentials(key, secret, token, profile, credsfile string) *awsCredentia
 	// Real AWS should reply to a simple metadata request.
 	// We check it actually does to ensure something else didn't just
 	// happen to be listening on the same IP:Port
-	metadataClient := ec2metadata.New(session.New(cfg))
+	sess, err := session.NewSession(cfg)
+	if err != nil {
+		log.Printf("[INFO] Error creating AWS session for metadata client: %s", err)
+	}
+	metadataClient := ec2metadata.New(sess)
 	if metadataClient.Available() {
 		providers = append(providers, &ec2rolecreds.EC2RoleProvider{
 			Client: metadataClient,
