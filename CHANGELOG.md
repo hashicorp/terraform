@@ -9,6 +9,7 @@ IMPROVEMENTS
  * provider/aws: Change the way ARNs are built [GH-7151]
  * provider/aws: Add support for Elasticsearch destination to firehose delivery streams [GH-7839]
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
+ * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
  * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
 
 BUG FIXES:
