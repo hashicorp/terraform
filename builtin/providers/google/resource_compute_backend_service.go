@@ -255,20 +255,21 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 		HealthChecks: healthChecks,
 	}
 
-	if d.HasChange("backend") {
-		service.Backends = expandBackends(d.Get("backend").(*schema.Set).List())
+	// Optional things
+	if v, ok := d.GetOk("backend"); ok {
+		service.Backends = expandBackends(v.(*schema.Set).List())
 	}
-	if d.HasChange("description") {
-		service.Description = d.Get("description").(string)
+	if v, ok := d.GetOk("description"); ok {
+		service.Description = v.(string)
 	}
-	if d.HasChange("port_name") {
-		service.PortName = d.Get("port_name").(string)
+	if v, ok := d.GetOk("port_name"); ok {
+		service.PortName = v.(string)
 	}
-	if d.HasChange("protocol") {
-		service.Protocol = d.Get("protocol").(string)
+	if v, ok := d.GetOk("protocol"); ok {
+		service.Protocol = v.(string)
 	}
-	if d.HasChange("timeout_sec") {
-		service.TimeoutSec = int64(d.Get("timeout_sec").(int))
+	if v, ok := d.GetOk("timeout_sec"); ok {
+		service.TimeoutSec = int64(v.(int))
 	}
 
 	if d.HasChange("enable_cdn") {
