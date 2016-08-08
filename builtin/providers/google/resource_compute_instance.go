@@ -153,6 +153,8 @@ func resourceComputeInstance() *schema.Resource {
 
 						"address": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 
@@ -467,9 +469,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		networkInterfaces = make([]*compute.NetworkInterface, 0, networkInterfacesCount)
 		for i := 0; i < networkInterfacesCount; i++ {
 			prefix := fmt.Sprintf("network_interface.%d", i)
-			// Load up the name of this network_interfac
+			// Load up the name of this network_interface
 			networkName := d.Get(prefix + ".network").(string)
 			subnetworkName := d.Get(prefix + ".subnetwork").(string)
+			address := d.Get(prefix + ".address").(string)
 			var networkLink, subnetworkLink string
 
 			if networkName != "" && subnetworkName != "" {
@@ -499,6 +502,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			var iface compute.NetworkInterface
 			iface.Network = networkLink
 			iface.Subnetwork = subnetworkLink
+			iface.NetworkIP = address
 
 			// Handle access_config structs
 			accessConfigsCount := d.Get(prefix + ".access_config.#").(int)
