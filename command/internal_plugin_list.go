@@ -6,6 +6,7 @@
 package command
 
 import (
+	archiveprovider "github.com/hashicorp/terraform/builtin/providers/archive"
 	atlasprovider "github.com/hashicorp/terraform/builtin/providers/atlas"
 	awsprovider "github.com/hashicorp/terraform/builtin/providers/aws"
 	azureprovider "github.com/hashicorp/terraform/builtin/providers/azure"
@@ -104,6 +105,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"ultradns":     ultradnsprovider.Provider,
 	"vcd":          vcdprovider.Provider,
 	"vsphere":      vsphereprovider.Provider,
+	"archive":      archiveprovider.Provider,
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
