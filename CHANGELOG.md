@@ -19,6 +19,7 @@ BUG FIXES:
  * provider/aws: Fix `aws_s3_bucket` resource `redirect_all_requests_to` action [GH-7883]
  * provider/aws: Fix issue updating ElasticBeanstalk Environment Settings [GH-7777]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
+ * provider/google: Fix read for the backend service resource [GH-7476]
 
 ## 0.7.0 (August 2, 2016)
 
