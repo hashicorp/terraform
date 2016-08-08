@@ -77,8 +77,8 @@ func resourceAwsLoadBalancerBackendServerPoliciesRead(d *schema.ResourceData, me
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok {
 			if ec2err.Code() == "LoadBalancerNotFound" {
-				return fmt.Errorf("LoadBalancerNotFound: %s", err)
 				d.SetId("")
+				return fmt.Errorf("LoadBalancerNotFound: %s", err)
 			}
 		}
 		return fmt.Errorf("Error retrieving ELB description: %s", err)
