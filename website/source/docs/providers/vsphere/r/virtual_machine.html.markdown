@@ -68,6 +68,7 @@ The following arguments are supported:
 * `datacenter` - (Optional) The name of a Datacenter in which to launch the virtual machine
 * `cluster` - (Optional) Name of a Cluster in which to launch the virtual machine
 * `resource_pool` (Optional) The name of a Resource Pool in which to launch the virtual machine. Requires full path (see cluster example).
+* `host_system` (Optional) The name of a ESXi host in which to launch the virutal machine. Requires FQDN as presented in vCenter.
 * `gateway` - __Deprecated, please use `network_interface.ipv4_gateway` instead__.
 * `domain` - (Optional) A FQDN for the virtual machine; defaults to "vsphere.local"
 * `time_zone` - (Optional) The [Linux](https://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/timezone.html) or [Windows](https://msdn.microsoft.com/en-us/library/ms912391.aspx) time zone to set on the virtual machine. Defaults to "Etc/UTC"
