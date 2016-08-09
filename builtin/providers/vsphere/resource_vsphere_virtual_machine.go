@@ -98,6 +98,7 @@ type virtualMachine struct {
 	linkedClone           bool
 	skipCustomization     bool
 	enableDiskUUID        bool
+	syncTimeWithHost      bool
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
 }
@@ -230,6 +231,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"uuid": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"sync_time_with_host": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 
 			"custom_configuration_parameters": &schema.Schema{
@@ -696,6 +703,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		vm.enableDiskUUID = v.(bool)
 	}
 
+	if v, ok := d.GetOk("sync_time_with_host"); ok {
+		vm.syncTimeWithHost = v.(bool)
+	}
+
 	if raw, ok := d.GetOk("dns_suffixes"); ok {
 		for _, v := range raw.([]interface{}) {
 			vm.dnsSuffixes = append(vm.dnsSuffixes, v.(string))
@@ -1103,6 +1114,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 	d.Set("datastore", rootDatastore)
 	d.Set("uuid", mvm.Summary.Config.Uuid)
+	d.Set("sync_time_with_host", *mvm.Config.Tools.SyncTimeWithHost)
 
 	return nil
 }
@@ -1709,6 +1721,16 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	}
 	if vm.template == "" {
 		configSpec.GuestId = "otherLinux64Guest"
+	}
+	if vm.syncTimeWithHost {
+		if configSpec.Tools == nil {
+			toolsConfig := types.ToolsConfigInfo{
+				SyncTimeWithHost: &vm.syncTimeWithHost,
+			}
+			configSpec.Tools = &toolsConfig
+		} else {
+			configSpec.Tools.SyncTimeWithHost = &vm.syncTimeWithHost
+		}
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
