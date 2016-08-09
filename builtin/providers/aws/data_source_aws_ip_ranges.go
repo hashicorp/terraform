@@ -99,19 +99,35 @@ func dataSourceAwsIPRangesRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error setting sync token: %s", err)
 	}
 
+	get := func(key string) *schema.Set {
+
+		set := d.Get(key).(*schema.Set)
+
+		for _, e := range set.List() {
+
+			s := e.(string)
+
+			set.Remove(s)
+			set.Add(strings.ToLower(s))
+
+		}
+
+		return set
+
+	}
+
 	var (
-		regions         = d.Get("regions").(*schema.Set)
-		services        = d.Get("services").(*schema.Set)
-		noRegionFilter  = regions.Len() == 0
-		noServiceFilter = services.Len() == 0
-		prefixes        []string
+		regions        = get("regions")
+		services       = get("services")
+		noRegionFilter = regions.Len() == 0
+		prefixes       []string
 	)
 
 	for _, e := range result.Prefixes {
 
 		var (
 			matchRegion  = noRegionFilter || regions.Contains(strings.ToLower(e.Region))
-			matchService = noServiceFilter || services.Contains(strings.ToLower(e.Service))
+			matchService = services.Contains(strings.ToLower(e.Service))
 		)
 
 		if matchRegion && matchService {
