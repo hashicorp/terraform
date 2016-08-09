@@ -61,6 +61,7 @@ import (
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
+	"archive":      archiveprovider.Provider,
 	"atlas":        atlasprovider.Provider,
 	"aws":          awsprovider.Provider,
 	"azure":        azureprovider.Provider,
@@ -105,7 +106,6 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"ultradns":     ultradnsprovider.Provider,
 	"vcd":          vcdprovider.Provider,
 	"vsphere":      vsphereprovider.Provider,
-	"archive":      archiveprovider.Provider,
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
