@@ -66,6 +66,7 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 			},
 			"outputs": &schema.Schema{
 				Type:     schema.TypeMap,
+				Optional: true,
 				Computed: true,
 			},
 			"policy_body": &schema.Schema{

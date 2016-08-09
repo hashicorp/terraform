@@ -47,6 +47,8 @@ The following arguments are supported:
 * `notification_arns` - (Optional) A list of SNS topic ARNs to publish stack related events.
 * `on_failure` - (Optional) Action to be taken if stack creation fails. This must be
   one of: `DO_NOTHING`, `ROLLBACK`, or `DELETE`. Conflicts with `disable_rollback`.
+* `outputs` - (Optional) A list of output variables to expect from the CloudFormation script. Only the
+  output variables listed here can be referenced by other Terraform resources.
 * `parameters` - (Optional) A list of Parameter structures that specify input parameters for the stack.
 * `policy_body` - (Optional) Structure containing the stack policy body.
   Conflicts w/ `policy_url`.
