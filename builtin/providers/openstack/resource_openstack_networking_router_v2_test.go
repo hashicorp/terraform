@@ -34,6 +34,30 @@ func TestAccNetworkingV2Router_basic(t *testing.T) {
 	})
 }
 
+func TestAccNetworkingV2Router_update_external_gw(t *testing.T) {
+	var router routers.Router
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2RouterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2Router_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2RouterExists(t, "openstack_networking_router_v2.foo", &router),
+				),
+			},
+			resource.TestStep{
+				Config: testAccNetworkingV2Router_update_external_gw,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("openstack_networking_router_v2.foo", "external_gateway", "d730db50-0e0c-4790-9972-1f6e2b8c4915"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckNetworkingV2RouterDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -99,4 +123,12 @@ var testAccNetworkingV2Router_update = fmt.Sprintf(`
     name = "router_2"
     admin_state_up = "true"
     distributed = "false"
+  }`)
+
+var testAccNetworkingV2Router_update_external_gw = fmt.Sprintf(`
+  resource "openstack_networking_router_v2" "foo" {
+    name = "router"
+    admin_state_up = "true"
+    distributed = "false"
+	external_gateway = "d730db50-0e0c-4790-9972-1f6e2b8c4915"
   }`)
