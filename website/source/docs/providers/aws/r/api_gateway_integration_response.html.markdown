@@ -71,4 +71,6 @@ The following arguments are supported:
 * `response_templates` - (Optional) A map specifying the templates used to transform the integration response body
 * `response_parameters` - (Optional) Specify the response parameters that can be read from the backend response
   For example: `response_parameters = { "method.response.header.X-Some-Header" = "integration.response.header.X-Some-Other-Header" }`,
+* `response_parameters_in_json` - (Optional, Deprecated) A map written as JSON string specifying response parameters that can be read from the backend response
+  For example: `response_parameters_in_json = "{\"method.response.header.X-Some-Header\":\"integration.response.header.X-Some-Other-Header\"}"`,
   would add the header `X-Some-Other-Header` from the integration response to the method response as the header `X-Some-Header`.

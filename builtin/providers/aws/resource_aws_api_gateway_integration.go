@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -75,9 +76,17 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 			},
 
 			"request_parameters": &schema.Schema{
-				Type:     schema.TypeMap,
-				Elem:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeMap,
+				Elem:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters_in_json"},
+			},
+
+			"request_parameters_in_json": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters"},
+				Deprecated:    "Use field request_parameters instead",
 			},
 
 			"passthrough_behavior": &schema.Schema{
@@ -113,6 +122,12 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 		}
 	}
 
+	if v, ok := d.GetOk("request_parameters_in_json"); ok {
+		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
+			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
+		}
+	}
+
 	var passthroughBehavior *string
 	if v, ok := d.GetOk("passthrough_behavior"); ok {
 		passthroughBehavior = aws.String(v.(string))
@@ -129,8 +144,7 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 		RestApiId:  aws.String(d.Get("rest_api_id").(string)),
 		Type:       aws.String(d.Get("type").(string)),
 		IntegrationHttpMethod: integrationHttpMethod,
-		Uri: uri,
-		// TODO reimplement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
+		Uri:                 uri,
 		RequestParameters:   aws.StringMap(parameters),
 		RequestTemplates:    aws.StringMap(templates),
 		Credentials:         credentials,

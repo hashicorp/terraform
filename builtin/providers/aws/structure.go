@@ -1090,6 +1090,58 @@ func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key 
 	return operations
 }
 
+func deprecatedExpandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
+	operations := make([]*apigateway.PatchOperation, 0)
+	oldParameters, newParameters := d.GetChange(key)
+	oldParametersMap := make(map[string]interface{})
+	newParametersMap := make(map[string]interface{})
+
+	if err := json.Unmarshal([]byte(oldParameters.(string)), &oldParametersMap); err != nil {
+		err := fmt.Errorf("Error unmarshaling old %s: %s", key, err)
+		return operations, err
+	}
+
+	if err := json.Unmarshal([]byte(newParameters.(string)), &newParametersMap); err != nil {
+		err := fmt.Errorf("Error unmarshaling new %s: %s", key, err)
+		return operations, err
+	}
+
+	for k, _ := range oldParametersMap {
+		operation := apigateway.PatchOperation{
+			Op:   aws.String("remove"),
+			Path: aws.String(fmt.Sprintf("/%s/%s", prefix, k)),
+		}
+
+		for nK, nV := range newParametersMap {
+			if nK == k {
+				operation.Op = aws.String("replace")
+				operation.Value = aws.String(strconv.FormatBool(nV.(bool)))
+			}
+		}
+
+		operations = append(operations, &operation)
+	}
+
+	for nK, nV := range newParametersMap {
+		exists := false
+		for k, _ := range oldParametersMap {
+			if k == nK {
+				exists = true
+			}
+		}
+		if !exists {
+			operation := apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, nK)),
+				Value: aws.String(strconv.FormatBool(nV.(bool))),
+			}
+			operations = append(operations, &operation)
+		}
+	}
+
+	return operations, nil
+}
+
 func expandApiGatewayMethodParametersOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
 	operations := make([]*apigateway.PatchOperation, 0)
 

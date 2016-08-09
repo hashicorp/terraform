@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -51,9 +52,17 @@ func resourceAwsApiGatewayMethodResponse() *schema.Resource {
 			},
 
 			"response_parameters": &schema.Schema{
-				Type:     schema.TypeMap,
-				Elem:     schema.TypeBool,
-				Optional: true,
+				Type:          schema.TypeMap,
+				Elem:          schema.TypeBool,
+				Optional:      true,
+				ConflictsWith: []string{"response_parameters_in_json"},
+			},
+
+			"response_parameters_in_json": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"response_parameters"},
+				Deprecated:    "Use field response_parameters instead",
 			},
 		},
 	}
@@ -71,6 +80,11 @@ func resourceAwsApiGatewayMethodResponseCreate(d *schema.ResourceData, meta inte
 	if kv, ok := d.GetOk("response_parameters"); ok {
 		for k, v := range kv.(map[string]interface{}) {
 			parameters[k] = v.(bool)
+		}
+	}
+	if v, ok := d.GetOk("response_parameters_in_json"); ok {
+		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
+			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
 		}
 	}
 
@@ -113,6 +127,7 @@ func resourceAwsApiGatewayMethodResponseRead(d *schema.ResourceData, meta interf
 	log.Printf("[DEBUG] Received API Gateway Method: %s", methodResponse)
 	d.Set("response_models", aws.StringValueMap(methodResponse.ResponseModels))
 	d.Set("response_parameters", aws.BoolValueMap(methodResponse.ResponseParameters))
+	d.Set("response_parameters_in_json", aws.BoolValueMap(methodResponse.ResponseParameters))
 	d.SetId(fmt.Sprintf("agmr-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
 
 	return nil
@@ -126,6 +141,13 @@ func resourceAwsApiGatewayMethodResponseUpdate(d *schema.ResourceData, meta inte
 
 	if d.HasChange("response_models") {
 		operations = append(operations, expandApiGatewayRequestResponseModelOperations(d, "response_models", "responseModels")...)
+	}
+
+	if d.HasChange("response_parameters_in_json") {
+		ops, err := deprecatedExpandApiGatewayMethodParametersJSONOperations(d, "response_parameters_in_json", "responseParameters")
+		if err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("response_parameters") {

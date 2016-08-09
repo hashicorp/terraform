@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -56,9 +57,17 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 			},
 
 			"response_parameters": &schema.Schema{
-				Type:     schema.TypeMap,
-				Elem:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeMap,
+				Elem:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"response_parameters_in_json"},
+			},
+
+			"response_parameters_in_json": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"response_parameters"},
+				Deprecated:    "Use field response_parameters instead",
 			},
 		},
 	}
@@ -76,6 +85,11 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 	if kv, ok := d.GetOk("response_parameters"); ok {
 		for k, v := range kv.(map[string]interface{}) {
 			parameters[k] = v.(string)
+		}
+	}
+	if v, ok := d.GetOk("response_parameters_in_json"); ok {
+		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
+			return fmt.Errorf("Error unmarshaling response_parameters_in_json: %s", err)
 		}
 	}
 
@@ -125,6 +139,7 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 	d.Set("response_templates", integrationResponse.ResponseTemplates)
 	d.Set("selection_pattern", integrationResponse.SelectionPattern)
 	d.Set("response_parameters", aws.StringValueMap(integrationResponse.ResponseParameters))
+	d.Set("response_parameters_in_json", aws.StringValueMap(integrationResponse.ResponseParameters))
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -57,9 +58,17 @@ func resourceAwsApiGatewayMethod() *schema.Resource {
 			},
 
 			"request_parameters": &schema.Schema{
-				Type:     schema.TypeMap,
-				Elem:     schema.TypeBool,
-				Optional: true,
+				Type:          schema.TypeMap,
+				Elem:          schema.TypeBool,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters_in_json"},
+			},
+
+			"request_parameters_in_json": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters"},
+				Deprecated:    "Use field request_parameters instead",
 			},
 		},
 	}
@@ -77,6 +86,11 @@ func resourceAwsApiGatewayMethodCreate(d *schema.ResourceData, meta interface{})
 	if kv, ok := d.GetOk("request_parameters"); ok {
 		for k, v := range kv.(map[string]interface{}) {
 			parameters[k] = v.(bool)
+		}
+	}
+	if v, ok := d.GetOk("request_parameters"); ok {
+		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
+			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
 		}
 	}
 
@@ -118,6 +132,7 @@ func resourceAwsApiGatewayMethodRead(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Received API Gateway Method: %s", out)
 	d.SetId(fmt.Sprintf("agm-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string)))
 	d.Set("request_parameters", aws.BoolValueMap(out.RequestParameters))
+	d.Set("request_parameters_in_json", aws.BoolValueMap(out.RequestParameters))
 
 	return nil
 }
@@ -137,6 +152,13 @@ func resourceAwsApiGatewayMethodUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("request_models") {
 		operations = append(operations, expandApiGatewayRequestResponseModelOperations(d, "request_models", "requestModels")...)
+	}
+
+	if d.HasChange("request_parameters_in_json") {
+		ops, err := deprecatedExpandApiGatewayMethodParametersJSONOperations(d, "request_parameters_in_json", "requestParameters")
+		if err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("request_parameters") {
