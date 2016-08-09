@@ -901,17 +901,20 @@ resource "vsphere_virtual_machine" "foo" {
     disk {
         size = 1
         iops = 500
-	name = "one"
+        name = "one"
+%s
     }
 	disk {
         size = 1
         iops = 500
-	name = "two"
+        name = "two"
+%s
     }
 	disk {
         size = 1
         iops = 500
-	name = "three"
+        name = "three"
+%s
     }
 }
 `
@@ -935,7 +938,19 @@ func TestAccVSphereVirtualMachine_updateDisks(t *testing.T) {
 	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_basic)
 	log.Printf("[DEBUG] template config= %s", config_basic)
 
-	config_add := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_updateAddDisks)
+	config_add := fmt.Sprintf(
+		testAccCheckVSphereVirtualMachineConfig_updateAddDisks,
+		basic_vars.locationOpt,
+		basic_vars.label,
+		basic_vars.ipv4IpAddress,
+		basic_vars.ipv4Prefix,
+		basic_vars.ipv4Gateway,
+		basic_vars.datastoreOpt,
+		basic_vars.template,
+		basic_vars.datastoreOpt,
+		basic_vars.datastoreOpt,
+		basic_vars.datastoreOpt,
+	)
 
 	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_basic)
 	log.Printf("[DEBUG] template config= %s", config_add)

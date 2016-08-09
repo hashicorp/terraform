@@ -115,15 +115,26 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 		vDisk.datastore = v.(string)
 	}
 
-	diskPath := fmt.Sprintf("[%v] %v", vDisk.datastore, vDisk.vmdkPath)
+	finder := find.NewFinder(client.Client, true)
 
-	err := createHardDisk(client, vDisk.size, diskPath, vDisk.initType, vDisk.adapterType, vDisk.datacenter)
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	if err != nil {
+		return fmt.Errorf("Error finding Datacenter: %s: %s", vDisk.datacenter, err)
+	}
+	finder = finder.SetDatacenter(dc)
+
+	ds, err := getDatastore(finder, vDisk.datastore)
+	if err != nil {
+		return fmt.Errorf("Error finding Datastore: %s: %s", vDisk.datastore, err)
+	}
+
+	err = createHardDisk(client, vDisk.size, ds.Path(vDisk.vmdkPath), vDisk.initType, vDisk.adapterType, vDisk.datacenter)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(diskPath)
-	log.Printf("[DEBUG] Virtual Disk id: %v", diskPath)
+	d.SetId(ds.Path(vDisk.vmdkPath))
+	log.Printf("[DEBUG] Virtual Disk id: %v", ds.Path(vDisk.vmdkPath))
 
 	return resourceVSphereVirtualDiskRead(d, meta)
 }
@@ -212,7 +223,16 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	diskPath := fmt.Sprintf("[%v] %v", vDisk.datastore, vDisk.vmdkPath)
+
+	finder := find.NewFinder(client.Client, true)
+	finder = finder.SetDatacenter(dc)
+
+	ds, err := getDatastore(finder, vDisk.datastore)
+	if err != nil {
+		return err
+	}
+
+	diskPath := ds.Path(vDisk.vmdkPath)
 
 	virtualDiskManager := object.NewVirtualDiskManager(client.Client)
 

@@ -1268,8 +1268,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	if diskPath == "" {
 		return fmt.Errorf("[ERROR] addHardDisk - No path proided")
 	} else {
-		// TODO Check if diskPath & datastore exist
-		diskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
+		diskPath = datastore.Path(diskPath)
 	}
 	log.Printf("[DEBUG] addHardDisk - diskPath: %v", diskPath)
 	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
@@ -1353,7 +1352,7 @@ func getNextUnitNumber(devices object.VirtualDeviceList, c types.BaseVirtualCont
 }
 
 // addCdrom adds a new virtual cdrom drive to the VirtualMachine and attaches an image (ISO) to it from a datastore path.
-func addCdrom(vm *object.VirtualMachine, datastore, path string) error {
+func addCdrom(client *govmomi.Client, vm *object.VirtualMachine, datacenter *object.Datacenter, datastore, path string) error {
 	devices, err := vm.Device(context.TODO())
 	if err != nil {
 		return err
@@ -1395,7 +1394,14 @@ func addCdrom(vm *object.VirtualMachine, datastore, path string) error {
 		return err
 	}
 
-	c = devices.InsertIso(c, fmt.Sprintf("[%s] %s", datastore, path))
+	finder := find.NewFinder(client.Client, true)
+	finder = finder.SetDatacenter(datacenter)
+	ds, err := getDatastore(finder, datastore)
+	if err != nil {
+		return err
+	}
+
+	c = devices.InsertIso(c, ds.Path(path))
 	log.Printf("[DEBUG] addCdrom: %#v", c)
 
 	return vm.AddDevice(context.TODO(), c)
@@ -1602,12 +1608,12 @@ func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.D
 }
 
 // createCdroms is a helper function to attach virtual cdrom devices (and their attached disk images) to a virtual IDE controller.
-func createCdroms(vm *object.VirtualMachine, cdroms []cdrom) error {
+func createCdroms(client *govmomi.Client, vm *object.VirtualMachine, datacenter *object.Datacenter, cdroms []cdrom) error {
 	log.Printf("[DEBUG] add cdroms: %v", cdroms)
 	for _, cd := range cdroms {
 		log.Printf("[DEBUG] add cdrom (datastore): %v", cd.datastore)
 		log.Printf("[DEBUG] add cdrom (cd path): %v", cd.path)
-		err := addCdrom(vm, cd.datastore, cd.path)
+		err := addCdrom(client, vm, datacenter, cd.datastore, cd.path)
 		if err != nil {
 			return err
 		}
@@ -1924,7 +1930,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	}
 
 	// Create the cdroms if needed.
-	if err := createCdroms(newVM, vm.cdroms); err != nil {
+	if err := createCdroms(c, newVM, dc, vm.cdroms); err != nil {
 		return err
 	}
 
@@ -1951,7 +1957,6 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		default:
 			return fmt.Errorf("[ERROR] setupVirtualMachine - Neither vmdk path nor vmdk name was given: %#v", vm.hardDisks[i])
 		}
-
 		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
 		if err != nil {
 			err2 := addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
