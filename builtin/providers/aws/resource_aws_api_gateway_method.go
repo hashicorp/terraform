@@ -159,6 +159,7 @@ func resourceAwsApiGatewayMethodUpdate(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			return err
 		}
+		operations = append(operations, ops...)
 	}
 
 	if d.HasChange("request_parameters") {
