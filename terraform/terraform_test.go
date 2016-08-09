@@ -1413,3 +1413,14 @@ module.mod2:
 STATE:
 
 <no state>`
+
+const testTerraformInputHCL = `
+hcl_instance.hcltest:
+  ID = foo
+  bar.w = z
+  bar.x = y
+  foo.# = 2
+  foo.0 = a
+  foo.1 = b
+  type = hcl_instance
+`
