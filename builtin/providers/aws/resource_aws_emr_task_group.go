@@ -81,6 +81,14 @@ func resourceAwsEMRTaskGroupUpdate(d *schema.ResourceData, meta interface{}) err
 	log.Printf("[DEBUG] Modify EMR task group")
 	instanceCount := d.Get("instance_count").(int)
 
+	if d.HasChange("name") {
+		return fmt.Errorf("[WARN] Error updating task group, change name is not supported by api")
+	}
+
+	if d.HasChange("instance_type") {
+		return fmt.Errorf("[WARN] Error updating task group, change instance_type is not supported by api")
+	}
+
 	params := &emr.ModifyInstanceGroupsInput{
 		InstanceGroups: []*emr.InstanceGroupModifyConfig{
 			{
