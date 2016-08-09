@@ -27,12 +27,12 @@ func resourceDefaultReviewers() *schema.Resource {
 			"username": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true
+				ForceNew: true,
 			},
 			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true
+				ForceNew: true,
 			},
 			"reviewers": {
 				Type:     schema.TypeSet,
