@@ -3,6 +3,9 @@
 FEATURES:
  * **New Provider:** `archive` [GH-7322]
  * **New Resource:** `aws_vpn_gateway_attachment` [GH-7870]
+ * **New Resource:** `aws_load_balancer_policy` [GH-7458]
+ * **New Resource:** `aws_load_balancer_backend_server_policy` [GH-7458]
+ * **New Resource:** `aws_load_balancer_listener_policy` [GH-7458]
 
 IMPROVEMENTS
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
@@ -10,6 +13,7 @@ IMPROVEMENTS
  * provider/aws: Change the way ARNs are built [GH-7151]
  * provider/aws: Add support for Elasticsearch destination to firehose delivery streams [GH-7839]
  * provider/aws: Retry AttachInternetGateway and increase timeout on `aws_internet_gateway` [GH-7891]
+ * provider/aws: Add support for Enhanced monitoring to `aws_rds_cluster_instance` [GH-8038]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
  * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
