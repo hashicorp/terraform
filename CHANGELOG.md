@@ -3,6 +3,9 @@
 FEATURES:
  * **New Provider:** `archive` [GH-7322]
  * **New Resource:** `aws_vpn_gateway_attachment` [GH-7870]
+ * **New Resource:** `aws_load_balancer_policy` [GH-7458]
+ * **New Resource:** `aws_load_balancer_backend_server_policy` [GH-7458]
+ * **New Resource:** `aws_load_balancer_listener_policy` [GH-7458]
 
 IMPROVEMENTS
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
