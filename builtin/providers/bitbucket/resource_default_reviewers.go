@@ -21,17 +21,18 @@ func resourceDefaultReviewers() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceDefaultReviewersCreate,
 		Read:   resourceDefaultReviewersRead,
-		Update: resourceDefaultReviewersUpdate,
 		Delete: resourceDefaultReviewersDelete,
 
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true
 			},
 			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true
 			},
 			"reviewers": {
 				Type:     schema.TypeSet,
@@ -91,9 +92,6 @@ func resourceDefaultReviewersRead(d *schema.ResourceData, m interface{}) error {
 
 	d.Set("reviewers", terraform_reviewers)
 
-	return nil
-}
-func resourceDefaultReviewersUpdate(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 func resourceDefaultReviewersDelete(d *schema.ResourceData, m interface{}) error {
