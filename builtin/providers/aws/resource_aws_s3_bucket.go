@@ -286,8 +286,6 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
-			"tags": tagsSchema(),
-
 			"force_destroy": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -300,6 +298,15 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: validateS3BucketAccelerationStatus,
 			},
+
+			"request_payer": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateS3BucketRequestPayerType,
+			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -404,6 +411,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("acceleration_status") {
 		if err := resourceAwsS3BucketAccelerationUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("request_payer") {
+		if err := resourceAwsS3BucketRequestPayerUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -568,6 +581,20 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("acceleration_status", accelerate.Status)
 	}
 
+	// Read the request payer configuration.
+	payer, err := s3conn.GetBucketRequestPayment(&s3.GetBucketRequestPaymentInput{
+		Bucket: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] S3 Bucket: %s, read request payer: %v", d.Id(), payer)
+	if payer.Payer != nil {
+		if err := d.Set("request_payer", *payer.Payer); err != nil {
+			return err
+		}
+	}
+
 	// Read the logging configuration
 	logging, err := s3conn.GetBucketLogging(&s3.GetBucketLoggingInput{
 		Bucket: aws.String(d.Id()),
@@ -575,6 +602,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	log.Printf("[DEBUG] S3 Bucket: %s, logging: %v", d.Id(), logging)
 	if v := logging.LoggingEnabled; v != nil {
 		lcl := make([]map[string]interface{}, 0, 1)
@@ -1163,6 +1191,26 @@ func resourceAwsS3BucketAccelerationUpdate(s3conn *s3.S3, d *schema.ResourceData
 	return nil
 }
 
+func resourceAwsS3BucketRequestPayerUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	payer := d.Get("request_payer").(string)
+
+	i := &s3.PutBucketRequestPaymentInput{
+		Bucket: aws.String(bucket),
+		RequestPaymentConfiguration: &s3.RequestPaymentConfiguration{
+			Payer: aws.String(payer),
+		},
+	}
+	log.Printf("[DEBUG] S3 put bucket request payer: %#v", i)
+
+	_, err := s3conn.PutBucketRequestPayment(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 request payer: %s", err)
+	}
+
+	return nil
+}
+
 func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
 	bucket := d.Get("bucket").(string)
 
@@ -1366,6 +1414,16 @@ func validateS3BucketAccelerationStatus(v interface{}, k string) (ws []string, e
 
 	if _, ok := validTypes[v.(string)]; !ok {
 		errors = append(errors, fmt.Errorf("S3 Bucket Acceleration Status %q is invalid, must be %q or %q", v.(string), "Enabled", "Suspended"))
+	}
+	return
+}
+
+func validateS3BucketRequestPayerType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != s3.PayerRequester && value != s3.PayerBucketOwner {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Request Payer type %q. Valid types are either %q or %q",
+			k, value, s3.PayerRequester, s3.PayerBucketOwner))
 	}
 	return
 }
