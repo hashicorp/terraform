@@ -27,10 +27,12 @@ func resourceHook() *schema.Resource {
 			"username": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"repository": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"active": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -96,8 +98,8 @@ func resourceHookCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.SetId(string(hook.Uuid))
-	d.Set("uuid", string(hook.Uuid))
+	d.SetId(hook.Uuid)
+	d.Set("uuid", hook.Uuid)
 
 	return resourceHookRead(d, m)
 }
