@@ -51,7 +51,7 @@ The following arguments are supported:
     Keystone service. By specifying a token, you do not have to
     specify a username/password combination, since the token was
     already created by a username/password out of band of Terraform.
-    If ommitted, the `OS_AUTH_TOKEN` environment variable is used.
+    If omitted, the `OS_AUTH_TOKEN` environment variable is used.
 
 * `api_key` - (Optional; Required if not using `password`) An API Key
     is issued by a cloud provider as alternative password. Unless
