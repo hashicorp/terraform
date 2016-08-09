@@ -167,7 +167,7 @@ resource "aws_iam_server_certificate" "test-iam-cert0" {
 
 resource "aws_elb" "test-lb" {
   name = "test-aws-policies-lb"
-  availability_zones = ["us-east-1a"]
+  availability_zones = ["us-west-2a"]
 
   listener {
     instance_port = 443
@@ -264,7 +264,7 @@ resource "aws_iam_server_certificate" "test-iam-cert0" {
 
 resource "aws_elb" "test-lb" {
   name = "test-aws-policies-lb"
-  availability_zones = ["us-east-1a"]
+  availability_zones = ["us-west-2a"]
 
   listener {
     instance_port = 443
@@ -371,7 +371,7 @@ resource "aws_iam_server_certificate" "test-iam-cert0" {
 
 resource "aws_elb" "test-lb" {
   name = "test-aws-policies-lb"
-  availability_zones = ["us-east-1a"]
+  availability_zones = ["us-west-2a"]
 
   listener {
     instance_port = 443

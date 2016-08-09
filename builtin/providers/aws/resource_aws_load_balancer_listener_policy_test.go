@@ -145,7 +145,7 @@ func testAccCheckAWSLoadBalancerListenerPolicyState(loadBalancerName string, loa
 const testAccAWSLoadBalancerListenerPolicyConfig_basic0 = `
 resource "aws_elb" "test-lb" {
   name = "test-aws-policies-lb"
-  availability_zones = ["us-east-1a"]
+  availability_zones = ["us-west-2a"]
 
   listener {
     instance_port = 80
@@ -181,7 +181,7 @@ resource "aws_load_balancer_listener_policy" "test-lb-listener-policies-80" {
 const testAccAWSLoadBalancerListenerPolicyConfig_basic1 = `
 resource "aws_elb" "test-lb" {
   name = "test-aws-policies-lb"
-  availability_zones = ["us-east-1a"]
+  availability_zones = ["us-west-2a"]
 
   listener {
     instance_port = 80
@@ -217,7 +217,7 @@ resource "aws_load_balancer_listener_policy" "test-lb-listener-policies-80" {
 const testAccAWSLoadBalancerListenerPolicyConfig_basic2 = `
 resource "aws_elb" "test-lb" {
   name = "test-aws-policies-lb"
-  availability_zones = ["us-east-1a"]
+  availability_zones = ["us-west-2a"]
 
   listener {
     instance_port = 80
