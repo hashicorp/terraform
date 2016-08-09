@@ -222,6 +222,7 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
   cluster_identifier      = "${aws_rds_cluster.default.id}"
   instance_class          = "db.r3.large"
   db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
+  promotion_tier          = "3"
 }
 
 resource "aws_db_parameter_group" "bar" {
