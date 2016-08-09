@@ -144,6 +144,8 @@ variables must also be set:
 
 * `OS_NETWORK_ID` - The UUID of a network in your test environment.
 
+* `OS_EXTGW_ID` - The UUID of the external gateway.
+
 To make development easier, the `builtin/providers/openstack/devstack/deploy.sh`
 script will assist in installing and configuring a standardized
 [DevStack](http://docs.openstack.org/developer/devstack/) environment along with
