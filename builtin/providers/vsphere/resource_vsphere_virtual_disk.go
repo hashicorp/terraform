@@ -49,9 +49,9 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Default:  "eagerZeroedThick",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if value != "thin" && value != "eagerZeroedThick" {
+					if value != "thin" && value != "eagerZeroedThick" && value != "lazy" {
 						errors = append(errors, fmt.Errorf(
-							"only 'thin' and 'eagerZeroedThick' are supported values for 'type'"))
+							"only 'thin', 'eagerZeroedThick', and 'lazy' are supported values for 'type'"))
 					}
 					return
 				},
@@ -234,11 +234,21 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 
 // createHardDisk creates a new Hard Disk.
 func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType string, adapterType string, dc string) error {
+	var vDiskType string
+	switch diskType {
+	case "thin":
+		vDiskType = "thin"
+	case "eagerZeroedThick":
+		vDiskType = "eagerZeroedThick"
+	case "lazy":
+		vDiskType = "preallocated"
+	}
+
 	virtualDiskManager := object.NewVirtualDiskManager(client.Client)
 	spec := &types.FileBackedVirtualDiskSpec{
 		VirtualDiskSpec: types.VirtualDiskSpec{
 			AdapterType: adapterType,
-			DiskType:    diskType,
+			DiskType:    vDiskType,
 		},
 		CapacityKb: int64(1024 * 1024 * size),
 	}

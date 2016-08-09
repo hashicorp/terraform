@@ -3,6 +3,9 @@
 FEATURES:
  * **New Provider:** `archive` [GH-7322]
  * **New Resource:** `aws_vpn_gateway_attachment` [GH-7870]
+ * **New Resource:** `aws_load_balancer_policy` [GH-7458]
+ * **New Resource:** `aws_load_balancer_backend_server_policy` [GH-7458]
+ * **New Resource:** `aws_load_balancer_listener_policy` [GH-7458]
 
 IMPROVEMENTS
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
@@ -10,11 +13,13 @@ IMPROVEMENTS
  * provider/aws: Change the way ARNs are built [GH-7151]
  * provider/aws: Add support for Elasticsearch destination to firehose delivery streams [GH-7839]
  * provider/aws: Retry AttachInternetGateway and increase timeout on `aws_internet_gateway` [GH-7891]
+ * provider/aws: Add support for Enhanced monitoring to `aws_rds_cluster_instance` [GH-8038]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
  * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
  * provider/google: Support static private IP addresses in `resource_compute_instance` [GH-6310]
  * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
+ * provider/vsphere: Adding disk type of `Thick Lazy` to `vsphere_virtual_disk` and `vsphere_virtual_machine` [GH-7916]
 
 BUG FIXES:
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
@@ -25,6 +30,7 @@ BUG FIXES:
  * provider/aws: Retry association of IAM Role & instance profile [GH-7938]
  * provider/aws: Fix `aws_s3_bucket` resource `redirect_all_requests_to` action [GH-7883]
  * provider/aws: Fix issue updating ElasticBeanstalk Environment Settings [GH-7777]
+ * providers/aws: `aws_rds_cluster` creation timeout bumped to 40 minutes [GH-8052]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
 
