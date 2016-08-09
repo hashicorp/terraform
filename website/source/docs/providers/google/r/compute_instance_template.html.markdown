@@ -83,7 +83,7 @@ resource "google_compute_instance_template" "instance_template" {
     network_interface {
       ...
     }
- 
+
     lifecycle {
         create_before_destroy = true
     }
@@ -169,7 +169,7 @@ The `disk` block supports:
     to the name of the instance.
 
 * `source_image` - (Required if source not set) The name of the image to base
-    this disk off of.
+    this disk off of. Accepts same arguments as a [google_compute_instance image](https://www.terraform.io/docs/providers/google/r/compute_instance.html#image).
 
 * `interface` - (Optional) Specifies the disk interface to use for attaching
     this disk.
