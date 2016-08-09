@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/terraform/flatmap"
 )
 
 func TestNewContextState(t *testing.T) {
@@ -172,7 +174,16 @@ func testDiffFn(
 		if reflect.DeepEqual(v, []interface{}{}) {
 			attrDiff.New = ""
 		} else {
-			attrDiff.New = v.(string)
+			if s, ok := v.(string); ok {
+				attrDiff.New = s
+			} else {
+				// the value is something other than a string
+				// flatmap it, adding the diff for each value.
+				for k, attrDiff := range testFlatAttrDiffs(k, v) {
+					diff.Attributes[k] = attrDiff
+				}
+				continue
+			}
 		}
 
 		if k == "require_new" {
@@ -217,6 +228,22 @@ func testDiffFn(
 	}
 
 	return diff, nil
+}
+
+// generate ResourceAttrDiffs for nested data structures in tests
+func testFlatAttrDiffs(k string, i interface{}) map[string]*ResourceAttrDiff {
+	flat := flatmap.Flatten(map[string]interface{}{k: i})
+	diffs := make(map[string]*ResourceAttrDiff)
+
+	for k, v := range flat {
+		attrDiff := &ResourceAttrDiff{
+			Old: "",
+			New: v,
+		}
+		diffs[k] = attrDiff
+	}
+
+	return diffs
 }
 
 func testProvider(prefix string) *MockResourceProvider {

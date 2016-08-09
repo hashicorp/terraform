@@ -317,16 +317,18 @@ func (c *Context) Input(mode InputMode) error {
 				}
 			}
 
+			var valueType config.VariableType
+
 			v := m[n]
-			switch v.Type() {
+			switch valueType = v.Type(); valueType {
 			case config.VariableTypeUnknown:
 				continue
 			case config.VariableTypeMap:
-				continue
+				// OK
 			case config.VariableTypeList:
-				continue
+				// OK
 			case config.VariableTypeString:
-				// Good!
+				// OK
 			default:
 				panic(fmt.Sprintf("Unknown variable type: %#v", v.Type()))
 			}
@@ -338,6 +340,12 @@ func (c *Context) Input(mode InputMode) error {
 					c.variables[n] = v.Default.(string)
 					continue
 				}
+			}
+
+			// this should only happen during tests
+			if c.uiInput == nil {
+				log.Println("[WARN] Content.uiInput is nil")
+				continue
 			}
 
 			// Ask the user for a value for this variable
@@ -355,27 +363,33 @@ func (c *Context) Input(mode InputMode) error {
 						"Error asking for %s: %s", n, err)
 				}
 
-				if value == "" && v.Required() {
-					// Redo if it is required, but abort if we keep getting
-					// blank entries
-					if retry > 2 {
-						return fmt.Errorf("missing required value for %q", n)
-					}
-					retry++
-					continue
-				}
-
 				if value == "" {
-					// No value, just exit the loop. With no value, we just
-					// use whatever is currently set in variables.
-					break
+					if v.Required() {
+						// Redo if it is required, but abort if we keep getting
+						// blank entries
+						if retry > 2 {
+							return fmt.Errorf("missing required value for %q", n)
+						}
+						retry++
+						continue
+					}
 				}
 
 				break
 			}
 
-			if value != "" {
-				c.variables[n] = value
+			// no value provided, so don't set the variable at all
+			if value == "" {
+				continue
+			}
+
+			decoded, err := parseVariableAsHCL(n, value, valueType)
+			if err != nil {
+				return err
+			}
+
+			if decoded != nil {
+				c.variables[n] = decoded
 			}
 		}
 	}
@@ -656,9 +670,20 @@ func (c *Context) walk(
 // the name of the variable. In order to get around the restriction of HCL requiring a
 // top level object, we prepend a sentinel key, decode the user-specified value as its
 // value and pull the value back out of the resulting map.
-func parseVariableAsHCL(name string, input interface{}, targetType config.VariableType) (interface{}, error) {
+func parseVariableAsHCL(name string, input string, targetType config.VariableType) (interface{}, error) {
+	// expecting a string so don't decode anything, just strip quotes
 	if targetType == config.VariableTypeString {
-		return input, nil
+		return strings.Trim(input, `"`), nil
+	}
+
+	// return empty types
+	if strings.TrimSpace(input) == "" {
+		switch targetType {
+		case config.VariableTypeList:
+			return []interface{}{}, nil
+		case config.VariableTypeMap:
+			return make(map[string]interface{}), nil
+		}
 	}
 
 	const sentinelValue = "SENTINEL_TERRAFORM_VAR_OVERRIDE_KEY"
