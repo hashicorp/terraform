@@ -187,7 +187,7 @@ func testAccCheckAWSClusterInstanceExists(n string, v *rds.DBInstance) resource.
 	}
 }
 
-func TestAccAWSCluster_withInstanceEnhancedMonitor(t *testing.T) {
+func TestAccAWSRDSClusterInstance_withInstanceEnhancedMonitor(t *testing.T) {
 	var v rds.DBInstance
 
 	resource.Test(t, resource.TestCase{
