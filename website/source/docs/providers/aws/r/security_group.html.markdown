@@ -92,7 +92,7 @@ The `ingress` block supports:
     EC2-Classic, or Group IDs if using a VPC.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
-* `to_port` - (Required) The end range port.
+* `to_port` - (Required) The end range port (or ICMP code if protocol is "icmp").
 
 The `egress` block supports:
 
@@ -105,7 +105,7 @@ The `egress` block supports:
     EC2-Classic, or Group IDs if using a VPC.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this egress rule.
-* `to_port` - (Required) The end range port.
+* `to_port` - (Required) The end range port (or ICMP code if protocol is "icmp").
 
 ~> **NOTE on Egress rules:** By default, AWS creates an `ALLOW ALL` egress rule when creating a
 new Security Group inside of a VPC. When creating a new Security
