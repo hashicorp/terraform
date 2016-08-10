@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -79,7 +80,11 @@ func resourceAwsApiGatewayMethodResponseCreate(d *schema.ResourceData, meta inte
 	parameters := make(map[string]bool)
 	if kv, ok := d.GetOk("response_parameters"); ok {
 		for k, v := range kv.(map[string]interface{}) {
-			parameters[k] = v.(bool)
+			parameters[k], ok = v.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(v.(string))
+				parameters[k] = value
+			}
 		}
 	}
 	if v, ok := d.GetOk("response_parameters_in_json"); ok {

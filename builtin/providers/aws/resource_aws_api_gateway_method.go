@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -165,7 +166,11 @@ func resourceAwsApiGatewayMethodUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("request_parameters") {
 		parameters := make(map[string]bool)
 		for k, v := range d.Get("request_parameters").(map[string]interface{}) {
-			parameters[k] = v.(bool)
+			parameters[k], ok = v.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(v.(string))
+				parameters[k] = value
+			}
 		}
 		ops, err := expandApiGatewayMethodParametersOperations(d, "request_parameters", "requestParameters")
 		if err != nil {
