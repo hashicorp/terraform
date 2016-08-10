@@ -155,7 +155,6 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		createOpts.MonitoringInterval = aws.Int64(int64(attr.(int)))
 	}
 
-
 	log.Printf("[DEBUG] Creating RDS DB Instance opts: %s", createOpts)
 	resp, err := conn.CreateDBInstance(createOpts)
 	if err != nil {
