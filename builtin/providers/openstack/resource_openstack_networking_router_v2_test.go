@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -36,6 +37,22 @@ func TestAccNetworkingV2Router_basic(t *testing.T) {
 
 func TestAccNetworkingV2Router_update_external_gw(t *testing.T) {
 	var router routers.Router
+	externalGateway := os.Getenv("OS_EXTGW_ID")
+
+	var testAccNetworkingV2Router_update_external_gw_1 = fmt.Sprintf(`
+		resource "openstack_networking_router_v2" "foo" {
+			name = "router"
+			admin_state_up = "true"
+			distributed = "false"
+		}`)
+
+	var testAccNetworkingV2Router_update_external_gw_2 = fmt.Sprintf(`
+		resource "openstack_networking_router_v2" "foo" {
+			name = "router"
+			admin_state_up = "true"
+			distributed = "false"
+			external_gateway = "%s"
+		}`, externalGateway)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -43,15 +60,15 @@ func TestAccNetworkingV2Router_update_external_gw(t *testing.T) {
 		CheckDestroy: testAccCheckNetworkingV2RouterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccNetworkingV2Router_basic,
+				Config: testAccNetworkingV2Router_update_external_gw_1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2RouterExists(t, "openstack_networking_router_v2.foo", &router),
 				),
 			},
 			resource.TestStep{
-				Config: testAccNetworkingV2Router_update_external_gw,
+				Config: testAccNetworkingV2Router_update_external_gw_2,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_networking_router_v2.foo", "external_gateway", "d730db50-0e0c-4790-9972-1f6e2b8c4915"),
+					resource.TestCheckResourceAttr("openstack_networking_router_v2.foo", "external_gateway", externalGateway),
 				),
 			},
 		},
@@ -123,12 +140,4 @@ var testAccNetworkingV2Router_update = fmt.Sprintf(`
     name = "router_2"
     admin_state_up = "true"
     distributed = "false"
-  }`)
-
-var testAccNetworkingV2Router_update_external_gw = fmt.Sprintf(`
-  resource "openstack_networking_router_v2" "foo" {
-    name = "router"
-    admin_state_up = "true"
-    distributed = "false"
-	external_gateway = "d730db50-0e0c-4790-9972-1f6e2b8c4915"
   }`)
