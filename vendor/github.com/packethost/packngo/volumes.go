@@ -82,7 +82,7 @@ type VolumeServiceOp struct {
 
 // Get returns a volume by id
 func (v *VolumeServiceOp) Get(volumeID string) (*Volume, *Response, error) {
-	path := fmt.Sprintf("%s/%s", volumeBasePath, volumeID)
+	path := fmt.Sprintf("%s/%s?include=facility", volumeBasePath, volumeID)
 	req, err := v.client.NewRequest("GET", path, nil)
 	if err != nil {
 		return nil, nil, err

@@ -2,6 +2,7 @@ package packet
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -12,24 +13,26 @@ import (
 func TestAccPacketVolume_Basic(t *testing.T) {
 	var volume packngo.Volume
 
+	project_id := os.Getenv("PACKET_PROJECT_ID")
+	facility := os.Getenv("PACKET_FACILITY")
+
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     testAccPacketVolumePreCheck(t),
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPacketVolumeDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckPacketVolumeConfig_basic,
+				Config: fmt.Sprintf(testAccCheckPacketVolumeConfig_basic, project_id, facility),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPacketVolumeExists("packet_volume.foobar", &volume),
-					testAccCheckPacketVolumeAttributes(&volume),
 					resource.TestCheckResourceAttr(
-						"packet_volume.foobar", "project_id", "foobar"),
+						"packet_volume.foobar", "project_id", project_id),
 					resource.TestCheckResourceAttr(
-						"packet_volume.foobar", "plan", "foobar"),
-					resource.TestCheckResourceAttr(
-						"packet_volume.foobar", "facility", "foobar"),
+						"packet_volume.foobar", "plan", "storage_1"),
 					resource.TestCheckResourceAttr(
 						"packet_volume.foobar", "billing_cycle", "hourly"),
+					resource.TestCheckResourceAttr(
+						"packet_volume.foobar", "size", "100"),
 				),
 			},
 		},
@@ -44,20 +47,11 @@ func testAccCheckPacketVolumeDestroy(s *terraform.State) error {
 			continue
 		}
 		if _, _, err := client.Volumes.Get(rs.Primary.ID); err == nil {
-			return fmt.Errorf("Volume cstill exists")
+			return fmt.Errorf("Volume still exists")
 		}
 	}
 
 	return nil
-}
-
-func testAccCheckPacketVolumeAttributes(volume *packngo.Volume) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if volume.Name != "foobar" {
-			return fmt.Errorf("Bad name: %s", volume.Name)
-		}
-		return nil
-	}
 }
 
 func testAccCheckPacketVolumeExists(n string, volume *packngo.Volume) resource.TestCheckFunc {
@@ -86,10 +80,23 @@ func testAccCheckPacketVolumeExists(n string, volume *packngo.Volume) resource.T
 	}
 }
 
-var testAccCheckPacketVolumeConfig_basic = fmt.Sprintf(`
+func testAccPacketVolumePreCheck(t *testing.T) func() {
+	return func() {
+		testAccPreCheck(t)
+		if os.Getenv("PACKET_PROJECT_ID") == "" {
+			t.Fatal("PACKET_PROJECT_ID must be set")
+		}
+		if os.Getenv("PACKET_FACILITY") == "" {
+			t.Fatal("PACKET_FACILITY must be set")
+		}
+	}
+}
+
+const testAccCheckPacketVolumeConfig_basic = `
 resource "packet_volume" "foobar" {
-    project_id = "foobar"
-    plan = "foobar"
-    facility = "foobar"
+    plan = "storage_1"
     billing_cycle = "hourly"
-}`)
+    size = 100
+    project_id = "%s"
+    facility = "%s"
+}`
