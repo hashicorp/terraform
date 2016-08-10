@@ -111,7 +111,16 @@ resource "aws_iam_group" "group" {
 resource "aws_iam_group_policy" "foo" {
 	name = "foo_policy"
 	group = "${aws_iam_group.group.name}"
-	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "*",
+    "Resource": "*"
+  }
+}
+EOF
 }
 `
 
