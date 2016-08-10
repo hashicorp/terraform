@@ -56,6 +56,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"google_iam_policy": dataSourceGoogleIamPolicy(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"google_compute_autoscaler":             resourceComputeAutoscaler(),
 			"google_compute_address":                resourceComputeAddress(),
@@ -89,6 +93,7 @@ func Provider() terraform.ResourceProvider {
 			"google_sql_database":                   resourceSqlDatabase(),
 			"google_sql_database_instance":          resourceSqlDatabaseInstance(),
 			"google_sql_user":                       resourceSqlUser(),
+			"google_project":                        resourceGoogleProject(),
 			"google_pubsub_topic":                   resourcePubsubTopic(),
 			"google_pubsub_subscription":            resourcePubsubSubscription(),
 			"google_storage_bucket":                 resourceStorageBucket(),
