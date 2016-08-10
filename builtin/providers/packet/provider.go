@@ -22,8 +22,6 @@ func Provider() terraform.ResourceProvider {
 			"packet_ssh_key":        resourcePacketSSHKey(),
 			"packet_project":        resourcePacketProject(),
 			"packet_volume":         resourcePacketVolume(),
-			"packet_ip_address":     resourcePacketIPAddress(),
-			"packet_ip_reservation": resourcePacketIPReservation(),
 		},
 
 		ConfigureFunc: providerConfigure,
