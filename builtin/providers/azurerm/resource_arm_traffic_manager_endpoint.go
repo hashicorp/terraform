@@ -7,6 +7,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmTrafficManagerEndpoint() *schema.Resource {
@@ -30,7 +31,7 @@ func resourceArmTrafficManagerEndpoint() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateAzureRMTrafficManagerEndpointType,
+				ValidateFunc: validation.StringInSlice([]string{"azureEndpoints", "nestedEndpoints", "externalEndpoints"}, false),
 			},
 
 			"profile_name": {
@@ -61,14 +62,14 @@ func resourceArmTrafficManagerEndpoint() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateAzureRMTrafficManagerEndpointWeight,
+				ValidateFunc: validation.IntBetween(1, 1000),
 			},
 
 			"priority": {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateAzureRMTrafficManagerEndpointPriority,
+				ValidateFunc: validation.IntBetween(1, 1000),
 			},
 
 			"endpoint_location": {
@@ -219,33 +220,4 @@ func getArmTrafficManagerEndpointProperties(d *schema.ResourceData) *trafficmana
 	}
 
 	return &endpointProps
-}
-
-func validateAzureRMTrafficManagerEndpointType(i interface{}, k string) (s []string, errors []error) {
-	valid := map[string]struct{}{
-		"azureEndpoints":    struct{}{},
-		"externalEndpoints": struct{}{},
-		"nestedEndpoints":   struct{}{},
-	}
-
-	if _, ok := valid[i.(string)]; !ok {
-		errors = append(errors, fmt.Errorf("endpoint type invalid, got %s", i.(string)))
-	}
-	return
-}
-
-func validateAzureRMTrafficManagerEndpointWeight(i interface{}, k string) (s []string, errors []error) {
-	w := i.(int)
-	if w < 1 || w > 1000 {
-		errors = append(errors, fmt.Errorf("endpoint weight must be between 1-1000 inclusive"))
-	}
-	return
-}
-
-func validateAzureRMTrafficManagerEndpointPriority(i interface{}, k string) (s []string, errors []error) {
-	p := i.(int)
-	if p < 1 || p > 1000 {
-		errors = append(errors, fmt.Errorf("endpoint priority must be between 1-1000 inclusive"))
-	}
-	return
 }
