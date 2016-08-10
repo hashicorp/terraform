@@ -178,6 +178,97 @@ func TestAccComputeV2Instance_volumeDetachPostCreation(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2Instance_additionalVolumeDetachPostCreation(t *testing.T) {
+	var instance servers.Server
+	var volume volumes.Volume
+
+	var testAccComputeV2Instance_volumeDetachPostCreationInstanceAndAdditionalVolume = fmt.Sprintf(`
+
+		resource "openstack_blockstorage_volume_v1" "root_volume" {
+			name = "root_volume"
+			size = 1
+			image_id = "%s"
+		}
+
+		resource "openstack_blockstorage_volume_v1" "additional_volume" {
+			name = "additional_volume"
+			size = 1
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+
+			block_device {
+				uuid = "${openstack_blockstorage_volume_v1.root_volume.id}"
+				source_type = "volume"
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = false
+			}
+
+			volume {
+				volume_id = "${openstack_blockstorage_volume_v1.additional_volume.id}"
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	var testAccComputeV2Instance_volumeDetachPostCreationInstance = fmt.Sprintf(`
+
+		resource "openstack_blockstorage_volume_v1" "root_volume" {
+			name = "root_volume"
+			size = 1
+			image_id = "%s"
+		}
+
+		resource "openstack_blockstorage_volume_v1" "additional_volume" {
+			name = "additional_volume"
+			size = 1
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+
+			block_device {
+				uuid = "${openstack_blockstorage_volume_v1.root_volume.id}"
+				source_type = "volume"
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = false
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_volumeDetachPostCreationInstanceAndAdditionalVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_volumeDetachPostCreationInstance,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume),
+					testAccCheckComputeV2InstanceVolumeDetached(&instance, "openstack_blockstorage_volume_v1.additional_volume"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeV2Instance_floatingIPAttachGlobally(t *testing.T) {
 	var instance servers.Server
 	var fip floatingip.FloatingIP
@@ -992,4 +1083,42 @@ func TestAccComputeV2Instance_stop_before_destroy(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckComputeV2InstanceVolumeDetached(instance *servers.Server, volume_id string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		var attachments []volumeattach.VolumeAttachment
+
+		rs, ok := s.RootModule().Resources[volume_id]
+		if !ok {
+			return fmt.Errorf("Not found: %s", volume_id)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		config := testAccProvider.Meta().(*Config)
+		computeClient, err := config.computeV2Client(OS_REGION_NAME)
+		if err != nil {
+			return err
+		}
+		err = volumeattach.List(computeClient, instance.ID).EachPage(func(page pagination.Page) (bool, error) {
+			actual, err := volumeattach.ExtractVolumeAttachments(page)
+			if err != nil {
+				return false, fmt.Errorf("Unable to lookup attachment: %s", err)
+			}
+
+			attachments = actual
+			return true, nil
+		})
+
+		for _, attachment := range attachments {
+			if attachment.VolumeID == rs.Primary.ID {
+				return fmt.Errorf("Volume is still attached.")
+			}
+		}
+
+		return nil
+	}
 }
