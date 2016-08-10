@@ -131,7 +131,7 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 
 // testState returns a test State structure that we use for a lot of tests.
 func testState() *terraform.State {
-	return &terraform.State{
+	state := &terraform.State{
 		Version: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
@@ -148,6 +148,8 @@ func testState() *terraform.State {
 			},
 		},
 	}
+	state.Init()
+	return state
 }
 
 func testStateFile(t *testing.T, s *terraform.State) string {

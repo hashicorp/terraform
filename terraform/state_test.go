@@ -90,6 +90,7 @@ func TestStateOutputTypeRoundTrip(t *testing.T) {
 			},
 		},
 	}
+	state.init()
 
 	buf := new(bytes.Buffer)
 	if err := WriteState(state, buf); err != nil {
@@ -102,7 +103,8 @@ func TestStateOutputTypeRoundTrip(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(state, roundTripped) {
-		t.Fatalf("bad: %#v", roundTripped)
+		t.Logf("expected:\n%#v", state)
+		t.Fatalf("got:\n%#v", roundTripped)
 	}
 }
 
@@ -120,6 +122,8 @@ func TestStateModuleOrphans(t *testing.T) {
 			},
 		},
 	}
+
+	state.init()
 
 	config := testModule(t, "state-module-orphans").Config()
 	actual := state.ModuleOrphans(RootModulePath, config)
@@ -143,6 +147,8 @@ func TestStateModuleOrphans_nested(t *testing.T) {
 			},
 		},
 	}
+
+	state.init()
 
 	actual := state.ModuleOrphans(RootModulePath, nil)
 	expected := [][]string{
@@ -169,6 +175,8 @@ func TestStateModuleOrphans_nilConfig(t *testing.T) {
 		},
 	}
 
+	state.init()
+
 	actual := state.ModuleOrphans(RootModulePath, nil)
 	expected := [][]string{
 		[]string{RootModuleName, "foo"},
@@ -194,6 +202,8 @@ func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
 			},
 		},
 	}
+
+	state.init()
 
 	actual := state.ModuleOrphans(RootModulePath, nil)
 	expected := [][]string{
@@ -1279,7 +1289,8 @@ func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
 
 func TestReadWriteState(t *testing.T) {
 	state := &State{
-		Serial: 9,
+		Serial:  9,
+		Lineage: "5d1ad1a1-4027-4665-a908-dbe6adff11d8",
 		Remote: &RemoteState{
 			Type: "http",
 			Config: map[string]string{
@@ -1309,6 +1320,7 @@ func TestReadWriteState(t *testing.T) {
 			},
 		},
 	}
+	state.init()
 
 	buf := new(bytes.Buffer)
 	if err := WriteState(state, buf); err != nil {
@@ -1328,9 +1340,11 @@ func TestReadWriteState(t *testing.T) {
 	// ReadState should not restore sensitive information!
 	mod := state.RootModule()
 	mod.Resources["foo"].Primary.Ephemeral = EphemeralState{}
+	mod.Resources["foo"].Primary.Ephemeral.init()
 
 	if !reflect.DeepEqual(actual, state) {
-		t.Fatalf("bad: %#v", actual)
+		t.Logf("expected:\n%#v", state)
+		t.Fatalf("got:\n%#v", actual)
 	}
 }
 
