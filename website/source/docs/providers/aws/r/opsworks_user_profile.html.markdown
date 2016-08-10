@@ -1,10 +1,10 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_opsworks_user_profile_"
+page_title: "AWS: aws_opsworks_user_profile"
 sidebar_current: "docs-aws-resource-opsworks-user-profile"
 description: |-
   Provides an OpsWorks User Profile resource.
----------------------------------------------
+---
 
 # aws\_opsworks\_user\_profile
 

@@ -75,7 +75,6 @@ data "aws_iam_policy_document" "test" {
             test = "StringLike"
             variable = "s3:prefix"
             values = [
-                "",
                 "home/",
                 "home/&{aws:username}/",
             ]
@@ -118,59 +117,45 @@ var testAccAWSIAMPolicyDocumentExpectedJSON = `{
       "Sid": "1",
       "Effect": "Allow",
       "Action": [
-        "s3:GetBucketLocation",
-        "s3:ListAllMyBuckets"
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketLocation"
       ],
-      "Resource": [
-        "arn:aws:s3:::*"
-      ]
+      "Resource": "arn:aws:s3:::*"
     },
     {
+      "Sid": "",
       "Effect": "Allow",
-      "Action": [
-        "s3:ListBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::foo"
-      ],
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::foo",
       "NotPrincipal": {
-        "AWS": [
-          "arn:blahblah:example"
-        ]
+        "AWS": "arn:blahblah:example"
       },
       "Condition": {
         "StringLike": {
           "s3:prefix": [
-            "",
-            "home/",
-            "home/${aws:username}/"
+            "home/${aws:username}/",
+            "home/"
           ]
         }
       }
     },
     {
+      "Sid": "",
       "Effect": "Allow",
-      "Action": [
-        "s3:*"
-      ],
+      "Action": "s3:*",
       "Resource": [
         "arn:aws:s3:::foo/home/${aws:username}/*",
         "arn:aws:s3:::foo/home/${aws:username}"
       ],
       "Principal": {
-        "AWS": [
-          "arn:blahblah:example"
-        ]
+        "AWS": "arn:blahblah:example"
       }
     },
     {
+      "Sid": "",
       "Effect": "Deny",
-      "NotAction": [
-        "s3:*"
-      ],
-      "NotResource": [
-        "arn:aws:s3:::*"
-      ]
+      "NotAction": "s3:*",
+      "NotResource": "arn:aws:s3:::*"
     }
   ]
 }`
