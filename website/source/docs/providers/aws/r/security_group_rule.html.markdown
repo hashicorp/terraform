@@ -51,7 +51,7 @@ Only valid with `egress`.
      depending on the `type`. Cannot be specified with `cidr_blocks`.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
-* `to_port` - (Required) The end range port.
+* `to_port` - (Required) The end range port (or ICMP code if protocol is "icmp").
 
 ## Usage with prefix list IDs
 
