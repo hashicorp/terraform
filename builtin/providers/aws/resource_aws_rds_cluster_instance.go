@@ -129,6 +129,7 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
 		Engine:              aws.String("aurora"),
 		PubliclyAccessible:  aws.Bool(d.Get("publicly_accessible").(bool)),
+		PromotionTier:       aws.Int64(int64(d.Get("promotion_tier").(int))),
 		Tags:                tags,
 	}
 
@@ -154,9 +155,6 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		createOpts.MonitoringInterval = aws.Int64(int64(attr.(int)))
 	}
 
-	if attr, ok := d.GetOk("promotion_tier"); ok {
-		createOpts.PromotionTier = aws.Int64(int64(attr.(int)))
-	}
 
 	log.Printf("[DEBUG] Creating RDS DB Instance opts: %s", createOpts)
 	resp, err := conn.CreateDBInstance(createOpts)
