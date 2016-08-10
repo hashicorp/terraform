@@ -203,7 +203,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.iamconn = iam.New(awsIamSess)
 		client.stsconn = sts.New(sess)
 
-		if c.SkipIamCredsValidation == false {
+		if !c.SkipIamCredsValidation {
 			err = c.ValidateCredentials(client.stsconn)
 			if err != nil {
 				errs = append(errs, err)
@@ -211,7 +211,7 @@ func (c *Config) Client() (interface{}, error) {
 			}
 		}
 
-		if c.SkipIamAccountId == false {
+		if !c.SkipIamAccountId {
 			accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
 			if err == nil {
 				client.accountid = accountId
