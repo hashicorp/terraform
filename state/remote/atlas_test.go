@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -161,6 +162,9 @@ func TestAtlasClient_LegitimateConflict(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	var buf bytes.Buffer
+	terraform.WriteState(state, &buf)
+
 	// Changing the state but not the serial. Should generate a conflict.
 	state.RootModule().Outputs["drift"] = &terraform.OutputState{
 		Type:      "string",
@@ -244,7 +248,10 @@ func (f *fakeAtlas) Server() *httptest.Server {
 }
 
 func (f *fakeAtlas) CurrentState() *terraform.State {
-	currentState, err := terraform.ReadState(bytes.NewReader(f.state))
+	// we read the state manually here, because terraform may alter state
+	// during read
+	currentState := &terraform.State{}
+	err := json.Unmarshal(f.state, currentState)
 	if err != nil {
 		f.t.Fatalf("err: %s", err)
 	}
@@ -288,10 +295,15 @@ func (f *fakeAtlas) handler(resp http.ResponseWriter, req *http.Request) {
 		var buf bytes.Buffer
 		buf.ReadFrom(req.Body)
 		sum := md5.Sum(buf.Bytes())
-		state, err := terraform.ReadState(&buf)
+
+		// we read the state manually here, because terraform may alter state
+		// during read
+		state := &terraform.State{}
+		err := json.Unmarshal(buf.Bytes(), state)
 		if err != nil {
 			f.t.Fatalf("err: %s", err)
 		}
+
 		conflict := f.CurrentSerial() == state.Serial && f.CurrentSum() != sum
 		conflict = conflict || f.alwaysConflict
 		if conflict {
@@ -351,7 +363,8 @@ var testStateModuleOrderChange = []byte(
 var testStateSimple = []byte(
 	`{
     "version": 3,
-    "serial": 1,
+    "serial": 2,
+    "lineage": "c00ad9ac-9b35-42fe-846e-b06f0ef877e9",
     "modules": [
         {
             "path": [
@@ -364,7 +377,8 @@ var testStateSimple = []byte(
                     "value": "bar"
                 }
             },
-            "resources": null
+            "resources": {},
+            "depends_on": []
         }
     ]
 }
