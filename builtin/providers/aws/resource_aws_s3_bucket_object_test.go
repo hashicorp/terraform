@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -265,6 +267,104 @@ func TestAccAWSS3BucketObject_kms(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3BucketObject_acl(t *testing.T) {
+	rInt := acctest.RandInt()
+	var obj s3.GetObjectOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketObjectConfig_acl(rInt, "private"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketObjectExists(
+						"aws_s3_bucket_object.object", &obj),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket_object.object",
+						"acl",
+						"private"),
+					testAccCheckAWSS3BucketObjectAcl(
+						"aws_s3_bucket_object.object",
+						[]string{"FULL_CONTROL"}),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketObjectConfig_acl(rInt, "public-read"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketObjectExists(
+						"aws_s3_bucket_object.object",
+						&obj),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket_object.object",
+						"acl",
+						"public-read"),
+					testAccCheckAWSS3BucketObjectAcl(
+						"aws_s3_bucket_object.object",
+						[]string{"FULL_CONTROL", "READ"}),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceAWSS3BucketObjectAcl_validation(t *testing.T) {
+	_, errors := validateS3BucketObjectAclType("incorrect", "acl")
+	if len(errors) == 0 {
+		t.Fatalf("Expected to trigger a validation error")
+	}
+
+	var testCases = []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "public-read",
+			ErrCount: 0,
+		},
+		{
+			Value:    "public-read-write",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, errors := validateS3BucketObjectAclType(tc.Value, "acl")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected not to trigger a validation error")
+		}
+	}
+}
+
+func testAccCheckAWSS3BucketObjectAcl(n string, expectedPerms []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		s3conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := s3conn.GetObjectAcl(&s3.GetObjectAclInput{
+			Bucket: aws.String(rs.Primary.Attributes["bucket"]),
+			Key:    aws.String(rs.Primary.Attributes["key"]),
+		})
+
+		if err != nil {
+			return fmt.Errorf("GetObjectAcl error: %v", err)
+		}
+
+		var perms []string
+		for _, v := range out.Grants {
+			perms = append(perms, *v.Permission)
+		}
+		sort.Strings(perms)
+
+		if !reflect.DeepEqual(perms, expectedPerms) {
+			return fmt.Errorf("Expected ACL permissions to be %v, got %v", expectedPerms, perms)
+		}
+
+		return nil
+	}
+}
+
 func testAccAWSS3BucketObjectConfigSource(randInt int, source string) string {
 	return fmt.Sprintf(`
 resource "aws_s3_bucket" "object_bucket" {
@@ -357,4 +457,18 @@ resource "aws_s3_bucket_object" "object" {
 	kms_key_id = "${aws_kms_key.kms_key_1.arn}"
 }
 `, randInt)
+}
+
+func testAccAWSS3BucketObjectConfig_acl(randInt int, acl string) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "object_bucket" {
+        bucket = "tf-object-test-bucket-%d"
+}
+resource "aws_s3_bucket_object" "object" {
+        bucket = "${aws_s3_bucket.object_bucket.bucket}"
+        key = "test-key"
+        content = "some_bucket_content"
+        acl = "%s"
+}
+`, randInt, acl)
 }

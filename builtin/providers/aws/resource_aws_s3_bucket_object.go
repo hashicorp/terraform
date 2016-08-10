@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -28,6 +29,13 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"acl": &schema.Schema{
+				Type:         schema.TypeString,
+				Default:      "private",
+				Optional:     true,
+				ValidateFunc: validateS3BucketObjectAclType,
 			},
 
 			"cache_control": &schema.Schema{
@@ -101,6 +109,7 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
+	acl := d.Get("acl").(string)
 	var body io.ReadSeeker
 
 	if v, ok := d.GetOk("source"); ok {
@@ -131,6 +140,7 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 	putInput := &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
+		ACL:    aws.String(acl),
 		Body:   body,
 	}
 
@@ -250,4 +260,40 @@ func resourceAwsS3BucketObjectDelete(d *schema.ResourceData, meta interface{}) e
 	}
 
 	return nil
+}
+
+func validateS3BucketObjectAclType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	cannedAcls := map[string]bool{
+		s3.ObjectCannedACLPrivate:                true,
+		s3.ObjectCannedACLPublicRead:             true,
+		s3.ObjectCannedACLPublicReadWrite:        true,
+		s3.ObjectCannedACLAuthenticatedRead:      true,
+		s3.ObjectCannedACLAwsExecRead:            true,
+		s3.ObjectCannedACLBucketOwnerRead:        true,
+		s3.ObjectCannedACLBucketOwnerFullControl: true,
+	}
+
+	sentenceJoin := func(m map[string]bool) string {
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, fmt.Sprintf("%q", k))
+		}
+		sort.Strings(keys)
+
+		length := len(keys)
+		words := make([]string, length)
+		copy(words, keys)
+
+		words[length-1] = fmt.Sprintf("or %s", words[length-1])
+		return strings.Join(words, ", ")
+	}
+
+	if _, ok := cannedAcls[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid canned ACL type %q. Valid types are either %s",
+			k, value, sentenceJoin(cannedAcls)))
+	}
+	return
 }
