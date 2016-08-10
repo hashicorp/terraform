@@ -27,9 +27,8 @@ will be rendered as a literal `${foo}`.
 variable name. For example, `${var.foo}` will interpolate the
 `foo` variable value. If the variable is a map, then you
 can reference static keys in the map with the syntax
-`var.MAP.KEY`. For example, `${var.amis.us-east-1}` would
-get the value of the `us-east-1` key within the `amis` variable
-that is a map.
+`var.MAP["KEY"]`. For example, `${var.amis["us-east-1"]` would
+get the value of the `us-east-1` key within the `amis` map variable.
 
 **To reference attributes of your own resource**, the syntax is
 `self.ATTRIBUTE`. For example `${self.private_ip_address}` will
