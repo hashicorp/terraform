@@ -18,6 +18,7 @@ IMPROVEMENTS
  * provider/aws: Add support for Enhanced monitoring to `aws_rds_cluster_instance` [GH-8038]
  * provider/aws: Add ability to set Requests Payer in `aws_s3_bucket` [GH-8065]
  * provider/aws: Add ability to set canned ACL in `aws_s3_bucket_object` [GH-8091]
+ * provider/aws: Allow skipping credentials validation, requesting Account ID and/or metadata API check [GH-7874]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
  * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
