@@ -198,11 +198,11 @@ func (c *Config) Client() (interface{}, error) {
 		dynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
 		kinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
 
-		if c.SkipIamValidation == false {
-			// These two services need to be set up early so we can check on AccountID
-			client.iamconn = iam.New(awsIamSess)
-			client.stsconn = sts.New(sess)
+		// These two services need to be set up early so we can check on AccountID
+		client.iamconn = iam.New(awsIamSess)
+		client.stsconn = sts.New(sess)
 
+		if c.SkipIamValidation == false {
 			err = c.ValidateCredentials(client.stsconn)
 			if err != nil {
 				errs = append(errs, err)
