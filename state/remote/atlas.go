@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -276,9 +277,26 @@ func (c *AtlasClient) http() (*retryablehttp.Client, error) {
 		return nil, err
 	}
 	rc := retryablehttp.NewClient()
+
+	rc.CheckRetry = func(resp *http.Response, err error) (bool, error) {
+		if err != nil {
+			// don't bother retrying if the certs don't match
+			if err, ok := err.(*url.Error); ok {
+				if _, ok := err.Err.(x509.UnknownAuthorityError); ok {
+					return false, nil
+				}
+			}
+			// continue retrying
+			return true, nil
+		}
+		return retryablehttp.DefaultRetryPolicy(resp, err)
+	}
+
 	t := cleanhttp.DefaultTransport()
 	t.TLSClientConfig = tlsConfig
 	rc.HTTPClient.Transport = t
+
+	c.HTTPClient = rc
 	return rc, nil
 }
 

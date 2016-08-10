@@ -1108,8 +1108,10 @@
 			"revision": "cccb4a1328abbb89898f3ecf4311a05bddc4de6d"
 		},
 		{
+			"checksumSHA1": "GBDE1KDl/7c5hlRPYRZ7+C0WQ0g=",
 			"path": "github.com/hashicorp/go-retryablehttp",
-			"revision": "5ec125ef739293cb4d57c3456dd92ba9af29ed6e"
+			"revision": "f4ed9b0fa01a2ac614afe7c897ed2e3d8208f3e8",
+			"revisionTime": "2016-08-10T17:22:55Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-rootcerts",
