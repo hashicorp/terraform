@@ -86,10 +86,14 @@ func resourceAwsApiGatewayMethodCreate(d *schema.ResourceData, meta interface{})
 	parameters := make(map[string]bool)
 	if kv, ok := d.GetOk("request_parameters"); ok {
 		for k, v := range kv.(map[string]interface{}) {
-			parameters[k] = v.(bool)
+			parameters[k], ok = v.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(v.(string))
+				parameters[k] = value
+			}
 		}
 	}
-	if v, ok := d.GetOk("request_parameters"); ok {
+	if v, ok := d.GetOk("request_parameters_in_json"); ok {
 		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
 			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
 		}
@@ -165,6 +169,7 @@ func resourceAwsApiGatewayMethodUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("request_parameters") {
 		parameters := make(map[string]bool)
+		var ok bool
 		for k, v := range d.Get("request_parameters").(map[string]interface{}) {
 			parameters[k], ok = v.(bool)
 			if !ok {

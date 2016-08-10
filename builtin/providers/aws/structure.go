@@ -1156,9 +1156,14 @@ func expandApiGatewayMethodParametersOperations(d *schema.ResourceData, key stri
 		}
 
 		for nK, nV := range newParametersMap {
+			b, ok := nV.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(nV.(string))
+				b = value
+			}
 			if nK == k {
 				operation.Op = aws.String("replace")
-				operation.Value = aws.String(strconv.FormatBool(nV.(bool)))
+				operation.Value = aws.String(strconv.FormatBool(b))
 			}
 		}
 
@@ -1173,10 +1178,15 @@ func expandApiGatewayMethodParametersOperations(d *schema.ResourceData, key stri
 			}
 		}
 		if !exists {
+			b, ok := nV.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(nV.(string))
+				b = value
+			}
 			operation := apigateway.PatchOperation{
 				Op:    aws.String("add"),
 				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, nK)),
-				Value: aws.String(strconv.FormatBool(nV.(bool))),
+				Value: aws.String(strconv.FormatBool(b)),
 			}
 			operations = append(operations, &operation)
 		}
