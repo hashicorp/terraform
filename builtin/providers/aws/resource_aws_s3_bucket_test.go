@@ -395,11 +395,61 @@ func TestAccAWSS3Bucket_Versioning(t *testing.T) {
 
 func TestAccAWSS3Bucket_Cors(t *testing.T) {
 	rInt := acctest.RandInt()
+
+	updateBucketCors := func(n string) resource.TestCheckFunc {
+		return func(s *terraform.State) error {
+			rs, ok := s.RootModule().Resources[n]
+			if !ok {
+				return fmt.Errorf("Not found: %s", n)
+			}
+
+			conn := testAccProvider.Meta().(*AWSClient).s3conn
+			_, err := conn.PutBucketCors(&s3.PutBucketCorsInput{
+				Bucket: aws.String(rs.Primary.ID),
+				CORSConfiguration: &s3.CORSConfiguration{
+					CORSRules: []*s3.CORSRule{
+						&s3.CORSRule{
+							AllowedHeaders: []*string{aws.String("*")},
+							AllowedMethods: []*string{aws.String("GET")},
+							AllowedOrigins: []*string{aws.String("https://www.example.com")},
+						},
+					},
+				},
+			})
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() != "NoSuchCORSConfiguration" {
+					return err
+				}
+			}
+			return nil
+		}
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithCORS(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketCors(
+						"aws_s3_bucket.bucket",
+						[]*s3.CORSRule{
+							&s3.CORSRule{
+								AllowedHeaders: []*string{aws.String("*")},
+								AllowedMethods: []*string{aws.String("PUT"), aws.String("POST")},
+								AllowedOrigins: []*string{aws.String("https://www.example.com")},
+								ExposeHeaders:  []*string{aws.String("x-amz-server-side-encryption"), aws.String("ETag")},
+								MaxAgeSeconds:  aws.Int64(3000),
+							},
+						},
+					),
+					updateBucketCors("aws_s3_bucket.bucket"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
 			resource.TestStep{
 				Config: testAccAWSS3BucketConfigWithCORS(rInt),
 				Check: resource.ComposeTestCheckFunc(
