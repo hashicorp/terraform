@@ -110,11 +110,18 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["insecure"],
 			},
 
-			"skip_iam_validation": &schema.Schema{
+			"skip_iam_creds_validation": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: descriptions["skip_iam_validation"],
+				Description: descriptions["skip_iam_creds_validation"],
+			},
+
+			"skip_iam_account_id": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_iam_account_id"],
 			},
 
 			"skip_metadata_api_check": &schema.Schema{
@@ -343,7 +350,10 @@ func init() {
 		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
 			"default value is `false`",
 
-		"skip_iam_validation": "Skip the IAM/STS identity validation. " +
+		"skip_iam_creds_validation": "Skip the IAM/STS credentials validation. " +
+			"Used for AWS API implementations that do not use IAM.",
+
+		"skip_iam_account_id": "Skip the request of account id to IAM/STS. " +
 			"Used for AWS API implementations that do not use IAM.",
 
 		"skip_medatadata_api_check": "Skip the AWS Metadata API check. " +
@@ -353,18 +363,19 @@ func init() {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccessKey:            d.Get("access_key").(string),
-		SecretKey:            d.Get("secret_key").(string),
-		Profile:              d.Get("profile").(string),
-		CredsFilename:        d.Get("shared_credentials_file").(string),
-		Token:                d.Get("token").(string),
-		Region:               d.Get("region").(string),
-		MaxRetries:           d.Get("max_retries").(int),
-		DynamoDBEndpoint:     d.Get("dynamodb_endpoint").(string),
-		KinesisEndpoint:      d.Get("kinesis_endpoint").(string),
-		Insecure:             d.Get("insecure").(bool),
-		SkipIamValidation:    d.Get("skip_iam_validation").(bool),
-		SkipMetadataApiCheck: d.Get("skip_metadata_api_check").(bool),
+		AccessKey:              d.Get("access_key").(string),
+		SecretKey:              d.Get("secret_key").(string),
+		Profile:                d.Get("profile").(string),
+		CredsFilename:          d.Get("shared_credentials_file").(string),
+		Token:                  d.Get("token").(string),
+		Region:                 d.Get("region").(string),
+		MaxRetries:             d.Get("max_retries").(int),
+		DynamoDBEndpoint:       d.Get("dynamodb_endpoint").(string),
+		KinesisEndpoint:        d.Get("kinesis_endpoint").(string),
+		Insecure:               d.Get("insecure").(bool),
+		SkipIamCredsValidation: d.Get("skip_iam_creds_validation").(bool),
+		SkipIamAccountId:       d.Get("skip_iam_account_id").(bool),
+		SkipMetadataApiCheck:   d.Get("skip_metadata_api_check").(bool),
 	}
 
 	endpointsSet := d.Get("endpoints").(*schema.Set)
