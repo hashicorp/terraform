@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -167,32 +166,15 @@ func testDiffFn(
 			v = c.Config[k]
 		}
 
-		attrDiff := &ResourceAttrDiff{
-			Old: "",
-		}
-
-		if reflect.DeepEqual(v, []interface{}{}) {
-			attrDiff.New = ""
-		} else {
-			if s, ok := v.(string); ok {
-				attrDiff.New = s
-			} else {
-				// the value is something other than a string
-				// flatmap it, adding the diff for each value.
-				for k, attrDiff := range testFlatAttrDiffs(k, v) {
-					diff.Attributes[k] = attrDiff
-				}
-				continue
+		for k, attrDiff := range testFlatAttrDiffs(k, v) {
+			if k == "require_new" {
+				attrDiff.RequiresNew = true
 			}
+			if _, ok := c.Raw["__"+k+"_requires_new"]; ok {
+				attrDiff.RequiresNew = true
+			}
+			diff.Attributes[k] = attrDiff
 		}
-
-		if k == "require_new" {
-			attrDiff.RequiresNew = true
-		}
-		if _, ok := c.Raw["__"+k+"_requires_new"]; ok {
-			attrDiff.RequiresNew = true
-		}
-		diff.Attributes[k] = attrDiff
 	}
 
 	for _, k := range c.ComputedKeys {
@@ -232,8 +214,25 @@ func testDiffFn(
 
 // generate ResourceAttrDiffs for nested data structures in tests
 func testFlatAttrDiffs(k string, i interface{}) map[string]*ResourceAttrDiff {
-	flat := flatmap.Flatten(map[string]interface{}{k: i})
 	diffs := make(map[string]*ResourceAttrDiff)
+	// check for strings and empty containers first
+	switch t := i.(type) {
+	case string:
+		diffs[k] = &ResourceAttrDiff{New: t}
+		return diffs
+	case map[string]interface{}:
+		if len(t) == 0 {
+			diffs[k] = &ResourceAttrDiff{New: ""}
+			return diffs
+		}
+	case []interface{}:
+		if len(t) == 0 {
+			diffs[k] = &ResourceAttrDiff{New: ""}
+			return diffs
+		}
+	}
+
+	flat := flatmap.Flatten(map[string]interface{}{k: i})
 
 	for k, v := range flat {
 		attrDiff := &ResourceAttrDiff{
