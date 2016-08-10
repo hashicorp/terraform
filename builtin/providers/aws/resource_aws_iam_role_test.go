@@ -165,39 +165,24 @@ func testAccCheckAWSRoleAttributes(role *iam.GetRoleOutput) resource.TestCheckFu
 
 const testAccAWSRoleConfig = `
 resource "aws_iam_role" "role" {
-	name   = "test-role"
-	path = "/"
-	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+  name               = "test-role"
+  path               = "/"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 `
 
 const testAccAWSRolePrefixNameConfig = `
 resource "aws_iam_role" "role" {
-    name_prefix = "test-role-"
-    path = "/"
-    assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+  name_prefix        = "test-role-"
+  path               = "/"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 `
-
 const testAccAWSRolePre = `
 resource "aws_iam_role" "role_update_test" {
   name = "tf_old_name"
   path = "/test/"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 
 resource "aws_iam_role_policy" "role_update_test" {
@@ -232,21 +217,7 @@ const testAccAWSRolePost = `
 resource "aws_iam_role" "role_update_test" {
   name = "tf_new_name"
   path = "/test/"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 
 resource "aws_iam_role_policy" "role_update_test" {
