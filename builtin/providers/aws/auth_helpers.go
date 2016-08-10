@@ -111,10 +111,10 @@ func GetCredentials(c *Config) *awsCredentials.Credentials {
 	}
 	usedEndpoint := setOptionalEndpoint(cfg)
 
-	// Real AWS should reply to a simple metadata request.
-	// We check it actually does to ensure something else didn't just
-	// happen to be listening on the same IP:Port
-	if c.SkipMetadataApiCheck == false {
+	if !c.SkipMetadataApiCheck {
+		// Real AWS should reply to a simple metadata request.
+		// We check it actually does to ensure something else didn't just
+		// happen to be listening on the same IP:Port
 		metadataClient := ec2metadata.New(session.New(cfg))
 		if metadataClient.Available() {
 			providers = append(providers, &ec2rolecreds.EC2RoleProvider{
