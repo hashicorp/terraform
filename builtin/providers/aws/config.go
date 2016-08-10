@@ -217,11 +217,11 @@ func (c *Config) Client() (interface{}, error) {
 			if err == nil {
 				client.accountid = accountId
 			}
+		}
 
-			authErr := c.ValidateAccountId(client.accountid)
-			if authErr != nil {
-				errs = append(errs, authErr)
-			}
+		authErr := c.ValidateAccountId(client.accountid)
+		if authErr != nil {
+			errs = append(errs, authErr)
 		}
 
 		client.apigateway = apigateway.New(sess)
