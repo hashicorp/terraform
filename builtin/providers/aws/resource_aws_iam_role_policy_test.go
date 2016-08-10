@@ -113,15 +113,15 @@ func testAccCheckIAMRolePolicy(
 func testAccIAMRolePolicyConfig(role, policy1 string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "role" {
-  name               = "tf_test_role_%s"
-  path               = "/"
-  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+	name = "tf_test_role_%s"
+	path = "/"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Effect\":\"Allow\",\"Sid\":\"\"}]}"
 }
 
 resource "aws_iam_role_policy" "foo" {
-  name   = "tf_test_policy_%s"
-  role   = "${aws_iam_role.role.name}"
-  policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	name = "tf_test_policy_%s"
+	role = "${aws_iam_role.role.name}"
+	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
 }
 `, role, policy1)
 }
@@ -129,21 +129,21 @@ resource "aws_iam_role_policy" "foo" {
 func testAccIAMRolePolicyConfigUpdate(role, policy1, policy2 string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "role" {
-  name               = "tf_test_role_%s"
-  path               = "/"
-  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+	name = "tf_test_role_%s"
+	path = "/"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Effect\":\"Allow\",\"Sid\":\"\"}]}"
 }
 
 resource "aws_iam_role_policy" "foo" {
-  name   = "tf_test_policy_%s"
-  role   = "${aws_iam_role.role.name}"
-  policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	name = "tf_test_policy_%s"
+	role = "${aws_iam_role.role.name}"
+	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
 }
 
 resource "aws_iam_role_policy" "bar" {
-  name   = "tf_test_policy_2_%s"
-  role   = "${aws_iam_role.role.name}"
-  policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	name = "tf_test_policy_2_%s"
+	role = "${aws_iam_role.role.name}"
+	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
 }
 `, role, policy1, policy2)
 }
