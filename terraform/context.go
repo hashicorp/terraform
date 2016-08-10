@@ -363,16 +363,14 @@ func (c *Context) Input(mode InputMode) error {
 						"Error asking for %s: %s", n, err)
 				}
 
-				if value == "" {
-					if v.Required() {
-						// Redo if it is required, but abort if we keep getting
-						// blank entries
-						if retry > 2 {
-							return fmt.Errorf("missing required value for %q", n)
-						}
-						retry++
-						continue
+				if value == "" && v.Required() {
+					// Redo if it is required, but abort if we keep getting
+					// blank entries
+					if retry > 2 {
+						return fmt.Errorf("missing required value for %q", n)
 					}
+					retry++
+					continue
 				}
 
 				break
