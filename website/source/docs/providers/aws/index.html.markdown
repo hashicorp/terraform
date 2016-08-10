@@ -159,6 +159,30 @@ The following arguments are supported in the `provider` block:
   URL constructed from the `region`. It's typically used to connect to
   kinesalite.
 
+* `skip_credentials_validation` - (Optional) Skip the credentials validation via STS API.
+  Useful for AWS API implementations that do not have STS available/implemented.
+
+* `skip_requesting_account_id` - (Optional) Skip requesting the account ID.
+  Useful for AWS API implementations that do not have IAM/STS API and/or metadata API.
+  `true` (enabling this option) prevents you from managing any resource that requires Account ID to construct an ARN, e.g.
+  - `aws_db_instance`
+  - `aws_db_option_group`
+  - `aws_db_parameter_group`
+  - `aws_db_security_group`
+  - `aws_db_subnet_group`
+  - `aws_elasticache_cluster`
+  - `aws_glacier_vault`
+  - `aws_rds_cluster`
+  - `aws_rds_cluster_instance`
+  - `aws_rds_cluster_parameter_group`
+  - `aws_redshift_cluster`
+
+* `skip_metadata_api_check` - (Optional) Skip the AWS Metadata API check.
+  Useful for AWS API implementations that do not have a metadata API endpoint.
+  `true` prevents Terraform from authenticating via Metadata API - i.e. you may need to use other auth methods
+  (static credentials set as ENV vars or config)
+
+
 Nested `endpoints` block supports the followings:
 
 * `iam` - (Optional) Use this to override the default endpoint
