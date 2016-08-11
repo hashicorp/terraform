@@ -8,7 +8,7 @@ import (
 	"google.golang.org/api/cloudresourcemanager/v1"
 )
 
-type Binding []cloudresourcemanager.Binding
+type Binding []*cloudresourcemanager.Binding
 
 func (b Binding) Len() int {
 	return len(b)
@@ -22,13 +22,78 @@ func (b Binding) Less(i, j int) bool {
 	return b[i].Role < b[j].Role
 }
 
-func TestIamMapRolesToMembers(t *testing.T) {
+func TestIamRolesToMembersBinding(t *testing.T) {
 	table := []struct {
-		input  []cloudresourcemanager.Binding
+		expect []*cloudresourcemanager.Binding
+		input  map[string]map[string]bool
+	}{
+		{
+			expect: []*cloudresourcemanager.Binding{
+				{
+					Role: "role-1",
+					Members: []string{
+						"member-1",
+						"member-2",
+					},
+				},
+			},
+			input: map[string]map[string]bool{
+				"role-1": map[string]bool{
+					"member-1": true,
+					"member-2": true,
+				},
+			},
+		},
+		{
+			expect: []*cloudresourcemanager.Binding{
+				{
+					Role: "role-1",
+					Members: []string{
+						"member-1",
+						"member-2",
+					},
+				},
+			},
+			input: map[string]map[string]bool{
+				"role-1": map[string]bool{
+					"member-1": true,
+					"member-2": true,
+				},
+			},
+		},
+		{
+			expect: []*cloudresourcemanager.Binding{
+				{
+					Role:    "role-1",
+					Members: []string{},
+				},
+			},
+			input: map[string]map[string]bool{
+				"role-1": map[string]bool{},
+			},
+		},
+	}
+
+	for _, test := range table {
+		got := rolesToMembersBinding(test.input)
+
+		sort.Sort(Binding(got))
+		for i, _ := range got {
+			sort.Strings(got[i].Members)
+		}
+
+		if !reflect.DeepEqual(derefBindings(got), derefBindings(test.expect)) {
+			t.Errorf("got %+v, expected %+v", derefBindings(got), derefBindings(test.expect))
+		}
+	}
+}
+func TestIamRolesToMembersMap(t *testing.T) {
+	table := []struct {
+		input  []*cloudresourcemanager.Binding
 		expect map[string]map[string]bool
 	}{
 		{
-			input: []cloudresourcemanager.Binding{
+			input: []*cloudresourcemanager.Binding{
 				{
 					Role: "role-1",
 					Members: []string{
@@ -45,7 +110,7 @@ func TestIamMapRolesToMembers(t *testing.T) {
 			},
 		},
 		{
-			input: []cloudresourcemanager.Binding{
+			input: []*cloudresourcemanager.Binding{
 				{
 					Role: "role-1",
 					Members: []string{
@@ -64,7 +129,7 @@ func TestIamMapRolesToMembers(t *testing.T) {
 			},
 		},
 		{
-			input: []cloudresourcemanager.Binding{
+			input: []*cloudresourcemanager.Binding{
 				{
 					Role: "role-1",
 				},
@@ -76,20 +141,29 @@ func TestIamMapRolesToMembers(t *testing.T) {
 	}
 
 	for _, test := range table {
-		got := mapRolesToMembers(test.input)
+		got := rolesToMembersMap(test.input)
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("got %+v, expected %+v", got, test.expect)
 		}
 	}
 }
 
+func derefBindings(b []*cloudresourcemanager.Binding) []cloudresourcemanager.Binding {
+	db := make([]cloudresourcemanager.Binding, len(b))
+
+	for i, v := range b {
+		db[i] = *v
+	}
+	return db
+}
+
 func TestIamMergeBindings(t *testing.T) {
 	table := []struct {
-		input  []cloudresourcemanager.Binding
+		input  []*cloudresourcemanager.Binding
 		expect []cloudresourcemanager.Binding
 	}{
 		{
-			input: []cloudresourcemanager.Binding{
+			input: []*cloudresourcemanager.Binding{
 				{
 					Role: "role-1",
 					Members: []string{
@@ -116,7 +190,7 @@ func TestIamMergeBindings(t *testing.T) {
 			},
 		},
 		{
-			input: []cloudresourcemanager.Binding{
+			input: []*cloudresourcemanager.Binding{
 				{
 					Role: "role-1",
 					Members: []string{
@@ -191,8 +265,8 @@ func TestIamMergeBindings(t *testing.T) {
 			sort.Strings(got[i].Members)
 		}
 
-		if !reflect.DeepEqual(got, test.expect) {
-			t.Errorf("\ngot %+v\nexpected %+v", got, test.expect)
+		if !reflect.DeepEqual(derefBindings(got), test.expect) {
+			t.Errorf("\ngot %+v\nexpected %+v", derefBindings(got), test.expect)
 		}
 	}
 }
