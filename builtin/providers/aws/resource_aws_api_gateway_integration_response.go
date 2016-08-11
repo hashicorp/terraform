@@ -56,9 +56,18 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 				Elem:     schema.TypeString,
 			},
 
+			"response_parameters": &schema.Schema{
+				Type:          schema.TypeMap,
+				Elem:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"response_parameters_in_json"},
+			},
+
 			"response_parameters_in_json": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"response_parameters"},
+				Deprecated:    "Use field response_parameters instead",
 			},
 		},
 	}
@@ -73,6 +82,11 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 	}
 
 	parameters := make(map[string]string)
+	if kv, ok := d.GetOk("response_parameters"); ok {
+		for k, v := range kv.(map[string]interface{}) {
+			parameters[k] = v.(string)
+		}
+	}
 	if v, ok := d.GetOk("response_parameters_in_json"); ok {
 		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
 			return fmt.Errorf("Error unmarshaling response_parameters_in_json: %s", err)
@@ -80,12 +94,11 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 	}
 
 	input := apigateway.PutIntegrationResponseInput{
-		HttpMethod:        aws.String(d.Get("http_method").(string)),
-		ResourceId:        aws.String(d.Get("resource_id").(string)),
-		RestApiId:         aws.String(d.Get("rest_api_id").(string)),
-		StatusCode:        aws.String(d.Get("status_code").(string)),
-		ResponseTemplates: aws.StringMap(templates),
-		// TODO reimplement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
+		HttpMethod:         aws.String(d.Get("http_method").(string)),
+		ResourceId:         aws.String(d.Get("resource_id").(string)),
+		RestApiId:          aws.String(d.Get("rest_api_id").(string)),
+		StatusCode:         aws.String(d.Get("status_code").(string)),
+		ResponseTemplates:  aws.StringMap(templates),
 		ResponseParameters: aws.StringMap(parameters),
 	}
 	if v, ok := d.GetOk("selection_pattern"); ok {
@@ -125,6 +138,7 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
 	d.Set("response_templates", integrationResponse.ResponseTemplates)
 	d.Set("selection_pattern", integrationResponse.SelectionPattern)
+	d.Set("response_parameters", aws.StringValueMap(integrationResponse.ResponseParameters))
 	d.Set("response_parameters_in_json", aws.StringValueMap(integrationResponse.ResponseParameters))
 	return nil
 }
