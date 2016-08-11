@@ -99,4 +99,5 @@ resource "packet_volume" "foobar" {
     size = 100
     project_id = "%s"
     facility = "%s"
+    snapshot_policies = { snapshot_frequency = "1day", snapshot_count = 7 }
 }`
