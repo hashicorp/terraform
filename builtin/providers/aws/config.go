@@ -1,17 +1,11 @@
 package aws
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/terraform"
-
-	"crypto/tls"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -56,6 +50,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type Config struct {
@@ -182,7 +181,10 @@ func (c *Config) Client() (interface{}, error) {
 		}
 
 		// Set up base session
-		sess := session.New(awsConfig)
+		sess, err := session.NewSession(awsConfig)
+		if err != nil {
+			return nil, errwrap.Wrapf("Error creating AWS session: %s", err)
+		}
 		sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
 
 		// Some services exist only in us-east-1, e.g. because they manage

@@ -106,13 +106,13 @@ func (c *CloudWatchLogs) CreateExportTaskRequest(input *CreateExportTaskInput) (
 // Creates an ExportTask which allows you to efficiently export data from a
 // Log Group to your Amazon S3 bucket.
 //
-//  This is an asynchronous call. If all the required information is provided,
+// This is an asynchronous call. If all the required information is provided,
 // this API will initiate an export task and respond with the task Id. Once
 // started, DescribeExportTasks can be used to get the status of an export task.
 // You can only have one active (RUNNING or PENDING) export task at a time,
 // per account.
 //
-//  You can export logs from multiple log groups or multiple time ranges to
+// You can export logs from multiple log groups or multiple time ranges to
 // the same Amazon S3 bucket. To separate out log data for each export task,
 // you can specify a prefix that will be used as the Amazon S3 key prefix for
 // all exported objects.
@@ -169,9 +169,12 @@ func (c *CloudWatchLogs) CreateLogGroupRequest(input *CreateLogGroupInput) (req 
 // must be unique within a region for an AWS account. You can create up to 500
 // log groups per account.
 //
-//  You must use the following guidelines when naming a log group:  Log group
-// names can be between 1 and 512 characters long. Allowed characters are a-z,
-// A-Z, 0-9, '_' (underscore), '-' (hyphen), '/' (forward slash), and '.' (period).
+// You must use the following guidelines when naming a log group:
+//
+//   Log group names can be between 1 and 512 characters long.
+//
+//   Allowed characters are a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen),
+// '/' (forward slash), and '.' (period).
 func (c *CloudWatchLogs) CreateLogGroup(input *CreateLogGroupInput) (*CreateLogGroupOutput, error) {
 	req, out := c.CreateLogGroupRequest(input)
 	err := req.Send()
@@ -225,9 +228,11 @@ func (c *CloudWatchLogs) CreateLogStreamRequest(input *CreateLogStreamInput) (re
 // stream must be unique within the log group. There is no limit on the number
 // of log streams that can exist in a log group.
 //
-//  You must use the following guidelines when naming a log stream:  Log stream
-// names can be between 1 and 512 characters long. The ':' colon character is
-// not allowed.
+// You must use the following guidelines when naming a log stream:
+//
+//   Log stream names can be between 1 and 512 characters long.
+//
+//   The ':' colon character is not allowed.
 func (c *CloudWatchLogs) CreateLogStream(input *CreateLogStreamInput) (*CreateLogStreamOutput, error) {
 	req, out := c.CreateLogStreamRequest(input)
 	err := req.Send()
@@ -590,10 +595,10 @@ func (c *CloudWatchLogs) DescribeDestinationsRequest(input *DescribeDestinations
 // the request. The list returned in the response is ASCII-sorted by destination
 // name.
 //
-//  By default, this operation returns up to 50 destinations. If there are
-// more destinations to list, the response would contain a nextToken value in
-// the response body. You can also limit the number of destinations returned
-// in the response by specifying the limit parameter in the request.
+// By default, this operation returns up to 50 destinations. If there are more
+// destinations to list, the response would contain a nextToken value in the
+// response body. You can also limit the number of destinations returned in
+// the response by specifying the limit parameter in the request.
 func (c *CloudWatchLogs) DescribeDestinations(input *DescribeDestinationsInput) (*DescribeDestinationsOutput, error) {
 	req, out := c.DescribeDestinationsRequest(input)
 	err := req.Send()
@@ -669,7 +674,7 @@ func (c *CloudWatchLogs) DescribeExportTasksRequest(input *DescribeExportTasksIn
 // Returns all the export tasks that are associated with the AWS account making
 // the request. The export tasks can be filtered based on TaskId or TaskStatus.
 //
-//  By default, this operation returns up to 50 export tasks that satisfy the
+// By default, this operation returns up to 50 export tasks that satisfy the
 // specified filters. If there are more export tasks to list, the response would
 // contain a nextToken value in the response body. You can also limit the number
 // of export tasks returned in the response by specifying the limit parameter
@@ -731,7 +736,7 @@ func (c *CloudWatchLogs) DescribeLogGroupsRequest(input *DescribeLogGroupsInput)
 // the request. The list returned in the response is ASCII-sorted by log group
 // name.
 //
-//  By default, this operation returns up to 50 log groups. If there are more
+// By default, this operation returns up to 50 log groups. If there are more
 // log groups to list, the response would contain a nextToken value in the response
 // body. You can also limit the number of log groups returned in the response
 // by specifying the limit parameter in the request.
@@ -816,7 +821,7 @@ func (c *CloudWatchLogs) DescribeLogStreamsRequest(input *DescribeLogStreamsInpu
 // Returns all the log streams that are associated with the specified log group.
 // The list returned in the response is ASCII-sorted by log stream name.
 //
-//  By default, this operation returns up to 50 log streams. If there are more
+// By default, this operation returns up to 50 log streams. If there are more
 // log streams to list, the response would contain a nextToken value in the
 // response body. You can also limit the number of log streams returned in the
 // response by specifying the limit parameter in the request. This operation
@@ -903,7 +908,7 @@ func (c *CloudWatchLogs) DescribeMetricFiltersRequest(input *DescribeMetricFilte
 // Returns all the metrics filters associated with the specified log group.
 // The list returned in the response is ASCII-sorted by filter name.
 //
-//  By default, this operation returns up to 50 metric filters. If there are
+// By default, this operation returns up to 50 metric filters. If there are
 // more metric filters to list, the response would contain a nextToken value
 // in the response body. You can also limit the number of metric filters returned
 // in the response by specifying the limit parameter in the request.
@@ -988,7 +993,7 @@ func (c *CloudWatchLogs) DescribeSubscriptionFiltersRequest(input *DescribeSubsc
 // Returns all the subscription filters associated with the specified log group.
 // The list returned in the response is ASCII-sorted by filter name.
 //
-//  By default, this operation returns up to 50 subscription filters. If there
+// By default, this operation returns up to 50 subscription filters. If there
 // are more subscription filters to list, the response would contain a nextToken
 // value in the response body. You can also limit the number of subscription
 // filters returned in the response by specifying the limit parameter in the
@@ -1076,14 +1081,14 @@ func (c *CloudWatchLogs) FilterLogEventsRequest(input *FilterLogEventsInput) (re
 // the event timestamp. You can limit the streams searched to an explicit list
 // of logStreamNames.
 //
-//  By default, this operation returns as much matching log events as can fit
+// By default, this operation returns as much matching log events as can fit
 // in a response size of 1MB, up to 10,000 log events, or all the events found
 // within a time-bounded scan window. If the response includes a nextToken,
 // then there is more data to search, and the search can be resumed with a new
 // request providing the nextToken. The response will contain a list of searchedLogStreams
 // that contains information about which streams were searched in the request
 // and whether they have been searched completely or require further pagination.
-// The limit parameter in the request. can be used to specify the maximum number
+// The limit parameter in the request can be used to specify the maximum number
 // of events to return in a page.
 func (c *CloudWatchLogs) FilterLogEvents(input *FilterLogEventsInput) (*FilterLogEventsOutput, error) {
 	req, out := c.FilterLogEventsRequest(input)
@@ -1166,7 +1171,7 @@ func (c *CloudWatchLogs) GetLogEventsRequest(input *GetLogEventsInput) (req *req
 // Retrieves log events from the specified log stream. You can provide an optional
 // time range to filter the results on the event timestamp.
 //
-//  By default, this operation returns as much log events as can fit in a response
+// By default, this operation returns as much log events as can fit in a response
 // size of 1MB, up to 10,000 log events. The response will always include a
 // nextForwardToken and a nextBackwardToken in the response body. You can use
 // any of these tokens in subsequent GetLogEvents requests to paginate through
@@ -1251,7 +1256,7 @@ func (c *CloudWatchLogs) PutDestinationRequest(input *PutDestinationInput) (req 
 // Currently, the only supported physical resource is a Amazon Kinesis stream
 // belonging to the same account as the destination.
 //
-//  A destination controls what is written to its Amazon Kinesis stream through
+// A destination controls what is written to its Amazon Kinesis stream through
 // an access policy. By default, PutDestination does not set any access policy
 // with the destination, which means a cross-account user will not be able to
 // call PutSubscriptionFilter against this destination. To enable that, the
@@ -1358,19 +1363,28 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 
 // Uploads a batch of log events to the specified log stream.
 //
-//  Every PutLogEvents request must include the sequenceToken obtained from
+// Every PutLogEvents request must include the sequenceToken obtained from
 // the response of the previous request. An upload in a newly created log stream
-// does not require a sequenceToken.
+// does not require a sequenceToken. You can also get the sequenceToken using
+// DescribeLogStreams.
 //
-//  The batch of events must satisfy the following constraints:  The maximum
-// batch size is 1,048,576 bytes, and this size is calculated as the sum of
-// all event messages in UTF-8, plus 26 bytes for each log event. None of the
-// log events in the batch can be more than 2 hours in the future. None of the
-// log events in the batch can be older than 14 days or the retention period
-// of the log group. The log events in the batch must be in chronological ordered
-// by their timestamp. The maximum number of log events in a batch is 10,000.
-// A batch of log events in a single PutLogEvents request cannot span more than
-// 24 hours. Otherwise, the PutLogEvents operation will fail.
+// The batch of events must satisfy the following constraints:
+//
+//   The maximum batch size is 1,048,576 bytes, and this size is calculated
+// as the sum of all event messages in UTF-8, plus 26 bytes for each log event.
+//
+//   None of the log events in the batch can be more than 2 hours in the future.
+//
+//   None of the log events in the batch can be older than 14 days or the retention
+// period of the log group.
+//
+//   The log events in the batch must be in chronological ordered by their
+// timestamp.
+//
+//   The maximum number of log events in a batch is 10,000.
+//
+//   A batch of log events in a single PutLogEvents request cannot span more
+// than 24 hours. Otherwise, the PutLogEvents operation will fail.
 func (c *CloudWatchLogs) PutLogEvents(input *PutLogEventsInput) (*PutLogEventsOutput, error) {
 	req, out := c.PutLogEventsRequest(input)
 	err := req.Send()
@@ -1424,8 +1438,8 @@ func (c *CloudWatchLogs) PutMetricFilterRequest(input *PutMetricFilterInput) (re
 // group. Metric filters allow you to configure rules to extract metric data
 // from log events ingested through PutLogEvents requests.
 //
-//  The maximum number of metric filters that can be associated with a log
-// group is 100.
+// The maximum number of metric filters that can be associated with a log group
+// is 100.
 func (c *CloudWatchLogs) PutMetricFilter(input *PutMetricFilterInput) (*PutMetricFilterOutput, error) {
 	req, out := c.PutMetricFilterRequest(input)
 	err := req.Send()
@@ -1530,17 +1544,22 @@ func (c *CloudWatchLogs) PutSubscriptionFilterRequest(input *PutSubscriptionFilt
 // Creates or updates a subscription filter and associates it with the specified
 // log group. Subscription filters allow you to subscribe to a real-time stream
 // of log events ingested through PutLogEvents requests and have them delivered
-// to a specific destination. Currently, the supported destinations are:   An
-// Amazon Kinesis stream belonging to the same account as the subscription filter,
-// for same-account delivery.   A logical destination (used via an ARN of Destination)
-// belonging to a different account, for cross-account delivery.   An Amazon
-// Kinesis Firehose stream belonging to the same account as the subscription
-// filter, for same-account delivery.   An AWS Lambda function belonging to
-// the same account as the subscription filter, for same-account delivery.
+// to a specific destination. Currently, the supported destinations are:
 //
+//   An Amazon Kinesis stream belonging to the same account as the subscription
+// filter, for same-account delivery.
 //
-//  Currently there can only be one subscription filter associated with a log
-// group.
+//    A logical destination (used via an ARN of Destination) belonging to a
+// different account, for cross-account delivery.
+//
+//   An Amazon Kinesis Firehose stream belonging to the same account as the
+// subscription filter, for same-account delivery.
+//
+//   An AWS Lambda function belonging to the same account as the subscription
+// filter, for same-account delivery.
+//
+//   Currently there can only be one subscription filter associated with a
+// log group.
 func (c *CloudWatchLogs) PutSubscriptionFilter(input *PutSubscriptionFilterInput) (*PutSubscriptionFilterOutput, error) {
 	req, out := c.PutSubscriptionFilterRequest(input)
 	err := req.Send()
@@ -1649,7 +1668,7 @@ type CreateExportTaskInput struct {
 
 	// Name of Amazon S3 bucket to which the log data will be exported.
 	//
-	// Note: Only buckets in the same AWS region are supported.
+	//  Note: Only buckets in the same AWS region are supported.
 	Destination *string `locationName:"destination" min:"1" type:"string" required:"true"`
 
 	// Prefix that will be used as the start of Amazon S3 key for every object exported.
@@ -3121,17 +3140,18 @@ func (s MetricFilterMatchRecord) GoString() string {
 type MetricTransformation struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the CloudWatch metric to which the monitored log information
-	// should be published. For example, you may publish to a metric called ErrorCount.
+	// (Optional) A default value to emit when a filter pattern does not match a
+	// log event. Can be null.
+	DefaultValue *float64 `locationName:"defaultValue" type:"double"`
+
+	// Name of the metric.
 	MetricName *string `locationName:"metricName" type:"string" required:"true"`
 
-	// The destination namespace of the new CloudWatch metric.
+	// Namespace to which the metric belongs.
 	MetricNamespace *string `locationName:"metricNamespace" type:"string" required:"true"`
 
-	// What to publish to the metric. For example, if you're counting the occurrences
-	// of a particular term like "Error", the value will be "1" for each occurrence.
-	// If you're counting the bytes transferred the published value will be the
-	// value in the log event.
+	// A string representing a value to publish to this metric when a filter pattern
+	// matches a log event.
 	MetricValue *string `locationName:"metricValue" type:"string" required:"true"`
 }
 
@@ -3195,7 +3215,7 @@ type PutDestinationInput struct {
 	DestinationName *string `locationName:"destinationName" min:"1" type:"string" required:"true"`
 
 	// The ARN of an IAM role that grants CloudWatch Logs permissions to do Amazon
-	// Kinesis PutRecord requests on the desitnation stream.
+	// Kinesis PutRecord requests on the destination stream.
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string" required:"true"`
 
 	// The ARN of an Amazon Kinesis stream to deliver matching log events to.
@@ -3544,11 +3564,17 @@ type PutSubscriptionFilterInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the destination to deliver matching log events to. Currently,
-	// the supported destinations are:   An Amazon Kinesis stream belonging to the
-	// same account as the subscription filter, for same-account delivery.   A logical
-	// destination (used via an ARN of Destination) belonging to a different account,
-	// for cross-account delivery.   An Amazon Kinesis Firehose stream belonging
-	// to the same account as the subscription filter, for same-account delivery.
+	// the supported destinations are:
+	//
+	//   An Amazon Kinesis stream belonging to the same account as the subscription
+	// filter, for same-account delivery.
+	//
+	//   A logical destination (used via an ARN of Destination) belonging to a
+	// different account, for cross-account delivery.
+	//
+	//   An Amazon Kinesis Firehose stream belonging to the same account as the
+	// subscription filter, for same-account delivery.
+	//
 	//   An AWS Lambda function belonging to the same account as the subscription
 	// filter, for same-account delivery.
 	DestinationArn *string `locationName:"destinationArn" min:"1" type:"string" required:"true"`
