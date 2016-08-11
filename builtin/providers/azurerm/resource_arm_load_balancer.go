@@ -22,11 +22,11 @@ func resourceArmLoadBalancer() *schema.Resource {
 				ForceNew: true,
 			},
 
-      "type": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-        ValidateFunc: validateArmLoadBalancerType,
+			"type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateArmLoadBalancerType,
 			},
 
 			"location": {
@@ -42,125 +42,123 @@ func resourceArmLoadBalancer() *schema.Resource {
 				ForceNew: true,
 			},
 
-      "frontend_ip_configuration": &schema.Schema{
-        Type:     schema.TypeSet,
-        Required: true,
-        Elem: &schema.Resource{
-          Schema: map[string]*schema.Schema{
-            "name": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
+			"frontend_ip_configuration": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
 
-            "private_ip_allocation_method": &schema.Schema{
-              Type:     schema.TypeString,
-              Optional: true,
-            },
+						"private_ip_allocation_method": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-            "private_ip_address": &schema.Schema{
-              Type:     schema.TypeString,
-              Optional: true,
-            },
+						"private_ip_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-            "subnet": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
+						"subnet": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 
-          },
-        },
+				Set: resourceArmLoadBalancerFrontEndIpConfigurationHash,
+			},
 
-        Set: resourceArmLoadBalancerFrontEndIpConfigurationHash,
-      },
+			"backend_address_pool": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceArmLoadBalancerBackendAddressPoolHash,
+			},
 
-      "backend_address_pool": &schema.Schema{
-        Type:     schema.TypeSet,
-        Required: true,
-        Elem: &schema.Resource{
-          Schema: map[string]*schema.Schema{
-            "name": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
+			"load_balancing_rule": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"frontend_ip_configuration": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"backend_address_pool": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"probe": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"protocol": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"frontend_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"backend_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"idle_timeout_in_minutes": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceArmLoadBalancerLoadBalancingRuleHash,
+			},
 
-          },
-        },
-        Set: resourceArmLoadBalancerBackendAddressPoolHash,
-      },
+			"probe": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"protocol": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"number_of_probes": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"interval_in_seconds": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceArmLoadBalancerProbeHash,
+			},
 
-      "load_balancing_rule": &schema.Schema{
-        Type:     schema.TypeSet,
-        Required: true,
-        Elem: &schema.Resource{
-          Schema: map[string]*schema.Schema{
-            "name": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
-            "frontend_ip_configuration": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
-            "backend_address_pool": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
-            "probe": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
-            "protocol": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
-            "frontend_port": &schema.Schema{
-              Type:     schema.TypeInt,
-              Required: true,
-            },
-            "backend_port": &schema.Schema{
-              Type:     schema.TypeInt,
-              Required: true,
-            },
-            "idle_timeout_in_minutes": &schema.Schema{
-              Type:     schema.TypeInt,
-              Required: true,
-            },
-          },
-        },
-        Set: resourceArmLoadBalancerLoadBalancingRuleHash,
-      },
-
-      "probe": &schema.Schema{
-        Type:     schema.TypeSet,
-        Required: true,
-        Elem: &schema.Resource{
-          Schema: map[string]*schema.Schema{
-            "name": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
-            "protocol": &schema.Schema{
-              Type:     schema.TypeString,
-              Required: true,
-            },
-            "port": &schema.Schema{
-              Type:     schema.TypeInt,
-              Required: true,
-            },
-            "number_of_probes": &schema.Schema{
-              Type:     schema.TypeInt,
-              Required: true,
-            },
-            "interval_in_seconds": &schema.Schema{
-              Type:     schema.TypeInt,
-              Required: true,
-            },
-          },
-        },
-        Set: resourceArmLoadBalancerProbeHash,
-      },
-
-      "tags": tagsSchema(),
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -168,9 +166,9 @@ func resourceArmLoadBalancer() *schema.Resource {
 func validateArmLoadBalancerType(v interface{}, k string) (ws []string, es []error) {
 	value := v.(string)
 
-  if (!strings.EqualFold(value, "internal") && !strings.EqualFold(value, "public")) {
-    es = append(es, fmt.Errorf("%q must be either Internal or Public", k))
-  }
+	if !strings.EqualFold(value, "internal") && !strings.EqualFold(value, "public") {
+		es = append(es, fmt.Errorf("%q must be either Internal or Public", k))
+	}
 
 	return
 }
@@ -233,7 +231,6 @@ Example:
 
 
 */
-
 
 /*
 type LoadBalancer struct {
@@ -311,36 +308,36 @@ type InboundNatRulePropertiesFormat struct {
 */
 
 func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) error {
-  lbClient := meta.(*ArmClient).loadBalancerClient
+	lbClient := meta.(*ArmClient).loadBalancerClient
 
 	name := d.Get("name").(string)
-  type := d.get("type").(string)
+	lbType := d.Get("type").(string)
 	location := d.Get("location").(string)
-  tags := d.Get("tags").(map[string]interface{})
+	tags := d.Get("tags").(map[string]interface{})
 
-  // TODO: Parse the following:
-  //  frontendIPConfigurations out to a []FrontendIPConfiguration
-  //  backendAddressPool out to a []BackendAddressPool
-  //  loadBalancingRules out to a []LoadBalancingRules
-  //  probes out to a []Probe
-  //  inboundNatRules out to a []InboundNatRule
-  //  inboundNatPools out to a []InboundNatPool
-  //  outboundNatRules out to a []OutboundNatRules
+	// TODO: Parse the following:
+	//  frontendIPConfigurations out to a []FrontendIPConfiguration
+	//  backendAddressPool out to a []BackendAddressPool
+	//  loadBalancingRules out to a []LoadBalancingRules
+	//  probes out to a []Probe
+	//  inboundNatRules out to a []InboundNatRule
+	//  inboundNatPools out to a []InboundNatPool
+	//  outboundNatRules out to a []OutboundNatRules
 
-  loadBalancer := network.LoadBalancer{
-    Name:     &name,
-    Type:     &type,
+	loadBalancer := network.LoadBalancer{
+		Name:     &name,
+		Type:     &lbType,
 		Location: &location,
-    Properties: LoadBalancerPropertiesFormat{
-      FrontendIPConfigurations: &frontendIPConfigurations,
-      BackendAddressPools: &backendAddressPool,
-      LoadBalancingRules: &loadBalancingRules,
-      Probes: &probes,
-      InboundNatRules: &inboundNatRules,
-      InboundNatPools: &inboundNatPools,
-    },
-    Tags: expandTags(tags),
-  }
+		Properties: LoadBalancerPropertiesFormat{
+			FrontendIPConfigurations: &frontendIPConfigurations,
+			BackendAddressPools:      &backendAddressPool,
+			LoadBalancingRules:       &loadBalancingRules,
+			Probes:                   &probes,
+			InboundNatRules:          &inboundNatRules,
+			InboundNatPools:          &inboundNatPools,
+		},
+		Tags: expandTags(tags),
+	}
 
 	_, err := lbClient.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
 	if err != nil {
@@ -410,7 +407,7 @@ func resourceArmLoadBalancerProbeHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["port"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["number_of_probes"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["interval_in_seconds"].(int))
+	buf.WriteString(fmt.Sprintf("%s-", m["interval_in_seconds"].(int)))
 
 	return hashcode.String(buf.String())
 }

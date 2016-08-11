@@ -22,7 +22,7 @@ func TestAccAzureRMLoadBalancer_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists(name),
 					resource.TestCheckResourceAttr(name, "type", "internal"),
-          // TODO: more
+					// TODO: more
 				),
 			},
 		},
@@ -42,7 +42,7 @@ func TestAccAzureRMLoadBalancer_internal(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists(name),
 					resource.TestCheckResourceAttr(name, "type", "internal"),
-          // TODO: more
+					// TODO: more
 				),
 			},
 		},
@@ -62,7 +62,7 @@ func TestAccAzureRMLoadBalancer_public(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists(name),
 					resource.TestCheckResourceAttr(name, "type", "public"),
-          // TODO: more
+					// TODO: more
 				),
 			},
 		},
@@ -143,7 +143,6 @@ resource "azurerm_load_balancer" "test" {
   }
 }
 `
-
 
 var testAccAzureRMLoadBalancerConfig_internal = `
 TODO: implement me
