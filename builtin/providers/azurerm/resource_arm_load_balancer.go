@@ -315,6 +315,31 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 	location := d.Get("location").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
+	loadBalancer := network.LoadBalancer{
+		Name:     &name,
+		Type:     &lbType,
+		Location: &location,
+		Properties: network.LoadBalancerPropertiesFormat{
+			//FrontendIPConfigurations: &frontendIPConfigurations,
+			//BackendAddressPools:      &backendAddressPool,
+			//LoadBalancingRules:       &loadBalancingRules,
+			//Probes:                   &probes,
+			//InboundNatRules:          &inboundNatRules,
+			//InboundNatPools:          &inboundNatPools,
+		},
+		Tags: expandTags(tags),
+	}
+
+	if _, ok := d.GetOk("frontend_ip_configuration"); ok {
+		frontendConfigs, frontendConfigsErr := expandAzureRmLoadBalancerFrontEndIPConfiguration(d)
+		if frontendConfigsErr != nil {
+			return fmt.Errorf("Error Building list of Frontend IP Configurations: %s", frontendConfigsErr)
+		}
+		if len(frontendConfigs) > 0 {
+			loadBalancer.Properties.FrontendIPConfigurations = &frontendConfigs
+		}
+	}
+
 	// TODO: Parse the following:
 	//  frontendIPConfigurations out to a []FrontendIPConfiguration
 	//  backendAddressPool out to a []BackendAddressPool
@@ -324,20 +349,7 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 	//  inboundNatPools out to a []InboundNatPool
 	//  outboundNatRules out to a []OutboundNatRules
 
-	loadBalancer := network.LoadBalancer{
-		Name:     &name,
-		Type:     &lbType,
-		Location: &location,
-		Properties: LoadBalancerPropertiesFormat{
-			FrontendIPConfigurations: &frontendIPConfigurations,
-			BackendAddressPools:      &backendAddressPool,
-			LoadBalancingRules:       &loadBalancingRules,
-			Probes:                   &probes,
-			InboundNatRules:          &inboundNatRules,
-			InboundNatPools:          &inboundNatPools,
-		},
-		Tags: expandTags(tags),
-	}
+
 
 	_, err := lbClient.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
 	if err != nil {
@@ -410,4 +422,38 @@ func resourceArmLoadBalancerProbeHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["interval_in_seconds"].(int)))
 
 	return hashcode.String(buf.String())
+}
+
+
+// Parsers
+func expandAzureRmLoadBalancerFrontEndIPConfiguration(d *schema.ResourceData) ([]network.FrontendIPConfiguration, error) {
+
+	configs := d.Get("frontend_ip_configuration").(*schema.Set).List()
+	configurations := make([]network.FrontendIPConfiguration, 0, len(configs))
+
+	for _, configRaw := range configs {
+		data := configRaw.(map[string]interface{})
+
+		private_ip_allocation_method := data["private_ip_allocation_method"].(string)
+		private_ip_address := data["private_ip_address"].(string)
+		subnet := data["subnet"].(string)
+
+		properties := network.FrontendIPConfigurationPropertiesFormat{
+			PrivateIPAddress: &private_ip_address,
+			PrivateIPAllocationMethod: &private_ip_allocation_method,
+			Subnet:	&subnet,
+			// TODO: Public LB's
+			// PublicIPAddress: &public_ip_address
+		}
+
+		name := data["name"].(string)
+		configuration := network.FrontendIPConfiguration{
+			Name:       &name,
+			Properties: &properties,
+		}
+
+		configurations = append(configurations, configuration)
+	}
+
+	return configurations, nil
 }
