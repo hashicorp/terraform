@@ -218,7 +218,7 @@ func TestAWSGetCredentials_shouldError(t *testing.T) {
 	defer resetEnv()
 	cfg := Config{}
 
-	c := GetCredentials(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
+	c := GetCredentials(&cfg)
 	_, err := c.Get()
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() != "NoCredentialProviders" {
@@ -251,7 +251,7 @@ func TestAWSGetCredentials_shouldBeStatic(t *testing.T) {
 			Token:     c.Token,
 		}
 
-		creds := GetCredentials(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
+		creds := GetCredentials(&cfg)
 		if creds == nil {
 			t.Fatalf("Expected a static creds provider to be returned")
 		}
@@ -286,7 +286,7 @@ func TestAWSGetCredentials_shouldIAM(t *testing.T) {
 	// An empty config, no key supplied
 	cfg := Config{}
 
-	creds := GetCredentials(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
+	creds := GetCredentials(&cfg)
 	if creds == nil {
 		t.Fatalf("Expected a static creds provider to be returned")
 	}
@@ -335,7 +335,7 @@ func TestAWSGetCredentials_shouldIgnoreIAM(t *testing.T) {
 			Token:     c.Token,
 		}
 
-		creds := GetCredentials(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
+		creds := GetCredentials(&cfg)
 		if creds == nil {
 			t.Fatalf("Expected a static creds provider to be returned")
 		}
@@ -362,7 +362,7 @@ func TestAWSGetCredentials_shouldErrorWithInvalidEndpoint(t *testing.T) {
 	ts := invalidAwsEnv(t)
 	defer ts()
 
-	creds := GetCredentials("", "", "", "", "")
+	creds := GetCredentials(&Config{})
 	v, err := creds.Get()
 	if err == nil {
 		t.Fatal("Expected error returned when getting creds w/ invalid EC2 endpoint")
@@ -380,7 +380,7 @@ func TestAWSGetCredentials_shouldIgnoreInvalidEndpoint(t *testing.T) {
 	ts := invalidAwsEnv(t)
 	defer ts()
 
-	creds := GetCredentials("accessKey", "secretKey", "", "", "")
+	creds := GetCredentials(&Config{AccessKey: "accessKey", SecretKey: "secretKey"})
 	v, err := creds.Get()
 	if err != nil {
 		t.Fatalf("Getting static credentials w/ invalid EC2 endpoint failed: %s", err)
@@ -406,7 +406,7 @@ func TestAWSGetCredentials_shouldCatchEC2RoleProvider(t *testing.T) {
 	ts := awsEnv(t)
 	defer ts()
 
-	creds := GetCredentials("", "", "", "", "")
+	creds := GetCredentials(&Config{})
 	if creds == nil {
 		t.Fatalf("Expected an EC2Role creds provider to be returned")
 	}
@@ -452,7 +452,7 @@ func TestAWSGetCredentials_shouldBeShared(t *testing.T) {
 		t.Fatalf("Error resetting env var AWS_SHARED_CREDENTIALS_FILE: %s", err)
 	}
 
-	creds := GetCredentials("", "", "", "myprofile", file.Name())
+	creds := GetCredentials(&Config{Profile: "myprofile", CredsFilename: file.Name()})
 	if creds == nil {
 		t.Fatalf("Expected a provider chain to be returned")
 	}
@@ -479,7 +479,7 @@ func TestAWSGetCredentials_shouldBeENV(t *testing.T) {
 	defer resetEnv()
 
 	cfg := Config{}
-	creds := GetCredentials(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
+	creds := GetCredentials(&cfg)
 	if creds == nil {
 		t.Fatalf("Expected a static creds provider to be returned")
 	}
