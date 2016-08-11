@@ -331,7 +331,7 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if _, ok := d.GetOk("frontend_ip_configuration"); ok {
-		frontendConfigs, frontendConfigsErr := expandAzureRmLoadBalancerFrontEndIPConfiguration(d)
+		frontendConfigs, frontendConfigsErr := expandAzureRmLoadBalancerFrontendIPConfiguration(d)
 		if frontendConfigsErr != nil {
 			return fmt.Errorf("Error Building list of Frontend IP Configurations: %s", frontendConfigsErr)
 		}
@@ -340,9 +340,21 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	// TODO: Parse the following:
+	if _, ok := d.GetOk("backend_address_pool"); ok {
+		backendAddressPools, backendAddressPoolsErr := expandAzureRmLoadBalancerBackendAddressPoolsConfiguration(d)
+		if backendAddressPoolsErr != nil {
+			return fmt.Errorf("Error Building list of Backend Address Pools: %s", backendAddressPoolsErr)
+		}
+		if len(backendAddressPools) > 0 {
+			loadBalancer.Properties.BackendAddressPools = &backendAddressPools
+		}
+	}
+
+	// DONE:
 	//  frontendIPConfigurations out to a []FrontendIPConfiguration
 	//  backendAddressPool out to a []BackendAddressPool
+
+	// TODO: Parse the following:
 	//  loadBalancingRules out to a []LoadBalancingRules
 	//  probes out to a []Probe
 	//  inboundNatRules out to a []InboundNatRule
@@ -426,7 +438,7 @@ func resourceArmLoadBalancerProbeHash(v interface{}) int {
 
 
 // Parsers
-func expandAzureRmLoadBalancerFrontEndIPConfiguration(d *schema.ResourceData) ([]network.FrontendIPConfiguration, error) {
+func expandAzureRmLoadBalancerFrontendIPConfiguration(d *schema.ResourceData) ([]network.FrontendIPConfiguration, error) {
 
 	configs := d.Get("frontend_ip_configuration").(*schema.Set).List()
 	configurations := make([]network.FrontendIPConfiguration, 0, len(configs))
@@ -456,4 +468,23 @@ func expandAzureRmLoadBalancerFrontEndIPConfiguration(d *schema.ResourceData) ([
 	}
 
 	return configurations, nil
+}
+
+func expandAzureRmLoadBalancerBackendAddressPoolsConfiguration(d *schema.ResourceData) ([]network.BackendAddressPool, error) {
+
+	configs := d.Get("backend_address_pool").(*schema.Set).List()
+	pools := make([]network.BackendAddressPool, 0, len(configs))
+
+	for _, configRaw := range configs {
+		data := configRaw.(map[string]interface{})
+
+		name := data["name"].(string)
+		pool := network.BackendAddressPool{
+			Name: &name,
+		}
+
+		pools = append(pools, pool)
+	}
+
+	return pools, nil
 }
