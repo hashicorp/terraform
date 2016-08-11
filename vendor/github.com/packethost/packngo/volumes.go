@@ -56,7 +56,7 @@ type VolumeCreateRequest struct {
 	ProjectID        string            `json:"project_id"`
 	PlanID           string            `json:"plan_id"`
 	FacilityID       string            `json:"facility_id"`
-	Description      string            `json:"Description,omitempty"`
+	Description      string            `json:"description,omitempty"`
 	SnapshotPolicies []*SnapshotPolicy `json:"snapshot_policies,omitempty"`
 }
 
@@ -82,7 +82,7 @@ type VolumeServiceOp struct {
 
 // Get returns a volume by id
 func (v *VolumeServiceOp) Get(volumeID string) (*Volume, *Response, error) {
-	path := fmt.Sprintf("%s/%s?include=facility", volumeBasePath, volumeID)
+	path := fmt.Sprintf("%s/%s?include=facility,snapshot_policies,attachments.device", volumeBasePath, volumeID)
 	req, err := v.client.NewRequest("GET", path, nil)
 	if err != nil {
 		return nil, nil, err
