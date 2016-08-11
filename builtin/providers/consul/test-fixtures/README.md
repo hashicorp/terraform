@@ -8,42 +8,14 @@ with HTTPS enabled with TLS certificates.
 
 ### Test fixtures
 
-<table>
-    <thead>
-        <th>File</th>
-        <th>Description</th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>`agent.json.example`</td>
-            <td>Configures the Consul agent to respond to HTTPS requests,
-                and verifies the authenticity of HTTPS requests</td>
-        </tr>
-        <tr>
-            <td>`agentcert.pem`</td>
-            <td>A PEM-encoded certificate used by the Consul agent,
-                valid only for 127.0.0.1 signed by `cacert.pem`,
-                expires 2026</td>
-        </tr>
-        <tr>
-            <td>`agentkey.pem`</td>
-            <td>A PEM-encoded private key used by the Consul agent</td>
-        </tr>
-        <tr>
-            <td>`cacert.pem`</td>
-            <td>A PEM-encoded Certificate Authority, expires 2036</td>
-        </tr>
-        <tr>
-            <td>`usercert.pem`</td>
-            <td>A PEM-encoded certificate used by the Terraform acceptance tests,
-                signed by `cacert.pem`, expires 2026</td>
-        </tr>
-        <tr>
-            <td>`userkey.pem`</td>
-            <td>A PEM-encoded private key used by the Terraform acceptance tests</td>
-        </tr>
-    </tbody>
-</table>
+File | Description
+--- | ---
+`agent.json.example` | Configures the Consul agent to respond to HTTPS requests, and verifies the authenticity of HTTPS requests
+`agentcert.pem` | A PEM-encoded certificate used by the Consul agent, valid only for 127.0.0.1 signed by `cacert.pem`, expires 2026
+`agentkey.pem` | A PEM-encoded private key used by the Consul agent
+`cacert.pem` | A PEM-encoded Certificate Authority, expires 2036
+`usercert.pem` | A PEM-encoded certificate used by the Terraform acceptance tests, signed by `cacert.pem`, expires 2026
+`userkey.pem` | A PEM-encoded private key used by the Terraform acceptance tests
 
 ### Start
 
