@@ -351,6 +351,65 @@ func (c *KMS) DeleteAlias(input *DeleteAliasInput) (*DeleteAliasOutput, error) {
 	return out, err
 }
 
+const opDeleteImportedKeyMaterial = "DeleteImportedKeyMaterial"
+
+// DeleteImportedKeyMaterialRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteImportedKeyMaterial operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteImportedKeyMaterial method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteImportedKeyMaterialRequest method.
+//    req, resp := client.DeleteImportedKeyMaterialRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *KMS) DeleteImportedKeyMaterialRequest(input *DeleteImportedKeyMaterialInput) (req *request.Request, output *DeleteImportedKeyMaterialOutput) {
+	op := &request.Operation{
+		Name:       opDeleteImportedKeyMaterial,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteImportedKeyMaterialInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &DeleteImportedKeyMaterialOutput{}
+	req.Data = output
+	return
+}
+
+// Deletes key material that you previously imported and makes the specified
+// customer master key (CMK) unusable. For more information about importing
+// key material into AWS KMS, see Importing Key Material (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
+// in the AWS Key Management Service Developer Guide.
+//
+// When the specified CMK is in the PendingDeletion state, this operation does
+// not change the CMK's state. Otherwise, it changes the CMK's state to PendingImport.
+//
+// After you delete key material, you can use ImportKeyMaterial to reimport
+// the same key material into the CMK.
+func (c *KMS) DeleteImportedKeyMaterial(input *DeleteImportedKeyMaterialInput) (*DeleteImportedKeyMaterialOutput, error) {
+	req, out := c.DeleteImportedKeyMaterialRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeKey = "DescribeKey"
 
 // DescribeKeyRequest generates a "aws/request.Request" representing the
@@ -942,6 +1001,138 @@ func (c *KMS) GetKeyRotationStatusRequest(input *GetKeyRotationStatusInput) (req
 // for the specified key.
 func (c *KMS) GetKeyRotationStatus(input *GetKeyRotationStatusInput) (*GetKeyRotationStatusOutput, error) {
 	req, out := c.GetKeyRotationStatusRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetParametersForImport = "GetParametersForImport"
+
+// GetParametersForImportRequest generates a "aws/request.Request" representing the
+// client's request for the GetParametersForImport operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetParametersForImport method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetParametersForImportRequest method.
+//    req, resp := client.GetParametersForImportRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *KMS) GetParametersForImportRequest(input *GetParametersForImportInput) (req *request.Request, output *GetParametersForImportOutput) {
+	op := &request.Operation{
+		Name:       opGetParametersForImport,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetParametersForImportInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetParametersForImportOutput{}
+	req.Data = output
+	return
+}
+
+// Returns the items you need in order to import key material into AWS KMS from
+// your existing key management infrastructure. For more information about importing
+// key material into AWS KMS, see Importing Key Material (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
+// in the AWS Key Management Service Developer Guide.
+//
+// You must specify the key ID of the customer master key (CMK) into which
+// you will import key material. This CMK's Origin must be EXTERNAL. You must
+// also specify the wrapping algorithm and type of wrapping key (public key)
+// that you will use to encrypt the key material.
+//
+// This operation returns a public key and an import token. Use the public
+// key to encrypt the key material. Store the import token to send with a subsequent
+// ImportKeyMaterial request. The public key and import token from the same
+// response must be used together. These items are valid for 24 hours, after
+// which they cannot be used for a subsequent ImportKeyMaterial request. To
+// retrieve new ones, send another GetParametersForImport request.
+func (c *KMS) GetParametersForImport(input *GetParametersForImportInput) (*GetParametersForImportOutput, error) {
+	req, out := c.GetParametersForImportRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opImportKeyMaterial = "ImportKeyMaterial"
+
+// ImportKeyMaterialRequest generates a "aws/request.Request" representing the
+// client's request for the ImportKeyMaterial operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportKeyMaterial method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportKeyMaterialRequest method.
+//    req, resp := client.ImportKeyMaterialRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *KMS) ImportKeyMaterialRequest(input *ImportKeyMaterialInput) (req *request.Request, output *ImportKeyMaterialOutput) {
+	op := &request.Operation{
+		Name:       opImportKeyMaterial,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ImportKeyMaterialInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ImportKeyMaterialOutput{}
+	req.Data = output
+	return
+}
+
+// Imports key material into an AWS KMS customer master key (CMK) from your
+// existing key management infrastructure. For more information about importing
+// key material into AWS KMS, see Importing Key Material (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
+// in the AWS Key Management Service Developer Guide.
+//
+// You must specify the key ID of the CMK to import the key material into.
+// This CMK's Origin must be EXTERNAL. You must also send an import token and
+// the encrypted key material. Send the import token that you received in the
+// same GetParametersForImport response that contained the public key that you
+// used to encrypt the key material. You must also specify whether the key material
+// expires and if so, when. When the key material expires, AWS KMS deletes the
+// key material and the CMK becomes unusable. To use the CMK again, you can
+// reimport the same key material. If you set an expiration date, you can change
+// it only by reimporting the same key material and specifying a new expiration
+// date.
+//
+// When this operation is successful, the specified CMK's key state changes
+// to Enabled, and you can use the CMK.
+//
+// After you successfully import key material into a CMK, you can reimport
+// the same key material into that CMK, but you cannot import different key
+// material.
+func (c *KMS) ImportKeyMaterial(input *ImportKeyMaterialInput) (*ImportKeyMaterialOutput, error) {
+	req, out := c.ImportKeyMaterialRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -2043,9 +2234,22 @@ type CreateKeyInput struct {
 	// You can use CMKs only for symmetric encryption and decryption.
 	KeyUsage *string `type:"string" enum:"KeyUsageType"`
 
+	// The source of the CMK's key material.
+	//
+	// The default is AWS_KMS, which means AWS KMS creates the key material. When
+	// this parameter is set to EXTERNAL, the request creates a CMK without key
+	// material so that you can import key material from your existing key management
+	// infrastructure. For more information about importing key material into AWS
+	// KMS, see Importing Key Material (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
+	// in the AWS Key Management Service Developer Guide.
+	//
+	// The CMK's Origin is immutable and is set when the CMK is created.
+	Origin *string `type:"string" enum:"OriginType"`
+
 	// The key policy to attach to the CMK.
 	//
-	// If you specify a key policy, it must meet the following criteria:
+	// If you specify a policy and do not set BypassPolicyLockoutSafetyCheck to
+	// true, the policy must meet the following criteria:
 	//
 	//   It must allow the principal making the CreateKey request to make a subsequent
 	// PutKeyPolicy request on the CMK. This reduces the likelihood that the CMK
@@ -2224,6 +2428,61 @@ func (s DeleteAliasOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteAliasOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteImportedKeyMaterialInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the CMK whose key material to delete. The CMK's Origin
+	// must be EXTERNAL.
+	//
+	// A valid identifier is the unique key ID or the Amazon Resource Name (ARN)
+	// of the CMK. Examples:
+	//
+	//   Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	KeyId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteImportedKeyMaterialInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteImportedKeyMaterialInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteImportedKeyMaterialInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteImportedKeyMaterialInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DeleteImportedKeyMaterialOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteImportedKeyMaterialOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteImportedKeyMaterialOutput) GoString() string {
 	return s.String()
 }
 
@@ -2955,6 +3214,97 @@ func (s GetKeyRotationStatusOutput) GoString() string {
 	return s.String()
 }
 
+type GetParametersForImportInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the CMK into which you will import key material. The CMK's
+	// Origin must be EXTERNAL.
+	//
+	// A valid identifier is the unique key ID or the Amazon Resource Name (ARN)
+	// of the CMK. Examples:
+	//
+	//   Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	KeyId *string `min:"1" type:"string" required:"true"`
+
+	// The algorithm you will use to encrypt the key material before importing it
+	// with ImportKeyMaterial. For more information, see Encrypt the Key Material
+	// (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys-encrypt-key-material.html)
+	// in the AWS Key Management Service Developer Guide.
+	WrappingAlgorithm *string `type:"string" required:"true" enum:"AlgorithmSpec"`
+
+	// The type of wrapping key (public key) to return in the response. Only 2048-bit
+	// RSA public keys are supported.
+	WrappingKeySpec *string `type:"string" required:"true" enum:"WrappingKeySpec"`
+}
+
+// String returns the string representation
+func (s GetParametersForImportInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetParametersForImportInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetParametersForImportInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetParametersForImportInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.WrappingAlgorithm == nil {
+		invalidParams.Add(request.NewErrParamRequired("WrappingAlgorithm"))
+	}
+	if s.WrappingKeySpec == nil {
+		invalidParams.Add(request.NewErrParamRequired("WrappingKeySpec"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type GetParametersForImportOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The import token to send in a subsequent ImportKeyMaterial request.
+	//
+	// ImportToken is automatically base64 encoded/decoded by the SDK.
+	ImportToken []byte `min:"1" type:"blob"`
+
+	// The identifier of the CMK to use in a subsequent ImportKeyMaterial request.
+	// This is the same CMK specified in the GetParametersForImport request.
+	KeyId *string `min:"1" type:"string"`
+
+	// The time at which the import token and public key are no longer valid. After
+	// this time, you cannot use them to make an ImportKeyMaterial request and you
+	// must send another GetParametersForImport request to retrieve new ones.
+	ParametersValidTo *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The public key to use to encrypt the key material before importing it with
+	// ImportKeyMaterial.
+	//
+	// PublicKey is automatically base64 encoded/decoded by the SDK.
+	PublicKey []byte `min:"1" type:"blob"`
+}
+
+// String returns the string representation
+func (s GetParametersForImportOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetParametersForImportOutput) GoString() string {
+	return s.String()
+}
+
 // A structure for specifying the conditions under which the operations permitted
 // by the grant are allowed.
 //
@@ -3034,6 +3384,101 @@ func (s GrantListEntry) GoString() string {
 	return s.String()
 }
 
+type ImportKeyMaterialInput struct {
+	_ struct{} `type:"structure"`
+
+	// The encrypted key material to import. It must be encrypted with the public
+	// key that you received in the response to a previous GetParametersForImport
+	// request, using the wrapping algorithm that you specified in that request.
+	//
+	// EncryptedKeyMaterial is automatically base64 encoded/decoded by the SDK.
+	EncryptedKeyMaterial []byte `min:"1" type:"blob" required:"true"`
+
+	// Specifies whether the key material expires. The default is KEY_MATERIAL_EXPIRES,
+	// in which case you must include the ValidTo parameter. When this parameter
+	// is set to KEY_MATERIAL_DOES_NOT_EXPIRE, you must omit the ValidTo parameter.
+	ExpirationModel *string `type:"string" enum:"ExpirationModelType"`
+
+	// The import token that you received in the response to a previous GetParametersForImport
+	// request. It must be from the same response that contained the public key
+	// that you used to encrypt the key material.
+	//
+	// ImportToken is automatically base64 encoded/decoded by the SDK.
+	ImportToken []byte `min:"1" type:"blob" required:"true"`
+
+	// The identifier of the CMK to import the key material into. The CMK's Origin
+	// must be EXTERNAL.
+	//
+	// A valid identifier is the unique key ID or the Amazon Resource Name (ARN)
+	// of the CMK. Examples:
+	//
+	//   Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	KeyId *string `min:"1" type:"string" required:"true"`
+
+	// The time at which the imported key material expires. When the key material
+	// expires, AWS KMS deletes the key material and the CMK becomes unusable. You
+	// must omit this parameter when the ExpirationModel parameter is set to KEY_MATERIAL_DOES_NOT_EXPIRE.
+	// Otherwise it is required.
+	ValidTo *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+}
+
+// String returns the string representation
+func (s ImportKeyMaterialInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportKeyMaterialInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ImportKeyMaterialInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ImportKeyMaterialInput"}
+	if s.EncryptedKeyMaterial == nil {
+		invalidParams.Add(request.NewErrParamRequired("EncryptedKeyMaterial"))
+	}
+	if s.EncryptedKeyMaterial != nil && len(s.EncryptedKeyMaterial) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EncryptedKeyMaterial", 1))
+	}
+	if s.ImportToken == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImportToken"))
+	}
+	if s.ImportToken != nil && len(s.ImportToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImportToken", 1))
+	}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.ValidTo == nil {
+		invalidParams.Add(request.NewErrParamRequired("ValidTo"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type ImportKeyMaterialOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s ImportKeyMaterialOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportKeyMaterialOutput) GoString() string {
+	return s.String()
+}
+
 // Contains information about each entry in the key list.
 type KeyListEntry struct {
 	_ struct{} `type:"structure"`
@@ -3062,43 +3507,58 @@ func (s KeyListEntry) GoString() string {
 type KeyMetadata struct {
 	_ struct{} `type:"structure"`
 
-	// The twelve-digit account ID of the AWS account that owns the key.
+	// The twelve-digit account ID of the AWS account that owns the CMK.
 	AWSAccountId *string `type:"string"`
 
-	// The Amazon Resource Name (ARN) of the key. For examples, see AWS Key Management
+	// The Amazon Resource Name (ARN) of the CMK. For examples, see AWS Key Management
 	// Service (AWS KMS) (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-kms)
 	// in the Example ARNs section of the AWS General Reference.
 	Arn *string `min:"20" type:"string"`
 
-	// The date and time when the key was created.
+	// The date and time when the CMK was created.
 	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// The date and time after which AWS KMS deletes the customer master key (CMK).
-	// This value is present only when KeyState is PendingDeletion, otherwise this
-	// value is null.
+	// The date and time after which AWS KMS deletes the CMK. This value is present
+	// only when KeyState is PendingDeletion, otherwise this value is omitted.
 	DeletionDate *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// The friendly description of the key.
+	// The description of the CMK.
 	Description *string `type:"string"`
 
-	// Specifies whether the key is enabled. When KeyState is Enabled this value
+	// Specifies whether the CMK is enabled. When KeyState is Enabled this value
 	// is true, otherwise it is false.
 	Enabled *bool `type:"boolean"`
 
-	// The globally unique identifier for the key.
+	// Specifies whether the CMK's key material expires. This value is present only
+	// when Origin is EXTERNAL, otherwise this value is omitted.
+	ExpirationModel *string `type:"string" enum:"ExpirationModelType"`
+
+	// The globally unique identifier for the CMK.
 	KeyId *string `min:"1" type:"string" required:"true"`
 
-	// The state of the customer master key (CMK).
+	// The state of the CMK.
 	//
 	// For more information about how key state affects the use of a CMK, see How
 	// Key State Affects the Use of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
 	// in the AWS Key Management Service Developer Guide.
 	KeyState *string `type:"string" enum:"KeyState"`
 
-	// The cryptographic operations for which you can use the key. Currently the
-	// only allowed value is ENCRYPT_DECRYPT, which means you can use the key for
+	// The cryptographic operations for which you can use the CMK. Currently the
+	// only allowed value is ENCRYPT_DECRYPT, which means you can use the CMK for
 	// the Encrypt and Decrypt operations.
 	KeyUsage *string `type:"string" enum:"KeyUsageType"`
+
+	// The source of the CMK's key material. When this value is AWS_KMS, AWS KMS
+	// created the key material. When this value is EXTERNAL, the key material was
+	// imported from your existing key management infrastructure or the CMK lacks
+	// key material.
+	Origin *string `type:"string" enum:"OriginType"`
+
+	// The time at which the imported key material expires. When the key material
+	// expires, AWS KMS deletes the key material and the CMK becomes unusable. This
+	// value is present only for CMKs whose Origin is EXTERNAL and whose ExpirationModel
+	// is KEY_MATERIAL_EXPIRES, otherwise this value is omitted.
+	ValidTo *time.Time `type:"timestamp" timestampFormat:"unix"`
 }
 
 // String returns the string representation
@@ -3510,7 +3970,8 @@ type PutKeyPolicyInput struct {
 
 	// The key policy to attach to the CMK.
 	//
-	// The key policy must meet the following criteria:
+	// If you do not set BypassPolicyLockoutSafetyCheck to true, the policy must
+	// meet the following criteria:
 	//
 	//   It must allow the principal making the PutKeyPolicy request to make a
 	// subsequent PutKeyPolicy request on the CMK. This reduces the likelihood that
@@ -4007,10 +4468,26 @@ func (s UpdateKeyDescriptionOutput) GoString() string {
 }
 
 const (
+	// @enum AlgorithmSpec
+	AlgorithmSpecRsaesPkcs1V15 = "RSAES_PKCS1_V1_5"
+	// @enum AlgorithmSpec
+	AlgorithmSpecRsaesOaepSha1 = "RSAES_OAEP_SHA_1"
+	// @enum AlgorithmSpec
+	AlgorithmSpecRsaesOaepSha256 = "RSAES_OAEP_SHA_256"
+)
+
+const (
 	// @enum DataKeySpec
 	DataKeySpecAes256 = "AES_256"
 	// @enum DataKeySpec
 	DataKeySpecAes128 = "AES_128"
+)
+
+const (
+	// @enum ExpirationModelType
+	ExpirationModelTypeKeyMaterialExpires = "KEY_MATERIAL_EXPIRES"
+	// @enum ExpirationModelType
+	ExpirationModelTypeKeyMaterialDoesNotExpire = "KEY_MATERIAL_DOES_NOT_EXPIRE"
 )
 
 const (
@@ -4041,9 +4518,23 @@ const (
 	KeyStateDisabled = "Disabled"
 	// @enum KeyState
 	KeyStatePendingDeletion = "PendingDeletion"
+	// @enum KeyState
+	KeyStatePendingImport = "PendingImport"
 )
 
 const (
 	// @enum KeyUsageType
 	KeyUsageTypeEncryptDecrypt = "ENCRYPT_DECRYPT"
+)
+
+const (
+	// @enum OriginType
+	OriginTypeAwsKms = "AWS_KMS"
+	// @enum OriginType
+	OriginTypeExternal = "EXTERNAL"
+)
+
+const (
+	// @enum WrappingKeySpec
+	WrappingKeySpecRsa2048 = "RSA_2048"
 )

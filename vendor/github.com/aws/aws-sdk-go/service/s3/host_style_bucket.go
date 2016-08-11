@@ -37,6 +37,14 @@ var accelerateOpBlacklist = operationBlacklist{
 func updateEndpointForS3Config(r *request.Request) {
 	forceHostStyle := aws.BoolValue(r.Config.S3ForcePathStyle)
 	accelerate := aws.BoolValue(r.Config.S3UseAccelerate)
+	useDualStack := aws.BoolValue(r.Config.UseDualStack)
+
+	if useDualStack && accelerate {
+		r.Error = awserr.New("InvalidParameterException",
+			fmt.Sprintf("configuration aws.Config.UseDualStack is not compatible with aws.Config.Accelerate"),
+			nil)
+		return
+	}
 
 	if accelerate && accelerateOpBlacklist.Continue(r) {
 		if forceHostStyle {
