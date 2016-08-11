@@ -182,16 +182,16 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 	tags := d.Get("tags").(map[string]interface{})
 
 	loadBalancer := network.LoadBalancer{
-		Name:     &name,
-		Type:     &lbType,
-		Location: &location,
+		Name:       &name,
+		Type:       &lbType,
+		Location:   &location,
 		Properties: network.LoadBalancerPropertiesFormat{
-			//FrontendIPConfigurations: &frontendIPConfigurations,
-			//BackendAddressPools:      &backendAddressPool,
-			//LoadBalancingRules:       &loadBalancingRules,
-			//Probes:                   &probes,
-			//InboundNatRules:          &inboundNatRules,
-			//InboundNatPools:          &inboundNatPools,
+		//FrontendIPConfigurations: &frontendIPConfigurations,
+		//BackendAddressPools:      &backendAddressPool,
+		//LoadBalancingRules:       &loadBalancingRules,
+		//Probes:                   &probes,
+		//InboundNatRules:          &inboundNatRules,
+		//InboundNatPools:          &inboundNatPools,
 		},
 		Tags: expandTags(tags),
 	}
@@ -309,7 +309,6 @@ func resourceArmLoadBalancerProbeHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-
 // Parsers
 func expandAzureRmLoadBalancerFrontendIPConfiguration(d *schema.ResourceData) ([]network.FrontendIPConfiguration, error) {
 
@@ -324,9 +323,9 @@ func expandAzureRmLoadBalancerFrontendIPConfiguration(d *schema.ResourceData) ([
 		subnet := data["subnet"].(string)
 
 		properties := network.FrontendIPConfigurationPropertiesFormat{
-			PrivateIPAddress: &private_ip_address,
+			PrivateIPAddress:          &private_ip_address,
 			PrivateIPAllocationMethod: &private_ip_allocation_method,
-			Subnet:	&subnet,
+			Subnet: &subnet,
 			// TODO: Public LB's
 			// PublicIPAddress: &public_ip_address
 		}
@@ -375,10 +374,10 @@ func expandAzureRmLoadBalancingRule(d *schema.ResourceData) ([]network.LoadBalan
 		backendPort := data["backend_port"].(int32)
 
 		properties := network.LoadBalancingRulePropertiesFormat{
-			Protocol: &protocol,
+			Protocol:         &protocol,
 			LoadDistribution: &loadDistribution,
-			FrontendPort: &frontendPort,
-			BackendPort: &backendPort,
+			FrontendPort:     &frontendPort,
+			BackendPort:      &backendPort,
 		}
 
 		if v, ok := d.GetOk("idle_timeout_in_minutes"); ok {
@@ -416,10 +415,10 @@ func expandAzureRmLoadBalancingProbe(d *schema.ResourceData) ([]network.Probe, e
 		numberOfProbes := data["number_of_probes"].(int32)
 
 		properties := network.ProbePropertiesFormat{
-			Protocol: &protocol,
-			Port: &port,
+			Protocol:          &protocol,
+			Port:              &port,
 			IntervalInSeconds: &intervalInSeconds,
-			NumberOfProbes: &numberOfProbes,
+			NumberOfProbes:    &numberOfProbes,
 		}
 
 		name := data["name"].(string)
