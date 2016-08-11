@@ -8,17 +8,13 @@ import (
 )
 
 type Config struct {
-	Datacenter string     `mapstructure:"datacenter"`
-	Address    string     `mapstructure:"address"`
-	Scheme     string     `mapstructure:"scheme"`
-	TLS        *TLSConfig `mapstructure:"tls"`
-	Token      string     `mapstructure:"token"`
-}
-
-type TLSConfig struct {
-	CAFile   string `mapstructure:"ca_file"`
-	CertFile string `mapstructure:"cert_file"`
-	KeyFile  string `mapstructure:"key_file"`
+	Datacenter string `mapstructure:"datacenter"`
+	Address    string `mapstructure:"address"`
+	Scheme     string `mapstructure:"scheme"`
+	Token      string `mapstructure:"token"`
+	CAFile     string `mapstructure:"ca_file"`
+	CertFile   string `mapstructure:"cert_file"`
+	KeyFile    string `mapstructure:"key_file"`
 }
 
 // Client() returns a new client for accessing consul.
@@ -35,23 +31,15 @@ func (c *Config) Client() (*consulapi.Client, error) {
 		config.Scheme = c.Scheme
 	}
 
-	if c.TLS != nil {
-		tlsConfig := &consulapi.TLSConfig{}
-		if c.TLS.CAFile != "" {
-			tlsConfig.CAFile = c.TLS.CAFile
-		}
-		if c.TLS.CertFile != "" {
-			tlsConfig.CertFile = c.TLS.CertFile
-		}
-		if c.TLS.KeyFile != "" {
-			tlsConfig.KeyFile = c.TLS.KeyFile
-		}
-		cc, err := consulapi.SetupTLSConfig(tlsConfig)
-		if err != nil {
-			return nil, err
-		}
-		config.HttpClient.Transport.(*http.Transport).TLSClientConfig = cc
+	tlsConfig := &consulapi.TLSConfig{}
+	tlsConfig.CAFile = c.CAFile
+	tlsConfig.CertFile = c.CertFile
+	tlsConfig.KeyFile = c.KeyFile
+	cc, err := consulapi.SetupTLSConfig(tlsConfig)
+	if err != nil {
+		return nil, err
 	}
+	config.HttpClient.Transport.(*http.Transport).TLSClientConfig = cc
 
 	if c.Token != "" {
 		config.Token = c.Token

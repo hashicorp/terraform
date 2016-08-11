@@ -20,32 +20,34 @@ func Provider() terraform.ResourceProvider {
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CONSUL_ADDRESS",
+					"CONSUL_HTTP_ADDR",
+				}, nil),
 			},
 
 			"scheme": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_SCHEME", nil),
 			},
 
-			"tls": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"ca_file": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"cert_file": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"key_file": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-					},
-				},
+			"ca_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CA_FILE", nil),
+			},
+
+			"cert_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CERT_FILE", nil),
+			},
+
+			"key_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_KEY_FILE", nil),
 			},
 
 			"token": &schema.Schema{
