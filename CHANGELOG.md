@@ -6,6 +6,7 @@ FEATURES:
  * **New Resource:** `aws_load_balancer_policy` [GH-7458]
  * **New Resource:** `aws_load_balancer_backend_server_policy` [GH-7458]
  * **New Resource:** `aws_load_balancer_listener_policy` [GH-7458]
+ * **New Resource:** `aws_lb_ssl_negotiation_policy` [GH-8084]
  * **New Data Source:** `aws_ip_ranges` [GH-7984]
  * **New Data Source:** `fastly_ip_ranges` [GH-7984]
 
