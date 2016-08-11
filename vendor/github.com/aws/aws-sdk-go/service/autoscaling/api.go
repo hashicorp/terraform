@@ -63,11 +63,71 @@ func (c *AutoScaling) AttachInstancesRequest(input *AttachInstancesInput) (req *
 // being attached plus the desired capacity of the group exceeds the maximum
 // size of the group, the operation fails.
 //
+// If there is a Classic load balancer attached to your Auto Scaling group,
+// the instances are also registered with the load balancer. If there are target
+// groups attached to your Auto Scaling group, the instances are also registered
+// with the target groups.
+//
 // For more information, see Attach EC2 Instances to Your Auto Scaling Group
 // (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/attach-instance-asg.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) AttachInstances(input *AttachInstancesInput) (*AttachInstancesOutput, error) {
 	req, out := c.AttachInstancesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opAttachLoadBalancerTargetGroups = "AttachLoadBalancerTargetGroups"
+
+// AttachLoadBalancerTargetGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the AttachLoadBalancerTargetGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachLoadBalancerTargetGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachLoadBalancerTargetGroupsRequest method.
+//    req, resp := client.AttachLoadBalancerTargetGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *AutoScaling) AttachLoadBalancerTargetGroupsRequest(input *AttachLoadBalancerTargetGroupsInput) (req *request.Request, output *AttachLoadBalancerTargetGroupsOutput) {
+	op := &request.Operation{
+		Name:       opAttachLoadBalancerTargetGroups,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AttachLoadBalancerTargetGroupsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &AttachLoadBalancerTargetGroupsOutput{}
+	req.Data = output
+	return
+}
+
+// Attaches one or more target groups to the specified Auto Scaling group.
+//
+// To describe the target groups for an Auto Scaling group, use DescribeLoadBalancerTargetGroups.
+// To detach the target group from the Auto Scaling group, use DetachLoadBalancerTargetGroups.
+//
+// For more information, see Attach a Load Balancer to Your Auto Scaling Group
+// (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/attach-load-balancer-asg.html)
+// in the Auto Scaling User Guide.
+func (c *AutoScaling) AttachLoadBalancerTargetGroups(input *AttachLoadBalancerTargetGroupsInput) (*AttachLoadBalancerTargetGroupsOutput, error) {
+	req, out := c.AttachLoadBalancerTargetGroupsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -113,14 +173,17 @@ func (c *AutoScaling) AttachLoadBalancersRequest(input *AttachLoadBalancersInput
 	return
 }
 
-// Attaches one or more load balancers to the specified Auto Scaling group.
+// Attaches one or more Classic load balancers to the specified Auto Scaling
+// group.
+//
+// To attach an Application load balancer instead, see AttachLoadBalancerTargetGroups.
 //
 // To describe the load balancers for an Auto Scaling group, use DescribeLoadBalancers.
 // To detach the load balancer from the Auto Scaling group, use DetachLoadBalancers.
 //
 // For more information, see Attach a Load Balancer to Your Auto Scaling Group
 // (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/attach-load-balancer-asg.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) AttachLoadBalancers(input *AttachLoadBalancersInput) (*AttachLoadBalancersOutput, error) {
 	req, out := c.AttachLoadBalancersRequest(input)
 	err := req.Send()
@@ -174,17 +237,25 @@ func (c *AutoScaling) CompleteLifecycleActionRequest(input *CompleteLifecycleAct
 // This step is a part of the procedure for adding a lifecycle hook to an Auto
 // Scaling group:
 //
-//  (Optional) Create a Lambda function and a rule that allows CloudWatch Events
-// to invoke your Lambda function when Auto Scaling launches or terminates instances.
-// (Optional) Create a notification target and an IAM role. The target can be
-// either an Amazon SQS queue or an Amazon SNS topic. The role allows Auto Scaling
-// to publish lifecycle notifications to the target. Create the lifecycle hook.
-// Specify whether the hook is used when the instances launch or terminate.
-// If you need more time, record the lifecycle action heartbeat to keep the
-// instance in a pending state. If you finish before the timeout period ends,
-// complete the lifecycle action.  For more information, see Auto Scaling Lifecycle
-// (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
-// in the Auto Scaling Developer Guide.
+//   (Optional) Create a Lambda function and a rule that allows CloudWatch
+// Events to invoke your Lambda function when Auto Scaling launches or terminates
+// instances.
+//
+//   (Optional) Create a notification target and an IAM role. The target can
+// be either an Amazon SQS queue or an Amazon SNS topic. The role allows Auto
+// Scaling to publish lifecycle notifications to the target.
+//
+//   Create the lifecycle hook. Specify whether the hook is used when the instances
+// launch or terminate.
+//
+//   If you need more time, record the lifecycle action heartbeat to keep the
+// instance in a pending state.
+//
+//    If you finish before the timeout period ends, complete the lifecycle
+// action.
+//
+//   For more information, see Auto Scaling Lifecycle (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) CompleteLifecycleAction(input *CompleteLifecycleActionInput) (*CompleteLifecycleActionOutput, error) {
 	req, out := c.CompleteLifecycleActionRequest(input)
 	err := req.Send()
@@ -241,7 +312,7 @@ func (c *AutoScaling) CreateAutoScalingGroupRequest(input *CreateAutoScalingGrou
 // this limit, see DescribeAccountLimits.
 //
 // For more information, see Auto Scaling Groups (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroup.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) CreateAutoScalingGroup(input *CreateAutoScalingGroupInput) (*CreateAutoScalingGroupOutput, error) {
 	req, out := c.CreateAutoScalingGroupRequest(input)
 	err := req.Send()
@@ -298,7 +369,7 @@ func (c *AutoScaling) CreateLaunchConfigurationRequest(input *CreateLaunchConfig
 // this limit, see DescribeAccountLimits.
 //
 // For more information, see Launch Configurations (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/LaunchConfiguration.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) CreateLaunchConfiguration(input *CreateLaunchConfigurationInput) (*CreateLaunchConfigurationOutput, error) {
 	req, out := c.CreateLaunchConfigurationRequest(input)
 	err := req.Send()
@@ -354,7 +425,7 @@ func (c *AutoScaling) CreateOrUpdateTagsRequest(input *CreateOrUpdateTagsInput) 
 // the previous tag definition, and you do not get an error message.
 //
 // For more information, see Tagging Auto Scaling Groups and Instances (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/ASTagging.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) CreateOrUpdateTags(input *CreateOrUpdateTagsInput) (*CreateOrUpdateTagsOutput, error) {
 	req, out := c.CreateOrUpdateTagsRequest(input)
 	err := req.Send()
@@ -881,8 +952,7 @@ func (c *AutoScaling) DescribeAutoScalingGroupsRequest(input *DescribeAutoScalin
 	return
 }
 
-// Describes one or more Auto Scaling groups. If a list of names is not provided,
-// the call describes all Auto Scaling groups.
+// Describes one or more Auto Scaling groups.
 func (c *AutoScaling) DescribeAutoScalingGroups(input *DescribeAutoScalingGroupsInput) (*DescribeAutoScalingGroupsOutput, error) {
 	req, out := c.DescribeAutoScalingGroupsRequest(input)
 	err := req.Send()
@@ -961,8 +1031,7 @@ func (c *AutoScaling) DescribeAutoScalingInstancesRequest(input *DescribeAutoSca
 	return
 }
 
-// Describes one or more Auto Scaling instances. If a list is not provided,
-// the call describes all instances.
+// Describes one or more Auto Scaling instances.
 func (c *AutoScaling) DescribeAutoScalingInstances(input *DescribeAutoScalingInstancesInput) (*DescribeAutoScalingInstancesOutput, error) {
 	req, out := c.DescribeAutoScalingInstancesRequest(input)
 	err := req.Send()
@@ -1089,8 +1158,7 @@ func (c *AutoScaling) DescribeLaunchConfigurationsRequest(input *DescribeLaunchC
 	return
 }
 
-// Describes one or more launch configurations. If you omit the list of names,
-// then the call describes all launch configurations.
+// Describes one or more launch configurations.
 func (c *AutoScaling) DescribeLaunchConfigurations(input *DescribeLaunchConfigurationsInput) (*DescribeLaunchConfigurationsOutput, error) {
 	req, out := c.DescribeLaunchConfigurationsRequest(input)
 	err := req.Send()
@@ -1218,6 +1286,54 @@ func (c *AutoScaling) DescribeLifecycleHooks(input *DescribeLifecycleHooksInput)
 	return out, err
 }
 
+const opDescribeLoadBalancerTargetGroups = "DescribeLoadBalancerTargetGroups"
+
+// DescribeLoadBalancerTargetGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoadBalancerTargetGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoadBalancerTargetGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoadBalancerTargetGroupsRequest method.
+//    req, resp := client.DescribeLoadBalancerTargetGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *AutoScaling) DescribeLoadBalancerTargetGroupsRequest(input *DescribeLoadBalancerTargetGroupsInput) (req *request.Request, output *DescribeLoadBalancerTargetGroupsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeLoadBalancerTargetGroups,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeLoadBalancerTargetGroupsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeLoadBalancerTargetGroupsOutput{}
+	req.Data = output
+	return
+}
+
+// Describes the target groups for the specified Auto Scaling group.
+func (c *AutoScaling) DescribeLoadBalancerTargetGroups(input *DescribeLoadBalancerTargetGroupsInput) (*DescribeLoadBalancerTargetGroupsOutput, error) {
+	req, out := c.DescribeLoadBalancerTargetGroupsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeLoadBalancers = "DescribeLoadBalancers"
 
 // DescribeLoadBalancersRequest generates a "aws/request.Request" representing the
@@ -1260,6 +1376,9 @@ func (c *AutoScaling) DescribeLoadBalancersRequest(input *DescribeLoadBalancersI
 }
 
 // Describes the load balancers for the specified Auto Scaling group.
+//
+// Note that this operation describes only Classic load balancers. If you have
+// Application load balancers, use DescribeLoadBalancerTargetGroups instead.
 func (c *AutoScaling) DescribeLoadBalancers(input *DescribeLoadBalancersInput) (*DescribeLoadBalancersOutput, error) {
 	req, out := c.DescribeLoadBalancersRequest(input)
 	err := req.Send()
@@ -1524,9 +1643,6 @@ func (c *AutoScaling) DescribeScalingActivitiesRequest(input *DescribeScalingAct
 }
 
 // Describes one or more scaling activities for the specified Auto Scaling group.
-// If you omit the ActivityIds, the call returns all activities from the past
-// six weeks. Activities are sorted by the start time. Activities still in progress
-// appear first on the list.
 func (c *AutoScaling) DescribeScalingActivities(input *DescribeScalingActivitiesInput) (*DescribeScalingActivitiesOutput, error) {
 	req, out := c.DescribeScalingActivitiesRequest(input)
 	err := req.Send()
@@ -1871,11 +1987,64 @@ func (c *AutoScaling) DetachInstancesRequest(input *DetachInstancesInput) (req *
 // If you do not specify the option to decrement the desired capacity, Auto
 // Scaling launches instances to replace the ones that are detached.
 //
+// If there is a Classic load balancer attached to the Auto Scaling group,
+// the instances are deregistered from the load balancer. If there are target
+// groups attached to the Auto Scaling group, the instances are deregistered
+// from the target groups.
+//
 // For more information, see Detach EC2 Instances from Your Auto Scaling Group
 // (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/detach-instance-asg.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) DetachInstances(input *DetachInstancesInput) (*DetachInstancesOutput, error) {
 	req, out := c.DetachInstancesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDetachLoadBalancerTargetGroups = "DetachLoadBalancerTargetGroups"
+
+// DetachLoadBalancerTargetGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DetachLoadBalancerTargetGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachLoadBalancerTargetGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachLoadBalancerTargetGroupsRequest method.
+//    req, resp := client.DetachLoadBalancerTargetGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *AutoScaling) DetachLoadBalancerTargetGroupsRequest(input *DetachLoadBalancerTargetGroupsInput) (req *request.Request, output *DetachLoadBalancerTargetGroupsOutput) {
+	op := &request.Operation{
+		Name:       opDetachLoadBalancerTargetGroups,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DetachLoadBalancerTargetGroupsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DetachLoadBalancerTargetGroupsOutput{}
+	req.Data = output
+	return
+}
+
+// Detaches one or more target groups from the specified Auto Scaling group.
+func (c *AutoScaling) DetachLoadBalancerTargetGroups(input *DetachLoadBalancerTargetGroupsInput) (*DetachLoadBalancerTargetGroupsOutput, error) {
+	req, out := c.DetachLoadBalancerTargetGroupsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -1921,7 +2090,11 @@ func (c *AutoScaling) DetachLoadBalancersRequest(input *DetachLoadBalancersInput
 	return
 }
 
-// Removes one or more load balancers from the specified Auto Scaling group.
+// Detaches one or more Classic load balancers from the specified Auto Scaling
+// group.
+//
+// Note that this operation detaches only Classic load balancers. If you have
+// Application load balancers, use DetachLoadBalancerTargetGroups instead.
 //
 // When you detach a load balancer, it enters the Removing state while deregistering
 // the instances in the group. When all instances are deregistered, then you
@@ -2082,7 +2255,7 @@ func (c *AutoScaling) EnterStandbyRequest(input *EnterStandbyInput) (req *reques
 // Moves the specified instances into Standby mode.
 //
 // For more information, see Auto Scaling Lifecycle (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) EnterStandby(input *EnterStandbyInput) (*EnterStandbyOutput, error) {
 	req, out := c.EnterStandbyRequest(input)
 	err := req.Send()
@@ -2183,7 +2356,7 @@ func (c *AutoScaling) ExitStandbyRequest(input *ExitStandbyInput) (req *request.
 // Moves the specified instances out of Standby mode.
 //
 // For more information, see Auto Scaling Lifecycle (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) ExitStandby(input *ExitStandbyInput) (*ExitStandbyOutput, error) {
 	req, out := c.ExitStandbyRequest(input)
 	err := req.Send()
@@ -2240,21 +2413,28 @@ func (c *AutoScaling) PutLifecycleHookRequest(input *PutLifecycleHookInput) (req
 // This step is a part of the procedure for adding a lifecycle hook to an Auto
 // Scaling group:
 //
-//  (Optional) Create a Lambda function and a rule that allows CloudWatch Events
-// to invoke your Lambda function when Auto Scaling launches or terminates instances.
-// (Optional) Create a notification target and an IAM role. The target can be
-// either an Amazon SQS queue or an Amazon SNS topic. The role allows Auto Scaling
-// to publish lifecycle notifications to the target. Create the lifecycle hook.
-// Specify whether the hook is used when the instances launch or terminate.
-// If you need more time, record the lifecycle action heartbeat to keep the
-// instance in a pending state. If you finish before the timeout period ends,
-// complete the lifecycle action.  For more information, see Auto Scaling Lifecycle
-// (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
-// in the Auto Scaling Developer Guide.
+//   (Optional) Create a Lambda function and a rule that allows CloudWatch
+// Events to invoke your Lambda function when Auto Scaling launches or terminates
+// instances.
+//
+//   (Optional) Create a notification target and an IAM role. The target can
+// be either an Amazon SQS queue or an Amazon SNS topic. The role allows Auto
+// Scaling to publish lifecycle notifications to the target.
+//
+//    Create the lifecycle hook. Specify whether the hook is used when the
+// instances launch or terminate.
+//
+//   If you need more time, record the lifecycle action heartbeat to keep the
+// instance in a pending state.
+//
+//   If you finish before the timeout period ends, complete the lifecycle action.
+//
+//   For more information, see Auto Scaling Lifecycle (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
+// in the Auto Scaling User Guide.
 //
 // If you exceed your maximum limit of lifecycle hooks, which by default is
-// 50 per region, the call fails. For information about updating this limit,
-// see AWS Service Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html)
+// 50 per Auto Scaling group, the call fails. For information about updating
+// this limit, see AWS Service Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html)
 // in the Amazon Web Services General Reference.
 func (c *AutoScaling) PutLifecycleHook(input *PutLifecycleHookInput) (*PutLifecycleHookOutput, error) {
 	req, out := c.PutLifecycleHookRequest(input)
@@ -2306,14 +2486,14 @@ func (c *AutoScaling) PutNotificationConfigurationRequest(input *PutNotification
 }
 
 // Configures an Auto Scaling group to send notifications when specified events
-// take place. Subscribers to this topic can have messages for events delivered
-// to an endpoint such as a web server or email address.
+// take place. Subscribers to the specified topic can have messages delivered
+// to an endpoint such as a web server or an email address.
 //
-// For more information see Getting Notifications When Your Auto Scaling Group
-// Changes (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/ASGettingNotifications.html)
-// in the Auto Scaling Developer Guide.
+// This configuration overwrites any existing configuration.
 //
-// This configuration overwrites an existing configuration.
+// For more information see Getting SNS Notifications When Your Auto Scaling
+// Group Scales (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/ASGettingNotifications.html)
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) PutNotificationConfiguration(input *PutNotificationConfigurationInput) (*PutNotificationConfigurationOutput, error) {
 	req, out := c.PutNotificationConfigurationRequest(input)
 	err := req.Send()
@@ -2424,7 +2604,7 @@ func (c *AutoScaling) PutScheduledUpdateGroupActionRequest(input *PutScheduledUp
 // the corresponding value remains unchanged in the affected Auto Scaling group.
 //
 // For more information, see Scheduled Scaling (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/schedule_time.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) PutScheduledUpdateGroupAction(input *PutScheduledUpdateGroupActionInput) (*PutScheduledUpdateGroupActionOutput, error) {
 	req, out := c.PutScheduledUpdateGroupActionRequest(input)
 	err := req.Send()
@@ -2479,17 +2659,24 @@ func (c *AutoScaling) RecordLifecycleActionHeartbeatRequest(input *RecordLifecyc
 // This step is a part of the procedure for adding a lifecycle hook to an Auto
 // Scaling group:
 //
-//  (Optional) Create a Lambda function and a rule that allows CloudWatch Events
-// to invoke your Lambda function when Auto Scaling launches or terminates instances.
-// (Optional) Create a notification target and an IAM role. The target can be
-// either an Amazon SQS queue or an Amazon SNS topic. The role allows Auto Scaling
-// to publish lifecycle notifications to the target. Create the lifecycle hook.
-// Specify whether the hook is used when the instances launch or terminate.
-// If you need more time, record the lifecycle action heartbeat to keep the
-// instance in a pending state. If you finish before the timeout period ends,
-// complete the lifecycle action.  For more information, see Auto Scaling Lifecycle
-// (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
-// in the Auto Scaling Developer Guide.
+//   (Optional) Create a Lambda function and a rule that allows CloudWatch
+// Events to invoke your Lambda function when Auto Scaling launches or terminates
+// instances.
+//
+//   (Optional) Create a notification target and an IAM role. The target can
+// be either an Amazon SQS queue or an Amazon SNS topic. The role allows Auto
+// Scaling to publish lifecycle notifications to the target.
+//
+//   Create the lifecycle hook. Specify whether the hook is used when the instances
+// launch or terminate.
+//
+//    If you need more time, record the lifecycle action heartbeat to keep
+// the instance in a pending state.
+//
+//   If you finish before the timeout period ends, complete the lifecycle action.
+//
+//   For more information, see Auto Scaling Lifecycle (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) RecordLifecycleActionHeartbeat(input *RecordLifecycleActionHeartbeatInput) (*RecordLifecycleActionHeartbeatOutput, error) {
 	req, out := c.RecordLifecycleActionHeartbeatRequest(input)
 	err := req.Send()
@@ -2544,7 +2731,7 @@ func (c *AutoScaling) ResumeProcessesRequest(input *ScalingProcessQuery) (req *r
 //
 // For more information, see Suspending and Resuming Auto Scaling Processes
 // (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US_SuspendResume.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) ResumeProcesses(input *ScalingProcessQuery) (*ResumeProcessesOutput, error) {
 	req, out := c.ResumeProcessesRequest(input)
 	err := req.Send()
@@ -2597,7 +2784,7 @@ func (c *AutoScaling) SetDesiredCapacityRequest(input *SetDesiredCapacityInput) 
 // Sets the size of the specified Auto Scaling group.
 //
 // For more information about desired capacity, see What Is Auto Scaling? (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/WhatIsAutoScaling.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) SetDesiredCapacity(input *SetDesiredCapacityInput) (*SetDesiredCapacityOutput, error) {
 	req, out := c.SetDesiredCapacityRequest(input)
 	err := req.Send()
@@ -2650,7 +2837,7 @@ func (c *AutoScaling) SetInstanceHealthRequest(input *SetInstanceHealthInput) (r
 // Sets the health status of the specified instance.
 //
 // For more information, see Health Checks (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/healthcheck.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) SetInstanceHealth(input *SetInstanceHealthInput) (*SetInstanceHealthOutput, error) {
 	req, out := c.SetInstanceHealthRequest(input)
 	err := req.Send()
@@ -2701,7 +2888,7 @@ func (c *AutoScaling) SetInstanceProtectionRequest(input *SetInstanceProtectionI
 // Updates the instance protection settings of the specified instances.
 //
 // For more information, see Instance Protection (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingBehavior.InstanceTermination.html#instance-protection)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) SetInstanceProtection(input *SetInstanceProtectionInput) (*SetInstanceProtectionOutput, error) {
 	req, out := c.SetInstanceProtectionRequest(input)
 	err := req.Send()
@@ -2761,7 +2948,7 @@ func (c *AutoScaling) SuspendProcessesRequest(input *ScalingProcessQuery) (req *
 //
 // For more information, see Suspending and Resuming Auto Scaling Processes
 // (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US_SuspendResume.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) SuspendProcesses(input *ScalingProcessQuery) (*SuspendProcessesOutput, error) {
 	req, out := c.SuspendProcessesRequest(input)
 	err := req.Send()
@@ -2943,7 +3130,7 @@ func (s Activity) GoString() string {
 // Describes a policy adjustment type.
 //
 // For more information, see Dynamic Scaling (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 type AdjustmentType struct {
 	_ struct{} `type:"structure"`
 
@@ -2983,6 +3170,7 @@ func (s Alarm) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for AttachInstances.
 type AttachInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3033,14 +3221,69 @@ func (s AttachInstancesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for AttachLoadBalancerTargetGroups.
+type AttachLoadBalancerTargetGroupsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the Auto Scaling group.
+	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
+
+	// The Amazon Resource Names (ARN) of the target groups.
+	TargetGroupARNs []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s AttachLoadBalancerTargetGroupsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachLoadBalancerTargetGroupsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AttachLoadBalancerTargetGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AttachLoadBalancerTargetGroupsInput"}
+	if s.AutoScalingGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AutoScalingGroupName"))
+	}
+	if s.AutoScalingGroupName != nil && len(*s.AutoScalingGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AutoScalingGroupName", 1))
+	}
+	if s.TargetGroupARNs == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetGroupARNs"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type AttachLoadBalancerTargetGroupsOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s AttachLoadBalancerTargetGroupsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachLoadBalancerTargetGroupsOutput) GoString() string {
+	return s.String()
+}
+
+// Contains the parameters for AttachLoadBalancers.
 type AttachLoadBalancersInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the group.
-	AutoScalingGroupName *string `min:"1" type:"string"`
+	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
 	// One or more load balancer names.
-	LoadBalancerNames []*string `type:"list"`
+	LoadBalancerNames []*string `type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -3056,8 +3299,14 @@ func (s AttachLoadBalancersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *AttachLoadBalancersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "AttachLoadBalancersInput"}
+	if s.AutoScalingGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AutoScalingGroupName"))
+	}
 	if s.AutoScalingGroupName != nil && len(*s.AutoScalingGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AutoScalingGroupName", 1))
+	}
+	if s.LoadBalancerNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerNames"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3066,6 +3315,7 @@ func (s *AttachLoadBalancersInput) Validate() error {
 	return nil
 }
 
+// Contains the output of AttachLoadBalancers.
 type AttachLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3135,6 +3385,7 @@ func (s *BlockDeviceMapping) Validate() error {
 	return nil
 }
 
+// Contains the parameters for CompleteLifecycleAction.
 type CompleteLifecycleActionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3198,6 +3449,7 @@ func (s *CompleteLifecycleActionInput) Validate() error {
 	return nil
 }
 
+// Contains the output of CompleteLifecycleAction.
 type CompleteLifecycleActionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3212,6 +3464,7 @@ func (s CompleteLifecycleActionOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for CreateAutoScalingGroup.
 type CreateAutoScalingGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3227,7 +3480,7 @@ type CreateAutoScalingGroupInput struct {
 	// another scaling activity can start. The default is 300.
 	//
 	// For more information, see Auto Scaling Cooldowns (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/Cooldown.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	DefaultCooldown *int64 `type:"integer"`
 
 	// The number of EC2 instances that should be running in the group. This number
@@ -3238,19 +3491,19 @@ type CreateAutoScalingGroupInput struct {
 	// The amount of time, in seconds, that Auto Scaling waits before checking the
 	// health status of an EC2 instance that has come into service. During this
 	// time, any health check failures for the instance are ignored. The default
-	// is 300.
+	// is 0.
 	//
 	// This parameter is required if you are adding an ELB health check.
 	//
 	// For more information, see Health Checks (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/healthcheck.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	HealthCheckGracePeriod *int64 `type:"integer"`
 
 	// The service to use for the health checks. The valid values are EC2 and ELB.
 	//
 	// By default, health checks use Amazon EC2 instance status checks to determine
 	// the health of an instance. For more information, see Health Checks (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/healthcheck.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	HealthCheckType *string `min:"1" type:"string"`
 
 	// The ID of the instance used to create a launch configuration for the group.
@@ -3263,18 +3516,19 @@ type CreateAutoScalingGroupInput struct {
 	//
 	// For more information, see Create an Auto Scaling Group Using an EC2 Instance
 	// (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/create-asg-from-instance.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	InstanceId *string `min:"1" type:"string"`
 
 	// The name of the launch configuration. Alternatively, specify an EC2 instance
 	// instead of a launch configuration.
 	LaunchConfigurationName *string `min:"1" type:"string"`
 
-	// One or more load balancers.
+	// One or more Classic load balancers. To specify an Application load balancer,
+	// use TargetGroupARNs instead.
 	//
 	// For more information, see Using a Load Balancer With an Auto Scaling Group
 	// (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US_SetUpASLBApp.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	LoadBalancerNames []*string `type:"list"`
 
 	// The maximum size of the group.
@@ -3295,15 +3549,18 @@ type CreateAutoScalingGroupInput struct {
 	// One or more tags.
 	//
 	// For more information, see Tagging Auto Scaling Groups and Instances (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/ASTagging.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	Tags []*Tag `type:"list"`
+
+	// The Amazon Resource Names (ARN) of the target groups.
+	TargetGroupARNs []*string `type:"list"`
 
 	// One or more termination policies used to select the instance to terminate.
 	// These policies are executed in the order that they are listed.
 	//
 	// For more information, see Controlling Which Instances Auto Scaling Terminates
 	// During Scale In (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingBehavior.InstanceTermination.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	TerminationPolicies []*string `type:"list"`
 
 	// A comma-separated list of subnet identifiers for your virtual private cloud
@@ -3313,7 +3570,7 @@ type CreateAutoScalingGroupInput struct {
 	// the subnets' Availability Zones match the Availability Zones specified.
 	//
 	// For more information, see Launching Auto Scaling Instances in a VPC (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/asg-in-vpc.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	VPCZoneIdentifier *string `min:"1" type:"string"`
 }
 
@@ -3391,13 +3648,14 @@ func (s CreateAutoScalingGroupOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for CreateLaunchConfiguration.
 type CreateLaunchConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
 	// Used for groups that launch instances into a virtual private cloud (VPC).
 	// Specifies whether to assign a public IP address to each instance. For more
 	// information, see Launching Auto Scaling Instances in a VPC (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/asg-in-vpc.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	//
 	// If you specify this parameter, be sure to specify at least one subnet when
 	// you create your group.
@@ -3442,7 +3700,7 @@ type CreateLaunchConfigurationInput struct {
 	// enable applications running on your EC2 instances to securely access other
 	// AWS resources. For more information, see Launch Auto Scaling Instances with
 	// an IAM Role (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/us-iam-role.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	IamInstanceProfile *string `min:"1" type:"string"`
 
 	// The ID of the Amazon Machine Image (AMI) to use to launch your EC2 instances.
@@ -3460,7 +3718,7 @@ type CreateLaunchConfigurationInput struct {
 	//
 	// For more information, see Create a Launch Configuration Using an EC2 Instance
 	// (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/create-lc-with-instanceID.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	InstanceId *string `min:"1" type:"string"`
 
 	// Enables detailed monitoring if it is disabled. Detailed monitoring is enabled
@@ -3471,7 +3729,7 @@ type CreateLaunchConfigurationInput struct {
 	// monitoring, by specifying False, CloudWatch generates metrics every 5 minutes.
 	// For more information, see Monitoring Your Auto Scaling Instances and Groups
 	// (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-instance-monitoring.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	InstanceMonitoring *InstanceMonitoring `type:"structure"`
 
 	// The instance type of the EC2 instance. For information about available instance
@@ -3502,7 +3760,7 @@ type CreateLaunchConfigurationInput struct {
 	// you create your group.
 	//
 	// For more information, see Launching Auto Scaling Instances in a VPC (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/asg-in-vpc.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	//
 	// Valid values: default | dedicated
 	PlacementTenancy *string `min:"1" type:"string"`
@@ -3526,7 +3784,7 @@ type CreateLaunchConfigurationInput struct {
 	// the request. Spot Instances are launched when the price you specify exceeds
 	// the current Spot market price. For more information, see Launching Spot Instances
 	// in Your Auto Scaling Group (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US-SpotInstances.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	SpotPrice *string `min:"1" type:"string"`
 
 	// The user data to make available to the launched EC2 instances. For more information,
@@ -3615,6 +3873,7 @@ func (s CreateLaunchConfigurationOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for CreateOrUpdateTags.
 type CreateOrUpdateTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3669,6 +3928,7 @@ func (s CreateOrUpdateTagsOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteAutoScalingGroup.
 type DeleteAutoScalingGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3721,6 +3981,7 @@ func (s DeleteAutoScalingGroupOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteLaunchConfiguration.
 type DeleteLaunchConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3768,6 +4029,7 @@ func (s DeleteLaunchConfigurationOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteLifecycleHook.
 type DeleteLifecycleHookInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3810,6 +4072,7 @@ func (s *DeleteLifecycleHookInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DeleteLifecycleHook.
 type DeleteLifecycleHookOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3824,6 +4087,7 @@ func (s DeleteLifecycleHookOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteNotificationConfiguration.
 type DeleteNotificationConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3881,6 +4145,7 @@ func (s DeleteNotificationConfigurationOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeletePolicy.
 type DeletePolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3934,11 +4199,12 @@ func (s DeletePolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteScheduledAction.
 type DeleteScheduledActionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the Auto Scaling group.
-	AutoScalingGroupName *string `min:"1" type:"string"`
+	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the action to delete.
 	ScheduledActionName *string `min:"1" type:"string" required:"true"`
@@ -3957,6 +4223,9 @@ func (s DeleteScheduledActionInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DeleteScheduledActionInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteScheduledActionInput"}
+	if s.AutoScalingGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AutoScalingGroupName"))
+	}
 	if s.AutoScalingGroupName != nil && len(*s.AutoScalingGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AutoScalingGroupName", 1))
 	}
@@ -3987,6 +4256,7 @@ func (s DeleteScheduledActionOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteTags.
 type DeleteTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4055,6 +4325,7 @@ func (s DescribeAccountLimitsInput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeAccountLimits.
 type DescribeAccountLimitsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4097,6 +4368,7 @@ func (s DescribeAdjustmentTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeAdjustmentTypes.
 type DescribeAdjustmentTypesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4114,10 +4386,12 @@ func (s DescribeAdjustmentTypesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeAutoScalingGroups.
 type DescribeAutoScalingGroupsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The group names.
+	// The group names. If you omit this parameter, all Auto Scaling groups are
+	// described.
 	AutoScalingGroupNames []*string `type:"list"`
 
 	// The maximum number of items to return with this call.
@@ -4138,6 +4412,7 @@ func (s DescribeAutoScalingGroupsInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output for DescribeAutoScalingGroups.
 type DescribeAutoScalingGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4159,6 +4434,7 @@ func (s DescribeAutoScalingGroupsOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeAutoScalingInstances.
 type DescribeAutoScalingInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4185,6 +4461,7 @@ func (s DescribeAutoScalingInstancesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeAutoScalingInstances.
 type DescribeAutoScalingInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4220,20 +4497,11 @@ func (s DescribeAutoScalingNotificationTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeAutoScalingNotificationTypes.
 type DescribeAutoScalingNotificationTypesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// One or more of the following notification types:
-	//
-	//  autoscaling:EC2_INSTANCE_LAUNCH
-	//
-	// autoscaling:EC2_INSTANCE_LAUNCH_ERROR
-	//
-	// autoscaling:EC2_INSTANCE_TERMINATE
-	//
-	// autoscaling:EC2_INSTANCE_TERMINATE_ERROR
-	//
-	// autoscaling:TEST_NOTIFICATION
+	// The notification types.
 	AutoScalingNotificationTypes []*string `type:"list"`
 }
 
@@ -4247,10 +4515,12 @@ func (s DescribeAutoScalingNotificationTypesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeLaunchConfigurations.
 type DescribeLaunchConfigurationsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The launch configuration names.
+	// The launch configuration names. If you omit this parameter, all launch configurations
+	// are described.
 	LaunchConfigurationNames []*string `type:"list"`
 
 	// The maximum number of items to return with this call. The default is 100.
@@ -4271,6 +4541,7 @@ func (s DescribeLaunchConfigurationsInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeLaunchConfigurations.
 type DescribeLaunchConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4306,14 +4577,11 @@ func (s DescribeLifecycleHookTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeLifecycleHookTypes.
 type DescribeLifecycleHookTypesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// One or more of the following notification types:
-	//
-	//  autoscaling:EC2_INSTANCE_LAUNCHING
-	//
-	// autoscaling:EC2_INSTANCE_TERMINATING
+	// The lifecycle hook types.
 	LifecycleHookTypes []*string `type:"list"`
 }
 
@@ -4327,13 +4595,15 @@ func (s DescribeLifecycleHookTypesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeLifecycleHooks.
 type DescribeLifecycleHooksInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the group.
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// The names of one or more lifecycle hooks.
+	// The names of one or more lifecycle hooks. If you omit this parameter, all
+	// lifecycle hooks are described.
 	LifecycleHookNames []*string `type:"list"`
 }
 
@@ -4363,6 +4633,7 @@ func (s *DescribeLifecycleHooksInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DescribeLifecycleHooks.
 type DescribeLifecycleHooksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4380,6 +4651,70 @@ func (s DescribeLifecycleHooksOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeLoadBalancerTargetGroups.
+type DescribeLoadBalancerTargetGroupsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the Auto Scaling group.
+	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
+
+	// The maximum number of items to return with this call.
+	MaxRecords *int64 `type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a previous call.)
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeLoadBalancerTargetGroupsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeLoadBalancerTargetGroupsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeLoadBalancerTargetGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeLoadBalancerTargetGroupsInput"}
+	if s.AutoScalingGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AutoScalingGroupName"))
+	}
+	if s.AutoScalingGroupName != nil && len(*s.AutoScalingGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AutoScalingGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Contains the output of DescribeLoadBalancerTargetGroups.
+type DescribeLoadBalancerTargetGroupsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the target groups.
+	LoadBalancerTargetGroups []*LoadBalancerTargetGroupState `type:"list"`
+
+	// The token to use when requesting the next set of items. If there are no additional
+	// items to return, the string is empty.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeLoadBalancerTargetGroupsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeLoadBalancerTargetGroupsOutput) GoString() string {
+	return s.String()
+}
+
+// Contains the parameters for DescribeLoadBalancers.
 type DescribeLoadBalancersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4420,6 +4755,7 @@ func (s *DescribeLoadBalancersInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DescribeLoadBalancers.
 type DescribeLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4455,6 +4791,7 @@ func (s DescribeMetricCollectionTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeMetricsCollectionTypes.
 type DescribeMetricCollectionTypesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4475,6 +4812,7 @@ func (s DescribeMetricCollectionTypesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeNotificationConfigurations.
 type DescribeNotificationConfigurationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4499,6 +4837,7 @@ func (s DescribeNotificationConfigurationsInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output from DescribeNotificationConfigurations.
 type DescribeNotificationConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4520,6 +4859,7 @@ func (s DescribeNotificationConfigurationsOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribePolicies.
 type DescribePoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4534,9 +4874,9 @@ type DescribePoliciesInput struct {
 	NextToken *string `type:"string"`
 
 	// One or more policy names or policy ARNs to be described. If you omit this
-	// list, all policy names are described. If an group name is provided, the results
-	// are limited to that group. This list is limited to 50 items. If you specify
-	// an unknown policy name, it is ignored with no error.
+	// parameter, all policy names are described. If an group name is provided,
+	// the results are limited to that group. This list is limited to 50 items.
+	// If you specify an unknown policy name, it is ignored with no error.
 	PolicyNames []*string `type:"list"`
 
 	// One or more policy types. Valid values are SimpleScaling and StepScaling.
@@ -4566,6 +4906,7 @@ func (s *DescribePoliciesInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DescribePolicies.
 type DescribePoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4587,14 +4928,15 @@ func (s DescribePoliciesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeScalingActivities.
 type DescribeScalingActivitiesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The activity IDs of the desired scaling activities. If this list is omitted,
-	// all activities are described. If you specify an Auto Scaling group, the results
-	// are limited to that group. The list of requested activities cannot contain
-	// more than 50 items. If unknown activities are requested, they are ignored
-	// with no error.
+	// The activity IDs of the desired scaling activities. If you omit this parameter,
+	// all activities for the past six weeks are described. If you specify an Auto
+	// Scaling group, the results are limited to that group. The list of requested
+	// activities cannot contain more than 50 items. If unknown activities are requested,
+	// they are ignored with no error.
 	ActivityIds []*string `type:"list"`
 
 	// The name of the group.
@@ -4631,10 +4973,12 @@ func (s *DescribeScalingActivitiesInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DescribeScalingActivities.
 type DescribeScalingActivitiesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The scaling activities.
+	// The scaling activities. Activities are sorted by start time. Activities still
+	// in progress are described first.
 	Activities []*Activity `type:"list" required:"true"`
 
 	// The token to use when requesting the next set of items. If there are no additional
@@ -4666,6 +5010,7 @@ func (s DescribeScalingProcessTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeScalingProcessTypes.
 type DescribeScalingProcessTypesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4683,6 +5028,7 @@ func (s DescribeScalingProcessTypesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeScheduledActions.
 type DescribeScheduledActionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4700,8 +5046,8 @@ type DescribeScheduledActionsInput struct {
 	// a previous call.)
 	NextToken *string `type:"string"`
 
-	// Describes one or more scheduled actions. If you omit this list, the call
-	// describes all scheduled actions. If you specify an unknown scheduled action
+	// Describes one or more scheduled actions. If you omit this parameter, all
+	// scheduled actions are described. If you specify an unknown scheduled action,
 	// it is ignored with no error.
 	//
 	// You can describe up to a maximum of 50 instances with a single call. If
@@ -4737,6 +5083,7 @@ func (s *DescribeScheduledActionsInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DescribeScheduledActions.
 type DescribeScheduledActionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4758,6 +5105,7 @@ func (s DescribeScheduledActionsOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeTags.
 type DescribeTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4782,6 +5130,7 @@ func (s DescribeTagsInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeTags.
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4817,6 +5166,7 @@ func (s DescribeTerminationPolicyTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeTerminationPolicyTypes.
 type DescribeTerminationPolicyTypesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4835,6 +5185,7 @@ func (s DescribeTerminationPolicyTypesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DetachInstances.
 type DetachInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4878,6 +5229,7 @@ func (s *DetachInstancesInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DetachInstances.
 type DetachInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4895,14 +5247,68 @@ func (s DetachInstancesOutput) GoString() string {
 	return s.String()
 }
 
+type DetachLoadBalancerTargetGroupsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the Auto Scaling group.
+	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
+
+	// The Amazon Resource Names (ARN) of the target groups.
+	TargetGroupARNs []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s DetachLoadBalancerTargetGroupsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetachLoadBalancerTargetGroupsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DetachLoadBalancerTargetGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DetachLoadBalancerTargetGroupsInput"}
+	if s.AutoScalingGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AutoScalingGroupName"))
+	}
+	if s.AutoScalingGroupName != nil && len(*s.AutoScalingGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AutoScalingGroupName", 1))
+	}
+	if s.TargetGroupARNs == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetGroupARNs"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DetachLoadBalancerTargetGroupsOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DetachLoadBalancerTargetGroupsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetachLoadBalancerTargetGroupsOutput) GoString() string {
+	return s.String()
+}
+
+// Contains the parameters for DetachLoadBalancers.
 type DetachLoadBalancersInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the group.
-	AutoScalingGroupName *string `min:"1" type:"string"`
+	// The name of the Auto Scaling group.
+	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
 	// One or more load balancer names.
-	LoadBalancerNames []*string `type:"list"`
+	LoadBalancerNames []*string `type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -4918,8 +5324,14 @@ func (s DetachLoadBalancersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DetachLoadBalancersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DetachLoadBalancersInput"}
+	if s.AutoScalingGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AutoScalingGroupName"))
+	}
 	if s.AutoScalingGroupName != nil && len(*s.AutoScalingGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AutoScalingGroupName", 1))
+	}
+	if s.LoadBalancerNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerNames"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4928,6 +5340,7 @@ func (s *DetachLoadBalancersInput) Validate() error {
 	return nil
 }
 
+// Contains the output for DetachLoadBalancers.
 type DetachLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4942,6 +5355,7 @@ func (s DetachLoadBalancersOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DisableMetricsCollection.
 type DisableMetricsCollectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4951,21 +5365,21 @@ type DisableMetricsCollectionInput struct {
 	// One or more of the following metrics. If you omit this parameter, all metrics
 	// are disabled.
 	//
-	//  GroupMinSize
+	//    GroupMinSize
 	//
-	// GroupMaxSize
+	//    GroupMaxSize
 	//
-	// GroupDesiredCapacity
+	//    GroupDesiredCapacity
 	//
-	// GroupInServiceInstances
+	//    GroupInServiceInstances
 	//
-	// GroupPendingInstances
+	//    GroupPendingInstances
 	//
-	// GroupStandbyInstances
+	//    GroupStandbyInstances
 	//
-	// GroupTerminatingInstances
+	//    GroupTerminatingInstances
 	//
-	// GroupTotalInstances
+	//    GroupTotalInstances
 	Metrics []*string `type:"list"`
 }
 
@@ -5085,6 +5499,7 @@ func (s *Ebs) Validate() error {
 	return nil
 }
 
+// Contains the parameters for EnableMetricsCollection.
 type EnableMetricsCollectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5098,24 +5513,24 @@ type EnableMetricsCollectionInput struct {
 	// One or more of the following metrics. If you omit this parameter, all metrics
 	// are enabled.
 	//
-	//  GroupMinSize
+	//    GroupMinSize
 	//
-	// GroupMaxSize
+	//    GroupMaxSize
 	//
-	// GroupDesiredCapacity
+	//    GroupDesiredCapacity
 	//
-	// GroupInServiceInstances
+	//    GroupInServiceInstances
 	//
-	// GroupPendingInstances
+	//    GroupPendingInstances
 	//
-	// GroupStandbyInstances
+	//    GroupStandbyInstances
 	//
-	// GroupTerminatingInstances
+	//    GroupTerminatingInstances
 	//
-	// GroupTotalInstances
+	//    GroupTotalInstances
 	//
-	//  Note that the GroupStandbyInstances metric is not enabled by default. You
-	// must explicitly request this metric.
+	//   Note that the GroupStandbyInstances metric is not enabled by default.
+	// You must explicitly request this metric.
 	Metrics []*string `type:"list"`
 }
 
@@ -5174,21 +5589,21 @@ type EnabledMetric struct {
 
 	// One of the following metrics:
 	//
-	//  GroupMinSize
+	//    GroupMinSize
 	//
-	// GroupMaxSize
+	//    GroupMaxSize
 	//
-	// GroupDesiredCapacity
+	//    GroupDesiredCapacity
 	//
-	// GroupInServiceInstances
+	//    GroupInServiceInstances
 	//
-	// GroupPendingInstances
+	//    GroupPendingInstances
 	//
-	// GroupStandbyInstances
+	//    GroupStandbyInstances
 	//
-	// GroupTerminatingInstances
+	//    GroupTerminatingInstances
 	//
-	// GroupTotalInstances
+	//    GroupTotalInstances
 	Metric *string `min:"1" type:"string"`
 }
 
@@ -5202,6 +5617,7 @@ func (s EnabledMetric) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for EnteStandby.
 type EnterStandbyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5248,6 +5664,7 @@ func (s *EnterStandbyInput) Validate() error {
 	return nil
 }
 
+// Contains the output of EnterStandby.
 type EnterStandbyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5265,6 +5682,7 @@ func (s EnterStandbyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for ExecutePolicy.
 type ExecutePolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5284,7 +5702,7 @@ type ExecutePolicyInput struct {
 	// This parameter is not supported if the policy type is StepScaling.
 	//
 	// For more information, see Auto Scaling Cooldowns (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/Cooldown.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	HonorCooldown *bool `type:"boolean"`
 
 	// The metric value to compare to BreachThreshold. This enables you to execute
@@ -5347,6 +5765,7 @@ func (s ExecutePolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for ExitStandby.
 type ExitStandbyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5383,6 +5802,7 @@ func (s *ExitStandbyInput) Validate() error {
 	return nil
 }
 
+// Contains the parameters for ExitStandby.
 type ExitStandbyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5488,6 +5908,9 @@ type Group struct {
 	// The tags for the group.
 	Tags []*TagDescription `type:"list"`
 
+	// The Amazon Resource Names (ARN) of the target groups for your load balancer.
+	TargetGroupARNs []*string `type:"list"`
+
 	// The termination policies for the group.
 	TerminationPolicies []*string `type:"list"`
 
@@ -5515,9 +5938,9 @@ type Instance struct {
 	// The Availability Zone in which the instance is running.
 	AvailabilityZone *string `min:"1" type:"string" required:"true"`
 
-	// The health status of the instance. "Healthy" means that the instance is healthy
-	// and should remain in service. "Unhealthy" means that the instance is unhealthy
-	// and Auto Scaling should terminate and replace it.
+	// The last reported health status of the instance. "Healthy" means that the
+	// instance is healthy and should remain in service. "Unhealthy" means that
+	// the instance is unhealthy and Auto Scaling should terminate and replace it.
 	HealthStatus *string `min:"1" type:"string" required:"true"`
 
 	// The ID of the instance.
@@ -5555,9 +5978,9 @@ type InstanceDetails struct {
 	// The Availability Zone for the instance.
 	AvailabilityZone *string `min:"1" type:"string" required:"true"`
 
-	// The health status of this instance. "Healthy" means that the instance is
-	// healthy and should remain in service. "Unhealthy" means that the instance
-	// is unhealthy and Auto Scaling should terminate and replace it.
+	// The last reported health status of this instance. "Healthy" means that the
+	// instance is healthy and should remain in service. "Unhealthy" means that
+	// the instance is unhealthy and Auto Scaling should terminate and replace it.
 	HealthStatus *string `min:"1" type:"string" required:"true"`
 
 	// The ID of the instance.
@@ -5568,7 +5991,7 @@ type InstanceDetails struct {
 
 	// The lifecycle state for the instance. For more information, see Auto Scaling
 	// Lifecycle (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	LifecycleState *string `min:"1" type:"string" required:"true"`
 
 	// Indicates whether the instance is protected from termination by Auto Scaling
@@ -5689,10 +6112,12 @@ func (s LaunchConfiguration) GoString() string {
 // an action when an instance launches or terminates. When you have a lifecycle
 // hook in place, the Auto Scaling group will either:
 //
-//  Pause the instance after it launches, but before it is put into service
-// Pause the instance as it terminates, but before it is fully terminated  For
-// more information, see Auto Scaling Lifecycle (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
-// in the Auto Scaling Developer Guide.
+//   Pause the instance after it launches, but before it is put into service
+//
+//   Pause the instance as it terminates, but before it is fully terminated
+//
+//   For more information, see Auto Scaling Lifecycle (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
+// in the Auto Scaling User Guide.
 type LifecycleHook struct {
 	_ struct{} `type:"structure"`
 
@@ -5730,8 +6155,19 @@ type LifecycleHook struct {
 	// can be either an SQS queue or an SNS topic. The notification message sent
 	// to the target includes the following:
 	//
-	//  Lifecycle action token User account ID Name of the Auto Scaling group Lifecycle
-	// hook name EC2 instance ID Lifecycle transition Notification metadata
+	//   Lifecycle action token
+	//
+	//   User account ID
+	//
+	//   Name of the Auto Scaling group
+	//
+	//   Lifecycle hook name
+	//
+	//   EC2 instance ID
+	//
+	//   Lifecycle transition
+	//
+	//   Notification metadata
 	NotificationTargetARN *string `min:"1" type:"string"`
 
 	// The ARN of the IAM role that allows the Auto Scaling group to publish to
@@ -5749,7 +6185,17 @@ func (s LifecycleHook) GoString() string {
 	return s.String()
 }
 
-// Describes the state of a load balancer.
+// Describes the state of a Classic load balancer.
+//
+// If you specify a load balancer when creating the Auto Scaling group, the
+// state of the load balancer is InService.
+//
+// If you attach a load balancer to an existing Auto Scaling group, the initial
+// state is Adding. The state transitions to Added after all instances in the
+// group are registered with the load balancer. If ELB health checks are enabled
+// for the load balancer, the state transitions to InService after at least
+// one instance in the group passes the health check. If EC2 health checks are
+// enabled instead, the load balancer remains in the Added state.
 type LoadBalancerState struct {
 	_ struct{} `type:"structure"`
 
@@ -5758,16 +6204,18 @@ type LoadBalancerState struct {
 
 	// One of the following load balancer states:
 	//
-	//  Adding - The instances in the group are being registered with the load
+	//    Adding - The instances in the group are being registered with the load
 	// balancer.
 	//
-	// Added - All instances in the group are registered with the load balancer.
+	//    Added - All instances in the group are registered with the load balancer.
 	//
-	// InService - At least one instance in the group passed an ELB health check.
+	//    InService - At least one instance in the group passed an ELB health check.
 	//
-	// Removing - The instances are being deregistered from the load balancer.
-	// If connection draining is enabled, Elastic Load Balancing waits for in-flight
-	// requests to complete before deregistering the instances.
+	//    Removing - The instances in the group are being deregistered from the
+	// load balancer. If connection draining is enabled, Elastic Load Balancing
+	// waits for in-flight requests to complete before deregistering the instances.
+	//
+	//    Removed - All instances in the group are deregistered from the load balancer.
 	State *string `min:"1" type:"string"`
 }
 
@@ -5781,27 +6229,69 @@ func (s LoadBalancerState) GoString() string {
 	return s.String()
 }
 
+// Describes the state of a target group.
+//
+// If you attach a target group to an existing Auto Scaling group, the initial
+// state is Adding. The state transitions to Added after all Auto Scaling instances
+// are registered with the target group. If ELB health checks are enabled, the
+// state transitions to InService after at least one Auto Scaling instance passes
+// the health check. If EC2 health checks are enabled instead, the target group
+// remains in the Added state.
+type LoadBalancerTargetGroupState struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the target group.
+	LoadBalancerTargetGroupARN *string `min:"1" type:"string"`
+
+	// The state of the target group.
+	//
+	//    Adding - The Auto Scaling instances are being registered with the target
+	// group.
+	//
+	//    Added - All Auto Scaling instances are registered with the target group.
+	//
+	//    InService - At least one Auto Scaling instance passed an ELB health check.
+	//
+	//    Removing - The Auto Scaling instances are being deregistered from the
+	// target group. If connection draining is enabled, Elastic Load Balancing waits
+	// for in-flight requests to complete before deregistering the instances.
+	//
+	//    Removed - All Auto Scaling instances are deregistered from the target
+	// group.
+	State *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s LoadBalancerTargetGroupState) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LoadBalancerTargetGroupState) GoString() string {
+	return s.String()
+}
+
 // Describes a metric.
 type MetricCollectionType struct {
 	_ struct{} `type:"structure"`
 
 	// One of the following metrics:
 	//
-	//  GroupMinSize
+	//    GroupMinSize
 	//
-	// GroupMaxSize
+	//    GroupMaxSize
 	//
-	// GroupDesiredCapacity
+	//    GroupDesiredCapacity
 	//
-	// GroupInServiceInstances
+	//    GroupInServiceInstances
 	//
-	// GroupPendingInstances
+	//    GroupPendingInstances
 	//
-	// GroupStandbyInstances
+	//    GroupStandbyInstances
 	//
-	// GroupTerminatingInstances
+	//    GroupTerminatingInstances
 	//
-	// GroupTotalInstances
+	//    GroupTotalInstances
 	Metric *string `min:"1" type:"string"`
 }
 
@@ -5842,15 +6332,15 @@ type NotificationConfiguration struct {
 
 	// One of the following event notification types:
 	//
-	//  autoscaling:EC2_INSTANCE_LAUNCH
+	//    autoscaling:EC2_INSTANCE_LAUNCH
 	//
-	// autoscaling:EC2_INSTANCE_LAUNCH_ERROR
+	//    autoscaling:EC2_INSTANCE_LAUNCH_ERROR
 	//
-	// autoscaling:EC2_INSTANCE_TERMINATE
+	//    autoscaling:EC2_INSTANCE_TERMINATE
 	//
-	// autoscaling:EC2_INSTANCE_TERMINATE_ERROR
+	//    autoscaling:EC2_INSTANCE_TERMINATE_ERROR
 	//
-	// autoscaling:TEST_NOTIFICATION
+	//    autoscaling:TEST_NOTIFICATION
 	NotificationType *string `min:"1" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the Amazon Simple Notification Service
@@ -5871,27 +6361,27 @@ func (s NotificationConfiguration) GoString() string {
 // Describes a process type.
 //
 // For more information, see Auto Scaling Processes (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US_SuspendResume.html#process-types)
-// in the Auto Scaling Developer Guide.
+// in the Auto Scaling User Guide.
 type ProcessType struct {
 	_ struct{} `type:"structure"`
 
 	// One of the following processes:
 	//
-	//  Launch
+	//    Launch
 	//
-	// Terminate
+	//    Terminate
 	//
-	// AddToLoadBalancer
+	//    AddToLoadBalancer
 	//
-	// AlarmNotification
+	//    AlarmNotification
 	//
-	// AZRebalance
+	//    AZRebalance
 	//
-	// HealthCheck
+	//    HealthCheck
 	//
-	// ReplaceUnhealthy
+	//    ReplaceUnhealthy
 	//
-	// ScheduledActions
+	//    ScheduledActions
 	ProcessName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -5905,6 +6395,7 @@ func (s ProcessType) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for PutLifecycleHook.
 type PutLifecycleHookInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5944,11 +6435,21 @@ type PutLifecycleHookInput struct {
 	//
 	// The notification messages sent to the target include the following information:
 	//
-	//  AutoScalingGroupName. The name of the Auto Scaling group. AccountId. The
-	// AWS account ID. LifecycleTransition. The lifecycle hook type. LifecycleActionToken.
-	// The lifecycle action token. EC2InstanceId. The EC2 instance ID. LifecycleHookName.
-	// The name of the lifecycle hook. NotificationMetadata. User-defined information.
-	//  This operation uses the JSON format when sending notifications to an Amazon
+	//    AutoScalingGroupName. The name of the Auto Scaling group.
+	//
+	//    AccountId. The AWS account ID.
+	//
+	//    LifecycleTransition. The lifecycle hook type.
+	//
+	//    LifecycleActionToken. The lifecycle action token.
+	//
+	//    EC2InstanceId. The EC2 instance ID.
+	//
+	//    LifecycleHookName. The name of the lifecycle hook.
+	//
+	//    NotificationMetadata. User-defined information.
+	//
+	//   This operation uses the JSON format when sending notifications to an Amazon
 	// SQS queue, and an email key/value pair format when sending notifications
 	// to an Amazon SNS topic.
 	//
@@ -6003,6 +6504,7 @@ func (s *PutLifecycleHookInput) Validate() error {
 	return nil
 }
 
+// Contains the output of PutLifecycleHook.
 type PutLifecycleHookOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6017,6 +6519,7 @@ func (s PutLifecycleHookOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for PutNotificationConfiguration.
 type PutNotificationConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6081,6 +6584,7 @@ func (s PutNotificationConfigurationOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for PutScalingPolicy.
 type PutScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6088,7 +6592,7 @@ type PutScalingPolicyInput struct {
 	// PercentChangeInCapacity.
 	//
 	// For more information, see Dynamic Scaling (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	AdjustmentType *string `min:"1" type:"string" required:"true"`
 
 	// The name or ARN of the group.
@@ -6101,7 +6605,7 @@ type PutScalingPolicyInput struct {
 	// This parameter is not supported unless the policy type is SimpleScaling.
 	//
 	// For more information, see Auto Scaling Cooldowns (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/Cooldown.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	Cooldown *int64 `type:"integer"`
 
 	// The estimated time, in seconds, until a newly launched instance can contribute
@@ -6204,6 +6708,7 @@ func (s *PutScalingPolicyInput) Validate() error {
 	return nil
 }
 
+// Contains the output of PutScalingPolicy.
 type PutScalingPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6221,6 +6726,7 @@ func (s PutScalingPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for PutScheduledUpdateGroupAction.
 type PutScheduledUpdateGroupActionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6313,6 +6819,7 @@ func (s PutScheduledUpdateGroupActionOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for RecordLifecycleActionHeartbeat.
 type RecordLifecycleActionHeartbeatInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6369,6 +6876,7 @@ func (s *RecordLifecycleActionHeartbeatInput) Validate() error {
 	return nil
 }
 
+// Contains the output of RecordLifecycleActionHeartBeat.
 type RecordLifecycleActionHeartbeatOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6461,29 +6969,31 @@ func (s ScalingPolicy) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for SuspendProcesses and ResumeProcesses.
 type ScalingProcessQuery struct {
 	_ struct{} `type:"structure"`
 
 	// The name or Amazon Resource Name (ARN) of the Auto Scaling group.
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// One or more of the following processes:
+	// One or more of the following processes. If you omit this parameter, all processes
+	// are specified.
 	//
-	//  Launch
+	//    Launch
 	//
-	// Terminate
+	//    Terminate
 	//
-	// HealthCheck
+	//    HealthCheck
 	//
-	// ReplaceUnhealthy
+	//    ReplaceUnhealthy
 	//
-	// AZRebalance
+	//    AZRebalance
 	//
-	// AlarmNotification
+	//    AlarmNotification
 	//
-	// ScheduledActions
+	//    ScheduledActions
 	//
-	// AddToLoadBalancer
+	//    AddToLoadBalancer
 	ScalingProcesses []*string `type:"list"`
 }
 
@@ -6563,6 +7073,7 @@ func (s ScheduledUpdateGroupAction) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for SetDesiredCapacity.
 type SetDesiredCapacityInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6622,6 +7133,7 @@ func (s SetDesiredCapacityOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for SetInstanceHealth.
 type SetInstanceHealthInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6689,6 +7201,7 @@ func (s SetInstanceHealthOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for SetInstanceProtection.
 type SetInstanceProtectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6735,6 +7248,7 @@ func (s *SetInstanceProtectionInput) Validate() error {
 	return nil
 }
 
+// Contains the output of SetInstanceProtection.
 type SetInstanceProtectionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6940,6 +7454,7 @@ func (s TagDescription) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for TerminateInstanceInAutoScalingGroup.
 type TerminateInstanceInAutoScalingGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6980,6 +7495,7 @@ func (s *TerminateInstanceInAutoScalingGroupInput) Validate() error {
 	return nil
 }
 
+// Contains the output of TerminateInstancesInAutoScalingGroup.
 type TerminateInstanceInAutoScalingGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6997,6 +7513,7 @@ func (s TerminateInstanceInAutoScalingGroupOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for UpdateAutoScalingGroup.
 type UpdateAutoScalingGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7010,7 +7527,7 @@ type UpdateAutoScalingGroupInput struct {
 	// another scaling activity can start. The default is 300.
 	//
 	// For more information, see Auto Scaling Cooldowns (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/Cooldown.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	DefaultCooldown *int64 `type:"integer"`
 
 	// The number of EC2 instances that should be running in the Auto Scaling group.
@@ -7020,10 +7537,10 @@ type UpdateAutoScalingGroupInput struct {
 
 	// The amount of time, in seconds, that Auto Scaling waits before checking the
 	// health status of an EC2 instance that has come into service. The default
-	// is 300.
+	// is 0.
 	//
 	// For more information, see Health Checks (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/healthcheck.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	HealthCheckGracePeriod *int64 `type:"integer"`
 
 	// The service to use for the health checks. The valid values are EC2 and ELB.
@@ -7053,7 +7570,7 @@ type UpdateAutoScalingGroupInput struct {
 	//
 	// For more information, see Controlling Which Instances Auto Scaling Terminates
 	// During Scale In (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingBehavior.InstanceTermination.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	TerminationPolicies []*string `type:"list"`
 
 	// The ID of the subnet, if you are launching into a VPC. You can specify several
@@ -7063,7 +7580,7 @@ type UpdateAutoScalingGroupInput struct {
 	// subnets' Availability Zones match the values you specify for AvailabilityZones.
 	//
 	// For more information, see Launching Auto Scaling Instances in a VPC (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/asg-in-vpc.html)
-	// in the Auto Scaling Developer Guide.
+	// in the Auto Scaling User Guide.
 	VPCZoneIdentifier *string `min:"1" type:"string"`
 }
 
