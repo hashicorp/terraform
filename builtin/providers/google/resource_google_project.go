@@ -130,12 +130,27 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 	if ok := d.HasChange("policy"); ok {
 		// The policy string is just a marshaled cloudresourcemanager.Policy.
 		// Unmarshal it to a struct that contains the old and new policies
-		oldPString, newPString := d.GetChange("policy")
+		oldP, newP := d.GetChange("policy")
+		oldPString := oldP.(string)
+		newPString := newP.(string)
+
+		// JSON Unmarshaling would fail
+		if oldPString == "" {
+			oldPString = "{}"
+		}
+		if newPString == "" {
+			newPString = "{}"
+		}
+
+		oldPStringf, _ := json.MarshalIndent(oldPString, " ", "   ")
+		newPStringf, _ := json.MarshalIndent(newPString, " ", "   ")
+		log.Printf("[DEBUG]: Old policy: %v\nNew policy: %v", string(oldPStringf), string(newPStringf))
+
 		var oldPolicy, newPolicy cloudresourcemanager.Policy
-		if err = json.Unmarshal([]byte(newPString.(string)), &newPolicy); err != nil {
+		if err = json.Unmarshal([]byte(newPString), &newPolicy); err != nil {
 			return err
 		}
-		if err = json.Unmarshal([]byte(oldPString.(string)), &oldPolicy); err != nil {
+		if err = json.Unmarshal([]byte(oldPString), &oldPolicy); err != nil {
 			return err
 		}
 
