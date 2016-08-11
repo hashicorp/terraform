@@ -110,6 +110,8 @@ func (c *ECS) CreateServiceRequest(input *CreateServiceInput) (req *request.Requ
 // In addition to maintaining the desired count of tasks in your service, you
 // can optionally run your service behind a load balancer. The load balancer
 // distributes traffic across the tasks that are associated with the service.
+// For more information, see Service Load Balancing (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html)
+// in the Amazon EC2 Container Service Developer Guide.
 //
 // You can optionally specify a deployment configuration for your service.
 // During a deployment (which is triggered by changing the task definition of
@@ -1989,7 +1991,7 @@ type ContainerDefinition struct {
 	// containers, see https://docs.docker.com/userguide/dockerlinks/ (https://docs.docker.com/userguide/dockerlinks/).
 	// This parameter maps to Links in the Create a container (https://docs.docker.com/reference/api/docker_remote_api_v1.19/#create-a-container)
 	// section of the Docker Remote API (https://docs.docker.com/reference/api/docker_remote_api_v1.19/)
-	// and the --link option to  docker run  (https://docs.docker.com/reference/commandline/run/).
+	// and the --link option to docker run (https://docs.docker.com/reference/commandline/run/).
 	//
 	//  Containers that are collocated on a single container instance may be able
 	// to communicate with each other without requiring links or host port mappings.
@@ -2299,9 +2301,23 @@ type CreateServiceInput struct {
 	// keep running on your cluster.
 	DesiredCount *int64 `locationName:"desiredCount" type:"integer" required:"true"`
 
-	// A list of load balancer objects, containing the load balancer name, the container
-	// name (as it appears in a container definition), and the container port to
-	// access from the load balancer.
+	// A load balancer object representing the load balancer to use with your service.
+	// Currently, you are limited to one load balancer per service. After you create
+	// a service, the load balancer name, container name, and container port specified
+	// in the service definition are immutable.
+	//
+	// For Elastic Load Balancing Classic load balancers, this object must contain
+	// the load balancer name, the container name (as it appears in a container
+	// definition), and the container port to access from the load balancer. When
+	// a task from this service is placed on a container instance, the container
+	// instance is registered with the load balancer specified here.
+	//
+	// For Elastic Load Balancing Application load balancers, this object must
+	// contain the load balancer target group ARN, the container name (as it appears
+	// in a container definition), and the container port to access from the load
+	// balancer. When a task from this service is placed on a container instance,
+	// the container instance and port combination is registered as a target in
+	// the target group specified here.
 	LoadBalancers []*LoadBalancer `locationName:"loadBalancers" type:"list"`
 
 	// The name or full Amazon Resource Name (ARN) of the IAM role that allows Amazon
@@ -2478,7 +2494,7 @@ func (s DeleteServiceOutput) GoString() string {
 type Deployment struct {
 	_ struct{} `type:"structure"`
 
-	// The Unix time in seconds and milliseconds when the service was created.
+	// The Unix timestamp for when the service was created.
 	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix"`
 
 	// The most recent desired count of tasks that was specified for the service
@@ -2503,7 +2519,7 @@ type Deployment struct {
 	// The most recent task definition that was specified for the service to use.
 	TaskDefinition *string `locationName:"taskDefinition" type:"string"`
 
-	// The Unix time in seconds and milliseconds when the service was last updated.
+	// The Unix timestamp for when the service was last updated.
 	UpdatedAt *time.Time `locationName:"updatedAt" type:"timestamp" timestampFormat:"unix"`
 }
 
@@ -3408,11 +3424,11 @@ type ListTasksInput struct {
 	// limits the results to tasks that belong to that container instance.
 	ContainerInstance *string `locationName:"containerInstance" type:"string"`
 
-	// The task status with which to filter the ListTasks results. Specifying a
-	// desiredStatus of STOPPED limits the results to tasks that are in the STOPPED
-	// status, which can be useful for debugging tasks that are not starting properly
-	// or have died or finished. The default status filter is status filter is RUNNING,
-	// which shows tasks that ECS has set the desired status to RUNNING.
+	// The task desired status with which to filter the ListTasks results. Specifying
+	// a desiredStatus of STOPPED limits the results to tasks that ECS has set the
+	// desired status to STOPPED, which can be useful for debugging tasks that are
+	// not starting properly or have died or finished. The default status filter
+	// is RUNNING, which shows tasks that ECS has set the desired status to RUNNING.
 	//
 	//  Although you can filter results based on a desired status of PENDING, this
 	// will not return any results because ECS never sets the desired status of
@@ -3499,6 +3515,10 @@ type LoadBalancer struct {
 
 	// The name of the load balancer.
 	LoadBalancerName *string `locationName:"loadBalancerName" type:"string"`
+
+	// The full Amazon Resource Name (ARN) of the Elastic Load Balancing target
+	// group associated with a service.
+	TargetGroupArn *string `locationName:"targetGroupArn" type:"string"`
 }
 
 // String returns the string representation
@@ -3960,7 +3980,7 @@ type Service struct {
 	// The Amazon Resource Name (ARN) of the cluster that hosts the service.
 	ClusterArn *string `locationName:"clusterArn" type:"string"`
 
-	// The Unix time in seconds and milliseconds when the service was created.
+	// The Unix timestamp for when the service was created.
 	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix"`
 
 	// Optional deployment parameters that control how many tasks run during the
@@ -3979,9 +3999,9 @@ type Service struct {
 	// are displayed.
 	Events []*ServiceEvent `locationName:"events" type:"list"`
 
-	// A list of load balancer objects, containing the load balancer name, the container
-	// name (as it appears in a container definition), and the container port to
-	// access from the load balancer.
+	// A list of Elastic Load Balancing load balancer objects, containing the load
+	// balancer name, the container name (as it appears in a container definition),
+	// and the container port to access from the load balancer.
 	LoadBalancers []*LoadBalancer `locationName:"loadBalancers" type:"list"`
 
 	// The number of tasks in the cluster that are in the PENDING state.
@@ -3989,7 +4009,7 @@ type Service struct {
 
 	// The Amazon Resource Name (ARN) of the IAM role associated with the service
 	// that allows the Amazon ECS container agent to register container instances
-	// with a load balancer.
+	// with an Elastic Load Balancing load balancer.
 	RoleArn *string `locationName:"roleArn" type:"string"`
 
 	// The number of tasks in the cluster that are in the RUNNING state.
@@ -4030,7 +4050,7 @@ func (s Service) GoString() string {
 type ServiceEvent struct {
 	_ struct{} `type:"structure"`
 
-	// The Unix time in seconds and milliseconds when the event was triggered.
+	// The Unix timestamp for when the event was triggered.
 	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix"`
 
 	// The ID string of the event.
@@ -4310,8 +4330,8 @@ type Task struct {
 	// The containers associated with the task.
 	Containers []*Container `locationName:"containers" type:"list"`
 
-	// The Unix time in seconds and milliseconds when the task was created (the
-	// task entered the PENDING state).
+	// The Unix timestamp for when the task was created (the task entered the PENDING
+	// state).
 	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix"`
 
 	// The desired status of the task.
@@ -4323,8 +4343,8 @@ type Task struct {
 	// One or more container overrides.
 	Overrides *TaskOverride `locationName:"overrides" type:"structure"`
 
-	// The Unix time in seconds and milliseconds when the task was started (the
-	// task transitioned from the PENDING state to the RUNNING state).
+	// The Unix timestamp for when the task was started (the task transitioned from
+	// the PENDING state to the RUNNING state).
 	StartedAt *time.Time `locationName:"startedAt" type:"timestamp" timestampFormat:"unix"`
 
 	// The tag specified when a task is started. If the task is started by an Amazon
@@ -4332,8 +4352,8 @@ type Task struct {
 	// service that starts it.
 	StartedBy *string `locationName:"startedBy" type:"string"`
 
-	// The Unix time in seconds and milliseconds when the task was stopped (the
-	// task transitioned from the RUNNING state to the STOPPED state).
+	// The Unix timestamp for when the task was stopped (the task transitioned from
+	// the RUNNING state to the STOPPED state).
 	StoppedAt *time.Time `locationName:"stoppedAt" type:"timestamp" timestampFormat:"unix"`
 
 	// The reason the task was stopped.
@@ -4362,7 +4382,7 @@ type TaskDefinition struct {
 
 	// A list of container definitions in JSON format that describe the different
 	// containers that make up your task. For more information about container definition
-	// parameters and defaults, see Amazon ECS Task Definitions (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AmazonECS/latest/developerguidetask_defintions.html)
+	// parameters and defaults, see Amazon ECS Task Definitions (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_defintions.html)
 	// in the Amazon EC2 Container Service Developer Guide.
 	ContainerDefinitions []*ContainerDefinition `locationName:"containerDefinitions" type:"list"`
 
@@ -4391,7 +4411,7 @@ type TaskDefinition struct {
 	TaskRoleArn *string `locationName:"taskRoleArn" type:"string"`
 
 	// The list of volumes in a task. For more information about volume definition
-	// parameters and defaults, see Amazon ECS Task Definitions (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AmazonECS/latest/developerguidetask_defintions.html)
+	// parameters and defaults, see Amazon ECS Task Definitions (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_defintions.html)
 	// in the Amazon EC2 Container Service Developer Guide.
 	Volumes []*Volume `locationName:"volumes" type:"list"`
 }
