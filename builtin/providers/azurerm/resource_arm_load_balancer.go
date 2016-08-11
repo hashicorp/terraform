@@ -360,17 +360,23 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	//
-
-	//
+	if _, ok := d.GetOk("probe"); ok {
+		loadBalancingProbes, loadBalancingProbesErr := expandAzureRmLoadBalancingProbe(d)
+		if loadBalancingProbesErr != nil {
+			return fmt.Errorf("Error Building list of Load Balancing Probe's: %s", loadBalancingProbesErr)
+		}
+		if len(loadBalancingProbes) > 0 {
+			loadBalancer.Properties.Probes = &loadBalancingProbes
+		}
+	}
 
 	// DONE:
 	//  frontendIPConfigurations out to a []FrontendIPConfiguration
 	//  backendAddressPool out to a []BackendAddressPool
 	//  load_balancing_rule out to a []LoadBalancingRules
+	//  probes out to a []Probe
 
 	// TODO: Parse the following:
-	//  probes out to a []Probe
 	//  inboundNatRules out to a []InboundNatRule
 	//  inboundNatPools out to a []InboundNatPool
 	//  outboundNatRules out to a []OutboundNatRules
@@ -387,7 +393,7 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Virtual Network %s (resource group %s) ID", name, resGroup)
+		return fmt.Errorf("Cannot read Azure ARM Load Balancer %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
@@ -502,6 +508,7 @@ func expandAzureRmLoadBalancerBackendAddressPoolsConfiguration(d *schema.Resourc
 
 	return pools, nil
 }
+
 func expandAzureRmLoadBalancingRule(d *schema.ResourceData) ([]network.LoadBalancingRule, error) {
 	configs := d.Get("load_balancing_rule").(*schema.Set).List()
 	rules := make([]network.LoadBalancingRule, 0, len(configs))
@@ -541,4 +548,35 @@ func expandAzureRmLoadBalancingRule(d *schema.ResourceData) ([]network.LoadBalan
 	}
 
 	return rules, nil
+}
+
+func expandAzureRmLoadBalancingProbe(d *schema.ResourceData) ([]network.Probe, error) {
+	configs := d.Get("probe").(*schema.Set).List()
+	probes := make([]network.Probe, 0, len(configs))
+
+	for _, configRaw := range configs {
+		data := configRaw.(map[string]interface{})
+
+		protocol := data["protocol"].(string)
+		port := data["port"].(int32)
+		intervalInSeconds := data["interval_in_seconds"].(int32)
+		numberOfProbes := data["number_of_probes"].(int32)
+
+		properties := network.ProbePropertiesFormat{
+			Protocol: &protocol,
+			Port: &port,
+			IntervalInSeconds: &intervalInSeconds,
+			NumberOfProbes: &numberOfProbes,
+		}
+
+		name := data["name"].(string)
+		probe := network.Probe{
+			Name:       &name,
+			Properties: &properties,
+		}
+
+		probes = append(probes, probe)
+	}
+
+	return probes, nil
 }
