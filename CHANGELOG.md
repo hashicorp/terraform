@@ -30,6 +30,7 @@ IMPROVEMENTS
  * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
  * provider/vsphere: Adding disk type of `Thick Lazy` to `vsphere_virtual_disk` and `vsphere_virtual_machine` [GH-7916]
  * remote/consul: Support setting datacenter when using consul remote state [GH-8102]
+ * provider/google: Support Import of `google_compute_target_pool` [GH-8133]
 
 BUG FIXES:
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
