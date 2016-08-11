@@ -596,6 +596,12 @@
 			"revisionTime": "2016-08-11T16:24:59Z"
 		},
 		{
+			"checksumSHA1": "DLD6/EwnTkIR6HGaYKYs96lCD+Q=",
+			"path": "github.com/aws/aws-sdk-go/service/elbv2",
+			"revision": "f80e7d0182a463dff0c0da6bbed57f21369d4346",
+			"revisionTime": "2016-08-11T16:24:59Z"
+		},
+		{
 			"checksumSHA1": "MA6U/Vj0D00yihMHD6bXKyjtfeE=",
 			"path": "github.com/aws/aws-sdk-go/service/emr",
 			"revision": "f80e7d0182a463dff0c0da6bbed57f21369d4346",
