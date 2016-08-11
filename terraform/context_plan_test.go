@@ -1223,6 +1223,7 @@ func TestContext2Plan_countZero(t *testing.T) {
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanCountZeroStr)
 	if actual != expected {
+		t.Logf("expected:\n%s", expected)
 		t.Fatalf("bad:\n%s", actual)
 	}
 }
