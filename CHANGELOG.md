@@ -20,6 +20,7 @@ IMPROVEMENTS
  * provider/aws: Add ability to set Requests Payer in `aws_s3_bucket` [GH-8065]
  * provider/aws: Add ability to set canned ACL in `aws_s3_bucket_object` [GH-8091]
  * provider/aws: Allow skipping credentials validation, requesting Account ID and/or metadata API check [GH-7874]
+ * provider/aws: API gateway request/response parameters can now be specified as map, original `*_in_json` parameters  deprecated [GH-7794]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
  * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
