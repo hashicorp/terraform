@@ -120,7 +120,7 @@ func ecsCredProvider(cfg aws.Config, handlers request.Handlers, uri string) cred
 
 func ec2RoleProvider(cfg aws.Config, handlers request.Handlers) credentials.Provider {
 	endpoint, signingRegion := endpoints.EndpointForRegion(ec2metadata.ServiceName,
-		aws.StringValue(cfg.Region), true)
+		aws.StringValue(cfg.Region), true, false)
 
 	return &ec2rolecreds.EC2RoleProvider{
 		Client:       ec2metadata.NewClient(cfg, handlers, endpoint, signingRegion),

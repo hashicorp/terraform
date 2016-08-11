@@ -1,7 +1,10 @@
 package session
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/corehandlers"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -310,12 +313,32 @@ func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg share
 				sharedCfg.Creds,
 			)
 		} else {
-			// Fallback to default credentials provider
-			cfg.Credentials = credentials.NewCredentials(
-				defaults.RemoteCredProvider(*cfg, handlers),
-			)
+			// Fallback to default credentials provider, include mock errors
+			// for the credential chain so user can identify why credentials
+			// failed to be retrieved.
+			cfg.Credentials = credentials.NewCredentials(&credentials.ChainProvider{
+				VerboseErrors: aws.BoolValue(cfg.CredentialsChainVerboseErrors),
+				Providers: []credentials.Provider{
+					&credProviderError{Err: awserr.New("EnvAccessKeyNotFound", "failed to find credentials in the environment.", nil)},
+					&credProviderError{Err: awserr.New("SharedCredsLoad", fmt.Sprintf("failed to load profile, %s.", envCfg.Profile), nil)},
+					defaults.RemoteCredProvider(*cfg, handlers),
+				},
+			})
 		}
 	}
+}
+
+type credProviderError struct {
+	Err error
+}
+
+var emptyCreds = credentials.Value{}
+
+func (c credProviderError) Retrieve() (credentials.Value, error) {
+	return credentials.Value{}, c.Err
+}
+func (c credProviderError) IsExpired() bool {
+	return true
 }
 
 func initHandlers(s *Session) {
@@ -349,8 +372,12 @@ func (s *Session) Copy(cfgs ...*aws.Config) *Session {
 func (s *Session) ClientConfig(serviceName string, cfgs ...*aws.Config) client.Config {
 	s = s.Copy(cfgs...)
 	endpoint, signingRegion := endpoints.NormalizeEndpoint(
-		aws.StringValue(s.Config.Endpoint), serviceName,
-		aws.StringValue(s.Config.Region), aws.BoolValue(s.Config.DisableSSL))
+		aws.StringValue(s.Config.Endpoint),
+		serviceName,
+		aws.StringValue(s.Config.Region),
+		aws.BoolValue(s.Config.DisableSSL),
+		aws.BoolValue(s.Config.UseDualStack),
+	)
 
 	return client.Config{
 		Config:        s.Config,
