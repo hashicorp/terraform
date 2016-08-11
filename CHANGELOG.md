@@ -33,6 +33,7 @@ IMPROVEMENTS
  * provider/google: Support Import of `google_compute_target_pool` [GH-8133]
  * provider/google: Support Import of `google_compute_forwarding_rule` [GH-8122]
  * provider/google: Support Import of `google_resource_http_health_check` [GH-8121]
+ * provider/google: Support Import of `google_compute_autoscaler` [GH-8115]
 
 BUG FIXES:
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
