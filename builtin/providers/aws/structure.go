@@ -1090,9 +1090,8 @@ func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key 
 	return operations
 }
 
-func expandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
+func deprecatedExpandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
 	operations := make([]*apigateway.PatchOperation, 0)
-
 	oldParameters, newParameters := d.GetChange(key)
 	oldParametersMap := make(map[string]interface{})
 	newParametersMap := make(map[string]interface{})
@@ -1135,6 +1134,59 @@ func expandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key 
 				Op:    aws.String("add"),
 				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, nK)),
 				Value: aws.String(strconv.FormatBool(nV.(bool))),
+			}
+			operations = append(operations, &operation)
+		}
+	}
+
+	return operations, nil
+}
+
+func expandApiGatewayMethodParametersOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	oldParameters, newParameters := d.GetChange(key)
+	oldParametersMap := oldParameters.(map[string]interface{})
+	newParametersMap := newParameters.(map[string]interface{})
+
+	for k, _ := range oldParametersMap {
+		operation := apigateway.PatchOperation{
+			Op:   aws.String("remove"),
+			Path: aws.String(fmt.Sprintf("/%s/%s", prefix, k)),
+		}
+
+		for nK, nV := range newParametersMap {
+			b, ok := nV.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(nV.(string))
+				b = value
+			}
+			if nK == k {
+				operation.Op = aws.String("replace")
+				operation.Value = aws.String(strconv.FormatBool(b))
+			}
+		}
+
+		operations = append(operations, &operation)
+	}
+
+	for nK, nV := range newParametersMap {
+		exists := false
+		for k, _ := range oldParametersMap {
+			if k == nK {
+				exists = true
+			}
+		}
+		if !exists {
+			b, ok := nV.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(nV.(string))
+				b = value
+			}
+			operation := apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, nK)),
+				Value: aws.String(strconv.FormatBool(b)),
 			}
 			operations = append(operations, &operation)
 		}

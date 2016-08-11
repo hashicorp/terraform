@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -57,9 +58,18 @@ func resourceAwsApiGatewayMethod() *schema.Resource {
 				Elem:     schema.TypeString,
 			},
 
+			"request_parameters": &schema.Schema{
+				Type:          schema.TypeMap,
+				Elem:          schema.TypeBool,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters_in_json"},
+			},
+
 			"request_parameters_in_json": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters"},
+				Deprecated:    "Use field request_parameters instead",
 			},
 		},
 	}
@@ -74,6 +84,15 @@ func resourceAwsApiGatewayMethodCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	parameters := make(map[string]bool)
+	if kv, ok := d.GetOk("request_parameters"); ok {
+		for k, v := range kv.(map[string]interface{}) {
+			parameters[k], ok = v.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(v.(string))
+				parameters[k] = value
+			}
+		}
+	}
 	if v, ok := d.GetOk("request_parameters_in_json"); ok {
 		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
 			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
@@ -86,7 +105,6 @@ func resourceAwsApiGatewayMethodCreate(d *schema.ResourceData, meta interface{})
 		ResourceId:        aws.String(d.Get("resource_id").(string)),
 		RestApiId:         aws.String(d.Get("rest_api_id").(string)),
 		RequestModels:     aws.StringMap(models),
-		// TODO reimplement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
 		RequestParameters: aws.BoolMap(parameters),
 		ApiKeyRequired:    aws.Bool(d.Get("api_key_required").(bool)),
 	})
@@ -118,6 +136,7 @@ func resourceAwsApiGatewayMethodRead(d *schema.ResourceData, meta interface{}) e
 	}
 	log.Printf("[DEBUG] Received API Gateway Method: %s", out)
 	d.SetId(fmt.Sprintf("agm-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string)))
+	d.Set("request_parameters", aws.BoolValueMap(out.RequestParameters))
 	d.Set("request_parameters_in_json", aws.BoolValueMap(out.RequestParameters))
 
 	return nil
@@ -141,7 +160,24 @@ func resourceAwsApiGatewayMethodUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if d.HasChange("request_parameters_in_json") {
-		ops, err := expandApiGatewayMethodParametersJSONOperations(d, "request_parameters_in_json", "requestParameters")
+		ops, err := deprecatedExpandApiGatewayMethodParametersJSONOperations(d, "request_parameters_in_json", "requestParameters")
+		if err != nil {
+			return err
+		}
+		operations = append(operations, ops...)
+	}
+
+	if d.HasChange("request_parameters") {
+		parameters := make(map[string]bool)
+		var ok bool
+		for k, v := range d.Get("request_parameters").(map[string]interface{}) {
+			parameters[k], ok = v.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(v.(string))
+				parameters[k] = value
+			}
+		}
+		ops, err := expandApiGatewayMethodParametersOperations(d, "request_parameters", "requestParameters")
 		if err != nil {
 			return err
 		}
