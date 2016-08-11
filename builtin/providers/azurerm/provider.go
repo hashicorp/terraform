@@ -49,7 +49,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_availability_set":          resourceArmAvailabilitySet(),
 			"azurerm_cdn_endpoint":              resourceArmCdnEndpoint(),
 			"azurerm_cdn_profile":               resourceArmCdnProfile(),
-			"azurerm_load_balancer":						 resourceArmLoadBalancer(),
+			"azurerm_load_balancer":             resourceArmLoadBalancer(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),
 			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
