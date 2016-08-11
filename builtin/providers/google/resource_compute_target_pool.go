@@ -16,6 +16,9 @@ func resourceComputeTargetPool() *schema.Resource {
 		Read:   resourceComputeTargetPoolRead,
 		Delete: resourceComputeTargetPoolDelete,
 		Update: resourceComputeTargetPoolUpdate,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -60,12 +63,14 @@ func resourceComputeTargetPool() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"region": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"self_link": &schema.Schema{
@@ -106,7 +111,7 @@ func convertHealthChecks(config *Config, project string, names []string) ([]stri
 
 // Instances do not need to exist yet, so we simply generate URLs.
 // Instances can be full URLS or zone/name
-func convertInstances(config *Config, project string, names []string) ([]string, error) {
+func convertInstancesToUrls(config *Config, project string, names []string) ([]string, error) {
 	urls := make([]string, len(names))
 	for i, name := range names {
 		if strings.HasPrefix(name, "https://www.googleapis.com/compute/v1/") {
@@ -144,7 +149,7 @@ func resourceComputeTargetPoolCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	instanceUrls, err := convertInstances(
+	instanceUrls, err := convertInstancesToUrls(
 		config, project, convertStringArr(d.Get("instances").([]interface{})))
 	if err != nil {
 		return err
@@ -279,11 +284,11 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 		from_, to_ := d.GetChange("instances")
 		from := convertStringArr(from_.([]interface{}))
 		to := convertStringArr(to_.([]interface{}))
-		fromUrls, err := convertInstances(config, project, from)
+		fromUrls, err := convertInstancesToUrls(config, project, from)
 		if err != nil {
 			return err
 		}
-		toUrls, err := convertInstances(config, project, to)
+		toUrls, err := convertInstancesToUrls(config, project, to)
 		if err != nil {
 			return err
 		}
@@ -346,6 +351,16 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 	return resourceComputeTargetPoolRead(d, meta)
 }
 
+func convertInstancesFromUrls(urls []string) []string {
+	result := make([]string, 0, len(urls))
+	for _, url := range urls {
+		urlArray := strings.Split(url, "/")
+		instance := fmt.Sprintf("%s/%s", urlArray[len(urlArray)-3], urlArray[len(urlArray)-1])
+		result = append(result, instance)
+	}
+	return result
+}
+
 func resourceComputeTargetPoolRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -373,8 +388,19 @@ func resourceComputeTargetPoolRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error reading TargetPool: %s", err)
 	}
 
+	regionUrl := strings.Split(tpool.Region, "/")
 	d.Set("self_link", tpool.SelfLink)
-
+	d.Set("backup_pool", tpool.BackupPool)
+	d.Set("description", tpool.Description)
+	d.Set("failover_ratio", tpool.FailoverRatio)
+	d.Set("health_checks", tpool.HealthChecks)
+	if tpool.Instances != nil {
+		d.Set("instances", convertInstancesFromUrls(tpool.Instances))
+	}
+	d.Set("name", tpool.Name)
+	d.Set("region", regionUrl[len(regionUrl)-1])
+	d.Set("session_affinity", tpool.SessionAffinity)
+	d.Set("project", project)
 	return nil
 }
 
