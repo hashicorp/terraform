@@ -1012,3 +1012,107 @@ func TestFlattenApiGatewayStageKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestExpandPolicyAttributes(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"name":  "Protocol-TLSv1",
+			"value": "false",
+		},
+		map[string]interface{}{
+			"name":  "Protocol-TLSv1.1",
+			"value": "false",
+		},
+		map[string]interface{}{
+			"name":  "Protocol-TLSv1.2",
+			"value": "true",
+		},
+	}
+	attributes, err := expandPolicyAttributes(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	if len(attributes) != 3 {
+		t.Fatalf("expected number of attributes to be 3, but got %d", len(attributes))
+	}
+
+	expected := &elb.PolicyAttribute{
+		AttributeName:  aws.String("Protocol-TLSv1.2"),
+		AttributeValue: aws.String("true"),
+	}
+
+	if !reflect.DeepEqual(attributes[2], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			attributes[2],
+			expected)
+	}
+}
+
+func TestExpandPolicyAttributes_invalid(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"name":  "Protocol-TLSv1.2",
+			"value": "true",
+		},
+	}
+	attributes, err := expandPolicyAttributes(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := &elb.PolicyAttribute{
+		AttributeName:  aws.String("Protocol-TLSv1.2"),
+		AttributeValue: aws.String("false"),
+	}
+
+	if reflect.DeepEqual(attributes[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			attributes[0],
+			expected)
+	}
+}
+
+func TestExpandPolicyAttributes_empty(t *testing.T) {
+	var expanded []interface{}
+
+	attributes, err := expandPolicyAttributes(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	if len(attributes) != 0 {
+		t.Fatalf("expected number of attributes to be 0, but got %d", len(attributes))
+	}
+}
+
+func TestFlattenPolicyAttributes(t *testing.T) {
+	cases := []struct {
+		Input  []*elb.PolicyAttributeDescription
+		Output []interface{}
+	}{
+		{
+			Input: []*elb.PolicyAttributeDescription{
+				&elb.PolicyAttributeDescription{
+					AttributeName:  aws.String("Protocol-TLSv1.2"),
+					AttributeValue: aws.String("true"),
+				},
+			},
+			Output: []interface{}{
+				map[string]string{
+					"name":  "Protocol-TLSv1.2",
+					"value": "true",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenPolicyAttributes(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
+	}
+}
