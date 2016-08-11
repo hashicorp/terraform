@@ -350,12 +350,26 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
+	if _, ok := d.GetOk("load_balancing_rule"); ok {
+		loadBalancingRules, loadBalancingRulesErr := expandAzureRmLoadBalancingRule(d)
+		if loadBalancingRulesErr != nil {
+			return fmt.Errorf("Error Building list of Load Balancing Rules: %s", loadBalancingRulesErr)
+		}
+		if len(loadBalancingRules) > 0 {
+			loadBalancer.Properties.LoadBalancingRules = &loadBalancingRules
+		}
+	}
+
+	//
+
+	//
+
 	// DONE:
 	//  frontendIPConfigurations out to a []FrontendIPConfiguration
 	//  backendAddressPool out to a []BackendAddressPool
+	//  load_balancing_rule out to a []LoadBalancingRules
 
 	// TODO: Parse the following:
-	//  loadBalancingRules out to a []LoadBalancingRules
 	//  probes out to a []Probe
 	//  inboundNatRules out to a []InboundNatRule
 	//  inboundNatPools out to a []InboundNatPool
@@ -487,4 +501,44 @@ func expandAzureRmLoadBalancerBackendAddressPoolsConfiguration(d *schema.Resourc
 	}
 
 	return pools, nil
+}
+func expandAzureRmLoadBalancingRule(d *schema.ResourceData) ([]network.LoadBalancingRule, error) {
+	configs := d.Get("load_balancing_rule").(*schema.Set).List()
+	rules := make([]network.LoadBalancingRule, 0, len(configs))
+
+	for _, configRaw := range configs {
+		data := configRaw.(map[string]interface{})
+
+		protocol := data["protocol"].(string)
+		loadDistribution := data["load_distribution"].(string)
+		frontendPort := data["frontend_port"].(int32)
+		backendPort := data["backend_port"].(int32)
+
+		properties := network.LoadBalancingRulePropertiesFormat{
+			Protocol: &protocol,
+			LoadDistribution: &loadDistribution,
+			FrontendPort: &frontendPort,
+			BackendPort: &backendPort,
+		}
+
+		if v, ok := d.GetOk("idle_timeout_in_minutes"); ok {
+			idleTimeout := v.(int32)
+			properties.IdleTimeoutInMinutes = &idleTimeout
+		}
+
+		if v, ok := d.GetOk("enable_floating_ip"); ok {
+			enableFloatingIP := v.(bool)
+			properties.EnableFloatingIP = &enableFloatingIP
+		}
+
+		name := data["name"].(string)
+		rule := network.LoadBalancingRule{
+			Name:       &name,
+			Properties: &properties,
+		}
+
+		rules = append(rules, rule)
+	}
+
+	return rules, nil
 }

@@ -124,9 +124,11 @@ resource "azurerm_load_balancer" "test" {
     backend_address_pool = "examplebackend"
     probe = "examplelbprobe"
     protocol = "Tcp"
+		load_distribution = "Default"
     frontend_port = 80
     backend_port = 80
     idle_timeout_in_minutes = 15
+		enable_floating_ip = true
   }
 
   probe {
