@@ -38,6 +38,8 @@ func TestAccAzureInstance_basic(t *testing.T) {
 						"azure_instance.foo", "location", "West US"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "endpoint.2462817782.public_port", "22"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "custom_data", "0ea0f28b0c42d6bef7d0c7ab4886324feaa8b5e1"),
 				),
 			},
 		},
@@ -104,6 +106,8 @@ func TestAccAzureInstance_advanced(t *testing.T) {
 						"azure_instance.foo", "security_group", "terraform-security-group1"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "endpoint.1814039778.public_port", "3389"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "custom_data", "04c589e0edaa5ffe185d1e5532e77d1b2ac4b948"),
 				),
 			},
 		},
@@ -437,6 +441,7 @@ resource "azure_instance" "foo" {
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
+	custom_data = "# Hello world"
 
     endpoint {
         name = "SSH"
@@ -518,6 +523,7 @@ resource "azure_instance" "foo" {
     security_group = "${azure_security_group.foo.name}"
     username = "terraform"
     password = "Pass!admin123"
+	custom_data = "IyBIZWxsbyB3b3JsZA=="
 
     endpoint {
         name = "RDP"
