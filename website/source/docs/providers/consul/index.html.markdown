@@ -46,4 +46,8 @@ The following arguments are supported:
 * `address` - (Optional) The HTTP(S) API address of the agent to use. Defaults to "127.0.0.1:8500".
 * `scheme` - (Optional) The URL scheme of the agent to use ("http" or "https"). Defaults to "http".
 * `datacenter` - (Optional) The datacenter to use. Defaults to that of the agent.
+* `token` - (Optional) The ACL token to use by default when making requests to the agent.
+* `ca_file` - (Optional) A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.
+* `cert_file` - (Optional) A path to a PEM-encoded certificate provided to the remote agent; requires use of `key_file`.
+* `key_file`- (Optional) A path to a PEM-encoded private key, required if `cert_file` is specified.
 
