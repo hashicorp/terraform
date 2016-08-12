@@ -471,20 +471,32 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	cors, err := s3conn.GetBucketCors(&s3.GetBucketCorsInput{
 		Bucket: aws.String(d.Id()),
 	})
-	log.Printf("[DEBUG] S3 bucket: %s, read CORS: %v", d.Id(), cors)
 	if err != nil {
+		// An S3 Bucket might not have CORS configuration set.
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() != "NoSuchCORSConfiguration" {
+			return err
+		}
+		log.Printf("[WARN] S3 bucket: %s, no CORS configuration could be found.", d.Id())
+	}
+	log.Printf("[DEBUG] S3 bucket: %s, read CORS: %v", d.Id(), cors)
+	if cors.CORSRules != nil {
 		rules := make([]map[string]interface{}, 0, len(cors.CORSRules))
 		for _, ruleObject := range cors.CORSRules {
 			rule := make(map[string]interface{})
-			rule["allowed_headers"] = ruleObject.AllowedHeaders
-			rule["allowed_methods"] = ruleObject.AllowedMethods
-			rule["allowed_origins"] = ruleObject.AllowedOrigins
-			rule["expose_headers"] = ruleObject.ExposeHeaders
-			rule["max_age_seconds"] = ruleObject.MaxAgeSeconds
+			rule["allowed_headers"] = flattenStringList(ruleObject.AllowedHeaders)
+			rule["allowed_methods"] = flattenStringList(ruleObject.AllowedMethods)
+			rule["allowed_origins"] = flattenStringList(ruleObject.AllowedOrigins)
+			// Both the "ExposeHeaders" and "MaxAgeSeconds" might not be set.
+			if ruleObject.AllowedOrigins != nil {
+				rule["expose_headers"] = flattenStringList(ruleObject.ExposeHeaders)
+			}
+			if ruleObject.MaxAgeSeconds != nil {
+				rule["max_age_seconds"] = int(*ruleObject.MaxAgeSeconds)
+			}
 			rules = append(rules, rule)
 		}
 		if err := d.Set("cors_rule", rules); err != nil {
-			return fmt.Errorf("error reading S3 bucket \"%s\" CORS rules: %s", d.Id(), err)
+			return err
 		}
 	}
 
@@ -567,7 +579,6 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	accelerate, err := s3conn.GetBucketAccelerateConfiguration(&s3.GetBucketAccelerateConfigurationInput{
 		Bucket: aws.String(d.Id()),
 	})
-	log.Printf("[DEBUG] S3 bucket: %s, read Acceleration: %v", d.Id(), accelerate)
 	if err != nil {
 		// Amazon S3 Transfer Acceleration might not be supported in the
 		// given region, for example, China (Beijing) and the Government
