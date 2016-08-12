@@ -890,9 +890,11 @@
 			"revisionTime": "2016-07-26T16:33:11Z"
 		},
 		{
+			"checksumSHA1": "glOabn8rkJvz7tjz/xfX4lmt070=",
 			"comment": "v0.6.3-28-g3215b87",
 			"path": "github.com/hashicorp/consul/api",
-			"revision": "3215b8727f44c778dd7045dcfd5ac42735c581a9"
+			"revision": "d4a8a43d2b600e662a50a75be70daed5fad8dd2d",
+			"revisionTime": "2016-06-04T06:35:46Z"
 		},
 		{
 			"path": "github.com/hashicorp/errwrap",
