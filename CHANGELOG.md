@@ -49,6 +49,7 @@ BUG FIXES:
  * provider/aws: `aws_rds_cluster` creation timeout bumped to 40 minutes [GH-8052]
  * provider/aws: Fix line ending errors/diffs with IAM Server Certs [GH-8074]
  * provider/aws: Fixing IAM data source policy generation to prevent spurious diffs [GH-6956]
+ * provider/aws: Correct how CORS rules are handled in `aws_s3_bucket` [GH-8096]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
 
