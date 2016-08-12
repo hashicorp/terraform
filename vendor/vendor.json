@@ -1440,6 +1440,12 @@
 			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
 		},
 		{
+			"checksumSHA1": "uFGtM7zj0Q9fZPnnKlHTOJ9G5FA=",
+			"path": "github.com/meteor/docker-registry-client/registry",
+			"revision": "c92c2b37bee5e2332df0aa2608ebf020cf86c0da",
+			"revisionTime": "2016-04-05T21:33:58Z"
+		},
+		{
 			"checksumSHA1": "7niW29CvYceZ6zbia6b/LT+yD/M=",
 			"path": "github.com/mitchellh/cli",
 			"revision": "fcf521421aa29bde1d93b6920dfce826d7932208",
