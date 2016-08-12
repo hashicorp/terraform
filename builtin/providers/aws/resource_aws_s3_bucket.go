@@ -286,8 +286,6 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
-			"tags": tagsSchema(),
-
 			"force_destroy": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -300,6 +298,15 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: validateS3BucketAccelerationStatus,
 			},
+
+			"request_payer": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateS3BucketRequestPayerType,
+			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -408,6 +415,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("request_payer") {
+		if err := resourceAwsS3BucketRequestPayerUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
 	return resourceAwsS3BucketRead(d, meta)
 }
 
@@ -458,20 +471,32 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	cors, err := s3conn.GetBucketCors(&s3.GetBucketCorsInput{
 		Bucket: aws.String(d.Id()),
 	})
-	log.Printf("[DEBUG] S3 bucket: %s, read CORS: %v", d.Id(), cors)
 	if err != nil {
+		// An S3 Bucket might not have CORS configuration set.
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() != "NoSuchCORSConfiguration" {
+			return err
+		}
+		log.Printf("[WARN] S3 bucket: %s, no CORS configuration could be found.", d.Id())
+	}
+	log.Printf("[DEBUG] S3 bucket: %s, read CORS: %v", d.Id(), cors)
+	if cors.CORSRules != nil {
 		rules := make([]map[string]interface{}, 0, len(cors.CORSRules))
 		for _, ruleObject := range cors.CORSRules {
 			rule := make(map[string]interface{})
-			rule["allowed_headers"] = ruleObject.AllowedHeaders
-			rule["allowed_methods"] = ruleObject.AllowedMethods
-			rule["allowed_origins"] = ruleObject.AllowedOrigins
-			rule["expose_headers"] = ruleObject.ExposeHeaders
-			rule["max_age_seconds"] = ruleObject.MaxAgeSeconds
+			rule["allowed_headers"] = flattenStringList(ruleObject.AllowedHeaders)
+			rule["allowed_methods"] = flattenStringList(ruleObject.AllowedMethods)
+			rule["allowed_origins"] = flattenStringList(ruleObject.AllowedOrigins)
+			// Both the "ExposeHeaders" and "MaxAgeSeconds" might not be set.
+			if ruleObject.AllowedOrigins != nil {
+				rule["expose_headers"] = flattenStringList(ruleObject.ExposeHeaders)
+			}
+			if ruleObject.MaxAgeSeconds != nil {
+				rule["max_age_seconds"] = int(*ruleObject.MaxAgeSeconds)
+			}
 			rules = append(rules, rule)
 		}
 		if err := d.Set("cors_rule", rules); err != nil {
-			return fmt.Errorf("error reading S3 bucket \"%s\" CORS rules: %s", d.Id(), err)
+			return err
 		}
 	}
 
@@ -554,7 +579,6 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	accelerate, err := s3conn.GetBucketAccelerateConfiguration(&s3.GetBucketAccelerateConfigurationInput{
 		Bucket: aws.String(d.Id()),
 	})
-	log.Printf("[DEBUG] S3 bucket: %s, read Acceleration: %v", d.Id(), accelerate)
 	if err != nil {
 		// Amazon S3 Transfer Acceleration might not be supported in the
 		// given region, for example, China (Beijing) and the Government
@@ -568,6 +592,20 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("acceleration_status", accelerate.Status)
 	}
 
+	// Read the request payer configuration.
+	payer, err := s3conn.GetBucketRequestPayment(&s3.GetBucketRequestPaymentInput{
+		Bucket: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] S3 Bucket: %s, read request payer: %v", d.Id(), payer)
+	if payer.Payer != nil {
+		if err := d.Set("request_payer", *payer.Payer); err != nil {
+			return err
+		}
+	}
+
 	// Read the logging configuration
 	logging, err := s3conn.GetBucketLogging(&s3.GetBucketLoggingInput{
 		Bucket: aws.String(d.Id()),
@@ -575,6 +613,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	log.Printf("[DEBUG] S3 Bucket: %s, logging: %v", d.Id(), logging)
 	if v := logging.LoggingEnabled; v != nil {
 		lcl := make([]map[string]interface{}, 0, 1)
@@ -1163,6 +1202,26 @@ func resourceAwsS3BucketAccelerationUpdate(s3conn *s3.S3, d *schema.ResourceData
 	return nil
 }
 
+func resourceAwsS3BucketRequestPayerUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	payer := d.Get("request_payer").(string)
+
+	i := &s3.PutBucketRequestPaymentInput{
+		Bucket: aws.String(bucket),
+		RequestPaymentConfiguration: &s3.RequestPaymentConfiguration{
+			Payer: aws.String(payer),
+		},
+	}
+	log.Printf("[DEBUG] S3 put bucket request payer: %#v", i)
+
+	_, err := s3conn.PutBucketRequestPayment(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 request payer: %s", err)
+	}
+
+	return nil
+}
+
 func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
 	bucket := d.Get("bucket").(string)
 
@@ -1366,6 +1425,16 @@ func validateS3BucketAccelerationStatus(v interface{}, k string) (ws []string, e
 
 	if _, ok := validTypes[v.(string)]; !ok {
 		errors = append(errors, fmt.Errorf("S3 Bucket Acceleration Status %q is invalid, must be %q or %q", v.(string), "Enabled", "Suspended"))
+	}
+	return
+}
+
+func validateS3BucketRequestPayerType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != s3.PayerRequester && value != s3.PayerBucketOwner {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Request Payer type %q. Valid types are either %q or %q",
+			k, value, s3.PayerRequester, s3.PayerBucketOwner))
 	}
 	return
 }

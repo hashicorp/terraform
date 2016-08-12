@@ -1,17 +1,11 @@
 package aws
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/terraform"
-
-	"crypto/tls"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -56,6 +50,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type Config struct {
@@ -75,7 +74,12 @@ type Config struct {
 	Ec2Endpoint      string
 	IamEndpoint      string
 	ElbEndpoint      string
+	S3Endpoint       string
 	Insecure         bool
+
+	SkipCredsValidation     bool
+	SkipRequestingAccountId bool
+	SkipMetadataApiCheck    bool
 }
 
 type AWSClient struct {
@@ -141,7 +145,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := GetCredentials(c.AccessKey, c.SecretKey, c.Token, c.Profile, c.CredsFilename)
+		creds := GetCredentials(c)
 		// Call Get to check for credential provider. If nothing found, we'll get an
 		// error, and we can present it nicely to the user
 		cp, err := creds.Get()
@@ -178,7 +182,10 @@ func (c *Config) Client() (interface{}, error) {
 		}
 
 		// Set up base session
-		sess := session.New(awsConfig)
+		sess, err := session.NewSession(awsConfig)
+		if err != nil {
+			return nil, errwrap.Wrapf("Error creating AWS session: %s", err)
+		}
 		sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
 
 		// Some services exist only in us-east-1, e.g. because they manage
@@ -199,14 +206,19 @@ func (c *Config) Client() (interface{}, error) {
 		client.iamconn = iam.New(awsIamSess)
 		client.stsconn = sts.New(sess)
 
-		err = c.ValidateCredentials(client.stsconn)
-		if err != nil {
-			errs = append(errs, err)
-			return nil, &multierror.Error{Errors: errs}
+		if !c.SkipCredsValidation {
+			err = c.ValidateCredentials(client.stsconn)
+			if err != nil {
+				errs = append(errs, err)
+				return nil, &multierror.Error{Errors: errs}
+			}
 		}
-		accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
-		if err == nil {
-			client.accountid = accountId
+
+		if !c.SkipRequestingAccountId {
+			accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
+			if err == nil {
+				client.accountid = accountId
+			}
 		}
 
 		authErr := c.ValidateAccountId(client.accountid)

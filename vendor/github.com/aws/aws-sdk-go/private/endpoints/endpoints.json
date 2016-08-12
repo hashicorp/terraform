@@ -65,6 +65,9 @@
     "*/s3": {
       "endpoint": "s3-{region}.amazonaws.com"
     },
+    "*/s3/dualstack": {
+      "endpoint": "s3.dualstack.{region}.amazonaws.com"
+    },
     "us-east-1/s3": {
       "endpoint": "s3.amazonaws.com"
     },

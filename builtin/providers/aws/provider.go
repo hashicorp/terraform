@@ -100,6 +100,7 @@ func Provider() terraform.ResourceProvider {
 				Default:     "",
 				Description: descriptions["kinesis_endpoint"],
 			},
+
 			"endpoints": endpointsSchema(),
 
 			"insecure": &schema.Schema{
@@ -108,12 +109,34 @@ func Provider() terraform.ResourceProvider {
 				Default:     false,
 				Description: descriptions["insecure"],
 			},
+
+			"skip_credentials_validation": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_credentials_validation"],
+			},
+
+			"skip_requesting_account_id": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_requesting_account_id"],
+			},
+
+			"skip_metadata_api_check": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_metadata_api_check"],
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
 			"aws_ami":                      dataSourceAwsAmi(),
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
+			"aws_ip_ranges":                dataSourceAwsIPRanges(),
 			"aws_s3_bucket_object":         dataSourceAwsS3BucketObject(),
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
 		},
@@ -222,6 +245,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_load_balancer_policy":                     resourceAwsLoadBalancerPolicy(),
 			"aws_load_balancer_backend_server_policy":      resourceAwsLoadBalancerBackendServerPolicies(),
 			"aws_load_balancer_listener_policy":            resourceAwsLoadBalancerListenerPolicies(),
+			"aws_lb_ssl_negotiation_policy":                resourceAwsLBSSLNegotiationPolicy(),
 			"aws_main_route_table_association":             resourceAwsMainRouteTableAssociation(),
 			"aws_nat_gateway":                              resourceAwsNatGateway(),
 			"aws_network_acl":                              resourceAwsNetworkAcl(),
@@ -331,21 +355,33 @@ func init() {
 
 		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
 			"default value is `false`",
+
+		"skip_credentials_validation": "Skip the credentials validation via STS API. " +
+			"Used for AWS API implementations that do not have STS available/implemented.",
+
+		"skip_requesting_account_id": "Skip requesting the account ID. " +
+			"Used for AWS API implementations that do not have IAM/STS API and/or metadata API.",
+
+		"skip_medatadata_api_check": "Skip the AWS Metadata API check. " +
+			"Used for AWS API implementations that do not have a metadata api endpoint.",
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccessKey:        d.Get("access_key").(string),
-		SecretKey:        d.Get("secret_key").(string),
-		Profile:          d.Get("profile").(string),
-		CredsFilename:    d.Get("shared_credentials_file").(string),
-		Token:            d.Get("token").(string),
-		Region:           d.Get("region").(string),
-		MaxRetries:       d.Get("max_retries").(int),
-		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
-		KinesisEndpoint:  d.Get("kinesis_endpoint").(string),
-		Insecure:         d.Get("insecure").(bool),
+		AccessKey:               d.Get("access_key").(string),
+		SecretKey:               d.Get("secret_key").(string),
+		Profile:                 d.Get("profile").(string),
+		CredsFilename:           d.Get("shared_credentials_file").(string),
+		Token:                   d.Get("token").(string),
+		Region:                  d.Get("region").(string),
+		MaxRetries:              d.Get("max_retries").(int),
+		DynamoDBEndpoint:        d.Get("dynamodb_endpoint").(string),
+		KinesisEndpoint:         d.Get("kinesis_endpoint").(string),
+		Insecure:                d.Get("insecure").(bool),
+		SkipCredsValidation:     d.Get("skip_credentials_validation").(bool),
+		SkipRequestingAccountId: d.Get("skip_requesting_account_id").(bool),
+		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),
 	}
 
 	endpointsSet := d.Get("endpoints").(*schema.Set)

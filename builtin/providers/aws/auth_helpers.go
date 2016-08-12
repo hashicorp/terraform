@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -25,7 +26,12 @@ func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (
 
 		cfg := &aws.Config{}
 		setOptionalEndpoint(cfg)
-		metadataClient := ec2metadata.New(session.New(cfg))
+		sess, err := session.NewSession(cfg)
+		if err != nil {
+			return "", errwrap.Wrapf("Error creating AWS session: %s", err)
+		}
+
+		metadataClient := ec2metadata.New(sess)
 		info, err := metadataClient.IAMInfo()
 		if err != nil {
 			// This can be triggered when no IAM Role is assigned
@@ -86,18 +92,18 @@ func parseAccountIdFromArn(arn string) (string, error) {
 // This function is responsible for reading credentials from the
 // environment in the case that they're not explicitly specified
 // in the Terraform configuration.
-func GetCredentials(key, secret, token, profile, credsfile string) *awsCredentials.Credentials {
+func GetCredentials(c *Config) *awsCredentials.Credentials {
 	// build a chain provider, lazy-evaulated by aws-sdk
 	providers := []awsCredentials.Provider{
 		&awsCredentials.StaticProvider{Value: awsCredentials.Value{
-			AccessKeyID:     key,
-			SecretAccessKey: secret,
-			SessionToken:    token,
+			AccessKeyID:     c.AccessKey,
+			SecretAccessKey: c.SecretKey,
+			SessionToken:    c.Token,
 		}},
 		&awsCredentials.EnvProvider{},
 		&awsCredentials.SharedCredentialsProvider{
-			Filename: credsfile,
-			Profile:  profile,
+			Filename: c.CredsFilename,
+			Profile:  c.Profile,
 		},
 	}
 
@@ -111,22 +117,24 @@ func GetCredentials(key, secret, token, profile, credsfile string) *awsCredentia
 	}
 	usedEndpoint := setOptionalEndpoint(cfg)
 
-	// Real AWS should reply to a simple metadata request.
-	// We check it actually does to ensure something else didn't just
-	// happen to be listening on the same IP:Port
-	metadataClient := ec2metadata.New(session.New(cfg))
-	if metadataClient.Available() {
-		providers = append(providers, &ec2rolecreds.EC2RoleProvider{
-			Client: metadataClient,
-		})
-		log.Printf("[INFO] AWS EC2 instance detected via default metadata" +
-			" API endpoint, EC2RoleProvider added to the auth chain")
-	} else {
-		if usedEndpoint == "" {
-			usedEndpoint = "default location"
+	if !c.SkipMetadataApiCheck {
+		// Real AWS should reply to a simple metadata request.
+		// We check it actually does to ensure something else didn't just
+		// happen to be listening on the same IP:Port
+		metadataClient := ec2metadata.New(session.New(cfg))
+		if metadataClient.Available() {
+			providers = append(providers, &ec2rolecreds.EC2RoleProvider{
+				Client: metadataClient,
+			})
+			log.Printf("[INFO] AWS EC2 instance detected via default metadata" +
+				" API endpoint, EC2RoleProvider added to the auth chain")
+		} else {
+			if usedEndpoint == "" {
+				usedEndpoint = "default location"
+			}
+			log.Printf("[WARN] Ignoring AWS metadata API endpoint at %s "+
+				"as it doesn't return any instance-id", usedEndpoint)
 		}
-		log.Printf("[WARN] Ignoring AWS metadata API endpoint at %s "+
-			"as it doesn't return any instance-id", usedEndpoint)
 	}
 
 	return awsCredentials.NewChainCredentials(providers)

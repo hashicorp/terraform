@@ -109,6 +109,12 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Default:  0,
 			},
 
+			"promotion_tier": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  0,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -123,6 +129,7 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
 		Engine:              aws.String("aurora"),
 		PubliclyAccessible:  aws.Bool(d.Get("publicly_accessible").(bool)),
+		PromotionTier:       aws.Int64(int64(d.Get("promotion_tier").(int))),
 		Tags:                tags,
 	}
 
@@ -226,6 +233,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("instance_class", db.DBInstanceClass)
 	d.Set("identifier", db.DBInstanceIdentifier)
 	d.Set("storage_encrypted", db.StorageEncrypted)
+	d.Set("promotion_tier", db.PromotionTier)
 
 	if db.MonitoringInterval != nil {
 		d.Set("monitoring_interval", db.MonitoringInterval)
@@ -282,6 +290,12 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("monitoring_interval") {
 		d.SetPartial("monitoring_interval")
 		req.MonitoringInterval = aws.Int64(int64(d.Get("monitoring_interval").(int)))
+		requestUpdate = true
+	}
+
+	if d.HasChange("promotion_tier") {
+		d.SetPartial("promotion_tier")
+		req.PromotionTier = aws.Int64(int64(d.Get("promotion_tier").(int)))
 		requestUpdate = true
 	}
 

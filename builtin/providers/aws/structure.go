@@ -1090,9 +1090,8 @@ func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key 
 	return operations
 }
 
-func expandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
+func deprecatedExpandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
 	operations := make([]*apigateway.PatchOperation, 0)
-
 	oldParameters, newParameters := d.GetChange(key)
 	oldParametersMap := make(map[string]interface{})
 	newParametersMap := make(map[string]interface{})
@@ -1135,6 +1134,59 @@ func expandApiGatewayMethodParametersJSONOperations(d *schema.ResourceData, key 
 				Op:    aws.String("add"),
 				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, nK)),
 				Value: aws.String(strconv.FormatBool(nV.(bool))),
+			}
+			operations = append(operations, &operation)
+		}
+	}
+
+	return operations, nil
+}
+
+func expandApiGatewayMethodParametersOperations(d *schema.ResourceData, key string, prefix string) ([]*apigateway.PatchOperation, error) {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	oldParameters, newParameters := d.GetChange(key)
+	oldParametersMap := oldParameters.(map[string]interface{})
+	newParametersMap := newParameters.(map[string]interface{})
+
+	for k, _ := range oldParametersMap {
+		operation := apigateway.PatchOperation{
+			Op:   aws.String("remove"),
+			Path: aws.String(fmt.Sprintf("/%s/%s", prefix, k)),
+		}
+
+		for nK, nV := range newParametersMap {
+			b, ok := nV.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(nV.(string))
+				b = value
+			}
+			if nK == k {
+				operation.Op = aws.String("replace")
+				operation.Value = aws.String(strconv.FormatBool(b))
+			}
+		}
+
+		operations = append(operations, &operation)
+	}
+
+	for nK, nV := range newParametersMap {
+		exists := false
+		for k, _ := range oldParametersMap {
+			if k == nK {
+				exists = true
+			}
+		}
+		if !exists {
+			b, ok := nV.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(nV.(string))
+				b = value
+			}
+			operation := apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, nK)),
+				Value: aws.String(strconv.FormatBool(b)),
 			}
 			operations = append(operations, &operation)
 		}
@@ -1446,4 +1498,42 @@ func (s setMap) Map() map[string]interface{} {
 // match the schema.Set data type used for structs.
 func (s setMap) MapList() []map[string]interface{} {
 	return []map[string]interface{}{s.Map()}
+}
+
+// Takes the result of flatmap.Expand for an array of policy attributes and
+// returns ELB API compatible objects
+func expandPolicyAttributes(configured []interface{}) ([]*elb.PolicyAttribute, error) {
+	attributes := make([]*elb.PolicyAttribute, 0, len(configured))
+
+	// Loop over our configured attributes and create
+	// an array of aws-sdk-go compatible objects
+	for _, lRaw := range configured {
+		data := lRaw.(map[string]interface{})
+
+		a := &elb.PolicyAttribute{
+			AttributeName:  aws.String(data["name"].(string)),
+			AttributeValue: aws.String(data["value"].(string)),
+		}
+
+		attributes = append(attributes, a)
+
+	}
+
+	return attributes, nil
+}
+
+// Flattens an array of PolicyAttributes into a []interface{}
+func flattenPolicyAttributes(list []*elb.PolicyAttributeDescription) []interface{} {
+	attributes := []interface{}{}
+	for _, attrdef := range list {
+		attribute := map[string]string{
+			"name":  *attrdef.AttributeName,
+			"value": *attrdef.AttributeValue,
+		}
+
+		attributes = append(attributes, attribute)
+
+	}
+
+	return attributes
 }
