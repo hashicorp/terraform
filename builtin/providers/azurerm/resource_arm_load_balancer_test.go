@@ -1,10 +1,8 @@
 package azurerm
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -70,11 +68,11 @@ func TestAccAzureRMLoadBalancer_public(t *testing.T) {
 }
 
 func testCheckAzureRMLoadBalancerExists(name string) resource.TestCheckFunc {
-
+	return nil
 }
 
 func testCheckAzureRMLoadBalancerDestroy(s *terraform.State) error {
-
+	return nil
 }
 
 var testAccAzureRMLoadBalancerConfig_basic = `
@@ -146,6 +144,6 @@ resource "azurerm_load_balancer" "test" {
 }
 `
 
-var testAccAzureRMLoadBalancerConfig_internal = `
+var testAccAzureRMLoadBalancerConfig_public = `
 TODO: implement me
 `

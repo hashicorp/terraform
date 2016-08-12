@@ -1,10 +1,12 @@
 package azurerm
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
-	"github.com/Azure/azure-sdk-for-go/core/http"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -179,22 +181,10 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 	name := d.Get("name").(string)
 	lbType := d.Get("type").(string)
 	location := d.Get("location").(string)
+	resGroup := d.Get("resource_group_name").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
-	loadBalancer := network.LoadBalancer{
-		Name:       &name,
-		Type:       &lbType,
-		Location:   &location,
-		Properties: network.LoadBalancerPropertiesFormat{
-		//FrontendIPConfigurations: &frontendIPConfigurations,
-		//BackendAddressPools:      &backendAddressPool,
-		//LoadBalancingRules:       &loadBalancingRules,
-		//Probes:                   &probes,
-		//InboundNatRules:          &inboundNatRules,
-		//InboundNatPools:          &inboundNatPools,
-		},
-		Tags: expandTags(tags),
-	}
+	properties := network.LoadBalancerPropertiesFormat{}
 
 	if _, ok := d.GetOk("frontend_ip_configuration"); ok {
 		frontendConfigs, frontendConfigsErr := expandAzureRmLoadBalancerFrontendIPConfiguration(d)
@@ -202,7 +192,7 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("Error Building list of Frontend IP Configurations: %s", frontendConfigsErr)
 		}
 		if len(frontendConfigs) > 0 {
-			loadBalancer.Properties.FrontendIPConfigurations = &frontendConfigs
+			properties.FrontendIPConfigurations = &frontendConfigs
 		}
 	}
 
@@ -212,7 +202,7 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("Error Building list of Backend Address Pools: %s", backendAddressPoolsErr)
 		}
 		if len(backendAddressPools) > 0 {
-			loadBalancer.Properties.BackendAddressPools = &backendAddressPools
+			properties.BackendAddressPools = &backendAddressPools
 		}
 	}
 
@@ -222,7 +212,7 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("Error Building list of Load Balancing Rules: %s", loadBalancingRulesErr)
 		}
 		if len(loadBalancingRules) > 0 {
-			loadBalancer.Properties.LoadBalancingRules = &loadBalancingRules
+			properties.LoadBalancingRules = &loadBalancingRules
 		}
 	}
 
@@ -232,8 +222,16 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("Error Building list of Load Balancing Probe's: %s", loadBalancingProbesErr)
 		}
 		if len(loadBalancingProbes) > 0 {
-			loadBalancer.Properties.Probes = &loadBalancingProbes
+			properties.Probes = &loadBalancingProbes
 		}
+	}
+
+	loadBalancer := network.LoadBalancer{
+		Name:       &name,
+		Type:       &lbType,
+		Location:   &location,
+		Properties: &properties,
+		Tags:       expandTags(tags),
 	}
 
 	_, err := lbClient.CreateOrUpdate(resGroup, name, loadBalancer, make(chan struct{}))
@@ -241,7 +239,7 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error creating Azure ARM Load Balancer '%s': %s", name, err)
 	}
 
-	read, err := lbClient.Get(resGroup, name)
+	read, err := lbClient.Get(resGroup, name, "")
 	if err != nil {
 		return err
 	}
@@ -256,10 +254,12 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 
 // resourceArmLoadBalancerRead goes ahead and reads the state of the corresponding ARM load balancer.
 func resourceArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error {
+	return nil
 }
 
 // resourceArmLoadBalancerDelete deletes the specified ARM load balancer.
 func resourceArmLoadBalancerDelete(d *schema.ResourceData, meta interface{}) error {
+	return nil
 }
 
 // Helpers
@@ -324,8 +324,10 @@ func expandAzureRmLoadBalancerFrontendIPConfiguration(d *schema.ResourceData) ([
 
 		properties := network.FrontendIPConfigurationPropertiesFormat{
 			PrivateIPAddress:          &private_ip_address,
-			PrivateIPAllocationMethod: &private_ip_allocation_method,
-			Subnet: &subnet,
+			PrivateIPAllocationMethod: network.IPAllocationMethod(private_ip_allocation_method),
+			Subnet: &network.Subnet{
+				ID: &subnet,
+			},
 			// TODO: Public LB's
 			// PublicIPAddress: &public_ip_address
 		}
@@ -374,8 +376,8 @@ func expandAzureRmLoadBalancingRule(d *schema.ResourceData) ([]network.LoadBalan
 		backendPort := data["backend_port"].(int32)
 
 		properties := network.LoadBalancingRulePropertiesFormat{
-			Protocol:         &protocol,
-			LoadDistribution: &loadDistribution,
+			Protocol:         network.TransportProtocol(protocol),
+			LoadDistribution: network.LoadDistribution(loadDistribution),
 			FrontendPort:     &frontendPort,
 			BackendPort:      &backendPort,
 		}
@@ -415,7 +417,7 @@ func expandAzureRmLoadBalancingProbe(d *schema.ResourceData) ([]network.Probe, e
 		numberOfProbes := data["number_of_probes"].(int32)
 
 		properties := network.ProbePropertiesFormat{
-			Protocol:          &protocol,
+			Protocol:          network.ProbeProtocol(protocol),
 			Port:              &port,
 			IntervalInSeconds: &intervalInSeconds,
 			NumberOfProbes:    &numberOfProbes,
