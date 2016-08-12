@@ -290,9 +290,9 @@ func resourceArmLoadBalancerLoadBalancingRuleHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["backend_address_pool"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["probe"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["frontend_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["backend_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["idle_timeout_in_minutes"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["frontend_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["backend_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["idle_timeout_in_minutes"].(int)))
 
 	return hashcode.String(buf.String())
 }
@@ -302,9 +302,9 @@ func resourceArmLoadBalancerProbeHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["number_of_probes"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["interval_in_seconds"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["number_of_probes"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["interval_in_seconds"].(int)))
 
 	return hashcode.String(buf.String())
 }
