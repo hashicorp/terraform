@@ -69,16 +69,17 @@ type Config struct {
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
 
-	DynamoDBEndpoint       string
-	KinesisEndpoint        string
-	Ec2Endpoint            string
-	IamEndpoint            string
-	ElbEndpoint            string
-	S3Endpoint             string
-	Insecure               bool
-	SkipIamCredsValidation bool
-	SkipIamAccountId       bool
-	SkipMetadataApiCheck   bool
+	DynamoDBEndpoint string
+	KinesisEndpoint  string
+	Ec2Endpoint      string
+	IamEndpoint      string
+	ElbEndpoint      string
+	S3Endpoint       string
+	Insecure         bool
+
+	SkipCredsValidation     bool
+	SkipRequestingAccountId bool
+	SkipMetadataApiCheck    bool
 }
 
 type AWSClient struct {
@@ -205,7 +206,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.iamconn = iam.New(awsIamSess)
 		client.stsconn = sts.New(sess)
 
-		if c.SkipIamCredsValidation == false {
+		if !c.SkipCredsValidation {
 			err = c.ValidateCredentials(client.stsconn)
 			if err != nil {
 				errs = append(errs, err)
@@ -213,16 +214,16 @@ func (c *Config) Client() (interface{}, error) {
 			}
 		}
 
-		if c.SkipIamAccountId == false {
+		if !c.SkipRequestingAccountId {
 			accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
 			if err == nil {
 				client.accountid = accountId
 			}
+		}
 
-			authErr := c.ValidateAccountId(client.accountid)
-			if authErr != nil {
-				errs = append(errs, authErr)
-			}
+		authErr := c.ValidateAccountId(client.accountid)
+		if authErr != nil {
+			errs = append(errs, authErr)
 		}
 
 		client.apigateway = apigateway.New(sess)
