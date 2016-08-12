@@ -441,7 +441,7 @@ resource "azure_instance" "foo" {
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
-	custom_data = "# Hello world"
+    custom_data = "# Hello world"
 
     endpoint {
         name = "SSH"
@@ -453,9 +453,9 @@ resource "azure_instance" "foo" {
 
 var testAccAzureInstance_separateHostedService = `
 resource "azure_hosted_service" "foo" {
-	name = "%s"
-	location = "West US"
-	ephemeral_contents = true
+    name = "%s"
+    location = "West US"
+    ephemeral_contents = true
 }
 
 resource "azure_instance" "foo" {
@@ -480,16 +480,16 @@ var testAccAzureInstance_advanced = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
     name = "terraform-vnet-advanced-test"
     address_space = ["10.1.2.0/24"]
-		location = "West US"
+        location = "West US"
 
-		subnet {
+        subnet {
         name = "subnet1"
-				address_prefix = "10.1.2.0/25"
-		}
+                address_prefix = "10.1.2.0/25"
+        }
 
-		subnet {
+        subnet {
         name = "subnet2"
-				address_prefix = "10.1.2.128/25"
+                address_prefix = "10.1.2.128/25"
     }
 }
 
@@ -506,8 +506,8 @@ resource "azure_security_group_rule" "foo" {
     source_port_range = "*"
     destination_address_prefix = "*"
     destination_port_range = "3389"
-	action = "Deny"
-	type = "Inbound"
+    action = "Deny"
+    type = "Inbound"
     protocol = "TCP"
 }
 
@@ -523,7 +523,7 @@ resource "azure_instance" "foo" {
     security_group = "${azure_security_group.foo.name}"
     username = "terraform"
     password = "Pass!admin123"
-	custom_data = "IyBIZWxsbyB3b3JsZA=="
+    custom_data = "IyBIZWxsbyB3b3JsZA=="
 
     endpoint {
         name = "RDP"
@@ -537,16 +537,16 @@ var testAccAzureInstance_update = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
     name = "terraform-vnet-update-test"
     address_space = ["10.1.2.0/24"]
-		location = "West US"
+    location = "West US"
 
     subnet {
         name = "subnet1"
-		address_prefix = "10.1.2.0/25"
-	}
+        address_prefix = "10.1.2.0/25"
+    }
 
     subnet {
         name = "subnet2"
-		address_prefix = "10.1.2.128/25"
+        address_prefix = "10.1.2.128/25"
     }
 }
 
@@ -563,8 +563,8 @@ resource "azure_security_group_rule" "foo" {
     source_port_range = "*"
     destination_address_prefix = "*"
     destination_port_range = "3389"
-	type = "Inbound"
-	action = "Deny"
+    type = "Inbound"
+    action = "Deny"
     protocol = "TCP"
 }
 
@@ -581,8 +581,8 @@ resource "azure_security_group_rule" "bar" {
     source_port_range = "*"
     destination_address_prefix = "*"
     destination_port_range = "3389"
-	type = "Inbound"
-	action = "Deny"
+    type = "Inbound"
+    action = "Deny"
     protocol = "TCP"
 }
 
