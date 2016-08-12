@@ -80,6 +80,7 @@ type Config struct {
 	SkipCredsValidation     bool
 	SkipRequestingAccountId bool
 	SkipMetadataApiCheck    bool
+	S3ForcePathStyle        bool
 }
 
 type AWSClient struct {
@@ -163,10 +164,11 @@ func (c *Config) Client() (interface{}, error) {
 		log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
 
 		awsConfig := &aws.Config{
-			Credentials: creds,
-			Region:      aws.String(c.Region),
-			MaxRetries:  aws.Int(c.MaxRetries),
-			HTTPClient:  cleanhttp.DefaultClient(),
+			Credentials:      creds,
+			Region:           aws.String(c.Region),
+			MaxRetries:       aws.Int(c.MaxRetries),
+			HTTPClient:       cleanhttp.DefaultClient(),
+			S3ForcePathStyle: aws.Bool(c.S3ForcePathStyle),
 		}
 
 		if logging.IsDebugOrHigher() {
@@ -199,6 +201,7 @@ func (c *Config) Client() (interface{}, error) {
 		awsEc2Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.Ec2Endpoint)})
 		awsElbSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.ElbEndpoint)})
 		awsIamSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)})
+		awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
 		dynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
 		kinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
 
@@ -259,7 +262,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.rdsconn = rds.New(sess)
 		client.redshiftconn = redshift.New(sess)
 		client.simpledbconn = simpledb.New(sess)
-		client.s3conn = s3.New(sess)
+		client.s3conn = s3.New(awsS3Sess)
 		client.sesConn = ses.New(sess)
 		client.snsconn = sns.New(sess)
 		client.sqsconn = sqs.New(sess)
