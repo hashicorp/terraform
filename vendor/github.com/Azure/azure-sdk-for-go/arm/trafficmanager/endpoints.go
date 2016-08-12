@@ -32,7 +32,13 @@ type EndpointsClient struct {
 
 // NewEndpointsClient creates an instance of the EndpointsClient client.
 func NewEndpointsClient(subscriptionID string) EndpointsClient {
-	return EndpointsClient{New(subscriptionID)}
+	return NewEndpointsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewEndpointsClientWithBaseURI creates an instance of the EndpointsClient
+// client.
+func NewEndpointsClientWithBaseURI(baseURI string, subscriptionID string) EndpointsClient {
+	return EndpointsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate create or update a Traffic Manager endpoint.

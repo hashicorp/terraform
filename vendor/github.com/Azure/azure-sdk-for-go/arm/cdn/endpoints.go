@@ -19,10 +19,9 @@ package cdn
 // regenerated.
 
 import (
-	"net/http"
-
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"net/http"
 )
 
 // EndpointsClient is the use these APIs to manage Azure CDN resources through
@@ -36,7 +35,13 @@ type EndpointsClient struct {
 
 // NewEndpointsClient creates an instance of the EndpointsClient client.
 func NewEndpointsClient(subscriptionID string) EndpointsClient {
-	return EndpointsClient{New(subscriptionID)}
+	return NewEndpointsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewEndpointsClientWithBaseURI creates an instance of the EndpointsClient
+// client.
+func NewEndpointsClientWithBaseURI(baseURI string, subscriptionID string) EndpointsClient {
+	return EndpointsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Create sends the create request. This method may poll for completion.
