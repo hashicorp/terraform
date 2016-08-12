@@ -73,7 +73,11 @@ func TestResourceProvider_ConfigureTLS(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("CONSUL_HTTP_ADDR"); v == "" {
-		t.Fatal("CONSUL_HTTP_ADDR must be set for acceptance tests")
+	if v := os.Getenv("CONSUL_HTTP_ADDR"); v != "" {
+		return
 	}
+	if v := os.Getenv("CONSUL_ADDRESS"); v != "" {
+		return
+	}
+	t.Fatal("Either CONSUL_ADDRESS or CONSUL_HTTP_ADDR must be set for acceptance tests")
 }
