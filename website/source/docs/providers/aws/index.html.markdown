@@ -182,6 +182,10 @@ The following arguments are supported in the `provider` block:
   `true` prevents Terraform from authenticating via Metadata API - i.e. you may need to use other auth methods
   (static credentials set as ENV vars or config)
 
+* `s3_force_path_style` - (Optional) set this to true to force the request to use
+  path-style adressing, i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the
+  S3 client will use virtual hosted bucket addressing when possible
+  (http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.
 
 Nested `endpoints` block supports the followings:
 
@@ -196,6 +200,10 @@ Nested `endpoints` block supports the followings:
 * `elb` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
   custom elb endpoints.
+
+* `s3` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom s3 endpoints.
 
 ## Getting the Account ID
 
