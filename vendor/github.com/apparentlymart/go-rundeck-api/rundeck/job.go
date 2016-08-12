@@ -35,6 +35,7 @@ type JobDetail struct {
 	AllowConcurrentExecutions bool                `xml:"multipleExecutions,omitempty"`
 	Dispatch                  *JobDispatch        `xml:"dispatch,omitempty"`
 	CommandSequence           *JobCommandSequence `xml:"sequence,omitempty"`
+	Notification              *JobNotification    `xml:"notification,omitempty"`
 	Timeout                   string              `xml:"timeout,omitempty"`
 	Retry                     string              `xml:"retry,omitempty"`
 	NodeFilter                *JobNodeFilter      `xml:"nodefilters,omitempty"`
@@ -46,6 +47,31 @@ type JobDetail struct {
 	NodesSelectedByDefault    bool                `xml:"nodesSelectedByDefault"`
 	Schedule                  *JobSchedule        `xml:"schedule"`
 }
+
+type JobNotification struct {
+	OnFailure *Notification `xml:"onfailure,omitempty"`
+	OnStart   *Notification `xml:"onstart,omitempty"`
+	OnSuccess *Notification `xml:"onsuccess,omitempty"`
+}
+
+type Notification struct {
+	Email 	*EmailNotification	 `xml:"email,omitempty"`
+	WebHook *WebHookNotification `xml:"webhook,omitempty"`
+}
+
+type EmailNotification struct {
+	AttachLog  bool               `xml:"attachLog,attr,omitempty"`
+	Recipients NotificationEmails `xml:"recipients,attr"`
+	Subject    string             `xml:"subject,attr"`
+}
+
+type NotificationEmails []string
+
+type WebHookNotification struct {
+	Urls NotificationUrls `xml:"urls,attr"`
+}
+
+type NotificationUrls []string
 
 type JobSchedule struct {
 	XMLName         xml.Name               `xml:"schedule"`
@@ -223,6 +249,7 @@ type JobCommandJobRef struct {
 	Name           string                    `xml:"name,attr"`
 	GroupName      string                    `xml:"group,attr"`
 	RunForEachNode bool                      `xml:"nodeStep,attr"`
+	Dispatch       *JobDispatch              `xml:"dispatch,omitempty"`
 	NodeFilter     *JobNodeFilter            `xml:"nodefilters,omitempty"`
 	Arguments      JobCommandJobRefArguments `xml:"arg"`
 }
@@ -343,6 +370,34 @@ func (c *Client) importJob(job *JobDetail, dupeOption string) (*JobSummary, erro
 // DeleteJob deletes the job with the given id.
 func (c *Client) DeleteJob(id string) error {
 	return c.delete([]string{"job", id})
+}
+
+func (c NotificationEmails) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	if len(c) > 0 {
+		return xml.Attr{name, strings.Join(c, ",")}, nil
+	} else {
+		return xml.Attr{}, nil
+	}
+}
+
+func (c *NotificationEmails) UnmarshalXMLAttr(attr xml.Attr) error {
+	values := strings.Split(attr.Value, ",")
+	*c = values
+	return nil
+}
+
+func (c NotificationUrls) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	if len(c) > 0 {
+		return xml.Attr{name, strings.Join(c, ",")}, nil
+	} else {
+		return xml.Attr{}, nil
+	}
+}
+
+func (c *NotificationUrls) UnmarshalXMLAttr(attr xml.Attr) error {
+	values := strings.Split(attr.Value, ",")
+	*c = values
+	return nil
 }
 
 func (c JobValueChoices) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
