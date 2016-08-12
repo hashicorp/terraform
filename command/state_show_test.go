@@ -126,6 +126,29 @@ func TestStateShow_noState(t *testing.T) {
 	}
 }
 
+func TestStateShow_emptyState(t *testing.T) {
+	state := &terraform.State{}
+
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateShowCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
 const testStateShowOutput = `
 id  = bar
 bar = value
