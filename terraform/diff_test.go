@@ -27,6 +27,19 @@ func TestDiffEmpty(t *testing.T) {
 	}
 }
 
+func TestDiffEmpty_taintedIsNotEmpty(t *testing.T) {
+	diff := new(Diff)
+
+	mod := diff.AddModule(rootModulePath)
+	mod.Resources["nodeA"] = &InstanceDiff{
+		DestroyTainted: true,
+	}
+
+	if diff.Empty() {
+		t.Fatal("should not be empty, since DestroyTainted was set")
+	}
+}
+
 func TestModuleDiff_ChangeType(t *testing.T) {
 	cases := []struct {
 		Diff   *ModuleDiff
