@@ -1949,6 +1949,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 DIFF:
 
 DESTROY/CREATE: aws_instance.foo.0
+  type: "" => "aws_instance"
 
 STATE:
 
@@ -1960,7 +1961,7 @@ aws_instance.foo.2:
   ID = bar
 		`)
 		if actual != expected {
-			t.Fatalf("bad:\n%s", actual)
+			t.Fatalf("[%d] bad:\n%s\nexpected:\n%s\n", i, actual, expected)
 		}
 	}
 }
