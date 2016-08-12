@@ -372,8 +372,8 @@ func expandAzureRmLoadBalancingRule(d *schema.ResourceData) ([]network.LoadBalan
 
 		protocol := data["protocol"].(string)
 		loadDistribution := data["load_distribution"].(string)
-		frontendPort := data["frontend_port"].(int32)
-		backendPort := data["backend_port"].(int32)
+		frontendPort := int32(data["frontend_port"].(int))
+		backendPort := int32(data["backend_port"].(int))
 
 		properties := network.LoadBalancingRulePropertiesFormat{
 			Protocol:         network.TransportProtocol(protocol),
@@ -383,7 +383,7 @@ func expandAzureRmLoadBalancingRule(d *schema.ResourceData) ([]network.LoadBalan
 		}
 
 		if v, ok := d.GetOk("idle_timeout_in_minutes"); ok {
-			idleTimeout := v.(int32)
+			idleTimeout := int32(v.(int))
 			properties.IdleTimeoutInMinutes = &idleTimeout
 		}
 
@@ -411,15 +411,14 @@ func expandAzureRmLoadBalancingProbe(d *schema.ResourceData) ([]network.Probe, e
 	for _, configRaw := range configs {
 		data := configRaw.(map[string]interface{})
 
-		protocol := data["protocol"].(string)
-		port := data["port"].(int32)
-		intervalInSeconds := data["interval_in_seconds"].(int32)
-		numberOfProbes := data["number_of_probes"].(int32)
+		port := int32(d.Get("port").(int))
+		interval := int32(d.Get("interval_in_seconds").(int))
+		numberOfProbes := int32(d.Get("number_of_probes").(int))
 
 		properties := network.ProbePropertiesFormat{
-			Protocol:          network.ProbeProtocol(protocol),
+			Protocol:          network.ProbeProtocol(data["protocol"].(string)),
 			Port:              &port,
-			IntervalInSeconds: &intervalInSeconds,
+			IntervalInSeconds: &interval,
 			NumberOfProbes:    &numberOfProbes,
 		}
 
