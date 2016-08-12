@@ -31,7 +31,12 @@ type JobsClient struct {
 
 // NewJobsClient creates an instance of the JobsClient client.
 func NewJobsClient(subscriptionID string) JobsClient {
-	return JobsClient{New(subscriptionID)}
+	return NewJobsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewJobsClientWithBaseURI creates an instance of the JobsClient client.
+func NewJobsClientWithBaseURI(baseURI string, subscriptionID string) JobsClient {
+	return JobsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate provisions a new job or updates an existing job.
