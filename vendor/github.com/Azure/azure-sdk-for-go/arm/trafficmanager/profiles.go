@@ -32,7 +32,13 @@ type ProfilesClient struct {
 
 // NewProfilesClient creates an instance of the ProfilesClient client.
 func NewProfilesClient(subscriptionID string) ProfilesClient {
-	return ProfilesClient{New(subscriptionID)}
+	return NewProfilesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewProfilesClientWithBaseURI creates an instance of the ProfilesClient
+// client.
+func NewProfilesClientWithBaseURI(baseURI string, subscriptionID string) ProfilesClient {
+	return ProfilesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CheckTrafficManagerRelativeDNSNameAvailability checks the availability of a
