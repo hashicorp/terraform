@@ -1,11 +1,11 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"C5oy1hgQsABtYOYIOXWcR3BgYqU/cPnwg2U9hg8m8Y6wHWcvqIF8qSM\"",
+ "etag": "\"C5oy1hgQsABtYOYIOXWcR3BgYqU/WoNfwvHOxLFHVTodCpDiAsVbMpQ\"",
  "discoveryVersion": "v1",
  "id": "storage:v1",
  "name": "storage",
  "version": "v1",
- "revision": "20160609",
+ "revision": "20160714",
  "title": "Cloud Storage JSON API",
  "description": "Stores and retrieves potentially large, immutable data objects.",
  "ownerDomain": "google.com",
@@ -361,13 +361,13 @@
       },
       "team": {
        "type": "string",
-       "description": "The team. Can be owners, editors, or viewers."
+       "description": "The team."
       }
      }
     },
     "role": {
      "type": "string",
-     "description": "The access permission for the entity. Can be READER, WRITER, or OWNER.",
+     "description": "The access permission for the entity.",
      "annotations": {
       "required": [
        "storage.bucketAccessControls.insert"
@@ -553,7 +553,7 @@
     },
     "cacheControl": {
      "type": "string",
-     "description": "Cache-Control directive for the object data."
+     "description": "Cache-Control directive for the object data. If omitted, and the object is accessible to all anonymous users, the default will be public, max-age=3600."
     },
     "componentCount": {
      "type": "integer",
@@ -738,13 +738,13 @@
       },
       "team": {
        "type": "string",
-       "description": "The team. Can be owners, editors, or viewers."
+       "description": "The team."
       }
      }
     },
     "role": {
      "type": "string",
-     "description": "The access permission for the entity. Can be READER or OWNER."
+     "description": "The access permission for the entity."
     },
     "selfLink": {
      "type": "string",

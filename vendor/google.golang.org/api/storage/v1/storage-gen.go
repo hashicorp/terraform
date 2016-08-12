@@ -531,8 +531,7 @@ type BucketAccessControl struct {
 	// ProjectTeam: The project team associated with the entity, if any.
 	ProjectTeam *BucketAccessControlProjectTeam `json:"projectTeam,omitempty"`
 
-	// Role: The access permission for the entity. Can be READER, WRITER, or
-	// OWNER.
+	// Role: The access permission for the entity.
 	Role string `json:"role,omitempty"`
 
 	// SelfLink: The link to this access-control entry.
@@ -563,7 +562,7 @@ type BucketAccessControlProjectTeam struct {
 	// ProjectNumber: The project number.
 	ProjectNumber string `json:"projectNumber,omitempty"`
 
-	// Team: The team. Can be owners, editors, or viewers.
+	// Team: The team.
 	Team string `json:"team,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ProjectNumber") to
@@ -786,7 +785,9 @@ type Object struct {
 	// Bucket: The name of the bucket containing this object.
 	Bucket string `json:"bucket,omitempty"`
 
-	// CacheControl: Cache-Control directive for the object data.
+	// CacheControl: Cache-Control directive for the object data. If
+	// omitted, and the object is accessible to all anonymous users, the
+	// default will be public, max-age=3600.
 	CacheControl string `json:"cacheControl,omitempty"`
 
 	// ComponentCount: Number of underlying components that make up this
@@ -994,7 +995,7 @@ type ObjectAccessControl struct {
 	// ProjectTeam: The project team associated with the entity, if any.
 	ProjectTeam *ObjectAccessControlProjectTeam `json:"projectTeam,omitempty"`
 
-	// Role: The access permission for the entity. Can be READER or OWNER.
+	// Role: The access permission for the entity.
 	Role string `json:"role,omitempty"`
 
 	// SelfLink: The link to this access-control entry.
@@ -1025,7 +1026,7 @@ type ObjectAccessControlProjectTeam struct {
 	// ProjectNumber: The project number.
 	ProjectNumber string `json:"projectNumber,omitempty"`
 
-	// Team: The team. Can be owners, editors, or viewers.
+	// Team: The team.
 	Team string `json:"team,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ProjectNumber") to
@@ -5989,6 +5990,9 @@ func (c *ObjectsInsertCall) Projection(projection string) *ObjectsInsertCall {
 // supplied.
 // At most one of Media and ResumableMedia may be set.
 func (c *ObjectsInsertCall) Media(r io.Reader, options ...googleapi.MediaOption) *ObjectsInsertCall {
+	if ct := c.object.ContentType; ct != "" {
+		options = append([]googleapi.MediaOption{googleapi.ContentType(ct)}, options...)
+	}
 	opts := googleapi.ProcessMediaOptions(options)
 	chunkSize := opts.ChunkSize
 	if !opts.ForceEmptyContentType {
