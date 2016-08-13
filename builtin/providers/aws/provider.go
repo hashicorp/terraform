@@ -130,6 +130,13 @@ func Provider() terraform.ResourceProvider {
 				Default:     false,
 				Description: descriptions["skip_metadata_api_check"],
 			},
+
+			"s3_force_path_style": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["s3_force_path_style"],
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -353,6 +360,8 @@ func init() {
 
 		"elb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
+		"s3_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
 		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
 			"default value is `false`",
 
@@ -364,6 +373,11 @@ func init() {
 
 		"skip_medatadata_api_check": "Skip the AWS Metadata API check. " +
 			"Used for AWS API implementations that do not have a metadata api endpoint.",
+
+		"s3_force_path_style": "Set this to true to force the request to use path-style addressing,\n" +
+			"i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the S3 client will\n" +
+			"use virtual hosted bucket addressing when possible\n" +
+			"(http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.",
 	}
 }
 
@@ -382,6 +396,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		SkipCredsValidation:     d.Get("skip_credentials_validation").(bool),
 		SkipRequestingAccountId: d.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),
+		S3ForcePathStyle:        d.Get("s3_force_path_style").(bool),
 	}
 
 	endpointsSet := d.Get("endpoints").(*schema.Set)
@@ -391,6 +406,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.IamEndpoint = endpoints["iam"].(string)
 		config.Ec2Endpoint = endpoints["ec2"].(string)
 		config.ElbEndpoint = endpoints["elb"].(string)
+		config.S3Endpoint = endpoints["s3"].(string)
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
@@ -433,6 +449,12 @@ func endpointsSchema() *schema.Schema {
 					Default:     "",
 					Description: descriptions["elb_endpoint"],
 				},
+				"s3": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["s3_endpoint"],
+				},
 			},
 		},
 		Set: endpointsToHash,
@@ -445,6 +467,7 @@ func endpointsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["iam"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["ec2"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["elb"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["s3"].(string)))
 
 	return hashcode.String(buf.String())
 }

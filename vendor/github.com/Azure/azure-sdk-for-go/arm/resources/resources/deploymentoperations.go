@@ -33,7 +33,13 @@ type DeploymentOperationsClient struct {
 // NewDeploymentOperationsClient creates an instance of the
 // DeploymentOperationsClient client.
 func NewDeploymentOperationsClient(subscriptionID string) DeploymentOperationsClient {
-	return DeploymentOperationsClient{New(subscriptionID)}
+	return NewDeploymentOperationsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewDeploymentOperationsClientWithBaseURI creates an instance of the
+// DeploymentOperationsClient client.
+func NewDeploymentOperationsClientWithBaseURI(baseURI string, subscriptionID string) DeploymentOperationsClient {
+	return DeploymentOperationsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Get get a list of deployments operations.
