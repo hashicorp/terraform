@@ -45,6 +45,7 @@ type ArmClient struct {
 	vnetGatewayConnectionsClient network.VirtualNetworkGatewayConnectionsClient
 	vnetGatewayClient            network.VirtualNetworkGatewaysClient
 	vnetClient                   network.VirtualNetworksClient
+	vnetPeeringsClient           network.VirtualNetworkPeeringsClient
 	routeTablesClient            network.RouteTablesClient
 	routesClient                 network.RoutesClient
 
@@ -256,6 +257,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vnc.Authorizer = spt
 	vnc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vnetClient = vnc
+
+	vnpc := network.NewVirtualNetworkPeeringsClient(c.SubscriptionID)
+	setUserAgent(&vnpc.Client)
+	vnpc.Authorizer = spt
+	vnpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.vnetPeeringsClient = vnpc
 
 	rtc := network.NewRouteTablesClient(c.SubscriptionID)
 	setUserAgent(&rtc.Client)
