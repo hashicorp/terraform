@@ -319,7 +319,7 @@ func TestResourceAWSRedshiftClusterDbNameValidation(t *testing.T) {
 		},
 		{
 			Value:    "testing1",
-			ErrCount: 1,
+			ErrCount: 0,
 		},
 		{
 			Value:    "testing-",
