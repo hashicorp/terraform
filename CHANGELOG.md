@@ -56,6 +56,7 @@ BUG FIXES:
  * provider/aws: Fix line ending errors/diffs with IAM Server Certs [GH-8074]
  * provider/aws: Fixing IAM data source policy generation to prevent spurious diffs [GH-6956]
  * provider/aws: Correct how CORS rules are handled in `aws_s3_bucket` [GH-8096]
+ * provider/digitalocean: trim whitespace from ssh key [GH-8173]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
  * provider/openstack: Fix typo in OpenStack LBaaSv2 pool resource [GH-8179]
