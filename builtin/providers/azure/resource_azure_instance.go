@@ -2,7 +2,9 @@ package azure
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"strings"
@@ -208,6 +210,19 @@ func resourceAzureInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"custom_data": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				StateFunc: func(v interface{}) string {
+					if s, ok := v.(string); ok && s != "" {
+						hash := sha1.Sum([]byte(s))
+						return hex.EncodeToString(hash[:])
+					}
+					return ""
+				},
+			},
 		},
 	}
 }
@@ -277,6 +292,18 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		return fmt.Errorf("Error configuring the deployment for %s: %s", name, err)
 	}
 
+	var customData string
+	if data, ok := d.GetOk("custom_data"); ok {
+		data := data.(string)
+
+		// Ensure the custom_data is not double-encoded.
+		if _, err := base64.StdEncoding.DecodeString(data); err != nil {
+			customData = base64.StdEncoding.EncodeToString([]byte(data))
+		} else {
+			customData = data
+		}
+	}
+
 	if osType == linux {
 		// This is pretty ugly, but the Azure SDK leaves me no other choice...
 		if tp, ok := d.GetOk("ssh_key_thumbprint"); ok {
@@ -297,6 +324,13 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		}
 		if err != nil {
 			return fmt.Errorf("Error configuring %s for Linux: %s", name, err)
+		}
+
+		if customData != "" {
+			err = vmutils.ConfigureWithCustomDataForLinux(&role, customData)
+			if err != nil {
+				return fmt.Errorf("Error configuring custom data for %s: %s", name, err)
+			}
 		}
 	}
 
@@ -323,6 +357,13 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 			)
 			if err != nil {
 				return fmt.Errorf("Error configuring %s for WindowsToJoinDomain: %s", name, err)
+			}
+		}
+
+		if customData != "" {
+			err = vmutils.ConfigureWithCustomDataForWindows(&role, customData)
+			if err != nil {
+				return fmt.Errorf("Error configuring custom data for %s: %s", name, err)
 			}
 		}
 	}
