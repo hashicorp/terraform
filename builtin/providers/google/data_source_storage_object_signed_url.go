@@ -176,7 +176,7 @@ func loadJwtConfig(d *schema.ResourceData, meta interface{}) (*jwt.Config, error
 		return cfg, nil
 	}
 
-	return nil, fmt.Errorf("Credentials not provided in resource or provider configuration or GOOGLE_APPLICATION_CREDENTIALS environment variable.")
+	return nil, fmt.Errorf("Credentials not found in datasource, provider configuration or GOOGLE_APPLICATION_CREDENTIALS environment variable.")
 }
 
 func guessUnixHomeDir() string {
@@ -281,6 +281,7 @@ func (u *UrlData) BuildUrl() string {
 }
 
 func SignString(toSign []byte, cfg *jwt.Config) ([]byte, error) {
+	// Parse private key
 	pk, err := parsePrivateKey(cfg.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse key: %v\nKey:%s", err, string(cfg.PrivateKey))
@@ -290,9 +291,10 @@ func SignString(toSign []byte, cfg *jwt.Config) ([]byte, error) {
 	hasher := sha256.New()
 	hasher.Write(toSign)
 
+	// Sign string
 	signed, err := rsa.SignPKCS1v15(rand.Reader, pk, crypto.SHA256, hasher.Sum(nil))
 	if err != nil {
-		return nil, fmt.Errorf("Error from signing: %s\n", err)
+		return nil, fmt.Errorf("error signing string: %s\n", err)
 	}
 
 	return signed, nil
