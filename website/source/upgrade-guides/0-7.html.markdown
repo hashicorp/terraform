@@ -89,7 +89,7 @@ This allows double quote characters to be expressed properly within strings insi
 
 ## Safer `terraform plan` Behavior
 
-Prior to v0.7, the `terraform plan` command had the potential to write updates to the state if changes were detected during the Refresh step (which happens by default during `plan`). Some configurations have metadata that changes which every read, so Refresh would always result in changes to the state, and therefore a write.
+Prior to v0.7, the `terraform plan` command had the potential to write updates to the state if changes were detected during the Refresh step (which happens by default during `plan`). Some configurations have metadata that changes with every read, so Refresh would always result in changes to the state, and therefore a write.
 
 In collaborative enviroments with shared remote state, this potential side effect of `plan` would cause unnecessary contention over the state, and potentially even interfere with active `apply` operations if they were happening simultaneously elsewhere.
 
