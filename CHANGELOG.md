@@ -58,6 +58,7 @@ BUG FIXES:
  * provider/aws: Correct how CORS rules are handled in `aws_s3_bucket` [GH-8096]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
+ * provider/openstack: Fix typo in OpenStack LBaaSv2 pool resource [GH-8179]
 
 ## 0.7.0 (August 2, 2016)
 
