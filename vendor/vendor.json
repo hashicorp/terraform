@@ -1227,8 +1227,10 @@
 			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
 		},
 		{
+			"checksumSHA1": "7niW29CvYceZ6zbia6b/LT+yD/M=",
 			"path": "github.com/mitchellh/cli",
-			"revision": "83f97d41cf100ee5f33944a8815c167d5e4aa272"
+			"revision": "fcf521421aa29bde1d93b6920dfce826d7932208",
+			"revisionTime": "2016-08-15T18:46:15Z"
 		},
 		{
 			"path": "github.com/mitchellh/colorstring",
