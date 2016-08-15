@@ -309,6 +309,34 @@ func TestAccAWSS3BucketObject_acl(t *testing.T) {
 	})
 }
 
+func testAccCheckAWSS3BucketObjectAcl(n string, expectedPerms []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		s3conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := s3conn.GetObjectAcl(&s3.GetObjectAclInput{
+			Bucket: aws.String(rs.Primary.Attributes["bucket"]),
+			Key:    aws.String(rs.Primary.Attributes["key"]),
+		})
+
+		if err != nil {
+			return fmt.Errorf("GetObjectAcl error: %v", err)
+		}
+
+		var perms []string
+		for _, v := range out.Grants {
+			perms = append(perms, *v.Permission)
+		}
+		sort.Strings(perms)
+
+		if !reflect.DeepEqual(perms, expectedPerms) {
+			return fmt.Errorf("Expected ACL permissions to be %v, got %v", expectedPerms, perms)
+		}
+
+		return nil
+	}
+}
+
 func TestResourceAWSS3BucketObjectAcl_validation(t *testing.T) {
 	_, errors := validateS3BucketObjectAclType("incorrect", "acl")
 	if len(errors) == 0 {
@@ -337,28 +365,102 @@ func TestResourceAWSS3BucketObjectAcl_validation(t *testing.T) {
 	}
 }
 
-func testAccCheckAWSS3BucketObjectAcl(n string, expectedPerms []string) resource.TestCheckFunc {
+func TestAccAWSS3BucketObject_storageClass(t *testing.T) {
+	rInt := acctest.RandInt()
+	var obj s3.GetObjectOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				PreConfig: func() {},
+				Config:    testAccAWSS3BucketObjectConfigContent(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketObjectExists(
+						"aws_s3_bucket_object.object",
+						&obj),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket_object.object",
+						"storage_class",
+						"STANDARD"),
+					testAccCheckAWSS3BucketObjectStorageClass(
+						"aws_s3_bucket_object.object",
+						"STANDARD"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketObjectConfig_storageClass(rInt, "REDUCED_REDUNDANCY"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketObjectExists(
+						"aws_s3_bucket_object.object",
+						&obj),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket_object.object",
+						"storage_class",
+						"REDUCED_REDUNDANCY"),
+					testAccCheckAWSS3BucketObjectStorageClass(
+						"aws_s3_bucket_object.object",
+						"REDUCED_REDUNDANCY"),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceAWSS3BucketObjectStorageClass_validation(t *testing.T) {
+	_, errors := validateS3BucketObjectStorageClassType("incorrect", "storage_class")
+	if len(errors) == 0 {
+		t.Fatalf("Expected to trigger a validation error")
+	}
+
+	var testCases = []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "STANDARD",
+			ErrCount: 0,
+		},
+		{
+			Value:    "REDUCED_REDUNDANCY",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, errors := validateS3BucketObjectStorageClassType(tc.Value, "storage_class")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected not to trigger a validation error")
+		}
+	}
+}
+
+func testAccCheckAWSS3BucketObjectStorageClass(n, expectedClass string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, _ := s.RootModule().Resources[n]
 		s3conn := testAccProvider.Meta().(*AWSClient).s3conn
 
-		out, err := s3conn.GetObjectAcl(&s3.GetObjectAclInput{
+		out, err := s3conn.HeadObject(&s3.HeadObjectInput{
 			Bucket: aws.String(rs.Primary.Attributes["bucket"]),
 			Key:    aws.String(rs.Primary.Attributes["key"]),
 		})
 
 		if err != nil {
-			return fmt.Errorf("GetObjectAcl error: %v", err)
+			return fmt.Errorf("HeadObject error: %v", err)
 		}
 
-		var perms []string
-		for _, v := range out.Grants {
-			perms = append(perms, *v.Permission)
+		// The "STANDARD" (which is also the default) storage
+		// class when set would not be included in the results.
+		storageClass := s3.StorageClassStandard
+		if out.StorageClass != nil {
+			storageClass = *out.StorageClass
 		}
-		sort.Strings(perms)
 
-		if !reflect.DeepEqual(perms, expectedPerms) {
-			return fmt.Errorf("Expected ACL permissions to be %v, got %v", expectedPerms, perms)
+		if storageClass != expectedClass {
+			return fmt.Errorf("Expected Storage Class to be %v, got %v",
+				expectedClass, storageClass)
 		}
 
 		return nil
@@ -471,4 +573,18 @@ resource "aws_s3_bucket_object" "object" {
         acl = "%s"
 }
 `, randInt, acl)
+}
+
+func testAccAWSS3BucketObjectConfig_storageClass(randInt int, storage_class string) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "object_bucket" {
+        bucket = "tf-object-test-bucket-%d"
+}
+resource "aws_s3_bucket_object" "object" {
+        bucket = "${aws_s3_bucket.object_bucket.bucket}"
+        key = "test-key"
+        content = "some_bucket_content"
+        storage_class = "%s"
+}
+`, randInt, storage_class)
 }
