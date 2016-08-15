@@ -3,9 +3,9 @@ package azurerm
 import (
 	"bytes"
 	"fmt"
-	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -22,13 +22,6 @@ func resourceArmLoadBalancer() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-			},
-
-			"type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateArmLoadBalancerType,
 			},
 
 			"location": {
@@ -49,6 +42,11 @@ func resourceArmLoadBalancer() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -79,6 +77,11 @@ func resourceArmLoadBalancer() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -121,8 +124,16 @@ func resourceArmLoadBalancer() *schema.Resource {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
+						"load_distribution": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
 						"idle_timeout_in_minutes": &schema.Schema{
 							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"enable_floating_ip": &schema.Schema{
+							Type:     schema.TypeBool,
 							Required: true,
 						},
 					},
@@ -135,6 +146,10 @@ func resourceArmLoadBalancer() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -165,21 +180,10 @@ func resourceArmLoadBalancer() *schema.Resource {
 	}
 }
 
-func validateArmLoadBalancerType(v interface{}, k string) (ws []string, es []error) {
-	value := v.(string)
-
-	if !strings.EqualFold(value, "internal") && !strings.EqualFold(value, "public") {
-		es = append(es, fmt.Errorf("%q must be either Internal or Public", k))
-	}
-
-	return
-}
-
 func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) error {
 	lbClient := meta.(*ArmClient).loadBalancerClient
 
 	name := d.Get("name").(string)
-	lbType := d.Get("type").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
 	tags := d.Get("tags").(map[string]interface{})
@@ -228,7 +232,6 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 
 	loadBalancer := network.LoadBalancer{
 		Name:       &name,
-		Type:       &lbType,
 		Location:   &location,
 		Properties: &properties,
 		Tags:       expandTags(tags),
@@ -254,6 +257,42 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 
 // resourceArmLoadBalancerRead goes ahead and reads the state of the corresponding ARM load balancer.
 func resourceArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error {
+	lnetClient := meta.(*ArmClient).loadBalancerClient
+
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%+v\n", id)
+
+	name := id.Path["loadBalancer"]
+	resGroup := id.ResourceGroup
+
+	resp, err := lnetClient.Get(resGroup, name, "")
+	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
+
+		return fmt.Errorf("Error reading the state of Azure ARM Load Balancer '%s': %s", name, err)
+	}
+
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
+	/*
+		d.Set("gateway_address", resp.Properties.GatewayIPAddress)
+
+		prefs := []string{}
+		if ps := *resp.Properties.LocalNetworkAddressSpace.AddressPrefixes; ps != nil {
+			prefs = ps
+		}
+		d.Set("address_space", prefs)
+	*/
+
+	flattenAndSetTags(d, resp.Tags)
+
 	return nil
 }
 
@@ -322,6 +361,8 @@ func expandAzureRmLoadBalancerFrontendIPConfiguration(d *schema.ResourceData) ([
 		private_ip_address := data["private_ip_address"].(string)
 		subnet := data["subnet"].(string)
 
+		// TODO: validation - either needs a Public or a Private IP Address
+
 		properties := network.FrontendIPConfigurationPropertiesFormat{
 			PrivateIPAddress:          &private_ip_address,
 			PrivateIPAllocationMethod: network.IPAllocationMethod(private_ip_allocation_method),
@@ -370,12 +411,24 @@ func expandAzureRmLoadBalancingRule(d *schema.ResourceData) ([]network.LoadBalan
 	for _, configRaw := range configs {
 		data := configRaw.(map[string]interface{})
 
+		frontendIPConfiguration := data["frontend_ip_configuration"].(string)
+		backendAddressPool := data["backend_address_pool"].(string)
+		probe := data["probe"].(string)
 		protocol := data["protocol"].(string)
 		loadDistribution := data["load_distribution"].(string)
 		frontendPort := int32(data["frontend_port"].(int))
 		backendPort := int32(data["backend_port"].(int))
 
 		properties := network.LoadBalancingRulePropertiesFormat{
+			FrontendIPConfiguration: &network.SubResource{
+				ID: &frontendIPConfiguration,
+			},
+			BackendAddressPool: &network.SubResource{
+				ID: &backendAddressPool,
+			},
+			Probe: &network.SubResource{
+				ID: &probe,
+			},
 			Protocol:         network.TransportProtocol(protocol),
 			LoadDistribution: network.LoadDistribution(loadDistribution),
 			FrontendPort:     &frontendPort,
@@ -411,9 +464,9 @@ func expandAzureRmLoadBalancingProbe(d *schema.ResourceData) ([]network.Probe, e
 	for _, configRaw := range configs {
 		data := configRaw.(map[string]interface{})
 
-		port := int32(d.Get("port").(int))
-		interval := int32(d.Get("interval_in_seconds").(int))
-		numberOfProbes := int32(d.Get("number_of_probes").(int))
+		port := int32(data["port"].(int))
+		interval := int32(data["interval_in_seconds"].(int))
+		numberOfProbes := int32(data["number_of_probes"].(int))
 
 		properties := network.ProbePropertiesFormat{
 			Protocol:          network.ProbeProtocol(data["protocol"].(string)),
