@@ -8,6 +8,7 @@ FEATURES:
  * **New Resource:** `aws_load_balancer_listener_policy` [GH-7458]
  * **New Resource:** `aws_lb_ssl_negotiation_policy` [GH-8084]
  * **New Resource:** `azurerm_virtual_network_peering` [GH-8168]
+ * **New Resource:** `azurerm_servicebus_namespace` [GH-8195]
  * **New Resource:** `google_compute_image` [GH-7960]
  * **New Resource:** `packet_volume` [GH-8142]
  * **New Data Source:** `aws_ip_ranges` [GH-7984]
