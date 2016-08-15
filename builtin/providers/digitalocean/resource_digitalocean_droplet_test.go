@@ -260,6 +260,16 @@ func testAccCheckDigitalOceanDropletAttributes_PrivateNetworkingIpv6(droplet *go
 			return fmt.Errorf("No ipv6 public: %s", findIPv6AddrByType(droplet, "public"))
 		}
 
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "digitalocean_droplet" {
+				continue
+			}
+			if rs.Primary.Attributes["ipv6_address"] != strings.ToLower(findIPv6AddrByType(droplet, "public")) {
+				return fmt.Errorf("IPV6 Address should be lowercase")
+			}
+
+		}
+
 		return nil
 	}
 }
