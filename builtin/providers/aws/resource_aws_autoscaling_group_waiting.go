@@ -16,10 +16,7 @@ import (
 // the capacitySatisfiedFunc returns true.
 //
 // See "Waiting for Capacity" in docs for more discussion of the feature.
-func waitForASGCapacity(
-	d *schema.ResourceData,
-	meta interface{},
-	satisfiedFunc capacitySatisfiedFunc) error {
+func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 	wait, err := time.ParseDuration(d.Get("wait_for_capacity_timeout").(string))
 	if err != nil {
 		return err
@@ -77,7 +74,7 @@ func waitForASGCapacity(
 			}
 		}
 
-		satisfied, reason := satisfiedFunc(d, haveASG, haveELB)
+		satisfied, reason := checkCapacitySatisfied(d, haveASG, haveELB)
 
 		log.Printf("[DEBUG] %q Capacity: %d ASG, %d ELB, satisfied: %t, reason: %q",
 			d.Id(), haveASG, haveELB, satisfied, reason)
@@ -91,42 +88,32 @@ func waitForASGCapacity(
 	})
 }
 
-type capacitySatisfiedFunc func(*schema.ResourceData, int, int) (bool, string)
-
-// capacitySatifiedCreate treats all targets as minimums
-func capacitySatifiedCreate(d *schema.ResourceData, haveASG, haveELB int) (bool, string) {
-	minASG := d.Get("min_size").(int)
-	if wantASG := d.Get("desired_capacity").(int); wantASG > 0 {
-		minASG = wantASG
-	}
-	if haveASG < minASG {
+// checkCapacitySatisfied determines if required ASG and ELB targets are met.
+func checkCapacitySatisfied(d *schema.ResourceData, haveASG, haveELB int) (bool, string) {
+	if desiredASG, ok := d.GetOk("desired_capacity"); ok && desiredASG.(int) != haveASG {
 		return false, fmt.Sprintf(
-			"Need at least %d healthy instances in ASG, have %d", minASG, haveASG)
+			"Need exactly %d healthy instances in ASG, have %d", desiredASG.(int), haveASG)
 	}
-	minELB := d.Get("min_elb_capacity").(int)
-	if wantELB := d.Get("wait_for_elb_capacity").(int); wantELB > 0 {
-		minELB = wantELB
-	}
-	if haveELB < minELB {
-		return false, fmt.Sprintf(
-			"Need at least %d healthy instances in ELB, have %d", minELB, haveELB)
-	}
-	return true, ""
-}
 
-// capacitySatifiedUpdate only cares about specific targets
-func capacitySatifiedUpdate(d *schema.ResourceData, haveASG, haveELB int) (bool, string) {
-	if wantASG := d.Get("desired_capacity").(int); wantASG > 0 {
-		if haveASG != wantASG {
-			return false, fmt.Sprintf(
-				"Need exactly %d healthy instances in ASG, have %d", wantASG, haveASG)
-		}
+	if minASG, ok := d.GetOk("min_size"); ok && minASG.(int) > haveASG {
+		return false, fmt.Sprintf(
+			"Need at least %d healthy instances in ASG, have %d", minASG.(int), haveASG)
 	}
-	if wantELB := d.Get("wait_for_elb_capacity").(int); wantELB > 0 {
-		if haveELB != wantELB {
-			return false, fmt.Sprintf(
-				"Need exactly %d healthy instances in ELB, have %d", wantELB, haveELB)
-		}
+
+	if maxASG, ok := d.GetOk("max_size"); ok && maxASG.(int) < haveASG {
+		return false, fmt.Sprintf(
+			"Need at most %d healthy instances in ASG, have %d", maxASG.(int), haveASG)
 	}
+
+	if desiredELB, ok := d.GetOk("wait_for_elb_capacity"); ok && desiredELB.(int) != haveELB {
+		return false, fmt.Sprintf(
+			"Need exactly %d healthy instances in ELB, have %d", desiredELB.(int), haveELB)
+	}
+
+	if minELB, ok := d.GetOk("min_elb_capacity"); ok && minELB.(int) > haveELB {
+		return false, fmt.Sprintf(
+			"Need at least %d healthy instances in ELB, have %d", minELB.(int), haveELB)
+	}
+
 	return true, ""
 }

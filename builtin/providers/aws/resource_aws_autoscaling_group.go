@@ -245,7 +245,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	d.SetId(d.Get("name").(string))
 	log.Printf("[INFO] AutoScaling Group ID: %s", d.Id())
 
-	if err := waitForASGCapacity(d, meta, capacitySatifiedCreate); err != nil {
+	if err := waitForASGCapacity(d, meta); err != nil {
 		return err
 	}
 
@@ -309,7 +309,6 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).autoscalingconn
-	shouldWaitForCapacity := false
 
 	opts := autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(d.Id()),
@@ -323,7 +322,6 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("desired_capacity") {
 		opts.DesiredCapacity = aws.Int64(int64(d.Get("desired_capacity").(int)))
-		shouldWaitForCapacity = true
 	}
 
 	if d.HasChange("launch_configuration") {
@@ -332,7 +330,6 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("min_size") {
 		opts.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
-		shouldWaitForCapacity = true
 	}
 
 	if d.HasChange("max_size") {
@@ -422,8 +419,8 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	if shouldWaitForCapacity {
-		waitForASGCapacity(d, meta, capacitySatifiedUpdate)
+	if err := waitForASGCapacity(d, meta); err != nil {
+		return err
 	}
 
 	if d.HasChange("enabled_metrics") {
