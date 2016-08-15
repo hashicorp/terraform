@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
+	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
@@ -66,6 +67,8 @@ type ArmClient struct {
 
 	trafficManagerProfilesClient  trafficmanager.ProfilesClient
 	trafficManagerEndpointsClient trafficmanager.EndpointsClient
+
+	serviceBusNamespacesClient servicebus.NamespacesClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -347,6 +350,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tmec.Authorizer = spt
 	tmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerEndpointsClient = tmec
+
+	sbnc := servicebus.NewNamespacesClient(c.SubscriptionID)
+	setUserAgent(&sbnc.Client)
+	sbnc.Authorizer = spt
+	sbnc.Sender = autorest.CreateSender(withRequestLogging())
+	client.serviceBusNamespacesClient = sbnc
 
 	return &client, nil
 }
