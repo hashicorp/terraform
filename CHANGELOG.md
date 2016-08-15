@@ -65,6 +65,7 @@ BUG FIXES:
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
  * provider/openstack: Fix typo in OpenStack LBaaSv2 pool resource [GH-8179]
+ * provider/vSphere: Fix for IPv6 only environment creation [GH-7643]
 
 ## 0.7.0 (August 2, 2016)
 
