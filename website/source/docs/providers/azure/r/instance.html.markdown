@@ -124,6 +124,8 @@ The following arguments are supported:
 * `domain_password` - (Optional) The password for the domain_username account
     specified above.
 
+* `custom_data` - (Optional) The custom data to provide when launching the
+    instance.
 
 The `endpoint` block supports:
 

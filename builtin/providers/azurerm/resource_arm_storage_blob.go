@@ -46,7 +46,7 @@ func resourceArmStorageBlob() *schema.Resource {
 			},
 			"type": {
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateArmStorageBlobType,
 			},
@@ -58,9 +58,16 @@ func resourceArmStorageBlob() *schema.Resource {
 				ValidateFunc: validateArmStorageBlobSize,
 			},
 			"source": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"source_uri"},
+			},
+			"source_uri": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"source"},
 			},
 			"url": {
 				Type:     schema.TypeString,
@@ -144,34 +151,41 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 	name := d.Get("name").(string)
 	blobType := d.Get("type").(string)
 	cont := d.Get("storage_container_name").(string)
+	sourceUri := d.Get("source_uri").(string)
 
 	log.Printf("[INFO] Creating blob %q in storage account %q", name, storageAccountName)
-	switch strings.ToLower(blobType) {
-	case "block":
-		if err := blobClient.CreateBlockBlob(cont, name); err != nil {
+	if sourceUri != "" {
+		if err := blobClient.CopyBlob(cont, name, sourceUri); err != nil {
 			return fmt.Errorf("Error creating storage blob on Azure: %s", err)
 		}
+	} else {
+		switch strings.ToLower(blobType) {
+		case "block":
+			if err := blobClient.CreateBlockBlob(cont, name); err != nil {
+				return fmt.Errorf("Error creating storage blob on Azure: %s", err)
+			}
 
-		source := d.Get("source").(string)
-		if source != "" {
-			parallelism := d.Get("parallelism").(int)
-			attempts := d.Get("attempts").(int)
-			if err := resourceArmStorageBlobBlockUploadFromSource(cont, name, source, blobClient, parallelism, attempts); err != nil {
-				return fmt.Errorf("Error creating storage blob on Azure: %s", err)
+			source := d.Get("source").(string)
+			if source != "" {
+				parallelism := d.Get("parallelism").(int)
+				attempts := d.Get("attempts").(int)
+				if err := resourceArmStorageBlobBlockUploadFromSource(cont, name, source, blobClient, parallelism, attempts); err != nil {
+					return fmt.Errorf("Error creating storage blob on Azure: %s", err)
+				}
 			}
-		}
-	case "page":
-		source := d.Get("source").(string)
-		if source != "" {
-			parallelism := d.Get("parallelism").(int)
-			attempts := d.Get("attempts").(int)
-			if err := resourceArmStorageBlobPageUploadFromSource(cont, name, source, blobClient, parallelism, attempts); err != nil {
-				return fmt.Errorf("Error creating storage blob on Azure: %s", err)
-			}
-		} else {
-			size := int64(d.Get("size").(int))
-			if err := blobClient.PutPageBlob(cont, name, size, map[string]string{}); err != nil {
-				return fmt.Errorf("Error creating storage blob on Azure: %s", err)
+		case "page":
+			source := d.Get("source").(string)
+			if source != "" {
+				parallelism := d.Get("parallelism").(int)
+				attempts := d.Get("attempts").(int)
+				if err := resourceArmStorageBlobPageUploadFromSource(cont, name, source, blobClient, parallelism, attempts); err != nil {
+					return fmt.Errorf("Error creating storage blob on Azure: %s", err)
+				}
+			} else {
+				size := int64(d.Get("size").(int))
+				if err := blobClient.PutPageBlob(cont, name, size, map[string]string{}); err != nil {
+					return fmt.Errorf("Error creating storage blob on Azure: %s", err)
+				}
 			}
 		}
 	}

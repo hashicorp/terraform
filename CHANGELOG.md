@@ -9,6 +9,7 @@ FEATURES:
  * **New Resource:** `aws_lb_ssl_negotiation_policy` [GH-8084]
  * **New Resource:** `azurerm_virtual_network_peering` [GH-8168]
  * **New Resource:** `google_compute_image` [GH-7960]
+ * **New Resource:** `packet_volume` [GH-8142]
  * **New Data Source:** `aws_ip_ranges` [GH-7984]
  * **New Data Source:** `fastly_ip_ranges` [GH-7984]
 
@@ -25,7 +26,10 @@ IMPROVEMENTS
  * provider/aws: API gateway request/response parameters can now be specified as map, original `*_in_json` parameters  deprecated [GH-7794]
  * provider/aws: Add support for `promotion_tier` to `aws_rds_cluster_instance` [GH-8087]
  * provider/aws: Allow specifying custom S3 endpoint and enforcing S3 path style URLs via new provider options [GH-7871]
+ * provider/aws: Add ability to set Storage Class in `aws_s3_bucket_object` [GH-8174]
+ * provider/azure: add custom_data argument for azure_instance resource [GH-8158]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
+ * provider/azurerm: Storage blob contents can be copied from an existing blob [GH-8126]
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
  * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
  * provider/google: Support static private IP addresses in `resource_compute_instance` [GH-6310]
@@ -54,8 +58,11 @@ BUG FIXES:
  * provider/aws: Fix line ending errors/diffs with IAM Server Certs [GH-8074]
  * provider/aws: Fixing IAM data source policy generation to prevent spurious diffs [GH-6956]
  * provider/aws: Correct how CORS rules are handled in `aws_s3_bucket` [GH-8096]
+ * provider/aws: allow numeric characters in RedshiftClusterDbName [GH-8178]
+ * provider/digitalocean: trim whitespace from ssh key [GH-8173]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
+ * provider/openstack: Fix typo in OpenStack LBaaSv2 pool resource [GH-8179]
 
 ## 0.7.0 (August 2, 2016)
 
