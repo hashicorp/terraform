@@ -2138,6 +2138,12 @@
 			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
 		},
 		{
+			"checksumSHA1": "OUZ1FFXyKs+Cfg9M9rmXqqweQck=",
+			"path": "github.com/miekg/dns",
+			"revision": "db96a2b759cdef4f11a34506a42eb8d1290c598e",
+			"revisionTime": "2016-07-26T03:20:27Z"
+		},
+		{
 			"checksumSHA1": "GSum+utW01N3KeMdvAPnsW0TemM=",
 			"path": "github.com/michaelklishin/rabbit-hole",
 			"revision": "88550829bcdcf614361c73459c903578eb44074e",
