@@ -25,6 +25,7 @@ IMPROVEMENTS
  * provider/aws: API gateway request/response parameters can now be specified as map, original `*_in_json` parameters  deprecated [GH-7794]
  * provider/aws: Add support for `promotion_tier` to `aws_rds_cluster_instance` [GH-8087]
  * provider/aws: Allow specifying custom S3 endpoint and enforcing S3 path style URLs via new provider options [GH-7871]
+ * provider/aws: Add ability to set Storage Class in `aws_s3_bucket_object` [GH-8174]
  * provider/azure: add custom_data argument for azure_instance resource [GH-8158]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/azurerm: Storage blob contents can be copied from an existing blob [GH-8126]
