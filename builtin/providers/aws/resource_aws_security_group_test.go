@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -281,6 +282,26 @@ func TestAccAWSSecurityGroup_basic(t *testing.T) {
 						"aws_security_group.web", "ingress.3629188364.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "ingress.3629188364.cidr_blocks.0", "10.0.0.0/8"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSecurityGroup_tagsCreatedFirst(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config:      testAccAWSSecurityGroupConfigForTagsOrdering,
+				ExpectError: regexp.MustCompile("InvalidParameterValue"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
+					testAccCheckTags(&group.Tags, "Name", "tf-acc-test"),
 				),
 			},
 		},
@@ -791,6 +812,7 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
 					testAccCheckTags(&group.Tags, "foo", ""),
 					testAccCheckTags(&group.Tags, "bar", "baz"),
+					testAccCheckTags(&group.Tags, "env", "Production"),
 				),
 			},
 		},
@@ -1056,6 +1078,35 @@ func TestAccAWSSecurityGroup_failWithDiffMismatch(t *testing.T) {
 	})
 }
 
+const testAccAWSSecurityGroupConfigForTagsOrdering = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_security_group" "web" {
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
+
+  ingress {
+    protocol = "6"
+    from_port = 80
+    to_port = 80000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
+  egress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
+	tags {
+		Name = "tf-acc-test"
+	}
+}`
+
 const testAccAWSSecurityGroupConfig = `
 resource "aws_vpc" "foo" {
   cidr_block = "10.1.0.0/16"
@@ -1305,6 +1356,7 @@ resource "aws_security_group" "foo" {
 
   tags {
     bar = "baz"
+    env = "Production"
   }
 }
 `
@@ -1736,7 +1788,7 @@ resource "aws_security_group" "egress" {
     name = "terraform_acceptance_test_prefix_list_egress"
     description = "Used in the terraform acceptance tests"
     vpc_id = "${aws_vpc.tf_sg_prefix_list_egress_test.id}"
- 
+
     egress {
       protocol = "-1"
       from_port = 0
