@@ -869,17 +869,15 @@ func TestAccVSphereVirtualMachine_updateVcpu(t *testing.T) {
 	})
 }
 
-const testAccCheckVSphereVirtualMachineConfig_ipv4Andipv6 = `
-resource "vsphere_virtual_machine" "ipv4ipv6" {
-    name = "terraform-test-ipv4-ipv6"
+const testAccCheckVSphereVirtualMachineConfig_ipv6 = `
+resource "vsphere_virtual_machine" "ipv6" {
+    name = "terraform-test-ipv6"
 %s
     vcpu = 2
     memory = 1024
     network_interface {
         label = "%s"
-        ipv4_address = "%s"
-        ipv4_prefix_length = %s
-        ipv4_gateway = "%s"
+        %s
         ipv6_address = "%s"
         ipv6_prefix_length = 64
         ipv6_gateway = "%s"
@@ -900,24 +898,28 @@ resource "vsphere_virtual_machine" "ipv4ipv6" {
 func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 	var vm virtualMachine
 	data := setupTemplateBasicBodyVars()
-	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_ipv4Andipv6)
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_ipv6)
 
-	vmName := "vsphere_virtual_machine.ipv4ipv6"
+	vmName := "vsphere_virtual_machine.ipv6"
 
 	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
-		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "2", vmResource: "terraform-test-ipv4-ipv6"}.testCheckFuncBasic()
+		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "2", vmResource: "terraform-test-ipv6"}.testCheckFuncBasic()
 
 	// FIXME test for this or warn??
 	ipv6Address := os.Getenv("VSPHERE_IPV6_ADDRESS")
 	ipv6Gateway := os.Getenv("VSPHERE_IPV6_GATEWAY")
 
+	ipv4Settings := fmt.Sprintf(`
+		ipv4_address = "%s"
+        ipv4_prefix_length = %s
+        ipv4_gateway = "%s"
+	`, data.ipv4IpAddress, data.ipv4Prefix, data.ipv4Gateway)
+
 	config := fmt.Sprintf(
-		testAccCheckVSphereVirtualMachineConfig_ipv4Andipv6,
+		testAccCheckVSphereVirtualMachineConfig_ipv6,
 		data.locationOpt,
 		data.label,
-		data.ipv4IpAddress,
-		data.ipv4Prefix,
-		data.ipv4Gateway,
+		ipv4Settings,
 		ipv6Address,
 		ipv6Gateway,
 		data.datastoreOpt,
@@ -937,6 +939,50 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv4_address", data.ipv4IpAddress),
 					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv4_gateway", data.ipv4Gateway),
+					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv6_address", ipv6Address),
+					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv6_gateway", ipv6Gateway),
+				),
+			},
+		},
+	})
+}
+
+func TestAccVSphereVirtualMachine_ipv6Only(t *testing.T) {
+	var vm virtualMachine
+	data := setupTemplateBasicBodyVars()
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_ipv6)
+
+	vmName := "vsphere_virtual_machine.ipv6"
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "2", vmResource: "terraform-test-ipv6"}.testCheckFuncBasic()
+
+	// Checks for this will be handled when this code is merged with https://github.com/hashicorp/terraform/pull/7575.
+	ipv6Address := os.Getenv("VSPHERE_IPV6_ADDRESS")
+	ipv6Gateway := os.Getenv("VSPHERE_IPV6_GATEWAY")
+
+	config := fmt.Sprintf(
+		testAccCheckVSphereVirtualMachineConfig_ipv6,
+		data.locationOpt,
+		data.label,
+		"",
+		ipv6Address,
+		ipv6Gateway,
+		data.datastoreOpt,
+		data.template,
+	)
+
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
 					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv6_address", ipv6Address),
 					resource.TestCheckResourceAttr(vmName, "network_interface.0.ipv6_gateway", ipv6Gateway),
 				),
