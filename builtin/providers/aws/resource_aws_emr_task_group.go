@@ -103,8 +103,6 @@ func resourceAwsEMRTaskGroupUpdate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	fmt.Println(resp)
-
 	log.Printf("[DEBUG] Modify EMR task group finished: %#v", resp)
 
 	return nil
