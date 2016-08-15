@@ -206,9 +206,13 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(ami|app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement|key-pair|elb_attachment|load-balancer)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(alb|ami|app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement|key-pair|elb_attachment|load-balancer)/) %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-alb") %>>
+                            <a href="/docs/providers/aws/r/alb.html">aws_alb</a>
+                        </li>
 
                         <li<%= sidebar_current("docs-aws-resource-ami") %>>
                             <a href="/docs/providers/aws/r/ami.html">aws_ami</a>
