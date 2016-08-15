@@ -17,14 +17,13 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"os/user"
 	"strconv"
 	"strings"
 	"time"
 )
 
 const gcsBaseUrl = "https://storage.googleapis.com"
-const envVar = "GOOGLE_APPLICATION_CREDENTIALS"
+const googleCredentialsEnvVar = "GOOGLE_APPLICATION_CREDENTIALS"
 
 func dataSourceGoogleSignedUrl() *schema.Resource {
 	return &schema.Resource{
@@ -132,14 +131,14 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Construct URL
 	finalUrl := urlData.BuildUrl()
-	d.SetId(finalUrl)
+	d.SetId(urlData.EncodedSignature())
 	d.Set("signed_url", finalUrl)
 
 	return nil
 }
 
 // This looks for credentials json in the following places,
-// preferring the first location found:
+// in order of preference:
 //
 //   1. Credentials provided in data source `credentials` attribute.
 //   2. Credentials provided in the provider definition.
@@ -150,15 +149,15 @@ func loadJwtConfig(d *schema.ResourceData, meta interface{}) (*jwt.Config, error
 
 	credentials := ""
 	if v, ok := d.GetOk("credentials"); ok {
-		log.Println("[DEBUG] using data source credentials")
+		log.Println("[DEBUG] using data source credentials to sign URL")
 		credentials = v.(string)
 
 	} else if config.Credentials != "" {
-		log.Println("[DEBUG] using provider credentials")
+		log.Println("[DEBUG] using provider credentials to sign URL")
 		credentials = config.Credentials
 
-	} else if filename := os.Getenv(envVar); filename != "" {
-		log.Println("[DEBUG] using env GOOGLE_APPLICATION_CREDENTIALS credentials")
+	} else if filename := os.Getenv(googleCredentialsEnvVar); filename != "" {
+		log.Println("[DEBUG] using env GOOGLE_APPLICATION_CREDENTIALS credentials to sign URL")
 		credentials = filename
 
 	}
@@ -177,14 +176,6 @@ func loadJwtConfig(d *schema.ResourceData, meta interface{}) (*jwt.Config, error
 	}
 
 	return nil, fmt.Errorf("Credentials not found in datasource, provider configuration or GOOGLE_APPLICATION_CREDENTIALS environment variable.")
-}
-
-func guessUnixHomeDir() string {
-	usr, err := user.Current()
-	if err == nil {
-		return usr.HomeDir
-	}
-	return os.Getenv("HOME")
 }
 
 // parsePrivateKey converts the binary contents of a private key file
@@ -258,12 +249,17 @@ func (u *UrlData) CreateSigningString() []byte {
 	return buf.Bytes()
 }
 
-// Builds the final signed URL a client can use to retrieve storage object
-func (u *UrlData) BuildUrl() string {
+func (u *UrlData) EncodedSignature() string {
 	// base64 encode signature
 	encoded := base64.StdEncoding.EncodeToString(u.Signature)
 	// encoded signature may include /, = characters that need escaping
 	encoded = url.QueryEscape(encoded)
+
+	return encoded
+}
+
+// Builds the final signed URL a client can use to retrieve storage object
+func (u *UrlData) BuildUrl() string {
 
 	// set url
 	// https://cloud.google.com/storage/docs/access-control/create-signed-urls-program
@@ -275,7 +271,7 @@ func (u *UrlData) BuildUrl() string {
 	urlBuffer.WriteString("&Expires=")
 	urlBuffer.WriteString(strconv.Itoa(u.Expires))
 	urlBuffer.WriteString("&Signature=")
-	urlBuffer.WriteString(encoded)
+	urlBuffer.WriteString(u.EncodedSignature())
 
 	return urlBuffer.String()
 }
