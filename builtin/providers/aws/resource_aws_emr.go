@@ -235,6 +235,7 @@ func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
 
 	if resp.Cluster == nil {
 		d.SetId("")
+		log.Printf("[DEBUG] EMR Cluster (%s) not found", d.Id())
 		return nil
 	}
 
@@ -243,11 +244,13 @@ func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
 	if instance.Status != nil {
 		if *resp.Cluster.Status.State == "TERMINATED" {
 			d.SetId("")
+			log.Printf("[DEBUG] EMR Cluster (%s) was TERMINATED already", d.Id())
 			return nil
 		}
 
 		if *resp.Cluster.Status.State == "TERMINATED_WITH_ERRORS" {
 			d.SetId("")
+			log.Printf("[DEBUG] EMR Cluster (%s) was TERMINATED_WITH_ERRORS already", d.Id())
 			return nil
 		}
 	}
@@ -286,7 +289,7 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 			},
 		},
 	}
-	respModify, errModify := conn.ModifyInstanceGroups(params)
+	_, errModify := conn.ModifyInstanceGroups(params)
 	if errModify != nil {
 		log.Printf("[ERROR] %s", errModify)
 		return errModify
