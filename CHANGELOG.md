@@ -35,6 +35,7 @@ IMPROVEMENTS
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
  * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
  * provider/google: Support static private IP addresses in `resource_compute_instance` [GH-6310]
+ * provider/google: Add support for using a GCP Image Family [GH-8083]
  * provider/openstack: Support updating the External Gateway assigned to a Neutron router [GH-8070]
  * provider/openstack: Support for `value_specs` param on `openstack_networking_network_v2` [GH-8155]
  * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
