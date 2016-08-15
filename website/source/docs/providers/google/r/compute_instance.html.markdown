@@ -112,8 +112,9 @@ the type is "local-ssd", in which case scratch must be true).
     `google_compute_disk`) to attach.
 
 * `image` - The image from which to initialize this
-    disk. Either the full URL, a contraction of the form "project/name", or
-    just a name (in which case the current project is used).
+    disk. Either the full URL, a contraction of the form "project/name", an
+    [image family](https://cloud.google.com/compute/docs/images#image_families),
+    or just a name (in which case the current project is used).
 
 * `auto_delete` - (Optional) Whether or not the disk should be auto-deleted.
     This defaults to true. Leave true for local SSDs.
@@ -195,4 +196,3 @@ exported:
 * `network_interface.0.address` - The internal ip address of the instance, either manually or dynamically assigned.
 
 * `network_interface.0.access_config.0.assigned_nat_ip` - If the instance has an access config, either the given external ip (in the `nat_ip` field) or the ephemeral (generated) ip (if you didn't provide one).
-
