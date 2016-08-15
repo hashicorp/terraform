@@ -127,11 +127,17 @@ type JobCommand struct {
 	// a shell script it should have an appropriate #! line.
 	Script string `xml:"script,omitempty"`
 
+	// Add extension to the temporary filename.
+	FileExtension string `xml:"fileExtension,omitempty"`
+
 	// A pre-existing file (on the target nodes) that will be executed.
 	ScriptFile string `xml:"scriptfile,omitempty"`
 
 	// When ScriptFile is set, the arguments to provide to the script when executing it.
 	ScriptFileArgs string `xml:"scriptargs,omitempty"`
+
+	// ScriptInterpreter is used to execute (Script)File with.
+	ScriptInterpreter *JobCommandScriptInterpreter `xml:"scriptinterpreter,omitempty"`
 
 	// A reference to another job to run as this command.
 	Job *JobCommandJobRef `xml:"jobref"`
@@ -141,6 +147,13 @@ type JobCommand struct {
 
 	// Configuration for a node step plugin to run as this command.
 	NodeStepPlugin *JobPlugin `xml:"node-step-plugin"`
+}
+
+// (Inline) Script interpreter
+type JobCommandScriptInterpreter struct {
+	XMLName          xml.Name `xml:"scriptinterpreter"`
+	InvocationString string   `xml:",chardata"`
+	ArgsQuoted       bool     `xml:"argsquoted,attr,omitempty"`
 }
 
 // JobCommandJobRef is a reference to another job that will run as one of the commands of a job.

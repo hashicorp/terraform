@@ -186,6 +186,11 @@ func resourceRundeckJob() *schema.Resource {
 							Optional: true,
 						},
 
+						"file_extension": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
 						"script_file": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -193,6 +198,16 @@ func resourceRundeckJob() *schema.Resource {
 
 						"script_file_args": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"invocation_string": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"arguments_quoted": &schema.Schema{
+							Type:     schema.TypeBool,
 							Optional: true,
 						},
 
@@ -359,8 +374,16 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		command := rundeck.JobCommand{
 			ShellCommand:   commandMap["shell_command"].(string),
 			Script:         commandMap["inline_script"].(string),
+			FileExtension:  commandMap["file_extension"].(string),
 			ScriptFile:     commandMap["script_file"].(string),
 			ScriptFileArgs: commandMap["script_file_args"].(string),
+		}
+
+		if invocationString, present := commandMap["invocation_string"]; present {
+			command.ScriptInterpreter = &rundeck.JobCommandScriptInterpreter{
+				InvocationString: invocationString.(string),
+				ArgsQuoted:       commandMap["arguments_quoted"].(bool),
+			}
 		}
 
 		jobRefsI := commandMap["job"].([]interface{})
@@ -523,8 +546,14 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 			commandConfigI := map[string]interface{}{
 				"shell_command":    command.ShellCommand,
 				"inline_script":    command.Script,
+				"file_extension":   command.FileExtension,
 				"script_file":      command.ScriptFile,
 				"script_file_args": command.ScriptFileArgs,
+			}
+
+			if command.ScriptInterpreter != nil {
+				commandConfigI["invocation_string"] = command.ScriptInterpreter.InvocationString
+				commandConfigI["arguments_quoted"] = command.ScriptInterpreter.ArgsQuoted
 			}
 
 			if command.Job != nil {
