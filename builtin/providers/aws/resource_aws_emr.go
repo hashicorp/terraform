@@ -35,6 +35,7 @@ func resourceAwsEMR() *schema.Resource {
 			"core_instance_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 			"core_instance_count": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -216,7 +217,7 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	fmt.Println(resp)
 	d.SetId(*resp.JobFlowId)
 
-	return nil
+	return resourceAwsEMRRead(d, meta)
 }
 
 func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
@@ -249,6 +250,12 @@ func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
+	}
+
+	instanceGroups, errGrps := loadGroups(d, meta)
+	if errGrps == nil {
+		coreGroup := findGroup(instanceGroups, "CORE")
+		d.Set("core_instance_type", coreGroup.InstanceType)
 	}
 
 	return nil
@@ -321,6 +328,19 @@ func expandApplications(apps []interface{}) []*emr.Application {
 		appOut = append(appOut, app)
 	}
 	return appOut
+}
+
+func loadGroups(d *schema.ResourceData, meta interface{}) ([]*emr.InstanceGroup, error) {
+	emrconn := meta.(*AWSClient).emrconn
+	reqGrps := &emr.ListInstanceGroupsInput{
+		ClusterId: aws.String(d.Id()),
+	}
+
+	respGrps, errGrps := emrconn.ListInstanceGroups(reqGrps)
+	if errGrps != nil {
+		return nil, fmt.Errorf("Error reading EMR cluster: %s", errGrps)
+	}
+	return respGrps.InstanceGroups, nil
 }
 
 func findGroup(grps []*emr.InstanceGroup, typ string) *emr.InstanceGroup {
