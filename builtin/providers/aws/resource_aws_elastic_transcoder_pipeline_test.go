@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elastictranscoder"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -22,6 +23,27 @@ func TestAccAWSElasticTranscoderPipeline_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: awsElasticTranscoderPipelineConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", pipeline),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSElasticTranscoderPipeline_notifications(t *testing.T) {
+	pipeline := &elastictranscoder.Pipeline{}
+
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elastictranscoder_pipeline.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: awsElasticTranscoderNotifications(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", pipeline),
 				),
@@ -326,3 +348,63 @@ resource "aws_s3_bucket" "content_bucket" {
   acl    = "private"
 }
 `
+
+func awsElasticTranscoderNotifications(r int) string {
+	return fmt.Sprintf(`
+resource "aws_elastictranscoder_pipeline" "bar" {
+  input_bucket  = "${aws_s3_bucket.test_bucket.bucket}"
+  output_bucket = "${aws_s3_bucket.test_bucket.bucket}"
+  name          = "tf-test-transcoder-%d"
+  role          = "${aws_iam_role.test_role.arn}"
+
+  notifications {
+    completed = "${aws_sns_topic.topic_example.arn}"
+    warning   = "${aws_sns_topic.topic_example.arn}"
+  }
+}
+
+resource "aws_iam_role" "test_role" {
+  name = "tf-test-role-%d"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_s3_bucket" "test_bucket" {
+  bucket = "tf-test-bucket-%d"
+  acl    = "private"
+}
+
+resource "aws_sns_topic" "topic_example" {
+  name = "user-updates-topic-%d"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Id": "AWSAccountTopicAccess",
+  "Statement": [
+    {
+      "Sid": "*",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "sns:Publish",
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}`, r, r, r, r)
+}
