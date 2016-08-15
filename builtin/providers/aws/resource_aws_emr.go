@@ -207,6 +207,7 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		params.Configurations = expandConfigures(confUrl)
 	}
 
+	log.Printf("[DEBUG] EMR Cluster create options: %s", params)
 	resp, err := conn.RunJobFlow(params)
 
 	if err != nil {
@@ -215,7 +216,6 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Created EMR Cluster done...")
-	fmt.Println(resp)
 	d.SetId(*resp.JobFlowId)
 
 	return resourceAwsEMRRead(d, meta)
@@ -232,7 +232,6 @@ func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error reading EMR cluster: %s", err)
 	}
-	fmt.Println(resp)
 
 	if resp.Cluster == nil {
 		d.SetId("")
@@ -274,7 +273,6 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 	if errGrps != nil {
 		return fmt.Errorf("Error reading EMR cluster: %s", errGrps)
 	}
-	fmt.Println(respGrps)
 	instanceGroups := respGrps.InstanceGroups
 
 	coreInstanceCount := d.Get("core_instance_count").(int)
@@ -294,7 +292,6 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 		return errModify
 	}
 
-	fmt.Println(respModify)
 	log.Printf("[DEBUG] Modify EMR Cluster done...")
 
 	return nil
