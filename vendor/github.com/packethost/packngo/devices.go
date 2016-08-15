@@ -69,19 +69,6 @@ func (d DeviceActionRequest) String() string {
 	return Stringify(d)
 }
 
-// IPAddress used to execute actions on devices
-type IPAddress struct {
-	Family  int    `json:"address_family"`
-	Cidr    int    `json:"cidr"`
-	Address string `json:"address"`
-	Gateway string `json:"gateway"`
-	Public  bool   `json:"public"`
-}
-
-func (n IPAddress) String() string {
-	return Stringify(n)
-}
-
 // DeviceServiceOp implements DeviceService
 type DeviceServiceOp struct {
 	client *Client

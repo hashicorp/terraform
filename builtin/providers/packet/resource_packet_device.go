@@ -208,13 +208,13 @@ func resourcePacketDeviceRead(d *schema.ResourceData, meta interface{}) error {
 		network := map[string]interface{}{
 			"address": ip.Address,
 			"gateway": ip.Gateway,
-			"family":  ip.Family,
+			"family":  ip.AddressFamily,
 			"cidr":    ip.Cidr,
 			"public":  ip.Public,
 		}
 		networks = append(networks, network)
 
-		if ip.Family == 4 && ip.Public == true {
+		if ip.AddressFamily == 4 && ip.Public == true {
 			host = ip.Address
 		}
 	}
