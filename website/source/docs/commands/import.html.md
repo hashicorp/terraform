@@ -21,7 +21,7 @@ state at the given ADDRESS.
 
 ADDRESS must be a valid [resource address](/docs/internals/resource-addressing.html).
 Because any resource address is valid, the import command can import resources
-into modules as well directly into the root of yor state.
+into modules as well directly into the root of your state.
 
 ID is dependent on the resource type being imported. For example, for AWS
 instances it is the instance ID (`i-abcd1234`) but for AWS Route53 zones
