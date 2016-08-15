@@ -61,6 +61,7 @@ BUG FIXES:
  * provider/aws: allow numeric characters in RedshiftClusterDbName [GH-8178]
  * provider/aws: `aws_security_group` now creates tags as early as possible in the process [GH-7849]
  * provider/digitalocean: trim whitespace from ssh key [GH-8173]
+ * provider/digitalocean: Enforce Lowercase on IPV6 Addresses [GH-7652]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
  * provider/openstack: Fix typo in OpenStack LBaaSv2 pool resource [GH-8179]
