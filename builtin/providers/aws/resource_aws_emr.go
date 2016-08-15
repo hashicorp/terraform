@@ -121,6 +121,11 @@ func resourceAwsEMR() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"visible_to_all_users": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 		},
 	}
 }
@@ -186,7 +191,7 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		JobFlowRole:       aws.String(instanceProfile),
 		ReleaseLabel:      aws.String(d.Get("release_label").(string)),
 		ServiceRole:       aws.String(serviceRole),
-		VisibleToAllUsers: aws.Bool(true),
+		VisibleToAllUsers: aws.Bool(d.Get("visible_to_all_users").(bool)),
 	}
 
 	if v, ok := d.GetOk("log_uri"); ok {
