@@ -59,6 +59,7 @@ BUG FIXES:
  * provider/aws: Fixing IAM data source policy generation to prevent spurious diffs [GH-6956]
  * provider/aws: Correct how CORS rules are handled in `aws_s3_bucket` [GH-8096]
  * provider/aws: allow numeric characters in RedshiftClusterDbName [GH-8178]
+ * provider/aws: `aws_security_group` now creates tags as early as possible in the process [GH-7849]
  * provider/digitalocean: trim whitespace from ssh key [GH-8173]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
