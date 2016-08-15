@@ -157,12 +157,10 @@ func testAccCheckAWSGroupMembershipAttributes(group *iam.GetGroupOutput, users [
 const testAccAWSGroupMemberConfig = `
 resource "aws_iam_group" "group" {
 	name = "test-group-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user" {
 	name = "test-user-%s"
-	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
@@ -175,22 +173,18 @@ resource "aws_iam_group_membership" "team" {
 const testAccAWSGroupMemberConfigUpdate = `
 resource "aws_iam_group" "group" {
 	name = "test-group-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user" {
 	name = "test-user-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user_two" {
 	name = "test-user-two-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user_three" {
 	name = "test-user-three-%s"
-	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
@@ -206,12 +200,10 @@ resource "aws_iam_group_membership" "team" {
 const testAccAWSGroupMemberConfigUpdateDown = `
 resource "aws_iam_group" "group" {
 	name = "test-group-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user_three" {
 	name = "test-user-three-%s"
-	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
@@ -226,7 +218,6 @@ resource "aws_iam_group_membership" "team" {
 const testAccAWSGroupMemberConfigPaginatedUserList = `
 resource "aws_iam_group" "group" {
 	name = "test-paginated-group"
-	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
@@ -236,8 +227,7 @@ resource "aws_iam_group_membership" "team" {
 }
 
 resource "aws_iam_user" "user" {
-        count = 101
+	count = 101
 	name = "${format("paged-test-user-%d", count.index + 1)}"
-	path = "/"
 }
 `
