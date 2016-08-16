@@ -103,8 +103,8 @@ resource "aws_s3_bucket" "default" {
 
 resource "aws_s3_bucket_object" "default" {
   bucket = "${aws_s3_bucket.default.id}"
-  key = "beanstalk/go-v1.zip"
-  source = "test-fixtures/beanstalk-go-v1.zip"
+  key = "beanstalk/python-v1.zip"
+  source = "test-fixtures/python-v1.zip"
 }
 
 resource "aws_elastic_beanstalk_application" "default" {
