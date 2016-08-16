@@ -1,6 +1,7 @@
 ## 0.7.1 (Unreleased)
 
 FEATURES:
+ * **New Command:** `terraform state rm` [GH-8200]
  * **New Provider:** `archive` [GH-7322]
  * **New Resource:** `aws_vpn_gateway_attachment` [GH-7870]
  * **New Resource:** `aws_load_balancer_policy` [GH-7458]
