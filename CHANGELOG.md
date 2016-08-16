@@ -17,7 +17,7 @@ FEATURES:
 IMPROVEMENTS
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
  * provider/aws: Query all pages of group membership [GH-6726]
- * provider/aws: Queury all pages of IAM Policy attachments [GH-7779]
+ * provider/aws: Query all pages of IAM Policy attachments [GH-7779]
  * provider/aws: Change the way ARNs are built [GH-7151]
  * provider/aws: Add support for Elasticsearch destination to firehose delivery streams [GH-7839]
  * provider/aws: Retry AttachInternetGateway and increase timeout on `aws_internet_gateway` [GH-7891]
@@ -41,12 +41,9 @@ IMPROVEMENTS
  * provider/openstack: Support for `value_specs` param on `openstack_networking_network_v2` [GH-8155]
  * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
  * provider/vsphere: Adding disk type of `Thick Lazy` to `vsphere_virtual_disk` and `vsphere_virtual_machine` [GH-7916]
+ * provider/vsphere: Standardizing datastore references to use builtin Path func [GH-8075]
  * provider/consul: add tls config support to consul provider [GH-7015]
  * remote/consul: Support setting datacenter when using consul remote state [GH-8102]
- * provider/google: Support Import of `google_compute_target_pool` [GH-8133]
- * provider/google: Support Import of `google_compute_forwarding_rule` [GH-8122]
- * provider/google: Support Import of `google_resource_http_health_check` [GH-8121]
- * provider/google: Support Import of `google_compute_autoscaler` [GH-8115]
 
 BUG FIXES:
  * core: Fix issue preventing `taint` from working with resources that had no other attributes in their diff [GH-8167]
