@@ -155,7 +155,7 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	read, err := storageClient.GetProperties(resourceGroupName, storageAccountName)
 
 	// Set the ID right away if we have one
-	if read != nil && read.ID != nil {
+	if err == nil && read.ID != nil {
 		log.Printf("[INFO] storage account %q ID: %q", storageAccountName, *read.ID)
 		d.SetId(*read.ID)
 	}
