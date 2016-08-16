@@ -87,6 +87,9 @@ func resourceAwsIamPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 	conn := meta.(*AWSClient).iamconn
 	arn := d.Get("policy_arn").(string)
 	name := d.Get("name").(string)
+	users := expandStringList(d.Get("users").(*schema.Set).List())
+	roles := expandStringList(d.Get("roles").(*schema.Set).List())
+	groups := expandStringList(d.Get("groups").(*schema.Set).List())
 
 	_, err := conn.GetPolicy(&iam.GetPolicyInput{
 		PolicyArn: aws.String(arn),
@@ -115,16 +118,30 @@ func resourceAwsIamPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 	rl := make([]string, 0, len(policyEntities.PolicyRoles))
 	gl := make([]string, 0, len(policyEntities.PolicyGroups))
 
-	for _, u := range policyEntities.PolicyUsers {
-		ul = append(ul, *u.UserName)
+	// Only write state for users we specifically created and that were also returned
+
+	for _, ru := range policyEntities.PolicyUsers {
+		for _, ku := range users {
+			if *ru.UserName == *ku {
+				ul = append(ul, *ru.UserName)
+			}
+		}
 	}
 
-	for _, r := range policyEntities.PolicyRoles {
-		rl = append(rl, *r.RoleName)
+	for _, rr := range policyEntities.PolicyRoles {
+		for _, kr := range roles {
+			if *rr.RoleName == *kr {
+				rl = append(rl, *rr.RoleName)
+			}
+		}
 	}
 
-	for _, g := range policyEntities.PolicyGroups {
-		gl = append(gl, *g.GroupName)
+	for _, rg := range policyEntities.PolicyGroups {
+		for _, kg := range groups {
+			if *rg.GroupName == *kg {
+				gl = append(gl, *rg.GroupName)
+			}
+		}
 	}
 
 	userErr := d.Set("users", ul)
