@@ -744,7 +744,7 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 }
 
 // When creating an InstaneState for direct comparison to one contained in
-// terraform.State, all fields must be inintialized (duplicating the
+// terraform.State, all fields must be initialized (duplicating the
 // InstanceState.init() method)
 func newInstanceState(id string) *terraform.InstanceState {
 	return &terraform.InstanceState{
