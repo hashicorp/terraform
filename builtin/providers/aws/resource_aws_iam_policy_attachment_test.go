@@ -45,9 +45,9 @@ func TestAccAWSPolicyAttachment_paginatedEntities(t *testing.T) {
 		CheckDestroy: testAccCheckAWSPolicyAttachmentDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSPolicyAttachConfig,
+				Config: testAccAWSPolicyPaginatedAttachConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-attach", 101, &out),
+					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-paginated-attach", 101, &out),
 				),
 			},
 		},
