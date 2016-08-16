@@ -17,6 +17,7 @@ FEATURES:
 IMPROVEMENTS
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
  * provider/aws: Query all pages of group membership [GH-6726]
+ * provider/aws: Queury all pages of IAM Policy attachments [GH-7779]
  * provider/aws: Change the way ARNs are built [GH-7151]
  * provider/aws: Add support for Elasticsearch destination to firehose delivery streams [GH-7839]
  * provider/aws: Retry AttachInternetGateway and increase timeout on `aws_internet_gateway` [GH-7891]
