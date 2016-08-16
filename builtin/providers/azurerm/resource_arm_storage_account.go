@@ -141,16 +141,11 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 
 	// Check the result of the wrapped function. I put this into a select
 	// since we will likely also want to introduce a time-based timeout.
-	var err error
+	var createErr error
 	select {
-	case err = <-wrap.ErrCh:
+	case createErr = <-wrap.ErrCh:
 		// Successfully ran (but perhaps not successfully completed)
 		// the function.
-	}
-	if err != nil {
-		return fmt.Errorf(
-			"Error creating Azure Storage Account '%s': %s",
-			storageAccountName, err)
 	}
 
 	// The only way to get the ID back apparently is to read the resource again
@@ -158,6 +153,22 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return err
 	}
+
+	// Set the ID right away if we have one
+	if read.ID != nil {
+		log.Printf("[INFO] storage account %q ID: %q", storageAccountName, *read.ID)
+		d.SetId(*read.ID)
+	}
+
+	// If we had a create error earlier then we return with that error now.
+	// We do this later here so that we can grab the ID above is possible.
+	if createErr != nil {
+		return fmt.Errorf(
+			"Error creating Azure Storage Account '%s': %s",
+			storageAccountName, createErr)
+	}
+
+	// If we got no ID then the resource group doesn't yet exist
 	if read.ID == nil {
 		return fmt.Errorf("Cannot read Storage Account %s (resource group %s) ID",
 			storageAccountName, resourceGroupName)
@@ -174,8 +185,6 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("Error waiting for Storage Account (%s) to become available: %s", storageAccountName, err)
 	}
-
-	d.SetId(*read.ID)
 
 	return resourceArmStorageAccountRead(d, meta)
 }
