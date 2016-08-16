@@ -23,6 +23,7 @@ import (
 	datadogprovider "github.com/hashicorp/terraform/builtin/providers/datadog"
 	digitaloceanprovider "github.com/hashicorp/terraform/builtin/providers/digitalocean"
 	dmeprovider "github.com/hashicorp/terraform/builtin/providers/dme"
+	dnsprovider "github.com/hashicorp/terraform/builtin/providers/dns"
 	dnsimpleprovider "github.com/hashicorp/terraform/builtin/providers/dnsimple"
 	dockerprovider "github.com/hashicorp/terraform/builtin/providers/docker"
 	dynprovider "github.com/hashicorp/terraform/builtin/providers/dyn"
@@ -93,6 +94,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"datadog":      datadogprovider.Provider,
 	"digitalocean": digitaloceanprovider.Provider,
 	"dme":          dmeprovider.Provider,
+	"dns":          dnsprovider.Provider,
 	"dnsimple":     dnsimpleprovider.Provider,
 	"docker":       dockerprovider.Provider,
 	"dyn":          dynprovider.Provider,
