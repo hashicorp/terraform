@@ -2,7 +2,6 @@ package command
 
 import (
 	"path/filepath"
-	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
