@@ -13,6 +13,7 @@ FEATURES:
  * **New Resource:** `packet_volume` [GH-8142]
  * **New Data Source:** `aws_ip_ranges` [GH-7984]
  * **New Data Source:** `fastly_ip_ranges` [GH-7984]
+ * **New Data Source:** `aws_caller_identity` [GH-8206]
 
 IMPROVEMENTS
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
