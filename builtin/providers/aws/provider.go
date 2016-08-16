@@ -143,11 +143,12 @@ func Provider() terraform.ResourceProvider {
 			"aws_ami":                      dataSourceAwsAmi(),
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
 			"aws_caller_identity":          dataSourceAwsCallerIdentity(),
+			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
 			"aws_elb_account_id":           dataSourceAwsElbAccountId(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
+			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),
 			"aws_s3_bucket_object":         dataSourceAwsS3BucketObject(),
-			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
