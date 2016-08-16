@@ -293,7 +293,6 @@ func resourceAwsDbEventSubscriptionUpdate(d *schema.ResourceData, meta interface
 		}
 
 		if len(add) > 0 {
-
 			for _, adding := range add {
 				log.Printf("[INFO] Adding %s as a Source Identifier to %q", adding, d.Id())
 				_, err := rdsconn.AddSourceIdentifierToSubscription(&rds.AddSourceIdentifierToSubscriptionInput{
