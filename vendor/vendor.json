@@ -38,6 +38,12 @@
 			"revisionTime": "2016-08-11T22:07:13Z"
 		},
 		{
+			"checksumSHA1": "jskb+xe0vrZayq7Iu9yyJXo+Kmc=",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/servicebus",
+			"revision": "bfc5b4af08f3d3745d908af36b7ed5b9060f0258",
+			"revisionTime": "2016-08-11T22:07:13Z"
+		},
+		{
 			"checksumSHA1": "jh7wjswBwwVeY/P8wtqtqBR58y4=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/storage",
@@ -1221,8 +1227,10 @@
 			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
 		},
 		{
+			"checksumSHA1": "7niW29CvYceZ6zbia6b/LT+yD/M=",
 			"path": "github.com/mitchellh/cli",
-			"revision": "83f97d41cf100ee5f33944a8815c167d5e4aa272"
+			"revision": "fcf521421aa29bde1d93b6920dfce826d7932208",
+			"revisionTime": "2016-08-15T18:46:15Z"
 		},
 		{
 			"path": "github.com/mitchellh/colorstring",

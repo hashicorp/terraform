@@ -8,6 +8,7 @@ FEATURES:
  * **New Resource:** `aws_load_balancer_listener_policy` [GH-7458]
  * **New Resource:** `aws_lb_ssl_negotiation_policy` [GH-8084]
  * **New Resource:** `azurerm_virtual_network_peering` [GH-8168]
+ * **New Resource:** `azurerm_servicebus_namespace` [GH-8195]
  * **New Resource:** `google_compute_image` [GH-7960]
  * **New Resource:** `packet_volume` [GH-8142]
  * **New Data Source:** `aws_ip_ranges` [GH-7984]
@@ -27,12 +28,14 @@ IMPROVEMENTS
  * provider/aws: Add support for `promotion_tier` to `aws_rds_cluster_instance` [GH-8087]
  * provider/aws: Allow specifying custom S3 endpoint and enforcing S3 path style URLs via new provider options [GH-7871]
  * provider/aws: Add ability to set Storage Class in `aws_s3_bucket_object` [GH-8174]
+ * provider/aws: Treat `aws_lambda_function` w/ empty `subnet_ids` & `security_groups_ids` in `vpc_config` as VPC-disabled function [GH-6191]
  * provider/azure: add custom_data argument for azure_instance resource [GH-8158]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/azurerm: Storage blob contents can be copied from an existing blob [GH-8126]
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
  * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
  * provider/google: Support static private IP addresses in `resource_compute_instance` [GH-6310]
+ * provider/google: Add support for using a GCP Image Family [GH-8083]
  * provider/openstack: Support updating the External Gateway assigned to a Neutron router [GH-8070]
  * provider/openstack: Support for `value_specs` param on `openstack_networking_network_v2` [GH-8155]
  * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
@@ -46,6 +49,7 @@ IMPROVEMENTS
 
 BUG FIXES:
  * core: Fix issue preventing `taint` from working with resources that had no other attributes in their diff [GH-8167]
+ * core: CLI will only run exact match commands [GH-7983]
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
  * provider/aws: `aws_cloudformation_stack` now respects `timeout_in_minutes` field when waiting for CF API to finish an update operation [GH-7997]
  * provider/aws: Prevent errors when `aws_s3_bucket` `acceleration_status` is not available in a given region [GH-7999]
@@ -59,10 +63,14 @@ BUG FIXES:
  * provider/aws: Fixing IAM data source policy generation to prevent spurious diffs [GH-6956]
  * provider/aws: Correct how CORS rules are handled in `aws_s3_bucket` [GH-8096]
  * provider/aws: allow numeric characters in RedshiftClusterDbName [GH-8178]
+ * provider/aws: `aws_security_group` now creates tags as early as possible in the process [GH-7849]
+ * provider/aws: Defensively code around `db_security_group` ingress rules [GH-7893]
  * provider/digitalocean: trim whitespace from ssh key [GH-8173]
+ * provider/digitalocean: Enforce Lowercase on IPV6 Addresses [GH-7652]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
  * provider/openstack: Fix typo in OpenStack LBaaSv2 pool resource [GH-8179]
+ * provider/vSphere: Fix for IPv6 only environment creation [GH-7643]
 
 ## 0.7.0 (August 2, 2016)
 
@@ -240,9 +248,9 @@ IMPROVEMENTS:
  * provider/fastly: Add support for custom VCL configuration ([#6662](https://github.com/hashicorp/terraform/issues/6662))
  * provider/google: Support optional uuid naming for Instance Template ([#6604](https://github.com/hashicorp/terraform/issues/6604))
  * provider/openstack: Add support for client certificate authentication ([#6279](https://github.com/hashicorp/terraform/issues/6279))
- * provider/openstack: Allow Neutron-based Floating IP to target a specific tenant ([#6454](https://github.com/hashicorp/terraform/issues/6454)) 
+ * provider/openstack: Allow Neutron-based Floating IP to target a specific tenant ([#6454](https://github.com/hashicorp/terraform/issues/6454))
  * provider/openstack: Enable DHCP By Default ([#6838](https://github.com/hashicorp/terraform/issues/6838))
- * provider/openstack: Implement fixed_ip on Neutron floating ip allocations ([#6837](https://github.com/hashicorp/terraform/issues/6837)) 
+ * provider/openstack: Implement fixed_ip on Neutron floating ip allocations ([#6837](https://github.com/hashicorp/terraform/issues/6837))
  * provider/openstack: Increase timeouts for image resize, subnets, and routers ([#6764](https://github.com/hashicorp/terraform/issues/6764))
  * provider/openstack: Add `lb_provider` argument to `lb_pool_v1` resource ([#6919](https://github.com/hashicorp/terraform/issues/6919))
  * provider/openstack: Enforce `ForceNew` on Instance Block Device ([#6921](https://github.com/hashicorp/terraform/issues/6921))
@@ -262,7 +270,7 @@ IMPROVEMENTS:
  * provider/vsphere: Add support for `keep_on_remove` to `vsphere_virtual_machine` ([#7169](https://github.com/hashicorp/terraform/issues/7169))
  * provider/vsphere: Add support for additional `vsphere_virtial_machine` SCSI controller types ([#7525](https://github.com/hashicorp/terraform/issues/7525))
  * provisioner/file: File provisioners may now have file content set as an attribute ([#7561](https://github.com/hashicorp/terraform/issues/7561))
- 
+
 BUG FIXES:
 
  * core: Correct the previous fix for a bug causing "attribute not found" messages during destroy, as it was insufficient ([#6599](https://github.com/hashicorp/terraform/issues/6599))
@@ -367,7 +375,7 @@ BUG FIXES:
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * provider/aws: `aws_eip` field `private_ip` is now a computed value, and cannot be set in your configuration. 
+ * provider/aws: `aws_eip` field `private_ip` is now a computed value, and cannot be set in your configuration.
     Use `associate_with_private_ip` instead. See ([#6521](https://github.com/hashicorp/terraform/issues/6521))
 
 FEATURES:
@@ -379,7 +387,7 @@ FEATURES:
  * **New resource:** `aws_db_event_subscription` ([#6367](https://github.com/hashicorp/terraform/issues/6367))
  * **New resource:** `aws_db_option_group` ([#4401](https://github.com/hashicorp/terraform/issues/4401))
  * **New resource:** `aws_eip_association` ([#6552](https://github.com/hashicorp/terraform/issues/6552))
- * **New resource:** `openstack_networking_secgroup_rule_v2` ([#6410](https://github.com/hashicorp/terraform/issues/6410)) 
+ * **New resource:** `openstack_networking_secgroup_rule_v2` ([#6410](https://github.com/hashicorp/terraform/issues/6410))
  * **New resource:** `openstack_networking_secgroup_v2` ([#6410](https://github.com/hashicorp/terraform/issues/6410))
  * **New resource:** `vsphere_file` ([#6401](https://github.com/hashicorp/terraform/issues/6401))
 
@@ -387,7 +395,7 @@ IMPROVEMENTS:
 
  * core: update HCL dependency to improve whitespace handling in `terraform fmt` ([#6347](https://github.com/hashicorp/terraform/issues/6347))
  * core: Add support for marking outputs as sensitive ([#6559](https://github.com/hashicorp/terraform/issues/6559))
- * provider/aws: Add agent_version argument to `aws_opswork_stack` ([#6493](https://github.com/hashicorp/terraform/issues/6493)) 
+ * provider/aws: Add agent_version argument to `aws_opswork_stack` ([#6493](https://github.com/hashicorp/terraform/issues/6493))
  * provider/aws: Add support for request parameters to `api_gateway_method` & `api_gateway_integration` ([#6501](https://github.com/hashicorp/terraform/issues/6501))
  * provider/aws: Add support for response parameters to `api_gateway_method_response` & `api_gateway_integration_response` ([#6344](https://github.com/hashicorp/terraform/issues/6344))
  * provider/aws: Allow empty S3 config in Cloudfront Origin ([#6487](https://github.com/hashicorp/terraform/issues/6487))

@@ -22,6 +22,9 @@ $ terraform import aws_instance.bar i-abcd1234
 ...
 ```
 
+~> **Note:** In order to import resources, the provider should be configured with environment variables.
+We currently do not support passing credentials directly to the provider.
+
 The above command imports an AWS instance with the given ID to the
 address `aws_instance.bar`. You can also import resources into modules.
 See the [resource addressing](/docs/internals/resource-addressing.html)

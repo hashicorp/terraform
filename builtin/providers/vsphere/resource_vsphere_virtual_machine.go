@@ -925,10 +925,14 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	if state == types.VirtualMachinePowerStatePoweredOn {
 		// wait for interfaces to appear
-		_, err = vm.WaitForNetIP(context.TODO(), true)
+		log.Printf("[DEBUG] Waiting for interfaces to appear")
+
+		_, err = vm.WaitForNetIP(context.TODO(), false)
 		if err != nil {
 			return err
 		}
+
+		log.Printf("[DEBUG] Successfully waited for interfaces to appear")
 	}
 
 	var mvm mo.VirtualMachine
