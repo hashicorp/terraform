@@ -144,7 +144,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
 			"aws_caller_identity":          dataSourceAwsCallerIdentity(),
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
-			"aws_elb_account_id":           dataSourceAwsElbAccountId(),
+			"aws_elb_service_account":      dataSourceAwsElbServiceAccount(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
 			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),

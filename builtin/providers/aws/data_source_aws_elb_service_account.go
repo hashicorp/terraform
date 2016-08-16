@@ -23,9 +23,9 @@ var elbAccountIdPerRegionMap = map[string]string{
 	"us-west-2":      "797873946194",
 }
 
-func dataSourceAwsElbAccountId() *schema.Resource {
+func dataSourceAwsElbServiceAccount() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceAwsElbAccountIdRead,
+		Read: dataSourceAwsElbServiceAccountRead,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -36,7 +36,7 @@ func dataSourceAwsElbAccountId() *schema.Resource {
 	}
 }
 
-func dataSourceAwsElbAccountIdRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceAwsElbServiceAccountRead(d *schema.ResourceData, meta interface{}) error {
 	region := meta.(*AWSClient).region
 	if v, ok := d.GetOk("region"); ok {
 		region = v.(string)
