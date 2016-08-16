@@ -67,20 +67,22 @@ func resourceAwsIamRolePolicyAttachmentRead(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	attachedPolicies, err := conn.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
+	args := iam.ListAttachedRolePoliciesInput{
 		RoleName: aws.String(role),
+	}
+	var policy string
+	err = conn.ListAttachedRolePoliciesPages(&args, func(page *iam.ListAttachedRolePoliciesOutput, lastPage bool) bool {
+		for _, p := range page.AttachedPolicies {
+			if *p.PolicyArn == arn {
+				policy = *p.PolicyArn
+			}
+		}
+
+		return policy == ""
 	})
 	if err != nil {
 		return err
 	}
-
-	var policy string
-	for _, p := range attachedPolicies.AttachedPolicies {
-		if *p.PolicyArn == arn {
-			policy = *p.PolicyArn
-		}
-	}
-
 	if policy == "" {
 		log.Printf("[WARN] No such policy found for Role Policy Attachment (%s)", role)
 		d.SetId("")
