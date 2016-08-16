@@ -139,8 +139,7 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	})
 
-	// Check the result of the wrapped function. I put this into a select
-	// since we will likely also want to introduce a time-based timeout.
+	// Check the result of the wrapped function.
 	var createErr error
 	select {
 	case <-time.After(1 * time.Hour):
@@ -154,12 +153,9 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 
 	// The only way to get the ID back apparently is to read the resource again
 	read, err := storageClient.GetProperties(resourceGroupName, storageAccountName)
-	if err != nil {
-		return err
-	}
 
 	// Set the ID right away if we have one
-	if read.ID != nil {
+	if read != nil && read.ID != nil {
 		log.Printf("[INFO] storage account %q ID: %q", storageAccountName, *read.ID)
 		d.SetId(*read.ID)
 	}
@@ -170,6 +166,11 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf(
 			"Error creating Azure Storage Account '%s': %s",
 			storageAccountName, createErr)
+	}
+
+	// Check the read error now that we know it would exist without a create err
+	if err != nil {
+		return err
 	}
 
 	// If we got no ID then the resource group doesn't yet exist
