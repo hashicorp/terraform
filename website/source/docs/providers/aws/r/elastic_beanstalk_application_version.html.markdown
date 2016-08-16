@@ -15,6 +15,16 @@ the infrastructure that runs those applications.
 This resource creates a Beanstalk Application Version that can be deployed to a Beanstalk
 Environment.
 
+~> **NOTE on Application Version Resource:**  When using the Application Version resource with multiple 
+[Elastic Beanstalk Environments](elastic_beanstalk_environment.html) it is possible that an 
+Elastic Beanstalk Environment may delete an Application Version while it is still in use by a different environment. 
+This may cause unpredictable behavior in some Elastic Beanstalk Environments. To work around this you can:
+<ol>
+<li>Create each environment in a separate AWS account</li>
+<li>Create your `aws_elastic_beanstalk_application_version` resources with a unique names in your 
+Elastic Beanstalk Application</li>
+</ol>
+
 ## Example Usage
 
 ```
