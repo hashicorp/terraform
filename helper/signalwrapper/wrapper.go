@@ -5,6 +5,7 @@
 package signalwrapper
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -49,6 +50,7 @@ func Run(f CancellableFunc) *Wrapped {
 
 	// Start the function
 	go func() {
+		log.Printf("[DEBUG] signalwrapper: executing wrapped function")
 		err := f(cancelCh)
 
 		// Close the done channel _before_ sending the error in case
@@ -57,6 +59,7 @@ func Run(f CancellableFunc) *Wrapped {
 		close(doneCh)
 
 		// Mark completion
+		log.Printf("[DEBUG] signalwrapper: wrapped function execution ended")
 		wrapped.done(err)
 	}()
 
@@ -71,6 +74,8 @@ func Run(f CancellableFunc) *Wrapped {
 		case <-doneCh:
 			// Everything happened naturally
 		case <-sigCh:
+			log.Printf("[DEBUG] signalwrapper: signal received, cancelling wrapped function")
+
 			// Stop the function. Goroutine since we don't care about
 			// the result and we'd like to end this goroutine as soon
 			// as possible to avoid any more signals coming in.

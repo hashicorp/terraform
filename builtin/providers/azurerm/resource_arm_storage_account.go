@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/signalwrapper"
 )
 
 func resourceArmStorageAccount() *schema.Resource {
@@ -131,9 +132,25 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		Tags:     expandTags(tags),
 	}
 
-	_, err := storageClient.Create(resourceGroupName, storageAccountName, opts, make(chan struct{}))
+	// Create the storage account. We wrap this so that it is cancellable
+	// with a Ctrl-C since this can take a LONG time.
+	wrap := signalwrapper.Run(func(cancelCh <-chan struct{}) error {
+		_, err := storageClient.Create(resourceGroupName, storageAccountName, opts, cancelCh)
+		return err
+	})
+
+	// Check the result of the wrapped function. I put this into a select
+	// since we will likely also want to introduce a time-based timeout.
+	var err error
+	select {
+	case err = <-wrap.ErrCh:
+		// Successfully ran (but perhaps not successfully completed)
+		// the function.
+	}
 	if err != nil {
-		return fmt.Errorf("Error creating Azure Storage Account '%s': %s", storageAccountName, err)
+		return fmt.Errorf(
+			"Error creating Azure Storage Account '%s': %s",
+			storageAccountName, err)
 	}
 
 	// The only way to get the ID back apparently is to read the resource again
