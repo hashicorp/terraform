@@ -70,7 +70,7 @@ type State struct {
 	// Apart from the guarantee that collisions between two lineages
 	// are very unlikely, this value is opaque and external callers
 	// should only compare lineage strings byte-for-byte for equality.
-	Lineage string `json:"lineage,omitempty"`
+	Lineage string `json:"lineage"`
 
 	// Remote is used to track the metadata required to
 	// pull and push state files from a remote storage endpoint.
@@ -113,7 +113,13 @@ func (s *State) Children(path []string) []*ModuleState {
 // This should be the preferred method to add module states since it
 // allows us to optimize lookups later as well as control sorting.
 func (s *State) AddModule(path []string) *ModuleState {
-	m := &ModuleState{Path: path}
+	// check if the module exists first
+	m := s.ModuleByPath(path)
+	if m != nil {
+		return m
+	}
+
+	m = &ModuleState{Path: path}
 	m.init()
 	s.Modules = append(s.Modules, m)
 	s.sort()
@@ -498,6 +504,10 @@ func (s *State) FromFutureTerraform() bool {
 	return SemVersion.LessThan(v)
 }
 
+func (s *State) Init() {
+	s.init()
+}
+
 func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
@@ -506,6 +516,14 @@ func (s *State) init() {
 		s.AddModule(rootModulePath)
 	}
 	s.EnsureHasLineage()
+
+	for _, mod := range s.Modules {
+		mod.init()
+	}
+
+	if s.Remote != nil {
+		s.Remote.init()
+	}
 }
 
 func (s *State) EnsureHasLineage() {
@@ -515,6 +533,21 @@ func (s *State) EnsureHasLineage() {
 	} else {
 		log.Printf("[TRACE] Preserving existing state lineage %q\n", s.Lineage)
 	}
+}
+
+// AddModuleState insert this module state and override any existing ModuleState
+func (s *State) AddModuleState(mod *ModuleState) {
+	mod.init()
+
+	for i, m := range s.Modules {
+		if reflect.DeepEqual(m.Path, mod.Path) {
+			s.Modules[i] = mod
+			return
+		}
+	}
+
+	s.Modules = append(s.Modules, mod)
+	s.sort()
 }
 
 // prune is used to remove any resources that are no longer required
@@ -584,6 +617,12 @@ type RemoteState struct {
 	// Config is used to store arbitrary configuration that
 	// is type specific
 	Config map[string]string `json:"config"`
+}
+
+func (r *RemoteState) init() {
+	if r.Config == nil {
+		r.Config = make(map[string]string)
+	}
 }
 
 func (r *RemoteState) deepcopy() *RemoteState {
@@ -713,7 +752,7 @@ type ModuleState struct {
 	// Terraform. If Terraform doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
-	Dependencies []string `json:"depends_on,omitempty"`
+	Dependencies []string `json:"depends_on"`
 }
 
 // Equal tests whether one module state is equal to another.
@@ -817,11 +856,22 @@ func (m *ModuleState) View(id string) *ModuleState {
 }
 
 func (m *ModuleState) init() {
+	if m.Path == nil {
+		m.Path = []string{}
+	}
 	if m.Outputs == nil {
 		m.Outputs = make(map[string]*OutputState)
 	}
 	if m.Resources == nil {
 		m.Resources = make(map[string]*ResourceState)
+	}
+
+	if m.Dependencies == nil {
+		m.Dependencies = make([]string, 0)
+	}
+
+	for _, rs := range m.Resources {
+		rs.init()
 	}
 }
 
@@ -1095,7 +1145,7 @@ type ResourceState struct {
 	// Terraform. If Terraform doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
-	Dependencies []string `json:"depends_on,omitempty"`
+	Dependencies []string `json:"depends_on"`
 
 	// Primary is the current active instance for this resource.
 	// It can be replaced but only after a successful creation.
@@ -1113,13 +1163,13 @@ type ResourceState struct {
 	//
 	// An instance will remain in the Deposed list until it is successfully
 	// destroyed and purged.
-	Deposed []*InstanceState `json:"deposed,omitempty"`
+	Deposed []*InstanceState `json:"deposed"`
 
 	// Provider is used when a resource is connected to a provider with an alias.
 	// If this string is empty, the resource is connected to the default provider,
 	// e.g. "aws_instance" goes with the "aws" provider.
 	// If the resource block contained a "provider" key, that value will be set here.
-	Provider string `json:"provider,omitempty"`
+	Provider string `json:"provider"`
 }
 
 // Equal tests whether two ResourceStates are equal.
@@ -1171,6 +1221,18 @@ func (r *ResourceState) init() {
 		r.Primary = &InstanceState{}
 	}
 	r.Primary.init()
+
+	if r.Dependencies == nil {
+		r.Dependencies = []string{}
+	}
+
+	if r.Deposed == nil {
+		r.Deposed = make([]*InstanceState, 0)
+	}
+
+	for _, dep := range r.Deposed {
+		dep.init()
+	}
 }
 
 func (r *ResourceState) deepcopy() *ResourceState {
@@ -1222,7 +1284,7 @@ type InstanceState struct {
 	// Attributes are basic information about the resource. Any keys here
 	// are accessible in variable format within Terraform configurations:
 	// ${resourcetype.name.attribute}.
-	Attributes map[string]string `json:"attributes,omitempty"`
+	Attributes map[string]string `json:"attributes"`
 
 	// Ephemeral is used to store any state associated with this instance
 	// that is necessary for the Terraform run to complete, but is not
@@ -1232,10 +1294,10 @@ type InstanceState struct {
 	// Meta is a simple K/V map that is persisted to the State but otherwise
 	// ignored by Terraform core. It's meant to be used for accounting by
 	// external client code.
-	Meta map[string]string `json:"meta,omitempty"`
+	Meta map[string]string `json:"meta"`
 
 	// Tainted is used to mark a resource for recreation.
-	Tainted bool `json:"tainted,omitempty"`
+	Tainted bool `json:"tainted"`
 }
 
 func (i *InstanceState) init() {
@@ -1498,6 +1560,7 @@ func ReadState(src io.Reader) (*State, error) {
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
 			SemVersion.String(), versionIdentifier.Version)
 	}
+
 }
 
 func ReadStateV1(jsonBytes []byte) (*stateV1, error) {
@@ -1543,6 +1606,9 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	// Sort it
 	state.sort()
 
+	// catch any unitialized fields in the state
+	state.init()
+
 	return state, nil
 }
 
@@ -1575,6 +1641,23 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	// Sort it
 	state.sort()
 
+	// catch any unitialized fields in the state
+	state.init()
+
+	// Now we write the state back out to detect any changes in normaliztion.
+	// If our state is now written out differently, bump the serial number to
+	// prevent conflicts.
+	var buf bytes.Buffer
+	err := WriteState(state, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	if !bytes.Equal(jsonBytes, buf.Bytes()) {
+		log.Println("[INFO] state modified during read or write. incrementing serial number")
+		state.Serial++
+	}
+
 	return state, nil
 }
 
@@ -1582,6 +1665,9 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 func WriteState(d *State, dst io.Writer) error {
 	// Make sure it is sorted
 	d.sort()
+
+	// make sure we have no uninitialized fields
+	d.init()
 
 	// Ensure the version is set
 	d.Version = StateVersion
