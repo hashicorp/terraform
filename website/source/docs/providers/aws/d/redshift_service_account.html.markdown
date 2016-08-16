@@ -1,7 +1,7 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_redshift_account_id"
-sidebar_current: "docs-aws-datasource-redshift-account-id"
+page_title: "AWS: aws_redshift_service_account"
+sidebar_current: "docs-aws-datasource-redshift-service-account"
 description: |-
   Get AWS Redshift Service Account ID for storing audit data in S3.
 ---
