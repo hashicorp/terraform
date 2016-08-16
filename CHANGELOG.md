@@ -43,6 +43,7 @@ IMPROVEMENTS
  * provider/google: Add support for using a GCP Image Family [GH-8083]
  * provider/openstack: Support updating the External Gateway assigned to a Neutron router [GH-8070]
  * provider/openstack: Support for `value_specs` param on `openstack_networking_network_v2` [GH-8155]
+ * provider/openstack: Add `value_specs` param on `openstack_networking_subnet_v2` [GH-8181]
  * provider/vsphere: Improved SCSI controller handling in `vsphere_virtual_machine` [GH-7908]
  * provider/vsphere: Adding disk type of `Thick Lazy` to `vsphere_virtual_disk` and `vsphere_virtual_machine` [GH-7916]
  * provider/vsphere: Standardizing datastore references to use builtin Path func [GH-8075]
