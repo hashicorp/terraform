@@ -62,6 +62,7 @@ BUG FIXES:
  * provider/aws: Fix `aws_s3_bucket` resource `redirect_all_requests_to` action [GH-7883]
  * provider/aws: Fix issue updating ElasticBeanstalk Environment Settings [GH-7777]
  * provider/aws: `aws_rds_cluster` creation timeout bumped to 40 minutes [GH-8052]
+ * provider/aws: Update ElasticTranscoder to allow empty notifications, removing notifications, etc [GH-8207]
  * provider/aws: Fix line ending errors/diffs with IAM Server Certs [GH-8074]
  * provider/aws: Fixing IAM data source policy generation to prevent spurious diffs [GH-6956]
  * provider/aws: Correct how CORS rules are handled in `aws_s3_bucket` [GH-8096]
