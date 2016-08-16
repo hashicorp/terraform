@@ -143,6 +143,10 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	// since we will likely also want to introduce a time-based timeout.
 	var createErr error
 	select {
+	case <-time.After(1 * time.Hour):
+		// An hour is way above the expected P99 for this API call so
+		// we premature cancel and error here.
+		createErr = wrap.Cancel()
 	case createErr = <-wrap.ErrCh:
 		// Successfully ran (but perhaps not successfully completed)
 		// the function.
