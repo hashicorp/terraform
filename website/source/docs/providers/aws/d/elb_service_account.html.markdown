@@ -1,20 +1,20 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_elb_account_id"
-sidebar_current: "docs-aws-datasource-elb-account-id"
+page_title: "AWS: aws_elb_service_account"
+sidebar_current: "docs-aws-datasource-elb-service-account"
 description: |-
-  Get AWS Elastic Load Balancing Account ID
+  Get AWS Elastic Load Balancing Service Account
 ---
 
-# aws\_elb\_account\_id
+# aws\_elb\_service\_account
 
-Use this data source to get the Account ID of the [AWS Elastic Load Balancing Account](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-access-logs.html#attach-bucket-policy)
+Use this data source to get the Account ID of the [AWS Elastic Load Balancing Service Account](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-access-logs.html#attach-bucket-policy)
 in a given region for the purpose of whitelisting in S3 bucket policy.
 
 ## Example Usage
 
 ```
-data "aws_elb_account_id" "main" { }
+data "aws_elb_service_account" "main" { }
 
 resource "aws_s3_bucket" "elb_logs" {
     bucket = "my-elb-tf-test-bucket"
@@ -32,7 +32,7 @@ resource "aws_s3_bucket" "elb_logs" {
       "Resource": "arn:aws:s3:::my-elb-tf-test-bucket/AWSLogs/*",
       "Principal": {
         "AWS": [
-          "${data.aws_elb_account_id.main.id}"
+          "${data.aws_elb_service_account.main.id}"
         ]
       }
     }
@@ -61,9 +61,10 @@ resource "aws_elb" "bar" {
 
 ## Argument Reference
 
-* `region` - (Optional) Region of a given AWS ELB Account
+* `region` - (Optional) Name of the region whose AWS ELB account ID is desired.
+  Defaults to the region from the AWS provider configuration.
 
 
 ## Attributes Reference
 
-* `id` - Account ID
+* `id` - The ID of the AWS ELB service account in the selected region.
