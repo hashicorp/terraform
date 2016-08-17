@@ -43,7 +43,7 @@ source /etc/profile.d/gopath.sh
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "bento/ubuntu-12.04"
+  config.vm.box = "bento/ubuntu-14.04"
   config.vm.hostname = "terraform"
 
   config.vm.provision "shell", inline: $script, privileged: false

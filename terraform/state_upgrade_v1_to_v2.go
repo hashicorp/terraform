@@ -38,6 +38,7 @@ func upgradeStateV1ToV2(old *stateV1) (*State, error) {
 	}
 
 	newState.sort()
+	newState.init()
 
 	return newState, nil
 }

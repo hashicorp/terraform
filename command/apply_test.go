@@ -1181,6 +1181,7 @@ func TestApply_backup(t *testing.T) {
 			},
 		},
 	}
+	originalState.Init()
 
 	statePath := testStateFile(t, originalState)
 	backupPath := testTempFile(t)

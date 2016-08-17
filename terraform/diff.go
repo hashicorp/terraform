@@ -365,7 +365,11 @@ func (d *InstanceDiff) Empty() bool {
 }
 
 func (d *InstanceDiff) GoString() string {
-	return fmt.Sprintf("*%#v", *d)
+	return fmt.Sprintf("*%#v", InstanceDiff{
+		Attributes:     d.Attributes,
+		Destroy:        d.Destroy,
+		DestroyTainted: d.DestroyTainted,
+	})
 }
 
 // RequiresNew returns true if the diff requires the creation of a new

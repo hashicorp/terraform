@@ -14,6 +14,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -517,6 +518,28 @@ func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 		}
 
 		return nil
+	}
+}
+
+// ComposeAggregateTestCheckFunc lets you compose multiple TestCheckFuncs into
+// a single TestCheckFunc.
+//
+// As a user testing their provider, this lets you decompose your checks
+// into smaller pieces more easily.
+//
+// Unlike ComposeTestCheckFunc, ComposeAggergateTestCheckFunc runs _all_ of the
+// TestCheckFuncs and aggregates failures.
+func ComposeAggregateTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
+	return func(s *terraform.State) error {
+		var result *multierror.Error
+
+		for i, f := range fs {
+			if err := f(s); err != nil {
+				result = multierror.Append(result, fmt.Errorf("Check %d/%d error: %s", i+1, len(fs), err))
+			}
+		}
+
+		return result.ErrorOrNil()
 	}
 }
 
