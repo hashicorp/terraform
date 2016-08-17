@@ -92,6 +92,20 @@ func TestStateFilterFilter(t *testing.T) {
 				"*terraform.InstanceState: module.consul.aws_instance.consul-green[0]",
 			},
 		},
+
+		"nested modules": {
+			"nested-modules.tfstate",
+			[]string{"module.outer"},
+			[]string{
+				"*terraform.ModuleState: module.outer",
+				"*terraform.ModuleState: module.outer.module.child1",
+				"*terraform.ResourceState: module.outer.module.child1.aws_instance.foo",
+				"*terraform.InstanceState: module.outer.module.child1.aws_instance.foo",
+				"*terraform.ModuleState: module.outer.module.child2",
+				"*terraform.ResourceState: module.outer.module.child2.aws_instance.foo",
+				"*terraform.InstanceState: module.outer.module.child2.aws_instance.foo",
+			},
+		},
 	}
 
 	for n, tc := range cases {
