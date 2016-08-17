@@ -61,6 +61,7 @@ The following attributes are exported:
      [`aws_main_route_table_association`](/docs/providers/aws/r/main_route_table_assoc.html).
 * `default_network_acl_id` - The ID of the network ACL created by default on VPC creation
 * `default_security_group_id` - The ID of the security group created by default on VPC creation
+* `default_security_group_id` - The ID of the route table created by default on VPC creation
 
 
 [1]: http://docs.aws.amazon.com/fr_fr/AWSEC2/latest/UserGuide/vpc-classiclink.html
