@@ -192,7 +192,7 @@ The supported built-in functions are:
     * `map("us-east", list("a", "b", "c"), "us-west", list("b", "c", "d"))`
 
   * `merge(map1, map2, ...)` - Returns the union of 2 or more maps. The maps
-	are consumed in the order provided, and duplciate keys overwrite previous
+	are consumed in the order provided, and duplicate keys overwrite previous
 	entries.
 	* `${merge(map("a", "b"), map("c", "d"))}` returns `{"a": "b", "c": "d"}`
 
