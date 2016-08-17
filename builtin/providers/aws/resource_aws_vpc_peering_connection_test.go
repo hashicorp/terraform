@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,7 +20,7 @@ func TestAccAWSVPCPeeringConnection_basic(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("AWS_ACCOUNT_ID must be set")
+				t.Fatal("AWS_ACCOUNT_ID must be set.")
 			}
 		},
 
@@ -32,7 +33,9 @@ func TestAccAWSVPCPeeringConnection_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccVpcPeeringConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSVpcPeeringConnectionExists("aws_vpc_peering_connection.foo", &connection),
+					testAccCheckAWSVpcPeeringConnectionExists(
+						"aws_vpc_peering_connection.foo",
+						&connection),
 				),
 			},
 		},
@@ -45,7 +48,7 @@ func TestAccAWSVPCPeeringConnection_plan(t *testing.T) {
 	// reach out and DELETE the VPC Peering connection outside of Terraform
 	testDestroy := func(*terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		log.Printf("[DEBUG] Test deleting VPC Peering connection")
+		log.Printf("[DEBUG] Test deleting the VPC Peering Connection.")
 		_, err := conn.DeleteVpcPeeringConnection(
 			&ec2.DeleteVpcPeeringConnectionInput{
 				VpcPeeringConnectionId: connection.VpcPeeringConnectionId,
@@ -60,7 +63,7 @@ func TestAccAWSVPCPeeringConnection_plan(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("AWS_ACCOUNT_ID must be set")
+				t.Fatal("AWS_ACCOUNT_ID must be set.")
 			}
 		},
 		Providers:    testAccProviders,
@@ -69,7 +72,9 @@ func TestAccAWSVPCPeeringConnection_plan(t *testing.T) {
 			resource.TestStep{
 				Config: testAccVpcPeeringConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSVpcPeeringConnectionExists("aws_vpc_peering_connection.foo", &connection),
+					testAccCheckAWSVpcPeeringConnectionExists(
+						"aws_vpc_peering_connection.foo",
+						&connection),
 					testDestroy,
 				),
 				ExpectNonEmptyPlan: true,
@@ -82,7 +87,7 @@ func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 	var connection ec2.VpcPeeringConnection
 	peerId := os.Getenv("TF_PEER_ID")
 	if peerId == "" {
-		t.Skip("Error: TestAccAWSVPCPeeringConnection_tags requires a peer id to be set")
+		t.Skip("Error: TestAccAWSVPCPeeringConnection_tags requires a peer ID to be set.")
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -97,8 +102,110 @@ func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 			resource.TestStep{
 				Config: fmt.Sprintf(testAccVpcPeeringConfigTags, peerId),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSVpcPeeringConnectionExists("aws_vpc_peering_connection.foo", &connection),
+					testAccCheckAWSVpcPeeringConnectionExists(
+						"aws_vpc_peering_connection.foo",
+						&connection),
 					testAccCheckTags(&connection.Tags, "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSVPCPeeringConnection_options(t *testing.T) {
+	var connection ec2.VpcPeeringConnection
+
+	testAccepterChange := func(*terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		log.Printf("[DEBUG] Test change to the VPC Peering Connection Options.")
+
+		_, err := conn.ModifyVpcPeeringConnectionOptions(
+			&ec2.ModifyVpcPeeringConnectionOptionsInput{
+				VpcPeeringConnectionId: connection.VpcPeeringConnectionId,
+				AccepterPeeringConnectionOptions: &ec2.PeeringConnectionOptionsRequest{
+					AllowDnsResolutionFromRemoteVpc: aws.Bool(false),
+				},
+			})
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if os.Getenv("AWS_ACCOUNT_ID") == "" {
+				t.Fatal("AWS_ACCOUNT_ID must be set")
+			}
+		},
+
+		IDRefreshName:   "aws_vpc_peering_connection.foo",
+		IDRefreshIgnore: []string{"auto_accept"},
+
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSVpcPeeringConnectionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVpcPeeringConfigOptions,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSVpcPeeringConnectionExists(
+						"aws_vpc_peering_connection.foo",
+						&connection),
+					resource.TestCheckResourceAttr(
+						"aws_vpc_peering_connection.foo",
+						"accepter.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc_peering_connection.foo",
+						"accepter.0.allow_remote_vpc_dns_resolution", "true"),
+					testAccCheckAWSVpcPeeringConnectionOptions(
+						"aws_vpc_peering_connection.foo", "accepter",
+						&ec2.VpcPeeringConnectionOptionsDescription{
+							AllowDnsResolutionFromRemoteVpc:            aws.Bool(true),
+							AllowEgressFromLocalClassicLinkToRemoteVpc: aws.Bool(false),
+							AllowEgressFromLocalVpcToRemoteClassicLink: aws.Bool(false),
+						}),
+					resource.TestCheckResourceAttr(
+						"aws_vpc_peering_connection.foo",
+						"requester.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc_peering_connection.foo",
+						"requester.0.allow_classic_link_to_remote_vpc", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc_peering_connection.foo",
+						"requester.0.allow_vpc_to_remote_classic_link", "true"),
+					testAccCheckAWSVpcPeeringConnectionOptions(
+						"aws_vpc_peering_connection.foo", "requester",
+						&ec2.VpcPeeringConnectionOptionsDescription{
+							AllowDnsResolutionFromRemoteVpc:            aws.Bool(false),
+							AllowEgressFromLocalClassicLinkToRemoteVpc: aws.Bool(true),
+							AllowEgressFromLocalVpcToRemoteClassicLink: aws.Bool(true),
+						},
+					),
+					testAccepterChange,
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			resource.TestStep{
+				Config: testAccVpcPeeringConfigOptions,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSVpcPeeringConnectionExists(
+						"aws_vpc_peering_connection.foo",
+						&connection),
+					resource.TestCheckResourceAttr(
+						"aws_vpc_peering_connection.foo",
+						"accepter.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc_peering_connection.foo",
+						"accepter.0.allow_remote_vpc_dns_resolution", "true"),
+					testAccCheckAWSVpcPeeringConnectionOptions(
+						"aws_vpc_peering_connection.foo", "accepter",
+						&ec2.VpcPeeringConnectionOptionsDescription{
+							AllowDnsResolutionFromRemoteVpc:            aws.Bool(true),
+							AllowEgressFromLocalClassicLinkToRemoteVpc: aws.Bool(false),
+							AllowEgressFromLocalVpcToRemoteClassicLink: aws.Bool(false),
+						},
+					),
 				),
 			},
 		},
@@ -138,12 +245,12 @@ func testAccCheckAWSVpcPeeringConnectionDestroy(s *terraform.State) error {
 			if *pc.Status.Code == "deleted" {
 				return nil
 			}
-			return fmt.Errorf("Found vpc peering connection in unexpected state: %s", pc)
+			return fmt.Errorf("Found the VPC Peering Connection in an unexpected state: %s", pc)
 		}
 
 		// return error here; we've found the vpc_peering object we want, however
 		// it's not in an expected state
-		return fmt.Errorf("Fall through error for testAccCheckAWSVpcPeeringConnectionDestroy")
+		return fmt.Errorf("Fall through error for testAccCheckAWSVpcPeeringConnectionDestroy.")
 	}
 
 	return nil
@@ -157,7 +264,7 @@ func testAccCheckAWSVpcPeeringConnectionExists(n string, connection *ec2.VpcPeer
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No vpc peering connection id is set")
+			return fmt.Errorf("No VPC Peering Connection ID is set.")
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
@@ -169,7 +276,7 @@ func testAccCheckAWSVpcPeeringConnectionExists(n string, connection *ec2.VpcPeer
 			return err
 		}
 		if len(resp.VpcPeeringConnections) == 0 {
-			return fmt.Errorf("VPC peering connection not found")
+			return fmt.Errorf("VPC Peering Connection could not be found.")
 		}
 
 		*connection = *resp.VpcPeeringConnections[0]
@@ -178,43 +285,105 @@ func testAccCheckAWSVpcPeeringConnectionExists(n string, connection *ec2.VpcPeer
 	}
 }
 
+func testAccCheckAWSVpcPeeringConnectionOptions(n, block string, options *ec2.VpcPeeringConnectionOptionsDescription) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No VPC Peering Connection ID is set.")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		resp, err := conn.DescribeVpcPeeringConnections(
+			&ec2.DescribeVpcPeeringConnectionsInput{
+				VpcPeeringConnectionIds: []*string{aws.String(rs.Primary.ID)},
+			})
+		if err != nil {
+			return err
+		}
+
+		pc := resp.VpcPeeringConnections[0]
+
+		o := pc.AccepterVpcInfo
+		if block == "requester" {
+			o = pc.RequesterVpcInfo
+		}
+
+		if !reflect.DeepEqual(o.PeeringOptions, options) {
+			return fmt.Errorf("Expected the VPC Peering Connection Options to be %#v, got %#v",
+				options, o.PeeringOptions)
+		}
+
+		return nil
+	}
+}
+
 const testAccVpcPeeringConfig = `
 resource "aws_vpc" "foo" {
-		cidr_block = "10.0.0.0/16"
-		tags {
-			Name = "TestAccAWSVPCPeeringConnection_basic"
-		}
+	cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "TestAccAWSVPCPeeringConnection_basic"
+	}
 }
 
 resource "aws_vpc" "bar" {
-		cidr_block = "10.1.0.0/16"
+	cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_vpc_peering_connection" "foo" {
-		vpc_id = "${aws_vpc.foo.id}"
-		peer_vpc_id = "${aws_vpc.bar.id}"
-		auto_accept = true
+	vpc_id = "${aws_vpc.foo.id}"
+	peer_vpc_id = "${aws_vpc.bar.id}"
+	auto_accept = true
 }
 `
 
 const testAccVpcPeeringConfigTags = `
 resource "aws_vpc" "foo" {
-		cidr_block = "10.0.0.0/16"
-		tags {
-			Name = "TestAccAWSVPCPeeringConnection_tags"
-		}
+	cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "TestAccAWSVPCPeeringConnection_tags"
+	}
 }
 
 resource "aws_vpc" "bar" {
-		cidr_block = "10.1.0.0/16"
+	cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_vpc_peering_connection" "foo" {
-		vpc_id = "${aws_vpc.foo.id}"
-		peer_vpc_id = "${aws_vpc.bar.id}"
-		peer_owner_id = "%s"
-		tags {
-			foo = "bar"
-		}
+	vpc_id = "${aws_vpc.foo.id}"
+	peer_vpc_id = "${aws_vpc.bar.id}"
+	peer_owner_id = "%s"
+	tags {
+		foo = "bar"
+	}
+}
+`
+
+const testAccVpcPeeringConfigOptions = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.1.0.0/16"
+	enable_dns_hostnames = true
+}
+
+resource "aws_vpc_peering_connection" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+	peer_vpc_id = "${aws_vpc.bar.id}"
+	auto_accept = true
+
+	accepter {
+		allow_remote_vpc_dns_resolution = true
+	}
+
+	requester {
+		allow_vpc_to_remote_classic_link = true
+		allow_classic_link_to_remote_vpc = true
+	}
 }
 `
