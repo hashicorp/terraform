@@ -80,6 +80,7 @@ BUG FIXES:
  * provider/digitalocean: Enforce Lowercase on IPV6 Addresses [GH-7652]
  * provider/google: Use resource specific project when making queries/changes [GH-7029]
  * provider/google: Fix read for the backend service resource [GH-7476]
+ * provider/mysql: `mysql_user` works with MySQL versions before 5.7.6 [GH-8251]
  * provider/openstack: Fix typo in OpenStack LBaaSv2 pool resource [GH-8179]
  * provider/vSphere: Fix for IPv6 only environment creation [GH-7643]
 
