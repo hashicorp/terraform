@@ -35,6 +35,7 @@ IMPROVEMENTS
  * provider/aws: Add ability to set Storage Class in `aws_s3_bucket_object` [GH-8174]
  * provider/aws: Treat `aws_lambda_function` w/ empty `subnet_ids` & `security_groups_ids` in `vpc_config` as VPC-disabled function [GH-6191]
  * provider/aws: Allow `source_ids` in `aws_db_event_subscription` to be Updatable [GH-7892]
+ * provider/aws: Make EFS Mount Target creation fail for 2+ targets per AZ [GH-8205]
  * provider/azure: add custom_data argument for azure_instance resource [GH-8158]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/azurerm: Storage blob contents can be copied from an existing blob [GH-8126]
