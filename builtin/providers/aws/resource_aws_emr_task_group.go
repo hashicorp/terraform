@@ -24,6 +24,7 @@ func resourceAwsEMRTaskGroup() *schema.Resource {
 			"instance_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"instance_count": &schema.Schema{
 				Type:     schema.TypeInt,
