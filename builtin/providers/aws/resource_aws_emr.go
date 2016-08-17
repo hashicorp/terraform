@@ -421,12 +421,10 @@ func readHttpJson(url string, target interface{}) error {
 func readLocalJson(localFile string, target interface{}) error {
 	file, e := ioutil.ReadFile(localFile)
 	if e != nil {
-		fmt.Printf("File error: %v\n", e)
 		log.Printf("[ERROR] %s", e)
 		return e
 	}
-	log.Printf("[DEBUG] %s\n", string(file))
-
+	
 	return json.Unmarshal(file, target)
 }
 
