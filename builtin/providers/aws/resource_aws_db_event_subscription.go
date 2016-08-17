@@ -281,7 +281,7 @@ func resourceAwsDbEventSubscriptionUpdate(d *schema.ResourceData, meta interface
 
 		if len(remove) > 0 {
 			for _, removing := range remove {
-				log.Printf("[INFO] Removing %s as a Source Identifier from %q", removing, d.Id())
+				log.Printf("[INFO] Removing %s as a Source Identifier from %q", *removing, d.Id())
 				_, err := rdsconn.RemoveSourceIdentifierFromSubscription(&rds.RemoveSourceIdentifierFromSubscriptionInput{
 					SourceIdentifier: removing,
 					SubscriptionName: aws.String(d.Id()),
@@ -294,7 +294,7 @@ func resourceAwsDbEventSubscriptionUpdate(d *schema.ResourceData, meta interface
 
 		if len(add) > 0 {
 			for _, adding := range add {
-				log.Printf("[INFO] Adding %s as a Source Identifier to %q", adding, d.Id())
+				log.Printf("[INFO] Adding %s as a Source Identifier to %q", *adding, d.Id())
 				_, err := rdsconn.AddSourceIdentifierToSubscription(&rds.AddSourceIdentifierToSubscriptionInput{
 					SourceIdentifier: adding,
 					SubscriptionName: aws.String(d.Id()),
