@@ -272,35 +272,37 @@ func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
-	log.Printf("[DEBUG] Modify EMR cluster")
-	req := &emr.ListInstanceGroupsInput{
-		ClusterId: aws.String(d.Id()),
-	}
+	if d.HasChange("core_instance_count") {
+		log.Printf("[DEBUG] Modify EMR cluster")
+		req := &emr.ListInstanceGroupsInput{
+			ClusterId: aws.String(d.Id()),
+		}
 
-	respGrps, errGrps := conn.ListInstanceGroups(req)
-	if errGrps != nil {
-		return fmt.Errorf("Error reading EMR cluster: %s", errGrps)
-	}
-	instanceGroups := respGrps.InstanceGroups
+		respGrps, errGrps := conn.ListInstanceGroups(req)
+		if errGrps != nil {
+			return fmt.Errorf("Error reading EMR cluster: %s", errGrps)
+		}
+		instanceGroups := respGrps.InstanceGroups
 
-	coreInstanceCount := d.Get("core_instance_count").(int)
-	coreGroup := findGroup(instanceGroups, "CORE")
+		coreInstanceCount := d.Get("core_instance_count").(int)
+		coreGroup := findGroup(instanceGroups, "CORE")
 
-	params := &emr.ModifyInstanceGroupsInput{
-		InstanceGroups: []*emr.InstanceGroupModifyConfig{
-			{
-				InstanceGroupId: aws.String(*coreGroup.Id),
-				InstanceCount:   aws.Int64(int64(coreInstanceCount)),
+		params := &emr.ModifyInstanceGroupsInput{
+			InstanceGroups: []*emr.InstanceGroupModifyConfig{
+				{
+					InstanceGroupId: aws.String(*coreGroup.Id),
+					InstanceCount:   aws.Int64(int64(coreInstanceCount)),
+				},
 			},
-		},
-	}
-	_, errModify := conn.ModifyInstanceGroups(params)
-	if errModify != nil {
-		log.Printf("[ERROR] %s", errModify)
-		return errModify
-	}
+		}
+		_, errModify := conn.ModifyInstanceGroups(params)
+		if errModify != nil {
+			log.Printf("[ERROR] %s", errModify)
+			return errModify
+		}
 
-	log.Printf("[DEBUG] Modify EMR Cluster done...")
+		log.Printf("[DEBUG] Modify EMR Cluster done...")
+	}
 
 	return resourceAwsEMRRead(d, meta)
 }
