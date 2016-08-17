@@ -100,7 +100,7 @@ func TestVariables(t *testing.T) {
 			m := testModule(t, tc.Module)
 			actual, err := Variables(m, tc.Override)
 			if (err != nil) != tc.Error {
-				t.Fatalf("%s: err: %s", err)
+				t.Fatalf("%s: err: %s", name, err)
 			}
 			if err != nil {
 				return
