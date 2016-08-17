@@ -264,7 +264,9 @@ func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
 	instanceGroups, errGrps := loadGroups(d, meta)
 	if errGrps == nil {
 		coreGroup := findGroup(instanceGroups, "CORE")
-		d.Set("core_instance_type", coreGroup.InstanceType)
+		if coreGroup != nil {
+			d.Set("core_instance_type", coreGroup.InstanceType)
+		}
 	}
 
 	return nil
