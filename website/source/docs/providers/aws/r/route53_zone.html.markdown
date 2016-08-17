@@ -61,6 +61,8 @@ The following arguments are supported:
 * `vpc_region` - (Optional) The VPC's region. Defaults to the region of the AWS provider.
 * `delegation_set_id` - (Optional) The ID of the reusable delgation set whose NS records you want to assign to the hosted zone.
   Conflicts w/ `vpc_id` as delegation sets can only be used for public zones.
+* `force_destroy` - (Optional) Whether to destroy all records (possibly managed outside of Terraform)
+  in the zone when destroying the zone.
 
 ## Attributes Reference
 
