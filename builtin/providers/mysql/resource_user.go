@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	mysqlc "github.com/ziutek/mymysql/mysql"
-
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -40,7 +38,7 @@ func resourceUser() *schema.Resource {
 }
 
 func CreateUser(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(mysqlc.Conn)
+	conn := meta.(*providerConfiguration).Conn
 
 	stmtSQL := fmt.Sprintf("CREATE USER '%s'@'%s'",
 		d.Get("user").(string),
@@ -64,17 +62,29 @@ func CreateUser(d *schema.ResourceData, meta interface{}) error {
 }
 
 func UpdateUser(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(mysqlc.Conn)
+	conf := meta.(*providerConfiguration)
 
 	if d.HasChange("password") {
 		_, newpw := d.GetChange("password")
-		stmtSQL := fmt.Sprintf("ALTER USER '%s'@'%s' IDENTIFIED BY '%s'",
-			d.Get("user").(string),
-			d.Get("host").(string),
-			newpw.(string))
+		var stmtSQL string
+
+		/* ALTER USER syntax introduced in MySQL 5.7.6 deprecates SET PASSWORD (GH-8230) */
+		if conf.VersionMajor > 5 ||
+			(conf.VersionMajor == 5 && conf.VersionMinor > 7) ||
+			(conf.VersionMajor == 5 && conf.VersionMinor == 7 && conf.VersionPatch >= 6) {
+			stmtSQL = fmt.Sprintf("ALTER USER '%s'@'%s' IDENTIFIED BY '%s'",
+				d.Get("user").(string),
+				d.Get("host").(string),
+				newpw.(string))
+		} else {
+			stmtSQL = fmt.Sprintf("SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s')",
+				d.Get("user").(string),
+				d.Get("host").(string),
+				newpw.(string))
+		}
 
 		log.Println("Executing query:", stmtSQL)
-		_, _, err := conn.Query(stmtSQL)
+		_, _, err := conf.Conn.Query(stmtSQL)
 		if err != nil {
 			return err
 		}
@@ -89,7 +99,7 @@ func ReadUser(d *schema.ResourceData, meta interface{}) error {
 }
 
 func DeleteUser(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(mysqlc.Conn)
+	conn := meta.(*providerConfiguration).Conn
 
 	stmtSQL := fmt.Sprintf("DROP USER '%s'@'%s'",
 		d.Get("user").(string),
