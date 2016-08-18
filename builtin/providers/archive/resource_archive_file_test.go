@@ -41,7 +41,7 @@ func TestAccArchiveFile_Basic(t *testing.T) {
 			r.TestStep{
 				Config: testAccArchiveFileOutputPath,
 				Check: r.ComposeTestCheckFunc(
-					testAccArchiveFileExists("example/path/test.zip", &fileSize),
+					testAccArchiveFileExists(fmt.Sprintf("%s/test.zip", tmpDir), &fileSize),
 				),
 			},
 		},
@@ -82,14 +82,15 @@ resource "archive_file" "foo" {
 }
 `
 
-var testAccArchiveFileOutputPath = `
+var tmpDir = os.TempDir() + "/test"
+var testAccArchiveFileOutputPath = fmt.Sprintf(`
 resource "archive_file" "foo" {
   type                    = "zip"
   source_content          = "This is some content"
   source_content_filename = "content.txt"
-  output_path             = "example/path/test.zip"
+  output_path             = "%s/test.zip"
 }
-`
+`, tmpDir)
 
 var testAccArchiveFileFileConfig = `
 resource "archive_file" "foo" {
