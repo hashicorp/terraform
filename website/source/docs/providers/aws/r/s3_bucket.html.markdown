@@ -249,3 +249,11 @@ The following attributes are exported:
 * `region` - The AWS region this bucket resides in.
 * `website_endpoint` - The website endpoint, if the bucket is configured with a website. If not, this will be an empty string.
 * `website_domain` - The domain of the website endpoint, if the bucket is configured with a website. If not, this will be an empty string. This is used to create Route 53 alias records.
+
+## Import
+
+S3 bucket can be imported using the `bucket`, e.g. 
+
+```
+$ terraform import aws_s3_bucket.bucket bucket-name
+```

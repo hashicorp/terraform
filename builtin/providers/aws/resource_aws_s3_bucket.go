@@ -23,6 +23,9 @@ func resourceAwsS3Bucket() *schema.Resource {
 		Read:   resourceAwsS3BucketRead,
 		Update: resourceAwsS3BucketUpdate,
 		Delete: resourceAwsS3BucketDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"bucket": &schema.Schema{
