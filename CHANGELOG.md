@@ -68,6 +68,8 @@ BUG FIXES:
  * core: CLI will only run exact match commands [GH-7983]
  * core: Fix panic when resources ends up null in state file [GH-8120]
  * core: Fix panic when validating a count with a unprefixed variable [GH-8243]
+ * core: Divide by zero in interpolations no longer panics [GH-7701]
+ * core: Fix panic on some invalid interpolation syntax [GH-5672]
  * provider/aws: guard against missing image_digest in `aws_ecs_task_definition` [GH-7966]
  * provider/aws: `aws_cloudformation_stack` now respects `timeout_in_minutes` field when waiting for CF API to finish an update operation [GH-7997]
  * provider/aws: Prevent errors when `aws_s3_bucket` `acceleration_status` is not available in a given region [GH-7999]
