@@ -55,6 +55,7 @@ func resourceComputeTargetPool() *schema.Resource {
 			"instances": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
@@ -396,6 +397,8 @@ func resourceComputeTargetPoolRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("health_checks", tpool.HealthChecks)
 	if tpool.Instances != nil {
 		d.Set("instances", convertInstancesFromUrls(tpool.Instances))
+	} else {
+		d.Set("instances", nil)
 	}
 	d.Set("name", tpool.Name)
 	d.Set("region", regionUrl[len(regionUrl)-1])
