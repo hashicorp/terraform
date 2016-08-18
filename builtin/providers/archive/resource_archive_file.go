@@ -76,15 +76,15 @@ func resourceArchiveFileCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceArchiveFileRead(d *schema.ResourceData, meta interface{}) error {
-	output_path := d.Get("output_path").(string)
-	fi, err := os.Stat(output_path)
+	outputPath := d.Get("output_path").(string)
+	fi, err := os.Stat(outputPath)
 	if os.IsNotExist(err) {
 		d.SetId("")
 		d.MarkNewResource()
 		return nil
 	}
 
-	sha, err := genFileSha1(output_path)
+	sha, err := genFileSha1(outputPath)
 	if err != nil {
 		return fmt.Errorf("could not generate file checksum sha: %s", err)
 	}
@@ -97,9 +97,9 @@ func resourceArchiveFileRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 	archiveType := d.Get("type").(string)
-	output_path := d.Get("output_path").(string)
+	outputPath := d.Get("output_path").(string)
 
-	outputDirectory := path.Dir(output_path)
+	outputDirectory := path.Dir(outputPath)
 	if outputDirectory != "" {
 		if _, err := os.Stat(outputDirectory); err != nil {
 			if err := os.MkdirAll(outputDirectory, 755); err != nil {
@@ -108,7 +108,7 @@ func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	archiver := getArchiver(archiveType, output_path)
+	archiver := getArchiver(archiveType, outputPath)
 	if archiver == nil {
 		return fmt.Errorf("archive type not supported: %s", archiveType)
 	}
@@ -131,12 +131,12 @@ func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Generate archived file stats
-	fi, err := os.Stat(output_path)
+	fi, err := os.Stat(outputPath)
 	if err != nil {
 		return err
 	}
 
-	sha, err := genFileSha1(output_path)
+	sha, err := genFileSha1(outputPath)
 	if err != nil {
 		return fmt.Errorf("could not generate file checksum sha: %s", err)
 	}
@@ -148,21 +148,21 @@ func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceArchiveFileDelete(d *schema.ResourceData, meta interface{}) error {
-	output_path := d.Get("output_path").(string)
-	if _, err := os.Stat(output_path); os.IsNotExist(err) {
+	outputPath := d.Get("output_path").(string)
+	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 		return nil
 	}
 
-	if err := os.Remove(output_path); err != nil {
-		return fmt.Errorf("could not delete zip file %q: %s", output_path, err)
+	if err := os.Remove(outputPath); err != nil {
+		return fmt.Errorf("could not delete zip file %q: %s", outputPath, err)
 	}
 
 	return nil
 }
 
 func resourceArchiveFileExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	output_path := d.Get("output_path").(string)
-	_, err := os.Stat(output_path)
+	outputPath := d.Get("output_path").(string)
+	_, err := os.Stat(outputPath)
 	if os.IsNotExist(err) {
 		return false, nil
 	}
