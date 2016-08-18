@@ -22,6 +22,7 @@ FEATURES:
  * **New Data Source:** `aws_redshift_service_account` [GH-8224]
 
 IMPROVEMENTS
+ * provider/archive support folders in output_path [GH-8278]
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
  * provider/aws: Query all pages of group membership [GH-6726]
  * provider/aws: Query all pages of IAM Policy attachments [GH-7779]
