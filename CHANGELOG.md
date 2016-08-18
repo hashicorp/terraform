@@ -46,6 +46,7 @@ IMPROVEMENTS
  * provider/azure: add custom_data argument for azure_instance resource [GH-8158]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/azurerm: Storage blob contents can be copied from an existing blob [GH-8126]
+ * provider/datadog: Allow `tags` to be configured for monitor resources. [GH-8284]
  * provider/google: allows atomic Cloud DNS record changes [GH-6575]
  * provider/google: Move URLMap hosts to TypeSet from TypeList [GH-7472]
  * provider/google: Support static private IP addresses in `resource_compute_instance` [GH-6310]
