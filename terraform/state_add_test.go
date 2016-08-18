@@ -201,7 +201,7 @@ func TestStateAdd(t *testing.T) {
 
 			[]*ModuleState{
 				&ModuleState{
-					Path:      rootModulePath,
+					Path:      []string{"root", "foo"},
 					Resources: map[string]*ResourceState{},
 				},
 
