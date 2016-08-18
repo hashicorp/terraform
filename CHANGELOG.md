@@ -78,6 +78,7 @@ BUG FIXES:
  * provider/aws: `aws_security_group` now creates tags as early as possible in the process [GH-7849]
  * provider/aws: Defensively code around `db_security_group` ingress rules [GH-7893]
  * provider/aws: `aws_spot_fleet_request` throws panic on missing subnet_id or availability_zone [GH-8217]
+ * provider/aws: Terraform fails during Redshift delete if FinalSnapshot is being taken. [GH-8270]
  * provider/azurerm: `azurerm_storage_account` will interrupt for Ctrl-C [GH-8215]
  * provider/azurerm: Public IP - Setting idle timeout value caused panic. #8283
  * provider/digitalocean: trim whitespace from ssh key [GH-8173]
