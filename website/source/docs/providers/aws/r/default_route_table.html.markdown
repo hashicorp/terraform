@@ -13,7 +13,9 @@ Provides a resource to manage a Default VPC Routing Table.
 Each VPC created in AWS comes with a Default Route Table that can be managed, but not
 destroyed. **This is an advanced resource**, and has special caveats to be aware
 of when using it. Please read this document in its entirety before using this
-resource.
+resource. It is recommened you **do not** use both `aws_default_route_table` to
+manage the default route table **and** use the `aws_main_route_table_association`,
+due to possible conflict in routes.
 
 The `aws_default_route_table` behaves differently from normal resources, in that
 Terraform does not _create_ this resource, but instead attempts to "adopt" it
@@ -37,10 +39,11 @@ defined in-line. At this time you cannot use a Route Table with in-line routes
 in conjunction with any Route resources. Doing so will cause
 a conflict of rule settings and will overwrite routes.
 
+
 ## Example usage with tags:
 
 ```
-resource "aws_route_table" "r" {
+resource "aws_default_route_table" "r" {
     default_route_table_id = "${aws_vpc.foo.default_route_table_id}"
     route {
         ...
