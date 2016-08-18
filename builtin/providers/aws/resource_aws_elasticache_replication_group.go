@@ -394,6 +394,13 @@ func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replic
 	}
 }
 
+func validateAwsElastiCacheReplicationGroupEngine(v interface{}, k string) (ws []string, errors []error) {
+	if strings.ToLower(v.(string)) != "redis" {
+		errors = append(errors, fmt.Errorf("The only acceptable Engine type when using Replication Groups is Redis"))
+	}
+	return
+}
+
 func validateAwsElastiCacheReplicationGroupId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if (len(value) < 1) || (len(value) > 20) {
