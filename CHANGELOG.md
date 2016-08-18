@@ -61,8 +61,7 @@ IMPROVEMENTS
  * provider/vsphere: Standardizing datastore references to use builtin Path func [GH-8075]
  * provider/consul: add tls config support to consul provider [GH-7015]
  * remote/consul: Support setting datacenter when using consul remote state [GH-8102]
- * provider/google: Support Import of `google_compute_firewall` [GH-8236]
- * provider/google: Support Import of `google_compute_instance_template` [GH-8147]
+ * provider/google: Support import of `google_compute_instance_template` [GH-8147], `google_compute_firewall` [GH-8236], `google_compute_target_pool` [GH-8133], `google_compute_fowarding_rule` [GH-8122], `google_compute_http_health_check` [GH-8121], `google_compute_autoscaler` [GH-8115]
 
 BUG FIXES:
  * core: Fix issue preventing `taint` from working with resources that had no other attributes in their diff [GH-8167]
