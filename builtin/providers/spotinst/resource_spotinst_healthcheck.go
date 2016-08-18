@@ -19,37 +19,31 @@ func resourceSpotinstHealthCheck() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
 			},
 
 			"resource_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 
 			"check": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"protocol": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"endpoint": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"interval": &schema.Schema{
@@ -61,7 +55,6 @@ func resourceSpotinstHealthCheck() *schema.Resource {
 						"timeout": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -70,19 +63,16 @@ func resourceSpotinstHealthCheck() *schema.Resource {
 			"threshold": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"healthy": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"unhealthy": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -91,19 +81,16 @@ func resourceSpotinstHealthCheck() *schema.Resource {
 			"proxy": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"addr": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -120,7 +107,7 @@ func resourceSpotinstHealthCheckCreate(d *schema.ResourceData, meta interface{})
 	}
 	log.Printf("[DEBUG] HealthCheck create configuration: %#v\n", newHealthCheck)
 	res, _, err := client.HealthCheck.Create(newHealthCheck)
-	if err != nil {
+	if err != nil || len(res) == 0 {
 		return fmt.Errorf("[ERROR] Error creating health check: %s", err)
 	}
 	d.SetId(*res[0].ID)

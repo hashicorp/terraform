@@ -63,7 +63,7 @@ func testAccCheckSpotinstGroupDestroy(s *terraform.State) error {
 		}
 
 		groups, _, err := client.AwsGroup.Get(rs.Primary.ID)
-		if err == nil && len(groups) > 0 {
+		if err == nil && len(groups) > 0 && groups[0] != nil {
 			return fmt.Errorf("Group still exists")
 		}
 	}

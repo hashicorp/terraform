@@ -20,13 +20,11 @@ func resourceSpotinstSubscription() *schema.Resource {
 			"resource_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 
 			"event_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 				StateFunc: func(v interface{}) string {
 					value := v.(string)
 					return strings.ToUpper(value)
@@ -36,19 +34,16 @@ func resourceSpotinstSubscription() *schema.Resource {
 			"protocol": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 
 			"endpoint": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 
 			"format": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: false,
 			},
 		},
 	}
@@ -62,7 +57,7 @@ func resourceSpotinstSubscriptionCreate(d *schema.ResourceData, meta interface{}
 	}
 	log.Printf("[DEBUG] Subscription create configuration: %#v\n", newSubscription)
 	res, _, err := client.Subscription.Create(newSubscription)
-	if err != nil {
+	if err != nil || len(res) == 0 {
 		return fmt.Errorf("[ERROR] Error creating subscription: %s", err)
 	}
 	d.SetId(*res[0].ID)

@@ -1,7 +1,6 @@
 package spotinst
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
@@ -25,79 +24,60 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 
 			"capacity": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"minimum": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"maximum": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"target": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: false,
 						},
 					},
-				},
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%d-", m["minimum"].(int)))
-					buf.WriteString(fmt.Sprintf("%d-", m["maximum"].(int)))
-					buf.WriteString(fmt.Sprintf("%d-", m["target"].(int)))
-					return hashcode.String(buf.String())
 				},
 			},
 
 			"strategy": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"risk": &schema.Schema{
 							Type:     schema.TypeFloat,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"availability_vs_cost": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "balanced",
-							ForceNew: false,
 						},
 
 						"ondemand_count": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"draining_timeout": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -106,43 +86,36 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"scheduled_task": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"task_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"frequency": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"cron_expression": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"scale_target_capacity": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"scale_min_capacity": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"scale_max_capacity": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -157,19 +130,16 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"instance_types": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ondemand": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"spot": &schema.Schema{
 							Type:     schema.TypeList,
 							Required: true,
-							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 					},
@@ -179,13 +149,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"signal": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 							StateFunc: func(v interface{}) string {
 								value := v.(string)
 								return strings.ToUpper(value)
@@ -198,19 +166,16 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"subnet_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -219,58 +184,49 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"launch_specification": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"load_balancer_names": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
-							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
 						"monitoring": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
-							ForceNew: false,
 							Default:  false,
 						},
 
 						"image_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"key_pair": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"health_check_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"health_check_grace_period": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"security_group_ids": &schema.Schema{
 							Type:     schema.TypeList,
 							Required: true,
-							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
 						"user_data": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 							StateFunc: func(v interface{}) string {
 								switch v.(type) {
 								case string:
@@ -285,14 +241,12 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"iam_role": &schema.Schema{
 							Type:       schema.TypeString,
 							Optional:   true,
-							ForceNew:   false,
 							Deprecated: "Attribute iam_role is deprecated. Use iam_instance_profile instead",
 						},
 
 						"iam_instance_profile": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -301,7 +255,6 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"elastic_ips": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
@@ -311,156 +264,120 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"tags": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"ebs_block_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"delete_on_termination": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
-							ForceNew: false,
 						},
 
 						"device_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"encrypted": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"iops": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"snapshot_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"volume_size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"volume_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 					},
-				},
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
-					return hashcode.String(buf.String())
 				},
 			},
 
 			"ephemeral_block_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"device_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"virtual_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 					},
-				},
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["virtual_name"].(string)))
-					return hashcode.String(buf.String())
 				},
 			},
 
 			"network_interface": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"description": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"device_index": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"secondary_private_ip_address_count": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"associate_public_ip_address": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"delete_on_termination": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"security_group_ids": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
-							ForceNew: false,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
 						"network_interface_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"private_ip_address": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 
 						"subnet_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -473,25 +390,21 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"rancher_integration": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"master_host": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"access_key": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"secret_key": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -500,13 +413,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"elastic_beanstalk_integration": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"environment_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -515,13 +426,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"ec2_container_service_integration": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cluster_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -530,13 +439,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"nirmata_integration": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"api_key": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: false,
 						},
 					},
 				},
@@ -549,85 +456,71 @@ func scalingPolicySchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
 		Optional: true,
-		ForceNew: false,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"policy_name": &schema.Schema{
 					Type:     schema.TypeString,
 					Required: true,
-					ForceNew: false,
 				},
 
 				"metric_name": &schema.Schema{
 					Type:     schema.TypeString,
 					Required: true,
-					ForceNew: false,
 				},
 
 				"statistic": &schema.Schema{
 					Type:     schema.TypeString,
 					Required: true,
-					ForceNew: false,
 				},
 
 				"unit": &schema.Schema{
 					Type:     schema.TypeString,
 					Required: true,
-					ForceNew: false,
 				},
 
 				"threshold": &schema.Schema{
 					Type:     schema.TypeFloat,
 					Required: true,
-					ForceNew: false,
 				},
 
 				"adjustment": &schema.Schema{
 					Type:     schema.TypeInt,
 					Optional: true,
-					ForceNew: false,
 				},
 
 				"min_target_capacity": &schema.Schema{
 					Type:     schema.TypeInt,
 					Optional: true,
-					ForceNew: false,
 				},
 
 				"max_target_capacity": &schema.Schema{
 					Type:     schema.TypeInt,
 					Optional: true,
-					ForceNew: false,
 				},
 
 				"namespace": &schema.Schema{
 					Type:     schema.TypeString,
 					Required: true,
-					ForceNew: false,
 				},
 
 				"evaluation_periods": &schema.Schema{
 					Type:     schema.TypeInt,
 					Required: true,
-					ForceNew: false,
 				},
 
 				"period": &schema.Schema{
 					Type:     schema.TypeInt,
 					Required: true,
-					ForceNew: false,
 				},
 
 				"cooldown": &schema.Schema{
 					Type:     schema.TypeInt,
 					Required: true,
-					ForceNew: false,
 				},
 
 				"dimensions": &schema.Schema{
 					Type:     schema.TypeMap,
 					Optional: true,
-					ForceNew: false,
 					Elem:     &schema.Schema{Type: schema.TypeString},
 				},
 			},
@@ -643,7 +536,7 @@ func resourceSpotinstAwsGroupCreate(d *schema.ResourceData, meta interface{}) er
 	}
 	log.Printf("[DEBUG] AwsGroup create configuration: %#v\n", newAwsGroup)
 	res, _, err := client.AwsGroup.Create(newAwsGroup)
-	if err != nil {
+	if err != nil || len(res) == 0 {
 		return fmt.Errorf("[ERROR] Error creating group: %s", err)
 	}
 	d.SetId(*res[0].ID)
@@ -934,6 +827,62 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	if d.HasChange("ebs_block_device") {
+		if v, ok := d.GetOk("ebs_block_device"); ok {
+			if devices, err := expandAwsGroupEBSBlockDevices(v); err != nil {
+				return err
+			} else {
+				if group.Compute == nil {
+					group.Compute = &spotinst.AwsGroupCompute{}
+				}
+				if group.Compute.LaunchSpecification == nil {
+					group.Compute.LaunchSpecification = &spotinst.AwsGroupComputeLaunchSpecification{}
+				}
+				if len(group.Compute.LaunchSpecification.BlockDevices) > 0 {
+					group.Compute.LaunchSpecification.BlockDevices = append(group.Compute.LaunchSpecification.BlockDevices, devices...)
+				} else {
+					if v, ok := d.GetOk("ephemeral_block_device"); ok {
+						if ephemeral, err := expandAwsGroupEphemeralBlockDevices(v); err != nil {
+							return err
+						} else {
+							devices = append(devices, ephemeral...)
+						}
+					}
+					group.Compute.LaunchSpecification.BlockDevices = devices
+				}
+				hasChange = true
+			}
+		}
+	}
+
+	if d.HasChange("ephemeral_block_device") {
+		if v, ok := d.GetOk("ephemeral_block_device"); ok {
+			if devices, err := expandAwsGroupEphemeralBlockDevices(v); err != nil {
+				return err
+			} else {
+				if group.Compute == nil {
+					group.Compute = &spotinst.AwsGroupCompute{}
+				}
+				if group.Compute.LaunchSpecification == nil {
+					group.Compute.LaunchSpecification = &spotinst.AwsGroupComputeLaunchSpecification{}
+				}
+				if len(group.Compute.LaunchSpecification.BlockDevices) > 0 {
+					group.Compute.LaunchSpecification.BlockDevices = append(group.Compute.LaunchSpecification.BlockDevices, devices...)
+				} else {
+					if v, ok := d.GetOk("ebs_block_device"); ok {
+						if ebs, err := expandAwsGroupEBSBlockDevices(v); err != nil {
+							return err
+						} else {
+							devices = append(devices, ebs...)
+						}
+					}
+					group.Compute.LaunchSpecification.BlockDevices = devices
+				}
+				hasChange = true
+			}
+		}
+	}
+
 	if d.HasChange("network_interface") {
 		if v, ok := d.GetOk("network_interface"); ok {
 			if interfaces, err := expandAwsGroupNetworkInterfaces(v); err != nil {
@@ -941,7 +890,8 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			} else {
 				if group.Compute == nil {
 					group.Compute = &spotinst.AwsGroupCompute{}
-				} else if group.Compute.LaunchSpecification == nil {
+				}
+				if group.Compute.LaunchSpecification == nil {
 					group.Compute.LaunchSpecification = &spotinst.AwsGroupComputeLaunchSpecification{}
 				}
 				group.Compute.LaunchSpecification.NetworkInterfaces = interfaces
@@ -999,7 +949,8 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			} else {
 				if group.Compute == nil {
 					group.Compute = &spotinst.AwsGroupCompute{}
-				} else if group.Compute.LaunchSpecification == nil {
+				}
+				if group.Compute.LaunchSpecification == nil {
 					group.Compute.LaunchSpecification = &spotinst.AwsGroupComputeLaunchSpecification{}
 				}
 				group.Compute.LaunchSpecification.Tags = tags
@@ -1265,9 +1216,7 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 			return nil, err
 		} else {
 			if len(group.Compute.LaunchSpecification.BlockDevices) > 0 {
-				for _, d := range devices {
-					group.Compute.LaunchSpecification.BlockDevices = append(group.Compute.LaunchSpecification.BlockDevices, d)
-				}
+				group.Compute.LaunchSpecification.BlockDevices = append(group.Compute.LaunchSpecification.BlockDevices, devices...)
 			} else {
 				group.Compute.LaunchSpecification.BlockDevices = devices
 			}
