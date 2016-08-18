@@ -98,6 +98,31 @@ func TestAccAzureRMPublicIpStatic_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMPublicIpStatic_idleTimeout(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVPublicIpStatic_idleTimeout, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test",
+						"idle_timeout_in_minutes",
+						"30",
+					),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMPublicIpStatic_withTags(t *testing.T) {
 
 	ri := acctest.RandInt()
@@ -264,6 +289,20 @@ resource "azurerm_public_ip" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
     domain_name_label = "mylabel01"
+}
+`
+
+var testAccAzureRMVPublicIpStatic_idleTimeout = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestrg-%d"
+    location = "West US"
+}
+resource "azurerm_public_ip" "test" {
+    name = "acctestpublicip-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    public_ip_address_allocation = "static"
+    idle_timeout_in_minutes = 30
 }
 `
 
