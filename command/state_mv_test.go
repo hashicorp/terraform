@@ -327,6 +327,7 @@ test_instance.baz:
 `
 
 const testStateMvNestedModule_stateOut = `
+<no state>
 module.bar:
   <no state>
 module.bar.child1:
