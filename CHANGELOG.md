@@ -94,6 +94,7 @@ BUG FIXES:
  * provider/mysql: `mysql_user` works with MySQL versions before 5.7.6 [GH-8251]
  * provider/openstack: Fix typo in OpenStack LBaaSv2 pool resource [GH-8179]
  * provider/vSphere: Fix for IPv6 only environment creation [GH-7643]
+ * provider/google: Correct update process for authorized networks in `google_sql_database_instance` [GH-8290]
 
 ## 0.7.0 (August 2, 2016)
 
