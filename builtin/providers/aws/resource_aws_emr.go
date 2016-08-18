@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/emr"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func resourceAwsEMR() *schema.Resource {
@@ -223,6 +226,23 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Created EMR Cluster done...")
 	d.SetId(*resp.JobFlowId)
+
+	log.Println(
+		"[INFO] Waiting for EMR Cluster to be available")
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"STARTING", "BOOTSTRAPPING"},
+		Target:     []string{"WAITING", "RUNNING"},
+		Refresh:    resourceAwsEMRClusterStateRefreshFunc(d, meta),
+		Timeout:    40 * time.Minute,
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("[WARN] Error waiting for EMR Cluster state to be \"WAITING\": %s", err)
+	}
 
 	return resourceAwsEMRRead(d, meta)
 }
@@ -439,4 +459,39 @@ func readBodyJson(body string, target interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func resourceAwsEMRClusterStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		conn := meta.(*AWSClient).emrconn
+
+		log.Printf("[INFO] Reading EMR Cluster Information: %s", d.Id())
+		params := &emr.DescribeClusterInput{
+			ClusterId: aws.String(d.Id()),
+		}
+
+		resp, err := conn.DescribeCluster(params)
+
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if "ClusterNotFound" == awsErr.Code() {
+					return 42, "destroyed", nil
+				}
+			}
+			log.Printf("[WARN] Error on retrieving EMR Cluster (%s) when waiting: %s", d.Id(), err)
+			return nil, "", err
+		}
+
+		emrc := resp.Cluster
+
+		if emrc == nil {
+			return 42, "destroyed", nil
+		}
+
+		if resp.Cluster.Status != nil {
+			log.Printf("[DEBUG] EMR Cluster status (%s): %s", d.Id(), *resp.Cluster.Status)
+		}
+
+		return emrc, *emrc.Status.State, nil
+	}
 }
