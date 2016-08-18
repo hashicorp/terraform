@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -486,6 +487,7 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 		instance.MasterInstanceName = v.(string)
 	}
 
+	log.Printf("[PAUL] INSERT: %s", spew.Sdump(project, instance))
 	op, err := config.clientSqlAdmin.Instances.Insert(project, instance).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
@@ -994,6 +996,7 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 
 	d.Partial(false)
 
+	log.Printf("[PAUL] UPDATE: %s", spew.Sdump(project, instance.Name, instance))
 	op, err := config.clientSqlAdmin.Instances.Update(project, instance.Name, instance).Do()
 	if err != nil {
 		return fmt.Errorf("Error, failed to update instance %s: %s", instance.Name, err)
