@@ -692,6 +692,14 @@
 			"revisionTime": "2016-08-11T16:24:59Z"
 		},
 		{
+			"checksumSHA1": "bKDsdoxo5Mxft1f1UsGmTNhXRw8=",
+			"path": "github.com/aws/aws-sdk-go/service/ssm",
+			"revision": "565027b24171359f23f883d0fc48c228cdde301d",
+			"revisionTime": "2016-07-21T22:15:38Z",
+			"version": "v1.2.7",
+			"versionExact": "v1.2.7"
+		},
+		{
 			"checksumSHA1": "nH/itbdeFHpl4ysegdtgww9bFSA=",
 			"path": "github.com/aws/aws-sdk-go/service/sts",
 			"revision": "f80e7d0182a463dff0c0da6bbed57f21369d4346",
