@@ -22,7 +22,7 @@ terraform remote config \
 ## Example Referencing
 
 ```
-resource "terraform_remote_state" "foo" {
+data "terraform_remote_state" "foo" {
 	backend = "etcd"
 	config {
 		path = "path/to/terraform.tfstate"
