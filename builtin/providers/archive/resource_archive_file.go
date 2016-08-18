@@ -102,7 +102,7 @@ func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 	outputDirectory := path.Dir(outputPath)
 	if outputDirectory != "" {
 		if _, err := os.Stat(outputDirectory); err != nil {
-			if err := os.MkdirAll(outputDirectory, 755); err != nil {
+			if err := os.MkdirAll(outputDirectory, 0777); err != nil {
 				return err
 			}
 		}
