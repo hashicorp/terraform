@@ -231,7 +231,7 @@ func TestStateAdd(t *testing.T) {
 
 				// Should be ignored
 				&ModuleState{
-					Path: []string{"root", "bar", "child2"},
+					Path: []string{"root", "baz", "child2"},
 					Resources: map[string]*ResourceState{
 						"test_instance.foo": &ResourceState{
 							Type: "test_instance",
@@ -246,6 +246,11 @@ func TestStateAdd(t *testing.T) {
 			&State{},
 			&State{
 				Modules: []*ModuleState{
+					&ModuleState{
+						Path:      []string{"root", "bar"},
+						Resources: map[string]*ResourceState{},
+					},
+
 					&ModuleState{
 						Path: []string{"root", "bar", "child1"},
 						Resources: map[string]*ResourceState{
@@ -499,8 +504,8 @@ func TestStateAdd(t *testing.T) {
 
 		// Verify equality
 		if !tc.One.Equal(tc.Two) {
-			t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
-			//t.Fatalf("Bad: %s\n\n%s\n\n%s", k, tc.One.String(), tc.Two.String())
+			//t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
+			t.Fatalf("Bad: %s\n\n%s\n\n%s", k, tc.One.String(), tc.Two.String())
 		}
 	}
 }

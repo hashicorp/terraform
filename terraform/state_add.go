@@ -131,7 +131,7 @@ func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw i
 		// It is! Strip the leading prefix and attach that to our address
 		extra := item.Path[len(src.Path)+1:]
 		addrCopy := addr.Copy()
-		addrCopy.Path = append(addrCopy.Path, extra)
+		addrCopy.Path = append(addrCopy.Path, extra...)
 
 		// Add it
 		s.Add(fromAddr.String(), addrCopy.String(), item)
