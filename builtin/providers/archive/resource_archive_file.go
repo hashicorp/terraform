@@ -4,9 +4,11 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
 	"io/ioutil"
 	"os"
+	"path"
+
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceArchiveFile() *schema.Resource {
@@ -82,7 +84,7 @@ func resourceArchiveFileRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	sha, err := genFileSha1(fi.Name())
+	sha, err := genFileSha1(output_path)
 	if err != nil {
 		return fmt.Errorf("could not generate file checksum sha: %s", err)
 	}
@@ -95,9 +97,9 @@ func resourceArchiveFileRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 	archiveType := d.Get("type").(string)
-	outputPath := d.Get("output_path").(string)
+	output_path := d.Get("output_path").(string)
 
-	archiver := getArchiver(archiveType, outputPath)
+	archiver := getArchiver(archiveType, output_path)
 	if archiver == nil {
 		return fmt.Errorf("archive type not supported: %s", archiveType)
 	}
@@ -120,13 +122,12 @@ func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Generate archived file stats
-	output_path := d.Get("output_path").(string)
 	fi, err := os.Stat(output_path)
 	if err != nil {
 		return err
 	}
 
-	sha, err := genFileSha1(fi.Name())
+	sha, err := genFileSha1(output_path)
 	if err != nil {
 		return fmt.Errorf("could not generate file checksum sha: %s", err)
 	}
@@ -139,13 +140,12 @@ func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceArchiveFileDelete(d *schema.ResourceData, meta interface{}) error {
 	output_path := d.Get("output_path").(string)
-	fi, err := os.Stat(output_path)
-	if os.IsNotExist(err) {
+	if _, err := os.Stat(output_path); os.IsNotExist(err) {
 		return nil
 	}
 
-	if err := os.Remove(fi.Name()); err != nil {
-		return fmt.Errorf("could not delete zip file '%s': %s", fi.Name(), err)
+	if err := os.Remove(output_path); err != nil {
+		return fmt.Errorf("could not delete zip file %q: %s", output_path, err)
 	}
 
 	return nil
