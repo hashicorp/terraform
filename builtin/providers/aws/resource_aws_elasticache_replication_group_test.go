@@ -138,34 +138,6 @@ func TestAccAWSElasticacheReplicationGroup_multiAzInVpc(t *testing.T) {
 	})
 }
 
-func TestResourceAWSElastiCacheReplicationGroupEngineValidation(t *testing.T) {
-	cases := []struct {
-		Value    string
-		ErrCount int
-	}{
-		{
-			Value:    "Redis",
-			ErrCount: 0,
-		},
-		{
-			Value:    "REDIS",
-			ErrCount: 0,
-		},
-		{
-			Value:    "memcached",
-			ErrCount: 1,
-		},
-	}
-
-	for _, tc := range cases {
-		_, errors := validateAwsElastiCacheReplicationGroupEngine(tc.Value, "aws_elasticache_replication_group_engine")
-
-		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the ElastiCache Replication Group Engine to trigger a validation error")
-		}
-	}
-}
-
 func TestResourceAWSElastiCacheReplicationGroupIdValidation(t *testing.T) {
 	cases := []struct {
 		Value    string
@@ -202,6 +174,34 @@ func TestResourceAWSElastiCacheReplicationGroupIdValidation(t *testing.T) {
 
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected the ElastiCache Replication Group Id to trigger a validation error")
+		}
+	}
+}
+
+func TestResourceAWSElastiCacheReplicationGroupEngineValidation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "Redis",
+			ErrCount: 0,
+		},
+		{
+			Value:    "REDIS",
+			ErrCount: 0,
+		},
+		{
+			Value:    "memcached",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAwsElastiCacheReplicationGroupEngine(tc.Value, "aws_elasticache_replication_group_engine")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the ElastiCache Replication Group Engine to trigger a validation error")
 		}
 	}
 }
