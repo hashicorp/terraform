@@ -44,6 +44,7 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 	resourceSchema["engine"].Required = false
 	resourceSchema["engine"].Optional = true
 	resourceSchema["engine"].Default = "redis"
+	resourceSchema["engine"].ValidateFunc = validateAwsElastiCacheReplicationGroupEngine
 
 	return &schema.Resource{
 		Create: resourceAwsElasticacheReplicationGroupCreate,
