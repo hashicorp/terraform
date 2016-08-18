@@ -194,6 +194,85 @@ func TestStateAdd(t *testing.T) {
 			nil,
 		},
 
+		"ModuleState with children => Module Addr (new)": {
+			false,
+			"module.foo",
+			"module.bar",
+
+			[]*ModuleState{
+				&ModuleState{
+					Path:      rootModulePath,
+					Resources: map[string]*ResourceState{},
+				},
+
+				&ModuleState{
+					Path: []string{"root", "foo", "child1"},
+					Resources: map[string]*ResourceState{
+						"test_instance.foo": &ResourceState{
+							Type: "test_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+				},
+
+				&ModuleState{
+					Path: []string{"root", "foo", "child2"},
+					Resources: map[string]*ResourceState{
+						"test_instance.foo": &ResourceState{
+							Type: "test_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+				},
+
+				// Should be ignored
+				&ModuleState{
+					Path: []string{"root", "bar", "child2"},
+					Resources: map[string]*ResourceState{
+						"test_instance.foo": &ResourceState{
+							Type: "test_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "bar", "child1"},
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+
+					&ModuleState{
+						Path: []string{"root", "bar", "child2"},
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
 		"ResourceState => Resource Addr (new)": {
 			false,
 			"aws_instance.bar",

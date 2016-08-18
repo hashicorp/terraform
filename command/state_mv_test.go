@@ -223,6 +223,87 @@ func TestStateMv_noState(t *testing.T) {
 	}
 }
 
+func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path:      []string{"root"},
+				Resources: map[string]*terraform.ResourceState{},
+			},
+
+			&terraform.ModuleState{
+				Path:      []string{"root", "foo"},
+				Resources: map[string]*terraform.ResourceState{},
+			},
+
+			&terraform.ModuleState{
+				Path: []string{"root", "foo", "child1"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+
+			&terraform.ModuleState{
+				Path: []string{"root", "foo", "child2"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, state)
+	stateOutPath := statePath + ".out"
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-state-out", stateOutPath,
+		"module.foo",
+		"module.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, stateOutPath, testStateMvNestedModule_stateOut)
+	testStateOutput(t, statePath, testStateMvNestedModule_stateOutSrc)
+
+	// Test we have backups
+	backups := testStateBackups(t, filepath.Dir(statePath))
+	if len(backups) != 1 {
+		t.Fatalf("bad: %#v", backups)
+	}
+	testStateOutput(t, backups[0], testStateMvNestedModule_stateOutOriginal)
+}
+
 const testStateMvOutputOriginal = `
 test_instance.baz:
   ID = foo
@@ -243,6 +324,41 @@ test_instance.baz:
   ID = foo
   bar = value
   foo = value
+`
+
+const testStateMvNestedModule_stateOut = `
+module.bar:
+  <no state>
+module.bar.child1:
+  test_instance.foo:
+    ID = bar
+    bar = value
+    foo = value
+module.bar.child2:
+  test_instance.foo:
+    ID = bar
+    bar = value
+    foo = value
+`
+
+const testStateMvNestedModule_stateOutSrc = `
+<no state>
+`
+
+const testStateMvNestedModule_stateOutOriginal = `
+<no state>
+module.foo:
+  <no state>
+module.foo.child1:
+  test_instance.foo:
+    ID = bar
+    bar = value
+    foo = value
+module.foo.child2:
+  test_instance.foo:
+    ID = bar
+    bar = value
+    foo = value
 `
 
 const testStateMvOutput_stateOut = `

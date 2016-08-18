@@ -808,6 +808,12 @@ func (m *ModuleState) IsRoot() bool {
 	return reflect.DeepEqual(m.Path, rootModulePath)
 }
 
+// IsDescendent returns true if other is a descendent of this module.
+func (m *ModuleState) IsDescendent(other *ModuleState) bool {
+	i := len(m.Path)
+	return len(other.Path) > i && reflect.DeepEqual(other.Path[:i], m.Path)
+}
+
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
