@@ -191,6 +191,12 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"replication_group_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -267,6 +273,10 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		req.PreferredAvailabilityZones = azs
 	}
 
+	if v, ok := d.GetOk("replication_group_id"); ok {
+		req.ReplicationGroupId = aws.String(v.(string))
+	}
+
 	resp, err := conn.CreateCacheCluster(req)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache: %s", err)
@@ -325,6 +335,10 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		if c.ConfigurationEndpoint != nil {
 			d.Set("port", c.ConfigurationEndpoint.Port)
 			d.Set("configuration_endpoint", aws.String(fmt.Sprintf("%s:%d", *c.ConfigurationEndpoint.Address, *c.ConfigurationEndpoint.Port)))
+		}
+
+		if c.ReplicationGroupId != nil {
+			d.Set("replication_group_id", c.ReplicationGroupId)
 		}
 
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
