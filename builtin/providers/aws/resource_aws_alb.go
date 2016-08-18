@@ -39,6 +39,7 @@ func resourceAwsAlb() *schema.Resource {
 			"security_groups": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
 				ForceNew: true,
 				Optional: true,
 				Set:      schema.HashString,
