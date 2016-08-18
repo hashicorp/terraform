@@ -40,6 +40,7 @@ IMPROVEMENTS
  * provider/aws: Allow `source_ids` in `aws_db_event_subscription` to be Updatable [GH-7892]
  * provider/aws: Make `aws_efs_mount_target` creation fail for 2+ targets per AZ [GH-8205]
  * provider/aws: Add `force_destroy` option to `aws_route53_zone` [GH-8239]
+ * provider/aws: Support import of `aws_s3_bucket` [GH-8262]
  * provider/azure: add custom_data argument for azure_instance resource [GH-8158]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/azurerm: Storage blob contents can be copied from an existing blob [GH-8126]
