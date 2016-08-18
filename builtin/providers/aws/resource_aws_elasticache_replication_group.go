@@ -42,6 +42,9 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		ForceNew: true,
 	}
 
+	resourceSchema["engine"].Required = false
+	resourceSchema["engine"].Optional = true
+	resourceSchema["engine"].Default = "redis"
 	resourceSchema["engine"].ValidateFunc = validateAwsElastiCacheReplicationGroupEngine
 
 	return &schema.Resource{
@@ -396,7 +399,6 @@ func validateAwsElastiCacheReplicationGroupEngine(v interface{}, k string) (ws [
 	if strings.ToLower(v.(string)) != "redis" {
 		errors = append(errors, fmt.Errorf("The only acceptable Engine type when using Replication Groups is Redis"))
 	}
-
 	return
 }
 
