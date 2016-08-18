@@ -670,7 +670,7 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"available", "creating", "deleting", "rebooting", "resizing", "renaming"},
+		Pending:    []string{"available", "creating", "deleting", "rebooting", "resizing", "renaming", "final-snapshot"},
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
