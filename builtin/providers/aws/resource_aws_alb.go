@@ -22,6 +22,11 @@ func resourceAwsAlb() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -165,6 +170,7 @@ func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 
 	alb := describeResp.LoadBalancers[0]
 
+	d.Set("arn", alb.LoadBalancerArn)
 	d.Set("name", alb.LoadBalancerName)
 	d.Set("internal", (alb.Scheme != nil && *alb.Scheme == "internal"))
 	d.Set("security_groups", flattenStringList(alb.SecurityGroups))

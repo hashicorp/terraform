@@ -49,7 +49,8 @@ Health Check Blocks (`health_check`) support the following:
 
 The following attributes are exported in addition to the arguments listed above:
 
-* `id` - The ARN of the target group.
+* `id` - The ARN of the Target Group (matches `arn`)
+* `arn` - The ARN of the Target Group (matches `id`)
 
 ## Import
 
