@@ -38,6 +38,7 @@ func TestAccAWSALB_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "vpc_id"),
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "zone_id"),
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "dns_name"),
+					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "arn"),
 				),
 			},
 		},
@@ -104,6 +105,7 @@ func TestAccAWSALB_accesslogs(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "vpc_id"),
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "zone_id"),
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "dns_name"),
+					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "arn"),
 				),
 			},
 
@@ -125,6 +127,7 @@ func TestAccAWSALB_accesslogs(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.#", "1"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.0.bucket", bucketName),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.0.prefix", "testAccAWSALBConfig_accessLogs"),
+					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "arn"),
 				),
 			},
 		},

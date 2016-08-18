@@ -27,6 +27,7 @@ func TestAccAWSALBTargetGroup_basic(t *testing.T) {
 				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
+					resource.TestCheckResourceAttrSet("aws_alb_target_group.test", "arn"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "name", targetGroupName),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "port", "443"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "protocol", "HTTPS"),
@@ -64,6 +65,7 @@ func TestAccAWSALBTargetGroup_updateHealthCheck(t *testing.T) {
 				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
+					resource.TestCheckResourceAttrSet("aws_alb_target_group.test", "arn"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "name", targetGroupName),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "port", "443"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "protocol", "HTTPS"),
@@ -87,6 +89,7 @@ func TestAccAWSALBTargetGroup_updateHealthCheck(t *testing.T) {
 				Config: testAccAWSALBTargetGroupConfig_updateHealthCheck(targetGroupName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
+					resource.TestCheckResourceAttrSet("aws_alb_target_group.test", "arn"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "name", targetGroupName),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "port", "443"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "protocol", "HTTPS"),
