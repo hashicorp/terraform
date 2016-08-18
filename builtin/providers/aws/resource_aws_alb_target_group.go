@@ -25,6 +25,11 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -206,6 +211,7 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 
 	targetGroup := resp.TargetGroups[0]
 
+	d.Set("arn", targetGroup.TargetGroupArn)
 	d.Set("name", targetGroup.TargetGroupName)
 	d.Set("port", targetGroup.Port)
 	d.Set("protocol", targetGroup.Protocol)
