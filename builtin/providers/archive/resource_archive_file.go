@@ -99,6 +99,15 @@ func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 	archiveType := d.Get("type").(string)
 	output_path := d.Get("output_path").(string)
 
+	outputDirectory := path.Dir(output_path)
+	if outputDirectory != "" {
+		if _, err := os.Stat(outputDirectory); err != nil {
+			if err := os.MkdirAll(outputDirectory, 755); err != nil {
+				return err
+			}
+		}
+	}
+
 	archiver := getArchiver(archiveType, output_path)
 	if archiver == nil {
 		return fmt.Errorf("archive type not supported: %s", archiveType)
