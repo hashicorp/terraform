@@ -284,7 +284,6 @@ resource "aws_elasticache_security_group" "bar" {
 resource "aws_elasticache_replication_group" "bar" {
     replication_group_id = "tf-%s"
     replication_group_description = "test description"
-    engine = "redis"
     node_type = "cache.m1.small"
     number_cache_clusters = 2
     port = 6379
@@ -319,7 +318,6 @@ resource "aws_elasticache_security_group" "bar" {
 resource "aws_elasticache_replication_group" "bar" {
     replication_group_id = "tf-%s"
     replication_group_description = "updated description"
-    engine = "redis"
     node_type = "cache.m1.small"
     number_cache_clusters = 2
     port = 6379
@@ -354,7 +352,6 @@ resource "aws_elasticache_security_group" "bar" {
 resource "aws_elasticache_replication_group" "bar" {
     replication_group_id = "tf-%s"
     replication_group_description = "updated description"
-    engine = "redis"
     node_type = "cache.m1.medium"
     number_cache_clusters = 2
     port = 6379
@@ -404,7 +401,6 @@ resource "aws_elasticache_replication_group" "bar" {
     replication_group_description = "test description"
     node_type = "cache.m1.small"
     number_cache_clusters = 1
-    engine = "redis"
     port = 6379
     subnet_group_name = "${aws_elasticache_subnet_group.bar.name}"
     security_group_ids = ["${aws_security_group.bar.id}"]
@@ -466,7 +462,6 @@ resource "aws_elasticache_replication_group" "bar" {
     replication_group_description = "test description"
     node_type = "cache.m1.small"
     number_cache_clusters = 2
-    engine = "redis"
     port = 6379
     subnet_group_name = "${aws_elasticache_subnet_group.bar.name}"
     security_group_ids = ["${aws_security_group.bar.id}"]
