@@ -11,6 +11,11 @@ import (
 // module cannot be moved to a resource address, however a resource can be
 // moved to a module address (it retains the same name, under that resource).
 //
+// The item can also be a []*ModuleState, which is the case for nested
+// modules. In this case, Add will expect the zero-index to be the top-most
+// module to add and will only nest children from there. For semantics, this
+// is equivalent to module => module.
+//
 // The full semantics of Add:
 //
 //                         ┌───────────────────────┬───────────────────────┬───────────────────────┐
@@ -65,7 +70,26 @@ func (s *State) Add(fromAddrRaw string, toAddrRaw string, raw interface{}) error
 }
 
 func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw interface{}) error {
-	src := raw.(*ModuleState).deepcopy()
+	// raw can be either *ModuleState or []*ModuleState. The former means
+	// we're moving just one module. The latter means we're moving a module
+	// and children.
+	root := raw
+	var rest []*ModuleState
+	if list, ok := raw.([]*ModuleState); ok {
+		// We need at least one item
+		if len(list) == 0 {
+			return fmt.Errorf("module move with no value to: %s", addr)
+		}
+
+		// The first item is always the root
+		root = list[0]
+		if len(list) > 1 {
+			rest = list[1:]
+		}
+	}
+
+	// Get the actual module state
+	src := root.(*ModuleState).deepcopy()
 
 	// If the target module exists, it is an error
 	path := append([]string{"root"}, addr.Path...)
@@ -95,6 +119,22 @@ func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw i
 		if err := s.Add(fromAddr.String(), addrCopy.String(), v); err != nil {
 			return err
 		}
+	}
+
+	// Add all the children if we have them
+	for _, item := range rest {
+		// If item isn't a descendent of our root, then ignore it
+		if !src.IsDescendent(item) {
+			continue
+		}
+
+		// It is! Strip the leading prefix and attach that to our address
+		extra := item.Path[len(src.Path)+1:]
+		addrCopy := addr.Copy()
+		addrCopy.Path = append(addrCopy.Path, extra)
+
+		// Add it
+		s.Add(fromAddr.String(), addrCopy.String(), item)
 	}
 
 	return nil
@@ -226,6 +266,8 @@ func detectAddrAddLoc(addr *ResourceAddress) stateAddLoc {
 func detectValueAddLoc(raw interface{}) stateAddLoc {
 	switch raw.(type) {
 	case *ModuleState:
+		return stateAddModule
+	case []*ModuleState:
 		return stateAddModule
 	case *ResourceState:
 		return stateAddResource
