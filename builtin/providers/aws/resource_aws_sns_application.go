@@ -60,9 +60,10 @@ func resourceAwsSnsApplication() *schema.Resource {
 				StateFunc: hashSum,
 			},
 			"principal": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
+				Type:      schema.TypeString,
+				Optional:  true,
+				ForceNew:  false,
+				StateFunc: hashSum,
 			},
 			"created_topic": &schema.Schema{
 				Type:     schema.TypeString,
