@@ -64,7 +64,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		ReplicationGroupDescription: aws.String(d.Get("replication_group_description").(string)),
 		AutomaticFailoverEnabled:    aws.Bool(d.Get("automatic_failover_enabled").(bool)),
 		CacheNodeType:               aws.String(d.Get("node_type").(string)),
-		Engine:                      aws.String(d.Get("engine").(string)), //this the only supported engine type
+		Engine:                      aws.String(d.Get("engine").(string)),
 		Port:                        aws.Int64(int64(d.Get("port").(int))),
 		NumCacheClusters:            aws.Int64(int64(d.Get("number_cache_clusters").(int))),
 		Tags:                        tags,
