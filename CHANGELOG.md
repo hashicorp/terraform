@@ -14,6 +14,7 @@ FEATURES:
  * **New Resource:** `azurerm_servicebus_namespace` [GH-8195]
  * **New Resource:** `google_compute_image` [GH-7960]
  * **New Resource:** `packet_volume` [GH-8142]
+ * **New Resource:** `consul_prepared_query` [GH-7474]
  * **New Data Source:** `aws_ip_ranges` [GH-7984]
  * **New Data Source:** `fastly_ip_ranges` [GH-7984]
  * **New Data Source:** `aws_caller_identity` [GH-8206]
