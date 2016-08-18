@@ -1021,10 +1021,10 @@
 			"revisionTime": "2016-07-11T23:17:52Z"
 		},
 		{
-			"checksumSHA1": "kqCMCHy2b+RBMKC+ER+OPqp8C3E=",
+			"checksumSHA1": "OrnLOmhc0FcHYs02wtbu1siIsnM=",
 			"path": "github.com/hashicorp/hil",
-			"revision": "1e86c6b523c55d1fa6c6e930ce80b548664c95c2",
-			"revisionTime": "2016-07-11T23:18:37Z"
+			"revision": "227af97932d6a832b7d50a82cb1d72ddebecb9ae",
+			"revisionTime": "2016-08-18T19:04:49Z"
 		},
 		{
 			"checksumSHA1": "UICubs001+Q4MsUf9zl2vcMzWQQ=",
