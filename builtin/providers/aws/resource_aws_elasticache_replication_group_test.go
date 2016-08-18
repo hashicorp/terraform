@@ -178,34 +178,6 @@ func TestResourceAWSElastiCacheReplicationGroupIdValidation(t *testing.T) {
 	}
 }
 
-func TestResourceAWSElastiCacheReplicationGroupEngineValidation(t *testing.T) {
-	cases := []struct {
-		Value    string
-		ErrCount int
-	}{
-		{
-			Value:    "Redis",
-			ErrCount: 0,
-		},
-		{
-			Value:    "REDIS",
-			ErrCount: 0,
-		},
-		{
-			Value:    "memcached",
-			ErrCount: 1,
-		},
-	}
-
-	for _, tc := range cases {
-		_, errors := validateAwsElastiCacheReplicationGroupEngine(tc.Value, "aws_elasticache_replication_group_engine")
-
-		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the ElastiCache Replication Group Engine to trigger a validation error")
-		}
-	}
-}
-
 func testAccCheckAWSElasticacheReplicationGroupExists(n string, v *elasticache.ReplicationGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -284,7 +256,6 @@ resource "aws_elasticache_security_group" "bar" {
 resource "aws_elasticache_replication_group" "bar" {
     replication_group_id = "tf-%s"
     replication_group_description = "test description"
-    engine = "redis"
     node_type = "cache.m1.small"
     number_cache_clusters = 2
     port = 6379
@@ -319,7 +290,6 @@ resource "aws_elasticache_security_group" "bar" {
 resource "aws_elasticache_replication_group" "bar" {
     replication_group_id = "tf-%s"
     replication_group_description = "updated description"
-    engine = "redis"
     node_type = "cache.m1.small"
     number_cache_clusters = 2
     port = 6379
@@ -354,7 +324,6 @@ resource "aws_elasticache_security_group" "bar" {
 resource "aws_elasticache_replication_group" "bar" {
     replication_group_id = "tf-%s"
     replication_group_description = "updated description"
-    engine = "redis"
     node_type = "cache.m1.medium"
     number_cache_clusters = 2
     port = 6379
@@ -404,7 +373,6 @@ resource "aws_elasticache_replication_group" "bar" {
     replication_group_description = "test description"
     node_type = "cache.m1.small"
     number_cache_clusters = 1
-    engine = "redis"
     port = 6379
     subnet_group_name = "${aws_elasticache_subnet_group.bar.name}"
     security_group_ids = ["${aws_security_group.bar.id}"]
@@ -466,7 +434,6 @@ resource "aws_elasticache_replication_group" "bar" {
     replication_group_description = "test description"
     node_type = "cache.m1.small"
     number_cache_clusters = 2
-    engine = "redis"
     port = 6379
     subnet_group_name = "${aws_elasticache_subnet_group.bar.name}"
     security_group_ids = ["${aws_security_group.bar.id}"]

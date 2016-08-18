@@ -20,7 +20,6 @@ resource "aws_elasticache_replication_group" "bar" {
   replication_group_description = "test description"
   node_type                     = "cache.m1.small"
   number_cache_clusters         = 2
-  engine                        = "redis"
   port                          = 6379
   parameter_group_name          = "default.redis2.8"
   availability_zones            = ["us-west-2a", "us-west-2b"]
@@ -34,17 +33,16 @@ The following arguments are supported:
 
 * `replication_group_id` – (Required) The replication group identifier. This parameter is stored as a lowercase string.
 * `replication_group_description` – (Required) A user-created description for the replication group.
-* `number_cache_clusters` - (Required) The number of cache clusters this replication group will initially have.
+* `number_cache_clusters` - (Required) The number of cache clusters this replication group will have.
  If Multi-AZ is enabled , the value of this parameter must be at least 2. Changing this number will force a new resource
 * `node_type` - (Required) The compute and memory capacity of the nodes in the node group.
-* `engine` - (Required) The name of the cache engine to be used for the cache clusters in this replication group. The only valid value is Redis.
 * `automatic_failover_enabled` - (Optional) Specifies whether a read-only replica will be automatically promoted to read/write primary if the existing primary fails. Defaults to `false`.
 * `availability_zones` - (Optional) A list of EC2 availability zones in which the replication group's cache clusters will be created. The order of the availability zones in the list is not important.
 * `engine_version` - (Optional) The version number of the cache engine to be used for the cache clusters in this replication group.
 * `parameter_group_name` - (Optional) The name of the parameter group to associate with this replication group. If this argument is omitted, the default cache parameter group for the specified engine is used.
 * `subnet_group_name` - (Optional) The name of the cache subnet group to be used for the replication group.
 * `security_group_names` - (Optional) A list of cache security group names to associate with this replication group.
-* `security_group_ids` - (Optional) One or more Amazon VPC security groups associated with this replication group.
+* `security_group_ids` - (Optional) One or more Amazon VPC security groups associated with this replication group. Use this parameter only when you are creating a replication group in an Amazon Virtual Private Cloud 
 * `snapshot_arns` – (Optional) A single-element string list containing an
 Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3.
 Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`

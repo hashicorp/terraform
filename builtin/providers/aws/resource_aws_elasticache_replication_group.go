@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -42,7 +41,9 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		ForceNew: true,
 	}
 
-	resourceSchema["engine"].ValidateFunc = validateAwsElastiCacheReplicationGroupEngine
+	resourceSchema["engine"].Required = false
+	resourceSchema["engine"].Optional = true
+	resourceSchema["engine"].Default = "redis"
 
 	return &schema.Resource{
 		Create: resourceAwsElasticacheReplicationGroupCreate,
@@ -63,7 +64,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		ReplicationGroupDescription: aws.String(d.Get("replication_group_description").(string)),
 		AutomaticFailoverEnabled:    aws.Bool(d.Get("automatic_failover_enabled").(bool)),
 		CacheNodeType:               aws.String(d.Get("node_type").(string)),
-		Engine:                      aws.String(d.Get("engine").(string)),
+		Engine:                      aws.String(d.Get("engine").(string)), //this the only supported engine type
 		Port:                        aws.Int64(int64(d.Get("port").(int))),
 		NumCacheClusters:            aws.Int64(int64(d.Get("number_cache_clusters").(int))),
 		Tags:                        tags,
@@ -390,14 +391,6 @@ func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replic
 
 		return rg, *rg.Status, nil
 	}
-}
-
-func validateAwsElastiCacheReplicationGroupEngine(v interface{}, k string) (ws []string, errors []error) {
-	if strings.ToLower(v.(string)) != "redis" {
-		errors = append(errors, fmt.Errorf("The only acceptable Engine type when using Replication Groups is Redis"))
-	}
-
-	return
 }
 
 func validateAwsElastiCacheReplicationGroupId(v interface{}, k string) (ws []string, errors []error) {
