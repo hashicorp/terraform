@@ -162,7 +162,7 @@ func stateAddFunc_Resource_Resource(s *State, fromAddr, addr *ResourceAddress, r
 
 		// If there is an index, this is an error since we can't assign
 		// a set of resources to a single index
-		if addr.Index >= 0 {
+		if addr.Index >= 0 && len(list) > 1 {
 			return fmt.Errorf(
 				"multiple resources can't be moved to a single index: "+
 					"%s => %s", fromAddr, addr)

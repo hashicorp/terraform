@@ -440,6 +440,66 @@ func TestStateAdd(t *testing.T) {
 			nil,
 		},
 
+		"ResourceState with single count unspecified => Resource Addr (new with count)": {
+			false,
+			"aws_instance.bar",
+			"aws_instance.foo[0]",
+			[]*ResourceState{
+				&ResourceState{
+					Type: "test_instance",
+					Primary: &InstanceState{
+						ID: "foo",
+					},
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.foo.0": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		"ResourceState => Resource Addr (new with count)": {
+			false,
+			"aws_instance.bar",
+			"aws_instance.foo[0]",
+			&ResourceState{
+				Type: "test_instance",
+				Primary: &InstanceState{
+					ID: "foo",
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.foo.0": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
 		"ResourceState => Resource Addr (existing)": {
 			true,
 			"aws_instance.bar",
