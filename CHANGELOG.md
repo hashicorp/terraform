@@ -6,6 +6,7 @@ FEATURES:
  * **New Resource:** `aws_alb` [GH-8254]
  * **New Resource:** `aws_alb_listener` [GH-8269]
  * **New Resource:** `aws_alb_target_group` [GH-8254]
+ * **New Resource:** `aws_alb_target_group_rule` [GH-8318]
  * **New Resource:** `aws_vpn_gateway_attachment` [GH-7870]
  * **New Resource:** `aws_load_balancer_policy` [GH-7458]
  * **New Resource:** `aws_load_balancer_backend_server_policy` [GH-7458]
