@@ -73,6 +73,24 @@ func TestAccAWSRoute53HealthCheck_IpConfig(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53HealthCheck_CloudWatchAlarmCheck(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53HealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53HealthCheckCloudWatchAlarm,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "cloudwatch_alarm_name", "cloudwatch-healthcheck-alarm"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53HealthCheckDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).r53conn
 
@@ -206,5 +224,26 @@ resource "aws_route53_health_check" "foo" {
   tags = {
     Name = "tf-test-calculated-health-check"
    }
+}
+`
+
+const testAccRoute53HealthCheckCloudWatchAlarm = `
+resource "aws_cloudwatch_metric_alarm" "foobar" {
+    alarm_name = "cloudwatch-healthcheck-alarm"
+    comparison_operator = "GreaterThanOrEqualToThreshold"
+    evaluation_periods = "2"
+    metric_name = "CPUUtilization"
+    namespace = "AWS/EC2"
+    period = "120"
+    statistic = "Average"
+    threshold = "80"
+    alarm_description = "This metric monitor ec2 cpu utilization"
+}
+
+resource "aws_route53_health_check" "foo" {
+  type = "CLOUDWATCH_METRIC"
+  cloudwatch_alarm_name = "${aws_cloudwatch_metric_alarm.foobar.alarm_name}"
+  cloudwatch_alarm_region = "us-west-2"
+  insufficient_data_health_status = "Healthy"
 }
 `
