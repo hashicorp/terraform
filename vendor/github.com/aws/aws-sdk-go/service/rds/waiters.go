@@ -48,18 +48,6 @@ func (c *RDS) WaitUntilDBInstanceAvailable(input *DescribeDBInstancesInput) erro
 				Argument: "DBInstances[].DBInstanceStatus",
 				Expected: "incompatible-parameters",
 			},
-			{
-				State:    "failure",
-				Matcher:  "pathAny",
-				Argument: "DBInstances[].DBInstanceStatus",
-				Expected: "incompatible-parameters",
-			},
-			{
-				State:    "failure",
-				Matcher:  "pathAny",
-				Argument: "DBInstances[].DBInstanceStatus",
-				Expected: "incompatible-restore",
-			},
 		},
 	}
 

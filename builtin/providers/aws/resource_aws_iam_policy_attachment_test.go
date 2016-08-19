@@ -35,8 +35,26 @@ func TestAccAWSPolicyAttachment_basic(t *testing.T) {
 		},
 	})
 }
-func testAccCheckAWSPolicyAttachmentDestroy(s *terraform.State) error {
 
+func TestAccAWSPolicyAttachment_paginatedEntities(t *testing.T) {
+	var out iam.ListEntitiesForPolicyOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSPolicyAttachmentDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSPolicyPaginatedAttachConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-paginated-attach", 101, &out),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckAWSPolicyAttachmentDestroy(s *terraform.State) error {
 	return nil
 }
 
@@ -74,6 +92,7 @@ func testAccCheckAWSPolicyAttachmentExists(n string, c int64, out *iam.ListEntit
 		return nil
 	}
 }
+
 func testAccCheckAWSPolicyAttachmentAttributes(users []string, roles []string, groups []string, out *iam.ListEntitiesForPolicyOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		uc := len(users)
@@ -130,7 +149,6 @@ resource "aws_iam_role" "role" {
 }
 EOF
 }
-
 resource "aws_iam_group" "group" {
     name = "test-group"
 }
@@ -273,6 +291,38 @@ resource "aws_iam_policy_attachment" "test-attach" {
         "${aws_iam_group.group2.name}",
         "${aws_iam_group.group3.name}"
     ]
+    policy_arn = "${aws_iam_policy.policy.arn}"
+}
+`
+
+const testAccAWSPolicyPaginatedAttachConfig = `
+resource "aws_iam_user" "user" {
+    count = 101
+    name = "${format("paged-test-user-%d", count.index + 1)}"
+}
+
+resource "aws_iam_policy" "policy" {
+    name = "test-policy"
+    description = "A test policy"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "iam:ChangePassword"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_policy_attachment" "test-paginated-attach" {
+    name = "test-attachment"
+    users = ["${aws_iam_user.user.*.name}"]
     policy_arn = "${aws_iam_policy.policy.arn}"
 }
 `

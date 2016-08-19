@@ -7,11 +7,11 @@ import (
 	"github.com/influxdata/influxdb/client"
 )
 
-func ResourceDatabase() *schema.Resource {
+func resourceDatabase() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateDatabase,
-		Read:   ReadDatabase,
-		Delete: DeleteDatabase,
+		Create: createDatabase,
+		Read:   readDatabase,
+		Delete: deleteDatabase,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -23,7 +23,7 @@ func ResourceDatabase() *schema.Resource {
 	}
 }
 
-func CreateDatabase(d *schema.ResourceData, meta interface{}) error {
+func createDatabase(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*client.Client)
 
 	name := d.Get("name").(string)
@@ -45,7 +45,7 @@ func CreateDatabase(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func ReadDatabase(d *schema.ResourceData, meta interface{}) error {
+func readDatabase(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*client.Client)
 	name := d.Id()
 
@@ -76,7 +76,7 @@ func ReadDatabase(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func DeleteDatabase(d *schema.ResourceData, meta interface{}) error {
+func deleteDatabase(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*client.Client)
 	name := d.Id()
 

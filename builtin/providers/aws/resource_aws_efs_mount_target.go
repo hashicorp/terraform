@@ -67,9 +67,24 @@ func resourceAwsEfsMountTarget() *schema.Resource {
 func resourceAwsEfsMountTargetCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).efsconn
 
+	fsId := d.Get("file_system_id").(string)
+	subnetId := d.Get("subnet_id").(string)
+
+	// CreateMountTarget would return the same Mount Target ID
+	// to parallel requests if they both include the same AZ
+	// and we would end up managing the same MT as 2 resources.
+	// So we make it fail by calling 1 request per AZ at a time.
+	az, err := getAzFromSubnetId(subnetId, meta.(*AWSClient).ec2conn)
+	if err != nil {
+		return fmt.Errorf("Failed getting AZ from subnet ID (%s): %s", subnetId, err)
+	}
+	mtKey := "efs-mt-" + fsId + "-" + az
+	awsMutexKV.Lock(mtKey)
+	defer awsMutexKV.Unlock(mtKey)
+
 	input := efs.CreateMountTargetInput{
-		FileSystemId: aws.String(d.Get("file_system_id").(string)),
-		SubnetId:     aws.String(d.Get("subnet_id").(string)),
+		FileSystemId: aws.String(fsId),
+		SubnetId:     aws.String(subnetId),
 	}
 
 	if v, ok := d.GetOk("ip_address"); ok {

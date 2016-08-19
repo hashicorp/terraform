@@ -10,189 +10,198 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
+
+	return map[string]*schema.Schema{
+		"availability_zones": &schema.Schema{
+			Type:     schema.TypeSet,
+			Optional: true,
+			ForceNew: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+			Set:      schema.HashString,
+		},
+		"node_type": &schema.Schema{
+			Type:     schema.TypeString,
+			Required: true,
+		},
+		"engine": &schema.Schema{
+			Type:     schema.TypeString,
+			Required: true,
+		},
+		"engine_version": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			Computed: true,
+		},
+		"parameter_group_name": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			Computed: true,
+		},
+		"subnet_group_name": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			Computed: true,
+			ForceNew: true,
+		},
+		"security_group_names": &schema.Schema{
+			Type:     schema.TypeSet,
+			Optional: true,
+			Computed: true,
+			ForceNew: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+			Set:      schema.HashString,
+		},
+		"security_group_ids": &schema.Schema{
+			Type:     schema.TypeSet,
+			Optional: true,
+			Computed: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+			Set:      schema.HashString,
+		},
+		// A single-element string list containing an Amazon Resource Name (ARN) that
+		// uniquely identifies a Redis RDB snapshot file stored in Amazon S3. The snapshot
+		// file will be used to populate the node group.
+		//
+		// See also:
+		// https://github.com/aws/aws-sdk-go/blob/4862a174f7fc92fb523fc39e68f00b87d91d2c3d/service/elasticache/api.go#L2079
+		"snapshot_arns": &schema.Schema{
+			Type:     schema.TypeSet,
+			Optional: true,
+			ForceNew: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+			Set:      schema.HashString,
+		},
+		"snapshot_window": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			Computed: true,
+		},
+
+		"maintenance_window": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			Computed: true,
+			StateFunc: func(val interface{}) string {
+				// Elasticache always changes the maintenance
+				// to lowercase
+				return strings.ToLower(val.(string))
+			},
+		},
+		"port": &schema.Schema{
+			Type:     schema.TypeInt,
+			Required: true,
+			ForceNew: true,
+		},
+		"notification_topic_arn": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+
+		"snapshot_retention_limit": &schema.Schema{
+			Type:     schema.TypeInt,
+			Optional: true,
+			ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+				value := v.(int)
+				if value > 35 {
+					es = append(es, fmt.Errorf(
+						"snapshot retention limit cannot be more than 35 days"))
+				}
+				return
+			},
+		},
+
+		"apply_immediately": &schema.Schema{
+			Type:     schema.TypeBool,
+			Optional: true,
+			Computed: true,
+		},
+
+		"tags": tagsSchema(),
+	}
+}
+
 func resourceAwsElasticacheCluster() *schema.Resource {
+	resourceSchema := resourceAwsElastiCacheCommonSchema()
+
+	resourceSchema["cluster_id"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Required: true,
+		ForceNew: true,
+		StateFunc: func(val interface{}) string {
+			// Elasticache normalizes cluster ids to lowercase,
+			// so we have to do this too or else we can end up
+			// with non-converging diffs.
+			return strings.ToLower(val.(string))
+		},
+		ValidateFunc: validateElastiCacheClusterId,
+	}
+
+	resourceSchema["num_cache_nodes"] = &schema.Schema{
+		Type:     schema.TypeInt,
+		Required: true,
+	}
+
+	resourceSchema["az_mode"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Computed: true,
+		ForceNew: true,
+	}
+
+	resourceSchema["availability_zone"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Computed: true,
+		ForceNew: true,
+	}
+
+	resourceSchema["configuration_endpoint"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
+
+	resourceSchema["replication_group_id"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
+
+	resourceSchema["cache_nodes"] = &schema.Schema{
+		Type:     schema.TypeList,
+		Computed: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"id": &schema.Schema{
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+				"address": &schema.Schema{
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+				"port": &schema.Schema{
+					Type:     schema.TypeInt,
+					Computed: true,
+				},
+				"availability_zone": &schema.Schema{
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+			},
+		},
+	}
+
 	return &schema.Resource{
 		Create: resourceAwsElasticacheClusterCreate,
 		Read:   resourceAwsElasticacheClusterRead,
 		Update: resourceAwsElasticacheClusterUpdate,
 		Delete: resourceAwsElasticacheClusterDelete,
 
-		Schema: map[string]*schema.Schema{
-			"cluster_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				StateFunc: func(val interface{}) string {
-					// Elasticache normalizes cluster ids to lowercase,
-					// so we have to do this too or else we can end up
-					// with non-converging diffs.
-					return strings.ToLower(val.(string))
-				},
-				ValidateFunc: validateElastiCacheClusterId,
-			},
-			"configuration_endpoint": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"engine": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"node_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"num_cache_nodes": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-			},
-			"parameter_group_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			"port": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-				ForceNew: true,
-			},
-			"engine_version": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			"maintenance_window": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				StateFunc: func(val interface{}) string {
-					// Elasticache always changes the maintenance
-					// to lowercase
-					return strings.ToLower(val.(string))
-				},
-			},
-			"subnet_group_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-			"security_group_names": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
-			},
-			"security_group_ids": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
-			},
-			// Exported Attributes
-			"cache_nodes": &schema.Schema{
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"address": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"port": &schema.Schema{
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
-						"availability_zone": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
-			"notification_topic_arn": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			// A single-element string list containing an Amazon Resource Name (ARN) that
-			// uniquely identifies a Redis RDB snapshot file stored in Amazon S3. The snapshot
-			// file will be used to populate the node group.
-			//
-			// See also:
-			// https://github.com/aws/aws-sdk-go/blob/4862a174f7fc92fb523fc39e68f00b87d91d2c3d/service/elasticache/api.go#L2079
-			"snapshot_arns": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
-			},
-
-			"snapshot_window": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
-			"snapshot_retention_limit": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(int)
-					if value > 35 {
-						es = append(es, fmt.Errorf(
-							"snapshot retention limit cannot be more than 35 days"))
-					}
-					return
-				},
-			},
-
-			"az_mode": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
-			"availability_zone": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
-			"availability_zones": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
-			},
-
-			"tags": tagsSchema(),
-
-			// apply_immediately is used to determine when the update modifications
-			// take place.
-			// See http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheCluster.html
-			"apply_immediately": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Computed: true,
-			},
-		},
+		Schema: resourceSchema,
 	}
 }
 
@@ -268,6 +277,10 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		req.PreferredAvailabilityZones = azs
 	}
 
+	if v, ok := d.GetOk("replication_group_id"); ok {
+		req.ReplicationGroupId = aws.String(v.(string))
+	}
+
 	resp, err := conn.CreateCacheCluster(req)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache: %s", err)
@@ -284,9 +297,9 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		Pending:    pending,
 		Target:     []string{"available"},
 		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "available", pending),
-		Timeout:    10 * time.Minute,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+		Timeout:    40 * time.Minute,
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second,
 	}
 
 	log.Printf("[DEBUG] Waiting for state to become available: %v", d.Id())
@@ -328,6 +341,10 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 			d.Set("configuration_endpoint", aws.String(fmt.Sprintf("%s:%d", *c.ConfigurationEndpoint.Address, *c.ConfigurationEndpoint.Port)))
 		}
 
+		if c.ReplicationGroupId != nil {
+			d.Set("replication_group_id", c.ReplicationGroupId)
+		}
+
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
 		d.Set("security_group_names", c.CacheSecurityGroups)
 		d.Set("security_group_ids", c.SecurityGroups)
@@ -347,7 +364,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		}
 		// list tags for resource
 		// set tags
-		arn, err := buildECARN(d, meta)
+		arn, err := buildECARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 		if err != nil {
 			log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not setting Tags for cluster %s", *c.CacheClusterId)
 		} else {
@@ -372,7 +389,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 
 func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
-	arn, err := buildECARN(d, meta)
+	arn, err := buildECARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not updating Tags for cluster %s", d.Id())
 	} else {
@@ -424,6 +441,11 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 		requestUpdate = true
 	}
 
+	if d.HasChange("node_type") {
+		req.CacheNodeType = aws.String(d.Get("node_type").(string))
+		requestUpdate = true
+	}
+
 	if d.HasChange("snapshot_retention_limit") {
 		req.SnapshotRetentionLimit = aws.Int64(int64(d.Get("snapshot_retention_limit").(int)))
 		requestUpdate = true
@@ -460,9 +482,9 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 			Pending:    pending,
 			Target:     []string{"available"},
 			Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "available", pending),
-			Timeout:    5 * time.Minute,
-			Delay:      5 * time.Second,
-			MinTimeout: 3 * time.Second,
+			Timeout:    80 * time.Minute,
+			MinTimeout: 10 * time.Second,
+			Delay:      30 * time.Second,
 		}
 
 		_, sterr := stateConf.WaitForState()
@@ -531,9 +553,9 @@ func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{
 		Pending:    []string{"creating", "available", "deleting", "incompatible-parameters", "incompatible-network", "restore-failed"},
 		Target:     []string{},
 		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "", []string{}),
-		Timeout:    20 * time.Minute,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+		Timeout:    40 * time.Minute,
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second,
 	}
 
 	_, sterr := stateConf.WaitForState()
@@ -619,16 +641,11 @@ func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 	}
 }
 
-func buildECARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
+func buildECARN(identifier, accountid, region string) (string, error) {
+	if accountid == "" {
+		return "", fmt.Errorf("Unable to construct ElastiCache ARN because of missing AWS Account ID")
 	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:elasticache:%s:%s:cluster:%s", region, accountID, d.Id())
+	arn := fmt.Sprintf("arn:aws:elasticache:%s:%s:cluster:%s", region, accountid, identifier)
 	return arn, nil
+
 }

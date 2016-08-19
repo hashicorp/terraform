@@ -105,11 +105,11 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	var createResp *iam.CreateRoleOutput
-	err := resource.Retry(10*time.Second, func() *resource.RetryError {
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
 		var err error
 		createResp, err = iamconn.CreateRole(request)
-		// IAM roles can take ~10 seconds to propagate in AWS:
-		// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+		// IAM users (referenced in Principal field of assume policy)
+		// can take ~30 seconds to propagate in AWS
 		if isAWSErr(err, "MalformedPolicyDocument", "Invalid principal in policy") {
 			return resource.RetryableError(err)
 		}

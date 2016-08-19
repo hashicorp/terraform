@@ -175,12 +175,10 @@ resource "aws_api_gateway_method" "test" {
     "application/json" = "Error"
   }
 
-  request_parameters_in_json = <<PARAMS
-  {
-    "method.request.header.Content-Type": false,
-	"method.request.querystring.page": true
+  request_parameters = {
+    "method.request.header.Content-Type" = false,
+	  "method.request.querystring.page" = true
   }
-  PARAMS
 }
 `
 
@@ -205,10 +203,8 @@ resource "aws_api_gateway_method" "test" {
     "application/json" = "Error"
   }
 
-  request_parameters_in_json = <<PARAMS
-  {
-	"method.request.querystring.page": false
+  request_parameters = {
+	  "method.request.querystring.page" = false
   }
-  PARAMS
 }
 `

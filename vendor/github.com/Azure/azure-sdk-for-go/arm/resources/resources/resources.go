@@ -31,7 +31,12 @@ type Client struct {
 
 // NewClient creates an instance of the Client client.
 func NewClient(subscriptionID string) Client {
-	return Client{New(subscriptionID)}
+	return NewClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewClientWithBaseURI creates an instance of the Client client.
+func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
+	return Client{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CheckExistence checks whether resource exists.
@@ -309,10 +314,11 @@ func (client Client) GetResponder(resp *http.Response) (result GenericResource, 
 
 // List get all of the resources under a subscription.
 //
-// filter is the filter to apply on the operation. top is query parameters. If
-// null is passed returns all resource groups.
-func (client Client) List(filter string, top *int32) (result ResourceListResult, err error) {
-	req, err := client.ListPreparer(filter, top)
+// filter is the filter to apply on the operation. expand is the $expand query
+// parameter. top is query parameters. If null is passed returns all resource
+// groups.
+func (client Client) List(filter string, expand string, top *int32) (result ResourceListResult, err error) {
+	req, err := client.ListPreparer(filter, expand, top)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.Client", "List", nil, "Failure preparing request")
 	}
@@ -332,7 +338,7 @@ func (client Client) List(filter string, top *int32) (result ResourceListResult,
 }
 
 // ListPreparer prepares the List request.
-func (client Client) ListPreparer(filter string, top *int32) (*http.Request, error) {
+func (client Client) ListPreparer(filter string, expand string, top *int32) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
@@ -342,6 +348,9 @@ func (client Client) ListPreparer(filter string, top *int32) (*http.Request, err
 	}
 	if len(filter) > 0 {
 		queryParameters["$filter"] = autorest.Encode("query", filter)
+	}
+	if len(expand) > 0 {
+		queryParameters["$expand"] = autorest.Encode("query", expand)
 	}
 	if top != nil {
 		queryParameters["$top"] = autorest.Encode("query", *top)

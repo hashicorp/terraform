@@ -82,6 +82,8 @@ The following arguments are supported:
     Acceptable values are "true" and "false". Changing this value updates the
     state of the existing network.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Attributes Reference
 
 The following attributes are exported:

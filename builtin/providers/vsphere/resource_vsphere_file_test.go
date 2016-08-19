@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Basic file creation
+// Basic file creation (upload to vSphere)
 func TestAccVSphereFile_basic(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
 	testVmdkFile := "/tmp/tf_test.vmdk"
@@ -55,6 +55,59 @@ func TestAccVSphereFile_basic(t *testing.T) {
 	os.Remove(testVmdkFile)
 }
 
+// Basic file copy within vSphere
+func TestAccVSphereFile_basicUploadAndCopy(t *testing.T) {
+	testVmdkFileData := []byte("# Disk DescriptorFile\n")
+	sourceFile := "/tmp/tf_test.vmdk"
+	uploadResourceName := "myfileupload"
+	copyResourceName := "myfilecopy"
+	sourceDatacenter := os.Getenv("VSPHERE_DATACENTER")
+	datacenter := sourceDatacenter
+	sourceDatastore := os.Getenv("VSPHERE_DATASTORE")
+	datastore := sourceDatastore
+	destinationFile := "tf_file_test.vmdk"
+	sourceFileCopy := "${vsphere_file." + uploadResourceName + ".destination_file}"
+	destinationFileCopy := "tf_file_test_copy.vmdk"
+
+	err := ioutil.WriteFile(sourceFile, testVmdkFileData, 0644)
+	if err != nil {
+		t.Errorf("error %s", err)
+		return
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereFileDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereFileCopyConfig,
+					uploadResourceName,
+					datacenter,
+					datastore,
+					sourceFile,
+					destinationFile,
+					copyResourceName,
+					datacenter,
+					datacenter,
+					datastore,
+					datastore,
+					sourceFileCopy,
+					destinationFileCopy,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereFileExists("vsphere_file."+uploadResourceName, destinationFile, true),
+					testAccCheckVSphereFileExists("vsphere_file."+copyResourceName, destinationFileCopy, true),
+					resource.TestCheckResourceAttr("vsphere_file."+uploadResourceName, "destination_file", destinationFile),
+					resource.TestCheckResourceAttr("vsphere_file."+copyResourceName, "destination_file", destinationFileCopy),
+				),
+			},
+		},
+	})
+	os.Remove(sourceFile)
+}
+
 // file creation followed by a rename of file (update)
 func TestAccVSphereFile_renamePostCreation(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
@@ -67,7 +120,7 @@ func TestAccVSphereFile_renamePostCreation(t *testing.T) {
 
 	datacenter := os.Getenv("VSPHERE_DATACENTER")
 	datastore := os.Getenv("VSPHERE_DATASTORE")
-	testMethod := "basic"
+	testMethod := "create_upgrade"
 	resourceName := "vsphere_file." + testMethod
 	destinationFile := "tf_test_file.vmdk"
 	destinationFileMoved := "tf_test_file_moved.vmdk"
@@ -76,7 +129,7 @@ func TestAccVSphereFile_renamePostCreation(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVSphereFolderDestroy,
+		CheckDestroy: testAccCheckVSphereFileDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(
@@ -111,6 +164,84 @@ func TestAccVSphereFile_renamePostCreation(t *testing.T) {
 		},
 	})
 	os.Remove(testVmdkFile)
+}
+
+// file upload, then copy, finally the copy is renamed (moved) (update)
+func TestAccVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
+	testVmdkFileData := []byte("# Disk DescriptorFile\n")
+	sourceFile := "/tmp/tf_test.vmdk"
+	uploadResourceName := "myfileupload"
+	copyResourceName := "myfilecopy"
+	sourceDatacenter := os.Getenv("VSPHERE_DATACENTER")
+	datacenter := sourceDatacenter
+	sourceDatastore := os.Getenv("VSPHERE_DATASTORE")
+	datastore := sourceDatastore
+	destinationFile := "tf_file_test.vmdk"
+	sourceFileCopy := "${vsphere_file." + uploadResourceName + ".destination_file}"
+	destinationFileCopy := "tf_file_test_copy.vmdk"
+	destinationFileMoved := "tf_test_file_moved.vmdk"
+
+	err := ioutil.WriteFile(sourceFile, testVmdkFileData, 0644)
+	if err != nil {
+		t.Errorf("error %s", err)
+		return
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereFileDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereFileCopyConfig,
+					uploadResourceName,
+					datacenter,
+					datastore,
+					sourceFile,
+					destinationFile,
+					copyResourceName,
+					datacenter,
+					datacenter,
+					datastore,
+					datastore,
+					sourceFileCopy,
+					destinationFileCopy,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereFileExists("vsphere_file."+uploadResourceName, destinationFile, true),
+					testAccCheckVSphereFileExists("vsphere_file."+copyResourceName, destinationFileCopy, true),
+					resource.TestCheckResourceAttr("vsphere_file."+uploadResourceName, "destination_file", destinationFile),
+					resource.TestCheckResourceAttr("vsphere_file."+copyResourceName, "destination_file", destinationFileCopy),
+				),
+			},
+			{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereFileCopyConfig,
+					uploadResourceName,
+					datacenter,
+					datastore,
+					sourceFile,
+					destinationFile,
+					copyResourceName,
+					datacenter,
+					datacenter,
+					datastore,
+					datastore,
+					sourceFileCopy,
+					destinationFileMoved,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereFileExists("vsphere_file."+uploadResourceName, destinationFile, true),
+					testAccCheckVSphereFileExists("vsphere_file."+copyResourceName, destinationFileCopy, false),
+					testAccCheckVSphereFileExists("vsphere_file."+copyResourceName, destinationFileMoved, true),
+					resource.TestCheckResourceAttr("vsphere_file."+uploadResourceName, "destination_file", destinationFile),
+					resource.TestCheckResourceAttr("vsphere_file."+copyResourceName, "destination_file", destinationFileMoved),
+				),
+			},
+		},
+	})
+	os.Remove(sourceFile)
 }
 
 func testAccCheckVSphereFileDestroy(s *terraform.State) error {
@@ -196,6 +327,22 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 const testAccCheckVSphereFileConfig = `
 resource "vsphere_file" "%s" {
 	datacenter = "%s"
+	datastore = "%s"
+	source_file = "%s"
+	destination_file = "%s"
+}
+`
+const testAccCheckVSphereFileCopyConfig = `
+resource "vsphere_file" "%s" {
+	datacenter = "%s"
+	datastore = "%s"
+	source_file = "%s"
+	destination_file = "%s"
+}
+resource "vsphere_file" "%s" {
+	source_datacenter = "%s"
+	datacenter = "%s"
+	source_datastore = "%s"
 	datastore = "%s"
 	source_file = "%s"
 	destination_file = "%s"

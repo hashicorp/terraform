@@ -361,11 +361,15 @@ func (d *InstanceDiff) Empty() bool {
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return !d.Destroy && len(d.Attributes) == 0
+	return !d.Destroy && !d.DestroyTainted && len(d.Attributes) == 0
 }
 
 func (d *InstanceDiff) GoString() string {
-	return fmt.Sprintf("*%#v", *d)
+	return fmt.Sprintf("*%#v", InstanceDiff{
+		Attributes:     d.Attributes,
+		Destroy:        d.Destroy,
+		DestroyTainted: d.DestroyTainted,
+	})
 }
 
 // RequiresNew returns true if the diff requires the creation of a new

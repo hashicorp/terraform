@@ -32,7 +32,17 @@ import (
 //
 //    us-east-1
 //
+//    us-west-1
+//
 //    us-west-2
+//
+//    ap-southeast-1
+//
+//    ap-southeast-2
+//
+//    ap-northeast-1
+//
+//    eu-central-1
 //
 //    eu-west-1
 //The service client's operations are safe to be used concurrently.

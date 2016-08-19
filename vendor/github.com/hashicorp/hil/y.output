@@ -5,7 +5,7 @@ state 0
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 1 (src line 35)
+	.  reduce 1 (src line 37)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -26,7 +26,7 @@ state 2
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 2 (src line 43)
+	.  reduce 2 (src line 45)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -35,25 +35,25 @@ state 2
 state 3
 	literalModeTop:  literalModeValue.    (3)
 
-	.  reduce 3 (src line 65)
+	.  reduce 3 (src line 67)
 
 
 state 4
 	literalModeValue:  literal.    (5)
 
-	.  reduce 5 (src line 85)
+	.  reduce 5 (src line 87)
 
 
 state 5
 	literalModeValue:  interpolation.    (6)
 
-	.  reduce 6 (src line 90)
+	.  reduce 6 (src line 92)
 
 
 state 6
 	literal:  STRING.    (20)
 
-	.  reduce 20 (src line 186)
+	.  reduce 20 (src line 190)
 
 
 state 7
@@ -77,7 +77,7 @@ state 7
 state 8
 	literalModeTop:  literalModeTop literalModeValue.    (4)
 
-	.  reduce 4 (src line 70)
+	.  reduce 4 (src line 72)
 
 
 state 9
@@ -113,7 +113,7 @@ state 11
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 9 (src line 106)
+	.  reduce 9 (src line 108)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -122,13 +122,13 @@ state 11
 state 12
 	expr:  INTEGER.    (10)
 
-	.  reduce 10 (src line 110)
+	.  reduce 10 (src line 112)
 
 
 state 13
 	expr:  FLOAT.    (11)
 
-	.  reduce 11 (src line 118)
+	.  reduce 11 (src line 120)
 
 
 state 14
@@ -156,13 +156,13 @@ state 15
 
 	PAREN_LEFT  shift 20
 	SQUARE_BRACKET_LEFT  shift 21
-	.  reduce 14 (src line 153)
+	.  reduce 14 (src line 157)
 
 
 state 16
 	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (7)
 
-	.  reduce 7 (src line 95)
+	.  reduce 7 (src line 97)
 
 
 state 17
@@ -196,7 +196,7 @@ state 19
 	expr:  ARITH_OP expr.    (12)
 	expr:  expr.ARITH_OP expr 
 
-	.  reduce 12 (src line 126)
+	.  reduce 12 (src line 128)
 
 
 state 20
@@ -210,7 +210,7 @@ state 20
 	INTEGER  shift 12
 	FLOAT  shift 13
 	STRING  shift 6
-	.  reduce 17 (src line 173)
+	.  reduce 17 (src line 177)
 
 	expr  goto 25
 	interpolation  goto 5
@@ -241,13 +241,13 @@ state 22
 	expr:  expr.ARITH_OP expr 
 	expr:  expr ARITH_OP expr.    (13)
 
-	.  reduce 13 (src line 145)
+	.  reduce 13 (src line 149)
 
 
 state 23
 	expr:  PAREN_LEFT expr PAREN_RIGHT.    (8)
 
-	.  reduce 8 (src line 101)
+	.  reduce 8 (src line 103)
 
 
 state 24
@@ -264,7 +264,7 @@ state 25
 	args:  expr.    (19)
 
 	ARITH_OP  shift 17
-	.  reduce 19 (src line 181)
+	.  reduce 19 (src line 185)
 
 
 state 26
@@ -279,7 +279,7 @@ state 26
 state 27
 	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (15)
 
-	.  reduce 15 (src line 157)
+	.  reduce 15 (src line 161)
 
 
 state 28
@@ -303,7 +303,7 @@ state 28
 state 29
 	expr:  IDENTIFIER SQUARE_BRACKET_LEFT expr SQUARE_BRACKET_RIGHT.    (16)
 
-	.  reduce 16 (src line 161)
+	.  reduce 16 (src line 165)
 
 
 state 30
@@ -311,7 +311,7 @@ state 30
 	args:  args COMMA expr.    (18)
 
 	ARITH_OP  shift 17
-	.  reduce 18 (src line 177)
+	.  reduce 18 (src line 181)
 
 
 17 terminals, 8 nonterminals

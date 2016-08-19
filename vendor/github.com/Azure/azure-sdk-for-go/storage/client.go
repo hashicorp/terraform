@@ -29,10 +29,20 @@ const (
 
 	defaultUseHTTPS = true
 
+	// StorageEmulatorAccountName is the fixed storage account used by Azure Storage Emulator
+	StorageEmulatorAccountName = "devstoreaccount1"
+
+	// StorageEmulatorAccountKey is the the fixed storage account used by Azure Storage Emulator
+	StorageEmulatorAccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+
 	blobServiceName  = "blob"
 	tableServiceName = "table"
 	queueServiceName = "queue"
 	fileServiceName  = "file"
+
+	storageEmulatorBlob  = "127.0.0.1:10000"
+	storageEmulatorTable = "127.0.0.1:10002"
+	storageEmulatorQueue = "127.0.0.1:10001"
 )
 
 // Client is the object that needs to be constructed to perform
@@ -114,7 +124,16 @@ func (e UnexpectedStatusCodeError) Got() int {
 // NewBasicClient constructs a Client with given storage service name and
 // key.
 func NewBasicClient(accountName, accountKey string) (Client, error) {
+	if accountName == StorageEmulatorAccountName {
+		return NewEmulatorClient()
+	}
 	return NewClient(accountName, accountKey, DefaultBaseURL, DefaultAPIVersion, defaultUseHTTPS)
+}
+
+//NewEmulatorClient contructs a Client intended to only work with Azure
+//Storage Emulator
+func NewEmulatorClient() (Client, error) {
+	return NewClient(StorageEmulatorAccountName, StorageEmulatorAccountKey, DefaultBaseURL, DefaultAPIVersion, false)
 }
 
 // NewClient constructs a Client. This should be used if the caller wants
@@ -149,8 +168,19 @@ func (c Client) getBaseURL(service string) string {
 	if c.useHTTPS {
 		scheme = "https"
 	}
-
-	host := fmt.Sprintf("%s.%s.%s", c.accountName, service, c.baseURL)
+	host := ""
+	if c.accountName == StorageEmulatorAccountName {
+		switch service {
+		case blobServiceName:
+			host = storageEmulatorBlob
+		case tableServiceName:
+			host = storageEmulatorTable
+		case queueServiceName:
+			host = storageEmulatorQueue
+		}
+	} else {
+		host = fmt.Sprintf("%s.%s.%s", c.accountName, service, c.baseURL)
+	}
 
 	u := &url.URL{
 		Scheme: scheme,
@@ -165,8 +195,13 @@ func (c Client) getEndpoint(service, path string, params url.Values) string {
 		panic(err)
 	}
 
-	if path == "" {
-		path = "/" // API doesn't accept path segments not starting with '/'
+	// API doesn't accept path segments not starting with '/'
+	if !strings.HasPrefix(path, "/") {
+		path = fmt.Sprintf("/%v", path)
+	}
+
+	if c.accountName == StorageEmulatorAccountName {
+		path = fmt.Sprintf("/%v%v", StorageEmulatorAccountName, path)
 	}
 
 	u.Path = path
@@ -200,7 +235,7 @@ func (c Client) GetFileService() FileServiceClient {
 
 func (c Client) createAuthorizationHeader(canonicalizedString string) string {
 	signature := c.computeHmac256(canonicalizedString)
-	return fmt.Sprintf("%s %s:%s", "SharedKey", c.accountName, signature)
+	return fmt.Sprintf("%s %s:%s", "SharedKey", c.getCanonicalizedAccountName(), signature)
 }
 
 func (c Client) getAuthorizationHeader(verb, url string, headers map[string]string) (string, error) {
@@ -218,6 +253,12 @@ func (c Client) getStandardHeaders() map[string]string {
 		"x-ms-version": c.apiVersion,
 		"x-ms-date":    currentTimeRfc1123Formatted(),
 	}
+}
+
+func (c Client) getCanonicalizedAccountName() string {
+	// since we may be trying to access a secondary storage account, we need to
+	// remove the -secondary part of the storage name
+	return strings.TrimSuffix(c.accountName, "-secondary")
 }
 
 func (c Client) buildCanonicalizedHeader(headers map[string]string) string {
@@ -261,7 +302,7 @@ func (c Client) buildCanonicalizedResourceTable(uri string) (string, error) {
 		return "", fmt.Errorf(errMsg, err.Error())
 	}
 
-	cr := "/" + c.accountName
+	cr := "/" + c.getCanonicalizedAccountName()
 
 	if len(u.Path) > 0 {
 		cr += u.Path
@@ -277,10 +318,13 @@ func (c Client) buildCanonicalizedResource(uri string) (string, error) {
 		return "", fmt.Errorf(errMsg, err.Error())
 	}
 
-	cr := "/" + c.accountName
+	cr := "/" + c.getCanonicalizedAccountName()
 
 	if len(u.Path) > 0 {
-		cr += u.Path
+		// Any portion of the CanonicalizedResource string that is derived from
+		// the resource's URI should be encoded exactly as it is in the URI.
+		// -- https://msdn.microsoft.com/en-gb/library/azure/dd179428.aspx
+		cr += u.EscapedPath()
 	}
 
 	params, err := url.ParseQuery(u.RawQuery)
@@ -343,7 +387,6 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 		return nil, err
 	}
 	headers["Authorization"] = authHeader
-
 	if err != nil {
 		return nil, err
 	}

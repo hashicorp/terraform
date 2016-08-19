@@ -100,6 +100,7 @@ func Provider() terraform.ResourceProvider {
 				Default:     "",
 				Description: descriptions["kinesis_endpoint"],
 			},
+
 			"endpoints": endpointsSchema(),
 
 			"insecure": &schema.Schema{
@@ -108,17 +109,54 @@ func Provider() terraform.ResourceProvider {
 				Default:     false,
 				Description: descriptions["insecure"],
 			},
+
+			"skip_credentials_validation": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_credentials_validation"],
+			},
+
+			"skip_requesting_account_id": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_requesting_account_id"],
+			},
+
+			"skip_metadata_api_check": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_metadata_api_check"],
+			},
+
+			"s3_force_path_style": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["s3_force_path_style"],
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
 			"aws_ami":                      dataSourceAwsAmi(),
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
-			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
-			"aws_s3_bucket_object":         dataSourceAwsS3BucketObject(),
+			"aws_caller_identity":          dataSourceAwsCallerIdentity(),
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
+			"aws_elb_service_account":      dataSourceAwsElbServiceAccount(),
+			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
+			"aws_ip_ranges":                dataSourceAwsIPRanges(),
+			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),
+			"aws_s3_bucket_object":         dataSourceAwsS3BucketObject(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"aws_alb":                                      resourceAwsAlb(),
+			"aws_alb_listener":                             resourceAwsAlbListener(),
+			"aws_alb_listener_rule":                        resourceAwsAlbListenerRule(),
+			"aws_alb_target_group":                         resourceAwsAlbTargetGroup(),
+			"aws_alb_target_group_attachment":              resourceAwsAlbTargetGroupAttachment(),
 			"aws_ami":                                      resourceAwsAmi(),
 			"aws_ami_copy":                                 resourceAwsAmiCopy(),
 			"aws_ami_from_instance":                        resourceAwsAmiFromInstance(),
@@ -176,6 +214,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_eip_association":                          resourceAwsEipAssociation(),
 			"aws_elasticache_cluster":                      resourceAwsElasticacheCluster(),
 			"aws_elasticache_parameter_group":              resourceAwsElasticacheParameterGroup(),
+			"aws_elasticache_replication_group":            resourceAwsElasticacheReplicationGroup(),
 			"aws_elasticache_security_group":               resourceAwsElasticacheSecurityGroup(),
 			"aws_elasticache_subnet_group":                 resourceAwsElasticacheSubnetGroup(),
 			"aws_elastic_beanstalk_application":            resourceAwsElasticBeanstalkApplication(),
@@ -219,6 +258,10 @@ func Provider() terraform.ResourceProvider {
 			"aws_lambda_permission":                        resourceAwsLambdaPermission(),
 			"aws_launch_configuration":                     resourceAwsLaunchConfiguration(),
 			"aws_lb_cookie_stickiness_policy":              resourceAwsLBCookieStickinessPolicy(),
+			"aws_load_balancer_policy":                     resourceAwsLoadBalancerPolicy(),
+			"aws_load_balancer_backend_server_policy":      resourceAwsLoadBalancerBackendServerPolicies(),
+			"aws_load_balancer_listener_policy":            resourceAwsLoadBalancerListenerPolicies(),
+			"aws_lb_ssl_negotiation_policy":                resourceAwsLBSSLNegotiationPolicy(),
 			"aws_main_route_table_association":             resourceAwsMainRouteTableAssociation(),
 			"aws_nat_gateway":                              resourceAwsNatGateway(),
 			"aws_network_acl":                              resourceAwsNetworkAcl(),
@@ -282,6 +325,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpn_connection":                           resourceAwsVpnConnection(),
 			"aws_vpn_connection_route":                     resourceAwsVpnConnectionRoute(),
 			"aws_vpn_gateway":                              resourceAwsVpnGateway(),
+			"aws_vpn_gateway_attachment":                   resourceAwsVpnGatewayAttachment(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -325,23 +369,43 @@ func init() {
 
 		"elb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
+		"s3_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
 		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
 			"default value is `false`",
+
+		"skip_credentials_validation": "Skip the credentials validation via STS API. " +
+			"Used for AWS API implementations that do not have STS available/implemented.",
+
+		"skip_requesting_account_id": "Skip requesting the account ID. " +
+			"Used for AWS API implementations that do not have IAM/STS API and/or metadata API.",
+
+		"skip_medatadata_api_check": "Skip the AWS Metadata API check. " +
+			"Used for AWS API implementations that do not have a metadata api endpoint.",
+
+		"s3_force_path_style": "Set this to true to force the request to use path-style addressing,\n" +
+			"i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the S3 client will\n" +
+			"use virtual hosted bucket addressing when possible\n" +
+			"(http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.",
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccessKey:        d.Get("access_key").(string),
-		SecretKey:        d.Get("secret_key").(string),
-		Profile:          d.Get("profile").(string),
-		CredsFilename:    d.Get("shared_credentials_file").(string),
-		Token:            d.Get("token").(string),
-		Region:           d.Get("region").(string),
-		MaxRetries:       d.Get("max_retries").(int),
-		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
-		KinesisEndpoint:  d.Get("kinesis_endpoint").(string),
-		Insecure:         d.Get("insecure").(bool),
+		AccessKey:               d.Get("access_key").(string),
+		SecretKey:               d.Get("secret_key").(string),
+		Profile:                 d.Get("profile").(string),
+		CredsFilename:           d.Get("shared_credentials_file").(string),
+		Token:                   d.Get("token").(string),
+		Region:                  d.Get("region").(string),
+		MaxRetries:              d.Get("max_retries").(int),
+		DynamoDBEndpoint:        d.Get("dynamodb_endpoint").(string),
+		KinesisEndpoint:         d.Get("kinesis_endpoint").(string),
+		Insecure:                d.Get("insecure").(bool),
+		SkipCredsValidation:     d.Get("skip_credentials_validation").(bool),
+		SkipRequestingAccountId: d.Get("skip_requesting_account_id").(bool),
+		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),
+		S3ForcePathStyle:        d.Get("s3_force_path_style").(bool),
 	}
 
 	endpointsSet := d.Get("endpoints").(*schema.Set)
@@ -351,6 +415,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.IamEndpoint = endpoints["iam"].(string)
 		config.Ec2Endpoint = endpoints["ec2"].(string)
 		config.ElbEndpoint = endpoints["elb"].(string)
+		config.S3Endpoint = endpoints["s3"].(string)
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
@@ -393,6 +458,12 @@ func endpointsSchema() *schema.Schema {
 					Default:     "",
 					Description: descriptions["elb_endpoint"],
 				},
+				"s3": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["s3_endpoint"],
+				},
 			},
 		},
 		Set: endpointsToHash,
@@ -405,6 +476,7 @@ func endpointsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["iam"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["ec2"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["elb"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["s3"].(string)))
 
 	return hashcode.String(buf.String())
 }

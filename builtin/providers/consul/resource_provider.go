@@ -20,11 +20,34 @@ func Provider() terraform.ResourceProvider {
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CONSUL_ADDRESS",
+					"CONSUL_HTTP_ADDR",
+				}, nil),
 			},
 
 			"scheme": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_SCHEME", nil),
+			},
+
+			"ca_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CA_FILE", nil),
+			},
+
+			"cert_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CERT_FILE", nil),
+			},
+
+			"key_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_KEY_FILE", nil),
 			},
 
 			"token": &schema.Schema{
@@ -38,12 +61,13 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"consul_agent_service": resourceConsulAgentService(),
-			"consul_catalog_entry": resourceConsulCatalogEntry(),
-			"consul_keys":          resourceConsulKeys(),
-			"consul_key_prefix":    resourceConsulKeyPrefix(),
-			"consul_node":          resourceConsulNode(),
-			"consul_service":       resourceConsulService(),
+			"consul_agent_service":  resourceConsulAgentService(),
+			"consul_catalog_entry":  resourceConsulCatalogEntry(),
+			"consul_keys":           resourceConsulKeys(),
+			"consul_key_prefix":     resourceConsulKeyPrefix(),
+			"consul_node":           resourceConsulNode(),
+			"consul_prepared_query": resourceConsulPreparedQuery(),
+			"consul_service":        resourceConsulService(),
 		},
 
 		ConfigureFunc: providerConfigure,

@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/signalwrapper"
 )
 
 func resourceArmStorageAccount() *schema.Resource {
@@ -131,16 +132,48 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		Tags:     expandTags(tags),
 	}
 
-	_, err := storageClient.Create(resourceGroupName, storageAccountName, opts, make(chan struct{}))
-	if err != nil {
-		return fmt.Errorf("Error creating Azure Storage Account '%s': %s", storageAccountName, err)
+	// Create the storage account. We wrap this so that it is cancellable
+	// with a Ctrl-C since this can take a LONG time.
+	wrap := signalwrapper.Run(func(cancelCh <-chan struct{}) error {
+		_, err := storageClient.Create(resourceGroupName, storageAccountName, opts, cancelCh)
+		return err
+	})
+
+	// Check the result of the wrapped function.
+	var createErr error
+	select {
+	case <-time.After(1 * time.Hour):
+		// An hour is way above the expected P99 for this API call so
+		// we premature cancel and error here.
+		createErr = wrap.Cancel()
+	case createErr = <-wrap.ErrCh:
+		// Successfully ran (but perhaps not successfully completed)
+		// the function.
 	}
 
 	// The only way to get the ID back apparently is to read the resource again
 	read, err := storageClient.GetProperties(resourceGroupName, storageAccountName)
+
+	// Set the ID right away if we have one
+	if err == nil && read.ID != nil {
+		log.Printf("[INFO] storage account %q ID: %q", storageAccountName, *read.ID)
+		d.SetId(*read.ID)
+	}
+
+	// If we had a create error earlier then we return with that error now.
+	// We do this later here so that we can grab the ID above is possible.
+	if createErr != nil {
+		return fmt.Errorf(
+			"Error creating Azure Storage Account '%s': %s",
+			storageAccountName, createErr)
+	}
+
+	// Check the read error now that we know it would exist without a create err
 	if err != nil {
 		return err
 	}
+
+	// If we got no ID then the resource group doesn't yet exist
 	if read.ID == nil {
 		return fmt.Errorf("Cannot read Storage Account %s (resource group %s) ID",
 			storageAccountName, resourceGroupName)
@@ -157,8 +190,6 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("Error waiting for Storage Account (%s) to become available: %s", storageAccountName, err)
 	}
-
-	d.SetId(*read.ID)
 
 	return resourceArmStorageAccountRead(d, meta)
 }

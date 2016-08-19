@@ -670,7 +670,7 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"available", "creating", "deleting", "rebooting", "resizing", "renaming"},
+		Pending:    []string{"available", "creating", "deleting", "rebooting", "resizing", "renaming", "final-snapshot"},
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
@@ -750,9 +750,9 @@ func validateRedshiftClusterIdentifier(v interface{}, k string) (ws []string, er
 
 func validateRedshiftClusterDbName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[a-z]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase letters characters allowed in %q", k))
+			"only lowercase letters and numeric characters allowed in %q", k))
 	}
 	if len(value) > 64 {
 		errors = append(errors, fmt.Errorf(

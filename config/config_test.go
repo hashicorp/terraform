@@ -216,6 +216,13 @@ func TestConfigValidate_countVarInvalid(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_countVarUnknown(t *testing.T) {
+	c := testConfig(t, "validate-count-var-unknown")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_dependsOnVar(t *testing.T) {
 	c := testConfig(t, "validate-depends-on-var")
 	if err := c.Validate(); err == nil {

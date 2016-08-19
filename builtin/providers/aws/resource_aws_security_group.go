@@ -239,6 +239,10 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 			d.Id(), err)
 	}
 
+	if err := setTags(conn, d); err != nil {
+		return err
+	}
+
 	// AWS defaults all Security Groups to have an ALLOW ALL egress rule. Here we
 	// revoke that rule, so users don't unknowingly have/use it.
 	group := resp.(*ec2.SecurityGroup)
@@ -340,11 +344,12 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if err := setTags(conn, d); err != nil {
-		return err
+	if !d.IsNewResource() {
+		if err := setTags(conn, d); err != nil {
+			return err
+		}
+		d.SetPartial("tags")
 	}
-
-	d.SetPartial("tags")
 
 	return resourceAwsSecurityGroupRead(d, meta)
 }

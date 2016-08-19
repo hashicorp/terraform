@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -129,109 +128,10 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 	variables := make(map[string]interface{})
 
 	if opts.Module != nil {
-		for _, v := range opts.Module.Config().Variables {
-			if v.Default != nil {
-				if v.Type() == config.VariableTypeString {
-					// v.Default has already been parsed as HCL so there may be
-					// some stray ints in there
-					switch typedDefault := v.Default.(type) {
-					case string:
-						if typedDefault == "" {
-							continue
-						}
-						variables[v.Name] = typedDefault
-					case int, int64:
-						variables[v.Name] = fmt.Sprintf("%d", typedDefault)
-					case float32, float64:
-						variables[v.Name] = fmt.Sprintf("%f", typedDefault)
-					case bool:
-						variables[v.Name] = fmt.Sprintf("%t", typedDefault)
-					}
-				} else {
-					variables[v.Name] = v.Default
-				}
-			}
-		}
-
-		for _, v := range os.Environ() {
-			if !strings.HasPrefix(v, VarEnvPrefix) {
-				continue
-			}
-
-			// Strip off the prefix and get the value after the first "="
-			idx := strings.Index(v, "=")
-			k := v[len(VarEnvPrefix):idx]
-			v = v[idx+1:]
-
-			// Override the configuration-default values. Note that *not* finding the variable
-			// in configuration is OK, as we don't want to preclude people from having multiple
-			// sets of TF_VAR_whatever in their environment even if it is a little weird.
-			for _, schema := range opts.Module.Config().Variables {
-				if schema.Name == k {
-					varType := schema.Type()
-					varVal, err := parseVariableAsHCL(k, v, varType)
-					if err != nil {
-						return nil, err
-					}
-					switch varType {
-					case config.VariableTypeMap:
-						if existing, hasMap := variables[k]; !hasMap {
-							variables[k] = varVal
-						} else {
-							if existingMap, ok := existing.(map[string]interface{}); !ok {
-								panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
-							} else {
-								switch typedV := varVal.(type) {
-								case []map[string]interface{}:
-									for newKey, newVal := range typedV[0] {
-										existingMap[newKey] = newVal
-									}
-								case map[string]interface{}:
-									for newKey, newVal := range typedV {
-										existingMap[newKey] = newVal
-									}
-								default:
-									panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
-								}
-							}
-						}
-					default:
-						variables[k] = varVal
-					}
-				}
-			}
-		}
-
-		for k, v := range opts.Variables {
-			for _, schema := range opts.Module.Config().Variables {
-				if schema.Name == k {
-					switch schema.Type() {
-					case config.VariableTypeMap:
-						if existing, hasMap := variables[k]; !hasMap {
-							variables[k] = v
-						} else {
-							if existingMap, ok := existing.(map[string]interface{}); !ok {
-								panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
-							} else {
-								switch typedV := v.(type) {
-								case []map[string]interface{}:
-									for newKey, newVal := range typedV[0] {
-										existingMap[newKey] = newVal
-									}
-								case map[string]interface{}:
-									for newKey, newVal := range typedV {
-										existingMap[newKey] = newVal
-									}
-								default:
-									panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
-								}
-							}
-						}
-					default:
-						variables[k] = v
-					}
-				}
-			}
+		var err error
+		variables, err = Variables(opts.Module, opts.Variables)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -317,16 +217,18 @@ func (c *Context) Input(mode InputMode) error {
 				}
 			}
 
+			var valueType config.VariableType
+
 			v := m[n]
-			switch v.Type() {
+			switch valueType = v.Type(); valueType {
 			case config.VariableTypeUnknown:
 				continue
 			case config.VariableTypeMap:
-				continue
+				// OK
 			case config.VariableTypeList:
-				continue
+				// OK
 			case config.VariableTypeString:
-				// Good!
+				// OK
 			default:
 				panic(fmt.Sprintf("Unknown variable type: %#v", v.Type()))
 			}
@@ -338,6 +240,12 @@ func (c *Context) Input(mode InputMode) error {
 					c.variables[n] = v.Default.(string)
 					continue
 				}
+			}
+
+			// this should only happen during tests
+			if c.uiInput == nil {
+				log.Println("[WARN] Content.uiInput is nil")
+				continue
 			}
 
 			// Ask the user for a value for this variable
@@ -365,17 +273,21 @@ func (c *Context) Input(mode InputMode) error {
 					continue
 				}
 
-				if value == "" {
-					// No value, just exit the loop. With no value, we just
-					// use whatever is currently set in variables.
-					break
-				}
-
 				break
 			}
 
-			if value != "" {
-				c.variables[n] = value
+			// no value provided, so don't set the variable at all
+			if value == "" {
+				continue
+			}
+
+			decoded, err := parseVariableAsHCL(n, value, valueType)
+			if err != nil {
+				return err
+			}
+
+			if decoded != nil {
+				c.variables[n] = decoded
 			}
 		}
 	}
@@ -656,9 +568,20 @@ func (c *Context) walk(
 // the name of the variable. In order to get around the restriction of HCL requiring a
 // top level object, we prepend a sentinel key, decode the user-specified value as its
 // value and pull the value back out of the resulting map.
-func parseVariableAsHCL(name string, input interface{}, targetType config.VariableType) (interface{}, error) {
+func parseVariableAsHCL(name string, input string, targetType config.VariableType) (interface{}, error) {
+	// expecting a string so don't decode anything, just strip quotes
 	if targetType == config.VariableTypeString {
-		return input, nil
+		return strings.Trim(input, `"`), nil
+	}
+
+	// return empty types
+	if strings.TrimSpace(input) == "" {
+		switch targetType {
+		case config.VariableTypeList:
+			return []interface{}{}, nil
+		case config.VariableTypeMap:
+			return make(map[string]interface{}), nil
+		}
 	}
 
 	const sentinelValue = "SENTINEL_TERRAFORM_VAR_OVERRIDE_KEY"

@@ -84,6 +84,33 @@ resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
 }
 ```
 
+### Elasticsearch Destination
+
+```
+resource "aws_elasticsearch_domain" "test_cluster" {
+  domain_name = "firehose-es-test"
+}
+
+resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
+  name = "terraform-kinesis-firehose-test-stream"
+  destination = "redshift"
+  s3_configuration {
+    role_arn = "${aws_iam_role.firehose_role.arn}"
+    bucket_arn = "${aws_s3_bucket.bucket.arn}"
+    buffer_size = 10
+    buffer_interval = 400
+    compression_format = "GZIP"
+  }
+
+  elasticsearch_configuration {
+    domain_arn = "${aws_elasticsearch_domain.test_cluster.arn}"
+    role_arn = "${aws_iam_role.firehose_role.arn}"
+    index_name = "test"
+    type_name = "test"
+  }
+}
+```
+
 ~> **NOTE:** Kinesis Firehose is currently only supported in us-east-1, us-west-2 and eu-west-1.
 
 ## Argument Reference
@@ -92,7 +119,7 @@ The following arguments are supported:
 
 * `name` - (Required) A name to identify the stream. This is unique to the
 AWS account and region the Stream is created in.
-* `destination` – (Required) This is the destination to where the data is delivered. The only options are `s3` & `redshift`.
+* `destination` – (Required) This is the destination to where the data is delivered. The only options are `s3`, `redshift`, and `elasticsearch`.
 * `s3_configuration` - (Required) Configuration options for the s3 destination (or the intermediate bucket if the destination
 is redshift). More details are given below.
 * `redshift_configuration` - (Optional) Configuration options if redshift is the destination. 
@@ -120,6 +147,18 @@ The `redshift_configuration` object supports the following:
 * `data_table_name` - (Required) The name of the table in the redshift cluster that the s3 bucket will copy to.
 * `copy_options` - (Optional) Copy options for copying the data from the s3 intermediate bucket into redshift.
 * `data_table_columns` - (Optional) The data table columns that will be targeted by the copy command.
+
+The `elasticsearch_configuration` object supports the following:
+
+* `buffering_interval` - (Optional) Buffer incoming data for the specified period of time, in seconds between 60 to 900, before deliverying it to the destination.  The default value is 300s.
+* `buffering_size` - (Optional) Buffer incoming data to the specified size, in MBs between 1 to 100, before delivering it to the destination.  The default value is 5MB.
+* `domain_arn` - (Required) The ARN of the Amazon ES domain.  The IAM role must have permission for `DescribeElasticsearchDomain`, `DescribeElasticsearchDomains`, and `DescribeElasticsearchDomainConfig` after assuming `RoleARN`.  The pattern needs to be `arn:.*`.
+* `index_name` - (Required) The Elasticsearch index name.
+* `index_rotation_period` - (Optional) The Elasticsearch index rotation period.  Index rotation appends a timestamp to the IndexName to facilitate expiration of old data.  Valid values are `NoRotation`, `OneHour`, `OneDay`, `OneWeek`, and `OneMonth`.  The default value is `OneDay`.
+* `retry_duration` - (Optional) After an initial failure to deliver to Amazon Elasticsearch, the total amount of time, in seconds between 0 to 7200, during which Firehose re-attempts delivery (including the first attempt).  After this time has elapsed, the failed documents are writtn to Amazon S3.  The default value is 300s.  There will be no retry if the value is 0.
+* `role_arn` - (Required) The ARN of the IAM role to be assumed by Firehose for calling the Amazon ES Configuration API and for indexing documents.  The pattern needs to be `arn:.*`.
+* `s3_backup_mode` - (Optional) Defines how documents should be delivered to Aamazon S3.  Valid values are `FailedDocumentsOnly` and `AllDocuments`.  Default value is `FailedDocumentsOnly`.
+* `type_name` - (Required) The Elasticsearch type name with maximum length of 100 characters.
 
 ## Attributes Reference
 

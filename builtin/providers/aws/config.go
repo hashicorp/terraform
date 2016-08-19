@@ -1,17 +1,11 @@
 package aws
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/terraform"
-
-	"crypto/tls"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -39,6 +33,7 @@ import (
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elastictranscoder"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/aws/aws-sdk-go/service/glacier"
@@ -56,6 +51,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type Config struct {
@@ -75,7 +75,13 @@ type Config struct {
 	Ec2Endpoint      string
 	IamEndpoint      string
 	ElbEndpoint      string
+	S3Endpoint       string
 	Insecure         bool
+
+	SkipCredsValidation     bool
+	SkipRequestingAccountId bool
+	SkipMetadataApiCheck    bool
+	S3ForcePathStyle        bool
 }
 
 type AWSClient struct {
@@ -92,6 +98,7 @@ type AWSClient struct {
 	ecsconn               *ecs.ECS
 	efsconn               *efs.EFS
 	elbconn               *elb.ELB
+	elbv2conn             *elbv2.ELBV2
 	emrconn               *emr.EMR
 	esconn                *elasticsearch.ElasticsearchService
 	apigateway            *apigateway.APIGateway
@@ -141,7 +148,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := GetCredentials(c.AccessKey, c.SecretKey, c.Token, c.Profile, c.CredsFilename)
+		creds := GetCredentials(c)
 		// Call Get to check for credential provider. If nothing found, we'll get an
 		// error, and we can present it nicely to the user
 		cp, err := creds.Get()
@@ -159,10 +166,11 @@ func (c *Config) Client() (interface{}, error) {
 		log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
 
 		awsConfig := &aws.Config{
-			Credentials: creds,
-			Region:      aws.String(c.Region),
-			MaxRetries:  aws.Int(c.MaxRetries),
-			HTTPClient:  cleanhttp.DefaultClient(),
+			Credentials:      creds,
+			Region:           aws.String(c.Region),
+			MaxRetries:       aws.Int(c.MaxRetries),
+			HTTPClient:       cleanhttp.DefaultClient(),
+			S3ForcePathStyle: aws.Bool(c.S3ForcePathStyle),
 		}
 
 		if logging.IsDebugOrHigher() {
@@ -178,7 +186,10 @@ func (c *Config) Client() (interface{}, error) {
 		}
 
 		// Set up base session
-		sess := session.New(awsConfig)
+		sess, err := session.NewSession(awsConfig)
+		if err != nil {
+			return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
+		}
 		sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
 
 		// Some services exist only in us-east-1, e.g. because they manage
@@ -192,6 +203,7 @@ func (c *Config) Client() (interface{}, error) {
 		awsEc2Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.Ec2Endpoint)})
 		awsElbSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.ElbEndpoint)})
 		awsIamSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)})
+		awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
 		dynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
 		kinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
 
@@ -199,14 +211,19 @@ func (c *Config) Client() (interface{}, error) {
 		client.iamconn = iam.New(awsIamSess)
 		client.stsconn = sts.New(sess)
 
-		err = c.ValidateCredentials(client.stsconn)
-		if err != nil {
-			errs = append(errs, err)
-			return nil, &multierror.Error{Errors: errs}
+		if !c.SkipCredsValidation {
+			err = c.ValidateCredentials(client.stsconn)
+			if err != nil {
+				errs = append(errs, err)
+				return nil, &multierror.Error{Errors: errs}
+			}
 		}
-		accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
-		if err == nil {
-			client.accountid = accountId
+
+		if !c.SkipRequestingAccountId {
+			accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
+			if err == nil {
+				client.accountid = accountId
+			}
 		}
 
 		authErr := c.ValidateAccountId(client.accountid)
@@ -235,6 +252,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.elasticbeanstalkconn = elasticbeanstalk.New(sess)
 		client.elastictranscoderconn = elastictranscoder.New(sess)
 		client.elbconn = elb.New(awsElbSess)
+		client.elbv2conn = elbv2.New(awsElbSess)
 		client.emrconn = emr.New(sess)
 		client.esconn = elasticsearch.New(sess)
 		client.firehoseconn = firehose.New(sess)
@@ -247,7 +265,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.rdsconn = rds.New(sess)
 		client.redshiftconn = redshift.New(sess)
 		client.simpledbconn = simpledb.New(sess)
-		client.s3conn = s3.New(sess)
+		client.s3conn = s3.New(awsS3Sess)
 		client.sesConn = ses.New(sess)
 		client.snsconn = sns.New(sess)
 		client.sqsconn = sqs.New(sess)

@@ -47,11 +47,12 @@ func tempDir(t *testing.T) string {
 }
 
 // tempEnv lets you temporarily set an environment variable. It returns
+// a function to defer to reset the old value.
 // the old value that should be set via a defer.
-func tempEnv(t *testing.T, k string, v string) string {
+func tempEnv(t *testing.T, k string, v string) func() {
 	old := os.Getenv(k)
 	os.Setenv(k, v)
-	return old
+	return func() { os.Setenv(k, old) }
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
@@ -1413,3 +1414,14 @@ module.mod2:
 STATE:
 
 <no state>`
+
+const testTerraformInputHCL = `
+hcl_instance.hcltest:
+  ID = foo
+  bar.w = z
+  bar.x = y
+  foo.# = 2
+  foo.0 = a
+  foo.1 = b
+  type = hcl_instance
+`

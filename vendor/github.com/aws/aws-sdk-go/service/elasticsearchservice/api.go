@@ -653,6 +653,12 @@ type CreateElasticsearchDomainInput struct {
 	// type and number of instances in the domain cluster.
 	ElasticsearchClusterConfig *ElasticsearchClusterConfig `type:"structure"`
 
+	// String of format X.Y to specify version for the Elasticsearch domain eg.
+	// "1.5" or "2.3". For more information, see Creating Elasticsearch Domains
+	// (http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomains"
+	// target="_blank) in the Amazon Elasticsearch Service Developer Guide.
+	ElasticsearchVersion *string `type:"string"`
+
 	// Option to set time, in UTC format, of the daily automated snapshot. Default
 	// value is 0 hours.
 	SnapshotOptions *SnapshotOptions `type:"structure"`
@@ -1062,6 +1068,9 @@ type ElasticsearchDomainConfig struct {
 	// Specifies the ElasticsearchClusterConfig for the Elasticsearch domain.
 	ElasticsearchClusterConfig *ElasticsearchClusterConfigStatus `type:"structure"`
 
+	// String of format X.Y to specify version for the Elasticsearch domain.
+	ElasticsearchVersion *ElasticsearchVersionStatus `type:"structure"`
+
 	// Specifies the SnapshotOptions for the Elasticsearch domain.
 	SnapshotOptions *SnapshotOptionsStatus `type:"structure"`
 }
@@ -1118,6 +1127,8 @@ type ElasticsearchDomainStatus struct {
 	// The type and number of instances in the domain cluster.
 	ElasticsearchClusterConfig *ElasticsearchClusterConfig `type:"structure" required:"true"`
 
+	ElasticsearchVersion *string `type:"string"`
+
 	// The Elasticsearch domain endpoint that you use to submit index and search
 	// requests.
 	Endpoint *string `type:"string"`
@@ -1138,6 +1149,29 @@ func (s ElasticsearchDomainStatus) String() string {
 
 // GoString returns the string representation
 func (s ElasticsearchDomainStatus) GoString() string {
+	return s.String()
+}
+
+// Status of the Elasticsearch version options for the specified Elasticsearch
+// domain.
+type ElasticsearchVersionStatus struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the Elasticsearch version for the specified Elasticsearch domain.
+	Options *string `type:"string" required:"true"`
+
+	// Specifies the status of the Elasticsearch version options for the specified
+	// Elasticsearch domain.
+	Status *OptionStatus `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s ElasticsearchVersionStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ElasticsearchVersionStatus) GoString() string {
 	return s.String()
 }
 
@@ -1479,6 +1513,16 @@ const (
 	ESPartitionInstanceTypeM3XlargeElasticsearch = "m3.xlarge.elasticsearch"
 	// @enum ESPartitionInstanceType
 	ESPartitionInstanceTypeM32xlargeElasticsearch = "m3.2xlarge.elasticsearch"
+	// @enum ESPartitionInstanceType
+	ESPartitionInstanceTypeM4LargeElasticsearch = "m4.large.elasticsearch"
+	// @enum ESPartitionInstanceType
+	ESPartitionInstanceTypeM4XlargeElasticsearch = "m4.xlarge.elasticsearch"
+	// @enum ESPartitionInstanceType
+	ESPartitionInstanceTypeM42xlargeElasticsearch = "m4.2xlarge.elasticsearch"
+	// @enum ESPartitionInstanceType
+	ESPartitionInstanceTypeM44xlargeElasticsearch = "m4.4xlarge.elasticsearch"
+	// @enum ESPartitionInstanceType
+	ESPartitionInstanceTypeM410xlargeElasticsearch = "m4.10xlarge.elasticsearch"
 	// @enum ESPartitionInstanceType
 	ESPartitionInstanceTypeT2MicroElasticsearch = "t2.micro.elasticsearch"
 	// @enum ESPartitionInstanceType

@@ -4110,6 +4110,8 @@ type Authorizer struct {
 	// [Required] The name of the authorizer.
 	Name *string `locationName:"name" type:"string"`
 
+	ProviderARNs []*string `locationName:"providerARNs" type:"list"`
+
 	// [Required] The type of the authorizer. Currently, the only valid type is
 	// TOKEN.
 	Type *string `locationName:"type" type:"string" enum:"AuthorizerType"`
@@ -4227,7 +4229,7 @@ type CreateAuthorizerInput struct {
 	AuthorizerResultTtlInSeconds *int64 `locationName:"authorizerResultTtlInSeconds" type:"integer"`
 
 	// [Required] Specifies the authorizer's Uniform Resource Identifier (URI).
-	AuthorizerUri *string `locationName:"authorizerUri" type:"string" required:"true"`
+	AuthorizerUri *string `locationName:"authorizerUri" type:"string"`
 
 	// [Required] The source of the identity in an incoming request.
 	IdentitySource *string `locationName:"identitySource" type:"string" required:"true"`
@@ -4237,6 +4239,8 @@ type CreateAuthorizerInput struct {
 
 	// [Required] The name of the authorizer.
 	Name *string `locationName:"name" type:"string" required:"true"`
+
+	ProviderARNs []*string `locationName:"providerARNs" type:"list"`
 
 	// The RestApi identifier under which the Authorizer will be created.
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
@@ -4258,9 +4262,6 @@ func (s CreateAuthorizerInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateAuthorizerInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateAuthorizerInput"}
-	if s.AuthorizerUri == nil {
-		invalidParams.Add(request.NewErrParamRequired("AuthorizerUri"))
-	}
 	if s.IdentitySource == nil {
 		invalidParams.Add(request.NewErrParamRequired("IdentitySource"))
 	}
@@ -7777,6 +7778,8 @@ type TestInvokeAuthorizerOutput struct {
 
 	Authorization map[string][]*string `locationName:"authorization" type:"map"`
 
+	Claims map[string]*string `locationName:"claims" type:"map"`
+
 	// The HTTP status code that the client would have received. Value is 0 if the
 	// authorizer succeeded.
 	ClientStatus *int64 `locationName:"clientStatus" type:"integer"`
@@ -8530,6 +8533,8 @@ func (s *UpdateStageInput) Validate() error {
 const (
 	// @enum AuthorizerType
 	AuthorizerTypeToken = "TOKEN"
+	// @enum AuthorizerType
+	AuthorizerTypeCognitoUserPools = "COGNITO_USER_POOLS"
 )
 
 // Returns the size of the CacheCluster.

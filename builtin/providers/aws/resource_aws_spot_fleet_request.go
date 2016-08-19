@@ -290,6 +290,13 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 
 func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{}) (*ec2.SpotFleetLaunchSpecification, error) {
 	conn := meta.(*AWSClient).ec2conn
+
+	_, hasSubnet := d["subnet_id"]
+	_, hasAZ := d["availability_zone"]
+	if !hasAZ && !hasSubnet {
+		return nil, fmt.Errorf("LaunchSpecification must include a subnet_id or an availability_zone")
+	}
+
 	opts := &ec2.SpotFleetLaunchSpecification{
 		ImageId:      aws.String(d["ami"].(string)),
 		InstanceType: aws.String(d["instance_type"].(string)),
@@ -938,12 +945,6 @@ func hashLaunchSpecification(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", m["availability_zone"].(string)))
 	} else if m["subnet_id"] != nil && m["subnet_id"] != "" {
 		buf.WriteString(fmt.Sprintf("%s-", m["subnet_id"].(string)))
-	} else {
-		panic(
-			fmt.Sprintf(
-				"Must set one of:\navailability_zone %#v\nsubnet_id: %#v",
-				m["availability_zone"],
-				m["subnet_id"]))
 	}
 	buf.WriteString(fmt.Sprintf("%s-", m["instance_type"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["spot_price"].(string)))

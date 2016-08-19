@@ -171,6 +171,12 @@ func init() {
 			}, nil
 		},
 
+		"state rm": func() (cli.Command, error) {
+			return &command.StateRmCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"state mv": func() (cli.Command, error) {
 			return &command.StateMvCommand{
 				Meta: meta,
