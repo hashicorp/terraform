@@ -190,7 +190,7 @@ func testAccComputeInstanceGroup_basic(instance string) string {
 		zone = "us-central1-c"
 
 		disk {
-			image = "debian-7-wheezy-v20160301"
+			image = "debian-8-jessie-v20160803"
 		}
 
 		network_interface {
@@ -238,7 +238,7 @@ func testAccComputeInstanceGroup_update(instance string) string {
 		count = 1
 
 		disk {
-			image = "debian-7-wheezy-v20160301"
+			image = "debian-8-jessie-v20160803"
 		}
 
 		network_interface {
@@ -273,7 +273,7 @@ func testAccComputeInstanceGroup_update2(instance string) string {
 		count = 3
 
 		disk {
-			image = "debian-7-wheezy-v20160301"
+			image = "debian-8-jessie-v20160803"
 		}
 
 		network_interface {
