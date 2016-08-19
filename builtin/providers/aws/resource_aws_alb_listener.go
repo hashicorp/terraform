@@ -73,7 +73,7 @@ func resourceAwsAlbListener() *schema.Resource {
 						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateAwsAlbListenerDefaultActionType,
+							ValidateFunc: validateAwsAlbListenerActionType,
 						},
 					},
 				},
@@ -247,7 +247,7 @@ func validateAwsAlbListenerProtocol(v interface{}, k string) (ws []string, error
 	return
 }
 
-func validateAwsAlbListenerDefaultActionType(v interface{}, k string) (ws []string, errors []error) {
+func validateAwsAlbListenerActionType(v interface{}, k string) (ws []string, errors []error) {
 	value := strings.ToLower(v.(string))
 	if value != "forward" {
 		errors = append(errors, fmt.Errorf("%q must have the value %q", k, "forward"))
