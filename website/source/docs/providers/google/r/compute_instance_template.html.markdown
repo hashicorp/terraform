@@ -32,7 +32,7 @@ resource "google_compute_instance_template" "foobar" {
 
   // Create a new boot disk from an image
   disk {
-    source_image = "debian-7-wheezy-v20160301"
+    source_image = "debian-cloud/debian-8"
     auto_delete = true
     boot = true
   }
@@ -226,7 +226,8 @@ The `scheduling` block supports:
 * `on_host_maintenance` - (Optional) Defines the maintenance behavior for this
     instance.
 
-* `preemptible` - (Optional) Allows instance to be preempted. Read more on this
+* `preemptible` - (Optional) Allows instance to be preempted. This defaults to
+    false. Read more on this
     [here](https://cloud.google.com/compute/docs/instances/preemptible).
 
 ## Attributes Reference

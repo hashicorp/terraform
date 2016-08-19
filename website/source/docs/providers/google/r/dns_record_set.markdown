@@ -21,7 +21,7 @@ resource "google_compute_instance" "frontend" {
   zone         = "us-central1-b"
 
   disk {
-    image = "debian-7-wheezy-v20160301"
+    image = "debian-cloud/debian-8"
   }
 
   network_interface {

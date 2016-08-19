@@ -33,6 +33,7 @@ import (
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elastictranscoder"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/aws/aws-sdk-go/service/glacier"
@@ -97,6 +98,7 @@ type AWSClient struct {
 	ecsconn               *ecs.ECS
 	efsconn               *efs.EFS
 	elbconn               *elb.ELB
+	elbv2conn             *elbv2.ELBV2
 	emrconn               *emr.EMR
 	esconn                *elasticsearch.ElasticsearchService
 	apigateway            *apigateway.APIGateway
@@ -186,7 +188,7 @@ func (c *Config) Client() (interface{}, error) {
 		// Set up base session
 		sess, err := session.NewSession(awsConfig)
 		if err != nil {
-			return nil, errwrap.Wrapf("Error creating AWS session: %s", err)
+			return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 		}
 		sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
 
@@ -250,6 +252,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.elasticbeanstalkconn = elasticbeanstalk.New(sess)
 		client.elastictranscoderconn = elastictranscoder.New(sess)
 		client.elbconn = elb.New(awsElbSess)
+		client.elbv2conn = elbv2.New(awsElbSess)
 		client.emrconn = emr.New(sess)
 		client.esconn = elasticsearch.New(sess)
 		client.firehoseconn = firehose.New(sess)

@@ -2,10 +2,11 @@ package archive
 
 import (
 	"fmt"
-	r "github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 	"os"
 	"testing"
+
+	r "github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccArchiveFile_Basic(t *testing.T) {
@@ -35,6 +36,12 @@ func TestAccArchiveFile_Basic(t *testing.T) {
 				Check: r.ComposeTestCheckFunc(
 					testAccArchiveFileExists("zip_file_acc_test.zip", &fileSize),
 					r.TestCheckResourceAttrPtr("archive_file.foo", "output_size", &fileSize),
+				),
+			},
+			r.TestStep{
+				Config: testAccArchiveFileOutputPath,
+				Check: r.ComposeTestCheckFunc(
+					testAccArchiveFileExists(fmt.Sprintf("%s/test.zip", tmpDir), &fileSize),
 				),
 			},
 		},
@@ -74,6 +81,16 @@ resource "archive_file" "foo" {
   output_path             = "zip_file_acc_test.zip"
 }
 `
+
+var tmpDir = os.TempDir() + "/test"
+var testAccArchiveFileOutputPath = fmt.Sprintf(`
+resource "archive_file" "foo" {
+  type                    = "zip"
+  source_content          = "This is some content"
+  source_content_filename = "content.txt"
+  output_path             = "%s/test.zip"
+}
+`, tmpDir)
 
 var testAccArchiveFileFileConfig = `
 resource "archive_file" "foo" {

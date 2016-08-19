@@ -114,6 +114,15 @@ func resourceDatadogMonitor() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"tags": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+					Elem: &schema.Schema{
+						Type: schema.TypeString},
+				},
+			},
 		},
 	}
 }
@@ -177,6 +186,14 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		Name:    d.Get("name").(string),
 		Message: d.Get("message").(string),
 		Options: o,
+	}
+
+	if attr, ok := d.GetOk("tags"); ok {
+		s := make([]string, 0)
+		for k, v := range attr.(map[string]interface{}) {
+			s = append(s, fmt.Sprintf("%s:%s", k, v.(string)))
+		}
+		m.Tags = s
 	}
 
 	return &m
@@ -244,6 +261,7 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("escalation_message", m.Options.EscalationMessage)
 	d.Set("silenced", m.Options.Silenced)
 	d.Set("include_tags", m.Options.IncludeTags)
+	d.Set("tags", m.Tags)
 	d.Set("require_full_window", m.Options.RequireFullWindow)
 	d.Set("locked", m.Options.Locked)
 
@@ -269,6 +287,14 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 	if attr, ok := d.GetOk("query"); ok {
 		m.Query = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("tags"); ok {
+		s := make([]string, 0)
+		for k, v := range attr.(map[string]interface{}) {
+			s = append(s, fmt.Sprintf("%s:%s", k, v.(string)))
+		}
+		m.Tags = s
 	}
 
 	o := datadog.Options{}

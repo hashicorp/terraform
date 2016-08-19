@@ -40,4 +40,6 @@ The following attributes are exported:
 
 * `backend` - See Argument Reference above.
 * `config` - See Argument Reference above.
-* `output` - The values of the configured `outputs` for the root module referenced by the remote state.
+
+In addition, each output in the remote state appears as a top level attribute
+on the `terraform_remote_state` resource.

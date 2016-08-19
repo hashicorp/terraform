@@ -39,7 +39,7 @@ func testAccDatabaseCheck(rn string, name *string) resource.TestCheckFunc {
 			return fmt.Errorf("database id not set")
 		}
 
-		conn := testAccProvider.Meta().(mysqlc.Conn)
+		conn := testAccProvider.Meta().(*providerConfiguration).Conn
 		rows, _, err := conn.Query("SHOW CREATE DATABASE terraform_acceptance_test")
 		if err != nil {
 			return fmt.Errorf("error reading database: %s", err)
@@ -66,7 +66,7 @@ func testAccDatabaseCheck(rn string, name *string) resource.TestCheckFunc {
 
 func testAccDatabaseCheckDestroy(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		conn := testAccProvider.Meta().(mysqlc.Conn)
+		conn := testAccProvider.Meta().(*providerConfiguration).Conn
 
 		_, _, err := conn.Query("SHOW CREATE DATABASE terraform_acceptance_test")
 		if err == nil {
