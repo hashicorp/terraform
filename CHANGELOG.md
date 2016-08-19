@@ -45,6 +45,7 @@ IMPROVEMENTS
  * provider/aws: Add `force_destroy` option to `aws_route53_zone` [GH-8239]
  * provider/aws: Support import of `aws_s3_bucket` [GH-8262]
  * provider/aws: Increase timeout for retrying creation of IAM role [GH-7733]
+ * provider/aws: Add ability to set peering options in aws_vpc_peering_connection. [GH-8310]
  * provider/azure: add custom_data argument for azure_instance resource [GH-8158]
  * provider/azurerm: Adds support for uploading blobs to azure storage from local source [GH-7994]
  * provider/azurerm: Storage blob contents can be copied from an existing blob [GH-8126]
