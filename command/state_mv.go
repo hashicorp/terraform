@@ -156,6 +156,11 @@ func (c *StateMvCommand) addableResult(results []*terraform.StateFilterResult) i
 			}
 		}
 
+		// If we only have one item, add it directly
+		if len(result) == 1 {
+			return result[0]
+		}
+
 		return result
 
 	default:
