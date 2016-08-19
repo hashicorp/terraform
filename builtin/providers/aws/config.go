@@ -188,7 +188,7 @@ func (c *Config) Client() (interface{}, error) {
 		// Set up base session
 		sess, err := session.NewSession(awsConfig)
 		if err != nil {
-			return nil, errwrap.Wrapf("Error creating AWS session: %s", err)
+			return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 		}
 		sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
 
