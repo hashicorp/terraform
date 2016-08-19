@@ -160,6 +160,14 @@ func stateAddFunc_Resource_Resource(s *State, fromAddr, addr *ResourceAddress, r
 			return fmt.Errorf("resource move with no value to: %s", addr)
 		}
 
+		// If there is an index, this is an error since we can't assign
+		// a set of resources to a single index
+		if addr.Index >= 0 {
+			return fmt.Errorf(
+				"multiple resources can't be moved to a single index: "+
+					"%s => %s", fromAddr, addr)
+		}
+
 		// Add each with a specific index
 		for i, rs := range list {
 			addrCopy := addr.Copy()

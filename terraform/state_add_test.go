@@ -416,6 +416,30 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
+		"ResourceState with count unspecified => Resource Addr (new with count)": {
+			true,
+			"aws_instance.bar",
+			"aws_instance.foo[0]",
+			[]*ResourceState{
+				&ResourceState{
+					Type: "test_instance",
+					Primary: &InstanceState{
+						ID: "foo",
+					},
+				},
+
+				&ResourceState{
+					Type: "test_instance",
+					Primary: &InstanceState{
+						ID: "bar",
+					},
+				},
+			},
+
+			&State{},
+			nil,
+		},
+
 		"ResourceState => Resource Addr (existing)": {
 			true,
 			"aws_instance.bar",
