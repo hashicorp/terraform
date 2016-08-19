@@ -223,6 +223,83 @@ func TestStateMv_noState(t *testing.T) {
 	}
 }
 
+func TestStateMv_stateOutNew_count(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo.0": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+
+					"test_instance.foo.1": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+
+					"test_instance.bar": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, state)
+	stateOutPath := statePath + ".out"
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-state-out", stateOutPath,
+		"test_instance.foo",
+		"test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, stateOutPath, testStateMvCount_stateOut)
+	testStateOutput(t, statePath, testStateMvCount_stateOutSrc)
+
+	// Test we have backups
+	backups := testStateBackups(t, filepath.Dir(statePath))
+	if len(backups) != 1 {
+		t.Fatalf("bad: %#v", backups)
+	}
+	testStateOutput(t, backups[0], testStateMvCount_stateOutOriginal)
+}
+
 func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
@@ -322,6 +399,39 @@ test_instance.bar:
   foo = value
 test_instance.baz:
   ID = foo
+  bar = value
+  foo = value
+`
+
+const testStateMvCount_stateOut = `
+test_instance.bar.0:
+  ID = foo
+  bar = value
+  foo = value
+test_instance.bar.1:
+  ID = bar
+  bar = value
+  foo = value
+`
+
+const testStateMvCount_stateOutSrc = `
+test_instance.bar:
+  ID = bar
+  bar = value
+  foo = value
+`
+
+const testStateMvCount_stateOutOriginal = `
+test_instance.bar:
+  ID = bar
+  bar = value
+  foo = value
+test_instance.foo.0:
+  ID = foo
+  bar = value
+  foo = value
+test_instance.foo.1:
+  ID = bar
   bar = value
   foo = value
 `
