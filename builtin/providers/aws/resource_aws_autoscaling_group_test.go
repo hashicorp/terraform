@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
@@ -322,19 +323,28 @@ func TestAccAWSAutoScalingGroup_withMetrics(t *testing.T) {
 func TestAccAWSAutoScalingGroup_ALB_TargetGroups(t *testing.T) {
 	var group autoscaling.Group
 	var tg elbv2.TargetGroup
+	var tg2 elbv2.TargetGroup
 
-	testCheck := func(*terraform.State) error {
-		var found bool
-		for _, t := range group.TargetGroupARNs {
-			if *tg.TargetGroupArn == *t {
-				found = true
+	testCheck := func(targets []*elbv2.TargetGroup) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			var ts []string
+			var gs []string
+			for _, t := range targets {
+				ts = append(ts, *t.TargetGroupArn)
 			}
-		}
 
-		if !found {
-			return fmt.Errorf("Error: target group match not found!\nASG Target groups: %#v\nTarget Group: %#v", group.TargetGroupARNs, tg)
+			for _, s := range group.TargetGroupARNs {
+				gs = append(gs, *s)
+			}
+
+			sort.Strings(ts)
+			sort.Strings(gs)
+
+			if !reflect.DeepEqual(ts, gs) {
+				return fmt.Errorf("Error: target group match not found!\nASG Target groups: %#v\nTarget Group: %#v", ts, gs)
+			}
+			return nil
 		}
-		return nil
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -357,7 +367,8 @@ func TestAccAWSAutoScalingGroup_ALB_TargetGroups(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &tg),
-					testCheck,
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test_more", &tg2),
+					testCheck([]*elbv2.TargetGroup{&tg, &tg2}),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "target_group_arns.#", "2"),
 				),
@@ -368,7 +379,7 @@ func TestAccAWSAutoScalingGroup_ALB_TargetGroups(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &tg),
-					testCheck,
+					testCheck([]*elbv2.TargetGroup{&tg}),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "target_group_arns.#", "1"),
 				),
