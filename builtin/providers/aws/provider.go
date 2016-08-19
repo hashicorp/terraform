@@ -156,6 +156,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_alb_listener":                             resourceAwsAlbListener(),
 			"aws_alb_listener_rule":                        resourceAwsAlbListenerRule(),
 			"aws_alb_target_group":                         resourceAwsAlbTargetGroup(),
+			"aws_alb_target_group_attachment":              resourceAwsAlbTargetGroupAttachment(),
 			"aws_ami":                                      resourceAwsAmi(),
 			"aws_ami_copy":                                 resourceAwsAmiCopy(),
 			"aws_ami_from_instance":                        resourceAwsAmiFromInstance(),
