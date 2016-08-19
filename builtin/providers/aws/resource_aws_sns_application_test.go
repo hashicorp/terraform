@@ -3,7 +3,6 @@ package aws
 import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"log"
 	"os"
 	"testing"
 
@@ -20,14 +19,13 @@ import (
 **/
 
 func TestAccAWSSNSApplication_gcm_create_update(t *testing.T) {
-
-	if os.Getenv("GCM_API_KEY") == "" {
-		log.Printf("Environment variable GCM_API_KEY not set. Tests cannot run.")
-		os.Exit(1)
-	}
-
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if os.Getenv("GCM_API_KEY") == "" {
+				t.Fatal("GCM_API_KEY must be set.")
+			}
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSNSApplicationDestroy,
 		Steps: []resource.TestStep{
@@ -75,18 +73,16 @@ func TestAccAWSSNSApplication_gcm_create_update(t *testing.T) {
 
 func TestAccAWSSNSApplication_apns_sandbox_create_update(t *testing.T) {
 
-	if os.Getenv("APNS_SANDBOX_CREDENTIAL") == "" {
-		log.Printf("Environment variable APNS_SANDBOX_CREDENTIAL not set. Tests cannot run.")
-		os.Exit(1)
-	}
-
-	if os.Getenv("APNS_SANDBOX_PRINCIPAL") == "" {
-		log.Printf("Environment variable APNS_SANDBOX_CREDENTIAL not set. Tests cannot run.")
-		os.Exit(1)
-	}
-
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if os.Getenv("APNS_SANDBOX_CREDENTIAL") == "" {
+				t.Fatal("APNS_SANDBOX_CREDENTIAL must be set.")
+			}
+			if os.Getenv("APNS_SANDBOX_PRINCIPAL") == "" {
+				t.Fatal("APNS_SANDBOX_PRINCIPAL must be set.")
+			}
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSNSApplicationDestroy,
 		Steps: []resource.TestStep{
