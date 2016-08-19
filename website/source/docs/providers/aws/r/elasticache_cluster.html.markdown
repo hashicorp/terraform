@@ -119,3 +119,12 @@ The following attributes are exported:
 
 [1]: https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheCluster.html
 [2]: https://docs.aws.amazon.com/fr_fr/AmazonElastiCache/latest/UserGuide/Clusters.Modify.html
+
+
+## Import
+
+ElastiCache Clusters can be imported using the `cluster_id`, e.g.
+
+```
+$ terraform import aws_elasticache_cluster.my_cluster my_cluster
+```
