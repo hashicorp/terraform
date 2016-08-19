@@ -139,6 +139,25 @@ func (c *StateMvCommand) addableResult(results []*terraform.StateFilterResult) i
 		}
 
 		return result
+
+	case *terraform.ResourceState:
+		// If a module state then we should add the full list of modules
+		result := []*terraform.ResourceState{v}
+		if len(results) > 1 {
+			for _, r := range results[1:] {
+				rs, ok := r.Value.(*terraform.ResourceState)
+				if !ok {
+					continue
+				}
+
+				if rs.Type == v.Type {
+					result = append(result, rs)
+				}
+			}
+		}
+
+		return result
+
 	default:
 		// By default just add the first result
 		return v
