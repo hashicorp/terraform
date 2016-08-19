@@ -151,6 +151,28 @@ func stateAddFunc_Resource_Module(
 }
 
 func stateAddFunc_Resource_Resource(s *State, fromAddr, addr *ResourceAddress, raw interface{}) error {
+	// raw can be either *ResourceState or []*ResourceState. The former means
+	// we're moving just one resource. The latter means we're moving a count
+	// of resources.
+	if list, ok := raw.([]*ResourceState); ok {
+		// We need at least one item
+		if len(list) == 0 {
+			return fmt.Errorf("resource move with no value to: %s", addr)
+		}
+
+		// Add each with a specific index
+		for i, rs := range list {
+			addrCopy := addr.Copy()
+			addrCopy.Index = i
+
+			if err := s.Add(fromAddr.String(), addrCopy.String(), rs); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
 	src := raw.(*ResourceState).deepcopy()
 
 	// Initialize the resource
@@ -270,6 +292,8 @@ func detectValueAddLoc(raw interface{}) stateAddLoc {
 	case []*ModuleState:
 		return stateAddModule
 	case *ResourceState:
+		return stateAddResource
+	case []*ResourceState:
 		return stateAddResource
 	case *InstanceState:
 		return stateAddInstance
