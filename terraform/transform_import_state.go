@@ -204,7 +204,7 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 	key := &ResourceStateKey{
 		Name:  n.Target.Name,
 		Type:  info.Type,
-		Index: -1,
+		Index: n.Target.Index,
 	}
 
 	// The eval sequence
