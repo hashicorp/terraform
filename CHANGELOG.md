@@ -26,6 +26,7 @@ FEATURES:
 IMPROVEMENTS
  * provider/archive support folders in output_path [GH-8278]
  * provider/aws: Introduce `aws_elasticsearch_domain` `elasticsearch_version` field (to specify ES version) [GH-7860]
+ * provider/aws: CloudWatch Metrics are now supported for `aws_route53_health_check` resources [GH-8319]
  * provider/aws: Query all pages of group membership [GH-6726]
  * provider/aws: Query all pages of IAM Policy attachments [GH-7779]
  * provider/aws: Change the way ARNs are built [GH-7151]
