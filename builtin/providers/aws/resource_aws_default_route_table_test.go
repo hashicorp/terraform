@@ -31,6 +31,40 @@ func TestAccAWSDefaultRouteTable_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDefaultRouteTable_swap(t *testing.T) {
+	var v ec2.RouteTable
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_default_route_table.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckDefaultRouteTableDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDefaultRouteTable_change,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists(
+						"aws_default_route_table.foo", &v),
+				),
+			},
+
+			// This config will swap out the original Default Route Table and replace
+			// it with the custom route table. While this is not advised, it's a
+			// behavior that may happen, in which case a follow up plan will show (in
+			// this case) a diff as the table now needs to be updated to match the
+			// config
+			resource.TestStep{
+				Config: testAccDefaultRouteTable_change_mod,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists(
+						"aws_default_route_table.foo", &v),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccCheckDefaultRouteTableDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -64,32 +98,9 @@ func testAccCheckDefaultRouteTableDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDefaultRouteTableExists(n string, v *ec2.RouteTable) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
-			RouteTableIds: []*string{aws.String(rs.Primary.ID)},
-		})
-		if err != nil {
-			return err
-		}
-		if len(resp.RouteTables) == 0 {
-			return fmt.Errorf("RouteTable not found")
-		}
-
-		*v = *resp.RouteTables[0]
-
-		return nil
-	}
+func testAccCheckDefaultRouteTableExists(s *terraform.State) error {
+	// We can't destroy this resource; it comes and goes with the VPC itself.
+	return nil
 }
 
 const testAccDefaultRouteTableConfig = `
@@ -123,137 +134,107 @@ resource "aws_internet_gateway" "gw" {
   }
 }`
 
-const testAccDefaultRouteTableConfigChange = `
+const testAccDefaultRouteTable_change = `
+provider "aws" {
+  region = "us-west-2"
+}
+
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "tf-default-route-table"
+  }
 }
 
-resource "aws_internet_gateway" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
+resource "aws_default_route_table" "foo" {
+  default_route_table_id = "${aws_vpc.foo.default_route_table_id}"
+
+  route {
+    cidr_block = "10.0.1.0/32"
+    gateway_id = "${aws_internet_gateway.gw.id}"
+  }
+
+  tags {
+    Name = "this was the first main"
+  }
 }
 
-resource "aws_route_table" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.foo.id}"
 
-	route {
-		cidr_block = "10.3.0.0/16"
-		gateway_id = "${aws_internet_gateway.foo.id}"
-	}
+  tags {
+    Name = "main-igw"
+  }
+}
 
-	route {
-		cidr_block = "10.4.0.0/16"
-		gateway_id = "${aws_internet_gateway.foo.id}"
-	}
+# Thing to help testing changes
+resource "aws_route_table" "r" {
+  vpc_id = "${aws_vpc.foo.id}"
+
+  route {
+    cidr_block = "10.0.1.0/24"
+    gateway_id = "${aws_internet_gateway.gw.id}"
+  }
+
+  tags {
+    Name = "other"
+  }
 }
 `
 
-const testAccDefaultRouteTableConfigInstance = `
+const testAccDefaultRouteTable_change_mod = `
+provider "aws" {
+  region = "us-west-2"
+}
+
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "tf-default-route-table"
+  }
 }
 
-resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo.id}"
+resource "aws_default_route_table" "foo" {
+  default_route_table_id = "${aws_vpc.foo.default_route_table_id}"
+
+  route {
+    cidr_block = "10.0.1.0/32"
+    gateway_id = "${aws_internet_gateway.gw.id}"
+  }
+
+  tags {
+    Name = "this was the first main"
+  }
 }
 
-resource "aws_instance" "foo" {
-	# us-west-2
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
-	subnet_id = "${aws_subnet.foo.id}"
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.foo.id}"
+
+  tags {
+    Name = "main-igw"
+  }
 }
 
-resource "aws_route_table" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
+# Thing to help testing changes
+resource "aws_route_table" "r" {
+  vpc_id = "${aws_vpc.foo.id}"
 
-	route {
-		cidr_block = "10.2.0.0/16"
-		instance_id = "${aws_instance.foo.id}"
-	}
-}
-`
+  route {
+    cidr_block = "10.0.1.0/24"
+    gateway_id = "${aws_internet_gateway.gw.id}"
+  }
 
-const testAccDefaultRouteTableConfigTags = `
-resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
-}
-
-resource "aws_route_table" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
-
-	tags {
-		foo = "bar"
-	}
-}
-`
-
-const testAccDefaultRouteTableConfigTagsUpdate = `
-resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  tags {
+    Name = "other"
+  }
 }
 
-resource "aws_route_table" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
-
-	tags {
-		bar = "baz"
-	}
-}
-`
-
-// VPC Peering connections are prefixed with pcx
-// This test requires an ENV var, AWS_ACCOUNT_ID, with a valid AWS Account ID
-func testAccDefaultRouteTableVpcPeeringConfig(acc string) string {
-	cfg := `resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
-}
-
-resource "aws_internet_gateway" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
-}
-
-resource "aws_vpc" "bar" {
-	cidr_block = "10.3.0.0/16"
-}
-
-resource "aws_internet_gateway" "bar" {
-	vpc_id = "${aws_vpc.bar.id}"
-}
-
-resource "aws_vpc_peering_connection" "foo" {
-		vpc_id = "${aws_vpc.foo.id}"
-		peer_vpc_id = "${aws_vpc.bar.id}"
-		peer_owner_id = "%s"
-		tags {
-			foo = "bar"
-		}
-}
-
-resource "aws_route_table" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
-
-	route {
-		cidr_block = "10.2.0.0/16"
-		vpc_peering_connection_id = "${aws_vpc_peering_connection.foo.id}"
-	}
-}
-`
-	return fmt.Sprintf(cfg, acc)
-}
-
-const testAccDefaultRouteTableVgwRoutePropagationConfig = `
-resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
-}
-
-resource "aws_vpn_gateway" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
-}
-
-resource "aws_route_table" "foo" {
-	vpc_id = "${aws_vpc.foo.id}"
-
-	propagating_vgws = ["${aws_vpn_gateway.foo.id}"]
+resource "aws_main_route_table_association" "a" {
+  vpc_id         = "${aws_vpc.foo.id}"
+  route_table_id = "${aws_route_table.r.id}"
 }
 `
