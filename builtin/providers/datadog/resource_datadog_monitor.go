@@ -18,6 +18,9 @@ func resourceDatadogMonitor() *schema.Resource {
 		Update: resourceDatadogMonitorUpdate,
 		Delete: resourceDatadogMonitorDelete,
 		Exists: resourceDatadogMonitorExists,
+		Importer: &schema.ResourceImporter{
+			State: resourceDatadogImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -369,4 +372,11 @@ func resourceDatadogMonitorDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	return nil
+}
+
+func resourceDatadogImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	if err := resourceDatadogMonitorRead(d, meta); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }
