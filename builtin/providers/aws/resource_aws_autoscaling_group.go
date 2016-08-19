@@ -243,6 +243,10 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.TerminationPolicies = expandStringList(v.([]interface{}))
 	}
 
+	if v, ok := d.GetOk("target_group_arns"); ok && len(v.(*schema.Set).List()) > 0 {
+		autoScalingGroupOpts.TargetGroupARNs = expandStringList(v.(*schema.Set).List())
+	}
+
 	log.Printf("[DEBUG] AutoScaling Group create configuration: %#v", autoScalingGroupOpts)
 	_, err := conn.CreateAutoScalingGroup(&autoScalingGroupOpts)
 	if err != nil {
@@ -287,20 +291,8 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
 	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
-	if g.TargetGroupARNs != nil {
-		log.Printf("\n***\nTarget groups:\n")
-		for i, t := range g.TargetGroupARNs {
-			log.Printf("\t%d: %s\n", i, *t)
-		}
-	}
-	log.Printf("\n@@@\nTarget groups: \n%s\n\n@@@\n", g.TargetGroupARNs)
 	if err := d.Set("target_group_arns", flattenStringList(g.TargetGroupARNs)); err != nil {
-		log.Printf("\n@@@\nERROR setting target groups: %s\n@@@\n", err)
-	} else {
-		log.Printf("\n@@@\nYay set tga\n@@@\n@@@")
-		for i, t := range flattenStringList(g.TargetGroupARNs) {
-			log.Printf("\t%d: %s\n", i, t.(string))
-		}
+		log.Printf("[ERR] Error setting target groups: %s", err)
 	}
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)

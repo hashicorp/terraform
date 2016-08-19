@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -312,6 +313,73 @@ func TestAccAWSAutoScalingGroup_withMetrics(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "enabled_metrics.#", "5"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSAutoScalingGroup_ALB_TargetGroups(t *testing.T) {
+	var group autoscaling.Group
+	var tg elbv2.TargetGroup
+
+	testCheck := func(*terraform.State) error {
+		var found bool
+		for _, t := range group.TargetGroupARNs {
+			if *tg.TargetGroupArn == *t {
+				found = true
+			}
+		}
+
+		if !found {
+			return fmt.Errorf("Error: target group match not found!\nASG Target groups: %#v\nTarget Group: %#v", group.TargetGroupARNs, tg)
+		}
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_pre,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &tg),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "target_group_arns.#", "0"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_post_duo,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &tg),
+					testCheck,
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "target_group_arns.#", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_post,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &tg),
+					testCheck,
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "target_group_arns.#", "1"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_pre,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "target_group_arns.#", "0"),
 				),
 			},
 		},
@@ -879,5 +947,265 @@ resource "aws_autoscaling_group" "bar" {
   	     "GroupMaxSize"
   ]
   metrics_granularity = "1Minute"
+}
+`
+
+const testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_pre = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "default" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+
+resource "aws_alb_target_group" "test" {
+  name     = "tf-example-alb-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${aws_vpc.default.id}"
+}
+
+resource "aws_subnet" "main" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+
+resource "aws_subnet" "alt" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-west-2b"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+
+resource "aws_launch_configuration" "foobar" {
+  # Golang-base from cts-hashi aws account, shared with tf testing account
+  image_id          = "ami-1817d178"
+  instance_type     = "t2.micro"
+  enable_monitoring = false
+}
+
+resource "aws_autoscaling_group" "bar" {
+  vpc_zone_identifier = [
+    "${aws_subnet.main.id}",
+    "${aws_subnet.alt.id}",
+  ]
+
+  max_size                  = 2
+  min_size                  = 0
+  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  desired_capacity          = 0
+  force_delete              = true
+  termination_policies      = ["OldestInstance"]
+  launch_configuration      = "${aws_launch_configuration.foobar.name}"
+
+}
+
+resource "aws_security_group" "tf_test_self" {
+  name        = "tf_test_alb_asg"
+  description = "tf_test_alb_asg"
+  vpc_id      = "${aws_vpc.default.id}"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+`
+
+const testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_post = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "default" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+
+resource "aws_alb_target_group" "test" {
+  name     = "tf-example-alb-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${aws_vpc.default.id}"
+}
+
+resource "aws_subnet" "main" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+
+resource "aws_subnet" "alt" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-west-2b"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+
+resource "aws_launch_configuration" "foobar" {
+  # Golang-base from cts-hashi aws account, shared with tf testing account
+  image_id          = "ami-1817d178"
+  instance_type     = "t2.micro"
+  enable_monitoring = false
+}
+
+resource "aws_autoscaling_group" "bar" {
+  vpc_zone_identifier = [
+    "${aws_subnet.main.id}",
+    "${aws_subnet.alt.id}",
+  ]
+
+	target_group_arns = ["${aws_alb_target_group.test.arn}"]
+
+  max_size                  = 2
+  min_size                  = 0
+  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  desired_capacity          = 0
+  force_delete              = true
+  termination_policies      = ["OldestInstance"]
+  launch_configuration      = "${aws_launch_configuration.foobar.name}"
+
+}
+
+resource "aws_security_group" "tf_test_self" {
+  name        = "tf_test_alb_asg"
+  description = "tf_test_alb_asg"
+  vpc_id      = "${aws_vpc.default.id}"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+`
+
+const testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_post_duo = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "default" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+
+resource "aws_alb_target_group" "test" {
+  name     = "tf-example-alb-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${aws_vpc.default.id}"
+}
+
+resource "aws_alb_target_group" "test_more" {
+  name     = "tf-example-alb-tg-more"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${aws_vpc.default.id}"
+}
+
+resource "aws_subnet" "main" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+
+resource "aws_subnet" "alt" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-west-2b"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
+}
+
+resource "aws_launch_configuration" "foobar" {
+  # Golang-base from cts-hashi aws account, shared with tf testing account
+  image_id          = "ami-1817d178"
+  instance_type     = "t2.micro"
+  enable_monitoring = false
+}
+
+resource "aws_autoscaling_group" "bar" {
+  vpc_zone_identifier = [
+    "${aws_subnet.main.id}",
+    "${aws_subnet.alt.id}",
+  ]
+
+	target_group_arns = [
+		"${aws_alb_target_group.test.arn}",
+		"${aws_alb_target_group.test_more.arn}",
+	]
+
+  max_size                  = 2
+  min_size                  = 0
+  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  desired_capacity          = 0
+  force_delete              = true
+  termination_policies      = ["OldestInstance"]
+  launch_configuration      = "${aws_launch_configuration.foobar.name}"
+
+}
+
+resource "aws_security_group" "tf_test_self" {
+  name        = "tf_test_alb_asg"
+  description = "tf_test_alb_asg"
+  vpc_id      = "${aws_vpc.default.id}"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup"
+  }
 }
 `
