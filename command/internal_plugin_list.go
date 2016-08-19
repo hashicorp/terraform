@@ -29,6 +29,7 @@ import (
 	googleprovider "github.com/hashicorp/terraform/builtin/providers/google"
 	grafanaprovider "github.com/hashicorp/terraform/builtin/providers/grafana"
 	herokuprovider "github.com/hashicorp/terraform/builtin/providers/heroku"
+	icinga2provider "github.com/hashicorp/terraform/builtin/providers/icinga2"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
@@ -87,6 +88,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"google":       googleprovider.Provider,
 	"grafana":      grafanaprovider.Provider,
 	"heroku":       herokuprovider.Provider,
+	"icinga2":      icinga2provider.Provider,
 	"influxdb":     influxdbprovider.Provider,
 	"librato":      libratoprovider.Provider,
 	"logentries":   logentriesprovider.Provider,
