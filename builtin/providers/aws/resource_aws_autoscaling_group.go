@@ -169,6 +169,13 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Default:  false,
 			},
 
+			"target_group_arns": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"tag": autoscalingTagsSchema(),
 		},
 	}
@@ -236,6 +243,10 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.TerminationPolicies = expandStringList(v.([]interface{}))
 	}
 
+	if v, ok := d.GetOk("target_group_arns"); ok && len(v.(*schema.Set).List()) > 0 {
+		autoScalingGroupOpts.TargetGroupARNs = expandStringList(v.(*schema.Set).List())
+	}
+
 	log.Printf("[DEBUG] AutoScaling Group create configuration: %#v", autoScalingGroupOpts)
 	_, err := conn.CreateAutoScalingGroup(&autoScalingGroupOpts)
 	if err != nil {
@@ -279,6 +290,9 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
 	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
+	if err := d.Set("target_group_arns", flattenStringList(g.TargetGroupARNs)); err != nil {
+		log.Printf("[ERR] Error setting target groups: %s", err)
+	}
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
 	d.Set("placement_group", g.PlacementGroup)
@@ -418,6 +432,42 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 			})
 			if err != nil {
 				return fmt.Errorf("[WARN] Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
+			}
+		}
+	}
+
+	if d.HasChange("target_group_arns") {
+
+		o, n := d.GetChange("target_group_arns")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+		remove := expandStringList(os.Difference(ns).List())
+		add := expandStringList(ns.Difference(os).List())
+
+		if len(remove) > 0 {
+			_, err := conn.DetachLoadBalancerTargetGroups(&autoscaling.DetachLoadBalancerTargetGroupsInput{
+				AutoScalingGroupName: aws.String(d.Id()),
+				TargetGroupARNs:      remove,
+			})
+			if err != nil {
+				return fmt.Errorf("[WARN] Error updating Load Balancers Target Groups for AutoScaling Group (%s), error: %s", d.Id(), err)
+			}
+		}
+
+		if len(add) > 0 {
+			_, err := conn.AttachLoadBalancerTargetGroups(&autoscaling.AttachLoadBalancerTargetGroupsInput{
+				AutoScalingGroupName: aws.String(d.Id()),
+				TargetGroupARNs:      add,
+			})
+			if err != nil {
+				return fmt.Errorf("[WARN] Error updating Load Balancers Target Groups for AutoScaling Group (%s), error: %s", d.Id(), err)
 			}
 		}
 	}
