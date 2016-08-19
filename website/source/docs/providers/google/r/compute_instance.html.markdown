@@ -25,7 +25,7 @@ resource "google_compute_instance" "default" {
   tags = ["foo", "bar"]
 
   disk {
-    image = "debian-7-wheezy-v20160301"
+    image = "debian-cloud/debian-8"
   }
 
   // Local SSD disk
