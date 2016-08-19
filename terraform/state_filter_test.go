@@ -93,6 +93,19 @@ func TestStateFilterFilter(t *testing.T) {
 			},
 		},
 
+		"no count index": {
+			"complete.tfstate",
+			[]string{"module.consul.aws_instance.consul-green"},
+			[]string{
+				"*terraform.ResourceState: module.consul.aws_instance.consul-green[0]",
+				"*terraform.InstanceState: module.consul.aws_instance.consul-green[0]",
+				"*terraform.ResourceState: module.consul.aws_instance.consul-green[1]",
+				"*terraform.InstanceState: module.consul.aws_instance.consul-green[1]",
+				"*terraform.ResourceState: module.consul.aws_instance.consul-green[2]",
+				"*terraform.InstanceState: module.consul.aws_instance.consul-green[2]",
+			},
+		},
+
 		"nested modules": {
 			"nested-modules.tfstate",
 			[]string{"module.outer"},
