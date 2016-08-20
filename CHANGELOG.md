@@ -1,5 +1,8 @@
 ## 0.7.2 (Unreleased)
 
+BUG FIXES:
+ * command/import: can import into specific indexes [GH-8335]
+
 ## 0.7.1 (August 19, 2016)
 
 FEATURES:
