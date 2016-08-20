@@ -3,11 +3,19 @@ package azure
 import (
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 const (
 	activeDirectoryAPIVersion = "1.0"
 )
+
+var environments = map[string]Environment{
+	"AZURECHINACLOUD":        ChinaCloud,
+	"AZUREGERMANCLOUD":       GermanCloud,
+	"AZUREPUBLICCLOUD":       PublicCloud,
+	"AZUREUSGOVERNMENTCLOUD": USGovernmentCloud,
+}
 
 // Environment represents a set of endpoints for each of Azure's Clouds.
 type Environment struct {
@@ -52,7 +60,7 @@ var (
 		ManagementPortalURL:       "https://manage.windowsazure.us/",
 		PublishSettingsURL:        "https://manage.windowsazure.us/publishsettings/index",
 		ServiceManagementEndpoint: "https://management.core.usgovcloudapi.net/",
-		ResourceManagerEndpoint:   "https://management.usgovcloudapi.net",
+		ResourceManagerEndpoint:   "https://management.usgovcloudapi.net/",
 		ActiveDirectoryEndpoint:   "https://login.microsoftonline.com/",
 		GalleryEndpoint:           "https://gallery.usgovcloudapi.net/",
 		KeyVaultEndpoint:          "https://vault.usgovcloudapi.net/",
@@ -87,8 +95,8 @@ var (
 		Name:                      "AzureGermanCloud",
 		ManagementPortalURL:       "http://portal.microsoftazure.de/",
 		PublishSettingsURL:        "https://manage.microsoftazure.de/publishsettings/index",
-		ServiceManagementEndpoint: "https://management.core.cloudapi.de",
-		ResourceManagerEndpoint:   "https://management.microsoftazure.de",
+		ServiceManagementEndpoint: "https://management.core.cloudapi.de/",
+		ResourceManagerEndpoint:   "https://management.microsoftazure.de/",
 		ActiveDirectoryEndpoint:   "https://login.microsoftonline.de/",
 		GalleryEndpoint:           "https://gallery.cloudapi.de/",
 		KeyVaultEndpoint:          "https://vault.microsoftazure.de/",
@@ -100,6 +108,16 @@ var (
 		ServiceBusEndpointSuffix:  "servicebus.cloudapi.de",
 	}
 )
+
+// EnvironmentFromName returns an Environment based on the common name specified
+func EnvironmentFromName(name string) (Environment, error) {
+	name = strings.ToUpper(name)
+	env, ok := environments[name]
+	if !ok {
+		return env, fmt.Errorf("autorest/azure: There is no cloud environment matching the name %q", name)
+	}
+	return env, nil
+}
 
 // OAuthConfigForTenant returns an OAuthConfig with tenant specific urls
 func (env Environment) OAuthConfigForTenant(tenantID string) (*OAuthConfig, error) {
