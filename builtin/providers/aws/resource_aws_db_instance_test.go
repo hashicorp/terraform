@@ -179,7 +179,7 @@ func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 // Regression test for https://github.com/hashicorp/terraform/issues/3760 .
 // We apply a plan, then change just the iops. If the apply succeeds, we
 // consider this a pass, as before in 3760 the request would fail
-func TestAccAWSDBInstance_iops_update(t *testing.T) {
+func TestAccAWS_separate_DBInstance_iops_update(t *testing.T) {
 	var v rds.DBInstance
 
 	rName := acctest.RandString(5)
@@ -203,11 +203,6 @@ func TestAccAWSDBInstance_iops_update(t *testing.T) {
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					testAccCheckAWSDBInstanceAttributes(&v),
 				),
-				// The plan will be non-empty because even with apply_immediatley, the
-				// instance has to apply the change via reboot, so follow up plans will
-				// show a non empty plan. The test is considered "successful" if the
-				// follow up change is applied at all.
-				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -352,9 +347,9 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			if newerr.Code() == "DBSnapshotNotFound" {
 				return fmt.Errorf("Snapshot %s not found", snapshot_identifier)
 			}
-		} else { // snapshot was found
+		} else { // snapshot was found,
 			// verify we have the tags copied to the snapshot
-			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta())
+			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
 			// tags have a different ARN, just swapping :db: for :snapshot:
 			tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
 			if err != nil {

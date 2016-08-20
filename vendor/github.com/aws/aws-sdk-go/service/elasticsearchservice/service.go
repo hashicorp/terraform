@@ -16,7 +16,7 @@ import (
 //
 // The endpoint for configuration service requests is region-specific: es.region.amazonaws.com.
 // For example, es.us-east-1.amazonaws.com. For a current list of supported
-// regions and endpoints, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#cloudsearch_region"
+// regions and endpoints, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#elasticsearch-service-regions"
 // target="_blank).
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.

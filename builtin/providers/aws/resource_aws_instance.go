@@ -128,6 +128,11 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"network_interface_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"public_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -361,13 +366,18 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Run configuration: %s", runOpts)
 
 	var runResp *ec2.Reservation
-	err = resource.Retry(10*time.Second, func() *resource.RetryError {
+	err = resource.Retry(15*time.Second, func() *resource.RetryError {
 		var err error
 		runResp, err = conn.RunInstances(runOpts)
-		// IAM profiles can take ~10 seconds to propagate in AWS:
+		// IAM instance profiles can take ~10 seconds to propagate in AWS:
 		// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 		if isAWSErr(err, "InvalidParameterValue", "Invalid IAM Instance Profile") {
 			log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
+			return resource.RetryableError(err)
+		}
+		// IAM roles can also take time to propagate in AWS:
+		if isAWSErr(err, "InvalidParameterValue", " has no associated IAM Roles") {
+			log.Printf("[DEBUG] IAM Instance Profile appears to have no IAM roles, retrying...")
 			return resource.RetryableError(err)
 		}
 		return resource.NonRetryableError(err)
@@ -488,10 +498,12 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		for _, ni := range instance.NetworkInterfaces {
 			if *ni.Attachment.DeviceIndex == 0 {
 				d.Set("subnet_id", ni.SubnetId)
+				d.Set("network_interface_id", ni.NetworkInterfaceId)
 			}
 		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
+		d.Set("network_interface_id", "")
 	}
 	d.Set("ebs_optimized", instance.EbsOptimized)
 	if instance.SubnetId != nil && *instance.SubnetId != "" {
@@ -931,8 +943,16 @@ func readBlockDeviceMappingsFromConfig(
 				ebs.VolumeType = aws.String(v)
 			}
 
-			if v, ok := bd["iops"].(int); ok && v > 0 {
+			if v, ok := bd["iops"].(int); ok && v > 0 && *ebs.VolumeType == "io1" {
+				// Only set the iops attribute if the volume type is io1. Setting otherwise
+				// can trigger a refresh/plan loop based on the computed value that is given
+				// from AWS, and prevent us from specifying 0 as a valid iops.
+				//   See https://github.com/hashicorp/terraform/pull/4146
+				//   See https://github.com/hashicorp/terraform/issues/7765
 				ebs.Iops = aws.Int64(int64(v))
+			} else if v, ok := bd["iops"].(int); ok && v > 0 && *ebs.VolumeType != "io1" {
+				// Message user about incompatibility
+				log.Printf("[WARN] IOPs is only valid for storate type io1 for EBS Volumes")
 			}
 
 			if dn, err := fetchRootDeviceName(d.Get("ami").(string), conn); err == nil {

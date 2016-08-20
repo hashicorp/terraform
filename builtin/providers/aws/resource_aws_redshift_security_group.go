@@ -22,6 +22,9 @@ func resourceAwsRedshiftSecurityGroup() *schema.Resource {
 		Read:   resourceAwsRedshiftSecurityGroupRead,
 		Update: resourceAwsRedshiftSecurityGroupUpdate,
 		Delete: resourceAwsRedshiftSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsRedshiftClusterImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{

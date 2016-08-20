@@ -122,7 +122,8 @@ When declaring multiple instances of a resource using [`count`](#count), it is
 common to want each instance to have a different value for a given attribute.
 
 You can use the `${count.index}`
-[interpolation](/docs/configuration/interpolation.html) along with a mapping [variable](/docs/configuration/variables.html) to accomplish this.
+[interpolation](/docs/configuration/interpolation.html) along with a map
+[variable](/docs/configuration/variables.html) to accomplish this.
 
 For example, here's how you could create three [AWS Instances](/docs/providers/aws/r/instance.html) each with their own static IP
 address:

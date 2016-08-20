@@ -63,6 +63,13 @@ func resourceCloudStackLoadBalancerRule() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -138,7 +145,10 @@ func resourceCloudStackLoadBalancerRuleRead(d *schema.ResourceData, meta interfa
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the load balancer details
-	lb, count, err := cs.LoadBalancer.GetLoadBalancerRuleByID(d.Id())
+	lb, count, err := cs.LoadBalancer.GetLoadBalancerRuleByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf("[DEBUG] Load balancer rule %s does no longer exist", d.Get("name").(string))
@@ -158,6 +168,8 @@ func resourceCloudStackLoadBalancerRuleRead(d *schema.ResourceData, meta interfa
 	if _, ok := d.GetOk("network_id"); ok {
 		d.Set("network_id", lb.Networkid)
 	}
+
+	setValueOrID(d, "project", lb.Project, lb.Projectid)
 
 	return nil
 }

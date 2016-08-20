@@ -36,7 +36,13 @@ type NameAvailabilityClient struct {
 // NewNameAvailabilityClient creates an instance of the NameAvailabilityClient
 // client.
 func NewNameAvailabilityClient(subscriptionID string) NameAvailabilityClient {
-	return NameAvailabilityClient{New(subscriptionID)}
+	return NewNameAvailabilityClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewNameAvailabilityClientWithBaseURI creates an instance of the
+// NameAvailabilityClient client.
+func NewNameAvailabilityClientWithBaseURI(baseURI string, subscriptionID string) NameAvailabilityClient {
+	return NameAvailabilityClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CheckNameAvailability sends the check name availability request.

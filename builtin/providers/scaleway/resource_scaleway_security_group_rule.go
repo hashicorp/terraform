@@ -154,6 +154,15 @@ func resourceScalewaySecurityGroupRuleDelete(d *schema.ResourceData, m interface
 
 	err := scaleway.DeleteSecurityGroupRule(d.Get("security_group").(string), d.Id())
 	if err != nil {
+		if serr, ok := err.(api.ScalewayAPIError); ok {
+			log.Printf("[DEBUG] error reading Security Group Rule: %q\n", serr.APIMessage)
+
+			if serr.StatusCode == 404 {
+				d.SetId("")
+				return nil
+			}
+		}
+
 		return err
 	}
 

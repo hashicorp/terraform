@@ -11,7 +11,9 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
+	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
@@ -44,6 +46,7 @@ type ArmClient struct {
 	vnetGatewayConnectionsClient network.VirtualNetworkGatewayConnectionsClient
 	vnetGatewayClient            network.VirtualNetworkGatewaysClient
 	vnetClient                   network.VirtualNetworksClient
+	vnetPeeringsClient           network.VirtualNetworkPeeringsClient
 	routeTablesClient            network.RouteTablesClient
 	routesClient                 network.RoutesClient
 
@@ -61,6 +64,11 @@ type ArmClient struct {
 	storageUsageClient   storage.UsageOperationsClient
 
 	deploymentsClient resources.DeploymentsClient
+
+	trafficManagerProfilesClient  trafficmanager.ProfilesClient
+	trafficManagerEndpointsClient trafficmanager.EndpointsClient
+
+	serviceBusNamespacesClient servicebus.NamespacesClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -253,6 +261,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vnc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vnetClient = vnc
 
+	vnpc := network.NewVirtualNetworkPeeringsClient(c.SubscriptionID)
+	setUserAgent(&vnpc.Client)
+	vnpc.Authorizer = spt
+	vnpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.vnetPeeringsClient = vnpc
+
 	rtc := network.NewRouteTablesClient(c.SubscriptionID)
 	setUserAgent(&rtc.Client)
 	rtc.Authorizer = spt
@@ -325,6 +339,24 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	dc.Sender = autorest.CreateSender(withRequestLogging())
 	client.deploymentsClient = dc
 
+	tmpc := trafficmanager.NewProfilesClient(c.SubscriptionID)
+	setUserAgent(&tmpc.Client)
+	tmpc.Authorizer = spt
+	tmpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.trafficManagerProfilesClient = tmpc
+
+	tmec := trafficmanager.NewEndpointsClient(c.SubscriptionID)
+	setUserAgent(&tmec.Client)
+	tmec.Authorizer = spt
+	tmec.Sender = autorest.CreateSender(withRequestLogging())
+	client.trafficManagerEndpointsClient = tmec
+
+	sbnc := servicebus.NewNamespacesClient(c.SubscriptionID)
+	setUserAgent(&sbnc.Client)
+	sbnc.Authorizer = spt
+	sbnc.Sender = autorest.CreateSender(withRequestLogging())
+	client.serviceBusNamespacesClient = sbnc
+
 	return &client, nil
 }
 
@@ -363,6 +395,23 @@ func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupN
 
 	blobClient := storageClient.GetBlobService()
 	return &blobClient, true, nil
+}
+func (armClient *ArmClient) getTableServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.TableServiceClient, bool, error) {
+	key, accountExists, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+	if err != nil {
+		return nil, accountExists, err
+	}
+	if accountExists == false {
+		return nil, false, nil
+	}
+
+	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	if err != nil {
+		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+	}
+
+	tableClient := storageClient.GetTableService()
+	return &tableClient, true, nil
 }
 
 func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.QueueServiceClient, bool, error) {

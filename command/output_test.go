@@ -100,6 +100,55 @@ func TestModuleOutput(t *testing.T) {
 	}
 }
 
+func TestModuleOutputs(t *testing.T) {
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			{
+				Path: []string{"root"},
+				Outputs: map[string]*terraform.OutputState{
+					"foo": {
+						Value: "bar",
+						Type:  "string",
+					},
+				},
+			},
+			{
+				Path: []string{"root", "my_module"},
+				Outputs: map[string]*terraform.OutputState{
+					"blah": {
+						Value: "tastatur",
+						Type:  "string",
+					},
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	ui := new(cli.MockUi)
+	c := &OutputCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-module", "my_module",
+	}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	if actual != "blah = tastatur" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestOutput_nestedListAndMap(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{

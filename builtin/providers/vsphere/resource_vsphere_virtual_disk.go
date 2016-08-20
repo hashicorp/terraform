@@ -49,9 +49,9 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Default:  "eagerZeroedThick",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if value != "thin" && value != "eagerZeroedThick" {
+					if value != "thin" && value != "eagerZeroedThick" && value != "lazy" {
 						errors = append(errors, fmt.Errorf(
-							"only 'thin' and 'eagerZeroedThick' are supported values for 'type'"))
+							"only 'thin', 'eagerZeroedThick', and 'lazy' are supported values for 'type'"))
 					}
 					return
 				},
@@ -115,15 +115,26 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 		vDisk.datastore = v.(string)
 	}
 
-	diskPath := fmt.Sprintf("[%v] %v", vDisk.datastore, vDisk.vmdkPath)
+	finder := find.NewFinder(client.Client, true)
 
-	err := createHardDisk(client, vDisk.size, diskPath, vDisk.initType, vDisk.adapterType, vDisk.datacenter)
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	if err != nil {
+		return fmt.Errorf("Error finding Datacenter: %s: %s", vDisk.datacenter, err)
+	}
+	finder = finder.SetDatacenter(dc)
+
+	ds, err := getDatastore(finder, vDisk.datastore)
+	if err != nil {
+		return fmt.Errorf("Error finding Datastore: %s: %s", vDisk.datastore, err)
+	}
+
+	err = createHardDisk(client, vDisk.size, ds.Path(vDisk.vmdkPath), vDisk.initType, vDisk.adapterType, vDisk.datacenter)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(diskPath)
-	log.Printf("[DEBUG] Virtual Disk id: %v", diskPath)
+	d.SetId(ds.Path(vDisk.vmdkPath))
+	log.Printf("[DEBUG] Virtual Disk id: %v", ds.Path(vDisk.vmdkPath))
 
 	return resourceVSphereVirtualDiskRead(d, meta)
 }
@@ -212,7 +223,16 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	diskPath := fmt.Sprintf("[%v] %v", vDisk.datastore, vDisk.vmdkPath)
+
+	finder := find.NewFinder(client.Client, true)
+	finder = finder.SetDatacenter(dc)
+
+	ds, err := getDatastore(finder, vDisk.datastore)
+	if err != nil {
+		return err
+	}
+
+	diskPath := ds.Path(vDisk.vmdkPath)
 
 	virtualDiskManager := object.NewVirtualDiskManager(client.Client)
 
@@ -234,11 +254,21 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 
 // createHardDisk creates a new Hard Disk.
 func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType string, adapterType string, dc string) error {
+	var vDiskType string
+	switch diskType {
+	case "thin":
+		vDiskType = "thin"
+	case "eagerZeroedThick":
+		vDiskType = "eagerZeroedThick"
+	case "lazy":
+		vDiskType = "preallocated"
+	}
+
 	virtualDiskManager := object.NewVirtualDiskManager(client.Client)
 	spec := &types.FileBackedVirtualDiskSpec{
 		VirtualDiskSpec: types.VirtualDiskSpec{
 			AdapterType: adapterType,
-			DiskType:    diskType,
+			DiskType:    vDiskType,
 		},
 		CapacityKb: int64(1024 * 1024 * size),
 	}

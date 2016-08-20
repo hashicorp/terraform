@@ -468,10 +468,15 @@ func (c *Config) Validate() error {
 					"%s: resource count can't reference resource variable: %s",
 					n,
 					v.FullKey()))
+			case *SimpleVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference variable: %s",
+					n,
+					v.FullKey()))
 			case *UserVariable:
 				// Good
 			default:
-				panic("Unknown type in count var: " + n)
+				panic(fmt.Sprintf("Unknown type in count var in %s: %T", n, v))
 			}
 		}
 

@@ -25,7 +25,7 @@ func (c *InitCommand) Run(args []string) int {
 	remoteConfig := make(map[string]string)
 	cmdFlags := flag.NewFlagSet("init", flag.ContinueOnError)
 	cmdFlags.StringVar(&remoteBackend, "backend", "", "")
-	cmdFlags.Var((*FlagKV)(&remoteConfig), "backend-config", "config")
+	cmdFlags.Var((*FlagStringKV)(&remoteConfig), "backend-config", "config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1

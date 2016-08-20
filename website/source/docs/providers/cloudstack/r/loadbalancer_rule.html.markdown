@@ -55,6 +55,9 @@ The following arguments are supported:
 * `member_ids` - (Required) List of instance IDs to assign to the load balancer
     rule. Changing this forces a new resource to be created.
 
+* `project` - (Optional) The name or ID of the project to deploy this
+    instance to. Changing this forces a new resource to be created.
+
 ## Attributes Reference
 
 The following attributes are exported:

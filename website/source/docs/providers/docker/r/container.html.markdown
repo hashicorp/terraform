@@ -48,7 +48,7 @@ The following arguments are supported:
 * `dns` - (Optional, set of strings) Set of DNS servers.
 * `dns_opts` - (Optional, set of strings) Set of DNS options used by the DNS provider(s), see `resolv.conf` documentation for valid list of options.
 * `dns_search` - (Optional, set of strings) Set of DNS search domains that are used when bare unqualified hostnames are used inside of the container.
-* `env` - (Optional, set of strings) Environmental variables to set.
+* `env` - (Optional, set of strings) Environment variables to set.
 * `labels` - (Optional, map of strings) Key/value pairs to set as labels on the
   container.
 * `links` - (Optional, set of strings) Set of links for link based

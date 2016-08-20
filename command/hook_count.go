@@ -47,7 +47,7 @@ func (h *CountHook) PreApply(
 	}
 
 	action := countHookActionChange
-	if d.Destroy {
+	if d.GetDestroy() {
 		action = countHookActionRemove
 	} else if s.ID == "" {
 		action = countHookActionAdd

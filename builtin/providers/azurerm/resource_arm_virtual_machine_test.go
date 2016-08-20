@@ -181,7 +181,7 @@ func TestAccAzureRMVirtualMachine_winRMConfig(t *testing.T) {
 func TestAccAzureRMVirtualMachine_deleteVHDOptOut(t *testing.T) {
 	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_withDataDisk, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -196,7 +196,10 @@ func TestAccAzureRMVirtualMachine_deleteVHDOptOut(t *testing.T) {
 			},
 			{
 				Config: postConfig,
-				Check:  testCheckAzureRMVirtualMachineOSDiskVHDExistance(true),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineVHDExistance("myosdisk1.vhd", true),
+					testCheckAzureRMVirtualMachineVHDExistance("mydatadisk1.vhd", true),
+				),
 			},
 		},
 	})
@@ -205,7 +208,7 @@ func TestAccAzureRMVirtualMachine_deleteVHDOptOut(t *testing.T) {
 func TestAccAzureRMVirtualMachine_deleteVHDOptIn(t *testing.T) {
 	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyOSDisk, ri, ri, ri, ri, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisks, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -220,7 +223,10 @@ func TestAccAzureRMVirtualMachine_deleteVHDOptIn(t *testing.T) {
 			},
 			{
 				Config: postConfig,
-				Check:  testCheckAzureRMVirtualMachineOSDiskVHDExistance(false),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineVHDExistance("myosdisk1.vhd", false),
+					testCheckAzureRMVirtualMachineVHDExistance("mydatadisk1.vhd", false),
+				),
 			},
 		},
 	})
@@ -232,6 +238,36 @@ func TestAccAzureRMVirtualMachine_ChangeComputerName(t *testing.T) {
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_machineNameBeforeUpdate, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_updateMachineName, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &afterCreate),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &afterUpdate),
+					testAccCheckVirtualMachineRecreated(
+						t, &afterCreate, &afterUpdate),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMVirtualMachine_ChangeAvailbilitySet(t *testing.T) {
+	var afterCreate, afterUpdate compute.VirtualMachine
+
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_withAvailabilitySet, ri, ri, ri, ri, ri, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_updateAvailabilitySet, ri, ri, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -322,7 +358,7 @@ func testCheckAzureRMVirtualMachineDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testCheckAzureRMVirtualMachineOSDiskVHDExistance(shouldExist bool) resource.TestCheckFunc {
+func testCheckAzureRMVirtualMachineVHDExistance(name string, shouldExist bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		for _, rs := range s.RootModule().Resources {
 			if rs.Type != "azurerm_storage_container" {
@@ -338,13 +374,15 @@ func testCheckAzureRMVirtualMachineOSDiskVHDExistance(shouldExist bool) resource
 				return fmt.Errorf("Error creating Blob storage client: %s", err)
 			}
 
-			exists, err := storageClient.BlobExists(containerName, "myosdisk1.vhd")
+			exists, err := storageClient.BlobExists(containerName, name)
 			if err != nil {
-				return fmt.Errorf("Error checking if OS Disk VHD Blob exists: %s", err)
+				return fmt.Errorf("Error checking if Disk VHD Blob exists: %s", err)
 			}
 
 			if exists && !shouldExist {
-				return fmt.Errorf("OS Disk VHD Blob still exists")
+				return fmt.Errorf("Disk VHD Blob still exists")
+			} else if !exists && shouldExist {
+				return fmt.Errorf("Disk VHD Blob should exist")
 			}
 		}
 
@@ -529,7 +567,7 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
-var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyOSDisk = `
+var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisks = `
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"
     location = "West US"
@@ -601,6 +639,16 @@ resource "azurerm_virtual_machine" "test" {
     }
 
     delete_os_disk_on_termination = true
+
+    storage_data_disk {
+        name          = "mydatadisk1"
+        vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/mydatadisk1.vhd"
+    	disk_size_gb  = "1023"
+    	create_option = "Empty"
+    	lun           = 0
+    }
+
+    delete_data_disks_on_termination = true
 
     os_profile {
 	computer_name = "hostname%d"
@@ -1192,6 +1240,188 @@ resource "azurerm_virtual_machine" "test" {
         }
     }
 }
+`
+
+var testAccAzureRMVirtualMachine_withAvailabilitySet = `
+ resource "azurerm_resource_group" "test" {
+     name = "acctestrg-%d"
+     location = "West US"
+ }
+
+ resource "azurerm_virtual_network" "test" {
+     name = "acctvn-%d"
+     address_space = ["10.0.0.0/16"]
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+ }
+
+ resource "azurerm_subnet" "test" {
+     name = "acctsub-%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     virtual_network_name = "${azurerm_virtual_network.test.name}"
+     address_prefix = "10.0.2.0/24"
+ }
+
+ resource "azurerm_network_interface" "test" {
+     name = "acctni-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+
+     ip_configuration {
+     	name = "testconfiguration1"
+     	subnet_id = "${azurerm_subnet.test.id}"
+     	private_ip_address_allocation = "dynamic"
+     }
+ }
+
+ resource "azurerm_storage_account" "test" {
+     name = "accsa%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     location = "westus"
+     account_type = "Standard_LRS"
+
+     tags {
+         environment = "staging"
+     }
+ }
+
+ resource "azurerm_availability_set" "test" {
+    name = "availabilityset%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+ resource "azurerm_storage_container" "test" {
+     name = "vhds"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     storage_account_name = "${azurerm_storage_account.test.name}"
+     container_access_type = "private"
+ }
+
+ resource "azurerm_virtual_machine" "test" {
+     name = "acctvm-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     network_interface_ids = ["${azurerm_network_interface.test.id}"]
+     vm_size = "Standard_A0"
+     availability_set_id = "${azurerm_availability_set.test.id}"
+     delete_os_disk_on_termination = true
+
+     storage_image_reference {
+ 	publisher = "Canonical"
+ 	offer = "UbuntuServer"
+ 	sku = "14.04.2-LTS"
+ 	version = "latest"
+     }
+
+     storage_os_disk {
+         name = "myosdisk1"
+         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+         caching = "ReadWrite"
+         create_option = "FromImage"
+     }
+
+     os_profile {
+ 	computer_name = "hostname%d"
+ 	admin_username = "testadmin"
+ 	admin_password = "Password1234!"
+     }
+
+     os_profile_linux_config {
+ 	disable_password_authentication = false
+     }
+ }
+`
+
+var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
+ resource "azurerm_resource_group" "test" {
+     name = "acctestrg-%d"
+     location = "West US"
+ }
+
+ resource "azurerm_virtual_network" "test" {
+     name = "acctvn-%d"
+     address_space = ["10.0.0.0/16"]
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+ }
+
+ resource "azurerm_subnet" "test" {
+     name = "acctsub-%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     virtual_network_name = "${azurerm_virtual_network.test.name}"
+     address_prefix = "10.0.2.0/24"
+ }
+
+ resource "azurerm_network_interface" "test" {
+     name = "acctni-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+
+     ip_configuration {
+     	name = "testconfiguration1"
+     	subnet_id = "${azurerm_subnet.test.id}"
+     	private_ip_address_allocation = "dynamic"
+     }
+ }
+
+ resource "azurerm_storage_account" "test" {
+     name = "accsa%d"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     location = "westus"
+     account_type = "Standard_LRS"
+
+     tags {
+         environment = "staging"
+     }
+ }
+
+ resource "azurerm_availability_set" "test" {
+    name = "updatedAvailabilitySet%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+ resource "azurerm_storage_container" "test" {
+     name = "vhds"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     storage_account_name = "${azurerm_storage_account.test.name}"
+     container_access_type = "private"
+ }
+
+ resource "azurerm_virtual_machine" "test" {
+     name = "acctvm-%d"
+     location = "West US"
+     resource_group_name = "${azurerm_resource_group.test.name}"
+     network_interface_ids = ["${azurerm_network_interface.test.id}"]
+     vm_size = "Standard_A0"
+     availability_set_id = "${azurerm_availability_set.test.id}"
+     delete_os_disk_on_termination = true
+
+     storage_image_reference {
+ 	publisher = "Canonical"
+ 	offer = "UbuntuServer"
+ 	sku = "14.04.2-LTS"
+ 	version = "latest"
+     }
+
+     storage_os_disk {
+         name = "myosdisk1"
+         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+         caching = "ReadWrite"
+         create_option = "FromImage"
+     }
+
+     os_profile {
+ 	computer_name = "hostname%d"
+ 	admin_username = "testadmin"
+ 	admin_password = "Password1234!"
+     }
+
+     os_profile_linux_config {
+ 	disable_password_authentication = false
+     }
+ }
 `
 
 var testAccAzureRMVirtualMachine_updateMachineName = `

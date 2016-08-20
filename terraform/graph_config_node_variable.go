@@ -36,6 +36,14 @@ func (n *GraphNodeConfigVariable) DependableName() []string {
 	return []string{n.Name()}
 }
 
+// RemoveIfNotTargeted implements RemovableIfNotTargeted.
+// When targeting is active, variables that are not targeted should be removed
+// from the graph, because otherwise module variables trying to interpolate
+// their references can fail when they're missing the referent resource node.
+func (n *GraphNodeConfigVariable) RemoveIfNotTargeted() bool {
+	return true
+}
+
 func (n *GraphNodeConfigVariable) DependentOn() []string {
 	// If we don't have any value set, we don't depend on anything
 	if n.Value == nil {

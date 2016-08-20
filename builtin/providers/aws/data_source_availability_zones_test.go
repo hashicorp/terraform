@@ -22,6 +22,12 @@ func TestAccAWSAvailabilityZones_basic(t *testing.T) {
 					testAccCheckAwsAvailabilityZonesMeta("data.aws_availability_zones.availability_zones"),
 				),
 			},
+			resource.TestStep{
+				Config: testAccCheckAwsAvailabilityZonesStateConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsAvailabilityZoneState("data.aws_availability_zones.state_filter"),
+				),
+			},
 		},
 	})
 }
@@ -34,7 +40,7 @@ func testAccCheckAwsAvailabilityZonesMeta(n string) resource.TestCheckFunc {
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("AZ resource ID not set")
+			return fmt.Errorf("AZ resource ID not set.")
 		}
 
 		actual, err := testAccCheckAwsAvailabilityZonesBuildAvailable(rs.Primary.Attributes)
@@ -51,10 +57,33 @@ func testAccCheckAwsAvailabilityZonesMeta(n string) resource.TestCheckFunc {
 	}
 }
 
+func testAccCheckAwsAvailabilityZoneState(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Can't find AZ resource: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("AZ resource ID not set.")
+		}
+
+		if _, ok := rs.Primary.Attributes["state"]; !ok {
+			return fmt.Errorf("AZs state filter is missing, should be set.")
+		}
+
+		_, err := testAccCheckAwsAvailabilityZonesBuildAvailable(rs.Primary.Attributes)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
 func testAccCheckAwsAvailabilityZonesBuildAvailable(attrs map[string]string) ([]string, error) {
 	v, ok := attrs["names.#"]
 	if !ok {
-		return nil, fmt.Errorf("Available AZ list is missing")
+		return nil, fmt.Errorf("Available AZ list is missing.")
 	}
 	qty, err := strconv.Atoi(v)
 	if err != nil {
@@ -67,7 +96,7 @@ func testAccCheckAwsAvailabilityZonesBuildAvailable(attrs map[string]string) ([]
 	for n := range zones {
 		zone, ok := attrs["names."+strconv.Itoa(n)]
 		if !ok {
-			return nil, fmt.Errorf("AZ list corrupt, this is definitely a bug")
+			return nil, fmt.Errorf("AZ list corrupt, this is definitely a bug.")
 		}
 		zones[n] = zone
 	}
@@ -75,6 +104,11 @@ func testAccCheckAwsAvailabilityZonesBuildAvailable(attrs map[string]string) ([]
 }
 
 const testAccCheckAwsAvailabilityZonesConfig = `
-data "aws_availability_zones" "availability_zones" {
+data "aws_availability_zones" "availability_zones" { }
+`
+
+const testAccCheckAwsAvailabilityZonesStateConfig = `
+data "aws_availability_zones" "state_filter" {
+	state = "available"
 }
 `

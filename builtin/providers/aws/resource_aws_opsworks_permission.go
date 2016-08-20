@@ -131,10 +131,9 @@ func resourceAwsOpsworksPermissionCreate(d *schema.ResourceData, meta interface{
 		StackId:    aws.String(d.Get("stack_id").(string)),
 	}
 
-	var resp *opsworks.SetPermissionOutput
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		var cerr error
-		resp, cerr = client.SetPermission(req)
+		_, cerr = client.SetPermission(req)
 		if cerr != nil {
 			log.Printf("[INFO] client error")
 			if opserr, ok := cerr.(awserr.Error); ok {

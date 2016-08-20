@@ -181,19 +181,21 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 			return err
 		}
 
-		var subnetIds []*string
-		for _, id := range config["subnet_ids"].(*schema.Set).List() {
-			subnetIds = append(subnetIds, aws.String(id.(string)))
-		}
+		if config != nil {
+			var subnetIds []*string
+			for _, id := range config["subnet_ids"].(*schema.Set).List() {
+				subnetIds = append(subnetIds, aws.String(id.(string)))
+			}
 
-		var securityGroupIds []*string
-		for _, id := range config["security_group_ids"].(*schema.Set).List() {
-			securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
-		}
+			var securityGroupIds []*string
+			for _, id := range config["security_group_ids"].(*schema.Set).List() {
+				securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
+			}
 
-		params.VpcConfig = &lambda.VpcConfig{
-			SubnetIds:        subnetIds,
-			SecurityGroupIds: securityGroupIds,
+			params.VpcConfig = &lambda.VpcConfig{
+				SubnetIds:        subnetIds,
+				SecurityGroupIds: securityGroupIds,
+			}
 		}
 	}
 
@@ -237,7 +239,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	getFunctionOutput, err := conn.GetFunction(params)
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" && !d.IsNewResource() {
 			d.SetId("")
 			return nil
 		}
@@ -400,6 +402,11 @@ func validateVPCConfig(v interface{}) (map[string]interface{}, error) {
 
 	if !ok {
 		return nil, errors.New("vpc_config is <nil>")
+	}
+
+	// if subnet_ids and security_group_ids are both empty then the VPC is optional
+	if config["subnet_ids"].(*schema.Set).Len() == 0 && config["security_group_ids"].(*schema.Set).Len() == 0 {
+		return nil, nil
 	}
 
 	if config["subnet_ids"].(*schema.Set).Len() == 0 {

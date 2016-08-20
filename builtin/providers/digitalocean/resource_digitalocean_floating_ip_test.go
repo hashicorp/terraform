@@ -113,7 +113,7 @@ resource "digitalocean_ssh_key" "foobar" {
 resource "digitalocean_droplet" "foobar" {
   name               = "baz"
   size               = "1gb"
-  image              = "centos-5-8-x32"
+  image              = "centos-7-x64"
   region             = "nyc3"
   ipv6               = true
   private_networking = true

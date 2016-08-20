@@ -1,7 +1,9 @@
 package command
 
 import (
+	"flag"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -25,6 +28,19 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
 }
 
 func tempDir(t *testing.T) string {
@@ -115,7 +131,7 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 
 // testState returns a test State structure that we use for a lot of tests.
 func testState() *terraform.State {
-	return &terraform.State{
+	state := &terraform.State{
 		Version: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
@@ -132,6 +148,8 @@ func testState() *terraform.State {
 			},
 		},
 	}
+	state.Init()
+	return state
 }
 
 func testStateFile(t *testing.T, s *terraform.State) string {

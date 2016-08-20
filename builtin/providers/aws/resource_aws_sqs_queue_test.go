@@ -22,13 +22,19 @@ func TestAccAWSSQSQueue_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSSQSConfigWithDefaults(queueName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.queue-with-defaults"),
+					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.queue"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSSQSConfigWithOverrides,
+				Config: testAccAWSSQSConfigWithOverrides(queueName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSQSExistsWithOverrides("aws_sqs_queue.queue-with-overrides"),
+					testAccCheckAWSSQSExistsWithOverrides("aws_sqs_queue.queue"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSSQSConfigWithDefaults(queueName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.queue"),
 				),
 			},
 		},
@@ -197,22 +203,23 @@ func testAccCheckAWSSQSExistsWithOverrides(n string) resource.TestCheckFunc {
 
 func testAccAWSSQSConfigWithDefaults(r string) string {
 	return fmt.Sprintf(`
-resource "aws_sqs_queue" "queue-with-defaults" {
+resource "aws_sqs_queue" "queue" {
     name = "%s"
 }
 `, r)
 }
 
-const testAccAWSSQSConfigWithOverrides = `
-resource "aws_sqs_queue" "queue-with-overrides" {
-  name                       = "test-sqs-queue-with-overrides"
+func testAccAWSSQSConfigWithOverrides(r string) string {
+	return fmt.Sprintf(`
+resource "aws_sqs_queue" "queue" {
+  name                       = "%s"
   delay_seconds              = 90
   max_message_size           = 2048
   message_retention_seconds  = 86400
   receive_wait_time_seconds  = 10
   visibility_timeout_seconds = 60
+}`, r)
 }
-`
 
 func testAccAWSSQSConfigWithRedrive(name string) string {
 	return fmt.Sprintf(`

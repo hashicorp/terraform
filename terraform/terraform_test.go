@@ -1,9 +1,11 @@
 package terraform
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,10 +15,24 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/logging"
 )
 
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
+}
 
 func tempDir(t *testing.T) string {
 	dir, err := ioutil.TempDir("", "tf")
@@ -31,11 +47,12 @@ func tempDir(t *testing.T) string {
 }
 
 // tempEnv lets you temporarily set an environment variable. It returns
+// a function to defer to reset the old value.
 // the old value that should be set via a defer.
-func tempEnv(t *testing.T, k string, v string) string {
+func tempEnv(t *testing.T, k string, v string) func() {
 	old := os.Getenv(k)
 	os.Setenv(k, v)
-	return old
+	return func() { os.Setenv(k, old) }
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
@@ -705,6 +722,8 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   bar = baz
+  list = Hello,World
+  map = Baz,Foo,Hello
   num = 2
   type = aws_instance
 `
@@ -712,6 +731,8 @@ aws_instance.foo:
 const testTerraformApplyVarsEnvStr = `
 aws_instance.bar:
   ID = foo
+  bar = Hello,World
+  baz = Baz,Foo,Hello
   foo = baz
   type = aws_instance
 `
@@ -1393,3 +1414,14 @@ module.mod2:
 STATE:
 
 <no state>`
+
+const testTerraformInputHCL = `
+hcl_instance.hcltest:
+  ID = foo
+  bar.w = z
+  bar.x = y
+  foo.# = 2
+  foo.0 = a
+  foo.1 = b
+  type = hcl_instance
+`

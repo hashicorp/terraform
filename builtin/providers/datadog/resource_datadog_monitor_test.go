@@ -43,6 +43,10 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 						"datadog_monitor.foo", "require_full_window", "true"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "locked", "false"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "tags.foo", "bar"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "tags.bar", "baz"),
 				),
 			},
 		},
@@ -89,6 +93,10 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 						"datadog_monitor.foo", "require_full_window", "true"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "locked", "false"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "tags.foo", "bar"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "tags.bar", "baz"),
 				),
 			},
 			resource.TestStep{
@@ -129,6 +137,10 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 						"datadog_monitor.foo", "require_full_window", "false"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "locked", "true"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "tags.baz", "qux"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "tags.quux", "corge"),
 				),
 			},
 		},
@@ -211,6 +223,10 @@ resource "datadog_monitor" "foo" {
   include_tags = true
   require_full_window = true
   locked = false
+  tags {
+	"foo" = "bar"
+	"bar" = "baz"
+  }
 }
 `
 
@@ -240,6 +256,10 @@ resource "datadog_monitor" "foo" {
   locked = true
   silenced {
 	"*" = 0
+  }
+  tags {
+	"baz"  = "qux"
+	"quux" = "corge"
   }
 }
 `

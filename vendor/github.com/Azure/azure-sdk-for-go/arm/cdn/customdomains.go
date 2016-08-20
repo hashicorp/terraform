@@ -36,7 +36,13 @@ type CustomDomainsClient struct {
 // NewCustomDomainsClient creates an instance of the CustomDomainsClient
 // client.
 func NewCustomDomainsClient(subscriptionID string) CustomDomainsClient {
-	return CustomDomainsClient{New(subscriptionID)}
+	return NewCustomDomainsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewCustomDomainsClientWithBaseURI creates an instance of the
+// CustomDomainsClient client.
+func NewCustomDomainsClientWithBaseURI(baseURI string, subscriptionID string) CustomDomainsClient {
+	return CustomDomainsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Create sends the create request. This method may poll for completion.

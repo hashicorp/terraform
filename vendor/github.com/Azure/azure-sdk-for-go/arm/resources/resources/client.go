@@ -1,5 +1,5 @@
 // Package resources implements the Azure ARM Resources service API version
-// 2016-02-01.
+// 2016-07-01.
 //
 package resources
 
@@ -29,7 +29,7 @@ import (
 
 const (
 	// APIVersion is the version of the Resources
-	APIVersion = "2016-02-01"
+	APIVersion = "2016-07-01"
 
 	// DefaultBaseURI is the default URI used for the service Resources
 	DefaultBaseURI = "https://management.azure.com"
@@ -45,9 +45,14 @@ type ManagementClient struct {
 
 // New creates an instance of the ManagementClient client.
 func New(subscriptionID string) ManagementClient {
+	return NewWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewWithBaseURI creates an instance of the ManagementClient client.
+func NewWithBaseURI(baseURI string, subscriptionID string) ManagementClient {
 	return ManagementClient{
 		Client:         autorest.NewClientWithUserAgent(UserAgent()),
-		BaseURI:        DefaultBaseURI,
+		BaseURI:        baseURI,
 		APIVersion:     APIVersion,
 		SubscriptionID: subscriptionID,
 	}
@@ -328,10 +333,11 @@ func (client ManagementClient) GetResponder(resp *http.Response) (result Generic
 
 // List get all of the resources under a subscription.
 //
-// filter is the filter to apply on the operation. top is query parameters. If
-// null is passed returns all resource groups.
-func (client ManagementClient) List(filter string, top *int32) (result ResourceListResult, err error) {
-	req, err := client.ListPreparer(filter, top)
+// filter is the filter to apply on the operation. expand is the $expand query
+// parameter. top is query parameters. If null is passed returns all resource
+// groups.
+func (client ManagementClient) List(filter string, expand string, top *int32) (result ResourceListResult, err error) {
+	req, err := client.ListPreparer(filter, expand, top)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.ManagementClient", "List", nil, "Failure preparing request")
 	}
@@ -351,7 +357,7 @@ func (client ManagementClient) List(filter string, top *int32) (result ResourceL
 }
 
 // ListPreparer prepares the List request.
-func (client ManagementClient) ListPreparer(filter string, top *int32) (*http.Request, error) {
+func (client ManagementClient) ListPreparer(filter string, expand string, top *int32) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
@@ -361,6 +367,9 @@ func (client ManagementClient) ListPreparer(filter string, top *int32) (*http.Re
 	}
 	if len(filter) > 0 {
 		queryParameters["$filter"] = autorest.Encode("query", filter)
+	}
+	if len(expand) > 0 {
+		queryParameters["$expand"] = autorest.Encode("query", expand)
 	}
 	if top != nil {
 		queryParameters["$top"] = autorest.Encode("query", *top)

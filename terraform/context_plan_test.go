@@ -1223,6 +1223,7 @@ func TestContext2Plan_countZero(t *testing.T) {
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanCountZeroStr)
 	if actual != expected {
+		t.Logf("expected:\n%s", expected)
 		t.Fatalf("bad:\n%s", actual)
 	}
 }
@@ -1949,6 +1950,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 DIFF:
 
 DESTROY/CREATE: aws_instance.foo.0
+  type: "" => "aws_instance"
 
 STATE:
 
@@ -1960,7 +1962,7 @@ aws_instance.foo.2:
   ID = bar
 		`)
 		if actual != expected {
-			t.Fatalf("bad:\n%s", actual)
+			t.Fatalf("[%d] bad:\n%s\nexpected:\n%s\n", i, actual, expected)
 		}
 	}
 }
@@ -2108,6 +2110,43 @@ module.child:
     ID = i-abc123
   aws_instance.orphan:
     ID = i-789xyz
+`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
+	m := testModule(t, "plan-targeted-module-untargeted-variable")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.blue", "module.blue_mod"},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+CREATE: aws_instance.blue
+
+module.blue_mod:
+  CREATE: aws_instance.mod
+    type:  "" => "aws_instance"
+    value: "" => "<computed>"
+
+STATE:
+
+<no state>
 `)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)

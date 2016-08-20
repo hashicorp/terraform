@@ -38,6 +38,41 @@ func TestAccAWSRedshiftCluster_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSRedshiftCluster_loggingEnabled(t *testing.T) {
+	var v redshift.Cluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	preConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_loggingEnabled, ri)
+	postConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_loggingDisabled, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "enable_logging", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "bucket_name", "tf-redshift-logging-test-bucket"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "enable_logging", "false"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRedshiftCluster_iamRoles(t *testing.T) {
 	var v redshift.Cluster
 
@@ -284,7 +319,7 @@ func TestResourceAWSRedshiftClusterDbNameValidation(t *testing.T) {
 		},
 		{
 			Value:    "testing1",
-			ErrCount: 1,
+			ErrCount: 0,
 		},
 		{
 			Value:    "testing-",
@@ -397,6 +432,64 @@ resource "aws_redshift_cluster" "default" {
   node_type = "dc1.large"
   automated_snapshot_retention_period = 0
   allow_version_upgrade = false
+}`
+
+var testAccAWSRedshiftClusterConfig_loggingDisabled = `
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  enable_logging = false
+}
+`
+
+var testAccAWSRedshiftClusterConfig_loggingEnabled = `
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-redshift-logging-test-bucket"
+	force_destroy = true
+	policy = <<EOF
+{
+	"Version": "2008-10-17",
+	"Statement": [
+		{
+			"Sid": "Stmt1376526643067",
+			"Effect": "Allow",
+			"Principal": {
+				"AWS": "arn:aws:iam::902366379725:user/logs"
+			},
+			"Action": "s3:PutObject",
+			"Resource": "arn:aws:s3:::tf-redshift-logging-test-bucket/*"
+		},
+		{
+			"Sid": "Stmt137652664067",
+			"Effect": "Allow",
+			"Principal": {
+				"AWS": "arn:aws:iam::902366379725:user/logs"
+			},
+			"Action": "s3:GetBucketAcl",
+			"Resource": "arn:aws:s3:::tf-redshift-logging-test-bucket"
+		}
+	]
+}
+EOF
+}
+
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  enable_logging = true
+  bucket_name = "${aws_s3_bucket.bucket.bucket}"
 }`
 
 var testAccAWSRedshiftClusterConfig_tags = `

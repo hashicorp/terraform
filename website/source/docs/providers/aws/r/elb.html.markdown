@@ -88,13 +88,13 @@ The following arguments are supported:
 Exactly one of `availability_zones` or `subnets` must be specified: this
 determines if the ELB exists in a VPC or in EC2-classic.
 
-Access Logs support the following:
+Access Logs (`access_logs`) support the following:
 
 * `bucket` - (Required) The S3 bucket name to store the logs in.
 * `bucket_prefix` - (Optional) The S3 bucket prefix. Logs are stored in the root if not configured.
 * `interval` - (Optional) The publishing interval in minutes. Default: 60 minutes.
 
-Listeners support the following:
+Listeners (`listener`) support the following:
 
 * `instance_port` - (Required) The port on the instance to route to
 * `instance_protocol` - (Required) The protocol to use to the instance. Valid
@@ -105,11 +105,14 @@ Listeners support the following:
 * `ssl_certificate_id` - (Optional) The ARN of an SSL certificate you have
 uploaded to AWS IAM. **Only valid when `lb_protocol` is either HTTPS or SSL**
 
-Health Check supports the following:
+Health Check (`health_check`) supports the following:
 
 * `healthy_threshold` - (Required) The number of checks before the instance is declared healthy.
 * `unhealthy_threshold` - (Required) The number of checks before the instance is declared unhealthy.
-* `target` - (Required) The target of the check.
+* `target` - (Required) The target of the check. Valid pattern is "${PROTOCOL}:${PORT}${PATH}", where PROTOCOL
+  values are:  
+  * `HTTP`, `HTTPS` - PORT and PATH are required
+  * `TCP`, `SSL` - PORT is required, PATH is not supported
 * `interval` - (Required) The interval between checks.
 * `timeout` - (Required) The length of time before the check times out.
 

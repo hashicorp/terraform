@@ -154,12 +154,12 @@ func TestAccDataSourceAWSS3BucketObject_allParams(t *testing.T) {
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "server_side_encryption", ""),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "sse_kms_key_id", ""),
 					// Supported, but difficult to reproduce in short testing time
-					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "storage_class", ""),
+					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "storage_class", "STANDARD"),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "expiration", ""),
 					// Currently unsupported in aws_s3_bucket_object resource
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "expires", ""),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "website_redirect_location", ""),
-					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "metadata.#", "0"),
+					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "metadata.%", "0"),
 				),
 			},
 		},

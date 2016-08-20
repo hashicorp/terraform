@@ -125,7 +125,7 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("idle_timeout_in_minutes"); ok {
-		idle_timeout := v.(int32)
+		idle_timeout := int32(v.(int))
 		properties.IdleTimeoutInMinutes = &idle_timeout
 	}
 

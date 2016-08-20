@@ -213,6 +213,15 @@ func resourceNetworkingRouterV2Update(d *schema.ResourceData, meta interface{}) 
 		asu := d.Get("admin_state_up").(bool)
 		updateOpts.AdminStateUp = &asu
 	}
+	if d.HasChange("external_gateway") {
+		externalGateway := d.Get("external_gateway").(string)
+		if externalGateway != "" {
+			gatewayInfo := routers.GatewayInfo{
+				NetworkID: externalGateway,
+			}
+			updateOpts.GatewayInfo = &gatewayInfo
+		}
+	}
 
 	log.Printf("[DEBUG] Updating Router %s with options: %+v", d.Id(), updateOpts)
 

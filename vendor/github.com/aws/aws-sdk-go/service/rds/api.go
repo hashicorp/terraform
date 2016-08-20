@@ -4616,6 +4616,57 @@ func (c *RDS) ResetDBParameterGroup(input *ResetDBParameterGroupInput) (*DBParam
 	return out, err
 }
 
+const opRestoreDBClusterFromS3 = "RestoreDBClusterFromS3"
+
+// RestoreDBClusterFromS3Request generates a "aws/request.Request" representing the
+// client's request for the RestoreDBClusterFromS3 operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RestoreDBClusterFromS3 method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RestoreDBClusterFromS3Request method.
+//    req, resp := client.RestoreDBClusterFromS3Request(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *RDS) RestoreDBClusterFromS3Request(input *RestoreDBClusterFromS3Input) (req *request.Request, output *RestoreDBClusterFromS3Output) {
+	op := &request.Operation{
+		Name:       opRestoreDBClusterFromS3,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RestoreDBClusterFromS3Input{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RestoreDBClusterFromS3Output{}
+	req.Data = output
+	return
+}
+
+// Creates an Amazon Aurora DB cluster from data stored in an Amazon S3 bucket.
+// Amazon RDS must be authorized to access the Amazon S3 bucket and the data
+// must be created using the Percona XtraBackup utility as described in Migrating
+// Data from an External MySQL Database to an Amazon Aurora DB Cluster (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Migrate.html).
+func (c *RDS) RestoreDBClusterFromS3(input *RestoreDBClusterFromS3Input) (*RestoreDBClusterFromS3Output, error) {
+	req, out := c.RestoreDBClusterFromS3Request(input)
+	err := req.Send()
+	return out, err
+}
+
 const opRestoreDBClusterFromSnapshot = "RestoreDBClusterFromSnapshot"
 
 // RestoreDBClusterFromSnapshotRequest generates a "aws/request.Request" representing the
@@ -5775,8 +5826,7 @@ type CreateDBClusterInput struct {
 	DBClusterIdentifier *string `type:"string" required:"true"`
 
 	// The name of the DB cluster parameter group to associate with this DB cluster.
-	// If this argument is omitted, default.aurora5.6 for the specified engine will
-	// be used.
+	// If this argument is omitted, default.aurora5.6 will be used.
 	//
 	// Constraints:
 	//
@@ -5831,7 +5881,7 @@ type CreateDBClusterInput struct {
 	// Constraints: Must contain from 8 to 41 characters.
 	MasterUserPassword *string `type:"string"`
 
-	// The name of the master user for the client DB cluster.
+	// The name of the master user for the DB cluster.
 	//
 	// Constraints:
 	//
@@ -7166,8 +7216,6 @@ type CreateDBSecurityGroupInput struct {
 	//   Cannot end with a hyphen or contain two consecutive hyphens
 	//
 	//   Must not be "Default"
-	//
-	//   Cannot contain spaces
 	//
 	//   Example: mysecuritygroup
 	DBSecurityGroupName *string `type:"string" required:"true"`
@@ -8966,8 +9014,6 @@ type DeleteDBSecurityGroupInput struct {
 	//   Cannot end with a hyphen or contain two consecutive hyphens
 	//
 	//   Must not be "Default"
-	//
-	//   Cannot contain spaces
 	DBSecurityGroupName *string `type:"string" required:"true"`
 }
 
@@ -10493,9 +10539,10 @@ type DescribeDBSnapshotsInput struct {
 	//    public - Return all DB snapshots that have been marked as public.
 	//
 	//   If you don't specify a SnapshotType value, then both automated and manual
-	// snapshots are returned. You can include shared snapshots with these results
-	// by setting the IncludeShared parameter to true. You can include public snapshots
-	// with these results by setting the IncludePublic parameter to true.
+	// snapshots are returned. Shared and public DB snapshots are not included in
+	// the returned results by default. You can include shared snapshots with these
+	// results by setting the IncludeShared parameter to true. You can include public
+	// snapshots with these results by setting the IncludePublic parameter to true.
 	//
 	// The IncludeShared and IncludePublic parameters don't apply for SnapshotType
 	// values of manual or automated. The IncludePublic parameter doesn't apply
@@ -12659,6 +12706,22 @@ type ModifyDBInstanceInput struct {
 	//   Cannot end with a hyphen or contain two consecutive hyphens
 	DBSecurityGroups []*string `locationNameList:"DBSecurityGroupName" type:"list"`
 
+	// The new DB subnet group for the DB instance. You can use this parameter to
+	// move your DB instance to a different VPC, or to a different subnet group
+	// in the same VPC. If your DB instance is not in a VPC, you can also use this
+	// parameter to move your DB instance into a VPC. For more information, see
+	// Updating the VPC for a DB Instance (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html#USER_VPC.Non-VPC2VPC).
+	//
+	// Changing the subnet group causes an outage during the change. The change
+	// is applied during the next maintenance window, unless you specify true for
+	// the ApplyImmediately parameter.
+	//
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens.
+	//
+	// Example: mySubnetGroup
+	DBSubnetGroupName *string `type:"string"`
+
 	// Specify the Active Directory Domain to move the instance to.
 	//
 	// The specified Active Directory Domain must be created prior to this operation.
@@ -12716,6 +12779,11 @@ type ModifyDBInstanceInput struct {
 	// the instance, creating a Read Replica for the instance, and creating a DB
 	// snapshot of the instance.
 	Iops *int64 `type:"integer"`
+
+	// The license model for the DB instance.
+	//
+	// Valid values: license-included | bring-your-own-license | general-public-license
+	LicenseModel *string `type:"string"`
 
 	// The new password for the DB instance master user. Can be any printable ASCII
 	// character except "/", """, or "@".
@@ -13293,6 +13361,9 @@ type Option struct {
 	// The option settings for this option.
 	OptionSettings []*OptionSetting `locationNameList:"OptionSetting" type:"list"`
 
+	// The version of the option.
+	OptionVersion *string `type:"string"`
+
 	// Indicate if this option is permanent.
 	Permanent *bool `type:"boolean"`
 
@@ -13329,6 +13400,9 @@ type OptionConfiguration struct {
 
 	// The option settings to include in an option group.
 	OptionSettings []*OptionSetting `locationNameList:"OptionSetting" type:"list"`
+
+	// The version for the option.
+	OptionVersion *string `type:"string"`
 
 	// The optional port for the option.
 	Port *int64 `type:"integer"`
@@ -13450,6 +13524,9 @@ type OptionGroupOption struct {
 	// for each option in an option group.
 	OptionGroupOptionSettings []*OptionGroupOptionSetting `locationNameList:"OptionGroupOptionSetting" type:"list"`
 
+	// Specifies the versions that are available for the option.
+	OptionGroupOptionVersions []*OptionVersion `locationNameList:"OptionVersion" type:"list"`
+
 	// List of all options that are prerequisites for this option.
 	OptionsDependedOn []*string `locationNameList:"OptionName" type:"list"`
 
@@ -13557,6 +13634,28 @@ func (s OptionSetting) String() string {
 
 // GoString returns the string representation
 func (s OptionSetting) GoString() string {
+	return s.String()
+}
+
+// The version for an option. Option group option versions are returned by the
+// DescribeOptionGroupOptions action.
+type OptionVersion struct {
+	_ struct{} `type:"structure"`
+
+	// True if the version is the default version of the option; otherwise, false.
+	IsDefault *bool `type:"boolean"`
+
+	// The version of the option.
+	Version *string `type:"string"`
+}
+
+// String returns the string representation
+func (s OptionVersion) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OptionVersion) GoString() string {
 	return s.String()
 }
 
@@ -13731,12 +13830,20 @@ type PendingModifiedValues struct {
 	// or is in progress.
 	DBInstanceIdentifier *string `type:"string"`
 
+	// The new DB subnet group for the DB instance.
+	DBSubnetGroupName *string `type:"string"`
+
 	// Indicates the database engine version.
 	EngineVersion *string `type:"string"`
 
 	// Specifies the new Provisioned IOPS value for the DB instance that will be
 	// applied or is being applied.
 	Iops *int64 `type:"integer"`
+
+	// The license model for the DB instance.
+	//
+	// Valid values: license-included | bring-your-own-license | general-public-license
+	LicenseModel *string `type:"string"`
 
 	// Contains the pending or in-progress change of the master credentials for
 	// the DB instance.
@@ -14432,6 +14539,267 @@ func (s ResourcePendingMaintenanceActions) GoString() string {
 	return s.String()
 }
 
+type RestoreDBClusterFromS3Input struct {
+	_ struct{} `type:"structure"`
+
+	// A list of EC2 Availability Zones that instances in the restored DB cluster
+	// can be created in.
+	AvailabilityZones []*string `locationNameList:"AvailabilityZone" type:"list"`
+
+	// The number of days for which automated backups of the restored DB cluster
+	// are retained. You must specify a minimum value of 1.
+	//
+	// Default: 1
+	//
+	// Constraints:
+	//
+	//   Must be a value from 1 to 35
+	BackupRetentionPeriod *int64 `type:"integer"`
+
+	// A value that indicates that the restored DB cluster should be associated
+	// with the specified CharacterSet.
+	CharacterSetName *string `type:"string"`
+
+	// The name of the DB cluster to create from the source data in the S3 bucket.
+	// This parameter is isn't case-sensitive.
+	//
+	// Constraints:
+	//
+	//   Must contain from 1 to 63 alphanumeric characters or hyphens.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
+	//
+	//   Example: my-cluster1
+	DBClusterIdentifier *string `type:"string" required:"true"`
+
+	// The name of the DB cluster parameter group to associate with the restored
+	// DB cluster. If this argument is omitted, default.aurora5.6 will be used.
+	//
+	// Constraints:
+	//
+	//   Must be 1 to 255 alphanumeric characters
+	//
+	//   First character must be a letter
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens
+	DBClusterParameterGroupName *string `type:"string"`
+
+	// A DB subnet group to associate with the restored DB cluster.
+	//
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens. Must not be default.
+	//
+	// Example: mySubnetgroup
+	DBSubnetGroupName *string `type:"string"`
+
+	// The database name for the restored DB cluster.
+	DatabaseName *string `type:"string"`
+
+	// The name of the database engine to be used for the restored DB cluster.
+	//
+	// Valid Values: aurora
+	Engine *string `type:"string" required:"true"`
+
+	// The version number of the database engine to use.
+	//
+	//  Aurora
+	//
+	// Example: 5.6.10a
+	EngineVersion *string `type:"string"`
+
+	// The KMS key identifier for an encrypted DB cluster.
+	//
+	// The KMS key identifier is the Amazon Resource Name (ARN) for the KMS encryption
+	// key. If you are creating a DB cluster with the same AWS account that owns
+	// the KMS encryption key used to encrypt the new DB cluster, then you can use
+	// the KMS key alias instead of the ARN for the KM encryption key.
+	//
+	// If the StorageEncrypted parameter is true, and you do not specify a value
+	// for the KmsKeyId parameter, then Amazon RDS will use your default encryption
+	// key. AWS KMS creates the default encryption key for your AWS account. Your
+	// AWS account has a different default encryption key for each AWS region.
+	KmsKeyId *string `type:"string"`
+
+	// The password for the master database user. This password can contain any
+	// printable ASCII character except "/", """, or "@".
+	//
+	// Constraints: Must contain from 8 to 41 characters.
+	MasterUserPassword *string `type:"string" required:"true"`
+
+	// The name of the master user for the restored DB cluster.
+	//
+	// Constraints:
+	//
+	//   Must be 1 to 16 alphanumeric characters.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot be a reserved word for the chosen database engine.
+	MasterUsername *string `type:"string" required:"true"`
+
+	// A value that indicates that the restored DB cluster should be associated
+	// with the specified option group.
+	//
+	// Permanent options cannot be removed from an option group. An option group
+	// cannot be removed from a DB cluster once it is associated with a DB cluster.
+	OptionGroupName *string `type:"string"`
+
+	// The port number on which the instances in the restored DB cluster accept
+	// connections.
+	//
+	//  Default: 3306
+	Port *int64 `type:"integer"`
+
+	// The daily time range during which automated backups are created if automated
+	// backups are enabled using the BackupRetentionPeriod parameter.
+	//
+	// Default: A 30-minute window selected at random from an 8-hour block of time
+	// per region. To see the time blocks available, see  Adjusting the Preferred
+	// Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
+	// in the Amazon RDS User Guide.
+	//
+	// Constraints:
+	//
+	//   Must be in the format hh24:mi-hh24:mi.
+	//
+	//   Times should be in Universal Coordinated Time (UTC).
+	//
+	//   Must not conflict with the preferred maintenance window.
+	//
+	//   Must be at least 30 minutes.
+	PreferredBackupWindow *string `type:"string"`
+
+	// The weekly time range during which system maintenance can occur, in Universal
+	// Coordinated Time (UTC).
+	//
+	//  Format: ddd:hh24:mi-ddd:hh24:mi
+	//
+	// Default: A 30-minute window selected at random from an 8-hour block of time
+	// per region, occurring on a random day of the week. To see the time blocks
+	// available, see  Adjusting the Preferred Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
+	// in the Amazon RDS User Guide.
+	//
+	// Valid Days: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+	//
+	// Constraints: Minimum 30-minute window.
+	PreferredMaintenanceWindow *string `type:"string"`
+
+	// The name of the Amazon S3 bucket that contains the data used to create the
+	// Amazon Aurora DB cluster.
+	S3BucketName *string `type:"string" required:"true"`
+
+	// The Amazon Resource Name (ARN) of the AWS Identity and Access Management
+	// (IAM) role that authorizes Amazon RDS to access the Amazon S3 bucket on your
+	// behalf.
+	S3IngestionRoleArn *string `type:"string" required:"true"`
+
+	// The prefix for all of the file names that contain the data used to create
+	// the Amazon Aurora DB cluster. If you do not specify a SourceS3Prefix value,
+	// then the Amazon Aurora DB cluster is created by using all of the files in
+	// the Amazon S3 bucket.
+	S3Prefix *string `type:"string"`
+
+	// The identifier for the database engine that was backed up to create the files
+	// stored in the Amazon S3 bucket.
+	//
+	// Valid values: mysql
+	SourceEngine *string `type:"string" required:"true"`
+
+	// The version of the database that the backup files were created from.
+	//
+	// MySQL version 5.5 and 5.6 are supported.
+	//
+	// Example: 5.6.22
+	SourceEngineVersion *string `type:"string" required:"true"`
+
+	// Specifies whether the restored DB cluster is encrypted.
+	StorageEncrypted *bool `type:"boolean"`
+
+	// A list of tags.
+	Tags []*Tag `locationNameList:"Tag" type:"list"`
+
+	// A list of EC2 VPC security groups to associate with the restored DB cluster.
+	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
+}
+
+// String returns the string representation
+func (s RestoreDBClusterFromS3Input) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RestoreDBClusterFromS3Input) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RestoreDBClusterFromS3Input) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RestoreDBClusterFromS3Input"}
+	if s.DBClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("DBClusterIdentifier"))
+	}
+	if s.Engine == nil {
+		invalidParams.Add(request.NewErrParamRequired("Engine"))
+	}
+	if s.MasterUserPassword == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterUserPassword"))
+	}
+	if s.MasterUsername == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterUsername"))
+	}
+	if s.S3BucketName == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3BucketName"))
+	}
+	if s.S3IngestionRoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3IngestionRoleArn"))
+	}
+	if s.SourceEngine == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceEngine"))
+	}
+	if s.SourceEngineVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceEngineVersion"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type RestoreDBClusterFromS3Output struct {
+	_ struct{} `type:"structure"`
+
+	// Contains the result of a successful invocation of the following actions:
+	//
+	//    CreateDBCluster
+	//
+	//    DeleteDBCluster
+	//
+	//    FailoverDBCluster
+	//
+	//    ModifyDBCluster
+	//
+	//    RestoreDBClusterFromSnapshot
+	//
+	//    RestoreDBClusterToPointInTime
+	//
+	//   This data type is used as a response element in the DescribeDBClusters
+	// action.
+	DBCluster *DBCluster `type:"structure"`
+}
+
+// String returns the string representation
+func (s RestoreDBClusterFromS3Output) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RestoreDBClusterFromS3Output) GoString() string {
+	return s.String()
+}
+
 type RestoreDBClusterFromSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14785,7 +15153,7 @@ type RestoreDBInstanceFromDBSnapshotInput struct {
 
 	// The database name for the restored DB instance.
 	//
-	//  This parameter doesn't apply to the MySQL or MariaDB engines.
+	//  This parameter doesn't apply to the MySQL, PostgreSQL, or MariaDB engines.
 	DBName *string `type:"string"`
 
 	// The identifier for the DB snapshot to restore from.

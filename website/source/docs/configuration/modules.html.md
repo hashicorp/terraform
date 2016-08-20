@@ -45,10 +45,10 @@ in the
 [module section](/docs/modules/index.html).
 
 Other configuration within the module are dependent on the module itself.
-Because module configuration maps directly to
-[variables](/docs/configuration/variables.html) within the module, they
-are always simple key and string values. Complex structures are not used
-for modules.
+Module configuration maps directly to
+[variables](/docs/configuration/variables.html) within the module, so
+parameters can have any of the data types that variables support, including
+lists and maps.
 
 ## Syntax
 

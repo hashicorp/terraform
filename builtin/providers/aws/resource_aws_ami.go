@@ -174,12 +174,15 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 				"delete_on_termination": *blockDev.Ebs.DeleteOnTermination,
 				"encrypted":             *blockDev.Ebs.Encrypted,
 				"iops":                  0,
-				"snapshot_id":           *blockDev.Ebs.SnapshotId,
 				"volume_size":           int(*blockDev.Ebs.VolumeSize),
 				"volume_type":           *blockDev.Ebs.VolumeType,
 			}
 			if blockDev.Ebs.Iops != nil {
 				ebsBlockDev["iops"] = int(*blockDev.Ebs.Iops)
+			}
+			// The snapshot ID might not be set.
+			if blockDev.Ebs.SnapshotId != nil {
+				ebsBlockDev["snapshot_id"] = *blockDev.Ebs.SnapshotId
 			}
 			ebsBlockDevs = append(ebsBlockDevs, ebsBlockDev)
 		} else {

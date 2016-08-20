@@ -418,11 +418,11 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 							return true, EvalEarlyExitError{}
 						}
 
-						if diffApply.Destroy && len(diffApply.Attributes) == 0 {
+						if diffApply.GetDestroy() && diffApply.GetAttributesLen() == 0 {
 							return true, EvalEarlyExitError{}
 						}
 
-						diffApply.Destroy = false
+						diffApply.SetDestroy(false)
 						return true, nil
 					},
 					Then: EvalNoop{},
@@ -432,7 +432,7 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					If: func(ctx EvalContext) (bool, error) {
 						destroy := false
 						if diffApply != nil {
-							destroy = diffApply.Destroy || diffApply.RequiresNew()
+							destroy = diffApply.GetDestroy() || diffApply.RequiresNew()
 						}
 
 						createBeforeDestroyEnabled =
@@ -762,7 +762,7 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 							return true, EvalEarlyExitError{}
 						}
 
-						if len(diff.Attributes) == 0 {
+						if diff.GetAttributesLen() == 0 {
 							return true, EvalEarlyExitError{}
 						}
 
@@ -887,7 +887,7 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 				// If we're not destroying, then compare diffs
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if diffApply != nil && diffApply.Destroy {
+						if diffApply != nil && diffApply.GetDestroy() {
 							return true, nil
 						}
 

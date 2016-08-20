@@ -207,6 +207,24 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"enable_logging": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
+			"bucket_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"s3_key_prefix": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -310,6 +328,16 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("[WARN] Error waiting for Redshift Cluster state to be \"available\": %s", err)
 	}
 
+	if _, ok := d.GetOk("enable_logging"); ok {
+
+		loggingErr := enableRedshiftClusterLogging(d, conn)
+		if loggingErr != nil {
+			log.Printf("[ERROR] Error Enabling Logging on Redshift Cluster: %s", err)
+			return loggingErr
+		}
+
+	}
+
 	return resourceAwsRedshiftClusterRead(d, meta)
 }
 
@@ -344,6 +372,15 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 		log.Printf("[WARN] Redshift Cluster (%s) not found", d.Id())
 		d.SetId("")
 		return nil
+	}
+
+	log.Printf("[INFO] Reading Redshift Cluster Logging Status: %s", d.Id())
+	loggingStatus, loggingErr := conn.DescribeLoggingStatus(&redshift.DescribeLoggingStatusInput{
+		ClusterIdentifier: aws.String(d.Id()),
+	})
+
+	if loggingErr != nil {
+		return loggingErr
 	}
 
 	d.Set("master_username", rsc.MasterUsername)
@@ -403,6 +440,10 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("cluster_public_key", rsc.ClusterPublicKey)
 	d.Set("cluster_revision_number", rsc.ClusterRevisionNumber)
 	d.Set("tags", tagsToMapRedshift(rsc.Tags))
+
+	d.Set("bucket_name", loggingStatus.BucketName)
+	d.Set("enable_logging", loggingStatus.LoggingEnabled)
+	d.Set("s3_key_prefix", loggingStatus.S3KeyPrefix)
 
 	return nil
 }
@@ -553,9 +594,54 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
+	if d.HasChange("enable_logging") || d.HasChange("bucket_name") || d.HasChange("s3_key_prefix") {
+		var loggingErr error
+		if _, ok := d.GetOk("enable_logging"); ok {
+
+			log.Printf("[INFO] Enabling Logging for Redshift Cluster %q", d.Id())
+			loggingErr = enableRedshiftClusterLogging(d, conn)
+			if loggingErr != nil {
+				return loggingErr
+			}
+		} else {
+
+			log.Printf("[INFO] Disabling Logging for Redshift Cluster %q", d.Id())
+			_, loggingErr = conn.DisableLogging(&redshift.DisableLoggingInput{
+				ClusterIdentifier: aws.String(d.Id()),
+			})
+			if loggingErr != nil {
+				return loggingErr
+			}
+		}
+
+		d.SetPartial("enable_logging")
+	}
+
 	d.Partial(false)
 
 	return resourceAwsRedshiftClusterRead(d, meta)
+}
+
+func enableRedshiftClusterLogging(d *schema.ResourceData, conn *redshift.Redshift) error {
+	if _, ok := d.GetOk("bucket_name"); !ok {
+		return fmt.Errorf("bucket_name must be set when enabling logging for Redshift Clusters")
+	}
+
+	params := &redshift.EnableLoggingInput{
+		ClusterIdentifier: aws.String(d.Id()),
+		BucketName:        aws.String(d.Get("bucket_name").(string)),
+	}
+
+	if v, ok := d.GetOk("s3_key_prefix"); ok {
+		params.S3KeyPrefix = aws.String(v.(string))
+	}
+
+	_, loggingErr := conn.EnableLogging(params)
+	if loggingErr != nil {
+		log.Printf("[ERROR] Error Enabling Logging on Redshift Cluster: %s", loggingErr)
+		return loggingErr
+	}
+	return nil
 }
 
 func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) error {
@@ -584,7 +670,7 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"available", "creating", "deleting", "rebooting", "resizing", "renaming"},
+		Pending:    []string{"available", "creating", "deleting", "rebooting", "resizing", "renaming", "final-snapshot"},
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
@@ -664,9 +750,9 @@ func validateRedshiftClusterIdentifier(v interface{}, k string) (ws []string, er
 
 func validateRedshiftClusterDbName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[a-z]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase letters characters allowed in %q", k))
+			"only lowercase letters and numeric characters allowed in %q", k))
 	}
 	if len(value) > 64 {
 		errors = append(errors, fmt.Errorf(
