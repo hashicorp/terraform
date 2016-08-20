@@ -141,7 +141,8 @@ func (c *StateMvCommand) addableResult(results []*terraform.StateFilterResult) i
 		return result
 
 	case *terraform.ResourceState:
-		// If a module state then we should add the full list of modules
+		// If a resource state with more than one result, it has a multi-count
+		// and we need to add all of them.
 		result := []*terraform.ResourceState{v}
 		if len(results) > 1 {
 			for _, r := range results[1:] {
