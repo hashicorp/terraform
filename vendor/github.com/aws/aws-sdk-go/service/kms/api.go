@@ -3421,7 +3421,7 @@ type ImportKeyMaterialInput struct {
 	// expires, AWS KMS deletes the key material and the CMK becomes unusable. You
 	// must omit this parameter when the ExpirationModel parameter is set to KEY_MATERIAL_DOES_NOT_EXPIRE.
 	// Otherwise it is required.
-	ValidTo *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	ValidTo *time.Time `type:"timestamp" timestampFormat:"unix"`
 }
 
 // String returns the string representation
@@ -3454,9 +3454,6 @@ func (s *ImportKeyMaterialInput) Validate() error {
 	}
 	if s.KeyId != nil && len(*s.KeyId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
-	}
-	if s.ValidTo == nil {
-		invalidParams.Add(request.NewErrParamRequired("ValidTo"))
 	}
 
 	if invalidParams.Len() > 0 {
