@@ -1426,6 +1426,12 @@
 			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
 		},
 		{
+			"checksumSHA1": "GSum+utW01N3KeMdvAPnsW0TemM=",
+			"path": "github.com/michaelklishin/rabbit-hole",
+			"revision": "88550829bcdcf614361c73459c903578eb44074e",
+			"revisionTime": "2016-07-06T11:10:56Z"
+		},
+		{
 			"checksumSHA1": "7niW29CvYceZ6zbia6b/LT+yD/M=",
 			"path": "github.com/mitchellh/cli",
 			"revision": "fcf521421aa29bde1d93b6920dfce826d7932208",
