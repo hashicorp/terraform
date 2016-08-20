@@ -250,10 +250,16 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	thresholds := map[string]json.Number{
+	thresholds := make(map[string]string)
+	for k, v := range map[string]json.Number{
 		"ok":       m.Options.Thresholds.Ok,
 		"warning":  m.Options.Thresholds.Warning,
 		"critical": m.Options.Thresholds.Critical,
+	} {
+		s := v.String()
+		if s != "" {
+			thresholds[k] = s
+		}
 	}
 
 	tags := make(map[string]string)
