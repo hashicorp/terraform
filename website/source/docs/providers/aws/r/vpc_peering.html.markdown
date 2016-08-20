@@ -67,6 +67,11 @@ resource "aws_vpc" "bar" {
 
 ## Argument Reference
 
+-> **Note:** Modifying the VPC Peering Connection options requires peering to be active. An automatic activation
+can be done using the [`auto_accept`](vpc_peering.html#auto_accept) attribute. Alternatively, the VPC Peering
+Connection has to be made active manually using other means. See [notes](vpc_peering.html#notes) below for
+more information.
+
 The following arguments are supported:
 
 * `peer_owner_id` - (Required) The AWS account ID of the owner of the peer VPC.
