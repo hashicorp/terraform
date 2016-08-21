@@ -112,12 +112,12 @@ func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}
 		}
 
 		if resources := cfgStmt["resources"].(*schema.Set).List(); len(resources) > 0 {
-			stmt.Resources = dataSourceAwsIamPolicyDocumentReplaceVarsInList(
+			stmt.Resources = dataSourceAwsIamPolicyDocumentReplaceVarsInSet(
 				iamPolicyDecodeConfigStringList(resources),
 			)
 		}
 		if resources := cfgStmt["not_resources"].(*schema.Set).List(); len(resources) > 0 {
-			stmt.NotResources = dataSourceAwsIamPolicyDocumentReplaceVarsInList(
+			stmt.NotResources = dataSourceAwsIamPolicyDocumentReplaceVarsInSet(
 				iamPolicyDecodeConfigStringList(resources),
 			)
 		}
@@ -150,52 +150,45 @@ func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func dataSourceAwsIamPolicyDocumentReplaceVarsInList(in interface{}) interface{} {
-	switch v := in.(type) {
-	case string:
-		return dataSourceAwsIamPolicyDocumentVarReplacer.Replace(v)
-	case []string:
-		out := make([]string, len(v))
-		for i, item := range v {
-			out[i] = dataSourceAwsIamPolicyDocumentVarReplacer.Replace(item)
-		}
-		return out
-	default:
-		panic("dataSourceAwsIamPolicyDocumentReplaceVarsInList: input not string nor []string")
+func dataSourceAwsIamPolicyDocumentReplaceVarsInSet(in IAMPolicyStringSet) IAMPolicyStringSet {
+	out := make(IAMPolicyStringSet, len(in))
+	for i, item := range in {
+		out[i] = dataSourceAwsIamPolicyDocumentVarReplacer.Replace(item)
 	}
+	return out
 }
 
 func dataSourceAwsIamPolicyDocumentMakeConditions(in []interface{}) IAMPolicyStatementConditionSet {
-	out := make([]IAMPolicyStatementCondition, len(in))
+	out := make(IAMPolicyStatementConditionSet, len(in))
 	for i, itemI := range in {
 		item := itemI.(map[string]interface{})
 		out[i] = IAMPolicyStatementCondition{
 			Test:     item["test"].(string),
 			Variable: item["variable"].(string),
-			Values: dataSourceAwsIamPolicyDocumentReplaceVarsInList(
+			Values: dataSourceAwsIamPolicyDocumentReplaceVarsInSet(
 				iamPolicyDecodeConfigStringList(
 					item["values"].(*schema.Set).List(),
 				),
 			),
 		}
 	}
-	return IAMPolicyStatementConditionSet(out)
+	return out
 }
 
 func dataSourceAwsIamPolicyDocumentMakePrincipals(in []interface{}) IAMPolicyStatementPrincipalSet {
-	out := make([]IAMPolicyStatementPrincipal, len(in))
+	out := make(IAMPolicyStatementPrincipalSet, len(in))
 	for i, itemI := range in {
 		item := itemI.(map[string]interface{})
 		out[i] = IAMPolicyStatementPrincipal{
 			Type: item["type"].(string),
-			Identifiers: dataSourceAwsIamPolicyDocumentReplaceVarsInList(
+			Identifiers: dataSourceAwsIamPolicyDocumentReplaceVarsInSet(
 				iamPolicyDecodeConfigStringList(
 					item["identifiers"].(*schema.Set).List(),
 				),
 			),
 		}
 	}
-	return IAMPolicyStatementPrincipalSet(out)
+	return out
 }
 
 func dataSourceAwsIamPolicyPrincipalSchema() *schema.Schema {
