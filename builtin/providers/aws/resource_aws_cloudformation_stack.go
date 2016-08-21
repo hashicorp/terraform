@@ -69,10 +69,11 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 				Computed: true,
 			},
 			"policy_body": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				StateFunc:    iamPolicyJSONStateFunc,
+				ValidateFunc: iamPolicyJSONValidateFunc,
 			},
 			"policy_url": &schema.Schema{
 				Type:     schema.TypeString,
