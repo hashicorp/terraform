@@ -12,6 +12,17 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
+// resourceGoogleProject returns a *schema.Resource that allows a customer
+// to declare a Google Cloud Project resource. //
+// Only the 'policy' property of a project may be updated. All other properties
+// are computed.
+//
+// This example shows a project with a policy declared in config:
+//
+// resource "google_project" "my-project" {
+//    project = "a-project-id"
+//    policy = "${data.google_iam_policy.admin.policy}"
+// }
 func resourceGoogleProject() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGoogleProjectCreate,
@@ -49,6 +60,9 @@ func resourceGoogleProject() *schema.Resource {
 	}
 }
 
+// This resource supports creation, but not in the traditional sense.
+// A new Google Cloud Project can not be created. Instead, an existing Project
+// is initialized and made available as a Terraform resource.
 func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -142,8 +156,8 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 			newPString = "{}"
 		}
 
-		oldPStringf, _ := json.MarshalIndent(oldPString, " ", "   ")
-		newPStringf, _ := json.MarshalIndent(newPString, " ", "   ")
+		oldPStringf, _ := json.MarshalIndent(oldPString, "", "   ")
+		newPStringf, _ := json.MarshalIndent(newPString, "", "   ")
 		log.Printf("[DEBUG]: Old policy: %v\nNew policy: %v", string(oldPStringf), string(newPStringf))
 
 		var oldPolicy, newPolicy cloudresourcemanager.Policy
@@ -158,24 +172,28 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 		// in the old but absent in the new
 		oldMap := rolesToMembersMap(oldPolicy.Bindings)
 		newMap := rolesToMembersMap(newPolicy.Bindings)
-		deleted := make(map[string]string)
+		deleted := make(map[string]map[string]bool)
 
 		// Get each role and its associated members in the old state
 		for role, members := range oldMap {
+			// Initialize map for role
+			if _, ok := deleted[role]; !ok {
+				deleted[role] = make(map[string]bool)
+			}
 			// The role exists in the new state
 			if _, ok := newMap[role]; ok {
 				// Check each memeber
 				for member, _ := range members {
 					// Member does not exist in new state, so it was deleted
 					if _, ok = newMap[role][member]; !ok {
-						deleted[role] = member
+						deleted[role][member] = true
 					}
 				}
 			} else {
 				// This indicates an entire role was deleted. Mark all members
 				// for delete.
 				for member, _ := range members {
-					deleted[role] = member
+					deleted[role][member] = true
 				}
 			}
 		}
@@ -197,8 +215,10 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 
 		// Remove any roles and members that were explicitly deleted
 		mergedBindingsMap := rolesToMembersMap(mergedBindings)
-		for role, member := range deleted {
-			delete(mergedBindingsMap[role], member)
+		for role, members := range deleted {
+			for member, _ := range members {
+				delete(mergedBindingsMap[role], member)
+			}
 		}
 
 		p.Bindings = rolesToMembersBinding(mergedBindingsMap)
@@ -222,6 +242,7 @@ func resourceGoogleProjectDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
+// Retrieve the existing IAM Policy for a Project
 func getProjectIamPolicy(project string, config *Config) (*cloudresourcemanager.Policy, error) {
 	p, err := config.clientResourceManager.Projects.GetIamPolicy(project,
 		&cloudresourcemanager.GetIamPolicyRequest{}).Do()
