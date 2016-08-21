@@ -9,10 +9,21 @@ import (
 	"google.golang.org/api/cloudresourcemanager/v1"
 )
 
+// dataSourceGoogleIamPolicy returns a *schema.Resource that allows a customer
+// to express a Google Cloud IAM policy in a data resource. This is an example
+// of how the schema would be used in a config:
+//
+// data "google_iam_policy" "admin" {
+//   binding {
+//     role = "roles/storage.objectViewer"
+//     members = [
+//       "user:evanbrown@google.com",
+//     ]
+//   }
+// }
 func dataSourceGoogleIamPolicy() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGoogleIamPolicyRead,
-
 		Schema: map[string]*schema.Schema{
 			"binding": {
 				Type:     schema.TypeSet,
@@ -40,6 +51,45 @@ func dataSourceGoogleIamPolicy() *schema.Resource {
 	}
 }
 
+// dataSourceGoogleIamPolicyRead reads a data source from config and writes it
+// to state.
+func dataSourceGoogleIamPolicyRead(d *schema.ResourceData, meta interface{}) error {
+	var policy cloudresourcemanager.Policy
+	var bindings []*cloudresourcemanager.Binding
+
+	// The schema supports multiple binding{} blocks
+	bset := d.Get("binding").(*schema.Set)
+
+	// All binding{} blocks will be converted and stored in an array
+	bindings = make([]*cloudresourcemanager.Binding, bset.Len())
+	policy.Bindings = bindings
+
+	// Convert each config binding into a cloudresourcemanager.Binding
+	for i, v := range bset.List() {
+		binding := v.(map[string]interface{})
+		policy.Bindings[i] = &cloudresourcemanager.Binding{
+			Role:    binding["role"].(string),
+			Members: dataSourceGoogleIamPolicyMembers(binding["members"].(*schema.Set)),
+		}
+	}
+
+	// Marshal cloudresourcemanager.Policy to JSON suitable for storing in state
+	pjson, err := json.Marshal(&policy)
+	if err != nil {
+		// should never happen if the above code is correct
+		return err
+	}
+	pstring := string(pjson)
+
+	d.Set("policy", pstring)
+	d.SetId(strconv.Itoa(hashcode.String(pstring)))
+
+	return nil
+}
+
+// dataSourceGoogleIamPolicyMembers converts a set of members in a binding
+// (a member is a principal, usually an e-mail address) into an array of
+// string.
 func dataSourceGoogleIamPolicyMembers(d *schema.Set) []string {
 	var members []string
 	members = make([]string, d.Len())
@@ -48,34 +98,4 @@ func dataSourceGoogleIamPolicyMembers(d *schema.Set) []string {
 		members[i] = v.(string)
 	}
 	return members
-}
-
-func dataSourceGoogleIamPolicyRead(d *schema.ResourceData, meta interface{}) error {
-	doc := &cloudresourcemanager.Policy{}
-
-	var bindings []*cloudresourcemanager.Binding
-
-	bindingStatements := d.Get("binding").(*schema.Set)
-	bindings = make([]*cloudresourcemanager.Binding, bindingStatements.Len())
-	doc.Bindings = bindings
-
-	for i, bindingRaw := range bindingStatements.List() {
-		bindingStatement := bindingRaw.(map[string]interface{})
-		doc.Bindings[i] = &cloudresourcemanager.Binding{
-			Role:    bindingStatement["role"].(string),
-			Members: dataSourceGoogleIamPolicyMembers(bindingStatement["members"].(*schema.Set)),
-		}
-	}
-
-	jsonDoc, err := json.MarshalIndent(doc, "", "  ")
-	if err != nil {
-		// should never happen if the above code is correct
-		return err
-	}
-	jsonString := string(jsonDoc)
-
-	d.Set("policy", jsonString)
-	d.SetId(strconv.Itoa(hashcode.String(jsonString)))
-
-	return nil
 }
