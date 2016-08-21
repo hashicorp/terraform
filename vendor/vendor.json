@@ -1908,9 +1908,11 @@
 			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
 		},
 		{
-			"comment": "2.0.0-6-g5686bcd",
+			"checksumSHA1": "CT9vuv0kaEnwEDcNywB/wD6eA54=",
+			"comment": "v2.1.3",
 			"path": "github.com/xanzy/go-cloudstack/cloudstack",
-			"revision": "5686bcde5af20565d8c7a3f66b5441430ac54186"
+			"revision": "b33e8849d135b99cb8236237524d10b41f597cb3",
+			"revisionTime": "2016-08-31T14:38:59Z"
 		},
 		{
 			"path": "github.com/xanzy/ssh-agent",
