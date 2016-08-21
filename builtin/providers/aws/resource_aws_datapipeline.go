@@ -53,7 +53,7 @@ func resourceAwsDataPipelineCreate(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId(*req.PipelineId)
 
-	return resourceAwsDataPipelineRead(d, meta)
+	return resourceAwsDataPipelineUpdate(d, meta)
 }
 
 func resourceAwsDataPipelineRead(d *schema.ResourceData, meta interface{}) error {
@@ -81,6 +81,37 @@ func resourceAwsDataPipelineUpdate(d *schema.ResourceData, meta interface{}) err
 
 	input := datapipeline.PutPipelineDefinitionInput{
 		PipelineId: aws.String(d.Id()),
+		PipelineObjects: []*datapipeline.PipelineObject{
+			{
+				Fields: []*datapipeline.Field{
+					{
+						Key:         aws.String("startDateTime"),
+						StringValue: aws.String("2012-09-25T17:00:00"),
+					},
+					{
+						Key:         aws.String("type"),
+						StringValue: aws.String("Schedule"),
+					},
+					{
+						Key:         aws.String("period"),
+						StringValue: aws.String("1 hour"),
+					},
+					{
+						Key:         aws.String("endDateTime"),
+						StringValue: aws.String("2012-09-25T18:00:00"),
+					},
+				},
+				Id:   aws.String("Schedule"),
+				Name: aws.String("Schedule"),
+			},
+		},
+	}
+
+	if d.HasChange("tags") {
+		err := setTagsDatapipeline(conn, d)
+		if err != nil {
+			return err
+		}
 	}
 
 	resp, err := conn.PutPipelineDefinition(&input)
