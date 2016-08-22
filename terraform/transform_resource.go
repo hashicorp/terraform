@@ -896,6 +896,9 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 					Then: EvalNoop{},
 				},
 
+				// Load the instance info so we have the module path set
+				&EvalInstanceInfo{Info: info},
+
 				&EvalGetProvider{
 					Name:   n.ProvidedBy()[0],
 					Output: &provider,
