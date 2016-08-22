@@ -1,5 +1,8 @@
 ## 0.7.2 (Unreleased)
 
+FEATURES:
+ * **New Resources:** `aws_api_gateway_domain_name` and `aws_api_gateway_base_path_mapping`, for using custom domains in AWS API Gateway [GH-8353]
+
 BUG FIXES:
  * core: fix crash case when malformed JSON given [GH-8295]
  * core: when asking for input, spaces are allowed [GH-8394]
