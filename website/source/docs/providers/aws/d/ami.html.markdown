@@ -8,7 +8,7 @@ description: |-
 
 # aws\_ami
 
-Use this data source to get the ID of a registered AMI for use in other 
+Use this data source to get the ID of a registered AMI for use in other
 resources.
 
 ## Example Usage
@@ -25,6 +25,7 @@ data "aws_ami" "nat_ami" {
     name = "name"
     values = ["amzn-ami-vpc-nat*"]
   }
+  local_name_filter = "^myami-\\d{3}"
   owners = ["self"]
 }
 ```
@@ -40,6 +41,9 @@ recent AMI.
 * `filter` - (Optional) One or more name/value pairs to filter off of. There are
 several valid keys, for a full reference, check out
 [describe-images in the AWS CLI reference][1].
+
+* `local_name_filter` - (Optional) A regex string to apply to the AMI list returned
+by AWS. This allows more advanced filtering not supported from the AWS API.
 
 * `owners` - (Optional) Limit search to specific AMI owners. Valid items are the numeric
 account ID, `amazon`, or `self`.
