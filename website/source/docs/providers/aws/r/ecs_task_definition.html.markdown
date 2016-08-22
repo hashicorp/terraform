@@ -52,7 +52,8 @@ The following arguments are supported:
 
 * `family` - (Required) The family, unique name for your task definition.
 * `container_definitions` - (Required) A list of container definitions in JSON format. See [AWS docs](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/create-task-definition.html) for syntax. Note, you only need the containerDefinitions array, not the parent hash including the family and volumes keys.
-* `task_role_arn` - (Optional) The ARN of IAM role that allows your Amazon ECS container task to make calls to other AWS services. 
+* `task_role_arn` - (Optional) The ARN of IAM role that allows your Amazon ECS container task to make calls to other AWS services.
+* `network_mode` - (Optional) The Docker networking mode to use for the containers in the task. The valid values are `none` , `bridge` , and `host`.
 * `volume` - (Optional) A volume block. Volumes documented below.
 
 Volumes support the following:
