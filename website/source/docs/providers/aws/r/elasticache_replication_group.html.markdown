@@ -31,7 +31,7 @@ resource "aws_elasticache_replication_group" "bar" {
 
 The following arguments are supported:
 
-* `replication_group_id` – (Required) The replication group identifier. This parameter is stored as a lowercase string.
+* `replication_group_id` – (Required) The replication group identifier.
 * `replication_group_description` – (Required) A user-created description for the replication group.
 * `number_cache_clusters` - (Required) The number of cache clusters this replication group will have.
  If Multi-AZ is enabled , the value of this parameter must be at least 2. Changing this number will force a new resource
@@ -67,3 +67,4 @@ Please note that setting a `snapshot_retention_limit` is not supported on cache.
 The following attributes are exported:
 
 * `id` - The ID of the ElastiCache Replication Group
+* `primary_endpoint_address` - The Address of the Primary Node in the replication group. Doesn't include the port.
