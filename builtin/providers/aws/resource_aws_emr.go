@@ -148,8 +148,9 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	applications := d.Get("applications").(*schema.Set).List()
 	var userKey, subnet, extraMasterSecGrp, extraSlaveSecGrp, emrMasterSecGrp, emrSlaveSecGrp, instanceProfile, serviceRole string
 	instanceProfile = "EMR_EC2_DefaultRole"
-	ec2Attributes := d.Get("ec2_attributes").([]interface{})
-	if len(ec2Attributes) == 1 {
+
+	if a, ok := d.GetOk("ec2_attributes"); ok {
+		ec2Attributes := a.([]interface{})
 		attributes := ec2Attributes[0].(map[string]interface{})
 		userKey = attributes["key_name"].(string)
 		subnet = attributes["subnet_id"].(string)
