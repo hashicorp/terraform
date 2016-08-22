@@ -78,7 +78,7 @@ func testStepImportState(
 			// Find the existing resource
 			var oldR *terraform.ResourceState
 			for _, r2 := range old {
-				if r2.Primary != nil && r2.Primary.ID == r.Primary.ID {
+				if r2.Primary != nil && r2.Primary.ID == r.Primary.ID && r2.Type == r.Type {
 					oldR = r2
 					break
 				}
