@@ -1148,10 +1148,10 @@
 			"revision": "7e3c02b30806fa5779d3bdfc152ce4c6f40e7b38"
 		},
 		{
-			"checksumSHA1": "ydHBPi04mEh+Tir+2JkpSIMckcw=",
+			"checksumSHA1": "8E3sekKdBZ38W0UFwONoZb0txbE=",
 			"path": "github.com/hashicorp/hcl",
-			"revision": "d8c773c4cba11b11539e3d45f93daeaa5dcf1fa1",
-			"revisionTime": "2016-07-11T23:17:52Z"
+			"revision": "bc40da04e8303cb7406e9ed1a2b742d636c5d960",
+			"revisionTime": "2016-08-22T16:37:30Z"
 		},
 		{
 			"checksumSHA1": "IxyvRpCFeoJBGl2obLKJV7RCGjg=",
