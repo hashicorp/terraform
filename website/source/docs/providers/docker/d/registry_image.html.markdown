@@ -37,4 +37,4 @@ The following arguments are supported:
 
 The following attributes are exported in addition to the above configuration:
 
-* `id` (string) - The ID of the image, as stored on the registry.
+* `sha256_digest` (string) - The content digest of the image, as stored on the registry.

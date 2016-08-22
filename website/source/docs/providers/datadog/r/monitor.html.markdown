@@ -101,3 +101,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - ID of the Datadog monitor
+
+## Import
+
+Monitors can be imported using their numeric ID, e.g.
+
+```
+$ terraform import datadog_monitor.bytes_received_localhost 2081
+```

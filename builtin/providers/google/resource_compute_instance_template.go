@@ -585,13 +585,18 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	return resourceComputeInstanceTemplateRead(d, meta)
 }
 
-func flattenDisks(disks []*compute.AttachedDisk) []map[string]interface{} {
+func flattenDisks(disks []*compute.AttachedDisk, d *schema.ResourceData) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(disks))
-	for _, disk := range disks {
+	for i, disk := range disks {
 		diskMap := make(map[string]interface{})
 		if disk.InitializeParams != nil {
-			sourceImageUrl := strings.Split(disk.InitializeParams.SourceImage, "/")
-			diskMap["source_image"] = sourceImageUrl[len(sourceImageUrl)-1]
+			var source_img = fmt.Sprintf("disk.%d.source_image", i)
+			if d.Get(source_img) == nil || d.Get(source_img) == "" {
+				sourceImageUrl := strings.Split(disk.InitializeParams.SourceImage, "/")
+				diskMap["source_image"] = sourceImageUrl[len(sourceImageUrl)-1]
+			} else {
+				diskMap["source_image"] = d.Get(source_img)
+			}
 			diskMap["disk_type"] = disk.InitializeParams.DiskType
 			diskMap["disk_name"] = disk.InitializeParams.DiskName
 			diskMap["disk_size_gb"] = disk.InitializeParams.DiskSizeGb
@@ -701,7 +706,7 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 	d.Set("self_link", instanceTemplate.SelfLink)
 	d.Set("name", instanceTemplate.Name)
 	if instanceTemplate.Properties.Disks != nil {
-		d.Set("disk", flattenDisks(instanceTemplate.Properties.Disks))
+		d.Set("disk", flattenDisks(instanceTemplate.Properties.Disks, d))
 	}
 	d.Set("description", instanceTemplate.Description)
 	d.Set("machine_type", instanceTemplate.Properties.MachineType)

@@ -27,7 +27,7 @@ resource "aws_s3_bucket" "bucket" {
         			"Sid": "Put bucket policy needed for audit logging",
         			"Effect": "Allow",
         			"Principal": {
-        				"AWS": "arn:aws:iam:${data.aws_redshift_account_id.main.id}:user/logs"
+        				"AWS": "arn:aws:iam:${data.aws_redshift_service_account.main.id}:user/logs"
         			},
         			"Action": "s3:PutObject",
         			"Resource": "arn:aws:s3:::tf-redshift-logging-test-bucket/*"
@@ -36,7 +36,7 @@ resource "aws_s3_bucket" "bucket" {
         			"Sid": "Get bucket policy needed for audit logging ",
         			"Effect": "Allow",
         			"Principal": {
-        				"AWS": "arn:aws:iam:${data.aws_redshift_account_id.main.id}:user/logs"
+        				"AWS": "arn:aws:iam:${data.aws_redshift_service_account.main.id}:user/logs"
         			},
         			"Action": "s3:GetBucketAcl",
         			"Resource": "arn:aws:s3:::tf-redshift-logging-test-bucket"
