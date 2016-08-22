@@ -12,8 +12,6 @@ import (
 )
 
 func TestAccAWSAutoscalingLifecycleHook_basic(t *testing.T) {
-	var hook autoscaling.LifecycleHook
-
 	resourceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
@@ -24,7 +22,7 @@ func TestAccAWSAutoscalingLifecycleHook_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSAutoscalingLifecycleHookConfig(resourceName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckLifecycleHookExists("aws_autoscaling_lifecycle_hook.foobar", &hook),
+					testAccCheckLifecycleHookExists("aws_autoscaling_lifecycle_hook.foobar"),
 					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "autoscaling_group_name", resourceName),
 					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "default_result", "CONTINUE"),
 					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "heartbeat_timeout", "2000"),
@@ -36,8 +34,6 @@ func TestAccAWSAutoscalingLifecycleHook_basic(t *testing.T) {
 }
 
 func TestAccAWSAutoscalingLifecycleHook_omitDefaultResult(t *testing.T) {
-	var hook autoscaling.LifecycleHook
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -46,7 +42,7 @@ func TestAccAWSAutoscalingLifecycleHook_omitDefaultResult(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(acctest.RandString(10)),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckLifecycleHookExists("aws_autoscaling_lifecycle_hook.foobar", &hook),
+					testAccCheckLifecycleHookExists("aws_autoscaling_lifecycle_hook.foobar"),
 					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "default_result", "ABANDON"),
 				),
 			},
@@ -54,7 +50,7 @@ func TestAccAWSAutoscalingLifecycleHook_omitDefaultResult(t *testing.T) {
 	})
 }
 
-func testAccCheckLifecycleHookExists(n string, hook *autoscaling.LifecycleHook) resource.TestCheckFunc {
+func testAccCheckLifecycleHookExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
