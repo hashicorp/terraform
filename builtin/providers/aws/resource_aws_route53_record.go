@@ -270,6 +270,9 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		zone, *rec.Name, req)
 
 	respRaw, err := changeRoute53RecordSet(conn, req)
+	if err != nil {
+		return err
+	}
 
 	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
 
