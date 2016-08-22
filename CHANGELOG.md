@@ -2,6 +2,8 @@
 
 BUG FIXES:
  * core: fix crash case when malformed JSON given [GH-8295]
+ * core: when asking for input, spaces are allowed [GH-8394]
+ * command/apply: prefix destroying resources with module path [GH-8396]
  * command/import: can import into specific indexes [GH-8335]
  * command/state mv: nested modules can be moved [GH-8304]
  * command/state mv: resources with a count > 1 can be moved [GH-8304]
