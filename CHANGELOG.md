@@ -1,6 +1,7 @@
 ## 0.7.2 (Unreleased)
 
 BUG FIXES:
+ * core: fix crash case when malformed JSON given [GH-8295]
  * command/import: can import into specific indexes [GH-8335]
  * command/state mv: nested modules can be moved [GH-8304]
  * command/state mv: resources with a count > 1 can be moved [GH-8304]
