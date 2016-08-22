@@ -69,12 +69,23 @@ func testAccCheckAWSEmrClusterExists(n string, v *emr.RunJobFlowOutput) resource
 			return fmt.Errorf("No cluster id set")
 		}
 		conn := testAccProvider.Meta().(*AWSClient).emrconn
-		_, err := conn.DescribeCluster(&emr.DescribeClusterInput{
+		describe, err := conn.DescribeCluster(&emr.DescribeClusterInput{
 			ClusterId: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
 			return fmt.Errorf("EMR error: %v", err)
 		}
+
+		if describe.Cluster != nil &&
+			*describe.Cluster.Id != rs.Primary.ID {
+			return fmt.Errorf("EMR cluser not found")
+		}
+
+		if describe.Cluster != nil &&
+			*describe.Cluster.Status.State != "WAITING" {
+			return fmt.Errorf("EMR cluser is not up yet")
+		}
+
 		return nil
 	}
 }
