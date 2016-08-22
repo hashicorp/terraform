@@ -34,11 +34,9 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "60"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.ok", "0"),
+						"datadog_monitor.foo", "thresholds.warning", "1.0"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.warning", "1"),
-					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.critical", "2"),
+						"datadog_monitor.foo", "thresholds.critical", "2.0"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "require_full_window", "true"),
 					resource.TestCheckResourceAttr(
@@ -78,11 +76,9 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "60"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.ok", "0"),
+						"datadog_monitor.foo", "thresholds.warning", "1.0"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.warning", "1"),
-					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.critical", "2"),
+						"datadog_monitor.foo", "thresholds.critical", "2.0"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "notify_audit", "false"),
 					resource.TestCheckResourceAttr(
@@ -120,11 +116,11 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "40"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.ok", "0"),
+						"datadog_monitor.foo", "thresholds.ok", "0.0"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.warning", "1"),
+						"datadog_monitor.foo", "thresholds.warning", "1.0"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.critical", "3"),
+						"datadog_monitor.foo", "thresholds.critical", "3.0"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "notify_audit", "true"),
 					resource.TestCheckResourceAttr(
@@ -170,11 +166,11 @@ func TestAccDatadogMonitor_TrimWhitespace(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "60"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.ok", "0"),
+						"datadog_monitor.foo", "thresholds.ok", "0.0"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.warning", "1"),
+						"datadog_monitor.foo", "thresholds.warning", "1.0"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "thresholds.critical", "2"),
+						"datadog_monitor.foo", "thresholds.critical", "2.0"),
 				),
 			},
 		},
@@ -210,9 +206,8 @@ resource "datadog_monitor" "foo" {
   query = "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2"
 
   thresholds {
-	ok = 0
-	warning = 1
-	critical = 2
+	warning = "1.0"
+	critical = "2.0"
   }
 
   notify_no_data = false
@@ -240,9 +235,9 @@ resource "datadog_monitor" "foo" {
   query = "avg(last_1h):avg:aws.ec2.cpu{environment:bar,host:bar} by {host} > 3"
 
   thresholds {
-	ok = 0
-	warning = 1
-	critical = 3
+	ok = "0.0"
+	warning = "1.0"
+	critical = "3.0"
   }
 
   notify_no_data = true
@@ -278,9 +273,9 @@ EOF
 avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2
 EOF
   thresholds {
-	ok = 0
-	warning = 1
-	critical = 2
+	ok = "0.0"
+	warning = "1.0"
+	critical = "2.0"
   }
 
   notify_no_data = false
