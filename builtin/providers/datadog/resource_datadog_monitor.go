@@ -18,6 +18,9 @@ func resourceDatadogMonitor() *schema.Resource {
 		Update: resourceDatadogMonitorUpdate,
 		Delete: resourceDatadogMonitorDelete,
 		Exists: resourceDatadogMonitorExists,
+		Importer: &schema.ResourceImporter{
+			State: resourceDatadogImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -247,12 +250,30 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	thresholds := make(map[string]string)
+	for k, v := range map[string]json.Number{
+		"ok":       m.Options.Thresholds.Ok,
+		"warning":  m.Options.Thresholds.Warning,
+		"critical": m.Options.Thresholds.Critical,
+	} {
+		s := v.String()
+		if s != "" {
+			thresholds[k] = s
+		}
+	}
+
+	tags := make(map[string]string)
+	for _, s := range m.Tags {
+		tag := strings.Split(s, ":")
+		tags[tag[0]] = tag[1]
+	}
+
 	log.Printf("[DEBUG] monitor: %v", m)
 	d.Set("name", m.Name)
 	d.Set("message", m.Message)
 	d.Set("query", m.Query)
 	d.Set("type", m.Type)
-	d.Set("thresholds", m.Options.Thresholds)
+	d.Set("thresholds", thresholds)
 	d.Set("notify_no_data", m.Options.NotifyNoData)
 	d.Set("no_data_timeframe", m.Options.NoDataTimeframe)
 	d.Set("renotify_interval", m.Options.RenotifyInterval)
@@ -261,7 +282,7 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("escalation_message", m.Options.EscalationMessage)
 	d.Set("silenced", m.Options.Silenced)
 	d.Set("include_tags", m.Options.IncludeTags)
-	d.Set("tags", m.Tags)
+	d.Set("tags", tags)
 	d.Set("require_full_window", m.Options.RequireFullWindow)
 	d.Set("locked", m.Options.Locked)
 
@@ -369,4 +390,11 @@ func resourceDatadogMonitorDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	return nil
+}
+
+func resourceDatadogImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	if err := resourceDatadogMonitorRead(d, meta); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }
