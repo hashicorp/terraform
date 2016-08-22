@@ -23,6 +23,7 @@ func resourceComputeFirewall() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		SchemaVersion: 1,
+		MigrateState:  resourceComputeFirewallMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
