@@ -134,6 +134,12 @@ func resourceAwsLambdaEventSourceMappingRead(d *schema.ResourceData, meta interf
 
 	eventSourceMappingConfiguration, err := conn.GetEventSourceMapping(params)
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ResourceNotFoundException" {
+			log.Printf("[DEBUG] Lambda event source mapping (%s) not found", d.Id())
+			d.SetId("")
+
+			return nil
+		}
 		return err
 	}
 
