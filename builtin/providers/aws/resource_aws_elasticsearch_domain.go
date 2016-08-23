@@ -23,7 +23,7 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"access_policies": &schema.Schema{
 				Type:      schema.TypeString,
-				StateFunc: normalizeJson,
+				StateFunc: normalizePolicyDocument,
 				Optional:  true,
 			},
 			"advanced_options": &schema.Schema{
@@ -264,7 +264,7 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	ds := out.DomainStatus
 
 	if ds.AccessPolicies != nil && *ds.AccessPolicies != "" {
-		d.Set("access_policies", normalizeJson(*ds.AccessPolicies))
+		d.Set("access_policies", normalizePolicyDocument(*ds.AccessPolicies))
 	}
 	err = d.Set("advanced_options", pointersMapToStringList(ds.AdvancedOptions))
 	if err != nil {

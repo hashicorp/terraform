@@ -49,7 +49,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 			"policy": &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
-				StateFunc: normalizeJson,
+				StateFunc: normalizePolicyDocument,
 			},
 
 			"cors_rule": &schema.Schema{
@@ -465,7 +465,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			if err := d.Set("policy", ""); err != nil {
 				return err
 			}
-		} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
+		} else if err := d.Set("policy", normalizePolicyDocument(*v)); err != nil {
 			return err
 		}
 	}
@@ -1395,19 +1395,6 @@ func removeNil(data map[string]interface{}) map[string]interface{} {
 	}
 
 	return withoutNil
-}
-
-func normalizeJson(jsonString interface{}) string {
-	if jsonString == nil || jsonString == "" {
-		return ""
-	}
-	var j interface{}
-	err := json.Unmarshal([]byte(jsonString.(string)), &j)
-	if err != nil {
-		return fmt.Sprintf("Error parsing JSON: %s", err)
-	}
-	b, _ := json.Marshal(j)
-	return string(b[:])
 }
 
 func normalizeRegion(region string) string {

@@ -72,7 +72,7 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Computed:  true,
-				StateFunc: normalizeJson,
+				StateFunc: normalizePolicyDocument,
 			},
 			"policy_url": &schema.Schema{
 				Type:     schema.TypeString,
@@ -121,7 +121,7 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 	if v, ok := d.GetOk("policy_body"); ok {
-		input.StackPolicyBody = aws.String(normalizeJson(v.(string)))
+		input.StackPolicyBody = aws.String(normalizePolicyDocument(v.(string)))
 	}
 	if v, ok := d.GetOk("policy_url"); ok {
 		input.StackPolicyURL = aws.String(v.(string))
@@ -298,7 +298,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 	}
 
 	if d.HasChange("policy_body") {
-		input.StackPolicyBody = aws.String(normalizeJson(d.Get("policy_body").(string)))
+		input.StackPolicyBody = aws.String(normalizePolicyDocument(d.Get("policy_body").(string)))
 	}
 	if d.HasChange("policy_url") {
 		input.StackPolicyURL = aws.String(d.Get("policy_url").(string))
