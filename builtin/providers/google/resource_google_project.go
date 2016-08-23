@@ -31,28 +31,20 @@ func resourceGoogleProject() *schema.Resource {
 		Delete: resourceGoogleProjectDelete,
 
 		Schema: map[string]*schema.Schema{
-			"project": &schema.Schema{
+			"id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
-			"policy": &schema.Schema{
+			"policy_data": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
 			"number": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -77,7 +69,7 @@ func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Apply the IAM policy if it is set
-	if pString, ok := d.GetOk("policy"); ok {
+	if pString, ok := d.GetOk("policy_data"); ok {
 		// The policy string is just a marshaled cloudresourcemanager.Policy.
 		// Unmarshal it to a struct.
 		var policy cloudresourcemanager.Policy
@@ -116,6 +108,7 @@ func resourceGoogleProjectRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	d.SetId(project)
 
 	// Confirm the project exists.
 	// TODO(evanbrown): Support project creation
@@ -141,10 +134,10 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Policy has changed
-	if ok := d.HasChange("policy"); ok {
+	if ok := d.HasChange("policy_data"); ok {
 		// The policy string is just a marshaled cloudresourcemanager.Policy.
 		// Unmarshal it to a struct that contains the old and new policies
-		oldP, newP := d.GetChange("policy")
+		oldP, newP := d.GetChange("policy_data")
 		oldPString := oldP.(string)
 		newPString := newP.(string)
 
