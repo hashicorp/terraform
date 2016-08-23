@@ -56,6 +56,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/aws/aws-sdk-go/service/workspaces"
 )
 
 type Config struct {
@@ -127,6 +128,7 @@ type AWSClient struct {
 	glacierconn           *glacier.Glacier
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
+	workspacesconn        *workspaces.WorkSpaces
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -269,6 +271,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.sesConn = ses.New(sess)
 		client.snsconn = sns.New(sess)
 		client.sqsconn = sqs.New(sess)
+		client.workspacesconn = workspaces.New(sess)
 	}
 
 	if len(errs) > 0 {
