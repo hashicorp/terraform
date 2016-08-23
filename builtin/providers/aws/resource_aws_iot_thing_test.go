@@ -188,7 +188,7 @@ resource "aws_iot_thing" "device3" {
 
   attributes {
     Manufacturer = "Amazon"
-    Type = "IoT Device A"
+    Type = "IoT_Device_A"
     SerialNumber = "10293847562912"
   }
 }
