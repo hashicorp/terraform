@@ -81,6 +81,11 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 			Optional: true,
 			Computed: true,
 		},
+		"snapshot_name": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			ForceNew: true,
+		},
 
 		"maintenance_window": &schema.Schema{
 			Type:     schema.TypeString,
@@ -220,8 +225,8 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 
 	securityNames := expandStringList(securityNameSet.List())
 	securityIds := expandStringList(securityIdSet.List())
-
 	tags := tagsFromMapEC(d.Get("tags").(map[string]interface{}))
+
 	req := &elasticache.CreateCacheClusterInput{
 		CacheClusterId:          aws.String(clusterId),
 		CacheNodeType:           aws.String(nodeType),
@@ -263,6 +268,10 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		log.Printf("[DEBUG] Restoring Redis cluster from S3 snapshot: %#v", s)
 	}
 
+	if v, ok := d.GetOk("snapshot_name"); ok {
+		req.SnapshotName = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("az_mode"); ok {
 		req.AZMode = aws.String(v.(string))
 	}
@@ -292,7 +301,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	// name contained uppercase characters.
 	d.SetId(strings.ToLower(*resp.CacheCluster.CacheClusterId))
 
-	pending := []string{"creating"}
+	pending := []string{"creating", "modifying", "restoring"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
