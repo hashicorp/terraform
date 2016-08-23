@@ -9,6 +9,25 @@ import (
 	"google.golang.org/api/cloudresourcemanager/v1"
 )
 
+var iamBinding *schema.Schema = &schema.Schema{
+	Type:     schema.TypeSet,
+	Required: true,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"role": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"members": {
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+		},
+	},
+}
+
 // dataSourceGoogleIamPolicy returns a *schema.Resource that allows a customer
 // to express a Google Cloud IAM policy in a data resource. This is an example
 // of how the schema would be used in a config:
@@ -25,25 +44,8 @@ func dataSourceGoogleIamPolicy() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGoogleIamPolicyRead,
 		Schema: map[string]*schema.Schema{
-			"binding": {
-				Type:     schema.TypeSet,
-				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"role": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"members": {
-							Type:     schema.TypeSet,
-							Required: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set:      schema.HashString,
-						},
-					},
-				},
-			},
-			"policy": {
+			"binding": iamBinding,
+			"policy_data": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -81,7 +83,7 @@ func dataSourceGoogleIamPolicyRead(d *schema.ResourceData, meta interface{}) err
 	}
 	pstring := string(pjson)
 
-	d.Set("policy", pstring)
+	d.Set("policy_data", pstring)
 	d.SetId(strconv.Itoa(hashcode.String(pstring)))
 
 	return nil

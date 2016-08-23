@@ -133,9 +133,9 @@ func testAccCheckGoogleProjectIamPolicyIsMerged(projectRes, policyRes string, or
 
 		var projectP, policyP cloudresourcemanager.Policy
 		// The project should have a policy
-		ps, ok := project.Primary.Attributes["policy"]
+		ps, ok := project.Primary.Attributes["policy_data"]
 		if !ok {
-			return fmt.Errorf("Project resource %q did not have a 'policy' attribute", project.Primary.ID)
+			return fmt.Errorf("Project resource %q did not have a 'policy_data' attribute. Attributes were %#v", project.Primary.Attributes["id"], project.Primary.Attributes)
 		}
 		if err := json.Unmarshal([]byte(ps), &projectP); err != nil {
 			return err
@@ -146,9 +146,9 @@ func testAccCheckGoogleProjectIamPolicyIsMerged(projectRes, policyRes string, or
 		if !ok {
 			return fmt.Errorf("Not found: %s", policyRes)
 		}
-		ps, ok = policy.Primary.Attributes["policy"]
+		ps, ok = policy.Primary.Attributes["policy_data"]
 		if !ok {
-			return fmt.Errorf("Policy resource %q did not have a 'policy' attribute", policy.Primary.ID)
+			return fmt.Errorf("Data policy resource %q did not have a 'policy_data' attribute. Attributes were %#v", policy.Primary.Attributes["id"], project.Primary.Attributes)
 		}
 		if err := json.Unmarshal([]byte(ps), &policyP); err != nil {
 			return err
@@ -158,7 +158,6 @@ func testAccCheckGoogleProjectIamPolicyIsMerged(projectRes, policyRes string, or
 		if !reflect.DeepEqual(derefBindings(projectP.Bindings), derefBindings(policyP.Bindings)) {
 			return fmt.Errorf("Project and data source policies do not match: project policy is %+v, data resource policy is  %+v", derefBindings(projectP.Bindings), derefBindings(policyP.Bindings))
 		}
-		return nil
 
 		// Merge the project policy in Terrafomr state with the policy the project had before the config was applied
 		expected := make([]*cloudresourcemanager.Binding, 0)
@@ -446,13 +445,13 @@ func (b Binding) Less(i, j int) bool {
 
 var testAccGoogleProject_basic = `
 resource "google_project" "acceptance" {
-    project = "%v"
+    id = "%v"
 }`
 
 var testAccGoogleProject_policy1 = `
 resource "google_project" "acceptance" {
-    project = "%v"
-	policy = "${data.google_iam_policy.admin.policy}"
+    id = "%v"
+    policy_data = "${data.google_iam_policy.admin.policy_data}"
 }
 
 data "google_iam_policy" "admin" {
