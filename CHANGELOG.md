@@ -1,7 +1,8 @@
 ## 0.7.2 (Unreleased)
 
 FEATURES:
- * **New Resources:** `aws_api_gateway_domain_name` and `aws_api_gateway_base_path_mapping`, for using custom domains in AWS API Gateway [GH-8353]
+ * **New Resource:** `aws_api_gateway_base_path_mapping` [GH-8353]
+ * **New Resource:** `aws_api_gateway_domain_name` [GH-8353]
 
 IMPROVEMENTS:
  * provider/aws: Add Primary Endpoint Address attribute for `aws_elasticache_replication_group` [GH-8385]
