@@ -134,21 +134,17 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	// When the VPC Peering Connection is pending acceptance,
 	// the details about accepter and/or requester peering
 	// options would not be included in the response.
-	if _, ok := d.GetOk("accepter"); ok {
-		if pc.AccepterVpcInfo.PeeringOptions != nil {
-			err = d.Set("accepter", flattenPeeringOptions(pc.AccepterVpcInfo.PeeringOptions))
-			if err != nil {
-				return err
-			}
+	if pc.AccepterVpcInfo != nil && pc.AccepterVpcInfo.PeeringOptions != nil {
+		err := d.Set("accepter", flattenPeeringOptions(pc.AccepterVpcInfo.PeeringOptions))
+		if err != nil {
+			return err
 		}
 	}
 
-	if _, ok := d.GetOk("requester"); ok {
-		if pc.RequesterVpcInfo.PeeringOptions != nil {
-			err = d.Set("requester", flattenPeeringOptions(pc.RequesterVpcInfo.PeeringOptions))
-			if err != nil {
-				return err
-			}
+	if pc.RequesterVpcInfo != nil && pc.RequesterVpcInfo.PeeringOptions != nil {
+		err := d.Set("requester", flattenPeeringOptions(pc.RequesterVpcInfo.PeeringOptions))
+		if err != nil {
+			return err
 		}
 	}
 
@@ -294,6 +290,7 @@ func vpcPeeringConnectionOptionsSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
 		Optional: true,
+		Computed: true,
 		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
