@@ -52,6 +52,8 @@ resource "google_compute_instance_template" "foobar" {
     foo = "bar"
   }
 
+  metadata_startup_script = "echo hi > /test.txt"
+
   service_account {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]
   }
@@ -132,6 +134,11 @@ The following arguments are supported:
 
 * `metadata` - (Optional) Metadata key/value pairs to make available from
     within instances created from this template.
+
+* `metadata_startup_script` - (Optional) An alternative to using the
+    startup-script metadata key. This replaces the startup-script metadata key
+    on the created instance template and thus the two mechanisms are not allowed
+    to be used simultaneously.
 
 * `network_interface` - (Required) Networks to attach to instances created from
     this template. This can be specified multiple times for multiple networks.

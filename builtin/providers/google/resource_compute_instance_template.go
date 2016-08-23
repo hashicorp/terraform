@@ -168,7 +168,15 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 			},
 
 			"metadata": &schema.Schema{
-				Type:     schema.TypeMap,
+				Type:         schema.TypeMap,
+				Optional:     true,
+				ForceNew:     true,
+				Elem:         schema.TypeString,
+				ValidateFunc: validateInstanceMetadata,
+			},
+
+			"metadata_startup_script": &schema.Schema{
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -692,6 +700,20 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 		}
 
 		return fmt.Errorf("Error reading instance template: %s", err)
+	}
+
+	// Synch metadata
+	md := instanceTemplate.Properties.Metadata
+
+	_md := MetadataFormatSchema(d.Get("metadata").(map[string]interface{}), md)
+	delete(_md, "startup-script")
+
+	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+		d.Set("metadata_startup_script", script)
+	}
+
+	if err = d.Set("metadata", _md); err != nil {
+		return fmt.Errorf("Error setting metadata: %s", err)
 	}
 
 	// Set the metadata fingerprint if there is one.
