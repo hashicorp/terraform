@@ -25,7 +25,7 @@ data "aws_ami" "nat_ami" {
     name = "name"
     values = ["amzn-ami-vpc-nat*"]
   }
-  local_name_filter = "^myami-\\d{3}"
+  name_regex = "^myami-\\d{3}"
   owners = ["self"]
 }
 ```
@@ -42,13 +42,17 @@ recent AMI.
 several valid keys, for a full reference, check out
 [describe-images in the AWS CLI reference][1].
 
-* `local_name_filter` - (Optional) A regex string to apply to the AMI list returned
-by AWS. This allows more advanced filtering not supported from the AWS API.
-
 * `owners` - (Optional) Limit search to specific AMI owners. Valid items are the numeric
 account ID, `amazon`, or `self`.
 
-~> **NOTE:** At least one of `executable_users`, `filter`, or `owners` must be specified.
+* `name_regex` - (Optional) A regex string to apply to the AMI list returned
+by AWS. This allows more advanced filtering not supported from the AWS API. This
+filtering is done locally on what AWS returns, and could have a performance
+impact if the result is large. It is recommended to combine this with other
+options to narrow down the list AWS returns.
+
+~> **NOTE:** At least one of `executable_users`, `filter`, `owners`, or
+`name_regex` must be specified.
 
 ~> **NOTE:** If more or less than a single match is returned by the search,
 Terraform will fail. Ensure that your search is specific enough to return

@@ -44,7 +44,7 @@ func dataSourceAwsAmi() *schema.Resource {
 					},
 				},
 			},
-			"local_name_filter": &schema.Schema{
+			"name_regex": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -212,11 +212,11 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 	executableUsers, executableUsersOk := d.GetOk("executable_users")
 	filters, filtersOk := d.GetOk("filter")
-	localNameFilter, localNameFilterOk := d.GetOk("local_name_filter")
+	nameRegex, nameRegexOk := d.GetOk("name_regex")
 	owners, ownersOk := d.GetOk("owners")
 
-	if executableUsersOk == false && filtersOk == false && localNameFilterOk == false && ownersOk == false {
-		return fmt.Errorf("One of executable_users, filters, local_name_filter, or owners must be assigned")
+	if executableUsersOk == false && filtersOk == false && nameRegexOk == false && ownersOk == false {
+		return fmt.Errorf("One of executable_users, filters, name_regex, or owners must be assigned")
 	}
 
 	params := &ec2.DescribeImagesInput{}
@@ -236,8 +236,8 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	var filteredImages []*ec2.Image
-	if localNameFilterOk == true {
-		r := regexp.MustCompile(localNameFilter.(string))
+	if nameRegexOk == true {
+		r := regexp.MustCompile(nameRegex.(string))
 		for _, image := range resp.Images {
 			if r.MatchString(*image.Name) == true {
 				filteredImages = append(filteredImages, image)

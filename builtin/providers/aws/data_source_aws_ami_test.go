@@ -145,10 +145,10 @@ func TestAccAWSAmiDataSource_localNameFilter(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckAwsAmiDataSourceLocalNameFilterConfig,
+				Config: testAccCheckAwsAmiDataSourceNameRegexConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAwsAmiDataSourceID("data.aws_ami.local_filtered_ami"),
-					resource.TestMatchResourceAttr("data.aws_ami.local_filtered_ami", "image_id", regexp.MustCompile("^ami-")),
+					testAccCheckAwsAmiDataSourceID("data.aws_ami.name_regex_filtered_ami"),
+					resource.TestMatchResourceAttr("data.aws_ami.name_regex_filtered_ami", "image_id", regexp.MustCompile("^ami-")),
 				),
 			},
 		},
@@ -262,15 +262,15 @@ data "aws_ami" "amazon_ami" {
 }
 `
 
-// Testing local_name_filter parameter
-const testAccCheckAwsAmiDataSourceLocalNameFilterConfig = `
-data "aws_ami" "local_filtered_ami" {
+// Testing name_regex parameter
+const testAccCheckAwsAmiDataSourceNameRegexConfig = `
+data "aws_ami" "name_regex_filtered_ami" {
 	most_recent = true
 	owners = ["amazon"]
 	filter {
 		name = "name"
 		values = ["amzn-ami-*"]
 	}
-	local_name_filter = "^amzn-ami-\\d{3}[5].*-ecs-optimized"
+	name_regex = "^amzn-ami-\\d{3}[5].*-ecs-optimized"
 }
 `
