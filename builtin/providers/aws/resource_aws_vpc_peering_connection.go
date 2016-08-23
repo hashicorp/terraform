@@ -126,34 +126,28 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] VPC Peering Connection response: %#v", pc)
 
-	d.Set("accept_status", *pc.Status.Code)
+	d.Set("accept_status", pc.Status.Code)
+	d.Set("peer_owner_id", pc.AccepterVpcInfo.OwnerId)
+	d.Set("peer_vpc_id", pc.AccepterVpcInfo.VpcId)
+	d.Set("vpc_id", pc.RequesterVpcInfo.VpcId)
 
 	// When the VPC Peering Connection is pending acceptance,
 	// the details about accepter and/or requester peering
 	// options would not be included in the response.
-	if pc.AccepterVpcInfo != nil {
-		d.Set("peer_owner_id", *pc.AccepterVpcInfo.OwnerId)
-		d.Set("peer_vpc_id", *pc.AccepterVpcInfo.VpcId)
-
-		if _, ok := d.GetOk("accepter"); ok {
-			if pc.AccepterVpcInfo.PeeringOptions != nil {
-				err = d.Set("accepter", flattenPeeringOptions(pc.AccepterVpcInfo.PeeringOptions))
-				if err != nil {
-					return err
-				}
+	if _, ok := d.GetOk("accepter"); ok {
+		if pc.AccepterVpcInfo.PeeringOptions != nil {
+			err = d.Set("accepter", flattenPeeringOptions(pc.AccepterVpcInfo.PeeringOptions))
+			if err != nil {
+				return err
 			}
 		}
 	}
 
-	if pc.RequesterVpcInfo != nil {
-		d.Set("vpc_id", *pc.RequesterVpcInfo.VpcId)
-
-		if _, ok := d.GetOk("requester"); ok {
-			if pc.RequesterVpcInfo.PeeringOptions != nil {
-				err = d.Set("requester", flattenPeeringOptions(pc.RequesterVpcInfo.PeeringOptions))
-				if err != nil {
-					return err
-				}
+	if _, ok := d.GetOk("requester"); ok {
+		if pc.RequesterVpcInfo.PeeringOptions != nil {
+			err = d.Set("requester", flattenPeeringOptions(pc.RequesterVpcInfo.PeeringOptions))
+			if err != nil {
+				return err
 			}
 		}
 	}
