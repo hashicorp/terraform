@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -271,6 +272,13 @@ func getAwsAutoscalingPolicy(d *schema.ResourceData, meta interface{}) (*autosca
 	log.Printf("[DEBUG] AutoScaling Scaling Policy Describe Params: %#v", params)
 	resp, err := autoscalingconn.DescribePolicies(&params)
 	if err != nil {
+		//A ValidationError here can mean that either the Policy is missing OR the Autoscaling Group is missing
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ValidationError" {
+			log.Printf("[WARNING] %s not found, refreshing from state", d.Id())
+			d.SetId("")
+
+			return nil, nil
+		}
 		return nil, fmt.Errorf("Error retrieving scaling policies: %s", err)
 	}
 
