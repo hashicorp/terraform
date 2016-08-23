@@ -816,7 +816,7 @@ func validateRedshiftClusterMasterPassword(v interface{}, k string) (ws []string
 			"%q must contain at least one number", k))
 	}
 	if len(value) < 8 {
-		errors = append(errors, fmt.Errorf("%q must be more than 8 characters", k))
+		errors = append(errors, fmt.Errorf("%q must be at least 8 characters", k))
 	}
 	return
 }
