@@ -90,6 +90,49 @@ func TestAccAWSEcsTaskDefinition_withTaskRoleArn(t *testing.T) {
 	})
 }
 
+func TestAccAWSEcsTaskDefinition_withNetworkMode(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsTaskDefinitionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsTaskDefinitionWithNetworkMode,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+					resource.TestCheckResourceAttr(
+						"aws_ecs_task_definition.sleep", "network_mode", "bridge"),
+				),
+			},
+		},
+	})
+}
+
+func TestValidateAwsEcsTaskDefinitionNetworkMode(t *testing.T) {
+	validNames := []string{
+		"bridge",
+		"host",
+		"none",
+	}
+	for _, v := range validNames {
+		_, errors := validateAwsEcsTaskDefinitionNetworkMode(v, "network_mode")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid AWS ECS Task Definition Network Mode: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"bridged",
+		"-docker",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateAwsEcsTaskDefinitionNetworkMode(v, "network_mode")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid AWS ECS Task Definition Network Mode", v)
+		}
+	}
+}
+
 func testAccCheckAWSEcsTaskDefinitionDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ecsconn
 
@@ -242,6 +285,70 @@ EOF
 resource "aws_ecs_task_definition" "sleep" {
   family = "terraform-acc-sc-volume-test"
   task_role_arn = "${aws_iam_role.role_test.arn}"
+  container_definitions = <<TASK_DEFINITION
+[
+  {
+    "name": "sleep",
+    "image": "busybox",
+    "cpu": 10,
+    "command": ["sleep","360"],
+    "memory": 10,
+    "essential": true
+  }
+]
+TASK_DEFINITION
+
+  volume {
+    name = "database_scratch"
+  }
+}
+`
+
+var testAccAWSEcsTaskDefinitionWithNetworkMode = `
+resource "aws_iam_role" "role_test" {
+  name = "tf_old_name"
+  path = "/test/"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "role_test" {
+  name = "role_update_test"
+  role = "${aws_iam_role.role_test.id}"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "arn:aws:s3:::*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_ecs_task_definition" "sleep" {
+  family = "terraform-acc-sc-volume-test-network-mode"
+  task_role_arn = "${aws_iam_role.role_test.arn}"
+  network_mode = "bridge"
   container_definitions = <<TASK_DEFINITION
 [
   {
