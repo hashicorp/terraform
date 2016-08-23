@@ -14,6 +14,7 @@ BUG FIXES:
  * command/state mv: nested modules can be moved [GH-8304]
  * command/state mv: resources with a count > 1 can be moved [GH-8304]
  * provider/aws: Refresh `aws_lambda_event_source_mapping` from state when NotFound [GH-8378]
+ * provider/aws: `aws_elasticache_replication_group_id` validation change [GH-8381]
 
 ## 0.7.1 (August 19, 2016)
 
