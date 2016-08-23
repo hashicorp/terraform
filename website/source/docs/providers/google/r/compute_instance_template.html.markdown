@@ -150,7 +150,7 @@ The following arguments are supported:
 * `scheduling` - (Optional) The scheduling strategy to use. More details about
     this configuration option are detailed below.
 
-* `service_account` - (Optional) Service account to attach to the instance.
+* `service_account` - (Optional) Service account to attach to the instance. Structure is documented below.
 
 * `tags` - (Optional) Tags to attach to the instance.
 
@@ -213,6 +213,9 @@ The `access_config` block supports:
     network ip. If not given, one will be generated.
 
 The `service_account` block supports:
+
+* `email` - (Optional) The service account e-mail address. If not given, the
+    default Google Compute Engine service account is used.
 
 * `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
     short names are supported.
