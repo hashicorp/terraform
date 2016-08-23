@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -271,7 +272,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 
 	respRaw, err := changeRoute53RecordSet(conn, req)
 	if err != nil {
-		return err
+		return errwrap.Wrapf("[ERR]: Error building changeset: {{err}}", err)
 	}
 
 	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
