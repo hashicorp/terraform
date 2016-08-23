@@ -15,7 +15,28 @@ import (
 
 const opAcceptCertificateTransfer = "AcceptCertificateTransfer"
 
-// AcceptCertificateTransferRequest generates a request for the AcceptCertificateTransfer operation.
+// AcceptCertificateTransferRequest generates a "aws/request.Request" representing the
+// client's request for the AcceptCertificateTransfer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AcceptCertificateTransfer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AcceptCertificateTransferRequest method.
+//    req, resp := client.AcceptCertificateTransferRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) AcceptCertificateTransferRequest(input *AcceptCertificateTransferInput) (req *request.Request, output *AcceptCertificateTransferOutput) {
 	op := &request.Operation{
 		Name:       opAcceptCertificateTransfer,
@@ -48,7 +69,28 @@ func (c *IoT) AcceptCertificateTransfer(input *AcceptCertificateTransferInput) (
 
 const opAttachPrincipalPolicy = "AttachPrincipalPolicy"
 
-// AttachPrincipalPolicyRequest generates a request for the AttachPrincipalPolicy operation.
+// AttachPrincipalPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the AttachPrincipalPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachPrincipalPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachPrincipalPolicyRequest method.
+//    req, resp := client.AttachPrincipalPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) AttachPrincipalPolicyRequest(input *AttachPrincipalPolicyInput) (req *request.Request, output *AttachPrincipalPolicyOutput) {
 	op := &request.Operation{
 		Name:       opAttachPrincipalPolicy,
@@ -78,7 +120,28 @@ func (c *IoT) AttachPrincipalPolicy(input *AttachPrincipalPolicyInput) (*AttachP
 
 const opAttachThingPrincipal = "AttachThingPrincipal"
 
-// AttachThingPrincipalRequest generates a request for the AttachThingPrincipal operation.
+// AttachThingPrincipalRequest generates a "aws/request.Request" representing the
+// client's request for the AttachThingPrincipal operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachThingPrincipal method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachThingPrincipalRequest method.
+//    req, resp := client.AttachThingPrincipalRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) AttachThingPrincipalRequest(input *AttachThingPrincipalInput) (req *request.Request, output *AttachThingPrincipalOutput) {
 	op := &request.Operation{
 		Name:       opAttachThingPrincipal,
@@ -105,7 +168,28 @@ func (c *IoT) AttachThingPrincipal(input *AttachThingPrincipalInput) (*AttachThi
 
 const opCancelCertificateTransfer = "CancelCertificateTransfer"
 
-// CancelCertificateTransferRequest generates a request for the CancelCertificateTransfer operation.
+// CancelCertificateTransferRequest generates a "aws/request.Request" representing the
+// client's request for the CancelCertificateTransfer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelCertificateTransfer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelCertificateTransferRequest method.
+//    req, resp := client.CancelCertificateTransferRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) CancelCertificateTransferRequest(input *CancelCertificateTransferInput) (req *request.Request, output *CancelCertificateTransferOutput) {
 	op := &request.Operation{
 		Name:       opCancelCertificateTransfer,
@@ -143,7 +227,28 @@ func (c *IoT) CancelCertificateTransfer(input *CancelCertificateTransferInput) (
 
 const opCreateCertificateFromCsr = "CreateCertificateFromCsr"
 
-// CreateCertificateFromCsrRequest generates a request for the CreateCertificateFromCsr operation.
+// CreateCertificateFromCsrRequest generates a "aws/request.Request" representing the
+// client's request for the CreateCertificateFromCsr operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateCertificateFromCsr method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateCertificateFromCsrRequest method.
+//    req, resp := client.CreateCertificateFromCsrRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) CreateCertificateFromCsrRequest(input *CreateCertificateFromCsrInput) (req *request.Request, output *CreateCertificateFromCsrOutput) {
 	op := &request.Operation{
 		Name:       opCreateCertificateFromCsr,
@@ -173,7 +278,7 @@ func (c *IoT) CreateCertificateFromCsrRequest(input *CreateCertificateFromCsrInp
 //
 // Assuming a set of CSRs are located inside of the directory my-csr-directory:
 //
-// > On Linux and OS X, the command is:
+// On Linux and OS X, the command is:
 //
 // $ ls my-csr-directory/ | xargs -I {} aws iot create-certificate-from-csr
 // --certificate-signing-request file://my-csr-directory/{}
@@ -207,7 +312,28 @@ func (c *IoT) CreateCertificateFromCsr(input *CreateCertificateFromCsrInput) (*C
 
 const opCreateKeysAndCertificate = "CreateKeysAndCertificate"
 
-// CreateKeysAndCertificateRequest generates a request for the CreateKeysAndCertificate operation.
+// CreateKeysAndCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the CreateKeysAndCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateKeysAndCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateKeysAndCertificateRequest method.
+//    req, resp := client.CreateKeysAndCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) CreateKeysAndCertificateRequest(input *CreateKeysAndCertificateInput) (req *request.Request, output *CreateKeysAndCertificateOutput) {
 	op := &request.Operation{
 		Name:       opCreateKeysAndCertificate,
@@ -238,7 +364,28 @@ func (c *IoT) CreateKeysAndCertificate(input *CreateKeysAndCertificateInput) (*C
 
 const opCreatePolicy = "CreatePolicy"
 
-// CreatePolicyRequest generates a request for the CreatePolicy operation.
+// CreatePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the CreatePolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreatePolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreatePolicyRequest method.
+//    req, resp := client.CreatePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Request, output *CreatePolicyOutput) {
 	op := &request.Operation{
 		Name:       opCreatePolicy,
@@ -269,7 +416,28 @@ func (c *IoT) CreatePolicy(input *CreatePolicyInput) (*CreatePolicyOutput, error
 
 const opCreatePolicyVersion = "CreatePolicyVersion"
 
-// CreatePolicyVersionRequest generates a request for the CreatePolicyVersion operation.
+// CreatePolicyVersionRequest generates a "aws/request.Request" representing the
+// client's request for the CreatePolicyVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreatePolicyVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreatePolicyVersionRequest method.
+//    req, resp := client.CreatePolicyVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *request.Request, output *CreatePolicyVersionOutput) {
 	op := &request.Operation{
 		Name:       opCreatePolicyVersion,
@@ -303,7 +471,28 @@ func (c *IoT) CreatePolicyVersion(input *CreatePolicyVersionInput) (*CreatePolic
 
 const opCreateThing = "CreateThing"
 
-// CreateThingRequest generates a request for the CreateThing operation.
+// CreateThingRequest generates a "aws/request.Request" representing the
+// client's request for the CreateThing operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateThing method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateThingRequest method.
+//    req, resp := client.CreateThingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) CreateThingRequest(input *CreateThingInput) (req *request.Request, output *CreateThingOutput) {
 	op := &request.Operation{
 		Name:       opCreateThing,
@@ -321,16 +510,85 @@ func (c *IoT) CreateThingRequest(input *CreateThingInput) (req *request.Request,
 	return
 }
 
-// Creates a thing in the Thing Registry.
+// Creates a thing record in the thing registry.
 func (c *IoT) CreateThing(input *CreateThingInput) (*CreateThingOutput, error) {
 	req, out := c.CreateThingRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+const opCreateThingType = "CreateThingType"
+
+// CreateThingTypeRequest generates a "aws/request.Request" representing the
+// client's request for the CreateThingType operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateThingType method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateThingTypeRequest method.
+//    req, resp := client.CreateThingTypeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *IoT) CreateThingTypeRequest(input *CreateThingTypeInput) (req *request.Request, output *CreateThingTypeOutput) {
+	op := &request.Operation{
+		Name:       opCreateThingType,
+		HTTPMethod: "POST",
+		HTTPPath:   "/thing-types/{thingTypeName}",
+	}
+
+	if input == nil {
+		input = &CreateThingTypeInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &CreateThingTypeOutput{}
+	req.Data = output
+	return
+}
+
+// Creates a new thing type.
+func (c *IoT) CreateThingType(input *CreateThingTypeInput) (*CreateThingTypeOutput, error) {
+	req, out := c.CreateThingTypeRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opCreateTopicRule = "CreateTopicRule"
 
-// CreateTopicRuleRequest generates a request for the CreateTopicRule operation.
+// CreateTopicRuleRequest generates a "aws/request.Request" representing the
+// client's request for the CreateTopicRule operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateTopicRule method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateTopicRuleRequest method.
+//    req, resp := client.CreateTopicRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) CreateTopicRuleRequest(input *CreateTopicRuleInput) (req *request.Request, output *CreateTopicRuleOutput) {
 	op := &request.Operation{
 		Name:       opCreateTopicRule,
@@ -361,12 +619,33 @@ func (c *IoT) CreateTopicRule(input *CreateTopicRuleInput) (*CreateTopicRuleOutp
 
 const opDeleteCACertificate = "DeleteCACertificate"
 
-// DeleteCACertificateRequest generates a request for the DeleteCACertificate operation.
+// DeleteCACertificateRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteCACertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteCACertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteCACertificateRequest method.
+//    req, resp := client.DeleteCACertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DeleteCACertificateRequest(input *DeleteCACertificateInput) (req *request.Request, output *DeleteCACertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCACertificate,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/cacertificate/{certificateId}",
+		HTTPPath:   "/cacertificate/{caCertificateId}",
 	}
 
 	if input == nil {
@@ -388,7 +667,28 @@ func (c *IoT) DeleteCACertificate(input *DeleteCACertificateInput) (*DeleteCACer
 
 const opDeleteCertificate = "DeleteCertificate"
 
-// DeleteCertificateRequest generates a request for the DeleteCertificate operation.
+// DeleteCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteCertificateRequest method.
+//    req, resp := client.DeleteCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DeleteCertificateRequest(input *DeleteCertificateInput) (req *request.Request, output *DeleteCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCertificate,
@@ -422,7 +722,28 @@ func (c *IoT) DeleteCertificate(input *DeleteCertificateInput) (*DeleteCertifica
 
 const opDeletePolicy = "DeletePolicy"
 
-// DeletePolicyRequest generates a request for the DeletePolicy operation.
+// DeletePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeletePolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeletePolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeletePolicyRequest method.
+//    req, resp := client.DeletePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Request, output *DeletePolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeletePolicy,
@@ -461,7 +782,28 @@ func (c *IoT) DeletePolicy(input *DeletePolicyInput) (*DeletePolicyOutput, error
 
 const opDeletePolicyVersion = "DeletePolicyVersion"
 
-// DeletePolicyVersionRequest generates a request for the DeletePolicyVersion operation.
+// DeletePolicyVersionRequest generates a "aws/request.Request" representing the
+// client's request for the DeletePolicyVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeletePolicyVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeletePolicyVersionRequest method.
+//    req, resp := client.DeletePolicyVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *request.Request, output *DeletePolicyVersionOutput) {
 	op := &request.Operation{
 		Name:       opDeletePolicyVersion,
@@ -493,7 +835,28 @@ func (c *IoT) DeletePolicyVersion(input *DeletePolicyVersionInput) (*DeletePolic
 
 const opDeleteRegistrationCode = "DeleteRegistrationCode"
 
-// DeleteRegistrationCodeRequest generates a request for the DeleteRegistrationCode operation.
+// DeleteRegistrationCodeRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRegistrationCode operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRegistrationCode method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRegistrationCodeRequest method.
+//    req, resp := client.DeleteRegistrationCodeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DeleteRegistrationCodeRequest(input *DeleteRegistrationCodeInput) (req *request.Request, output *DeleteRegistrationCodeOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRegistrationCode,
@@ -520,7 +883,28 @@ func (c *IoT) DeleteRegistrationCode(input *DeleteRegistrationCodeInput) (*Delet
 
 const opDeleteThing = "DeleteThing"
 
-// DeleteThingRequest generates a request for the DeleteThing operation.
+// DeleteThingRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteThing operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteThing method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteThingRequest method.
+//    req, resp := client.DeleteThingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DeleteThingRequest(input *DeleteThingInput) (req *request.Request, output *DeleteThingOutput) {
 	op := &request.Operation{
 		Name:       opDeleteThing,
@@ -538,16 +922,89 @@ func (c *IoT) DeleteThingRequest(input *DeleteThingInput) (req *request.Request,
 	return
 }
 
-// Deletes the specified thing from the Thing Registry.
+// Deletes the specified thing.
 func (c *IoT) DeleteThing(input *DeleteThingInput) (*DeleteThingOutput, error) {
 	req, out := c.DeleteThingRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+const opDeleteThingType = "DeleteThingType"
+
+// DeleteThingTypeRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteThingType operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteThingType method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteThingTypeRequest method.
+//    req, resp := client.DeleteThingTypeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *IoT) DeleteThingTypeRequest(input *DeleteThingTypeInput) (req *request.Request, output *DeleteThingTypeOutput) {
+	op := &request.Operation{
+		Name:       opDeleteThingType,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/thing-types/{thingTypeName}",
+	}
+
+	if input == nil {
+		input = &DeleteThingTypeInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DeleteThingTypeOutput{}
+	req.Data = output
+	return
+}
+
+// Deletes the specified thing type . You cannot delete a thing type if it has
+// things associated with it. To delete a thing type, first mark it as deprecated
+// by calling DeprecateThingType, then remove any associated things by calling
+// UpdateThing to change the thing type on any associated thing, and finally
+// use DeleteThingType to delete the thing type.
+func (c *IoT) DeleteThingType(input *DeleteThingTypeInput) (*DeleteThingTypeOutput, error) {
+	req, out := c.DeleteThingTypeRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDeleteTopicRule = "DeleteTopicRule"
 
-// DeleteTopicRuleRequest generates a request for the DeleteTopicRule operation.
+// DeleteTopicRuleRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteTopicRule operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteTopicRule method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteTopicRuleRequest method.
+//    req, resp := client.DeleteTopicRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DeleteTopicRuleRequest(input *DeleteTopicRuleInput) (req *request.Request, output *DeleteTopicRuleOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTopicRule,
@@ -574,14 +1031,84 @@ func (c *IoT) DeleteTopicRule(input *DeleteTopicRuleInput) (*DeleteTopicRuleOutp
 	return out, err
 }
 
+const opDeprecateThingType = "DeprecateThingType"
+
+// DeprecateThingTypeRequest generates a "aws/request.Request" representing the
+// client's request for the DeprecateThingType operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeprecateThingType method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeprecateThingTypeRequest method.
+//    req, resp := client.DeprecateThingTypeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *IoT) DeprecateThingTypeRequest(input *DeprecateThingTypeInput) (req *request.Request, output *DeprecateThingTypeOutput) {
+	op := &request.Operation{
+		Name:       opDeprecateThingType,
+		HTTPMethod: "POST",
+		HTTPPath:   "/thing-types/{thingTypeName}/deprecate",
+	}
+
+	if input == nil {
+		input = &DeprecateThingTypeInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DeprecateThingTypeOutput{}
+	req.Data = output
+	return
+}
+
+// Deprecates a thing type. You can not associate new things with deprecated
+// thing type.
+func (c *IoT) DeprecateThingType(input *DeprecateThingTypeInput) (*DeprecateThingTypeOutput, error) {
+	req, out := c.DeprecateThingTypeRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeCACertificate = "DescribeCACertificate"
 
-// DescribeCACertificateRequest generates a request for the DescribeCACertificate operation.
+// DescribeCACertificateRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeCACertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeCACertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeCACertificateRequest method.
+//    req, resp := client.DescribeCACertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DescribeCACertificateRequest(input *DescribeCACertificateInput) (req *request.Request, output *DescribeCACertificateOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCACertificate,
 		HTTPMethod: "GET",
-		HTTPPath:   "/cacertificate/{certificateId}",
+		HTTPPath:   "/cacertificate/{caCertificateId}",
 	}
 
 	if input == nil {
@@ -603,7 +1130,28 @@ func (c *IoT) DescribeCACertificate(input *DescribeCACertificateInput) (*Describ
 
 const opDescribeCertificate = "DescribeCertificate"
 
-// DescribeCertificateRequest generates a request for the DescribeCertificate operation.
+// DescribeCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeCertificateRequest method.
+//    req, resp := client.DescribeCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DescribeCertificateRequest(input *DescribeCertificateInput) (req *request.Request, output *DescribeCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCertificate,
@@ -630,7 +1178,28 @@ func (c *IoT) DescribeCertificate(input *DescribeCertificateInput) (*DescribeCer
 
 const opDescribeEndpoint = "DescribeEndpoint"
 
-// DescribeEndpointRequest generates a request for the DescribeEndpoint operation.
+// DescribeEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEndpoint operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEndpoint method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEndpointRequest method.
+//    req, resp := client.DescribeEndpointRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DescribeEndpointRequest(input *DescribeEndpointInput) (req *request.Request, output *DescribeEndpointOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEndpoint,
@@ -648,9 +1217,7 @@ func (c *IoT) DescribeEndpointRequest(input *DescribeEndpointInput) (req *reques
 	return
 }
 
-// Returns a unique endpoint specific to the AWS account making the call. You
-// specify the following URI when updating state information for your thing:
-// https://endpoint/things/thingName/shadow.
+// Returns a unique endpoint specific to the AWS account making the call.
 func (c *IoT) DescribeEndpoint(input *DescribeEndpointInput) (*DescribeEndpointOutput, error) {
 	req, out := c.DescribeEndpointRequest(input)
 	err := req.Send()
@@ -659,7 +1226,28 @@ func (c *IoT) DescribeEndpoint(input *DescribeEndpointInput) (*DescribeEndpointO
 
 const opDescribeThing = "DescribeThing"
 
-// DescribeThingRequest generates a request for the DescribeThing operation.
+// DescribeThingRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeThing operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeThing method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeThingRequest method.
+//    req, resp := client.DescribeThingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DescribeThingRequest(input *DescribeThingInput) (req *request.Request, output *DescribeThingOutput) {
 	op := &request.Operation{
 		Name:       opDescribeThing,
@@ -684,9 +1272,78 @@ func (c *IoT) DescribeThing(input *DescribeThingInput) (*DescribeThingOutput, er
 	return out, err
 }
 
+const opDescribeThingType = "DescribeThingType"
+
+// DescribeThingTypeRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeThingType operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeThingType method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeThingTypeRequest method.
+//    req, resp := client.DescribeThingTypeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *IoT) DescribeThingTypeRequest(input *DescribeThingTypeInput) (req *request.Request, output *DescribeThingTypeOutput) {
+	op := &request.Operation{
+		Name:       opDescribeThingType,
+		HTTPMethod: "GET",
+		HTTPPath:   "/thing-types/{thingTypeName}",
+	}
+
+	if input == nil {
+		input = &DescribeThingTypeInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeThingTypeOutput{}
+	req.Data = output
+	return
+}
+
+// Gets information about the specified thing type.
+func (c *IoT) DescribeThingType(input *DescribeThingTypeInput) (*DescribeThingTypeOutput, error) {
+	req, out := c.DescribeThingTypeRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDetachPrincipalPolicy = "DetachPrincipalPolicy"
 
-// DetachPrincipalPolicyRequest generates a request for the DetachPrincipalPolicy operation.
+// DetachPrincipalPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DetachPrincipalPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachPrincipalPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachPrincipalPolicyRequest method.
+//    req, resp := client.DetachPrincipalPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DetachPrincipalPolicyRequest(input *DetachPrincipalPolicyInput) (req *request.Request, output *DetachPrincipalPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDetachPrincipalPolicy,
@@ -715,7 +1372,28 @@ func (c *IoT) DetachPrincipalPolicy(input *DetachPrincipalPolicyInput) (*DetachP
 
 const opDetachThingPrincipal = "DetachThingPrincipal"
 
-// DetachThingPrincipalRequest generates a request for the DetachThingPrincipal operation.
+// DetachThingPrincipalRequest generates a "aws/request.Request" representing the
+// client's request for the DetachThingPrincipal operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachThingPrincipal method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachThingPrincipalRequest method.
+//    req, resp := client.DetachThingPrincipalRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DetachThingPrincipalRequest(input *DetachThingPrincipalInput) (req *request.Request, output *DetachThingPrincipalOutput) {
 	op := &request.Operation{
 		Name:       opDetachThingPrincipal,
@@ -742,7 +1420,28 @@ func (c *IoT) DetachThingPrincipal(input *DetachThingPrincipalInput) (*DetachThi
 
 const opDisableTopicRule = "DisableTopicRule"
 
-// DisableTopicRuleRequest generates a request for the DisableTopicRule operation.
+// DisableTopicRuleRequest generates a "aws/request.Request" representing the
+// client's request for the DisableTopicRule operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableTopicRule method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableTopicRuleRequest method.
+//    req, resp := client.DisableTopicRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) DisableTopicRuleRequest(input *DisableTopicRuleInput) (req *request.Request, output *DisableTopicRuleOutput) {
 	op := &request.Operation{
 		Name:       opDisableTopicRule,
@@ -771,7 +1470,28 @@ func (c *IoT) DisableTopicRule(input *DisableTopicRuleInput) (*DisableTopicRuleO
 
 const opEnableTopicRule = "EnableTopicRule"
 
-// EnableTopicRuleRequest generates a request for the EnableTopicRule operation.
+// EnableTopicRuleRequest generates a "aws/request.Request" representing the
+// client's request for the EnableTopicRule operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableTopicRule method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableTopicRuleRequest method.
+//    req, resp := client.EnableTopicRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) EnableTopicRuleRequest(input *EnableTopicRuleInput) (req *request.Request, output *EnableTopicRuleOutput) {
 	op := &request.Operation{
 		Name:       opEnableTopicRule,
@@ -800,7 +1520,28 @@ func (c *IoT) EnableTopicRule(input *EnableTopicRuleInput) (*EnableTopicRuleOutp
 
 const opGetLoggingOptions = "GetLoggingOptions"
 
-// GetLoggingOptionsRequest generates a request for the GetLoggingOptions operation.
+// GetLoggingOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the GetLoggingOptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetLoggingOptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetLoggingOptionsRequest method.
+//    req, resp := client.GetLoggingOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) GetLoggingOptionsRequest(input *GetLoggingOptionsInput) (req *request.Request, output *GetLoggingOptionsOutput) {
 	op := &request.Operation{
 		Name:       opGetLoggingOptions,
@@ -827,7 +1568,28 @@ func (c *IoT) GetLoggingOptions(input *GetLoggingOptionsInput) (*GetLoggingOptio
 
 const opGetPolicy = "GetPolicy"
 
-// GetPolicyRequest generates a request for the GetPolicy operation.
+// GetPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetPolicyRequest method.
+//    req, resp := client.GetPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, output *GetPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetPolicy,
@@ -855,7 +1617,28 @@ func (c *IoT) GetPolicy(input *GetPolicyInput) (*GetPolicyOutput, error) {
 
 const opGetPolicyVersion = "GetPolicyVersion"
 
-// GetPolicyVersionRequest generates a request for the GetPolicyVersion operation.
+// GetPolicyVersionRequest generates a "aws/request.Request" representing the
+// client's request for the GetPolicyVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetPolicyVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetPolicyVersionRequest method.
+//    req, resp := client.GetPolicyVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) GetPolicyVersionRequest(input *GetPolicyVersionInput) (req *request.Request, output *GetPolicyVersionOutput) {
 	op := &request.Operation{
 		Name:       opGetPolicyVersion,
@@ -882,7 +1665,28 @@ func (c *IoT) GetPolicyVersion(input *GetPolicyVersionInput) (*GetPolicyVersionO
 
 const opGetRegistrationCode = "GetRegistrationCode"
 
-// GetRegistrationCodeRequest generates a request for the GetRegistrationCode operation.
+// GetRegistrationCodeRequest generates a "aws/request.Request" representing the
+// client's request for the GetRegistrationCode operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRegistrationCode method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRegistrationCodeRequest method.
+//    req, resp := client.GetRegistrationCodeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) GetRegistrationCodeRequest(input *GetRegistrationCodeInput) (req *request.Request, output *GetRegistrationCodeOutput) {
 	op := &request.Operation{
 		Name:       opGetRegistrationCode,
@@ -909,7 +1713,28 @@ func (c *IoT) GetRegistrationCode(input *GetRegistrationCodeInput) (*GetRegistra
 
 const opGetTopicRule = "GetTopicRule"
 
-// GetTopicRuleRequest generates a request for the GetTopicRule operation.
+// GetTopicRuleRequest generates a "aws/request.Request" representing the
+// client's request for the GetTopicRule operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetTopicRule method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetTopicRuleRequest method.
+//    req, resp := client.GetTopicRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) GetTopicRuleRequest(input *GetTopicRuleInput) (req *request.Request, output *GetTopicRuleOutput) {
 	op := &request.Operation{
 		Name:       opGetTopicRule,
@@ -936,7 +1761,28 @@ func (c *IoT) GetTopicRule(input *GetTopicRuleInput) (*GetTopicRuleOutput, error
 
 const opListCACertificates = "ListCACertificates"
 
-// ListCACertificatesRequest generates a request for the ListCACertificates operation.
+// ListCACertificatesRequest generates a "aws/request.Request" representing the
+// client's request for the ListCACertificates operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListCACertificates method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListCACertificatesRequest method.
+//    req, resp := client.ListCACertificatesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListCACertificatesRequest(input *ListCACertificatesInput) (req *request.Request, output *ListCACertificatesOutput) {
 	op := &request.Operation{
 		Name:       opListCACertificates,
@@ -966,7 +1812,28 @@ func (c *IoT) ListCACertificates(input *ListCACertificatesInput) (*ListCACertifi
 
 const opListCertificates = "ListCertificates"
 
-// ListCertificatesRequest generates a request for the ListCertificates operation.
+// ListCertificatesRequest generates a "aws/request.Request" representing the
+// client's request for the ListCertificates operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListCertificates method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListCertificatesRequest method.
+//    req, resp := client.ListCertificatesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListCertificatesRequest(input *ListCertificatesInput) (req *request.Request, output *ListCertificatesOutput) {
 	op := &request.Operation{
 		Name:       opListCertificates,
@@ -996,7 +1863,28 @@ func (c *IoT) ListCertificates(input *ListCertificatesInput) (*ListCertificatesO
 
 const opListCertificatesByCA = "ListCertificatesByCA"
 
-// ListCertificatesByCARequest generates a request for the ListCertificatesByCA operation.
+// ListCertificatesByCARequest generates a "aws/request.Request" representing the
+// client's request for the ListCertificatesByCA operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListCertificatesByCA method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListCertificatesByCARequest method.
+//    req, resp := client.ListCertificatesByCARequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListCertificatesByCARequest(input *ListCertificatesByCAInput) (req *request.Request, output *ListCertificatesByCAOutput) {
 	op := &request.Operation{
 		Name:       opListCertificatesByCA,
@@ -1021,9 +1909,78 @@ func (c *IoT) ListCertificatesByCA(input *ListCertificatesByCAInput) (*ListCerti
 	return out, err
 }
 
+const opListOutgoingCertificates = "ListOutgoingCertificates"
+
+// ListOutgoingCertificatesRequest generates a "aws/request.Request" representing the
+// client's request for the ListOutgoingCertificates operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListOutgoingCertificates method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListOutgoingCertificatesRequest method.
+//    req, resp := client.ListOutgoingCertificatesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *IoT) ListOutgoingCertificatesRequest(input *ListOutgoingCertificatesInput) (req *request.Request, output *ListOutgoingCertificatesOutput) {
+	op := &request.Operation{
+		Name:       opListOutgoingCertificates,
+		HTTPMethod: "GET",
+		HTTPPath:   "/certificates-out-going",
+	}
+
+	if input == nil {
+		input = &ListOutgoingCertificatesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListOutgoingCertificatesOutput{}
+	req.Data = output
+	return
+}
+
+// Lists certificates that are being transfered but not yet accepted.
+func (c *IoT) ListOutgoingCertificates(input *ListOutgoingCertificatesInput) (*ListOutgoingCertificatesOutput, error) {
+	req, out := c.ListOutgoingCertificatesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListPolicies = "ListPolicies"
 
-// ListPoliciesRequest generates a request for the ListPolicies operation.
+// ListPoliciesRequest generates a "aws/request.Request" representing the
+// client's request for the ListPolicies operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListPolicies method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListPoliciesRequest method.
+//    req, resp := client.ListPoliciesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListPoliciesRequest(input *ListPoliciesInput) (req *request.Request, output *ListPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListPolicies,
@@ -1048,9 +2005,78 @@ func (c *IoT) ListPolicies(input *ListPoliciesInput) (*ListPoliciesOutput, error
 	return out, err
 }
 
+const opListPolicyPrincipals = "ListPolicyPrincipals"
+
+// ListPolicyPrincipalsRequest generates a "aws/request.Request" representing the
+// client's request for the ListPolicyPrincipals operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListPolicyPrincipals method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListPolicyPrincipalsRequest method.
+//    req, resp := client.ListPolicyPrincipalsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *IoT) ListPolicyPrincipalsRequest(input *ListPolicyPrincipalsInput) (req *request.Request, output *ListPolicyPrincipalsOutput) {
+	op := &request.Operation{
+		Name:       opListPolicyPrincipals,
+		HTTPMethod: "GET",
+		HTTPPath:   "/policy-principals",
+	}
+
+	if input == nil {
+		input = &ListPolicyPrincipalsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListPolicyPrincipalsOutput{}
+	req.Data = output
+	return
+}
+
+// Lists the principals associated with the specified policy.
+func (c *IoT) ListPolicyPrincipals(input *ListPolicyPrincipalsInput) (*ListPolicyPrincipalsOutput, error) {
+	req, out := c.ListPolicyPrincipalsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListPolicyVersions = "ListPolicyVersions"
 
-// ListPolicyVersionsRequest generates a request for the ListPolicyVersions operation.
+// ListPolicyVersionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListPolicyVersions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListPolicyVersions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListPolicyVersionsRequest method.
+//    req, resp := client.ListPolicyVersionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListPolicyVersionsRequest(input *ListPolicyVersionsInput) (req *request.Request, output *ListPolicyVersionsOutput) {
 	op := &request.Operation{
 		Name:       opListPolicyVersions,
@@ -1068,7 +2094,7 @@ func (c *IoT) ListPolicyVersionsRequest(input *ListPolicyVersionsInput) (req *re
 	return
 }
 
-// Lists the versions of the specified policy, and identifies the default version.
+// Lists the versions of the specified policy and identifies the default version.
 func (c *IoT) ListPolicyVersions(input *ListPolicyVersionsInput) (*ListPolicyVersionsOutput, error) {
 	req, out := c.ListPolicyVersionsRequest(input)
 	err := req.Send()
@@ -1077,7 +2103,28 @@ func (c *IoT) ListPolicyVersions(input *ListPolicyVersionsInput) (*ListPolicyVer
 
 const opListPrincipalPolicies = "ListPrincipalPolicies"
 
-// ListPrincipalPoliciesRequest generates a request for the ListPrincipalPolicies operation.
+// ListPrincipalPoliciesRequest generates a "aws/request.Request" representing the
+// client's request for the ListPrincipalPolicies operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListPrincipalPolicies method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListPrincipalPoliciesRequest method.
+//    req, resp := client.ListPrincipalPoliciesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListPrincipalPoliciesRequest(input *ListPrincipalPoliciesInput) (req *request.Request, output *ListPrincipalPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListPrincipalPolicies,
@@ -1105,7 +2152,28 @@ func (c *IoT) ListPrincipalPolicies(input *ListPrincipalPoliciesInput) (*ListPri
 
 const opListPrincipalThings = "ListPrincipalThings"
 
-// ListPrincipalThingsRequest generates a request for the ListPrincipalThings operation.
+// ListPrincipalThingsRequest generates a "aws/request.Request" representing the
+// client's request for the ListPrincipalThings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListPrincipalThings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListPrincipalThingsRequest method.
+//    req, resp := client.ListPrincipalThingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListPrincipalThingsRequest(input *ListPrincipalThingsInput) (req *request.Request, output *ListPrincipalThingsOutput) {
 	op := &request.Operation{
 		Name:       opListPrincipalThings,
@@ -1132,7 +2200,28 @@ func (c *IoT) ListPrincipalThings(input *ListPrincipalThingsInput) (*ListPrincip
 
 const opListThingPrincipals = "ListThingPrincipals"
 
-// ListThingPrincipalsRequest generates a request for the ListThingPrincipals operation.
+// ListThingPrincipalsRequest generates a "aws/request.Request" representing the
+// client's request for the ListThingPrincipals operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListThingPrincipals method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListThingPrincipalsRequest method.
+//    req, resp := client.ListThingPrincipalsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListThingPrincipalsRequest(input *ListThingPrincipalsInput) (req *request.Request, output *ListThingPrincipalsOutput) {
 	op := &request.Operation{
 		Name:       opListThingPrincipals,
@@ -1157,9 +2246,78 @@ func (c *IoT) ListThingPrincipals(input *ListThingPrincipalsInput) (*ListThingPr
 	return out, err
 }
 
+const opListThingTypes = "ListThingTypes"
+
+// ListThingTypesRequest generates a "aws/request.Request" representing the
+// client's request for the ListThingTypes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListThingTypes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListThingTypesRequest method.
+//    req, resp := client.ListThingTypesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *IoT) ListThingTypesRequest(input *ListThingTypesInput) (req *request.Request, output *ListThingTypesOutput) {
+	op := &request.Operation{
+		Name:       opListThingTypes,
+		HTTPMethod: "GET",
+		HTTPPath:   "/thing-types",
+	}
+
+	if input == nil {
+		input = &ListThingTypesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListThingTypesOutput{}
+	req.Data = output
+	return
+}
+
+// Lists the existing thing types.
+func (c *IoT) ListThingTypes(input *ListThingTypesInput) (*ListThingTypesOutput, error) {
+	req, out := c.ListThingTypesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListThings = "ListThings"
 
-// ListThingsRequest generates a request for the ListThings operation.
+// ListThingsRequest generates a "aws/request.Request" representing the
+// client's request for the ListThings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListThings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListThingsRequest method.
+//    req, resp := client.ListThingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListThingsRequest(input *ListThingsInput) (req *request.Request, output *ListThingsOutput) {
 	op := &request.Operation{
 		Name:       opListThings,
@@ -1177,8 +2335,10 @@ func (c *IoT) ListThingsRequest(input *ListThingsInput) (req *request.Request, o
 	return
 }
 
-// Lists your things. You can pass an AttributeName or AttributeValue to filter
-// your things (for example, "ListThings where AttributeName=Color and AttributeValue=Red").
+// Lists your things. Use the attributeName and attributeValue parameters to
+// filter your things. For example, calling ListThings with attributeName=Color
+// and attributeValue=Red retrieves all things in the registry that contain
+// an attribute Color with the value Red.
 func (c *IoT) ListThings(input *ListThingsInput) (*ListThingsOutput, error) {
 	req, out := c.ListThingsRequest(input)
 	err := req.Send()
@@ -1187,7 +2347,28 @@ func (c *IoT) ListThings(input *ListThingsInput) (*ListThingsOutput, error) {
 
 const opListTopicRules = "ListTopicRules"
 
-// ListTopicRulesRequest generates a request for the ListTopicRules operation.
+// ListTopicRulesRequest generates a "aws/request.Request" representing the
+// client's request for the ListTopicRules operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTopicRules method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTopicRulesRequest method.
+//    req, resp := client.ListTopicRulesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ListTopicRulesRequest(input *ListTopicRulesInput) (req *request.Request, output *ListTopicRulesOutput) {
 	op := &request.Operation{
 		Name:       opListTopicRules,
@@ -1214,7 +2395,28 @@ func (c *IoT) ListTopicRules(input *ListTopicRulesInput) (*ListTopicRulesOutput,
 
 const opRegisterCACertificate = "RegisterCACertificate"
 
-// RegisterCACertificateRequest generates a request for the RegisterCACertificate operation.
+// RegisterCACertificateRequest generates a "aws/request.Request" representing the
+// client's request for the RegisterCACertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RegisterCACertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RegisterCACertificateRequest method.
+//    req, resp := client.RegisterCACertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) RegisterCACertificateRequest(input *RegisterCACertificateInput) (req *request.Request, output *RegisterCACertificateOutput) {
 	op := &request.Operation{
 		Name:       opRegisterCACertificate,
@@ -1247,7 +2449,28 @@ func (c *IoT) RegisterCACertificate(input *RegisterCACertificateInput) (*Registe
 
 const opRegisterCertificate = "RegisterCertificate"
 
-// RegisterCertificateRequest generates a request for the RegisterCertificate operation.
+// RegisterCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the RegisterCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RegisterCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RegisterCertificateRequest method.
+//    req, resp := client.RegisterCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) RegisterCertificateRequest(input *RegisterCertificateInput) (req *request.Request, output *RegisterCertificateOutput) {
 	op := &request.Operation{
 		Name:       opRegisterCertificate,
@@ -1276,7 +2499,28 @@ func (c *IoT) RegisterCertificate(input *RegisterCertificateInput) (*RegisterCer
 
 const opRejectCertificateTransfer = "RejectCertificateTransfer"
 
-// RejectCertificateTransferRequest generates a request for the RejectCertificateTransfer operation.
+// RejectCertificateTransferRequest generates a "aws/request.Request" representing the
+// client's request for the RejectCertificateTransfer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RejectCertificateTransfer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RejectCertificateTransferRequest method.
+//    req, resp := client.RejectCertificateTransferRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) RejectCertificateTransferRequest(input *RejectCertificateTransferInput) (req *request.Request, output *RejectCertificateTransferOutput) {
 	op := &request.Operation{
 		Name:       opRejectCertificateTransfer,
@@ -1313,7 +2557,28 @@ func (c *IoT) RejectCertificateTransfer(input *RejectCertificateTransferInput) (
 
 const opReplaceTopicRule = "ReplaceTopicRule"
 
-// ReplaceTopicRuleRequest generates a request for the ReplaceTopicRule operation.
+// ReplaceTopicRuleRequest generates a "aws/request.Request" representing the
+// client's request for the ReplaceTopicRule operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReplaceTopicRule method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReplaceTopicRuleRequest method.
+//    req, resp := client.ReplaceTopicRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) ReplaceTopicRuleRequest(input *ReplaceTopicRuleInput) (req *request.Request, output *ReplaceTopicRuleOutput) {
 	op := &request.Operation{
 		Name:       opReplaceTopicRule,
@@ -1344,7 +2609,28 @@ func (c *IoT) ReplaceTopicRule(input *ReplaceTopicRuleInput) (*ReplaceTopicRuleO
 
 const opSetDefaultPolicyVersion = "SetDefaultPolicyVersion"
 
-// SetDefaultPolicyVersionRequest generates a request for the SetDefaultPolicyVersion operation.
+// SetDefaultPolicyVersionRequest generates a "aws/request.Request" representing the
+// client's request for the SetDefaultPolicyVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetDefaultPolicyVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetDefaultPolicyVersionRequest method.
+//    req, resp := client.SetDefaultPolicyVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput) (req *request.Request, output *SetDefaultPolicyVersionOutput) {
 	op := &request.Operation{
 		Name:       opSetDefaultPolicyVersion,
@@ -1376,7 +2662,28 @@ func (c *IoT) SetDefaultPolicyVersion(input *SetDefaultPolicyVersionInput) (*Set
 
 const opSetLoggingOptions = "SetLoggingOptions"
 
-// SetLoggingOptionsRequest generates a request for the SetLoggingOptions operation.
+// SetLoggingOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the SetLoggingOptions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetLoggingOptions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetLoggingOptionsRequest method.
+//    req, resp := client.SetLoggingOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) SetLoggingOptionsRequest(input *SetLoggingOptionsInput) (req *request.Request, output *SetLoggingOptionsOutput) {
 	op := &request.Operation{
 		Name:       opSetLoggingOptions,
@@ -1405,7 +2712,28 @@ func (c *IoT) SetLoggingOptions(input *SetLoggingOptionsInput) (*SetLoggingOptio
 
 const opTransferCertificate = "TransferCertificate"
 
-// TransferCertificateRequest generates a request for the TransferCertificate operation.
+// TransferCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the TransferCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TransferCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TransferCertificateRequest method.
+//    req, resp := client.TransferCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) TransferCertificateRequest(input *TransferCertificateInput) (req *request.Request, output *TransferCertificateOutput) {
 	op := &request.Operation{
 		Name:       opTransferCertificate,
@@ -1443,12 +2771,33 @@ func (c *IoT) TransferCertificate(input *TransferCertificateInput) (*TransferCer
 
 const opUpdateCACertificate = "UpdateCACertificate"
 
-// UpdateCACertificateRequest generates a request for the UpdateCACertificate operation.
+// UpdateCACertificateRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateCACertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateCACertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateCACertificateRequest method.
+//    req, resp := client.UpdateCACertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) UpdateCACertificateRequest(input *UpdateCACertificateInput) (req *request.Request, output *UpdateCACertificateOutput) {
 	op := &request.Operation{
 		Name:       opUpdateCACertificate,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/cacertificate/{certificateId}",
+		HTTPPath:   "/cacertificate/{caCertificateId}",
 	}
 
 	if input == nil {
@@ -1472,7 +2821,28 @@ func (c *IoT) UpdateCACertificate(input *UpdateCACertificateInput) (*UpdateCACer
 
 const opUpdateCertificate = "UpdateCertificate"
 
-// UpdateCertificateRequest generates a request for the UpdateCertificate operation.
+// UpdateCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateCertificateRequest method.
+//    req, resp := client.UpdateCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) UpdateCertificateRequest(input *UpdateCertificateInput) (req *request.Request, output *UpdateCertificateOutput) {
 	op := &request.Operation{
 		Name:       opUpdateCertificate,
@@ -1508,7 +2878,28 @@ func (c *IoT) UpdateCertificate(input *UpdateCertificateInput) (*UpdateCertifica
 
 const opUpdateThing = "UpdateThing"
 
-// UpdateThingRequest generates a request for the UpdateThing operation.
+// UpdateThingRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateThing operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateThing method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateThingRequest method.
+//    req, resp := client.UpdateThingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *IoT) UpdateThingRequest(input *UpdateThingInput) (req *request.Request, output *UpdateThingOutput) {
 	op := &request.Operation{
 		Name:       opUpdateThing,
@@ -1756,7 +3147,7 @@ func (s AttachPrincipalPolicyOutput) GoString() string {
 type AttachThingPrincipalInput struct {
 	_ struct{} `type:"structure"`
 
-	// The principal (certificate or other credential).
+	// The principal, such as a certificate or other credential.
 	Principal *string `location:"header" locationName:"x-amzn-principal" type:"string" required:"true"`
 
 	// The name of the thing.
@@ -1807,14 +3198,23 @@ func (s AttachThingPrincipalOutput) GoString() string {
 	return s.String()
 }
 
-// The attribute payload, a JSON string containing up to three key-value pairs
-// (for example, {\"attributes\":{\"string1\":\"string2\"}}).
+// The attribute payload.
 type AttributePayload struct {
 	_ struct{} `type:"structure"`
 
-	// A JSON string containing up to three key-value pair in JSON format (for example,
-	// {\"attributes\":{\"string1\":\"string2\"}}).
+	// A JSON string containing up to three key-value pair in JSON format. For example:
+	//
+	// {\"attributes\":{\"string1\":\"string2\"}})
 	Attributes map[string]*string `locationName:"attributes" type:"map"`
+
+	// Specifies whether the list of attributes provided in the AttributePayload
+	// is merged with the attributes stored in the registry, instead of overwriting
+	// them.
+	//
+	// To remove an attribute, call UpdateThing with an empty attribute value.
+	//
+	//  The merge attribute is only valid when calling UpdateThing.
+	Merge *bool `locationName:"merge" type:"boolean"`
 }
 
 // String returns the string representation
@@ -1841,6 +3241,8 @@ type CACertificate struct {
 	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The status of the CA certificate.
+	//
+	// The status value REGISTER_INACTIVE is deprecated and should not be used.
 	Status *string `locationName:"status" type:"string" enum:"CACertificateStatus"`
 }
 
@@ -1857,6 +3259,10 @@ func (s CACertificate) GoString() string {
 // Describes a CA certificate.
 type CACertificateDescription struct {
 	_ struct{} `type:"structure"`
+
+	// Whether the CA certificate configured for auto registration of device certificates.
+	// Valid values are "ENABLE" and "DISABLE"
+	AutoRegistrationStatus *string `locationName:"autoRegistrationStatus" type:"string" enum:"AutoRegistrationStatus"`
 
 	// The CA certificate ARN.
 	CertificateArn *string `locationName:"certificateArn" type:"string"`
@@ -1949,6 +3355,8 @@ type Certificate struct {
 	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The status of the certificate.
+	//
+	// The status value REGISTER_INACTIVE is deprecated and should not be used.
 	Status *string `locationName:"status" type:"string" enum:"CertificateStatus"`
 }
 
@@ -2369,12 +3777,17 @@ func (s CreatePolicyVersionOutput) GoString() string {
 type CreateThingInput struct {
 	_ struct{} `type:"structure"`
 
-	// The attribute payload, which consists of up to 3 name/value pairs in a JSON
-	// document (for example, {\"attributes\":{\"string1\":\"string2\"}}).
+	// The attribute payload, which consists of up to three name/value pairs in
+	// a JSON document. For example:
+	//
+	// {\"attributes\":{\"string1\":\"string2\"}})
 	AttributePayload *AttributePayload `locationName:"attributePayload" type:"structure"`
 
-	// The name of the thing.
+	// The name of the thing to create.
 	ThingName *string `location:"uri" locationName:"thingName" min:"1" type:"string" required:"true"`
+
+	// The name of the thing type associated with the new thing.
+	ThingTypeName *string `locationName:"thingTypeName" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -2396,6 +3809,9 @@ func (s *CreateThingInput) Validate() error {
 	if s.ThingName != nil && len(*s.ThingName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ThingName", 1))
 	}
+	if s.ThingTypeName != nil && len(*s.ThingTypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThingTypeName", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -2407,10 +3823,10 @@ func (s *CreateThingInput) Validate() error {
 type CreateThingOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The thing ARN.
+	// The ARN of the new thing.
 	ThingArn *string `locationName:"thingArn" type:"string"`
 
-	// The name of the thing.
+	// The name of the new thing.
 	ThingName *string `locationName:"thingName" min:"1" type:"string"`
 }
 
@@ -2421,6 +3837,66 @@ func (s CreateThingOutput) String() string {
 
 // GoString returns the string representation
 func (s CreateThingOutput) GoString() string {
+	return s.String()
+}
+
+// The input for the CreateThingType operation.
+type CreateThingTypeInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the thing type.
+	ThingTypeName *string `location:"uri" locationName:"thingTypeName" min:"1" type:"string" required:"true"`
+
+	// The ThingTypeProperties for the thing type to create. It contains information
+	// about the new thing type including a description, and a list of searchable
+	// thing attribute names.
+	ThingTypeProperties *ThingTypeProperties `locationName:"thingTypeProperties" type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateThingTypeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateThingTypeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateThingTypeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateThingTypeInput"}
+	if s.ThingTypeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ThingTypeName"))
+	}
+	if s.ThingTypeName != nil && len(*s.ThingTypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThingTypeName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The output of the CreateThingType operation.
+type CreateThingTypeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the thing type.
+	ThingTypeArn *string `locationName:"thingTypeArn" type:"string"`
+
+	// The name of the thing type.
+	ThingTypeName *string `locationName:"thingTypeName" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s CreateThingTypeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateThingTypeOutput) GoString() string {
 	return s.String()
 }
 
@@ -2488,7 +3964,7 @@ type DeleteCACertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the certificate to delete.
-	CertificateId *string `location:"uri" locationName:"certificateId" min:"64" type:"string" required:"true"`
+	CertificateId *string `location:"uri" locationName:"caCertificateId" min:"64" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -2716,7 +4192,12 @@ func (s DeleteRegistrationCodeOutput) GoString() string {
 type DeleteThingInput struct {
 	_ struct{} `type:"structure"`
 
-	// The thing name.
+	// The expected version of the thing record in the registry. If the version
+	// of the record in the registry does not match the expected version specified
+	// in the request, the DeleteThing request is rejected with a VersionConflictException.
+	ExpectedVersion *int64 `location:"querystring" locationName:"expectedVersion" type:"long"`
+
+	// The name of the thing to delete.
 	ThingName *string `location:"uri" locationName:"thingName" min:"1" type:"string" required:"true"`
 }
 
@@ -2758,6 +4239,55 @@ func (s DeleteThingOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteThingOutput) GoString() string {
+	return s.String()
+}
+
+// The input for the DeleteThingType operation.
+type DeleteThingTypeInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the thing type.
+	ThingTypeName *string `location:"uri" locationName:"thingTypeName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteThingTypeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteThingTypeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteThingTypeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteThingTypeInput"}
+	if s.ThingTypeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ThingTypeName"))
+	}
+	if s.ThingTypeName != nil && len(*s.ThingTypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThingTypeName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The output for the DeleteThingType operation.
+type DeleteThingTypeOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteThingTypeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteThingTypeOutput) GoString() string {
 	return s.String()
 }
 
@@ -2809,12 +4339,65 @@ func (s DeleteTopicRuleOutput) GoString() string {
 	return s.String()
 }
 
+// The input for the DeprecateThingType operation.
+type DeprecateThingTypeInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the thing type to deprecate.
+	ThingTypeName *string `location:"uri" locationName:"thingTypeName" min:"1" type:"string" required:"true"`
+
+	// Whether to undeprecate a deprecated thing type. If true, the thing type will
+	// not be deprecated anymore and you can associate it with things.
+	UndoDeprecate *bool `locationName:"undoDeprecate" type:"boolean"`
+}
+
+// String returns the string representation
+func (s DeprecateThingTypeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeprecateThingTypeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeprecateThingTypeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeprecateThingTypeInput"}
+	if s.ThingTypeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ThingTypeName"))
+	}
+	if s.ThingTypeName != nil && len(*s.ThingTypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThingTypeName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The output for the DeprecateThingType operation.
+type DeprecateThingTypeOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeprecateThingTypeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeprecateThingTypeOutput) GoString() string {
+	return s.String()
+}
+
 // The input for the DescribeCACertificate operation.
 type DescribeCACertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The CA certificate identifier.
-	CertificateId *string `location:"uri" locationName:"certificateId" min:"64" type:"string" required:"true"`
+	CertificateId *string `location:"uri" locationName:"caCertificateId" min:"64" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -2984,8 +4567,7 @@ func (s *DescribeThingInput) Validate() error {
 type DescribeThingOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The attributes, which are name/value pairs in JSON format (for example: {\"attributes\":{\"some-name1\":\"some-value1\"},
-	// {\"some-name2\":\"some-value2\"}, {\"some-name3\":\"some-value3\"}})
+	// The thing attributes.
 	Attributes map[string]*string `locationName:"attributes" type:"map"`
 
 	// The default client ID.
@@ -2993,6 +4575,16 @@ type DescribeThingOutput struct {
 
 	// The name of the thing.
 	ThingName *string `locationName:"thingName" min:"1" type:"string"`
+
+	// The thing type name.
+	ThingTypeName *string `locationName:"thingTypeName" min:"1" type:"string"`
+
+	// The current version of the thing record in the registry.
+	//
+	//  To avoid unintentional changes to the information in the registry, you
+	// can pass the version information in the expectedVersion parameter of the
+	// UpdateThing and DeleteThing calls.
+	Version *int64 `locationName:"version" type:"long"`
 }
 
 // String returns the string representation
@@ -3002,6 +4594,67 @@ func (s DescribeThingOutput) String() string {
 
 // GoString returns the string representation
 func (s DescribeThingOutput) GoString() string {
+	return s.String()
+}
+
+// The input for the DescribeThingType operation.
+type DescribeThingTypeInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the thing type.
+	ThingTypeName *string `location:"uri" locationName:"thingTypeName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeThingTypeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeThingTypeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeThingTypeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeThingTypeInput"}
+	if s.ThingTypeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ThingTypeName"))
+	}
+	if s.ThingTypeName != nil && len(*s.ThingTypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThingTypeName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The output for the DescribeThingType operation.
+type DescribeThingTypeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ThingTypeMetadata contains additional information about the thing type
+	// including: creation date and time, a value indicating whether the thing type
+	// is deprecated, and a date and time when time was deprecated.
+	ThingTypeMetadata *ThingTypeMetadata `locationName:"thingTypeMetadata" type:"structure"`
+
+	// The name of the thing type.
+	ThingTypeName *string `locationName:"thingTypeName" min:"1" type:"string"`
+
+	// The ThingTypeProperties contains information about the thing type including
+	// description, and a list of searchable thing attribute names.
+	ThingTypeProperties *ThingTypeProperties `locationName:"thingTypeProperties" type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeThingTypeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeThingTypeOutput) GoString() string {
 	return s.String()
 }
 
@@ -3066,7 +4719,9 @@ func (s DetachPrincipalPolicyOutput) GoString() string {
 type DetachThingPrincipalInput struct {
 	_ struct{} `type:"structure"`
 
-	// The principal.
+	// If the principal is a certificate, this value must be ARN of the certificate.
+	// If the principal is an Amazon Cognito identity, this value must be the ID
+	// of the Amazon Cognito identity.
 	Principal *string `location:"header" locationName:"x-amzn-principal" type:"string" required:"true"`
 
 	// The name of the thing.
@@ -3188,17 +4843,28 @@ type DynamoDBAction struct {
 	// The hash key name.
 	HashKeyField *string `locationName:"hashKeyField" type:"string" required:"true"`
 
+	// The hash key type. Valid values are "STRING" or "NUMBER"
+	HashKeyType *string `locationName:"hashKeyType" type:"string" enum:"DynamoKeyType"`
+
 	// The hash key value.
 	HashKeyValue *string `locationName:"hashKeyValue" type:"string" required:"true"`
+
+	// The type of operation to be performed. This follows the substitution template,
+	// so it can be ${operation}, but the substitution must result in one of the
+	// following: INSERT, UPDATE, or DELETE.
+	Operation *string `locationName:"operation" type:"string"`
 
 	// The action payload. This name can be customized.
 	PayloadField *string `locationName:"payloadField" type:"string"`
 
 	// The range key name.
-	RangeKeyField *string `locationName:"rangeKeyField" type:"string" required:"true"`
+	RangeKeyField *string `locationName:"rangeKeyField" type:"string"`
+
+	// The range key type. Valid values are "STRING" or "NUMBER"
+	RangeKeyType *string `locationName:"rangeKeyType" type:"string" enum:"DynamoKeyType"`
 
 	// The range key value.
-	RangeKeyValue *string `locationName:"rangeKeyValue" type:"string" required:"true"`
+	RangeKeyValue *string `locationName:"rangeKeyValue" type:"string"`
 
 	// The ARN of the IAM role that grants access to the DynamoDB table.
 	RoleArn *string `locationName:"roleArn" type:"string" required:"true"`
@@ -3225,12 +4891,6 @@ func (s *DynamoDBAction) Validate() error {
 	}
 	if s.HashKeyValue == nil {
 		invalidParams.Add(request.NewErrParamRequired("HashKeyValue"))
-	}
-	if s.RangeKeyField == nil {
-		invalidParams.Add(request.NewErrParamRequired("RangeKeyField"))
-	}
-	if s.RangeKeyValue == nil {
-		invalidParams.Add(request.NewErrParamRequired("RangeKeyValue"))
 	}
 	if s.RoleArn == nil {
 		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
@@ -3358,6 +5018,11 @@ type FirehoseAction struct {
 
 	// The IAM role that grants access to the Amazon Kinesis Firehost stream.
 	RoleArn *string `locationName:"roleArn" type:"string" required:"true"`
+
+	// A character separator that will be used to separate records written to the
+	// firehose stream. Valid values are: '\n' (newline), '\t' (tab), '\r\n' (Windows
+	// newline), ',' (comma).
+	Separator *string `locationName:"separator" type:"string"`
 }
 
 // String returns the string representation
@@ -3921,6 +5586,65 @@ func (s ListCertificatesOutput) GoString() string {
 	return s.String()
 }
 
+// The input to the ListOutgoingCertificates operation.
+type ListOutgoingCertificatesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the order for results. If True, the results are returned in ascending
+	// order, based on the creation date.
+	AscendingOrder *bool `location:"querystring" locationName:"isAscendingOrder" type:"boolean"`
+
+	// The marker for the next set of results.
+	Marker *string `location:"querystring" locationName:"marker" type:"string"`
+
+	// The result page size.
+	PageSize *int64 `location:"querystring" locationName:"pageSize" min:"1" type:"integer"`
+}
+
+// String returns the string representation
+func (s ListOutgoingCertificatesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOutgoingCertificatesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListOutgoingCertificatesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListOutgoingCertificatesInput"}
+	if s.PageSize != nil && *s.PageSize < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("PageSize", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The output from the ListOutgoingCertificates operation.
+type ListOutgoingCertificatesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The marker for the next set of results.
+	NextMarker *string `locationName:"nextMarker" type:"string"`
+
+	// The certificates that are being transfered but not yet accepted.
+	OutgoingCertificates []*OutgoingCertificate `locationName:"outgoingCertificates" type:"list"`
+}
+
+// String returns the string representation
+func (s ListOutgoingCertificatesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOutgoingCertificatesOutput) GoString() string {
+	return s.String()
+}
+
 // The input for the ListPolicies operation.
 type ListPoliciesInput struct {
 	_ struct{} `type:"structure"`
@@ -3978,6 +5702,75 @@ func (s ListPoliciesOutput) String() string {
 
 // GoString returns the string representation
 func (s ListPoliciesOutput) GoString() string {
+	return s.String()
+}
+
+// The input for the ListPolicyPrincipals operation.
+type ListPolicyPrincipalsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the order for results. If true, the results are returned in ascending
+	// creation order.
+	AscendingOrder *bool `location:"querystring" locationName:"isAscendingOrder" type:"boolean"`
+
+	// The marker for the next set of results.
+	Marker *string `location:"querystring" locationName:"marker" type:"string"`
+
+	// The result page size.
+	PageSize *int64 `location:"querystring" locationName:"pageSize" min:"1" type:"integer"`
+
+	// The policy name.
+	PolicyName *string `location:"header" locationName:"x-amzn-iot-policy" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListPolicyPrincipalsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPolicyPrincipalsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListPolicyPrincipalsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListPolicyPrincipalsInput"}
+	if s.PageSize != nil && *s.PageSize < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("PageSize", 1))
+	}
+	if s.PolicyName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyName"))
+	}
+	if s.PolicyName != nil && len(*s.PolicyName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PolicyName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The output from the ListPolicyPrincipals operation.
+type ListPolicyPrincipalsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The marker for the next set of results, or null if there are no additional
+	// results.
+	NextMarker *string `locationName:"nextMarker" type:"string"`
+
+	// The descriptions of the principals.
+	Principals []*string `locationName:"principals" type:"list"`
+}
+
+// String returns the string representation
+func (s ListPolicyPrincipalsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPolicyPrincipalsOutput) GoString() string {
 	return s.String()
 }
 
@@ -4103,10 +5896,11 @@ func (s ListPrincipalPoliciesOutput) GoString() string {
 type ListPrincipalThingsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of principals to return.
+	// The maximum number of results to return in this operation.
 	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
 
-	// A token used to retrieve the next value.
+	// The token for the next set of results, or null if there are no additional
+	// results.
 	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
 
 	// The principal.
@@ -4143,7 +5937,8 @@ func (s *ListPrincipalThingsInput) Validate() error {
 type ListPrincipalThingsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A token used to retrieve the next value.
+	// The token for the next set of results, or null if there are no additional
+	// results.
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The things.
@@ -4198,7 +5993,7 @@ func (s *ListThingPrincipalsInput) Validate() error {
 type ListThingPrincipalsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The principals.
+	// The principals associated with the thing.
 	Principals []*string `locationName:"principals" type:"list"`
 }
 
@@ -4212,21 +6007,88 @@ func (s ListThingPrincipalsOutput) GoString() string {
 	return s.String()
 }
 
+// The input for the ListThingTypes operation.
+type ListThingTypesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of results to return in this operation.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	// The token for the next set of results, or null if there are no additional
+	// results.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+
+	// The name of the thing type.
+	ThingTypeName *string `location:"querystring" locationName:"thingTypeName" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListThingTypesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListThingTypesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListThingTypesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListThingTypesInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.ThingTypeName != nil && len(*s.ThingTypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThingTypeName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The output for the ListThingTypes operation.
+type ListThingTypesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token for the next set of results, or null if there are no additional
+	// results.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The thing types.
+	ThingTypes []*ThingTypeDefinition `locationName:"thingTypes" type:"list"`
+}
+
+// String returns the string representation
+func (s ListThingTypesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListThingTypesOutput) GoString() string {
+	return s.String()
+}
+
 // The input for the ListThings operation.
 type ListThingsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The attribute name.
+	// The attribute name used to search for things.
 	AttributeName *string `location:"querystring" locationName:"attributeName" type:"string"`
 
-	// The attribute value.
+	// The attribute value used to search for things.
 	AttributeValue *string `location:"querystring" locationName:"attributeValue" type:"string"`
 
-	// The maximum number of results.
+	// The maximum number of results to return in this operation.
 	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
 
-	// The token for the next value.
+	// The token for the next set of results, or null if there are no additional
+	// results.
 	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+
+	// The name of the thing type used to search for things.
+	ThingTypeName *string `location:"querystring" locationName:"thingTypeName" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -4245,6 +6107,9 @@ func (s *ListThingsInput) Validate() error {
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
 	}
+	if s.ThingTypeName != nil && len(*s.ThingTypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThingTypeName", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -4256,7 +6121,8 @@ func (s *ListThingsInput) Validate() error {
 type ListThingsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A token used to retrieve the next value.
+	// The token for the next set of results, or null if there are no additional
+	// results.
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The things.
@@ -4368,6 +6234,39 @@ func (s *LoggingOptionsPayload) Validate() error {
 	return nil
 }
 
+// A certificate that has been transfered but not yet accepted.
+type OutgoingCertificate struct {
+	_ struct{} `type:"structure"`
+
+	// The certificate ARN.
+	CertificateArn *string `locationName:"certificateArn" type:"string"`
+
+	// The certificate ID.
+	CertificateId *string `locationName:"certificateId" min:"64" type:"string"`
+
+	// The certificate creation date.
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix"`
+
+	// The date the transfer was initiated.
+	TransferDate *time.Time `locationName:"transferDate" type:"timestamp" timestampFormat:"unix"`
+
+	// The transfer message.
+	TransferMessage *string `locationName:"transferMessage" type:"string"`
+
+	// The AWS account to which the transfer was made.
+	TransferredTo *string `locationName:"transferredTo" type:"string"`
+}
+
+// String returns the string representation
+func (s OutgoingCertificate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OutgoingCertificate) GoString() string {
+	return s.String()
+}
+
 // Describes an AWS IoT policy.
 type Policy struct {
 	_ struct{} `type:"structure"`
@@ -4416,6 +6315,9 @@ func (s PolicyVersion) GoString() string {
 // The input to the RegisterCACertificate operation.
 type RegisterCACertificateInput struct {
 	_ struct{} `type:"structure"`
+
+	// Allows this CA certificate to be used for auto registration of device certificates.
+	AllowAutoRegistration *bool `location:"querystring" locationName:"allowAutoRegistration" type:"boolean"`
 
 	// The CA certificate.
 	CaCertificate *string `locationName:"caCertificate" min:"1" type:"string" required:"true"`
@@ -4922,15 +6824,22 @@ func (s *SqsAction) Validate() error {
 	return nil
 }
 
-// Describes a thing attribute.
+// The properties of the thing, including thing name, thing type name, and a
+// list of thing attributes.
 type ThingAttribute struct {
 	_ struct{} `type:"structure"`
 
-	// The attributes.
+	// A list of thing attributes which are name-value pairs.
 	Attributes map[string]*string `locationName:"attributes" type:"map"`
 
 	// The name of the thing.
 	ThingName *string `locationName:"thingName" min:"1" type:"string"`
+
+	// The name of the thing type, if the thing has been associated with a type.
+	ThingTypeName *string `locationName:"thingTypeName" min:"1" type:"string"`
+
+	// The version of the thing record in the registry.
+	Version *int64 `locationName:"version" type:"long"`
 }
 
 // String returns the string representation
@@ -4940,6 +6849,81 @@ func (s ThingAttribute) String() string {
 
 // GoString returns the string representation
 func (s ThingAttribute) GoString() string {
+	return s.String()
+}
+
+// The definition of the thing type, including thing type name and description.
+type ThingTypeDefinition struct {
+	_ struct{} `type:"structure"`
+
+	// The ThingTypeMetadata contains additional information about the thing type
+	// including: creation date and time, a value indicating whether the thing type
+	// is deprecated, and a date and time when time was deprecated.
+	ThingTypeMetadata *ThingTypeMetadata `locationName:"thingTypeMetadata" type:"structure"`
+
+	// The name of the thing type.
+	ThingTypeName *string `locationName:"thingTypeName" min:"1" type:"string"`
+
+	// The ThingTypeProperties for the thing type.
+	ThingTypeProperties *ThingTypeProperties `locationName:"thingTypeProperties" type:"structure"`
+}
+
+// String returns the string representation
+func (s ThingTypeDefinition) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ThingTypeDefinition) GoString() string {
+	return s.String()
+}
+
+// The ThingTypeMetadata contains additional information about the thing type
+// including: creation date and time, a value indicating whether the thing type
+// is deprecated, and a date and time when time was deprecated.
+type ThingTypeMetadata struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time when the thing type was created.
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix"`
+
+	// Whether the thing type is deprecated. If true, no new things could be associated
+	// with this type.
+	Deprecated *bool `locationName:"deprecated" type:"boolean"`
+
+	// The date and time when the thing type was deprecated.
+	DeprecationDate *time.Time `locationName:"deprecationDate" type:"timestamp" timestampFormat:"unix"`
+}
+
+// String returns the string representation
+func (s ThingTypeMetadata) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ThingTypeMetadata) GoString() string {
+	return s.String()
+}
+
+// The ThingTypeProperties contains information about the thing type including:
+// a thing type description, and a list of searchable thing attribute names.
+type ThingTypeProperties struct {
+	_ struct{} `type:"structure"`
+
+	// A list of searchable thing attribute names.
+	SearchableAttributes []*string `locationName:"searchableAttributes" type:"list"`
+
+	// The description of the thing type.
+	ThingTypeDescription *string `locationName:"thingTypeDescription" type:"string"`
+}
+
+// String returns the string representation
+func (s ThingTypeProperties) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ThingTypeProperties) GoString() string {
 	return s.String()
 }
 
@@ -5164,10 +7148,17 @@ type UpdateCACertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The CA certificate identifier.
-	CertificateId *string `location:"uri" locationName:"certificateId" min:"64" type:"string" required:"true"`
+	CertificateId *string `location:"uri" locationName:"caCertificateId" min:"64" type:"string" required:"true"`
+
+	// The new value for the auto registration status. Valid values are: "ENABLE"
+	// or "DISABLE".
+	NewAutoRegistrationStatus *string `location:"querystring" locationName:"newAutoRegistrationStatus" type:"string" enum:"AutoRegistrationStatus"`
 
 	// The updated status of the CA certificate.
-	NewStatus *string `location:"querystring" locationName:"newStatus" type:"string" required:"true" enum:"CACertificateStatus"`
+	//
+	// Note: The status value REGISTER_INACTIVE is deprecated and should not be
+	// used.
+	NewStatus *string `location:"querystring" locationName:"newStatus" type:"string" enum:"CACertificateStatus"`
 }
 
 // String returns the string representation
@@ -5188,9 +7179,6 @@ func (s *UpdateCACertificateInput) Validate() error {
 	}
 	if s.CertificateId != nil && len(*s.CertificateId) < 64 {
 		invalidParams.Add(request.NewErrParamMinLen("CertificateId", 64))
-	}
-	if s.NewStatus == nil {
-		invalidParams.Add(request.NewErrParamRequired("NewStatus"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5225,6 +7213,9 @@ type UpdateCertificateInput struct {
 	// Note: Setting the status to PENDING_TRANSFER will result in an exception
 	// being thrown. PENDING_TRANSFER is a status used internally by AWS IoT. It
 	// is not intended for developer use.
+	//
+	// Note: The status value REGISTER_INACTIVE is deprecated and should not be
+	// used.
 	NewStatus *string `location:"querystring" locationName:"newStatus" type:"string" required:"true" enum:"CertificateStatus"`
 }
 
@@ -5275,12 +7266,27 @@ func (s UpdateCertificateOutput) GoString() string {
 type UpdateThingInput struct {
 	_ struct{} `type:"structure"`
 
-	// The attribute payload, a JSON string containing up to three key-value pairs
-	// (for example, {\"attributes\":{\"string1\":\"string2\"}}).
-	AttributePayload *AttributePayload `locationName:"attributePayload" type:"structure" required:"true"`
+	// A list of thing attributes, a JSON string containing name-value pairs. For
+	// example:
+	//
+	// {\"attributes\":{\"name1\":\"value2\"}})
+	//
+	// This data is used to add new attributes or update existing attributes.
+	AttributePayload *AttributePayload `locationName:"attributePayload" type:"structure"`
 
-	// The thing name.
+	// The expected version of the thing record in the registry. If the version
+	// of the record in the registry does not match the expected version specified
+	// in the request, the UpdateThing request is rejected with a VersionConflictException.
+	ExpectedVersion *int64 `locationName:"expectedVersion" type:"long"`
+
+	// Remove a thing type association. If true, the assocation is removed.
+	RemoveThingType *bool `locationName:"removeThingType" type:"boolean"`
+
+	// The name of the thing to update.
 	ThingName *string `location:"uri" locationName:"thingName" min:"1" type:"string" required:"true"`
+
+	// The name of the thing type.
+	ThingTypeName *string `locationName:"thingTypeName" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -5296,14 +7302,14 @@ func (s UpdateThingInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *UpdateThingInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateThingInput"}
-	if s.AttributePayload == nil {
-		invalidParams.Add(request.NewErrParamRequired("AttributePayload"))
-	}
 	if s.ThingName == nil {
 		invalidParams.Add(request.NewErrParamRequired("ThingName"))
 	}
 	if s.ThingName != nil && len(*s.ThingName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ThingName", 1))
+	}
+	if s.ThingTypeName != nil && len(*s.ThingTypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThingTypeName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5328,6 +7334,13 @@ func (s UpdateThingOutput) GoString() string {
 }
 
 const (
+	// @enum AutoRegistrationStatus
+	AutoRegistrationStatusEnable = "ENABLE"
+	// @enum AutoRegistrationStatus
+	AutoRegistrationStatusDisable = "DISABLE"
+)
+
+const (
 	// @enum CACertificateStatus
 	CACertificateStatusActive = "ACTIVE"
 	// @enum CACertificateStatus
@@ -5345,6 +7358,15 @@ const (
 	CertificateStatusPendingTransfer = "PENDING_TRANSFER"
 	// @enum CertificateStatus
 	CertificateStatusRegisterInactive = "REGISTER_INACTIVE"
+	// @enum CertificateStatus
+	CertificateStatusPendingActivation = "PENDING_ACTIVATION"
+)
+
+const (
+	// @enum DynamoKeyType
+	DynamoKeyTypeString = "STRING"
+	// @enum DynamoKeyType
+	DynamoKeyTypeNumber = "NUMBER"
 )
 
 const (
