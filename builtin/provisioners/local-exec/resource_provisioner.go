@@ -27,7 +27,7 @@ func (p *ResourceProvisioner) Apply(
 	c *terraform.ResourceConfig) error {
 
 	// Get the command
-	commandRaw, ok := c.Config["command"]
+	commandRaw, ok := c.Get("command")
 	if !ok {
 		return fmt.Errorf("local-exec provisioner missing 'command'")
 	}
