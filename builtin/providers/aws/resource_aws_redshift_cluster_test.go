@@ -408,6 +408,44 @@ func TestResourceAWSRedshiftClusterMasterUsernameValidation(t *testing.T) {
 	}
 }
 
+func TestResourceAWSRedshiftClusterMasterPasswordValidation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "1TESTING",
+			ErrCount: 1,
+		},
+		{
+			Value:    "1testing",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TestTest",
+			ErrCount: 1,
+		},
+		{
+			Value:    "T3st",
+			ErrCount: 1,
+		},
+		{
+			Value:    "1Testing",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		fmt.Printf("Test Case Value: %s\n", tc.Value)
+		_, errors := validateRedshiftClusterMasterPassword(tc.Value, "aws_redshift_cluster_master_password")
+		fmt.Printf("Expected: %d and found %d\n", tc.ErrCount, len(errors))
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the Redshift Cluster master_password to trigger a validation error")
+		}
+	}
+}
+
 var testAccAWSRedshiftClusterConfig_updateNodeCount = `
 resource "aws_redshift_cluster" "default" {
   cluster_identifier = "tf-redshift-cluster-%d"
