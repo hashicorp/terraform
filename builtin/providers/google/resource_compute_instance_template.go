@@ -551,7 +551,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		}
 
 		serviceAccount := &compute.ServiceAccount{
-			Email:  "email",
+			Email:  email,
 			Scopes: scopes,
 		}
 
