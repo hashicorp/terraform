@@ -93,7 +93,7 @@ func validateAwsEcsTaskDefinitionNetworkMode(v interface{}, k string) (ws []stri
 	}
 
 	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf("ECS Task Definition network_mode %q is invalid, must be %q, %q or %q", value, "bridge", "host", "none"))
+		errors = append(errors, fmt.Errorf("ECS Task Definition network_mode %q is invalid, must be `bridge`, `host` or `none`", value))
 	}
 	return
 }
