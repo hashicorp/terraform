@@ -5,6 +5,7 @@ FEATURES:
 
 IMPROVEMENTS:
  * provider/aws: Add Primary Endpoint Address attribute for `aws_elasticache_replication_group` [GH-8385]
+ * provider/aws: Add support for `network_mode` to `aws_ecs_task_definition` [GH-8391]
  * provider/openstack: Add `allowed_address_pairs` to `openstack_networking_port_v2` [GH-8257]
 
 BUG FIXES:
