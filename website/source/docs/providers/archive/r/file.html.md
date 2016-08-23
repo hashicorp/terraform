@@ -14,7 +14,9 @@ Generates an archive from content, a file, or directory of files.
 
 ```
 resource "archive_file" "init" {
-    template = "${file("${path.module}/init.tpl")}"
+    type = "zip"
+    source_content_filename = "${path.module}/init.tpl"
+    output_path = "${path.module}/files/init.zip"
 }
 ```
 
@@ -25,7 +27,7 @@ The following arguments are supported:
 NOTE: One of `source_content_filename` (with `source_content`), `source_file`, or `source_dir` must be specified.
 
 * `type` - (required) The type of archive to generate.
-  NOTE: `archive` is supported.
+  NOTE: `zip` is supported.
 
 * `output_path` - (required) The output of the archive file.
 

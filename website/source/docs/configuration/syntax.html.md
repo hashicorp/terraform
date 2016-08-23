@@ -64,12 +64,6 @@ Basic bullet point reference:
   * Numbers are assumed to be base 10. If you prefix a number with
     `0x`, it is treated as a hexadecimal number.
 
-  * Numbers can be suffixed with `kKmMgG` for some multiple of 10.
-    For example: `1k` is equal to `1000`.
-
-  * Numbers can be suffixed with `[kKmMgG]b` for power of 2 multiples,
-    example: `1kb` is equal to `1024`.
-
   * Boolean values: `true`, `false`.
 
   * Lists of primitive types can be made with square brackets (`[]`).
