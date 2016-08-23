@@ -194,7 +194,7 @@ resource "aws_iot_thing" "device3" {
 }
 
 resource "aws_iot_certificate" "cert" {
-  csr = "${file("./csr.pem")}"
+  csr = "${file("test-fixtures/csr.pem")}"
   active = true
 }
 `
