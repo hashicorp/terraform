@@ -42,6 +42,11 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		ForceNew: true,
 	}
 
+	resourceSchema["primary_endpoint_address"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
+
 	resourceSchema["engine"].Required = false
 	resourceSchema["engine"].Optional = true
 	resourceSchema["engine"].Default = "redis"
@@ -214,6 +219,8 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
 		d.Set("snapshot_window", c.SnapshotWindow)
 		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
+
+		d.Set("primary_endpoint_address", rgp.NodeGroups[0].PrimaryEndpoint.Address)
 
 	}
 
