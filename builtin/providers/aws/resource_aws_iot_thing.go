@@ -71,14 +71,16 @@ func resourceAwsIotThingCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] IoT thing %s created", *out.ThingArn)
 
-	for _, p := range d.Get("principals").([]string) {
-		_, err := conn.AttachThingPrincipal(&iot.AttachThingPrincipalInput{
-			ThingName: aws.String(thingName),
-			Principal: aws.String(p),
-		})
-		if err != nil {
-			log.Printf("[ERROR] %s", err)
-			return err
+	if principals, ok := d.GetOk("principals"); ok {
+		for _, p := range principals.(*schema.Set).List() {
+			_, err := conn.AttachThingPrincipal(&iot.AttachThingPrincipalInput{
+				ThingName: aws.String(thingName),
+				Principal: aws.String(p.(string)),
+			})
+			if err != nil {
+				log.Printf("[ERROR] %s", err)
+				return err
+			}
 		}
 	}
 
@@ -193,11 +195,13 @@ func resourceAwsIotThingDelete(d *schema.ResourceData, meta interface{}) error {
 
 	thingName := aws.String(d.Get("name").(string))
 
-	for _, p := range d.Get("principals").([]string) {
-		conn.DetachThingPrincipal(&iot.DetachThingPrincipalInput{
-			ThingName: thingName,
-			Principal: aws.String(p),
-		})
+	if principals, ok := d.GetOk("principals"); ok {
+		for _, p := range principals.(*schema.Set).List() {
+			conn.DetachThingPrincipal(&iot.DetachThingPrincipalInput{
+				ThingName: thingName,
+				Principal: aws.String(p.(string)),
+			})
+		}
 	}
 
 	params := &iot.DeleteThingInput{
