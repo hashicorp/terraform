@@ -159,7 +159,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		o.NotifyNoData = attr.(bool)
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
-		o.NoDataTimeframe = attr.(int)
+		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
 	}
 	if attr, ok := d.GetOk("renotify_interval"); ok {
 		o.RenotifyInterval = attr.(int)
@@ -336,7 +336,7 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		o.NotifyNoData = attr.(bool)
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
-		o.NoDataTimeframe = attr.(int)
+		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
 	}
 	if attr, ok := d.GetOk("renotify_interval"); ok {
 		o.RenotifyInterval = attr.(int)
