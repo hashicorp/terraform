@@ -191,12 +191,21 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get the absolute path for our data directory, since the Extra field
+	// value below needs to be absolute.
+	dataDirAbs, err := filepath.Abs(c.DataDir())
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error while expanding the data directory %q: %s", c.DataDir(), err))
+		return 1
+	}
+
 	// Build the archiving options, which includes everything it can
 	// by default according to VCS rules but forcing the data directory.
 	archiveOpts := &archive.ArchiveOpts{
 		VCS: archiveVCS,
 		Extra: map[string]string{
-			DefaultDataDir: c.DataDir(),
+			DefaultDataDir: dataDirAbs,
 		},
 	}
 	if !moduleUpload {
