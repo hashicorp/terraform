@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
@@ -78,7 +79,12 @@ type State struct {
 
 	// Modules contains all the modules in a breadth-first order
 	Modules []*ModuleState `json:"modules"`
+
+	mu sync.Mutex
 }
+
+func (s *State) Lock()   { s.mu.Lock() }
+func (s *State) Unlock() { s.mu.Unlock() }
 
 // NewState is used to initialize a blank state
 func NewState() *State {
@@ -463,7 +469,7 @@ func (s *State) SameLineage(other *State) bool {
 // DeepCopy performs a deep copy of the state structure and returns
 // a new structure.
 func (s *State) DeepCopy() *State {
-	copy, err := copystructure.Copy(s)
+	copy, err := copystructure.LockedCopy(s)
 	if err != nil {
 		panic(err)
 	}
@@ -617,15 +623,26 @@ type RemoteState struct {
 	// Config is used to store arbitrary configuration that
 	// is type specific
 	Config map[string]string `json:"config"`
+
+	mu sync.Mutex
 }
 
+func (s *RemoteState) Lock()   { s.mu.Lock() }
+func (s *RemoteState) Unlock() { s.mu.Unlock() }
+
 func (r *RemoteState) init() {
+	r.Lock()
+	defer r.Unlock()
+
 	if r.Config == nil {
 		r.Config = make(map[string]string)
 	}
 }
 
 func (r *RemoteState) deepcopy() *RemoteState {
+	r.Lock()
+	defer r.Unlock()
+
 	confCopy := make(map[string]string, len(r.Config))
 	for k, v := range r.Config {
 		confCopy[k] = v
@@ -670,7 +687,12 @@ type OutputState struct {
 	// Value contains the value of the output, in the structure described
 	// by the Type field.
 	Value interface{} `json:"value"`
+
+	mu sync.Mutex
 }
+
+func (s *OutputState) Lock()   { s.mu.Lock() }
+func (s *OutputState) Unlock() { s.mu.Unlock() }
 
 func (s *OutputState) String() string {
 	return fmt.Sprintf("%#v", s.Value)
@@ -707,18 +729,12 @@ func (s *OutputState) deepcopy() *OutputState {
 		return nil
 	}
 
-	valueCopy, err := copystructure.Copy(s.Value)
+	stateCopy, err := copystructure.LockedCopy(s)
 	if err != nil {
 		panic(fmt.Errorf("Error copying output value: %s", err))
 	}
 
-	n := &OutputState{
-		Type:      s.Type,
-		Sensitive: s.Sensitive,
-		Value:     valueCopy,
-	}
-
-	return n
+	return stateCopy.(*OutputState)
 }
 
 // ModuleState is used to track all the state relevant to a single
@@ -753,7 +769,12 @@ type ModuleState struct {
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
 	Dependencies []string `json:"depends_on"`
+
+	mu sync.Mutex
 }
+
+func (s *ModuleState) Lock()   { s.mu.Lock() }
+func (s *ModuleState) Unlock() { s.mu.Unlock() }
 
 // Equal tests whether one module state is equal to another.
 func (m *ModuleState) Equal(other *ModuleState) bool {
@@ -862,6 +883,9 @@ func (m *ModuleState) View(id string) *ModuleState {
 }
 
 func (m *ModuleState) init() {
+	m.Lock()
+	defer m.Unlock()
+
 	if m.Path == nil {
 		m.Path = []string{}
 	}
@@ -885,21 +909,13 @@ func (m *ModuleState) deepcopy() *ModuleState {
 	if m == nil {
 		return nil
 	}
-	n := &ModuleState{
-		Path:         make([]string, len(m.Path)),
-		Outputs:      make(map[string]*OutputState, len(m.Outputs)),
-		Resources:    make(map[string]*ResourceState, len(m.Resources)),
-		Dependencies: make([]string, len(m.Dependencies)),
+
+	stateCopy, err := copystructure.LockedCopy(m)
+	if err != nil {
+		panic(err)
 	}
-	copy(n.Path, m.Path)
-	copy(n.Dependencies, m.Dependencies)
-	for k, v := range m.Outputs {
-		n.Outputs[k] = v.deepcopy()
-	}
-	for k, v := range m.Resources {
-		n.Resources[k] = v.deepcopy()
-	}
-	return n
+
+	return stateCopy.(*ModuleState)
 }
 
 // prune is used to remove any resources that are no longer required
@@ -1176,7 +1192,12 @@ type ResourceState struct {
 	// e.g. "aws_instance" goes with the "aws" provider.
 	// If the resource block contained a "provider" key, that value will be set here.
 	Provider string `json:"provider"`
+
+	mu sync.Mutex
 }
+
+func (s *ResourceState) Lock()   { s.mu.Lock() }
+func (s *ResourceState) Unlock() { s.mu.Unlock() }
 
 // Equal tests whether two ResourceStates are equal.
 func (s *ResourceState) Equal(other *ResourceState) bool {
@@ -1223,6 +1244,9 @@ func (r *ResourceState) Untaint() {
 }
 
 func (r *ResourceState) init() {
+	r.Lock()
+	defer r.Unlock()
+
 	if r.Primary == nil {
 		r.Primary = &InstanceState{}
 	}
@@ -1242,7 +1266,7 @@ func (r *ResourceState) init() {
 }
 
 func (r *ResourceState) deepcopy() *ResourceState {
-	copy, err := copystructure.Copy(r)
+	copy, err := copystructure.LockedCopy(r)
 	if err != nil {
 		panic(err)
 	}
@@ -1304,9 +1328,17 @@ type InstanceState struct {
 
 	// Tainted is used to mark a resource for recreation.
 	Tainted bool `json:"tainted"`
+
+	mu sync.Mutex
 }
 
+func (s *InstanceState) Lock()   { s.mu.Lock() }
+func (s *InstanceState) Unlock() { s.mu.Unlock() }
+
 func (i *InstanceState) init() {
+	i.Lock()
+	defer i.Unlock()
+
 	if i.Attributes == nil {
 		i.Attributes = make(map[string]string)
 	}
@@ -1317,7 +1349,7 @@ func (i *InstanceState) init() {
 }
 
 func (i *InstanceState) DeepCopy() *InstanceState {
-	copy, err := copystructure.Copy(i)
+	copy, err := copystructure.LockedCopy(i)
 	if err != nil {
 		panic(err)
 	}
@@ -1470,7 +1502,7 @@ func (e *EphemeralState) init() {
 }
 
 func (e *EphemeralState) DeepCopy() *EphemeralState {
-	copy, err := copystructure.Copy(e)
+	copy, err := copystructure.LockedCopy(e)
 	if err != nil {
 		panic(err)
 	}
