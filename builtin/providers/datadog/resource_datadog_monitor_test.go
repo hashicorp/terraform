@@ -49,6 +49,44 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 	})
 }
 
+func TestAccDatadogMonitor_RequireFullWindowUnSet(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatadogMonitorDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDatadogMonitorConfigRequireFullWindowUnSet,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "name", "name for monitor foo"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "message", "some message Notify: @hipchat-channel"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "type", "metric alert"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "query", "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "notify_no_data", "false"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "renotify_interval", "60"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.ok", "0"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.warning", "1"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.critical", "2"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "require_full_window", ""),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "locked", "false"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDatadogMonitor_Updated(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -210,6 +248,30 @@ resource "datadog_monitor" "foo" {
   timeout_h = 60
   include_tags = true
   require_full_window = true
+  locked = false
+}
+`
+const testAccCheckDatadogMonitorConfigRequireFullWindowUnSet = `
+resource "datadog_monitor" "foo" {
+  name = "name for monitor foo"
+  type = "metric alert"
+  message = "some message Notify: @hipchat-channel"
+  escalation_message = "the situation has escalated @pagerduty"
+
+  query = "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2"
+
+  thresholds {
+	ok = 0
+	warning = 1
+	critical = 2
+  }
+
+  notify_no_data = false
+  renotify_interval = 60
+
+  notify_audit = false
+  timeout_h = 60
+  include_tags = true
   locked = false
 }
 `

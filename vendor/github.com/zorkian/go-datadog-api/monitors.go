@@ -29,7 +29,7 @@ type Options struct {
 	EscalationMessage string         `json:"escalation_message,omitempty"`
 	Thresholds        ThresholdCount `json:"thresholds,omitempty"`
 	IncludeTags       bool           `json:"include_tags,omitempty"`
-	RequireFullWindow bool           `json:"require_full_window,omitempty"`
+	RequireFullWindow *bool           `json:"require_full_window,omitempty"`
 	Locked            bool           `json:"locked,omitempty"`
 }
 

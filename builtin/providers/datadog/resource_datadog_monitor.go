@@ -165,7 +165,10 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		o.IncludeTags = attr.(bool)
 	}
 	if attr, ok := d.GetOk("require_full_window"); ok {
-		o.RequireFullWindow = attr.(bool)
+		// TODO: prettify
+		testVar := new(bool)
+		*testVar = attr.(bool)
+		o.RequireFullWindow = testVar
 	}
 	if attr, ok := d.GetOk("locked"); ok {
 		o.Locked = attr.(bool)
@@ -314,8 +317,12 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	if attr, ok := d.GetOk("include_tags"); ok {
 		o.IncludeTags = attr.(bool)
 	}
+
 	if attr, ok := d.GetOk("require_full_window"); ok {
-		o.RequireFullWindow = attr.(bool)
+		// TODO: prettify
+		testVar := new(bool)
+		*testVar = attr.(bool)
+		o.RequireFullWindow = testVar
 	}
 	if attr, ok := d.GetOk("locked"); ok {
 		o.Locked = attr.(bool)
