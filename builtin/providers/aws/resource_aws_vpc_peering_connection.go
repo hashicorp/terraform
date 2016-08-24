@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -67,7 +68,7 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 
 	resp, err := conn.CreateVpcPeeringConnection(createOpts)
 	if err != nil {
-		return fmt.Errorf("Error creating VPC Peering Connection: %s", err)
+		return errwrap.Wrapf("Error creating VPC Peering Connection: {{err}}", err)
 	}
 
 	// Get the ID and store it
@@ -239,7 +240,7 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if err := resourceVPCPeeringConnectionOptionsModify(d, meta); err != nil {
-			return fmt.Errorf("Error modifying VPC Peering Connection options: %s", err)
+			return errwrap.Wrapf("Error modifying VPC Peering Connection options: {{err}}", err)
 		}
 	}
 
