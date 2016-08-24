@@ -219,7 +219,7 @@ func stateAddFunc_Instance_Instance(s *State, fromAddr, addr *ResourceAddress, r
 	instance := instanceRaw.(*InstanceState)
 
 	// Set it
-	*instance = *src
+	instance.Set(src)
 
 	return nil
 }

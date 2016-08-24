@@ -1332,6 +1332,21 @@ func (i *InstanceState) init() {
 	i.Ephemeral.init()
 }
 
+// Copy all the Fields from another InstanceState
+func (i *InstanceState) Set(from *InstanceState) {
+	i.Lock()
+	defer i.Unlock()
+
+	from.Lock()
+	defer from.Unlock()
+
+	i.ID = from.ID
+	i.Attributes = from.Attributes
+	i.Ephemeral = from.Ephemeral
+	i.Meta = from.Meta
+	i.Tainted = from.Tainted
+}
+
 func (i *InstanceState) DeepCopy() *InstanceState {
 	copy, err := copystructure.LockedCopy(i)
 	if err != nil {
