@@ -1,5 +1,8 @@
 ## 0.7.2 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * provider/openstack: changes were made to how volumes attached to instances are detected. If you attached a volume to an instance out of band to Terraform, it will be detached upon the next apply. You can resolve this by adding a `volume` entry for the attached volume.
+
 FEATURES:
  * **New Resource:** `aws_api_gateway_base_path_mapping` [GH-8353]
  * **New Resource:** `aws_api_gateway_domain_name` [GH-8353]
@@ -28,6 +31,7 @@ BUG FIXES:
  * provider/aws: AWS SpotFleet Requests now works with Subnets and AZs [GH-8320]
  * provider/aws: Refresh `aws_cloudwatch_event_target` from state on `ResourceNotFoundException` [GH-8442]
  * provider/google: fix crash regression from Terraform 0.7.1 on `google_compute_firewall` resource [GH-8390]
+ * provider/openstack: Volume Attachment and Detachment Fixes [GH-8172]
 
 ## 0.7.1 (August 19, 2016)
 
