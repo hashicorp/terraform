@@ -203,19 +203,23 @@ func (c *PushCommand) Run(args []string) int {
 	// Build the archiving options, which includes everything it can
 	// by default according to VCS rules but forcing the data directory.
 	archiveOpts := &archive.ArchiveOpts{
-		VCS: archiveVCS,
-		Extra: map[string]string{
-			DefaultDataDir: dataDirAbs,
-		},
+		VCS:   archiveVCS,
+		Extra: make(map[string]string),
 	}
-	if !moduleUpload {
-		// If we're not uploading modules, then exclude the modules dir.
+
+	// Always store the state file in here so we can find state
+	statePathKey := fmt.Sprintf("%s/%s", DefaultDataDir, DefaultStateFilename)
+	archiveOpts.Extra[statePathKey] = filepath.Join(dataDirAbs, DefaultStateFilename)
+	if moduleUpload {
+		// If we're uploading modules, explicitly add that
+		moduleKey := fmt.Sprintf("%s/%s", DefaultDataDir, "modules")
+		archiveOpts.Extra[moduleKey] = filepath.Join(dataDirAbs, "modules")
+	} else {
+		// If we're not uploading modules, explicitly exclude add that
 		archiveOpts.Exclude = append(
 			archiveOpts.Exclude,
 			filepath.Join(c.DataDir(), "modules"))
 	}
-
-	println(fmt.Sprintf("%#v", archiveOpts))
 
 	archiveR, err := archive.CreateArchive(configPath, archiveOpts)
 	if err != nil {
@@ -224,16 +228,6 @@ func (c *PushCommand) Run(args []string) int {
 				"%s", err))
 		return 1
 	}
-
-	/*
-		f, err := os.Create("ARCHIVE.tar.gz")
-		if err != nil {
-			panic(err)
-		}
-		io.Copy(f, archiveR)
-		f.Close()
-		return 12
-	*/
 
 	// List of the vars we're uploading to display to the user.
 	// We always upload all vars from atlas, but only report them if they are overwritten.
