@@ -23,7 +23,8 @@ BUG FIXES:
  * command/state mv: resources with a count > 1 can be moved [GH-8304]
  * provider/aws: Refresh `aws_lambda_event_source_mapping` from state when NotFound [GH-8378]
  * provider/aws: `aws_elasticache_replication_group_id` validation change [GH-8381]
- * providers/aws: Fix possible crash if using duplicate Route53 records [GH-8399]
+ * provider/aws: Fix possible crash if using duplicate Route53 records [GH-8399]
+ * provider/aws: Refresh `aws_autoscaling_policy` from state on 404 [GH-8430]
  * provider/google: fix crash regression from Terraform 0.7.1 on `google_compute_firewall` resource [GH-8390]
 
 ## 0.7.1 (August 19, 2016)
