@@ -43,9 +43,10 @@ func resourceAwsRouteTableImportState(
 			// Minimal data for route
 			d := subResource.Data(nil)
 			d.SetType("aws_route")
-			d.Set("route_table_id", id)
 			d.Set("destination_cidr_block", route.DestinationCidrBlock)
+			d.Set("destination_prefix_list_id", route.DestinationPrefixListId)
 			d.SetId(routeIDHash(d, route))
+			d.Set("route_table_id", id)
 			results = append(results, d)
 		}
 	}

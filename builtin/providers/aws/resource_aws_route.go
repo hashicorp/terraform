@@ -359,7 +359,11 @@ func resourceAwsRouteExists(d *schema.ResourceData, meta interface{}) (bool, err
 
 // Create an ID for a route
 func routeIDHash(d *schema.ResourceData, r *ec2.Route) string {
-	return fmt.Sprintf("r-%s%d", d.Get("route_table_id").(string), hashcode.String(*r.DestinationCidrBlock))
+	dest := r.DestinationCidrBlock
+	if dest == nil {
+		dest = r.DestinationPrefixListId
+	}
+	return fmt.Sprintf("r-%s%d", d.Get("route_table_id").(string), hashcode.String(*dest))
 }
 
 // Helper: retrieve a route
