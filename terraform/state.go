@@ -579,10 +579,6 @@ func (s *State) sort() {
 	}
 }
 
-func (s *State) GoString() string {
-	return fmt.Sprintf("*%#v", *s)
-}
-
 func (s *State) String() string {
 	if s == nil {
 		return "<nil>"
@@ -670,10 +666,6 @@ func (r *RemoteState) Equals(other *RemoteState) bool {
 		}
 	}
 	return true
-}
-
-func (r *RemoteState) GoString() string {
-	return fmt.Sprintf("*%#v", *r)
 }
 
 // OutputState is used to track the state relevant to a single output.
@@ -939,10 +931,6 @@ func (m *ModuleState) sort() {
 	for _, v := range m.Resources {
 		v.sort()
 	}
-}
-
-func (m *ModuleState) GoString() string {
-	return fmt.Sprintf("*%#v", *m)
 }
 
 func (m *ModuleState) String() string {
@@ -1294,10 +1282,6 @@ func (r *ResourceState) sort() {
 	sort.Strings(r.Dependencies)
 }
 
-func (s *ResourceState) GoString() string {
-	return fmt.Sprintf("*%#v", *s)
-}
-
 func (s *ResourceState) String() string {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("Type = %s", s.Type))
@@ -1445,10 +1429,6 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	}
 
 	return result
-}
-
-func (i *InstanceState) GoString() string {
-	return fmt.Sprintf("*%#v", *i)
 }
 
 func (i *InstanceState) String() string {
