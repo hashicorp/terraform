@@ -203,8 +203,10 @@ func (c *PushCommand) Run(args []string) int {
 	// Build the archiving options, which includes everything it can
 	// by default according to VCS rules but forcing the data directory.
 	archiveOpts := &archive.ArchiveOpts{
-		VCS:   archiveVCS,
-		Extra: make(map[string]string),
+		VCS: archiveVCS,
+		Extra: map[string]string{
+			DefaultDataDir: archive.ExtraEntryDir,
+		},
 	}
 
 	// Always store the state file in here so we can find state

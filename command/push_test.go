@@ -117,6 +117,7 @@ func TestPush_noUploadModules(t *testing.T) {
 
 	actual := testArchiveStr(t, archivePath)
 	expected := []string{
+		".terraform/",
 		".terraform/terraform.tfstate",
 		"child/",
 		"child/main.tf",
