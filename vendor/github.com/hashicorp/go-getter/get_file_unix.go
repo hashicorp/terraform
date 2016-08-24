@@ -11,8 +11,13 @@ import (
 )
 
 func (g *FileGetter) Get(dst string, u *url.URL) error {
+	path := u.Path
+	if u.RawPath != "" {
+		path = u.RawPath
+	}
+
 	// The source path must exist and be a directory to be usable.
-	if fi, err := os.Stat(u.Path); err != nil {
+	if fi, err := os.Stat(path); err != nil {
 		return fmt.Errorf("source path error: %s", err)
 	} else if !fi.IsDir() {
 		return fmt.Errorf("source path must be a directory")
@@ -41,12 +46,17 @@ func (g *FileGetter) Get(dst string, u *url.URL) error {
 		return err
 	}
 
-	return os.Symlink(u.Path, dst)
+	return os.Symlink(path, dst)
 }
 
 func (g *FileGetter) GetFile(dst string, u *url.URL) error {
+	path := u.Path
+	if u.RawPath != "" {
+		path = u.RawPath
+	}
+
 	// The source path must exist and be a directory to be usable.
-	if fi, err := os.Stat(u.Path); err != nil {
+	if fi, err := os.Stat(path); err != nil {
 		return fmt.Errorf("source path error: %s", err)
 	} else if fi.IsDir() {
 		return fmt.Errorf("source path must be a file")
@@ -72,11 +82,11 @@ func (g *FileGetter) GetFile(dst string, u *url.URL) error {
 
 	// If we're not copying, just symlink and we're done
 	if !g.Copy {
-		return os.Symlink(u.Path, dst)
+		return os.Symlink(path, dst)
 	}
 
 	// Copy
-	srcF, err := os.Open(u.Path)
+	srcF, err := os.Open(path)
 	if err != nil {
 		return err
 	}
