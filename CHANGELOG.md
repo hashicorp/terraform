@@ -2,6 +2,7 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/openstack: changes were made to how volumes attached to instances are detected. If you attached a volume to an instance out of band to Terraform, it will be detached upon the next apply. You can resolve this by adding a `volume` entry for the attached volume.
+ * provider/aws: `aws_spot_fleet_request` has changed the `associate_public_ip_address` default from `true` to `false`
 
 FEATURES:
  * **New Resource:** `aws_api_gateway_base_path_mapping` [GH-8353]
@@ -15,6 +16,7 @@ IMPROVEMENTS:
  * provider/aws: Support Tags for `aws_alb` and `aws_alb_target_group` resources [GH-8422]
  * provider/aws: Support `snapshot_name` for ElastiCache Cluster and Replication Groups [GH-8419]
  * provider/aws: Add support to `aws_redshift_cluster` for restoring from snapshot [GH-8414]
+ * provider/aws: Add validation for master_password in `aws_redshift_cluster` [GH-8434]
  * provider/openstack: Add `allowed_address_pairs` to `openstack_networking_port_v2` [GH-8257]
 
 BUG FIXES:
