@@ -17,6 +17,7 @@ import (
 func resourceAwsVolumeAttachment() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsVolumeAttachmentCreate,
+		Update: resourceAwsVolumeAttachmentUpdate,
 		Read:   resourceAwsVolumeAttachmentRead,
 		Delete: resourceAwsVolumeAttachmentDelete,
 
@@ -30,13 +31,11 @@ func resourceAwsVolumeAttachment() *schema.Resource {
 			"instance_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"volume_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"force_detach": &schema.Schema{
@@ -54,13 +53,26 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 	iID := d.Get("instance_id").(string)
 	vID := d.Get("volume_id").(string)
 
+	log.Printf("[DEBUG] Attaching Volume (%s) to Instance (%s)", vID, iID)
+	err := attach(conn, name, iID, vID)
+	if err != nil {
+		return err
+	}
+
+	err = waitForAttach(conn, vID, iID)
+
+	d.SetId(volumeAttachmentID(name, vID, iID))
+	return resourceAwsVolumeAttachmentRead(d, meta)
+}
+
+func attach(conn *ec2.EC2, name, iID, vID string) error {
+
 	opts := &ec2.AttachVolumeInput{
 		Device:     aws.String(name),
 		InstanceId: aws.String(iID),
 		VolumeId:   aws.String(vID),
 	}
 
-	log.Printf("[DEBUG] Attaching Volume (%s) to Instance (%s)", vID, iID)
 	_, err := conn.AttachVolume(opts)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -69,25 +81,7 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 		}
 		return err
 	}
-
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"attaching"},
-		Target:     []string{"attached"},
-		Refresh:    volumeAttachmentStateRefreshFunc(conn, vID, iID),
-		Timeout:    5 * time.Minute,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
-	}
-
-	_, err = stateConf.WaitForState()
-	if err != nil {
-		return fmt.Errorf(
-			"Error waiting for Volume (%s) to attach to Instance: %s, error: %s",
-			vID, iID, err)
-	}
-
-	d.SetId(volumeAttachmentID(name, vID, iID))
-	return resourceAwsVolumeAttachmentRead(d, meta)
+	return nil
 }
 
 func volumeAttachmentStateRefreshFunc(conn *ec2.EC2, volumeID, instanceID string) resource.StateRefreshFunc {
@@ -123,6 +117,7 @@ func volumeAttachmentStateRefreshFunc(conn *ec2.EC2, volumeID, instanceID string
 		return 42, "detached", nil
 	}
 }
+
 func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
@@ -149,18 +144,36 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-
+	name := d.Get("device_name").(string)
 	vID := d.Get("volume_id").(string)
 	iID := d.Get("instance_id").(string)
+	force := d.Get("force_detach").(bool)
 
-	opts := &ec2.DetachVolumeInput{
-		Device:     aws.String(d.Get("device_name").(string)),
-		InstanceId: aws.String(iID),
-		VolumeId:   aws.String(vID),
-		Force:      aws.Bool(d.Get("force_detach").(bool)),
+	err := detach(conn, name, iID, vID, force)
+	if err != nil {
+		return err
 	}
 
+	err = waitForDetach(conn, vID, iID)
+
+	d.SetId("")
+	return err
+}
+
+func detach(conn *ec2.EC2, name, iID, vID string, force bool) error {
+	opts := &ec2.DetachVolumeInput{
+		Device:     aws.String(name),
+		InstanceId: aws.String(iID),
+		VolumeId:   aws.String(vID),
+		Force:      aws.Bool(force),
+	}
+
+	log.Printf("[DEBUG] Detaching Volume (%s) from Instance (%s)", vID, iID)
 	_, err := conn.DetachVolume(opts)
+	return err
+}
+
+func waitForDetach(conn *ec2.EC2, vID, iID string) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"detaching"},
 		Target:     []string{"detached"},
@@ -170,14 +183,71 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 		MinTimeout: 3 * time.Second,
 	}
 
-	log.Printf("[DEBUG] Detaching Volume (%s) from Instance (%s)", vID, iID)
-	_, err = stateConf.WaitForState()
+	_, err := stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for Volume (%s) to detach from Instance: %s",
 			vID, iID)
 	}
-	d.SetId("")
+
+	return err
+}
+
+func waitForAttach(conn *ec2.EC2, vID, iID string) error {
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"attaching"},
+		Target:     []string{"attached"},
+		Refresh:    volumeAttachmentStateRefreshFunc(conn, vID, iID),
+		Timeout:    5 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for Volume (%s) to attach to Instance: %s, error: %s",
+			vID, iID, err)
+	}
+
+	return err
+}
+
+func resourceAwsVolumeAttachmentUpdate(d *schema.ResourceData, meta interface{}) error {
+	d.Partial(true)
+	conn := meta.(*AWSClient).ec2conn
+	name_old, name := d.GetChange("device_name")
+	iID_old, iID := d.GetChange("instance_id")
+	vID_old, vID := d.GetChange("volume_id")
+	force := d.Get("force_detach").(bool)
+
+	fmt.Printf("Moving volume from vol %s as dev %s on %s to %s as dev %s on %s",
+		vID_old, name_old, iID_old, vID, name, iID)
+	err := detach(conn, name_old.(string), iID_old.(string), vID_old.(string), force)
+	if err != nil {
+		return err
+	}
+
+	err = waitForDetach(conn, vID_old.(string), iID_old.(string))
+	if err != nil {
+		return err
+	}
+
+	//we set the ID early since, if the attach fails, it would leave things
+	//looking like the old resource was still existing/attached
+	d.SetId(volumeAttachmentID(name.(string), vID.(string), iID.(string)))
+	fmt.Printf("attaching %s onto %s from volume %s", name, iID, vID)
+	err = attach(conn, name.(string), iID.(string), vID.(string))
+	if err != nil {
+		return err
+	}
+
+	err = waitForAttach(conn, vID.(string), iID.(string))
+	if err != nil {
+		return err
+	}
+
+	d.Partial(false)
 	return nil
 }
 
