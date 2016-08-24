@@ -1,12 +1,12 @@
 package aws
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -18,78 +18,78 @@ func resourceAwsSsmDocument() *schema.Resource {
 		Delete: resourceAwsSsmDocumentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"content": &schema.Schema{
+			"content": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"created_date": &schema.Schema{
+			"created_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"hash": &schema.Schema{
+			"hash": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"hash_type": &schema.Schema{
+			"hash_type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"owner": &schema.Schema{
+			"owner": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"platform_type": &schema.Schema{
+			"platform_type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"parameter": &schema.Schema{
+			"parameter": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"default_value": &schema.Schema{
+						"default_value": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"description": &schema.Schema{
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 					},
 				},
 			},
-			"permissions": &schema.Schema{
+			"permissions": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"account_ids": &schema.Schema{
+						"account_ids": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -113,7 +113,7 @@ func resourceAwsSsmDocumentCreate(d *schema.ResourceData, meta interface{}) erro
 	resp, err := ssmconn.CreateDocument(docInput)
 
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error creating SSM document: %s", err)
+		return errwrap.Wrapf("[ERROR] Error creating SSM document: {{err}}", err)
 	}
 
 	d.SetId(*resp.DocumentDescription.Name)
@@ -121,7 +121,7 @@ func resourceAwsSsmDocumentCreate(d *schema.ResourceData, meta interface{}) erro
 	if v, ok := d.GetOk("permissions"); ok && v != nil {
 		setDocumentPermissions(d, meta)
 	} else {
-		log.Printf("[DEBUG] not setting document permissions")
+		log.Printf("[DEBUG] Not setting permissions for %q", d.Id())
 	}
 
 	return resourceAwsSsmDocumentRead(d, meta)
@@ -130,7 +130,7 @@ func resourceAwsSsmDocumentCreate(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
-	log.Printf("[DEBUG] Reading SSM Document: %s", d.Get("name").(string))
+	log.Printf("[DEBUG] Reading SSM Document: %s", d.Id())
 
 	docInput := &ssm.DescribeDocumentInput{
 		Name: aws.String(d.Get("name").(string)),
@@ -139,7 +139,7 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	resp, err := ssmconn.DescribeDocument(docInput)
 
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error describing SSM document: %s", err)
+		return errwrap.Wrapf("[ERROR] Error describing SSM document: {{err}}", err)
 	}
 
 	doc := resp.Document
@@ -155,7 +155,7 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	gp, err := getDocumentPermissions(d, meta)
 
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error reading SSM document permissions: %s", err)
+		return errwrap.Wrapf("[ERROR] Error reading SSM document permissions: {{err}}", err)
 	}
 
 	d.Set("permissions", gp)
@@ -191,7 +191,7 @@ func resourceAwsSsmDocumentUpdate(d *schema.ResourceData, meta interface{}) erro
 	if _, ok := d.GetOk("permissions"); ok {
 		setDocumentPermissions(d, meta)
 	} else {
-		log.Printf("[DEBUG] not setting document permissions")
+		log.Printf("[DEBUG] Not setting document permissions on %q", d.Id())
 	}
 
 	return resourceAwsSsmDocumentRead(d, meta)
@@ -202,7 +202,7 @@ func resourceAwsSsmDocumentDelete(d *schema.ResourceData, meta interface{}) erro
 
 	deleteDocumentPermissions(d, meta)
 
-	log.Printf("[INFO] Deleting SSM Document: %s", d.Get("name").(string))
+	log.Printf("[INFO] Deleting SSM Document: %s", d.Id())
 
 	params := &ssm.DeleteDocumentInput{
 		Name: aws.String(d.Get("name").(string)),
@@ -220,7 +220,7 @@ func resourceAwsSsmDocumentDelete(d *schema.ResourceData, meta interface{}) erro
 func setDocumentPermissions(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
-	log.Printf("[INFO] Setting permissions for document: %s", d.Get("name").(string))
+	log.Printf("[INFO] Setting permissions for document: %s", d.Id())
 	permission := d.Get("permissions").(map[string]interface{})
 
 	ids := aws.StringSlice([]string{permission["account_ids"].(string)})
@@ -238,7 +238,7 @@ func setDocumentPermissions(d *schema.ResourceData, meta interface{}) error {
 	_, err := ssmconn.ModifyDocumentPermission(permInput)
 
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error setting permissions for SSM document: %s", err)
+		return errwrap.Wrapf("[ERROR] Error setting permissions for SSM document: {{err}}", err)
 	}
 
 	return nil
@@ -247,7 +247,7 @@ func setDocumentPermissions(d *schema.ResourceData, meta interface{}) error {
 func getDocumentPermissions(d *schema.ResourceData, meta interface{}) (map[string]interface{}, error) {
 	ssmconn := meta.(*AWSClient).ssmconn
 
-	log.Printf("[INFO] Getting permissions for document: %s", d.Get("name").(string))
+	log.Printf("[INFO] Getting permissions for document: %s", d.Id())
 
 	//How to get from nested scheme resource?
 	permissionType := "Share"
@@ -260,7 +260,7 @@ func getDocumentPermissions(d *schema.ResourceData, meta interface{}) (map[strin
 	resp, err := ssmconn.DescribeDocumentPermission(permInput)
 
 	if err != nil {
-		return nil, fmt.Errorf("[ERROR] Error setting permissions for SSM document: %s", err)
+		return nil, errwrap.Wrapf("[ERROR] Error setting permissions for SSM document: {{err}}", err)
 	}
 
 	var account_ids = make([]string, len(resp.AccountIds))
@@ -291,7 +291,7 @@ func getDocumentPermissions(d *schema.ResourceData, meta interface{}) (map[strin
 func deleteDocumentPermissions(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
-	log.Printf("[INFO] Removing permissions from document: %s", d.Get("name").(string))
+	log.Printf("[INFO] Removing permissions from document: %s", d.Id())
 
 	permInput := &ssm.ModifyDocumentPermissionInput{
 		Name:               aws.String(d.Get("name").(string)),
@@ -302,7 +302,7 @@ func deleteDocumentPermissions(d *schema.ResourceData, meta interface{}) error {
 	_, err := ssmconn.ModifyDocumentPermission(permInput)
 
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error removing permissions for SSM document: %s", err)
+		return errwrap.Wrapf("[ERROR] Error removing permissions for SSM document: {{err}}", err)
 	}
 
 	return nil

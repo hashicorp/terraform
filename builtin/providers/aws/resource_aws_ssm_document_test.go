@@ -7,18 +7,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSSSMDocument_basic(t *testing.T) {
+	name := acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSSMDocumentDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSSMDocumentBasicConfig,
+				Config: testAccAWSSSMDocumentBasicConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSSMDocumentExists("aws_ssm_document.foo"),
 				),
@@ -28,13 +30,14 @@ func TestAccAWSSSMDocument_basic(t *testing.T) {
 }
 
 func TestAccAWSSSMDocument_permission(t *testing.T) {
+	name := acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSSMDocumentDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSSMDocumentPermissionConfig,
+				Config: testAccAWSSSMDocumentPermissionConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSSMDocumentExists("aws_ssm_document.foo"),
 					resource.TestCheckResourceAttr(
@@ -48,13 +51,14 @@ func TestAccAWSSSMDocument_permission(t *testing.T) {
 }
 
 func TestAccAWSSSMDocument_params(t *testing.T) {
+	name := acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSSMDocumentDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSSMDocumentParamConfig,
+				Config: testAccAWSSSMDocumentParamConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSSMDocumentExists("aws_ssm_document.foo"),
 					resource.TestCheckResourceAttr(
@@ -133,10 +137,12 @@ func testAccCheckAWSSSMDocumentDestroy(s *terraform.State) error {
 Based on examples from here: https://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/create-ssm-doc.html
 */
 
-const testAccAWSSSMDocumentBasicConfig = `
-  resource "aws_ssm_document" "foo" {
-    name    = "test_document",
-    content = <<DOC
+func testAccAWSSSMDocumentBasicConfig(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_ssm_document" "foo" {
+  name = "test_document-%s"
+
+  content = <<DOC
     {
       "schemaVersion": "1.2",
       "description": "Check ip configuration of a Linux instance.",
@@ -155,19 +161,22 @@ const testAccAWSSSMDocumentBasicConfig = `
       }
     }
 DOC
+}
+
+`, rName)
+}
+
+func testAccAWSSSMDocumentPermissionConfig(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_ssm_document" "foo" {
+  name = "test_document-%s"
+
+  permissions = {
+    type        = "Share"
+    account_ids = "all"
   }
-`
 
-const testAccAWSSSMDocumentPermissionConfig = `
-  resource "aws_ssm_document" "foo" {
-    name    = "test_document",
-
-		permissions = {
-			type        = "Share"
-			account_ids = "all"
-		},
-
-    content = <<DOC
+  content = <<DOC
     {
       "schemaVersion": "1.2",
       "description": "Check ip configuration of a Linux instance.",
@@ -186,14 +195,16 @@ const testAccAWSSSMDocumentPermissionConfig = `
       }
     }
 DOC
-  }
-`
+}
+`, rName)
+}
 
-const testAccAWSSSMDocumentParamConfig = `
-  resource "aws_ssm_document" "foo" {
-    name    = "test_document",
+func testAccAWSSSMDocumentParamConfig(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_ssm_document" "foo" {
+  name = "test_document-%s"
 
-    content = <<DOC
+  content = <<DOC
 		{
 		    "schemaVersion":"1.2",
 		    "description":"Run a PowerShell script or specify the paths to scripts to run.",
@@ -231,5 +242,7 @@ const testAccAWSSSMDocumentParamConfig = `
 		    }
 		}
 DOC
-  }
-`
+}
+
+`, rName)
+}
