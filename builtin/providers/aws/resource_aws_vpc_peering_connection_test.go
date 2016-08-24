@@ -66,6 +66,9 @@ func TestAccAWSVPCPeeringConnection_plan(t *testing.T) {
 				t.Fatal("AWS_ACCOUNT_ID must be set.")
 			}
 		},
+
+		IDRefreshIgnore: []string{"auto_accept"},
+
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSVpcPeeringConnectionDestroy,
 		Steps: []resource.TestStep{
@@ -85,13 +88,14 @@ func TestAccAWSVPCPeeringConnection_plan(t *testing.T) {
 
 func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 	var connection ec2.VpcPeeringConnection
-	peerId := os.Getenv("TF_PEER_ID")
-	if peerId == "" {
-		t.Skip("Error: TestAccAWSVPCPeeringConnection_tags requires a peer ID to be set.")
-	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if os.Getenv("AWS_ACCOUNT_ID") == "" {
+				t.Fatal("AWS_ACCOUNT_ID must be set.")
+			}
+		},
 
 		IDRefreshName:   "aws_vpc_peering_connection.foo",
 		IDRefreshIgnore: []string{"auto_accept"},
@@ -100,7 +104,7 @@ func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccVpcPeeringConfigTags, peerId),
+				Config: testAccVpcPeeringConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSVpcPeeringConnectionExists(
 						"aws_vpc_peering_connection.foo",
@@ -157,7 +161,7 @@ func TestAccAWSVPCPeeringConnection_options(t *testing.T) {
 						"accepter.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc_peering_connection.foo",
-						"accepter.0.allow_remote_vpc_dns_resolution", "true"),
+						"accepter.1102046665.allow_remote_vpc_dns_resolution", "true"),
 					testAccCheckAWSVpcPeeringConnectionOptions(
 						"aws_vpc_peering_connection.foo", "accepter",
 						&ec2.VpcPeeringConnectionOptionsDescription{
@@ -170,10 +174,10 @@ func TestAccAWSVPCPeeringConnection_options(t *testing.T) {
 						"requester.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc_peering_connection.foo",
-						"requester.0.allow_classic_link_to_remote_vpc", "true"),
+						"requester.41753983.allow_classic_link_to_remote_vpc", "true"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc_peering_connection.foo",
-						"requester.0.allow_vpc_to_remote_classic_link", "true"),
+						"requester.41753983.allow_vpc_to_remote_classic_link", "true"),
 					testAccCheckAWSVpcPeeringConnectionOptions(
 						"aws_vpc_peering_connection.foo", "requester",
 						&ec2.VpcPeeringConnectionOptionsDescription{
@@ -197,7 +201,7 @@ func TestAccAWSVPCPeeringConnection_options(t *testing.T) {
 						"accepter.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc_peering_connection.foo",
-						"accepter.0.allow_remote_vpc_dns_resolution", "true"),
+						"accepter.1102046665.allow_remote_vpc_dns_resolution", "true"),
 					testAccCheckAWSVpcPeeringConnectionOptions(
 						"aws_vpc_peering_connection.foo", "accepter",
 						&ec2.VpcPeeringConnectionOptionsDescription{
@@ -355,7 +359,7 @@ resource "aws_vpc" "bar" {
 resource "aws_vpc_peering_connection" "foo" {
 	vpc_id = "${aws_vpc.foo.id}"
 	peer_vpc_id = "${aws_vpc.bar.id}"
-	peer_owner_id = "%s"
+	auto_accept = true
 	tags {
 		foo = "bar"
 	}
@@ -365,6 +369,9 @@ resource "aws_vpc_peering_connection" "foo" {
 const testAccVpcPeeringConfigOptions = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "TestAccAWSVPCPeeringConnection_options"
+	}
 }
 
 resource "aws_vpc" "bar" {
