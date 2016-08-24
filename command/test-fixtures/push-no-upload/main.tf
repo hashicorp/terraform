@@ -1,5 +1,1 @@
-resource "aws_instance" "foo" {}
-
-atlas {
-    name = "foo"
-}
+module "example" { source = "./child" }
