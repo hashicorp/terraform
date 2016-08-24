@@ -117,9 +117,9 @@ func TestPush_noUploadModules(t *testing.T) {
 
 	actual := testArchiveStr(t, archivePath)
 	expected := []string{
-		".gitignore",
-		".terraform/",
 		".terraform/terraform.tfstate",
+		"child/",
+		"child/main.tf",
 		"main.tf",
 	}
 	if !reflect.DeepEqual(actual, expected) {
