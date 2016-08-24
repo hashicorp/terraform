@@ -38,6 +38,7 @@ The following arguments are supported:
 * `deregistration_delay` - (Optional) The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds. 
 * `stickiness` - (Optional) A Stickiness block. Stickiness blocks are documented below.
 * `health_check` - (Optional) A Health Check block. Health Check blocks are documented below.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 Stickiness Blocks (`stickiness`) support the following:
 
