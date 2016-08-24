@@ -211,9 +211,18 @@ func (c *PushCommand) Run(args []string) int {
 	statePathKey := fmt.Sprintf("%s/%s", DefaultDataDir, DefaultStateFilename)
 	archiveOpts.Extra[statePathKey] = filepath.Join(dataDirAbs, DefaultStateFilename)
 	if moduleUpload {
-		// If we're uploading modules, explicitly add that
+		// If we're uploading modules, explicitly add that directory if exists.
 		moduleKey := fmt.Sprintf("%s/%s", DefaultDataDir, "modules")
-		archiveOpts.Extra[moduleKey] = filepath.Join(dataDirAbs, "modules")
+		moduleDir := filepath.Join(dataDirAbs, "modules")
+		_, err := os.Stat(moduleDir)
+		if err == nil {
+			archiveOpts.Extra[moduleKey] = filepath.Join(dataDirAbs, "modules")
+		}
+		if err != nil && !os.IsNotExist(err) {
+			c.Ui.Error(fmt.Sprintf(
+				"Error checking for module dir %q: %s", moduleDir, err))
+			return 1
+		}
 	} else {
 		// If we're not uploading modules, explicitly exclude add that
 		archiveOpts.Exclude = append(
