@@ -26,8 +26,7 @@ func resourceAwsIamPolicyAttachment() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if value == "" {
+					if v.(string) == "" {
 						errors = append(errors, fmt.Errorf(
 							"%q cannot be an empty string", k))
 					}
