@@ -206,6 +206,8 @@ func (c *PushCommand) Run(args []string) int {
 			filepath.Join(c.DataDir(), "modules"))
 	}
 
+	println(fmt.Sprintf("%#v", archiveOpts))
+
 	archiveR, err := archive.CreateArchive(configPath, archiveOpts)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
@@ -213,6 +215,16 @@ func (c *PushCommand) Run(args []string) int {
 				"%s", err))
 		return 1
 	}
+
+	/*
+		f, err := os.Create("ARCHIVE.tar.gz")
+		if err != nil {
+			panic(err)
+		}
+		io.Copy(f, archiveR)
+		f.Close()
+		return 12
+	*/
 
 	// List of the vars we're uploading to display to the user.
 	// We always upload all vars from atlas, but only report them if they are overwritten.
