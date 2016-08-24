@@ -126,6 +126,10 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		params.SnapshotWindow = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("snapshot_name"); ok {
+		params.SnapshotName = aws.String(v.(string))
+	}
+
 	resp, err := conn.CreateReplicationGroup(params)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache Replication Group: %s", err)
@@ -133,7 +137,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 
 	d.SetId(*resp.ReplicationGroup.ReplicationGroupId)
 
-	pending := []string{"creating", "modifying"}
+	pending := []string{"creating", "modifying", "restoring"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
