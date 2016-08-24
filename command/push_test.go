@@ -92,7 +92,6 @@ func TestPush_noUploadModules(t *testing.T) {
 	// VCS getting in the way.
 	path := testFixturePath("push-no-upload-2")
 	defer testRename(t, path, "DOTterraform", ".terraform")()
-	defer testRename(t, path, "DOTgit", ".git")()
 
 	// Move into that directory
 	defer testChdir(t, path)()
@@ -105,7 +104,7 @@ func TestPush_noUploadModules(t *testing.T) {
 	s := terraform.NewState()
 	s.Serial = 5
 	s.Remote = conf
-	testStateFileRemote(t, s)
+	defer os.Remove(testStateFileRemote(t, s))
 
 	args := []string{
 		"-name=mitchellh/tf-test",
