@@ -22,6 +22,7 @@ IMPROVEMENTS:
 BUG FIXES:
  * core: fix crash case when malformed JSON given [GH-8295]
  * core: when asking for input, spaces are allowed [GH-8394]
+ * core: module sources with URL encodings in the local file path won't error [GH-8418]
  * command/apply: prefix destroying resources with module path [GH-8396]
  * command/import: can import into specific indexes [GH-8335]
  * command/push: -upload-modules=false works [GH-8456]
