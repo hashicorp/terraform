@@ -25,6 +25,7 @@ BUG FIXES:
  * provider/aws: `aws_elasticache_replication_group_id` validation change [GH-8381]
  * provider/aws: Fix possible crash if using duplicate Route53 records [GH-8399]
  * provider/aws: Refresh `aws_autoscaling_policy` from state on 404 [GH-8430]
+ * provider/aws: AWS SpotFleet Requests now works with Subnets and AZs [GH-8320]
  * provider/google: fix crash regression from Terraform 0.7.1 on `google_compute_firewall` resource [GH-8390]
 
 ## 0.7.1 (August 19, 2016)
