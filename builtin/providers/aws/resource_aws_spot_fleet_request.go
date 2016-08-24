@@ -797,7 +797,7 @@ func launchSpecToMap(
 	}
 
 	if l.WeightedCapacity != nil {
-		m["weighted_capacity"] = floatToString(*l.WeightedCapacity)
+		m["weighted_capacity"] = strconv.FormatFloat(*l.WeightedCapacity, 'f', 0, 64)
 	}
 
 	// m["security_groups"] = securityGroupsToSet(l.SecutiryGroups)
@@ -983,8 +983,4 @@ func hashEbsBlockDevice(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
 	return hashcode.String(buf.String())
-}
-
-func floatToString(input float64) string {
-	return strconv.FormatFloat(input, 'f', 0, 64)
 }
