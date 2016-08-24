@@ -10,6 +10,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for `network_mode` to `aws_ecs_task_definition` [GH-8391]
  * provider/aws: Add support for LB target group to ECS service [GH-8190]
  * provider/aws: Support Tags for `aws_alb` and `aws_alb_target_group` resources [GH-8422]
+ * provider/aws: Support `snapshot_name` for ElastiCache Cluster and Replication Groups [GH-8419]
  * provider/openstack: Add `allowed_address_pairs` to `openstack_networking_port_v2` [GH-8257]
 
 BUG FIXES:
