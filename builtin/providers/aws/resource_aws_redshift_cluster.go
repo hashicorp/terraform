@@ -56,9 +56,10 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			},
 
 			"master_password": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Sensitive: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				ValidateFunc: validateRedshiftClusterMasterPassword,
 			},
 
 			"cluster_security_groups": &schema.Schema{
@@ -869,6 +870,26 @@ func validateRedshiftClusterMasterUsername(v interface{}, k string) (ws []string
 	}
 	if len(value) > 128 {
 		errors = append(errors, fmt.Errorf("%q cannot be more than 128 characters", k))
+	}
+	return
+}
+
+func validateRedshiftClusterMasterPassword(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^.*[a-z].*`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain at least one lowercase letter", k))
+	}
+	if !regexp.MustCompile(`^.*[A-Z].*`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain at least one uppercase letter", k))
+	}
+	if !regexp.MustCompile(`^.*[0-9].*`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain at least one number", k))
+	}
+	if len(value) < 8 {
+		errors = append(errors, fmt.Errorf("%q must be at least 8 characters", k))
 	}
 	return
 }
