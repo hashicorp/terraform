@@ -90,7 +90,7 @@ func TestPush_noUploadModules(t *testing.T) {
 
 	// Path of the test. We have to do some renaming to avoid our own
 	// VCS getting in the way.
-	path := testFixturePath("push-no-upload-2")
+	path := testFixturePath("push-no-upload")
 	defer testRename(t, path, "DOTterraform", ".terraform")()
 
 	// Move into that directory
