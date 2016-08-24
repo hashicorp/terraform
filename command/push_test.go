@@ -72,56 +72,6 @@ func TestPush_good(t *testing.T) {
 	}
 }
 
-func TestPush_noUploadModules(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
-
-	// Create remote state file, this should be pulled
-	conf, srv := testRemoteState(t, testState(), 200)
-	defer srv.Close()
-
-	// Persist local remote state
-	s := terraform.NewState()
-	s.Serial = 5
-	s.Remote = conf
-	testStateFileRemote(t, s)
-
-	// Path where the archive will be "uploaded" to
-	archivePath := testTempFile(t)
-	defer os.Remove(archivePath)
-
-	client := &mockPushClient{File: archivePath}
-	ui := new(cli.MockUi)
-	c := &PushCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
-		},
-
-		client: client,
-	}
-
-	args := []string{
-		"-vcs=false",
-		"-upload-modules=false",
-		testFixturePath("push-no-upload"),
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	actual := testArchiveStr(t, archivePath)
-	expected := []string{
-		".terraform/", // Weird but doesn't cause any problems
-		".terraform/",
-		".terraform/terraform.tfstate",
-		"main.tf",
-	}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
 func TestPush_input(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
