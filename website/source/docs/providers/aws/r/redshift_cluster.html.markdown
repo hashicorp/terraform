@@ -32,9 +32,10 @@ The following arguments are supported:
 string.
 * `database_name` - (Optional) The name of the first database to be created when the cluster is created.
  If you do not provide a name, Amazon Redshift will create a default database called `dev`.
-* `node_type` - (Optional) The node type to be provisioned for the cluster.
-* `master_password` - (Optional) Password for the master DB user. Note that this may
-    show up in logs, and it will be stored in the state file
+* `node_type` - (Required) The node type to be provisioned for the cluster.
+* `master_password` - (Optinal) Password for the master DB user. Note that this may
+    show up in logs, and it will be stored in the state file. Password must contain at least 8 chars and 
+    contain at least one uppercase letter, one lowercase letter, and one number.
 * `master_username` - (Required) Username for the master DB user
 * `cluster_security_groups` - (Optional) A list of security groups to be associated with this cluster.
 * `vpc_security_group_ids` - (Optional) A list of Virtual Private Cloud (VPC) security groups to be associated with the cluster.
@@ -61,8 +62,6 @@ string.
 * `bucket_name` - (Optional, required when `enable_logging` is `true`) The name of an existing S3 bucket where the log files are to be stored. Must be in the same region as the cluster and the cluster must have read bucket and put object permissions.
 For more information on the permissions required for the bucket, please read the AWS [documentation](http://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing.html#db-auditing-enable-logging)
 * `s3_key_prefix` - (Optional) The prefix applied to the log file names.
-* `snapshot_identifier` - (Optional) The name of the snapshot from which to create the new cluster.
-* `snapshot_cluster_identifier` - (Optional) The name of the cluster the source snapshot was created from. This parameter is required if your IAM user has a policy containing a snapshot resource element that specifies anything other than * for the cluster name.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 
