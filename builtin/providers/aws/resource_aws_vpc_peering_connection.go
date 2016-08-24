@@ -137,14 +137,14 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	if pc.AccepterVpcInfo != nil && pc.AccepterVpcInfo.PeeringOptions != nil {
 		err := d.Set("accepter", flattenPeeringOptions(pc.AccepterVpcInfo.PeeringOptions))
 		if err != nil {
-			return err
+			log.Printf("[ERR] Error setting VPC Peering connection accepter information: %s", err)
 		}
 	}
 
 	if pc.RequesterVpcInfo != nil && pc.RequesterVpcInfo.PeeringOptions != nil {
 		err := d.Set("requester", flattenPeeringOptions(pc.RequesterVpcInfo.PeeringOptions))
 		if err != nil {
-			return err
+			log.Printf("[ERR] Error setting VPC Peering connection requester information: %s", err)
 		}
 	}
 
@@ -180,16 +180,16 @@ func resourceVPCPeeringConnectionOptionsModify(d *schema.ResourceData, meta inte
 	}
 
 	if v, ok := d.GetOk("accepter"); ok {
-		if s := v.([]interface{}); len(s) > 0 {
-			modifyOpts.AccepterPeeringConnectionOptions = expandPeeringOptions(
-				s[0].(map[string]interface{}))
+		if s := v.(*schema.Set); len(s.List()) > 0 {
+			co := s.List()[0].(map[string]interface{})
+			modifyOpts.AccepterPeeringConnectionOptions = expandPeeringOptions(co)
 		}
 	}
 
 	if v, ok := d.GetOk("requester"); ok {
-		if s := v.([]interface{}); len(s) > 0 {
-			modifyOpts.RequesterPeeringConnectionOptions = expandPeeringOptions(
-				s[0].(map[string]interface{}))
+		if s := v.(*schema.Set); len(s.List()) > 0 {
+			co := s.List()[0].(map[string]interface{})
+			modifyOpts.RequesterPeeringConnectionOptions = expandPeeringOptions(co)
 		}
 	}
 
@@ -297,17 +297,17 @@ func vpcPeeringConnectionOptionsSchema() *schema.Schema {
 				"allow_remote_vpc_dns_resolution": &schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
-					Computed: true,
+					Default:  false,
 				},
 				"allow_classic_link_to_remote_vpc": &schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
-					Computed: true,
+					Default:  false,
 				},
 				"allow_vpc_to_remote_classic_link": &schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
-					Computed: true,
+					Default:  false,
 				},
 			},
 		},

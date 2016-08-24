@@ -161,7 +161,7 @@ func TestAccAWSVPCPeeringConnection_options(t *testing.T) {
 						"accepter.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc_peering_connection.foo",
-						"accepter.0.allow_remote_vpc_dns_resolution", "true"),
+						"accepter.1102046665.allow_remote_vpc_dns_resolution", "true"),
 					testAccCheckAWSVpcPeeringConnectionOptions(
 						"aws_vpc_peering_connection.foo", "accepter",
 						&ec2.VpcPeeringConnectionOptionsDescription{
@@ -174,10 +174,10 @@ func TestAccAWSVPCPeeringConnection_options(t *testing.T) {
 						"requester.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc_peering_connection.foo",
-						"requester.0.allow_classic_link_to_remote_vpc", "true"),
+						"requester.41753983.allow_classic_link_to_remote_vpc", "true"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc_peering_connection.foo",
-						"requester.0.allow_vpc_to_remote_classic_link", "true"),
+						"requester.41753983.allow_vpc_to_remote_classic_link", "true"),
 					testAccCheckAWSVpcPeeringConnectionOptions(
 						"aws_vpc_peering_connection.foo", "requester",
 						&ec2.VpcPeeringConnectionOptionsDescription{
@@ -201,7 +201,7 @@ func TestAccAWSVPCPeeringConnection_options(t *testing.T) {
 						"accepter.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc_peering_connection.foo",
-						"accepter.0.allow_remote_vpc_dns_resolution", "true"),
+						"accepter.1102046665.allow_remote_vpc_dns_resolution", "true"),
 					testAccCheckAWSVpcPeeringConnectionOptions(
 						"aws_vpc_peering_connection.foo", "accepter",
 						&ec2.VpcPeeringConnectionOptionsDescription{
