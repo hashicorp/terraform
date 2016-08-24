@@ -114,7 +114,7 @@ func resourceAwsCloudWatchEventTargetRead(d *schema.ResourceData, meta interface
 			}
 
 			if awsErr.Code() == "ResourceNotFoundException" {
-				log.Printf("[WARN] CloudWatch Event Target (%q) not found. Removing it from state %q ", d.Id())
+				log.Printf("[WARN] CloudWatch Event Target (%q) not found. Removing it from state.", d.Id())
 				d.SetId("")
 				return nil
 			}
