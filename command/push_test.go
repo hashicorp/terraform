@@ -107,6 +107,7 @@ func TestPush_noUploadModules(t *testing.T) {
 	defer os.Remove(testStateFileRemote(t, s))
 
 	args := []string{
+		"-vcs=false",
 		"-name=mitchellh/tf-test",
 		"-upload-modules=false",
 		path,
@@ -115,9 +116,14 @@ func TestPush_noUploadModules(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
+	// NOTE: The duplicates below are not ideal but are how things work
+	// currently due to how we manually add the files to the archive. This
+	// is definitely a "bug" we can fix in the future.
 	actual := testArchiveStr(t, archivePath)
 	expected := []string{
 		".terraform/",
+		".terraform/",
+		".terraform/terraform.tfstate",
 		".terraform/terraform.tfstate",
 		"child/",
 		"child/main.tf",
