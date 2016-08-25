@@ -239,6 +239,12 @@ func (c *Config) Validate() error {
 	vars := c.InterpolatedVariables()
 	varMap := make(map[string]*Variable)
 	for _, v := range c.Variables {
+		if _, ok := varMap[v.Name]; ok {
+			errs = append(errs, fmt.Errorf(
+				"Variable '%s': duplicate found. Variable names must be unique.",
+				v.Name))
+		}
+
 		varMap[v.Name] = v
 	}
 
