@@ -268,6 +268,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_nat_gateway":                              resourceAwsNatGateway(),
 			"aws_network_acl":                              resourceAwsNetworkAcl(),
 			"aws_default_network_acl":                      resourceAwsDefaultNetworkAcl(),
+			"aws_default_route_table":                      resourceAwsDefaultRouteTable(),
 			"aws_network_acl_rule":                         resourceAwsNetworkAclRule(),
 			"aws_network_interface":                        resourceAwsNetworkInterface(),
 			"aws_opsworks_application":                     resourceAwsOpsworksApplication(),
