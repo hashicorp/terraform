@@ -41,7 +41,7 @@ func dataSourceAwsEcsContainerDefinition() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"memoryReservation": &schema.Schema{
+			"memory_reservation": &schema.Schema{
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
@@ -88,7 +88,7 @@ func dataSourceAwsEcsContainerDefinitionRead(d *schema.ResourceData, meta interf
 		}
 		d.Set("cpu", aws.Int64Value(def.Cpu))
 		d.Set("memory", aws.Int64Value(def.Memory))
-		d.Set("memoryReservation", aws.Int64Value(def.MemoryReservation))
+		d.Set("memory_reservation", aws.Int64Value(def.MemoryReservation))
 		d.Set("disable_networking", aws.BoolValue(def.DisableNetworking))
 		d.Set("docker_labels", aws.StringValueMap(def.DockerLabels))
 
