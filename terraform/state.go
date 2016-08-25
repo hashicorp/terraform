@@ -254,6 +254,14 @@ func (s *State) IsRemote() bool {
 func (s *State) Validate() error {
 	var result error
 
+	// !!!! FOR DEVELOPERS !!!!
+	//
+	// Any errors returned from this Validate function will BLOCK TERRAFORM
+	// from loading a state file. Therefore, this should only contain checks
+	// that are only resolvable through manual intervention.
+	//
+	// !!!! FOR DEVELOPERS !!!!
+
 	// Make sure there are no duplicate module states. We open a new
 	// block here so we can use basic variable names and future validations
 	// can do the same.
@@ -1605,6 +1613,11 @@ func ReadState(src io.Reader) (*State, error) {
 	// If we reached this place we must have a result set
 	if result == nil {
 		panic("resulting state in load not set, assertion failed")
+	}
+
+	// Validate the state file is valid
+	if err := result.Validate(); err != nil {
+		return nil, err
 	}
 
 	return result, nil
