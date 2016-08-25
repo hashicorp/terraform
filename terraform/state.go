@@ -469,7 +469,7 @@ func (s *State) SameLineage(other *State) bool {
 // DeepCopy performs a deep copy of the state structure and returns
 // a new structure.
 func (s *State) DeepCopy() *State {
-	copy, err := copystructure.LockedCopy(s)
+	copy, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(err)
 	}
@@ -721,7 +721,7 @@ func (s *OutputState) deepcopy() *OutputState {
 		return nil
 	}
 
-	stateCopy, err := copystructure.LockedCopy(s)
+	stateCopy, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(fmt.Errorf("Error copying output value: %s", err))
 	}
@@ -902,7 +902,7 @@ func (m *ModuleState) deepcopy() *ModuleState {
 		return nil
 	}
 
-	stateCopy, err := copystructure.LockedCopy(m)
+	stateCopy, err := copystructure.Config{Lock: true}.Copy(m)
 	if err != nil {
 		panic(err)
 	}
@@ -1254,7 +1254,7 @@ func (r *ResourceState) init() {
 }
 
 func (r *ResourceState) deepcopy() *ResourceState {
-	copy, err := copystructure.LockedCopy(r)
+	copy, err := copystructure.Config{Lock: true}.Copy(r)
 	if err != nil {
 		panic(err)
 	}
@@ -1348,7 +1348,7 @@ func (i *InstanceState) Set(from *InstanceState) {
 }
 
 func (i *InstanceState) DeepCopy() *InstanceState {
-	copy, err := copystructure.LockedCopy(i)
+	copy, err := copystructure.Config{Lock: true}.Copy(i)
 	if err != nil {
 		panic(err)
 	}
@@ -1497,7 +1497,7 @@ func (e *EphemeralState) init() {
 }
 
 func (e *EphemeralState) DeepCopy() *EphemeralState {
-	copy, err := copystructure.LockedCopy(e)
+	copy, err := copystructure.Config{Lock: true}.Copy(e)
 	if err != nil {
 		panic(err)
 	}
