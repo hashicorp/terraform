@@ -85,6 +85,8 @@ names to associate with this cache cluster
 Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3.
 Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
 
+* `snapshot_name` - (Optional) The name of a snapshot from which to restore data into the new node group.  Changing the `snapshot_name` forces a new resource. 
+
 * `snapshot_window` - (Optional, Redis only) The daily time range (in UTC) during which ElastiCache will
 begin taking a daily snapshot of your cache cluster. Example: 05:00-09:00
 

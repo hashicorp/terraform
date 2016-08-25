@@ -1,19 +1,43 @@
 ## 0.7.2 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * provider/openstack: changes were made to how volumes attached to instances are detected. If you attached a volume to an instance out of band to Terraform, it will be detached upon the next apply. You can resolve this by adding a `volume` entry for the attached volume.
+ * provider/aws: `aws_spot_fleet_request` has changed the `associate_public_ip_address` default from `true` to `false`
+
 FEATURES:
- * **New Resources:** `aws_api_gateway_domain_name` and `aws_api_gateway_base_path_mapping`, for using custom domains in AWS API Gateway [GH-8353]
+ * **New Resource:** `aws_api_gateway_base_path_mapping` [GH-8353]
+ * **New Resource:** `aws_api_gateway_domain_name` [GH-8353]
 
 IMPROVEMENTS:
+ * core: Names generated with a unique prefix are now sortable based on age [GH-8249]
+ * provider/aws: Add Primary Endpoint Address attribute for `aws_elasticache_replication_group` [GH-8385]
+ * provider/aws: Add support for `network_mode` to `aws_ecs_task_definition` [GH-8391]
+ * provider/aws: Add support for LB target group to ECS service [GH-8190]
+ * provider/aws: Support Tags for `aws_alb` and `aws_alb_target_group` resources [GH-8422]
+ * provider/aws: Support `snapshot_name` for ElastiCache Cluster and Replication Groups [GH-8419]
+ * provider/aws: Add support to `aws_redshift_cluster` for restoring from snapshot [GH-8414]
+ * provider/aws: Add validation for master_password in `aws_redshift_cluster` [GH-8434]
  * provider/openstack: Add `allowed_address_pairs` to `openstack_networking_port_v2` [GH-8257]
 
 BUG FIXES:
  * core: fix crash case when malformed JSON given [GH-8295]
  * core: when asking for input, spaces are allowed [GH-8394]
+ * core: module sources with URL encodings in the local file path won't error [GH-8418]
  * command/apply: prefix destroying resources with module path [GH-8396]
  * command/import: can import into specific indexes [GH-8335]
+ * command/push: -upload-modules=false works [GH-8456]
  * command/state mv: nested modules can be moved [GH-8304]
  * command/state mv: resources with a count > 1 can be moved [GH-8304]
  * provider/aws: Refresh `aws_lambda_event_source_mapping` from state when NotFound [GH-8378]
+ * provider/aws: `aws_elasticache_replication_group_id` validation change [GH-8381]
+ * provider/aws: Fix possible crash if using duplicate Route53 records [GH-8399]
+ * provider/aws: Refresh `aws_autoscaling_policy` from state on 404 [GH-8430]
+ * provider/aws: Fix crash with VPC Peering connection accept/requests [GH-8432]
+ * provider/aws: AWS SpotFleet Requests now works with Subnets and AZs [GH-8320]
+ * provider/aws: Refresh `aws_cloudwatch_event_target` from state on `ResourceNotFoundException` [GH-8442]
+ * provider/aws: Validate `aws_iam_policy_attachment` Name parameter to stop being empty [GH-8441]
+ * provider/google: fix crash regression from Terraform 0.7.1 on `google_compute_firewall` resource [GH-8390]
+ * provider/openstack: Volume Attachment and Detachment Fixes [GH-8172]
 
 ## 0.7.1 (August 19, 2016)
 

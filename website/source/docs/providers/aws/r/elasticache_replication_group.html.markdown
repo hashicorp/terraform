@@ -46,6 +46,7 @@ The following arguments are supported:
 * `snapshot_arns` – (Optional) A single-element string list containing an
 Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3.
 Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
+* `snapshot_name` - (Optional) The name of a snapshot from which to restore data into the new node group. Changing the `snapshot_name` forces a new resource. 
 * `maintenance_window` – (Optional) Specifies the weekly time range for when maintenance
 on the cache cluster is performed. The format is `ddd:hh24:mi-ddd:hh24:mi` (24H Clock UTC).
 The minimum maintenance window is a 60 minute period. Example: `sun:05:00-sun:09:00`

@@ -1083,9 +1083,11 @@
 			"revision": "c0cf0cb802adad24252ce1307c4c896edd566870"
 		},
 		{
+			"checksumSHA1": "FUiF2WLrih0JdHsUTMMDz3DRokw=",
 			"comment": "20141209094003-92-g95fa852",
 			"path": "github.com/hashicorp/atlas-go/archive",
-			"revision": "95fa852edca41c06c4ce526af4bb7dec4eaad434"
+			"revision": "8e45a6c8b2de014db767a42c3ee777f101e11624",
+			"revisionTime": "2016-08-24T17:34:10Z"
 		},
 		{
 			"checksumSHA1": "yylO3hSRKd0T4mveT9ho2OSARwU=",
@@ -1114,8 +1116,10 @@
 			"revision": "875fb671b3ddc66f8e2f0acc33829c8cb989a38d"
 		},
 		{
+			"checksumSHA1": "MN8EmPozxjt3pyOCYfsO5Pon8V0=",
 			"path": "github.com/hashicorp/go-getter",
-			"revision": "2822987a64e0df1236ac29dd277ddf79f4871f9a"
+			"revision": "a186869fff81d32bcb4e98c88c7c7d82880271ba",
+			"revisionTime": "2016-08-24T23:43:04Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-getter/helper/url",
