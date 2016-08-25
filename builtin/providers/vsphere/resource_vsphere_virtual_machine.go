@@ -66,7 +66,7 @@ type provisioningType string
 const (
 	provisioningTypeEager     provisioningType = "eager_zeroed"
 	provisioningTypeThin      provisioningType = "thin"
-	provisioningTypeThickLazy provisioningType = "thick_lazy"
+	provisioningTypeThickLazy provisioningType = "lazy"
 )
 
 type networkInterface struct {
