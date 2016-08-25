@@ -61,7 +61,7 @@ resource "aws_iam_user" "deploy_user" {
 In this example you can provide module implementation in the `./publish_bucket`
 subfolder - define there, how to create a bucket resource, set access and
 caching rules, create e.g. a CloudFront resource, which wraps the bucket and
-all the other implementation details, which are common to you project.
+all the other implementation details, which are common to your project.
 
 In the snippet above, you now use your module definition twice. The string
 after the `module` keyword is a name of the instance of the module.

@@ -2677,6 +2677,63 @@ func TestContext2Apply_destroy(t *testing.T) {
 	}
 }
 
+// https://github.com/hashicorp/terraform/issues/2767
+func TestContext2Apply_destroyModulePrefix(t *testing.T) {
+	m := testModule(t, "apply-destroy-module-resource-prefix")
+	h := new(MockHook)
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	// First plan and apply a create operation
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify that we got the apply info correct
+	if v := h.PreApplyInfo.HumanId(); v != "module.child.aws_instance.foo" {
+		t.Fatalf("bad: %s", v)
+	}
+
+	// Next, plan and apply a destroy operation and reset the hook
+	h = new(MockHook)
+	ctx = testContext2(t, &ContextOpts{
+		Destroy: true,
+		State:   state,
+		Module:  m,
+		Hooks:   []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Test that things were destroyed
+	if v := h.PreApplyInfo.HumanId(); v != "module.child.aws_instance.foo" {
+		t.Fatalf("bad: %s", v)
+	}
+}
+
 func TestContext2Apply_destroyNestedModule(t *testing.T) {
 	m := testModule(t, "apply-destroy-nested-module")
 	p := testProvider("aws")

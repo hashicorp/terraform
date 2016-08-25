@@ -92,6 +92,33 @@ func TestStateFilterFilter(t *testing.T) {
 				"*terraform.InstanceState: module.consul.aws_instance.consul-green[0]",
 			},
 		},
+
+		"no count index": {
+			"complete.tfstate",
+			[]string{"module.consul.aws_instance.consul-green"},
+			[]string{
+				"*terraform.ResourceState: module.consul.aws_instance.consul-green[0]",
+				"*terraform.InstanceState: module.consul.aws_instance.consul-green[0]",
+				"*terraform.ResourceState: module.consul.aws_instance.consul-green[1]",
+				"*terraform.InstanceState: module.consul.aws_instance.consul-green[1]",
+				"*terraform.ResourceState: module.consul.aws_instance.consul-green[2]",
+				"*terraform.InstanceState: module.consul.aws_instance.consul-green[2]",
+			},
+		},
+
+		"nested modules": {
+			"nested-modules.tfstate",
+			[]string{"module.outer"},
+			[]string{
+				"*terraform.ModuleState: module.outer",
+				"*terraform.ModuleState: module.outer.module.child1",
+				"*terraform.ResourceState: module.outer.module.child1.aws_instance.foo",
+				"*terraform.InstanceState: module.outer.module.child1.aws_instance.foo",
+				"*terraform.ModuleState: module.outer.module.child2",
+				"*terraform.ResourceState: module.outer.module.child2.aws_instance.foo",
+				"*terraform.InstanceState: module.outer.module.child2.aws_instance.foo",
+			},
+		},
 	}
 
 	for n, tc := range cases {

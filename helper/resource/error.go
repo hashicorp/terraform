@@ -44,9 +44,11 @@ type TimeoutError struct {
 }
 
 func (e *TimeoutError) Error() string {
-	return fmt.Sprintf(
-		"timeout while waiting for state to become '%s'. last error: %s",
-		strings.Join(e.ExpectedState, ", "),
-		e.LastError,
-	)
+	if e.LastError != nil {
+		return fmt.Sprintf("timeout while waiting for state to become '%s': %s",
+			strings.Join(e.ExpectedState, ", "), e.LastError)
+	}
+
+	return fmt.Sprintf("timeout while waiting for state to become '%s'",
+		strings.Join(e.ExpectedState, ", "))
 }

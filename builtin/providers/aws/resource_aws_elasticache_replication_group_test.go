@@ -164,7 +164,7 @@ func TestResourceAWSElastiCacheReplicationGroupIdValidation(t *testing.T) {
 			ErrCount: 1,
 		},
 		{
-			Value:    randomString(65),
+			Value:    randomString(17),
 			ErrCount: 1,
 		},
 	}

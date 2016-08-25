@@ -233,6 +233,12 @@ func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
+	if !d.IsNewResource() {
+		if err := setElbV2Tags(elbconn, d); err != nil {
+			return errwrap.Wrapf("Error Modifying Tags on ALB: {{err}}", err)
+		}
+	}
+
 	attributes := make([]*elbv2.LoadBalancerAttribute, 0)
 
 	if d.HasChange("access_logs") {
@@ -308,29 +314,6 @@ func resourceAwsAlbDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-// tagsToMapELBv2 turns the list of tags into a map.
-func tagsToMapELBv2(ts []*elbv2.Tag) map[string]string {
-	result := make(map[string]string)
-	for _, t := range ts {
-		result[*t.Key] = *t.Value
-	}
-
-	return result
-}
-
-// tagsFromMapELBv2 returns the tags for the given map of data.
-func tagsFromMapELBv2(m map[string]interface{}) []*elbv2.Tag {
-	var result []*elbv2.Tag
-	for k, v := range m {
-		result = append(result, &elbv2.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v.(string)),
-		})
-	}
-
-	return result
 }
 
 // flattenSubnetsFromAvailabilityZones creates a slice of strings containing the subnet IDs

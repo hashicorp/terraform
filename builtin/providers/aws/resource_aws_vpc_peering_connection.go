@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -67,7 +68,7 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 
 	resp, err := conn.CreateVpcPeeringConnection(createOpts)
 	if err != nil {
-		return fmt.Errorf("Error creating vpc peering connection: %s", err)
+		return errwrap.Wrapf("Error creating VPC Peering Connection: {{err}}", err)
 	}
 
 	// Get the ID and store it
@@ -124,20 +125,28 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 	}
+	log.Printf("[DEBUG] VPC Peering Connection response: %#v", pc)
 
-	d.Set("accept_status", *pc.Status.Code)
-	d.Set("peer_owner_id", *pc.AccepterVpcInfo.OwnerId)
-	d.Set("peer_vpc_id", *pc.AccepterVpcInfo.VpcId)
-	d.Set("vpc_id", *pc.RequesterVpcInfo.VpcId)
+	d.Set("accept_status", pc.Status.Code)
+	d.Set("peer_owner_id", pc.AccepterVpcInfo.OwnerId)
+	d.Set("peer_vpc_id", pc.AccepterVpcInfo.VpcId)
+	d.Set("vpc_id", pc.RequesterVpcInfo.VpcId)
 
-	err = d.Set("accepter", flattenPeeringOptions(pc.AccepterVpcInfo.PeeringOptions))
-	if err != nil {
-		return err
+	// When the VPC Peering Connection is pending acceptance,
+	// the details about accepter and/or requester peering
+	// options would not be included in the response.
+	if pc.AccepterVpcInfo != nil && pc.AccepterVpcInfo.PeeringOptions != nil {
+		err := d.Set("accepter", flattenPeeringOptions(pc.AccepterVpcInfo.PeeringOptions))
+		if err != nil {
+			log.Printf("[ERR] Error setting VPC Peering connection accepter information: %s", err)
+		}
 	}
 
-	err = d.Set("requester", flattenPeeringOptions(pc.RequesterVpcInfo.PeeringOptions))
-	if err != nil {
-		return err
+	if pc.RequesterVpcInfo != nil && pc.RequesterVpcInfo.PeeringOptions != nil {
+		err := d.Set("requester", flattenPeeringOptions(pc.RequesterVpcInfo.PeeringOptions))
+		if err != nil {
+			log.Printf("[ERR] Error setting VPC Peering connection requester information: %s", err)
+		}
 	}
 
 	err = d.Set("tags", tagsToMap(pc.Tags))
@@ -172,16 +181,16 @@ func resourceVPCPeeringConnectionOptionsModify(d *schema.ResourceData, meta inte
 	}
 
 	if v, ok := d.GetOk("accepter"); ok {
-		if s := v.([]interface{}); len(s) > 0 {
-			modifyOpts.AccepterPeeringConnectionOptions = expandPeeringOptions(
-				s[0].(map[string]interface{}))
+		if s := v.(*schema.Set); len(s.List()) > 0 {
+			co := s.List()[0].(map[string]interface{})
+			modifyOpts.AccepterPeeringConnectionOptions = expandPeeringOptions(co)
 		}
 	}
 
 	if v, ok := d.GetOk("requester"); ok {
-		if s := v.([]interface{}); len(s) > 0 {
-			modifyOpts.RequesterPeeringConnectionOptions = expandPeeringOptions(
-				s[0].(map[string]interface{}))
+		if s := v.(*schema.Set); len(s.List()) > 0 {
+			co := s.List()[0].(map[string]interface{})
+			modifyOpts.RequesterPeeringConnectionOptions = expandPeeringOptions(co)
 		}
 	}
 
@@ -202,18 +211,17 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 		d.SetPartial("tags")
 	}
 
+	pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id())()
+	if err != nil {
+		return err
+	}
+	if pcRaw == nil {
+		d.SetId("")
+		return nil
+	}
+	pc := pcRaw.(*ec2.VpcPeeringConnection)
+
 	if _, ok := d.GetOk("auto_accept"); ok {
-		pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id())()
-		if err != nil {
-			return err
-		}
-
-		if pcRaw == nil {
-			d.SetId("")
-			return nil
-		}
-		pc := pcRaw.(*ec2.VpcPeeringConnection)
-
 		if pc.Status != nil && *pc.Status.Code == "pending-acceptance" {
 			status, err := resourceVPCPeeringConnectionAccept(conn, d.Id())
 			if err != nil {
@@ -224,8 +232,15 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if d.HasChange("accepter") || d.HasChange("requester") {
+		_, ok := d.GetOk("auto_accept")
+		if !ok && pc.Status != nil && *pc.Status.Code != "active" {
+			return fmt.Errorf("Unable to modify peering options. The VPC Peering Connection "+
+				"%q is not active. Please set `auto_accept` attribute to `true`, "+
+				"or activate VPC Peering Connection manually.", d.Id())
+		}
+
 		if err := resourceVPCPeeringConnectionOptionsModify(d, meta); err != nil {
-			return err
+			return errwrap.Wrapf("Error modifying VPC Peering Connection options: {{err}}", err)
 		}
 	}
 
@@ -255,7 +270,7 @@ func resourceAwsVPCPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) r
 			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpcPeeringConnectionID.NotFound" {
 				resp = nil
 			} else {
-				log.Printf("Error on VPCPeeringConnectionStateRefresh: %s", err)
+				log.Printf("Error reading VPC Peering Connection details: %s", err)
 				return nil, "", err
 			}
 		}
@@ -274,7 +289,7 @@ func resourceAwsVPCPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) r
 
 func vpcPeeringConnectionOptionsSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
+		Type:     schema.TypeSet,
 		Optional: true,
 		Computed: true,
 		MaxItems: 1,
@@ -283,17 +298,17 @@ func vpcPeeringConnectionOptionsSchema() *schema.Schema {
 				"allow_remote_vpc_dns_resolution": &schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
-					Computed: true,
+					Default:  false,
 				},
 				"allow_classic_link_to_remote_vpc": &schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
-					Computed: true,
+					Default:  false,
 				},
 				"allow_vpc_to_remote_classic_link": &schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
-					Computed: true,
+					Default:  false,
 				},
 			},
 		},
@@ -301,19 +316,38 @@ func vpcPeeringConnectionOptionsSchema() *schema.Schema {
 }
 
 func flattenPeeringOptions(options *ec2.VpcPeeringConnectionOptionsDescription) (results []map[string]interface{}) {
-	m := map[string]interface{}{
-		"allow_remote_vpc_dns_resolution":  *options.AllowDnsResolutionFromRemoteVpc,
-		"allow_classic_link_to_remote_vpc": *options.AllowEgressFromLocalClassicLinkToRemoteVpc,
-		"allow_vpc_to_remote_classic_link": *options.AllowEgressFromLocalVpcToRemoteClassicLink,
+	m := make(map[string]interface{})
+
+	if options.AllowDnsResolutionFromRemoteVpc != nil {
+		m["allow_remote_vpc_dns_resolution"] = *options.AllowDnsResolutionFromRemoteVpc
 	}
+
+	if options.AllowEgressFromLocalClassicLinkToRemoteVpc != nil {
+		m["allow_classic_link_to_remote_vpc"] = *options.AllowEgressFromLocalClassicLinkToRemoteVpc
+	}
+
+	if options.AllowEgressFromLocalVpcToRemoteClassicLink != nil {
+		m["allow_vpc_to_remote_classic_link"] = *options.AllowEgressFromLocalVpcToRemoteClassicLink
+	}
+
 	results = append(results, m)
 	return
 }
 
 func expandPeeringOptions(m map[string]interface{}) *ec2.PeeringConnectionOptionsRequest {
-	return &ec2.PeeringConnectionOptionsRequest{
-		AllowDnsResolutionFromRemoteVpc:            aws.Bool(m["allow_remote_vpc_dns_resolution"].(bool)),
-		AllowEgressFromLocalClassicLinkToRemoteVpc: aws.Bool(m["allow_classic_link_to_remote_vpc"].(bool)),
-		AllowEgressFromLocalVpcToRemoteClassicLink: aws.Bool(m["allow_vpc_to_remote_classic_link"].(bool)),
+	r := &ec2.PeeringConnectionOptionsRequest{}
+
+	if v, ok := m["allow_remote_vpc_dns_resolution"]; ok {
+		r.AllowDnsResolutionFromRemoteVpc = aws.Bool(v.(bool))
 	}
+
+	if v, ok := m["allow_classic_link_to_remote_vpc"]; ok {
+		r.AllowEgressFromLocalClassicLinkToRemoteVpc = aws.Bool(v.(bool))
+	}
+
+	if v, ok := m["allow_vpc_to_remote_classic_link"]; ok {
+		r.AllowEgressFromLocalVpcToRemoteClassicLink = aws.Bool(v.(bool))
+	}
+
+	return r
 }

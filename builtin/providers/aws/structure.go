@@ -125,9 +125,15 @@ func expandEcsLoadBalancers(configured []interface{}) []*ecs.LoadBalancer {
 		data := lRaw.(map[string]interface{})
 
 		l := &ecs.LoadBalancer{
-			ContainerName:    aws.String(data["container_name"].(string)),
-			ContainerPort:    aws.Int64(int64(data["container_port"].(int))),
-			LoadBalancerName: aws.String(data["elb_name"].(string)),
+			ContainerName: aws.String(data["container_name"].(string)),
+			ContainerPort: aws.Int64(int64(data["container_port"].(int))),
+		}
+
+		if v, ok := data["elb_name"]; ok && v.(string) != "" {
+			l.LoadBalancerName = aws.String(v.(string))
+		}
+		if v, ok := data["target_group_arn"]; ok && v.(string) != "" {
+			l.TargetGroupArn = aws.String(v.(string))
 		}
 
 		loadBalancers = append(loadBalancers, l)
@@ -553,10 +559,18 @@ func flattenEcsLoadBalancers(list []*ecs.LoadBalancer) []map[string]interface{} 
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, loadBalancer := range list {
 		l := map[string]interface{}{
-			"elb_name":       *loadBalancer.LoadBalancerName,
 			"container_name": *loadBalancer.ContainerName,
 			"container_port": *loadBalancer.ContainerPort,
 		}
+
+		if loadBalancer.LoadBalancerName != nil {
+			l["elb_name"] = *loadBalancer.LoadBalancerName
+		}
+
+		if loadBalancer.TargetGroupArn != nil {
+			l["target_group_arn"] = *loadBalancer.TargetGroupArn
+		}
+
 		result = append(result, l)
 	}
 	return result

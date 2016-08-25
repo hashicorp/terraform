@@ -42,6 +42,11 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		ForceNew: true,
 	}
 
+	resourceSchema["primary_endpoint_address"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
+
 	resourceSchema["engine"].Required = false
 	resourceSchema["engine"].Optional = true
 	resourceSchema["engine"].Default = "redis"
@@ -121,6 +126,10 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		params.SnapshotWindow = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("snapshot_name"); ok {
+		params.SnapshotName = aws.String(v.(string))
+	}
+
 	resp, err := conn.CreateReplicationGroup(params)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache Replication Group: %s", err)
@@ -128,7 +137,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 
 	d.SetId(*resp.ReplicationGroup.ReplicationGroupId)
 
-	pending := []string{"creating", "modifying"}
+	pending := []string{"creating", "modifying", "restoring"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
@@ -214,6 +223,8 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
 		d.Set("snapshot_window", c.SnapshotWindow)
 		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
+
+		d.Set("primary_endpoint_address", rgp.NodeGroups[0].PrimaryEndpoint.Address)
 
 	}
 
@@ -404,9 +415,9 @@ func validateAwsElastiCacheReplicationGroupEngine(v interface{}, k string) (ws [
 
 func validateAwsElastiCacheReplicationGroupId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if (len(value) < 1) || (len(value) > 20) {
+	if (len(value) < 1) || (len(value) > 16) {
 		errors = append(errors, fmt.Errorf(
-			"%q must contain from 1 to 20 alphanumeric characters or hyphens", k))
+			"%q must contain from 1 to 16 alphanumeric characters or hyphens", k))
 	}
 	if !regexp.MustCompile(`^[0-9a-zA-Z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(

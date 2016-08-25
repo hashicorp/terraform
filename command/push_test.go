@@ -72,6 +72,62 @@ func TestPush_good(t *testing.T) {
 	}
 }
 
+func TestPush_noUploadModules(t *testing.T) {
+	// Path where the archive will be "uploaded" to
+	archivePath := testTempFile(t)
+	defer os.Remove(archivePath)
+
+	client := &mockPushClient{File: archivePath}
+	ui := new(cli.MockUi)
+	c := &PushCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+
+		client: client,
+	}
+
+	// Path of the test. We have to do some renaming to avoid our own
+	// VCS getting in the way.
+	path := testFixturePath("push-no-upload")
+	defer testRename(t, path, "DOTterraform", ".terraform")()
+
+	// Move into that directory
+	defer testChdir(t, path)()
+
+	// Create remote state file, this should be pulled
+	conf, srv := testRemoteState(t, testState(), 200)
+	defer srv.Close()
+
+	// Persist local remote state
+	s := terraform.NewState()
+	s.Serial = 5
+	s.Remote = conf
+	defer os.Remove(testStateFileRemote(t, s))
+
+	args := []string{
+		"-name=mitchellh/tf-test",
+		"-upload-modules=false",
+		path,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	actual := testArchiveStr(t, archivePath)
+	expected := []string{
+		".terraform/",
+		".terraform/terraform.tfstate",
+		"child/",
+		"child/main.tf",
+		"main.tf",
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestPush_input(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
