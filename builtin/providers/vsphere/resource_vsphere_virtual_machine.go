@@ -618,9 +618,9 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor vmdk name was given")
 				}
 
-				var initType string
+				var initType provisioningType
 				if disk["type"] != "" {
-					initType = disk["type"].(string)
+					initType = provisioningType(disk["type"].(string))
 				} else {
 					initType = "thin"
 				}
@@ -872,7 +872,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType provision
 	// TODO Check if diskPath & datastore exist
 	// If diskPath is not specified, pass empty string to CreateDisk()
 	if diskPath == "" {
-		return fmt.Errorf("[ERROR] addHardDisk - No path proided")
+		return fmt.Errorf("[ERROR] addHardDisk - No path provided")
 	} else {
 		diskPath = datastore.Path(diskPath)
 	}
