@@ -1522,6 +1522,7 @@ func ReadState(src io.Reader) (*State, error) {
 		return nil, fmt.Errorf("Decoding state file version failed: %v", err)
 	}
 
+	var result *State
 	switch versionIdentifier.Version {
 	case 0:
 		return nil, fmt.Errorf("State version 0 is not supported as JSON.")
@@ -1543,7 +1544,7 @@ func ReadState(src io.Reader) (*State, error) {
 
 		// increment the Serial whenever we upgrade state
 		v3State.Serial++
-		return v3State, nil
+		result = v3State
 	case 2:
 		v2State, err := ReadStateV2(jsonBytes)
 		if err != nil {
@@ -1555,18 +1556,25 @@ func ReadState(src io.Reader) (*State, error) {
 		}
 
 		v3State.Serial++
-		return v3State, nil
+		result = v3State
 	case 3:
 		v3State, err := ReadStateV3(jsonBytes)
 		if err != nil {
 			return nil, err
 		}
-		return v3State, nil
+
+		result = v3State
 	default:
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
 			SemVersion.String(), versionIdentifier.Version)
 	}
 
+	// If we reached this place we must have a result set
+	if result == nil {
+		panic("resulting state in load not set, assertion failed")
+	}
+
+	return result, nil
 }
 
 func ReadStateV1(jsonBytes []byte) (*stateV1, error) {
