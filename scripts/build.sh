@@ -39,7 +39,8 @@ fi
 # instruct gox to build statically linked binaries
 export CGO_ENABLED=0
 
-LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}"
+# Allow LD_FLAGS to be appended during development compilations
+LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} $LD_FLAGS"
 # In relase mode we don't want debug information in the binary
 if [[ -n "${TF_RELEASE}" ]]; then
     LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -s -w"
