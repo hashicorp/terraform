@@ -6,6 +6,7 @@ IMPROVEMENTS:
  * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
  
 BUG FIXES:
+ * provider/aws: Stop `aws_instance` `source_dest_check` triggering an API call on each terraform run [GH-8450]
 
 ## 0.7.2 (August 25, 2016)
 
