@@ -586,43 +586,55 @@ func (c *Config) Validate() error {
 	}
 
 	// Check that all outputs are valid
-	for _, o := range c.Outputs {
-		var invalidKeys []string
-		valueKeyFound := false
-		for k := range o.RawConfig.Raw {
-			if k == "value" {
-				valueKeyFound = true
-				continue
-			}
-			if k == "sensitive" {
-				if sensitive, ok := o.RawConfig.config[k].(bool); ok {
-					if sensitive {
-						o.Sensitive = true
-					}
-					continue
-				}
-
+	{
+		found := make(map[string]struct{})
+		for _, o := range c.Outputs {
+			// Verify the output is new
+			if _, ok := found[o.Name]; ok {
 				errs = append(errs, fmt.Errorf(
-					"%s: value for 'sensitive' must be boolean",
+					"%s: duplicate output. output names must be unique.",
 					o.Name))
 				continue
 			}
-			invalidKeys = append(invalidKeys, k)
-		}
-		if len(invalidKeys) > 0 {
-			errs = append(errs, fmt.Errorf(
-				"%s: output has invalid keys: %s",
-				o.Name, strings.Join(invalidKeys, ", ")))
-		}
-		if !valueKeyFound {
-			errs = append(errs, fmt.Errorf(
-				"%s: output is missing required 'value' key", o.Name))
-		}
+			found[o.Name] = struct{}{}
 
-		for _, v := range o.RawConfig.Variables {
-			if _, ok := v.(*CountVariable); ok {
+			var invalidKeys []string
+			valueKeyFound := false
+			for k := range o.RawConfig.Raw {
+				if k == "value" {
+					valueKeyFound = true
+					continue
+				}
+				if k == "sensitive" {
+					if sensitive, ok := o.RawConfig.config[k].(bool); ok {
+						if sensitive {
+							o.Sensitive = true
+						}
+						continue
+					}
+
+					errs = append(errs, fmt.Errorf(
+						"%s: value for 'sensitive' must be boolean",
+						o.Name))
+					continue
+				}
+				invalidKeys = append(invalidKeys, k)
+			}
+			if len(invalidKeys) > 0 {
 				errs = append(errs, fmt.Errorf(
-					"%s: count variables are only valid within resources", o.Name))
+					"%s: output has invalid keys: %s",
+					o.Name, strings.Join(invalidKeys, ", ")))
+			}
+			if !valueKeyFound {
+				errs = append(errs, fmt.Errorf(
+					"%s: output is missing required 'value' key", o.Name))
+			}
+
+			for _, v := range o.RawConfig.Variables {
+				if _, ok := v.(*CountVariable); ok {
+					errs = append(errs, fmt.Errorf(
+						"%s: count variables are only valid within resources", o.Name))
+				}
 			}
 		}
 	}
