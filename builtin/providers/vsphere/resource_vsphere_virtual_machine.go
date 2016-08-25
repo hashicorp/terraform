@@ -1584,9 +1584,7 @@ func (vm *virtualMachine) addHardDisks(vmObj *object.VirtualMachine, datastore *
 }
 
 func (vm *virtualMachine) performConfigCoherenceTests() error {
-	if vm.template != "" && vm.guestID != "" {
-		return fmt.Errorf("Cannot enforce guestID if template is set aswell")
-	}
+	// please put config coherence tests in this function.
 	return nil
 }
 
@@ -1603,12 +1601,12 @@ func (vm *virtualMachine) bootstrapConfigSpec() *types.VirtualMachineConfigSpec 
 			DiskUuidEnabled: &vm.enableDiskUUID,
 		},
 	}
-	if vm.template == "" {
-		if vm.guestID == "" {
+	if vm.guestID == "" {
+		if vm.template == "" {
 			configSpec.GuestId = "otherLinux64Guest"
-		} else {
-			configSpec.GuestId = string(vm.guestID)
 		}
+	} else {
+		configSpec.GuestId = string(vm.guestID)
 	}
 	return &configSpec
 }
@@ -1987,7 +1985,7 @@ func populateVMStruct(d *schema.ResourceData, vm *virtualMachine) error {
 	}
 
 	if v, ok := d.GetOk("guest_id"); ok {
-		vm.guestID = v.(types.VirtualMachineGuestOsIdentifier)
+		vm.guestID = types.VirtualMachineGuestOsIdentifier(v.(string))
 	}
 
 	if v, ok := d.GetOk("linked_clone"); ok {
