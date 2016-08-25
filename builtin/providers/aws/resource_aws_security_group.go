@@ -359,7 +359,9 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
-	deleteLingeringLambdaENIs(conn, d)
+	if err := deleteLingeringLambdaENIs(conn, d); err != nil {
+		return fmt.Errorf("Failed to delete Lambda ENIs: %s", err)
+	}
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
@@ -978,30 +980,33 @@ func protocolForValue(v string) string {
 	return protocol
 }
 
+// The AWS Lambda service creates ENIs behind the scenes and keeps these around for a while
+// which would prevent SGs attached to such ENIs from being destroyed
 func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
-	filter1 := &ec2.Filter{
-		Name:   aws.String("group-id"),
-		Values: []*string{aws.String(d.Id())},
-	}
-	filter2 := &ec2.Filter{
-		Name:   aws.String("description"),
-		Values: []*string{aws.String("AWS Lambda VPC ENI: *")},
-	}
-	filter3 := &ec2.Filter{
-		Name:   aws.String("requester-id"),
-		Values: []*string{aws.String("*:awslambda_*")},
-	}
+	// Here we carefully find the offenders
 	params := &ec2.DescribeNetworkInterfacesInput{
-		Filters: []*ec2.Filter{filter1, filter2, filter3},
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("group-id"),
+				Values: []*string{aws.String(d.Id())},
+			},
+			&ec2.Filter{
+				Name:   aws.String("description"),
+				Values: []*string{aws.String("AWS Lambda VPC ENI: *")},
+			},
+			&ec2.Filter{
+				Name:   aws.String("requester-id"),
+				Values: []*string{aws.String("*:awslambda_*")},
+			},
+		},
 	}
 	networkInterfaceResp, err := conn.DescribeNetworkInterfaces(params)
-
 	if err != nil {
 		return err
 	}
 
+	// Then we detach and finally delete those
 	v := networkInterfaceResp.NetworkInterfaces
-
 	for _, eni := range v {
 		if eni.Attachment != nil {
 			detachNetworkInterfaceParams := &ec2.DetachNetworkInterfaceInput{
@@ -1013,7 +1018,7 @@ func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
 				return detachNetworkInterfaceErr
 			}
 
-			log.Printf("[DEBUG] Waiting for ENI (%s) to become dettached", *eni.NetworkInterfaceId)
+			log.Printf("[DEBUG] Waiting for ENI (%s) to become detached", *eni.NetworkInterfaceId)
 			stateConf := &resource.StateChangeConf{
 				Pending: []string{"true"},
 				Target:  []string{"false"},
@@ -1022,7 +1027,7 @@ func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
 			}
 			if _, err := stateConf.WaitForState(); err != nil {
 				return fmt.Errorf(
-					"Error waiting for ENI (%s) to become dettached: %s", *eni.NetworkInterfaceId, err)
+					"Error waiting for ENI (%s) to become detached: %s", *eni.NetworkInterfaceId, err)
 			}
 		}
 
