@@ -7,6 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
  * **New Resource:** `aws_api_gateway_base_path_mapping` [GH-8353]
  * **New Resource:** `aws_api_gateway_domain_name` [GH-8353]
+ * **New Resource:** `aws_ssm_document` [GH-8460]
 
 IMPROVEMENTS:
  * core: Names generated with a unique prefix are now sortable based on age [GH-8249]
