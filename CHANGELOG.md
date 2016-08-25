@@ -37,6 +37,7 @@ BUG FIXES:
  * provider/aws: AWS SpotFleet Requests now works with Subnets and AZs [GH-8320]
  * provider/aws: Refresh `aws_cloudwatch_event_target` from state on `ResourceNotFoundException` [GH-8442]
  * provider/aws: Validate `aws_iam_policy_attachment` Name parameter to stop being empty [GH-8441]
+ * provider/aws: Fix segmentation fault in `aws_api_gateway_base_path_mapping` resource [GH-8466]
  * provider/google: fix crash regression from Terraform 0.7.1 on `google_compute_firewall` resource [GH-8390]
  * provider/openstack: Volume Attachment and Detachment Fixes [GH-8172]
 
