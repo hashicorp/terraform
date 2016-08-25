@@ -41,6 +41,10 @@ func dataSourceAwsEcsContainerDefinition() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"memoryReservation": &schema.Schema{
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"disable_networking": &schema.Schema{
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -65,6 +69,7 @@ func dataSourceAwsEcsContainerDefinitionRead(d *schema.ResourceData, meta interf
 	desc, err := conn.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String(d.Get("task_definition").(string)),
 	})
+
 	if err != nil {
 		return err
 	}
@@ -83,6 +88,7 @@ func dataSourceAwsEcsContainerDefinitionRead(d *schema.ResourceData, meta interf
 		}
 		d.Set("cpu", aws.Int64Value(def.Cpu))
 		d.Set("memory", aws.Int64Value(def.Memory))
+		d.Set("memoryReservation", aws.Int64Value(def.MemoryReservation))
 		d.Set("disable_networking", aws.BoolValue(def.DisableNetworking))
 		d.Set("docker_labels", aws.StringValueMap(def.DockerLabels))
 
