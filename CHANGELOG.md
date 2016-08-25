@@ -1,9 +1,11 @@
 ## 0.7.3 (Unreleased)
- FEATURES:
+FEATURES:
 
- IMPROVEMENTS:
+
+IMPROVEMENTS:
+ * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
  
- BUGS:
+BUGS:
 
 ## 0.7.2 (August 25, 2016)
 
