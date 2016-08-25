@@ -19,6 +19,8 @@ phase because a modification has not yet taken place. You can use the
 `apply_immediately` flag to instruct the service to apply the change immediately
 (see documentation below).
 
+When upgrading the major version of an engine, `allow_major_version_upgrade` must be set to `true`
+
 ~> **Note:** using `apply_immediately` can result in a
 brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][2]
 for more information.
