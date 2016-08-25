@@ -1,11 +1,11 @@
 ## 0.7.3 (Unreleased)
 FEATURES:
-
+ * **New Resource:** `aws_default_route_table` [GH-8323]
 
 IMPROVEMENTS:
  * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
  
-BUGS:
+BUG FIXES:
 
 ## 0.7.2 (August 25, 2016)
 
