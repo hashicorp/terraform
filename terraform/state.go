@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
@@ -239,6 +240,38 @@ func (s *State) IsRemote() bool {
 	}
 
 	return true
+}
+
+// Validate validates the integrity of this state file.
+//
+// Certain properties of the statefile are expected by Terraform in order
+// to behave properly. The core of Terraform will assume that once it
+// receives a State structure that it has been validated. This validation
+// check should be called to ensure that.
+//
+// If this returns an error, then the user should be notified. The error
+// response will include detailed information on the nature of the error.
+func (s *State) Validate() error {
+	var result error
+
+	// Make sure there are no duplicate module states. We open a new
+	// block here so we can use basic variable names and future validations
+	// can do the same.
+	{
+		found := make(map[string]struct{})
+		for _, ms := range s.Modules {
+			key := strings.Join(ms.Path, ".")
+			if _, ok := found[key]; ok {
+				result = multierror.Append(result, fmt.Errorf(
+					strings.TrimSpace(stateValidateErrMultiModule), key))
+				continue
+			}
+
+			found[key] = struct{}{}
+		}
+	}
+
+	return result
 }
 
 // Remove removes the item in the state at the given address, returning
@@ -1739,3 +1772,12 @@ func (s moduleStateSort) Less(i, j int) bool {
 func (s moduleStateSort) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
+
+const stateValidateErrMultiModule = `
+Multiple modules with the same path: %s
+
+This means that there are multiple entries in the "modules" field
+in your state file that point to the same module. This will cause Terraform
+to behave in unexpected and error prone ways and is invalid. Please back up
+and modify your state file manually to resolve this.
+`
