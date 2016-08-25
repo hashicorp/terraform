@@ -811,7 +811,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("datacenter", dc)
 	d.Set("memory", mvm.Summary.Config.MemorySizeMB)
 	d.Set("memory_reservation", mvm.Summary.Config.MemoryReservation)
-	d.Set("cpu", mvm.Summary.Config.NumCpu)
+	d.Set("vcpu", mvm.Summary.Config.NumCpu)
 	d.Set("uuid", mvm.Summary.Config.Uuid)
 	d.Set("guest_id", mvm.Config.GuestId)
 
