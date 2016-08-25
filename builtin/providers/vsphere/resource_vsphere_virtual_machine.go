@@ -880,7 +880,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType provision
 	log.Printf("[DEBUG] addHardDisk - diskPath: %v", diskPath)
 	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
 
-	if strings.Contains(controller_type, "scsi") {
+	if strings.Contains(string(controller_type), "scsi") {
 		unitNumber, err := getNextUnitNumber(devices, controller)
 		if err != nil {
 			return err
@@ -1235,7 +1235,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	log.Printf("[DEBUG] new vm: %v", newVM)
 
 	// Create the cdroms if needed.
-	if err = createCdroms(newVM, vm.cdroms); err != nil {
+	if err = createCdroms(c, newVM, dc, vm.cdroms); err != nil {
 		return err
 	}
 	// add the hard disks
@@ -1263,12 +1263,12 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 }
 
 // createCdroms is a helper function to attach virtual cdrom devices (and their attached disk images) to a virtual IDE controller.
-func createCdroms(vm *object.VirtualMachine, cdroms []cdrom) error {
+func createCdroms(client *govmomi.Client, vm *object.VirtualMachine, datacenter *object.Datacenter, cdroms []cdrom) error {
 	log.Printf("[DEBUG] add cdroms: %v", cdroms)
 	for _, cd := range cdroms {
 		log.Printf("[DEBUG] add cdrom (datastore): %v", cd.datastore)
 		log.Printf("[DEBUG] add cdrom (cd path): %v", cd.path)
-		err := addCdrom(vm, cd.datastore, cd.path)
+		err := addCdrom(client, vm, datacenter, cd.datastore, cd.path)
 		if err != nil {
 			return err
 		}
@@ -1889,7 +1889,6 @@ func populateVMStruct(d *schema.ResourceData, vm *virtualMachine) error {
 	}
 
 	// Create the cdroms if needed.
-	if err := createCdroms(c, newVM, dc, vm.cdroms); err != nil {
 	if raw, ok := d.GetOk("dns_servers"); ok {
 		for _, v := range raw.([]interface{}) {
 			vm.dnsServers = append(vm.dnsServers, v.(string))
