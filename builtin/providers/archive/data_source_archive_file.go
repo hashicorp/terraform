@@ -69,7 +69,7 @@ func dataSourceFileRead(d *schema.ResourceData, meta interface{}) error {
 	outputDirectory := path.Dir(outputPath)
 	if outputDirectory != "" {
 		if _, err := os.Stat(outputDirectory); err != nil {
-			if err := os.MkdirAll(outputDirectory, 0644); err != nil {
+			if err := os.MkdirAll(outputDirectory, 0755); err != nil {
 				return err
 			}
 		}
