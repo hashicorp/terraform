@@ -7,6 +7,7 @@ IMPROVEMENTS:
  
 BUG FIXES:
  * core: JSON configuration with resources with a single key parse properly [GH-8485]
+ * core: States with duplicate modules are detected and an error is shown [GH-8463]
  * provider/aws: Stop `aws_instance` `source_dest_check` triggering an API call on each terraform run [GH-8450]
  * provider/aws: If an `aws_security_group` was used in Lambda function it may have prevented you from destroying such SG due to dangling ENIs created by Lambda service. These ENIs are now automatically cleaned up prior to SG deletion [GH-8033]
  * provider/aws: `aws_volume_attachment` detachment errors are caught [GH-8479]
