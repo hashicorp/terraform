@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
@@ -91,10 +92,25 @@ func TestPush_noUploadModules(t *testing.T) {
 	// Path of the test. We have to do some renaming to avoid our own
 	// VCS getting in the way.
 	path := testFixturePath("push-no-upload")
-	defer testRename(t, path, "DOTterraform", ".terraform")()
+	defer os.RemoveAll(filepath.Join(path, ".terraform"))
 
 	// Move into that directory
 	defer testChdir(t, path)()
+
+	// Do a "terraform get"
+	{
+		ui := new(cli.MockUi)
+		c := &GetCommand{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(testProvider()),
+				Ui:          ui,
+			},
+		}
+
+		if code := c.Run([]string{}); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+	}
 
 	// Create remote state file, this should be pulled
 	conf, srv := testRemoteState(t, testState(), 200)
