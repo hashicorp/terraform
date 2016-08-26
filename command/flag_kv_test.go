@@ -2,10 +2,11 @@ package command
 
 import (
 	"flag"
-	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"reflect"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestFlagStringKV_impl(t *testing.T) {
@@ -46,6 +47,12 @@ func TestFlagStringKV(t *testing.T) {
 			"key",
 			nil,
 			true,
+		},
+
+		{
+			"key=/path",
+			map[string]string{"key": "/path"},
+			false,
 		},
 	}
 
@@ -126,6 +133,12 @@ func TestFlagTypedKV(t *testing.T) {
 			`key={"hello" = "world", "foo" = "bar"}\nkey2="invalid"`,
 			nil,
 			true,
+		},
+
+		{
+			"key=/path",
+			map[string]interface{}{"key": "/path"},
+			false,
 		},
 	}
 

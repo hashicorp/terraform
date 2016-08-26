@@ -158,9 +158,10 @@ func parseVarFlagAsHCL(input string) (string, interface{}, error) {
 		return "", nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL: %s", probablyName, input, err)
 	}
 
-	// Cover cases such as key=
+	// Cover cases in which the value is either empty or does not start with a
+	// letter, e.g. paths.
 	if len(decoded) == 0 {
-		return probablyName, "", nil
+		return probablyName, input[idx+1:], nil
 	}
 
 	if len(decoded) > 1 {
