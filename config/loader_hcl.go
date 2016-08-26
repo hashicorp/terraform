@@ -29,6 +29,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	type hclVariable struct {
+		Name         string `hcl:",key"`
 		Default      interface{}
 		Description  string
 		DeclaredType string   `hcl:"type"`
@@ -36,7 +37,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	var rawConfig struct {
-		Variable map[string]*hclVariable
+		Variable []*hclVariable
 	}
 
 	// Top-level item should be the object list
@@ -56,7 +57,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	config := new(Config)
 	if len(rawConfig.Variable) > 0 {
 		config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
-		for k, v := range rawConfig.Variable {
+		for _, v := range rawConfig.Variable {
 			// Defaults turn into a slice of map[string]interface{} and
 			// we need to make sure to convert that down into the
 			// proper type for Config.
@@ -72,7 +73,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 			}
 
 			newVar := &Variable{
-				Name:         k,
+				Name:         v.Name,
 				DeclaredType: v.DeclaredType,
 				Default:      v.Default,
 				Description:  v.Description,
