@@ -462,6 +462,22 @@ func TestLoadDir_override(t *testing.T) {
 	}
 }
 
+func TestLoadDir_overrideVar(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "dir-override-var"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(dirOverrideVarsVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFile_mismatchedVariableTypes(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "variable-mismatched-type.tf"))
 	if err == nil {
@@ -940,6 +956,12 @@ data.do.simple (x1)
 const dirOverrideVariablesStr = `
 foo
   bar
+  bar
+`
+
+const dirOverrideVarsVariablesStr = `
+foo
+  baz
   bar
 `
 

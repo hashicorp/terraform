@@ -1,0 +1,3 @@
+variable "foo" {
+    default = "baz"
+}
