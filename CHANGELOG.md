@@ -9,6 +9,7 @@ BUG FIXES:
  * provider/aws: Stop `aws_instance` `source_dest_check` triggering an API call on each terraform run [GH-8450]
  * provider/aws: If an `aws_security_group` was used in Lambda function it may have prevented you from destroying such SG due to dangling ENIs created by Lambda service. These ENIs are now automatically cleaned up prior to SG deletion [GH-8033]
  * provider/aws: `aws_volume_attachment` detachment errors are caught [GH-8479]
+ * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
 
 ## 0.7.2 (August 25, 2016)
 
