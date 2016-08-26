@@ -4180,6 +4180,46 @@ module.child:
 	`)
 }
 
+func TestContext2Apply_targetedModuleRecursive(t *testing.T) {
+	m := testModule(t, "apply-targeted-module-recursive")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.child"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.ModuleByPath([]string{"root", "child", "subchild"})
+	if mod == nil {
+		t.Fatalf("no subchild module found in the state!\n\n%#v", state)
+	}
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resources, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child.subchild:
+  aws_instance.foo:
+    ID = foo
+    num = 2
+    type = aws_instance
+	`)
+}
+
 func TestContext2Apply_targetedModuleResource(t *testing.T) {
 	m := testModule(t, "apply-targeted-module-resource")
 	p := testProvider("aws")

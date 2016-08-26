@@ -59,7 +59,7 @@ func (r *ResourceAddress) String() string {
 		panic(fmt.Errorf("unsupported resource mode %s", r.Mode))
 	}
 
-	if r.Type != "" {
+	if r.Type != "" && r.Type != "module" {
 		result = append(result, r.Type)
 	}
 
@@ -109,15 +109,36 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 		return nil, fmt.Errorf("must target specific data instance")
 	}
 
+	var resourceType string
+	if matches["type"] == "" && matches["module_name"] != "" {
+		resourceType = "module"
+	} else {
+		resourceType = matches["type"]
+	}
+
 	return &ResourceAddress{
 		Path:            path,
 		Index:           resourceIndex,
 		InstanceType:    instanceType,
 		InstanceTypeSet: matches["instance_type"] != "",
 		Name:            matches["name"],
-		Type:            matches["type"],
+		Type:            resourceType,
 		Mode:            mode,
 	}, nil
+}
+
+func (addr *ResourceAddress) ContainedInHierarchy(node *ResourceAddress) bool {
+	path := addr.Path
+	nodePath := node.Path
+	if len(nodePath) < len(path) {
+		return false
+	}
+	for i, component := range path {
+		if val := nodePath[i]; val != component {
+			return false
+		}
+	}
+	return true
 }
 
 func (addr *ResourceAddress) Equals(raw interface{}) bool {
@@ -196,7 +217,7 @@ func tokenizeResourceAddress(s string) (map[string]string, error) {
 	// string "aws_instance.web.tainted[1]"
 	re := regexp.MustCompile(`\A` +
 		// "module.foo.module.bar" (optional)
-		`(?P<path>(?:module\.[^.]+\.?)*)` +
+		`(?P<path>(?:module\.(?P<module_name>[^.]+)\.?)*)` +
 		// possibly "data.", if targeting is a data resource
 		`(?P<data_prefix>(?:data\.)?)` +
 		// "aws_instance.web" (optional when module path specified)

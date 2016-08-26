@@ -109,7 +109,9 @@ func (t *TargetsTransformer) nodeIsTarget(
 	}
 	addr := r.ResourceAddress()
 	for _, targetAddr := range addrs {
-		if targetAddr.Equals(addr) {
+		if targetAddr.Type == "module" && targetAddr.ContainedInHierarchy(addr) {
+			return true
+		} else if targetAddr.Equals(addr) {
 			return true
 		}
 	}

@@ -84,7 +84,9 @@ func (t *ResourceCountTransformer) nodeIsTargeted(node dag.Vertex) bool {
 
 	addr := addressable.ResourceAddress()
 	for _, targetAddr := range t.Targets {
-		if targetAddr.Equals(addr) {
+		if targetAddr.Type == "module" && targetAddr.ContainedInHierarchy(addr) {
+			return true
+		} else if targetAddr.Equals(addr) {
 			return true
 		}
 	}

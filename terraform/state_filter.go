@@ -71,7 +71,7 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 
 			// Only add the module to the results if we haven't specified a type.
 			// We also ignore the root module.
-			if a.Type == "" && len(m.Path) > 1 {
+			if (a.Type == "" || a.Type == "module") && len(m.Path) > 1 {
 				results = append(results, &StateFilterResult{
 					Path:    m.Path[1:],
 					Address: (&ResourceAddress{Path: m.Path[1:]}).String(),
@@ -173,7 +173,7 @@ func (f *StateFilter) relevant(addr *ResourceAddress, raw interface{}) bool {
 
 		return true
 	case *ResourceState:
-		if addr.Type == "" {
+		if addr.Type == "" || addr.Type == "module" {
 			// If we have no resource type, then we're interested in all!
 			return true
 		}
