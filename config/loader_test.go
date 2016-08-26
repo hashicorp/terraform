@@ -327,6 +327,22 @@ func TestLoadJSONBasic(t *testing.T) {
 	}
 }
 
+func TestLoadFileBasic_jsonNoName(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "resource-no-name.tf.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(basicJsonNoNameResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFile_variables(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "variables.tf"))
 	if err != nil {
@@ -835,6 +851,11 @@ baz (map)
 foo
   bar
   bar
+`
+
+const basicJsonNoNameResourcesStr = `
+aws_security_group.allow_external_http_https (x1)
+  tags
 `
 
 const dirBasicOutputsStr = `
