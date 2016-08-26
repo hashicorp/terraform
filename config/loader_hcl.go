@@ -555,6 +555,37 @@ func loadManagedResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 				item.Pos())
 		}
 
+		// HCL special case: if we're parsing JSON then directly nested
+		// items will show up as additional "keys". We need to unwrap them
+		// since we expect only two keys. Example:
+		//
+		// { "foo": { "bar": { "baz": {} } } }
+		//
+		// Will show up with Keys being: []string{"foo", "bar", "baz"}
+		// when we really just want the first two. To fix this we unwrap
+		// them into the right value.
+		if len(item.Keys) > 2 && item.Keys[0].Token.JSON {
+			for len(item.Keys) > 2 {
+				// Pop off the last key
+				n := len(item.Keys)
+				key := item.Keys[n-1]
+				item.Keys[n-1] = nil
+				item.Keys = item.Keys[:n-1]
+
+				// Wrap our value in a list
+				item.Val = &ast.ObjectType{
+					List: &ast.ObjectList{
+						Items: []*ast.ObjectItem{
+							&ast.ObjectItem{
+								Keys: []*ast.ObjectKey{key},
+								Val:  item.Val,
+							},
+						},
+					},
+				}
+			}
+		}
+
 		if len(item.Keys) != 2 {
 			return nil, fmt.Errorf(
 				"position %s: resource must be followed by exactly two strings, a type and a name",
