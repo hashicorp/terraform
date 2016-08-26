@@ -77,7 +77,7 @@ vet:
 # generate runs `go generate` to build the dynamically generated
 # source files.
 generate:
-	@which stringer ; if [ $$? -ne 0 ]; then \
+	@which stringer > /dev/null; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
 	go generate $$(go list ./... | grep -v /terraform/vendor/)

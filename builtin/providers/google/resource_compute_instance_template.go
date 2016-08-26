@@ -272,12 +272,14 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 
 			"service_account": &schema.Schema{
 				Type:     schema.TypeList,
+				MaxItems: 1,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"email": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
@@ -543,8 +545,13 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 			scopes = append(scopes, canonicalizeServiceScope(scope))
 		}
 
+		email := "default"
+		if v := d.Get(prefix + ".email"); v != nil {
+			email = v.(string)
+		}
+
 		serviceAccount := &compute.ServiceAccount{
-			Email:  "default",
+			Email:  email,
 			Scopes: scopes,
 		}
 

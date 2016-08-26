@@ -50,6 +50,12 @@ func (o *ArchiveOpts) IsSet() bool {
 	return len(o.Exclude) > 0 || len(o.Include) > 0 || o.VCS
 }
 
+// Constants related to setting special values for Extra in ArchiveOpts.
+const (
+	// ExtraEntryDir just creates the Extra key as a directory entry.
+	ExtraEntryDir = ""
+)
+
 // CreateArchive takes the given path and ArchiveOpts and archives it.
 //
 // The archive will be fully completed and put into a temporary file.
@@ -419,7 +425,29 @@ func copyConcreteEntry(
 }
 
 func copyExtras(w *tar.Writer, extra map[string]string) error {
+	var tmpDir string
+	defer func() {
+		if tmpDir != "" {
+			os.RemoveAll(tmpDir)
+		}
+	}()
+
 	for entry, path := range extra {
+		// If the path is empty, then we set it to a generic empty directory
+		if path == "" {
+			// If tmpDir is still empty, then we create an empty dir
+			if tmpDir == "" {
+				td, err := ioutil.TempDir("", "archive")
+				if err != nil {
+					return err
+				}
+
+				tmpDir = td
+			}
+
+			path = tmpDir
+		}
+
 		info, err := os.Stat(path)
 		if err != nil {
 			return err

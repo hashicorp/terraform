@@ -20,6 +20,10 @@ type CookbookItem struct {
 // http://docs.opscode.com/api_chef_server.html#cookbooks
 type CookbookListResult map[string]CookbookVersions
 
+// CookbookRecipesResult is the summary info returned by chef-api when listing
+// http://docs.opscode.com/api_chef_server.html#cookbooks-recipes
+type CookbookRecipesResult []string
+
 // CookbookVersions is the data container returned from the chef server when listing all cookbooks
 type CookbookVersions struct {
 	Url      string            `json:"url,omitempty"`
@@ -131,6 +135,14 @@ func (c *CookbookService) ListAvailableVersions(numVersions string) (data Cookbo
 	return
 }
 
+// ListAllRecipes lists the names of all recipes in the most recent cookbook versions
+//   Chef API docs: https://docs.chef.io/api_chef_server.html#id31
+func (c *CookbookService) ListAllRecipes() (data CookbookRecipesResult, err error) {
+	path := "cookbooks/_recipes"
+	err = c.client.magicRequestDecoder("GET", path, nil, &data)
+	return
+}
+
 // List returns a CookbookListResult with the latest versions of cookbooks available on the server
 func (c *CookbookService) List() (CookbookListResult, error) {
 	return c.ListAvailableVersions("")
@@ -138,7 +150,7 @@ func (c *CookbookService) List() (CookbookListResult, error) {
 
 // DeleteVersion removes a version of a cook from a server
 func (c *CookbookService) Delete(name, version string) (err error) {
-	path := fmt.Sprintf("cookbooks/%s", name)
+	path := fmt.Sprintf("cookbooks/%s/%s", name, version)
 	err = c.client.magicRequestDecoder("DELETE", path, nil, nil)
 	return
 }

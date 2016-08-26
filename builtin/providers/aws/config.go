@@ -50,6 +50,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
@@ -127,6 +128,7 @@ type AWSClient struct {
 	glacierconn           *glacier.Glacier
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
+	ssmconn               *ssm.SSM
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -269,6 +271,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.sesConn = ses.New(sess)
 		client.snsconn = sns.New(sess)
 		client.sqsconn = sqs.New(sess)
+		client.ssmconn = ssm.New(sess)
 	}
 
 	if len(errs) > 0 {

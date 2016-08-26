@@ -31,7 +31,7 @@ resource "aws_elasticache_replication_group" "bar" {
 
 The following arguments are supported:
 
-* `replication_group_id` – (Required) The replication group identifier.
+* `replication_group_id` – (Required) The replication group identifier. This parameter is stored as a lowercase string.
 * `replication_group_description` – (Required) A user-created description for the replication group.
 * `number_cache_clusters` - (Required) The number of cache clusters this replication group will have.
  If Multi-AZ is enabled , the value of this parameter must be at least 2. Changing this number will force a new resource
@@ -46,6 +46,7 @@ The following arguments are supported:
 * `snapshot_arns` – (Optional) A single-element string list containing an
 Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3.
 Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
+* `snapshot_name` - (Optional) The name of a snapshot from which to restore data into the new node group. Changing the `snapshot_name` forces a new resource. 
 * `maintenance_window` – (Optional) Specifies the weekly time range for when maintenance
 on the cache cluster is performed. The format is `ddd:hh24:mi-ddd:hh24:mi` (24H Clock UTC).
 The minimum maintenance window is a 60 minute period. Example: `sun:05:00-sun:09:00`
@@ -67,4 +68,3 @@ Please note that setting a `snapshot_retention_limit` is not supported on cache.
 The following attributes are exported:
 
 * `id` - The ID of the ElastiCache Replication Group
-* `primary_endpoint_address` - The Address of the Primary Node in the replication group. Doesn't include the port.

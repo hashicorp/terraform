@@ -146,6 +146,8 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 					},
 				},
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -257,6 +259,10 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 
 func resourceAwsAlbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
+
+	if err := setElbV2Tags(elbconn, d); err != nil {
+		return errwrap.Wrapf("Error Modifying Tags on ALB Target Group: {{err}}", err)
+	}
 
 	if d.HasChange("health_check") {
 		healthChecks := d.Get("health_check").([]interface{})

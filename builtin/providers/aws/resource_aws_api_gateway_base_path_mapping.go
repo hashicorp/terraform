@@ -101,9 +101,9 @@ func resourceAwsApiGatewayBasePathMappingRead(d *schema.ResourceData, meta inter
 		return fmt.Errorf("Error reading Gateway base path mapping: %s", err)
 	}
 
-	d.Set("base_path", *mapping.BasePath)
-	d.Set("api_id", *mapping.RestApiId)
-	d.Set("stage_name", *mapping.Stage)
+	d.Set("base_path", mapping.BasePath)
+	d.Set("api_id", mapping.RestApiId)
+	d.Set("stage_name", mapping.Stage)
 
 	return nil
 }

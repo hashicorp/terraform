@@ -1,27 +1,59 @@
-## 0.7.2 (Unreleased)
-
+## 0.7.3 (Unreleased)
 FEATURES:
- * **New Resource:** `aws_api_gateway_base_path_mapping` [GH-8353]
- * **New Resource:** `aws_api_gateway_domain_name` [GH-8353]
+ * **New Resource:** `aws_default_route_table` [GH-8323]
 
 IMPROVEMENTS:
- * core: Names generated with a unique prefix are now sortable based on age [GH-8249]
- * provider/aws: Add Primary Endpoint Address attribute for `aws_elasticache_replication_group` [GH-8385]
- * provider/aws: Add support for `network_mode` to `aws_ecs_task_definition` [GH-8391]
- * provider/aws: Add support for LB target group to ECS service [GH-8190]
- * provider/openstack: Add `allowed_address_pairs` to `openstack_networking_port_v2` [GH-8257]
+ * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
+ 
+BUG FIXES:
+ * provider/aws: Stop `aws_instance` `source_dest_check` triggering an API call on each terraform run [GH-8450]
+ * provider/aws: If an `aws_security_group` was used in Lambda function it may have prevented you from destroying such SG due to dangling ENIs created by Lambda service. These ENIs are now automatically cleaned up prior to SG deletion [GH-8033]
+ * provider/aws: `aws_volume_attachment` detachment errors are caught [GH-8479]
+ * provider/aws: Refresh `aws_route` from state if `aws_route_table` not found [GH-8443]
+ * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
+
+## 0.7.2 (August 25, 2016)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * provider/openstack: changes were made to how volumes attached to instances are detected. If you attached a volume to an instance out of band to Terraform, it will be detached upon the next apply. You can resolve this by adding a `volume` entry for the attached volume.
+ * provider/aws: `aws_spot_fleet_request` has changed the `associate_public_ip_address` default from `true` to `false`
+
+FEATURES:
+ * **New Resource:** `aws_api_gateway_base_path_mapping` ([#8353](https://github.com/hashicorp/terraform/issues/8353))
+ * **New Resource:** `aws_api_gateway_domain_name` ([#8353](https://github.com/hashicorp/terraform/issues/8353))
+ * **New Resource:** `aws_ssm_document` ([#8460](https://github.com/hashicorp/terraform/issues/8460))
+
+IMPROVEMENTS:
+ * core: Names generated with a unique prefix are now sortable based on age ([#8249](https://github.com/hashicorp/terraform/issues/8249))
+ * provider/aws: Add Primary Endpoint Address attribute for `aws_elasticache_replication_group` ([#8385](https://github.com/hashicorp/terraform/issues/8385))
+ * provider/aws: Add support for `network_mode` to `aws_ecs_task_definition` ([#8391](https://github.com/hashicorp/terraform/issues/8391))
+ * provider/aws: Add support for LB target group to ECS service ([#8190](https://github.com/hashicorp/terraform/issues/8190))
+ * provider/aws: Support Tags for `aws_alb` and `aws_alb_target_group` resources ([#8422](https://github.com/hashicorp/terraform/issues/8422))
+ * provider/aws: Support `snapshot_name` for ElastiCache Cluster and Replication Groups ([#8419](https://github.com/hashicorp/terraform/issues/8419))
+ * provider/aws: Add support to `aws_redshift_cluster` for restoring from snapshot ([#8414](https://github.com/hashicorp/terraform/issues/8414))
+ * provider/aws: Add validation for master_password in `aws_redshift_cluster` ([#8434](https://github.com/hashicorp/terraform/issues/8434))
+ * provider/openstack: Add `allowed_address_pairs` to `openstack_networking_port_v2` ([#8257](https://github.com/hashicorp/terraform/issues/8257))
 
 BUG FIXES:
- * core: fix crash case when malformed JSON given [GH-8295]
- * core: when asking for input, spaces are allowed [GH-8394]
- * command/apply: prefix destroying resources with module path [GH-8396]
- * command/import: can import into specific indexes [GH-8335]
- * command/state mv: nested modules can be moved [GH-8304]
- * command/state mv: resources with a count > 1 can be moved [GH-8304]
- * provider/aws: Refresh `aws_lambda_event_source_mapping` from state when NotFound [GH-8378]
- * provider/aws: `aws_elasticache_replication_group_id` validation change [GH-8381]
- * providers/aws: Fix possible crash if using duplicate Route53 records [GH-8399]
- * provider/google: fix crash regression from Terraform 0.7.1 on `google_compute_firewall` resource [GH-8390]
+ * core: fix crash case when malformed JSON given ([#8295](https://github.com/hashicorp/terraform/issues/8295))
+ * core: when asking for input, spaces are allowed ([#8394](https://github.com/hashicorp/terraform/issues/8394))
+ * core: module sources with URL encodings in the local file path won't error ([#8418](https://github.com/hashicorp/terraform/issues/8418))
+ * command/apply: prefix destroying resources with module path ([#8396](https://github.com/hashicorp/terraform/issues/8396))
+ * command/import: can import into specific indexes ([#8335](https://github.com/hashicorp/terraform/issues/8335))
+ * command/push: -upload-modules=false works ([#8456](https://github.com/hashicorp/terraform/issues/8456))
+ * command/state mv: nested modules can be moved ([#8304](https://github.com/hashicorp/terraform/issues/8304))
+ * command/state mv: resources with a count > 1 can be moved ([#8304](https://github.com/hashicorp/terraform/issues/8304))
+ * provider/aws: Refresh `aws_lambda_event_source_mapping` from state when NotFound ([#8378](https://github.com/hashicorp/terraform/issues/8378))
+ * provider/aws: `aws_elasticache_replication_group_id` validation change ([#8381](https://github.com/hashicorp/terraform/issues/8381))
+ * provider/aws: Fix possible crash if using duplicate Route53 records ([#8399](https://github.com/hashicorp/terraform/issues/8399))
+ * provider/aws: Refresh `aws_autoscaling_policy` from state on 404 ([#8430](https://github.com/hashicorp/terraform/issues/8430))
+ * provider/aws: Fix crash with VPC Peering connection accept/requests ([#8432](https://github.com/hashicorp/terraform/issues/8432))
+ * provider/aws: AWS SpotFleet Requests now works with Subnets and AZs ([#8320](https://github.com/hashicorp/terraform/issues/8320))
+ * provider/aws: Refresh `aws_cloudwatch_event_target` from state on `ResourceNotFoundException` ([#8442](https://github.com/hashicorp/terraform/issues/8442))
+ * provider/aws: Validate `aws_iam_policy_attachment` Name parameter to stop being empty ([#8441](https://github.com/hashicorp/terraform/issues/8441))
+ * provider/aws: Fix segmentation fault in `aws_api_gateway_base_path_mapping` resource ([#8466](https://github.com/hashicorp/terraform/issues/8466))
+ * provider/google: fix crash regression from Terraform 0.7.1 on `google_compute_firewall` resource ([#8390](https://github.com/hashicorp/terraform/issues/8390))
+ * provider/openstack: Volume Attachment and Detachment Fixes ([#8172](https://github.com/hashicorp/terraform/issues/8172))
 
 ## 0.7.1 (August 19, 2016)
 

@@ -843,6 +843,16 @@
                     </ul>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-ssm/) %>>
+                    <a href="#">SSM Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-ssm-document") %>>
+                            <a href="/docs/providers/aws/r/ssm_document.html">aws_ssm_document</a>
+                        </li>
+
+                    </ul>
+                </li>
 
                 <li<%= sidebar_current(/^docs-aws-resource-sqs/) %>>
                     <a href="#">SQS Resources</a>
@@ -866,6 +876,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-default-network-acl") %>>
                             <a href="/docs/providers/aws/r/default_network_acl.html">aws_default_network_acl</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-default-route-table") %>>
+                            <a href="/docs/providers/aws/r/default_route_table.html">aws_default_route_table</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-flow-log") %>>
