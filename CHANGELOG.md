@@ -6,6 +6,7 @@ IMPROVEMENTS:
  * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
  
 BUG FIXES:
+ * core: JSON configuration with resources with a single key parse properly [GH-8485]
  * provider/aws: Stop `aws_instance` `source_dest_check` triggering an API call on each terraform run [GH-8450]
  * provider/aws: If an `aws_security_group` was used in Lambda function it may have prevented you from destroying such SG due to dangling ENIs created by Lambda service. These ENIs are now automatically cleaned up prior to SG deletion [GH-8033]
  * provider/aws: `aws_volume_attachment` detachment errors are caught [GH-8479]
