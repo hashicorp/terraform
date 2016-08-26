@@ -4,20 +4,15 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/hashicorp/terraform/helper/schema"
 	"io/ioutil"
 	"os"
 	"path"
-
-	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceArchiveFile() *schema.Resource {
+func dataSourceFile() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArchiveFileCreate,
-		Read:   resourceArchiveFileRead,
-		Update: resourceArchiveFileUpdate,
-		Delete: resourceArchiveFileDelete,
-		Exists: resourceArchiveFileExists,
+		Read: dataSourceFileRead,
 
 		Schema: map[string]*schema.Schema{
 			"type": &schema.Schema{
@@ -68,20 +63,26 @@ func resourceArchiveFile() *schema.Resource {
 	}
 }
 
-func resourceArchiveFileCreate(d *schema.ResourceData, meta interface{}) error {
-	if err := resourceArchiveFileUpdate(d, meta); err != nil {
+func dataSourceFileRead(d *schema.ResourceData, meta interface{}) error {
+	outputPath := d.Get("output_path").(string)
+
+	outputDirectory := path.Dir(outputPath)
+	if outputDirectory != "" {
+		if _, err := os.Stat(outputDirectory); err != nil {
+			if err := os.MkdirAll(outputDirectory, 0777); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := archive(d); err != nil {
 		return err
 	}
-	return resourceArchiveFileRead(d, meta)
-}
 
-func resourceArchiveFileRead(d *schema.ResourceData, meta interface{}) error {
-	outputPath := d.Get("output_path").(string)
+	// Generate archived file stats
 	fi, err := os.Stat(outputPath)
-	if os.IsNotExist(err) {
-		d.SetId("")
-		d.MarkNewResource()
-		return nil
+	if err != nil {
+		return err
 	}
 
 	sha, err := genFileSha1(outputPath)
@@ -95,18 +96,9 @@ func resourceArchiveFileRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
+func archive(d *schema.ResourceData) error {
 	archiveType := d.Get("type").(string)
 	outputPath := d.Get("output_path").(string)
-
-	outputDirectory := path.Dir(outputPath)
-	if outputDirectory != "" {
-		if _, err := os.Stat(outputDirectory); err != nil {
-			if err := os.MkdirAll(outputDirectory, 0777); err != nil {
-				return err
-			}
-		}
-	}
 
 	archiver := getArchiver(archiveType, outputPath)
 	if archiver == nil {
@@ -129,47 +121,7 @@ func resourceArchiveFileUpdate(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		return fmt.Errorf("one of 'source_dir', 'source_file', 'source_content_filename' must be specified")
 	}
-
-	// Generate archived file stats
-	fi, err := os.Stat(outputPath)
-	if err != nil {
-		return err
-	}
-
-	sha, err := genFileSha1(outputPath)
-	if err != nil {
-		return fmt.Errorf("could not generate file checksum sha: %s", err)
-	}
-	d.Set("output_sha", sha)
-	d.Set("output_size", fi.Size())
-	d.SetId(d.Get("output_sha").(string))
-
 	return nil
-}
-
-func resourceArchiveFileDelete(d *schema.ResourceData, meta interface{}) error {
-	outputPath := d.Get("output_path").(string)
-	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-		return nil
-	}
-
-	if err := os.Remove(outputPath); err != nil {
-		return fmt.Errorf("could not delete zip file %q: %s", outputPath, err)
-	}
-
-	return nil
-}
-
-func resourceArchiveFileExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	outputPath := d.Get("output_path").(string)
-	_, err := os.Stat(outputPath)
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil
 }
 
 func genFileSha1(filename string) (string, error) {

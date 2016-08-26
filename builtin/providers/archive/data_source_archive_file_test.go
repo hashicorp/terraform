@@ -74,7 +74,7 @@ func testAccArchiveFileMissing(filename string) r.TestCheckFunc {
 }
 
 var testAccArchiveFileContentConfig = `
-resource "archive_file" "foo" {
+data "archive_file" "foo" {
   type                    = "zip"
   source_content          = "This is some content"
   source_content_filename = "content.txt"
@@ -84,7 +84,7 @@ resource "archive_file" "foo" {
 
 var tmpDir = os.TempDir() + "/test"
 var testAccArchiveFileOutputPath = fmt.Sprintf(`
-resource "archive_file" "foo" {
+data "archive_file" "foo" {
   type                    = "zip"
   source_content          = "This is some content"
   source_content_filename = "content.txt"
@@ -93,7 +93,7 @@ resource "archive_file" "foo" {
 `, tmpDir)
 
 var testAccArchiveFileFileConfig = `
-resource "archive_file" "foo" {
+data "archive_file" "foo" {
   type        = "zip"
   source_file = "test-fixtures/test-file.txt"
   output_path = "zip_file_acc_test.zip"
@@ -101,7 +101,7 @@ resource "archive_file" "foo" {
 `
 
 var testAccArchiveFileDirConfig = `
-resource "archive_file" "foo" {
+data "archive_file" "foo" {
   type        = "zip"
   source_dir  = "test-fixtures/test-dir"
   output_path = "zip_file_acc_test.zip"
