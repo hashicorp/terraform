@@ -106,7 +106,7 @@ func TestWaitForState_inconsistent_negative(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected timeout error. No error returned.")
 	}
-	expectedErr := "timeout while waiting for state to become 'done'"
+	expectedErr := "timeout while waiting for state to become 'done' (last state: 'done')"
 	if err.Error() != expectedErr {
 		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
 	}
@@ -170,6 +170,28 @@ func TestWaitForState_successEmpty(t *testing.T) {
 	}
 	if obj != nil {
 		t.Fatalf("obj should be nil")
+	}
+}
+
+func TestWaitForState_failureEmpty(t *testing.T) {
+	conf := &StateChangeConf{
+		Pending:        []string{"pending", "incomplete"},
+		Target:         []string{},
+		NotFoundChecks: 1,
+		Refresh: func() (interface{}, string, error) {
+			return 42, "pending", nil
+		},
+		PollInterval: 10 * time.Millisecond,
+		Timeout:      100 * time.Millisecond,
+	}
+
+	_, err := conf.WaitForState()
+	if err == nil {
+		t.Fatal("Expected timeout error. Got none.")
+	}
+	expectedErr := "timeout while waiting for resource to be gone (last state: 'pending')"
+	if err.Error() != expectedErr {
+		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
 	}
 }
 
