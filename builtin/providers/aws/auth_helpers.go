@@ -11,12 +11,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-multierror"
 )
 
 func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, error) {
@@ -92,7 +94,9 @@ func parseAccountIdFromArn(arn string) (string, error) {
 // This function is responsible for reading credentials from the
 // environment in the case that they're not explicitly specified
 // in the Terraform configuration.
-func GetCredentials(c *Config) *awsCredentials.Credentials {
+func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
+	var errs []error
+
 	// build a chain provider, lazy-evaulated by aws-sdk
 	providers := []awsCredentials.Provider{
 		&awsCredentials.StaticProvider{Value: awsCredentials.Value{
@@ -137,7 +141,40 @@ func GetCredentials(c *Config) *awsCredentials.Credentials {
 		}
 	}
 
-	return awsCredentials.NewChainCredentials(providers)
+	if c.RoleArn != "" {
+		log.Printf("[INFO] attempting to assume role %s", c.RoleArn)
+
+		creds := awsCredentials.NewChainCredentials(providers)
+		cp, err := creds.Get()
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
+				errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS Provider.
+  Please see https://terraform.io/docs/providers/aws/index.html for more information on
+  providing credentials for the AWS Provider`))
+			} else {
+				errs = append(errs, fmt.Errorf("Error loading credentials for AWS Provider: %s", err))
+			}
+			return nil, &multierror.Error{Errors: errs}
+		}
+
+		log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
+
+		awsConfig := &aws.Config{
+			Credentials:      creds,
+			Region:           aws.String(c.Region),
+			MaxRetries:       aws.Int(c.MaxRetries),
+			HTTPClient:       cleanhttp.DefaultClient(),
+			S3ForcePathStyle: aws.Bool(c.S3ForcePathStyle),
+		}
+
+		stsclient := sts.New(session.New(awsConfig))
+		providers = []awsCredentials.Provider{&stscreds.AssumeRoleProvider{
+			Client:  stsclient,
+			RoleARN: c.RoleArn,
+		}}
+	}
+
+	return awsCredentials.NewChainCredentials(providers), nil
 }
 
 func setOptionalEndpoint(cfg *aws.Config) string {
