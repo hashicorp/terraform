@@ -8,7 +8,7 @@ description: |-
 
 # aws\_ami
 
-Use this data source to get the ID of a registered AMI for use in other 
+Use this data source to get the ID of a registered AMI for use in other
 resources.
 
 ## Example Usage
@@ -25,6 +25,7 @@ data "aws_ami" "nat_ami" {
     name = "name"
     values = ["amzn-ami-vpc-nat*"]
   }
+  name_regex = "^myami-\\d{3}"
   owners = ["self"]
 }
 ```
@@ -44,7 +45,14 @@ several valid keys, for a full reference, check out
 * `owners` - (Optional) Limit search to specific AMI owners. Valid items are the numeric
 account ID, `amazon`, or `self`.
 
-~> **NOTE:** At least one of `executable_users`, `filter`, or `owners` must be specified.
+* `name_regex` - (Optional) A regex string to apply to the AMI list returned
+by AWS. This allows more advanced filtering not supported from the AWS API. This
+filtering is done locally on what AWS returns, and could have a performance
+impact if the result is large. It is recommended to combine this with other
+options to narrow down the list AWS returns.
+
+~> **NOTE:** At least one of `executable_users`, `filter`, `owners`, or
+`name_regex` must be specified.
 
 ~> **NOTE:** If more or less than a single match is returned by the search,
 Terraform will fail. Ensure that your search is specific enough to return
