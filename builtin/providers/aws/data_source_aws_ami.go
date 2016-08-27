@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
 	"sort"
 	"time"
 
@@ -42,6 +43,11 @@ func dataSourceAwsAmi() *schema.Resource {
 						},
 					},
 				},
+			},
+			"name_regex": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 			"most_recent": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -206,10 +212,11 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 	executableUsers, executableUsersOk := d.GetOk("executable_users")
 	filters, filtersOk := d.GetOk("filter")
+	nameRegex, nameRegexOk := d.GetOk("name_regex")
 	owners, ownersOk := d.GetOk("owners")
 
-	if executableUsersOk == false && filtersOk == false && ownersOk == false {
-		return fmt.Errorf("One of executable_users, filters, or owners must be assigned")
+	if executableUsersOk == false && filtersOk == false && nameRegexOk == false && ownersOk == false {
+		return fmt.Errorf("One of executable_users, filters, name_regex, or owners must be assigned")
 	}
 
 	params := &ec2.DescribeImagesInput{}
@@ -227,20 +234,33 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	var filteredImages []*ec2.Image
+	if nameRegexOk == true {
+		r := regexp.MustCompile(nameRegex.(string))
+		for _, image := range resp.Images {
+			if r.MatchString(*image.Name) == true {
+				filteredImages = append(filteredImages, image)
+			}
+		}
+	} else {
+		filteredImages = resp.Images[:]
+	}
+
 	var image *ec2.Image
-	if len(resp.Images) < 1 {
+	if len(filteredImages) < 1 {
 		return fmt.Errorf("Your query returned no results. Please change your filters and try again.")
-	} else if len(resp.Images) > 1 {
+	} else if len(filteredImages) > 1 {
 		if (d.Get("most_recent").(bool)) == true {
 			log.Printf("[DEBUG] aws_ami - multiple results found and most_recent is set")
-			image = mostRecentAmi(resp.Images)
+			image = mostRecentAmi(filteredImages)
 		} else {
 			log.Printf("[DEBUG] aws_ami - multiple results found and most_recent not set")
 			return fmt.Errorf("Your query returned more than one result. Please try a more specific search, or set most_recent to true.")
 		}
 	} else {
-		log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *resp.Images[0].ImageId)
-		image = resp.Images[0]
+		log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *filteredImages[0].ImageId)
+		image = filteredImages[0]
 	}
 	return amiDescriptionAttributes(d, image)
 }
