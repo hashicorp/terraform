@@ -9,6 +9,7 @@ FEATURES:
 
 IMPROVEMENTS:
  * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
+ * provider/aws: Export `arn` of `aws_autoscaling_group` [GH-8503]
  
 BUG FIXES:
  * core: JSON configuration with resources with a single key parse properly [GH-8485]
