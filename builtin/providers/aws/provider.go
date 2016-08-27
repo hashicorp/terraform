@@ -64,6 +64,13 @@ func Provider() terraform.ResourceProvider {
 				InputDefault: "us-east-1",
 			},
 
+			"role_arn": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["role_arn"],
+			},
+
 			"max_retries": &schema.Schema{
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -353,6 +360,8 @@ func init() {
 		"profile": "The profile for API operations. If not set, the default profile\n" +
 			"created with `aws configure` will be used.",
 
+		"role_arn": "The role to be assumed using the supplied access_key and secret_key",
+
 		"shared_credentials_file": "The path to the shared credentials file. If not set\n" +
 			"this defaults to ~/.aws/credentials.",
 
@@ -404,6 +413,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		CredsFilename:           d.Get("shared_credentials_file").(string),
 		Token:                   d.Get("token").(string),
 		Region:                  d.Get("region").(string),
+		RoleArn:                 d.Get("role_arn").(string),
 		MaxRetries:              d.Get("max_retries").(int),
 		DynamoDBEndpoint:        d.Get("dynamodb_endpoint").(string),
 		KinesisEndpoint:         d.Get("kinesis_endpoint").(string),

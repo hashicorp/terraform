@@ -111,6 +111,19 @@ You can provide custom metadata API endpoint via `AWS_METADATA_ENDPOINT` variabl
 which expects the endpoint URL including the version
 and defaults to `http://169.254.169.254:80/latest`.
 
+###Assume role
+
+If provided with a role arn, terraform will attempt to assume this role
+using the supplied credentials.
+
+Usage:
+
+```
+provider "aws" {
+  role_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported in the `provider` block:
