@@ -66,6 +66,7 @@ type Config struct {
 	Profile       string
 	Token         string
 	Region        string
+	RoleArn       string
 	MaxRetries    int
 
 	AllowedAccountIds   []interface{}
@@ -150,7 +151,10 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := GetCredentials(c)
+		creds, err := GetCredentials(c)
+		if err != nil {
+			return nil, &multierror.Error{Errors: errs}
+		}
 		// Call Get to check for credential provider. If nothing found, we'll get an
 		// error, and we can present it nicely to the user
 		cp, err := creds.Get()
