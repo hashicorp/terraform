@@ -22,6 +22,7 @@ BUG FIXES:
  * provider/aws: If an `aws_security_group` was used in Lambda function it may have prevented you from destroying such SG due to dangling ENIs created by Lambda service. These ENIs are now automatically cleaned up prior to SG deletion [GH-8033]
  * provider/aws: `aws_volume_attachment` detachment errors are caught [GH-8479]
  * provider/aws: Refresh `aws_route` from state if `aws_route_table` not found [GH-8443]
+ * provider/aws: Increase `aws_route_table` timeouts from 1 min to 2 mins [GH-8465]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
 
 ## 0.7.2 (August 25, 2016)
