@@ -40,15 +40,26 @@ func (e *UnexpectedStateError) Error() string {
 // TimeoutError is returned when WaitForState times out
 type TimeoutError struct {
 	LastError     error
+	LastState     string
 	ExpectedState []string
 }
 
 func (e *TimeoutError) Error() string {
-	if e.LastError != nil {
-		return fmt.Sprintf("timeout while waiting for state to become '%s': %s",
-			strings.Join(e.ExpectedState, ", "), e.LastError)
+	expectedState := "resource to be gone"
+	if len(e.ExpectedState) > 0 {
+		expectedState = fmt.Sprintf("state to become '%s'", strings.Join(e.ExpectedState, ", "))
 	}
 
-	return fmt.Sprintf("timeout while waiting for state to become '%s'",
-		strings.Join(e.ExpectedState, ", "))
+	lastState := ""
+	if e.LastState != "" {
+		lastState = fmt.Sprintf(" (last state: '%s')", e.LastState)
+	}
+
+	if e.LastError != nil {
+		return fmt.Sprintf("timeout while waiting for %s%s: %s",
+			expectedState, lastState, e.LastError)
+	}
+
+	return fmt.Sprintf("timeout while waiting for %s%s",
+		expectedState, lastState)
 }

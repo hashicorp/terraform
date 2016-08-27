@@ -63,6 +63,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 
 	var result interface{}
 	var resulterr error
+	var currentState string
 
 	doneCh := make(chan struct{})
 	go func() {
@@ -98,7 +99,6 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				}
 			}
 
-			var currentState string
 			result, currentState, err = conf.Refresh()
 			if err != nil {
 				resulterr = err
@@ -168,6 +168,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 	case <-time.After(conf.Timeout):
 		return nil, &TimeoutError{
 			LastError:     resulterr,
+			LastState:     currentState,
 			ExpectedState: conf.Target,
 		}
 	}
