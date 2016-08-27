@@ -75,7 +75,8 @@ func TestWaitForState_inconsistent_positive(t *testing.T) {
 		Pending:                   []string{"replicating"},
 		Target:                    []string{"done"},
 		Refresh:                   InconsistentStateRefreshFunc(),
-		Timeout:                   10 * time.Second,
+		Timeout:                   90 * time.Millisecond,
+		PollInterval:              10 * time.Millisecond,
 		ContinuousTargetOccurence: 3,
 	}
 
@@ -95,14 +96,19 @@ func TestWaitForState_inconsistent_negative(t *testing.T) {
 		Pending:                   []string{"replicating"},
 		Target:                    []string{"done"},
 		Refresh:                   InconsistentStateRefreshFunc(),
-		Timeout:                   10 * time.Second,
+		Timeout:                   90 * time.Millisecond,
+		PollInterval:              10 * time.Millisecond,
 		ContinuousTargetOccurence: 4,
 	}
 
 	_, err := conf.WaitForState()
 
-	if err == nil && err.Error() != "timeout while waiting for state to become 'done'" {
-		t.Fatalf("err: %s", err)
+	if err == nil {
+		t.Fatal("Expected timeout error. No error returned.")
+	}
+	expectedErr := "timeout while waiting for state to become 'done'"
+	if err.Error() != expectedErr {
+		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
 	}
 }
 
@@ -116,8 +122,13 @@ func TestWaitForState_timeout(t *testing.T) {
 
 	obj, err := conf.WaitForState()
 
-	if err == nil && err.Error() != "timeout while waiting for state to become 'running'" {
-		t.Fatalf("err: %s", err)
+	if err == nil {
+		t.Fatal("Expected timeout error. No error returned.")
+	}
+
+	expectedErr := "timeout while waiting for state to become 'running'"
+	if err.Error() != expectedErr {
+		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
 	}
 
 	if obj != nil {
@@ -171,8 +182,12 @@ func TestWaitForState_failure(t *testing.T) {
 	}
 
 	obj, err := conf.WaitForState()
-	if err == nil && err.Error() != "failed" {
-		t.Fatalf("err: %s", err)
+	if err == nil {
+		t.Fatal("Expected error. No error returned.")
+	}
+	expectedErr := "failed"
+	if err.Error() != expectedErr {
+		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
 	}
 	if obj != nil {
 		t.Fatalf("should not return obj")
