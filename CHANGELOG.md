@@ -1,7 +1,7 @@
 ## 0.7.3 (Unreleased)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
- * Terraform now validates the uniqueness of variable and output names in your configuraitons. In prior versions certain ways of duplicating variable names would work. This is now a configuration error (and should've always been). If you get an error running Terraform you may need to remove the duplicates. This should not affect the behavior of Terraform.
+ * Terraform now validates the uniqueness of variable and output names in your configuraitons. In prior versions certain ways of duplicating variable names would work. This is now a configuration error (and should've always been). If you get an error running Terraform you may need to remove the duplicates. Done right, this should not affect the behavior of Terraform.
  * The internal structure of `.terraform/modules` changed slightly. For configurations with modules, you'll need to run `terraform get` again.
 
 FEATURES:
