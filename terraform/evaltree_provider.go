@@ -69,6 +69,27 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 		},
 	})
 
+	// Defer evaluation if our configuration contains unresolved interpolations
+	seq = append(seq, &EvalOpFilter{
+		// Deferrals are added only during refresh and plan, since by the time
+		// we get to "apply" we expect to have enough information to interpolate
+		// anything we didn't defer by the time we made the plan.
+		Ops: []walkOperation{walkRefresh, walkPlan},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalInterpolate{
+					Config: config,
+					Output: &resourceConfig,
+				},
+				&EvalDeferComputedProvider{
+					Name:   n,
+					Config: &resourceConfig,
+				},
+				// Evaluation aborts here if we deferred the provider.
+			},
+		},
+	})
+
 	// Apply stuff
 	seq = append(seq, &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkDestroy, walkImport},
