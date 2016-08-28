@@ -102,7 +102,8 @@ func graphDotSubgraph(
 	for _, v := range toDraw {
 		dn := v.(GraphNodeDotter)
 		nodeName := graphDotNodeName(modName, v)
-		sg.AddNode(dn.DotNode(nodeName, opts))
+		dotNode := dn.DotNode(nodeName, opts)
+		sg.AddNode(dotNode)
 
 		// Draw all the edges from this vertex to other nodes
 		targets := dag.AsVertexList(g.DownEdges(v))
@@ -113,10 +114,19 @@ func graphDotSubgraph(
 				continue
 			}
 
+			// If our node has a color set then the edge inherits
+			// that color. The initial purpose of this is to show
+			// edges to deferred nodes (rendered in gray) as
+			// deferred themselves.
+			edgeAttrs := map[string]string{}
+			if dotNode.Attrs["color"] != "" {
+				edgeAttrs["color"] = dotNode.Attrs["color"]
+			}
+
 			if err := sg.AddEdgeBetween(
 				graphDotNodeName(modName, v),
 				graphDotNodeName(modName, target),
-				map[string]string{}); err != nil {
+				edgeAttrs); err != nil {
 				return err
 			}
 		}
