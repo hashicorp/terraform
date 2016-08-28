@@ -46,6 +46,8 @@ func FormatPlan(opts *FormatPlanOpts) string {
 		}
 	}
 
+	formatPlanDeferrals(buf, p.Deferrals, opts)
+
 	return strings.TrimSpace(buf.String())
 }
 
@@ -220,5 +222,35 @@ func formatPlanModuleSingle(
 	buf.WriteString(fmt.Sprintf(
 		"    %d resource(s)",
 		len(m.Resources)))
+	buf.WriteString(opts.Color.Color("[reset]\n"))
+}
+
+func formatPlanDeferrals(buf *bytes.Buffer, d *terraform.Deferrals, opts *FormatPlanOpts) {
+	if d.Empty() {
+		return
+	}
+
+	buf.WriteString(opts.Color.Color(`[yellow]
+Terraform is not able to apply this configuration in a single step. The
+generated plan will partially apply the configuration, after which you can
+run "terraform plan" again to plan the next set of changes to converge on
+the state given in your configuration.[reset]
+
+The following resources are being deferred:
+`))
+
+	for _, md := range d.Modules {
+		prefix := md.ModuleDisplayPrefix()
+		for name, reason := range md.Providers {
+			buf.WriteString(opts.Color.Color(
+				fmt.Sprintf("- all from provider [bold]%s%s[reset]:\n    %s\n", prefix, name, reason),
+			))
+		}
+		for name, reason := range md.Resources {
+			buf.WriteString(opts.Color.Color(
+				fmt.Sprintf("* [bold]%s%s[reset]: %s\n", prefix, name, reason),
+			))
+		}
+	}
 	buf.WriteString(opts.Color.Color("[reset]\n"))
 }
