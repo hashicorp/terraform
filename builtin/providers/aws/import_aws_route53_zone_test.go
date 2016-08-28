@@ -22,7 +22,7 @@ func TestAccAWSRoute53Zone_importBasic(t *testing.T) {
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"force_destroy"},
+				ImportStateVerifyIgnore: []string{"name", "force_destroy"},
 			},
 		},
 	})
