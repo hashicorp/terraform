@@ -57,6 +57,9 @@ type BuiltinGraphBuilder struct {
 	// Root is the root module of the graph to build.
 	Root *module.Tree
 
+	// Deferrals is the set of nodes that are to be deferred.
+	Deferrals *Deferrals
+
 	// Diff is the diff. The proper module diffs will be looked up.
 	Diff *Diff
 

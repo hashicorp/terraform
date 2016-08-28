@@ -36,6 +36,7 @@ const (
 // NewContext.
 type ContextOpts struct {
 	Destroy            bool
+	Deferrals          *Deferrals
 	Diff               *Diff
 	Hooks              []Hook
 	Module             *module.Tree
@@ -56,19 +57,21 @@ type ContextOpts struct {
 //
 // Extra functions on Context can be found in context_*.go files.
 type Context struct {
-	destroy      bool
-	diff         *Diff
-	diffLock     sync.RWMutex
-	hooks        []Hook
-	module       *module.Tree
-	providers    map[string]ResourceProviderFactory
-	provisioners map[string]ResourceProvisionerFactory
-	sh           *stopHook
-	state        *State
-	stateLock    sync.RWMutex
-	targets      []string
-	uiInput      UIInput
-	variables    map[string]interface{}
+	destroy       bool
+	deferrals     *Deferrals
+	deferralsLock sync.RWMutex
+	diff          *Diff
+	diffLock      sync.RWMutex
+	hooks         []Hook
+	module        *module.Tree
+	providers     map[string]ResourceProviderFactory
+	provisioners  map[string]ResourceProvisionerFactory
+	sh            *stopHook
+	state         *State
+	stateLock     sync.RWMutex
+	targets       []string
+	uiInput       UIInput
+	variables     map[string]interface{}
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
@@ -135,8 +138,14 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		}
 	}
 
+	deferrals := opts.Deferrals
+	if deferrals == nil {
+		deferrals = NewDeferrals()
+	}
+
 	return &Context{
 		destroy:      opts.Destroy,
+		deferrals:    deferrals,
 		diff:         opts.Diff,
 		hooks:        hooks,
 		module:       opts.Module,
@@ -179,6 +188,7 @@ func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
 
 	return &BuiltinGraphBuilder{
 		Root:         c.module,
+		Deferrals:    c.deferrals,
 		Diff:         c.diff,
 		Providers:    providers,
 		Provisioners: provisioners,
@@ -401,6 +411,7 @@ func (c *Context) Plan() (*Plan, error) {
 		return nil, err
 	}
 	p.Diff = c.diff
+	p.Deferrals = c.deferrals
 
 	// Now that we have a diff, we can build the exact graph that Apply will use
 	// and catch any possible cycles during the Plan phase.
@@ -527,6 +538,10 @@ func (c *Context) Variables() map[string]interface{} {
 // SetVariable sets a variable after a context has already been built.
 func (c *Context) SetVariable(k string, v interface{}) {
 	c.variables[k] = v
+}
+
+func (c *Context) HasDeferrals() bool {
+	return !c.deferrals.Empty()
 }
 
 func (c *Context) acquireRun() chan<- struct{} {

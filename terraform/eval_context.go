@@ -70,6 +70,10 @@ type EvalContext interface {
 	// the second parameter is merged with any previous call.
 	SetVariables(string, map[string]interface{})
 
+	// Deferrals returns the set of currently-deferred nodes as well
+	// as the lock that should be used to modify that set.
+	Deferrals() (*Deferrals, *sync.RWMutex)
+
 	// Diff returns the global diff as well as the lock that should
 	// be used to modify that diff.
 	Diff() (*Diff, *sync.RWMutex)

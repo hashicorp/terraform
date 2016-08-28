@@ -21,11 +21,12 @@ func init() {
 // Plan represents a single Terraform execution plan, which contains
 // all the information necessary to make an infrastructure change.
 type Plan struct {
-	Diff    *Diff
-	Module  *module.Tree
-	State   *State
-	Vars    map[string]interface{}
-	Targets []string
+	Diff      *Diff
+	Module    *module.Tree
+	State     *State
+	Vars      map[string]interface{}
+	Targets   []string
+	Deferrals *Deferrals
 
 	once sync.Once
 }
@@ -39,6 +40,7 @@ func (p *Plan) Context(opts *ContextOpts) (*Context, error) {
 	opts.Module = p.Module
 	opts.State = p.State
 	opts.Targets = p.Targets
+	opts.Deferrals = p.Deferrals
 
 	opts.Variables = make(map[string]interface{})
 	for k, v := range p.Vars {

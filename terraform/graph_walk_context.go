@@ -76,6 +76,8 @@ func (w *ContextGraphWalker) EnterPath(path []string) EvalContext {
 		Provisioners:        w.Context.provisioners,
 		ProvisionerCache:    w.provisionerCache,
 		ProvisionerLock:     &w.provisionerLock,
+		DeferralsValue:      w.Context.deferrals,
+		DeferralsLock:       &w.Context.deferralsLock,
 		DiffValue:           w.Context.diff,
 		DiffLock:            &w.Context.diffLock,
 		StateValue:          w.Context.state,
