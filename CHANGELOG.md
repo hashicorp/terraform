@@ -8,6 +8,7 @@ FEATURES:
  * **New Resource:** `aws_default_route_table` [GH-8323]
 
 IMPROVEMENTS:
+ * core: Show last resource state in a timeout error message [GH-8510]
  * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
  * provider/aws: Export `arn` of `aws_autoscaling_group` [GH-8503]
  * provider/aws: More robust handling of Lambda function archives hosted on S3 [GH-6860]
