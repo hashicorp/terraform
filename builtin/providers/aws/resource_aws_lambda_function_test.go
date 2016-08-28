@@ -284,6 +284,60 @@ func TestAccAWSLambdaFunction_s3Update_unversioned(t *testing.T) {
 	})
 }
 
+func TestAccAWSLambdaFunction_s3Update_unversioned(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+
+	path, zipFile, err := createTempFile("lambda_s3Update")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(path)
+
+	bucketName := fmt.Sprintf("tf-acc-lambda-s3-deployments-%d", randomInteger)
+	key := "lambda-func.zip"
+	key2 := "lambda-func-modified.zip"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				PreConfig: func() {
+					// Upload 1st version
+					testAccCreateZipFromFiles(map[string]string{"test-fixtures/lambda_func.js": "lambda.js"}, zipFile)
+				},
+				Config: genAWSLambdaFunctionConfig_s3_unversioned(bucketName, key, path),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3", "tf_acc_lambda_name_s3", &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, "tf_acc_lambda_name_s3"),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, "tf_acc_lambda_name_s3"),
+					testAccCheckAwsLambdaSourceCodeHash(&conf, "un6qF9S9hKvXbWwJ6m2EYaVCWjcr0PCZWiTV3h4zB0I="),
+				),
+			},
+			resource.TestStep{
+				ExpectNonEmptyPlan: true,
+				PreConfig: func() {
+					// Upload 2nd version
+					testAccCreateZipFromFiles(map[string]string{"test-fixtures/lambda_func_modified.js": "lambda.js"}, zipFile)
+				},
+				Config: genAWSLambdaFunctionConfig_s3_unversioned(bucketName, key2, path),
+			},
+			// Extra step because of missing ComputedWhen
+			// See https://github.com/hashicorp/terraform/pull/4846 & https://github.com/hashicorp/terraform/pull/5330
+			resource.TestStep{
+				Config: genAWSLambdaFunctionConfig_s3_unversioned(bucketName, key2, path),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3", "tf_acc_lambda_name_s3", &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, "tf_acc_lambda_name_s3"),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, "tf_acc_lambda_name_s3"),
+					testAccCheckAwsLambdaSourceCodeHash(&conf, "Y5Jf4Si63UDy1wKNfPs+U56ZL0NxsieKPt9EwRl4GQM="),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckLambdaFunctionDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).lambdaconn
 
