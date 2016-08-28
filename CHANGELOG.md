@@ -23,6 +23,7 @@ BUG FIXES:
  * provider/aws: `aws_volume_attachment` detachment errors are caught [GH-8479]
  * provider/aws: Refresh `aws_route` from state if `aws_route_table` not found [GH-8443]
  * provider/aws: Increase `aws_route_table` timeouts from 1 min to 2 mins [GH-8465]
+ * provider/aws: Remove unsafe ptr dereferencing from ECS/ECR GH-8514]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
 
