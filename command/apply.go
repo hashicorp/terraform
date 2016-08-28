@@ -27,6 +27,14 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
+	// This command has some special conventions for its exit statuses:
+	//   1: a partial plan was successfully applied; need to plan again to complete the config
+	//   2: an error occurred while applying the plan, and the state has been updated to reflect
+	//      the state as of the point where the error occured
+	//  10: an error occured that was severe enough that the state may not be up-to-date. In this
+	//      case it is recommended for a human to intervene and ensure that everything is consistent
+	//      before doing any more actions that interact with the state.
+
 	var destroyForce, refresh bool
 	args = c.Meta.process(args, true)
 
@@ -47,13 +55,13 @@ func (c *ApplyCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
-		return 1
+		return 2
 	}
 
 	pwd, err := os.Getwd()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		return 1
+		return 2
 	}
 
 	var configPath string
@@ -62,7 +70,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	if len(args) > 1 {
 		c.Ui.Error("The apply command expects at most one argument.")
 		cmdFlags.Usage()
-		return 1
+		return 2
 	} else if len(args) == 1 {
 		configPath = args[0]
 	} else {
@@ -80,7 +88,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		if detected, err := getter.Detect(configPath, pwd, getter.Detectors); err != nil {
 			c.Ui.Error(fmt.Sprintf(
 				"Invalid path: %s", err))
-			return 1
+			return 2
 		} else if !strings.HasPrefix(detected, "file") {
 			// If this isn't a file URL then we're doing an init +
 			// apply.
@@ -95,141 +103,176 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	}
 
-	// Build the context based on the arguments given
-	ctx, planned, err := c.Context(contextOpts{
-		Destroy:     c.Destroy,
-		Path:        configPath,
-		StatePath:   c.Meta.statePath,
-		Parallelism: c.Meta.parallelism,
-	})
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-	if c.Destroy && planned {
-		c.Ui.Error(fmt.Sprintf(
-			"Destroy can't be called with a plan file."))
-		return 1
-	}
-	if !destroyForce && c.Destroy {
-		// Default destroy message
-		desc := "Terraform will delete all your managed infrastructure.\n" +
-			"There is no undo. Only 'yes' will be accepted to confirm."
+	// The loop below will leave a reference here to the state that resulted from
+	// the last iteration.
+	var finalState *terraform.State
+	var outputsConfig []*config.Output
 
-		// If targets are specified, list those to user
-		if c.Meta.targets != nil {
-			var descBuffer bytes.Buffer
-			descBuffer.WriteString("Terraform will delete the following infrastructure:\n")
-			for _, target := range c.Meta.targets {
-				descBuffer.WriteString("\t")
-				descBuffer.WriteString(target)
-				descBuffer.WriteString("\n")
-			}
-			descBuffer.WriteString("There is no undo. Only 'yes' will be accepted to confirm")
-			desc = descBuffer.String()
-		}
+	// We'll set this to true if and only if we exit the apply loop
+	// below while knowing that we deferred some nodes.
+	hadDeferrals := false
 
-		v, err := c.UIInput().Input(&terraform.InputOpts{
-			Id:          "destroy",
-			Query:       "Do you really want to destroy?",
-			Description: desc,
+	// If we're applying without a saved plan then we'll automatically proceed
+	// through potentially-multiple "partial applies" if we're unable
+	// to implement the entire configuration in one step due to dynamic interpolations.
+	for {
+		// Build the context based on the arguments given
+		ctx, planned, err := c.Context(contextOpts{
+			Destroy:     c.Destroy,
+			Path:        configPath,
+			StatePath:   c.Meta.statePath,
+			Parallelism: c.Meta.parallelism,
 		})
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
-			return 1
+			c.Ui.Error(err.Error())
+			return 2
 		}
-		if v != "yes" {
-			c.Ui.Output("Destroy cancelled.")
-			return 1
+		if c.Destroy && planned {
+			c.Ui.Error(fmt.Sprintf(
+				"Destroy can't be called with a plan file."))
+			return 2
 		}
-	}
-	if !planned {
-		if err := ctx.Input(c.InputMode()); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
-			return 1
-		}
-	}
-	if !validateContext(ctx, c.Ui) {
-		return 1
-	}
+		if !destroyForce && c.Destroy {
+			// Default destroy message
+			desc := "Terraform will delete all your managed infrastructure.\n" +
+				"There is no undo. Only 'yes' will be accepted to confirm."
 
-	// Plan if we haven't already
-	if !planned {
-		if refresh {
-			if _, err := ctx.Refresh(); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
-				return 1
+			// If targets are specified, list those to user
+			if c.Meta.targets != nil {
+				var descBuffer bytes.Buffer
+				descBuffer.WriteString("Terraform will delete the following infrastructure:\n")
+				for _, target := range c.Meta.targets {
+					descBuffer.WriteString("\t")
+					descBuffer.WriteString(target)
+					descBuffer.WriteString("\n")
+				}
+				descBuffer.WriteString("There is no undo. Only 'yes' will be accepted to confirm")
+				desc = descBuffer.String()
+			}
+
+			v, err := c.UIInput().Input(&terraform.InputOpts{
+				Id:          "destroy",
+				Query:       "Do you really want to destroy?",
+				Description: desc,
+			})
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
+				return 2
+			}
+			if v != "yes" {
+				c.Ui.Output("Destroy cancelled.")
+				return 2
+			}
+		}
+		if !planned {
+			if err := ctx.Input(c.InputMode()); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
+				return 2
+			}
+		}
+		if !validateContext(ctx, c.Ui) {
+			return 2
+		}
+
+		// Plan if we haven't already
+		if !planned {
+			if refresh {
+				if _, err := ctx.Refresh(); err != nil {
+					c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
+					return 2
+				}
+			}
+
+			if _, err := ctx.Plan(); err != nil {
+				c.Ui.Error(fmt.Sprintf(
+					"Error creating plan: %s", err))
+				return 2
 			}
 		}
 
-		if _, err := ctx.Plan(); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error creating plan: %s", err))
-			return 1
-		}
-	}
+		// Setup the state hook for continuous state updates
+		{
+			state, err := c.State()
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf(
+					"Error reading state: %s", err))
+				return 2
+			}
 
-	// Setup the state hook for continuous state updates
-	{
-		state, err := c.State()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error reading state: %s", err))
-			return 1
+			stateHook.State = state
 		}
 
-		stateHook.State = state
-	}
+		// Start the apply in a goroutine so that we can be interrupted.
+		var state *terraform.State
+		var applyErr error
+		doneCh := make(chan struct{})
+		go func() {
+			defer close(doneCh)
+			state, applyErr = ctx.Apply()
+		}()
 
-	// Start the apply in a goroutine so that we can be interrupted.
-	var state *terraform.State
-	var applyErr error
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-		state, applyErr = ctx.Apply()
-	}()
-
-	// Wait for the apply to finish or for us to be interrupted so
-	// we can handle it properly.
-	err = nil
-	select {
-	case <-c.ShutdownCh:
-		c.Ui.Output("Interrupt received. Gracefully shutting down...")
-
-		// Stop execution
-		go ctx.Stop()
-
-		// Still get the result, since there is still one
+		// Wait for the apply to finish or for us to be interrupted so
+		// we can handle it properly.
+		err = nil
 		select {
 		case <-c.ShutdownCh:
-			c.Ui.Error(
-				"Two interrupts received. Exiting immediately. Note that data\n" +
-					"loss may have occurred.")
-			return 1
+			c.Ui.Output("Interrupt received. Gracefully shutting down...")
+
+			// Stop execution
+			go ctx.Stop()
+
+			// Still get the result, since there is still one
+			select {
+			case <-c.ShutdownCh:
+				c.Ui.Error(
+					"Two interrupts received. Exiting immediately. Note that data\n" +
+						"loss may have occurred.")
+				return 10
+			case <-doneCh:
+			}
 		case <-doneCh:
 		}
-	case <-doneCh:
-	}
 
-	// Persist the state
-	if state != nil {
-		if err := c.Meta.PersistState(state); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to save state: %s", err))
-			return 1
+		// Persist the state
+		if state != nil {
+			if err := c.Meta.PersistState(state); err != nil {
+				c.Ui.Error(fmt.Sprintf("Failed to save state: %s", err))
+				return 10
+			}
 		}
-	}
 
-	if applyErr != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error applying plan:\n\n"+
-				"%s\n\n"+
-				"Terraform does not automatically rollback in the face of errors.\n"+
-				"Instead, your Terraform state file has been partially updated with\n"+
-				"any resources that successfully completed. Please address the error\n"+
-				"above and apply again to incrementally change your infrastructure.",
-			multierror.Flatten(applyErr)))
-		return 1
+		if applyErr != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Error applying plan:\n\n"+
+					"%s\n\n"+
+					"Terraform does not automatically rollback in the face of errors.\n"+
+					"Instead, your Terraform state file has been partially updated with\n"+
+					"any resources that successfully completed. Please address the error\n"+
+					"above and apply again to incrementally change your infrastructure.",
+				multierror.Flatten(applyErr)))
+			return 2
+		}
+
+		// This plan/apply pass might have been a "partial apply" with some nodes
+		// deferred to a subsequent run. If we're applying a plan that was saved
+		// by an earlier "terraform plan" command then we'll stop here so the
+		// user can explicitly plan the next step, but otherwise we'll do
+		// another iteration, to converge on the desired configuration.
+		var stop bool
+		if ctx.HasDeferrals() {
+			if planned {
+				hadDeferrals = true
+				stop = true
+			}
+		} else {
+			stop = true
+		}
+
+		if stop {
+			finalState = state
+			outputsConfig = ctx.Module().Config().Outputs
+			break
+		}
 	}
 
 	if c.Destroy {
@@ -258,9 +301,22 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if !c.Destroy {
-		if outputs := outputsAsString(state, terraform.RootModulePath, ctx.Module().Config().Outputs, true); outputs != "" {
+		if outputs := outputsAsString(finalState, terraform.RootModulePath, outputsConfig, true); outputs != "" {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
+	}
+
+	if hadDeferrals {
+		c.Ui.Output(c.Colorize().Color(
+			"[reset][yellow]\nThis plan has only partially applied the configuration.\n" +
+				"Run 'terraform plan' again now to plan the next set of changes to converge\n" +
+				"on the desired state.",
+		))
+		// Exiting with deferrals is considered to be a soft sort of error,
+		// so that automation tools wrapping the "terraform plan"/"terraform apply"
+		// sequence can watch for a non-successful status and know that a
+		// further plan/apply cycle is required to complete the configuration.
+		return 1
 	}
 
 	return 0
