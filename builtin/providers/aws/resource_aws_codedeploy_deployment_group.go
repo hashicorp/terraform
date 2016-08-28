@@ -247,11 +247,11 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	d.Set("app_name", *resp.DeploymentGroupInfo.ApplicationName)
+	d.Set("app_name", resp.DeploymentGroupInfo.ApplicationName)
 	d.Set("autoscaling_groups", resp.DeploymentGroupInfo.AutoScalingGroups)
-	d.Set("deployment_config_name", *resp.DeploymentGroupInfo.DeploymentConfigName)
-	d.Set("deployment_group_name", *resp.DeploymentGroupInfo.DeploymentGroupName)
-	d.Set("service_role_arn", *resp.DeploymentGroupInfo.ServiceRoleArn)
+	d.Set("deployment_config_name", resp.DeploymentGroupInfo.DeploymentConfigName)
+	d.Set("deployment_group_name", resp.DeploymentGroupInfo.DeploymentGroupName)
+	d.Set("service_role_arn", resp.DeploymentGroupInfo.ServiceRoleArn)
 	if err := d.Set("ec2_tag_filter", ec2TagFiltersToMap(resp.DeploymentGroupInfo.Ec2TagFilters)); err != nil {
 		return err
 	}
