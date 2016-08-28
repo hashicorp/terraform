@@ -149,6 +149,9 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 			// their dependencies.
 			&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
 
+			// Supresses any nodes that are in the deferrals set.
+			&DeferralsTransformer{Deferrals: b.Deferrals, Destroy: b.Destroy},
+
 			// Prune the providers. This must happen only once because flattened
 			// modules might depend on empty providers.
 			&PruneProviderTransformer{},
