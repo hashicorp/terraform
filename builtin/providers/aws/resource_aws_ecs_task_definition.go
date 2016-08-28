@@ -140,7 +140,7 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 		*taskDefinition.TaskDefinitionArn, *taskDefinition.Revision)
 
 	d.SetId(*taskDefinition.Family)
-	d.Set("arn", *taskDefinition.TaskDefinitionArn)
+	d.Set("arn", taskDefinition.TaskDefinitionArn)
 
 	return resourceAwsEcsTaskDefinitionRead(d, meta)
 }
@@ -160,9 +160,9 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	taskDefinition := out.TaskDefinition
 
 	d.SetId(*taskDefinition.Family)
-	d.Set("arn", *taskDefinition.TaskDefinitionArn)
-	d.Set("family", *taskDefinition.Family)
-	d.Set("revision", *taskDefinition.Revision)
+	d.Set("arn", taskDefinition.TaskDefinitionArn)
+	d.Set("family", taskDefinition.Family)
+	d.Set("revision", taskDefinition.Revision)
 	d.Set("container_definitions", taskDefinition.ContainerDefinitions)
 	d.Set("task_role_arn", taskDefinition.TaskRoleArn)
 	d.Set("network_mode", taskDefinition.NetworkMode)
