@@ -303,39 +303,39 @@ func mostRecentAmi(images []*ec2.Image) *ec2.Image {
 func amiDescriptionAttributes(d *schema.ResourceData, image *ec2.Image) error {
 	// Simple attributes first
 	d.SetId(*image.ImageId)
-	d.Set("architecture", *image.Architecture)
-	d.Set("creation_date", *image.CreationDate)
+	d.Set("architecture", image.Architecture)
+	d.Set("creation_date", image.CreationDate)
 	if image.Description != nil {
-		d.Set("description", *image.Description)
+		d.Set("description", image.Description)
 	}
-	d.Set("hypervisor", *image.Hypervisor)
-	d.Set("image_id", *image.ImageId)
-	d.Set("image_location", *image.ImageLocation)
+	d.Set("hypervisor", image.Hypervisor)
+	d.Set("image_id", image.ImageId)
+	d.Set("image_location", image.ImageLocation)
 	if image.ImageOwnerAlias != nil {
-		d.Set("image_owner_alias", *image.ImageOwnerAlias)
+		d.Set("image_owner_alias", image.ImageOwnerAlias)
 	}
-	d.Set("image_type", *image.ImageType)
+	d.Set("image_type", image.ImageType)
 	if image.KernelId != nil {
-		d.Set("kernel_id", *image.KernelId)
+		d.Set("kernel_id", image.KernelId)
 	}
-	d.Set("name", *image.Name)
-	d.Set("owner_id", *image.OwnerId)
+	d.Set("name", image.Name)
+	d.Set("owner_id", image.OwnerId)
 	if image.Platform != nil {
-		d.Set("platform", *image.Platform)
+		d.Set("platform", image.Platform)
 	}
-	d.Set("public", *image.Public)
+	d.Set("public", image.Public)
 	if image.RamdiskId != nil {
-		d.Set("ramdisk_id", *image.RamdiskId)
+		d.Set("ramdisk_id", image.RamdiskId)
 	}
 	if image.RootDeviceName != nil {
-		d.Set("root_device_name", *image.RootDeviceName)
+		d.Set("root_device_name", image.RootDeviceName)
 	}
-	d.Set("root_device_type", *image.RootDeviceType)
+	d.Set("root_device_type", image.RootDeviceType)
 	if image.SriovNetSupport != nil {
-		d.Set("sriov_net_support", *image.SriovNetSupport)
+		d.Set("sriov_net_support", image.SriovNetSupport)
 	}
-	d.Set("state", *image.State)
-	d.Set("virtualization_type", *image.VirtualizationType)
+	d.Set("state", image.State)
+	d.Set("virtualization_type", image.VirtualizationType)
 	// Complex types get their own functions
 	if err := d.Set("block_device_mappings", amiBlockDeviceMappings(image.BlockDeviceMappings)); err != nil {
 		return err
