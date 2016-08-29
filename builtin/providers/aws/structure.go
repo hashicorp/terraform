@@ -374,6 +374,10 @@ func flattenAccessLog(l *elb.AccessLog) []map[string]interface{} {
 			r["interval"] = *l.EmitInterval
 		}
 
+		if l.Enabled != nil {
+			r["enabled"] = *l.Enabled
+		}
+
 		result = append(result, r)
 	}
 
