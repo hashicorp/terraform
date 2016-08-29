@@ -13,6 +13,7 @@ IMPROVEMENTS:
  * provider/aws: Export `arn` of `aws_autoscaling_group` [GH-8503]
  * provider/aws: More robust handling of Lambda function archives hosted on S3 [GH-6860]
  * provider/aws: `name_regex` attribute for local post-filtering of `aws_ami` data source results [GH-8403]
+ * provider/aws: API Gateway Custom Authorizer [GH-8535]
  * provider/statuscake: Add support for contact-group id in statuscake test [GH-8417]
  
 BUG FIXES:
