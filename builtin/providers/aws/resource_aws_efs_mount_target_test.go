@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -14,6 +15,8 @@ import (
 )
 
 func TestAccAWSEFSMountTarget_basic(t *testing.T) {
+	var mount efs.MountTargetDescription
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -24,6 +27,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
+						&mount,
 					),
 					resource.TestMatchResourceAttr(
 						"aws_efs_mount_target.alpha",
@@ -37,6 +41,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
+						&mount,
 					),
 					resource.TestMatchResourceAttr(
 						"aws_efs_mount_target.alpha",
@@ -45,6 +50,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 					),
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.beta",
+						&mount,
 					),
 					resource.TestMatchResourceAttr(
 						"aws_efs_mount_target.beta",
@@ -52,6 +58,29 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 						regexp.MustCompile("^us-west-2b.[^.]+.efs.us-west-2.amazonaws.com$"),
 					),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEFSMountTarget_disappears(t *testing.T) {
+	var mount efs.MountTargetDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpnGatewayDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEFSMountTargetConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckEfsMountTarget(
+						"aws_efs_mount_target.alpha",
+						&mount,
+					),
+					testAccAWSEFSMountTargetDisappears(&mount),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -115,7 +144,7 @@ func testAccCheckEfsMountTargetDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckEfsMountTarget(resourceID string) resource.TestCheckFunc {
+func testAccCheckEfsMountTarget(resourceID string, mount *efs.MountTargetDescription) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceID]
 		if !ok {
@@ -144,13 +173,54 @@ func testAccCheckEfsMountTarget(resourceID string) resource.TestCheckFunc {
 				*mt.MountTargets[0].MountTargetId, fs.Primary.ID)
 		}
 
+		*mount = *mt.MountTargets[0]
+
 		return nil
 	}
 }
 
+func testAccAWSEFSMountTargetDisappears(mount *efs.MountTargetDescription) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).efsconn
+
+		_, err := conn.DeleteMountTarget(&efs.DeleteMountTargetInput{
+			MountTargetId: mount.MountTargetId,
+		})
+
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "MountTargetNotFound" {
+				return nil
+			}
+			return err
+		}
+
+		return resource.Retry(3*time.Minute, func() *resource.RetryError {
+			resp, err := conn.DescribeMountTargets(&efs.DescribeMountTargetsInput{
+				MountTargetId: mount.MountTargetId,
+			})
+			if err != nil {
+				if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "MountTargetNotFound" {
+					return nil
+				}
+				return resource.NonRetryableError(
+					fmt.Errorf("Error reading EFS mount target: %s", err))
+			}
+			if resp.MountTargets == nil || len(resp.MountTargets) < 1 {
+				return nil
+			}
+			if *resp.MountTargets[0].LifeCycleState == "deleted" {
+				return nil
+			}
+			return resource.RetryableError(fmt.Errorf(
+				"Waiting for EFS mount target: %s", mount.MountTargetId))
+		})
+	}
+
+}
+
 const testAccAWSEFSMountTargetConfig = `
 resource "aws_efs_file_system" "foo" {
-	reference_name = "radeksimko"
+	creation_token = "radeksimko"
 }
 
 resource "aws_efs_mount_target" "alpha" {
@@ -171,7 +241,7 @@ resource "aws_subnet" "alpha" {
 
 const testAccAWSEFSMountTargetConfigModified = `
 resource "aws_efs_file_system" "foo" {
-	reference_name = "radeksimko"
+	creation_token = "radeksimko"
 }
 
 resource "aws_efs_mount_target" "alpha" {

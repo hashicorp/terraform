@@ -102,6 +102,7 @@ func resourceAwsEfsMountTargetCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.SetId(*mt.MountTargetId)
+	log.Printf("[INFO] EFS mount target ID: %s", d.Id())
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"creating"},
