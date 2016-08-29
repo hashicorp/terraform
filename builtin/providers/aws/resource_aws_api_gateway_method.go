@@ -144,6 +144,10 @@ func resourceAwsApiGatewayMethodRead(d *schema.ResourceData, meta interface{}) e
 	d.SetId(fmt.Sprintf("agm-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string)))
 	d.Set("request_parameters", aws.BoolValueMap(out.RequestParameters))
 	d.Set("request_parameters_in_json", aws.BoolValueMap(out.RequestParameters))
+	d.Set("api_key_required", out.ApiKeyRequired)
+	d.Set("authorization_type", out.AuthorizationType)
+	d.Set("authorizer_id", out.AuthorizerId)
+	d.Set("request_models", aws.StringValueMap(out.RequestModels))
 
 	return nil
 }
@@ -188,6 +192,30 @@ func resourceAwsApiGatewayMethodUpdate(d *schema.ResourceData, meta interface{})
 			return err
 		}
 		operations = append(operations, ops...)
+	}
+
+	if d.HasChange("authorization") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/authorizationType"),
+			Value: aws.String(d.Get("authorization").(string)),
+		})
+	}
+
+	if d.HasChange("authorizer_id") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/authorizerId"),
+			Value: aws.String(d.Get("authorizer_id").(string)),
+		})
+	}
+
+	if d.HasChange("api_key_required") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/apiKeyRequired"),
+			Value: aws.String(fmt.Sprintf("%t", d.Get("api_key_required").(bool))),
+		})
 	}
 
 	method, err := conn.UpdateMethod(&apigateway.UpdateMethodInput{
