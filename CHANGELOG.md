@@ -29,6 +29,7 @@ BUG FIXES:
  * provider/aws: Increase `aws_route_table` timeouts from 1 min to 2 mins [GH-8465]
  * provider/aws: Remove unsafe ptr dereferencing from ECS/ECR [GH-8514]
  * provider/aws: Add AWS error message to retry APIGateway account update [GH-8533]
+ * provider/aws: adds resource retry to `aws_spot_instance_request` [GH-8516]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
 
