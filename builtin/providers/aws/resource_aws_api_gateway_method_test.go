@@ -196,7 +196,7 @@ func testAccCheckAWSAPIGatewayMethodDestroy(s *terraform.State) error {
 
 const testAccAWSAPIGatewayMethodConfigWithCustomAuthorizer = `
 resource "aws_api_gateway_rest_api" "test" {
-  name = "test"
+  name = "tf-acc-test-custom-auth"
 }
 
 resource "aws_iam_role" "invocation_role" {
