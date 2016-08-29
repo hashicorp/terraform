@@ -127,6 +127,11 @@ func resourceAwsElb() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 					},
 				},
 			},
@@ -520,7 +525,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		} else if len(logs) == 1 {
 			log := logs[0].(map[string]interface{})
 			accessLog := &elb.AccessLog{
-				Enabled:      aws.Bool(true),
+				Enabled:      aws.Bool(log["enabled"].(bool)),
 				EmitInterval: aws.Int64(int64(log["interval"].(int))),
 				S3BucketName: aws.String(log["bucket"].(string)),
 			}
