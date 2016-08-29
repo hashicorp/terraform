@@ -93,6 +93,7 @@ Access Logs (`access_logs`) support the following:
 * `bucket` - (Required) The S3 bucket name to store the logs in.
 * `bucket_prefix` - (Optional) The S3 bucket prefix. Logs are stored in the root if not configured.
 * `interval` - (Optional) The publishing interval in minutes. Default: 60 minutes.
+* `enabled` - (Optional) Boolean to enable / disable `access_logs`. Default is `true`
 
 Listeners (`listener`) support the following:
 
