@@ -68,3 +68,4 @@ Please note that setting a `snapshot_retention_limit` is not supported on cache.
 The following attributes are exported:
 
 * `id` - The ID of the ElastiCache Replication Group
+* `primary_endpoint_address` - The address of the endpoint for the primary node in the replication group
