@@ -114,7 +114,7 @@ func resourceAwsEfsMountTargetCreate(d *schema.ResourceData, meta interface{}) e
 				return nil, "error", err
 			}
 
-			if resp.MountTargets != nil && len(resp.MountTargets) < 1 {
+			if hasEmptyMountTargets(resp) {
 				return nil, "error", fmt.Errorf("EFS mount target %q could not be found.", d.Id())
 			}
 
@@ -172,7 +172,7 @@ func resourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error reading EFS mount target %s: %s", d.Id(), err)
 	}
 
-	if resp.MountTargets != nil && len(resp.MountTargets) < 1 {
+	if hasEmptyMountTargets(resp) {
 		return fmt.Errorf("EFS mount target %q could not be found.", d.Id())
 	}
 
@@ -260,7 +260,7 @@ func resourceAwsEfsMountTargetDelete(d *schema.ResourceData, meta interface{}) e
 				return nil, "error", awsErr
 			}
 
-			if resp.MountTargets != nil && len(resp.MountTargets) < 1 {
+			if hasEmptyMountTargets(resp) {
 				return nil, "", nil
 			}
 
@@ -287,4 +287,11 @@ func resourceAwsEfsMountTargetDelete(d *schema.ResourceData, meta interface{}) e
 
 func resourceAwsEfsMountTargetDnsName(az, fileSystemId, region string) string {
 	return fmt.Sprintf("%s.%s.efs.%s.amazonaws.com", az, fileSystemId, region)
+}
+
+func hasEmptyMountTargets(mto *efs.DescribeMountTargetsOutput) bool {
+	if mto != nil && len(mto.MountTargets) > 0 {
+		return false
+	}
+	return true
 }

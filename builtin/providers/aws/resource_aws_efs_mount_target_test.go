@@ -68,6 +68,28 @@ func TestResourceAWSEFSMountTarget_mountTargetDnsName(t *testing.T) {
 	}
 }
 
+func TestResourceAWSEFSMountTarget_hasEmptyMountTargets(t *testing.T) {
+	mto := &efs.DescribeMountTargetsOutput{
+		MountTargets: []*efs.MountTargetDescription{},
+	}
+
+	var actual bool
+
+	actual = hasEmptyMountTargets(mto)
+	if !actual {
+		t.Fatalf("Expected return value to be true, got %t", actual)
+	}
+
+	// Add an empty mount target.
+	mto.MountTargets = append(mto.MountTargets, &efs.MountTargetDescription{})
+
+	actual = hasEmptyMountTargets(mto)
+	if actual {
+		t.Fatalf("Expected return value to be false, got %t", actual)
+	}
+
+}
+
 func testAccCheckEfsMountTargetDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).efsconn
 	for _, rs := range s.RootModule().Resources {
