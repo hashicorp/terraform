@@ -57,6 +57,17 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 	})
 }
 
+func TestResourceAWSEFSMountTarget_mountTargetDnsName(t *testing.T) {
+	actual := resourceAwsEfsMountTargetDnsName("non-existant-1c",
+		"fs-123456ab", "non-existant-1")
+
+	expected := "non-existant-1c.fs-123456ab.efs.non-existant-1.amazonaws.com"
+	if actual != expected {
+		t.Fatalf("Expected EFS mount target DNS name to be %s, got %s",
+			expected, actual)
+	}
+}
+
 func testAccCheckEfsMountTargetDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).efsconn
 	for _, rs := range s.RootModule().Resources {

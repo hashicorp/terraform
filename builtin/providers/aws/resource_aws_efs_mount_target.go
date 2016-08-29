@@ -205,7 +205,7 @@ func resourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	region := meta.(*AWSClient).region
-	err = d.Set("dns_name", fmt.Sprintf("%s.%s.efs.%s.amazonaws.com", az, *mt.FileSystemId, region))
+	err = d.Set("dns_name", resourceAwsEfsMountTargetDnsName(az, *mt.FileSystemId, region))
 	if err != nil {
 		return err
 	}
@@ -283,4 +283,8 @@ func resourceAwsEfsMountTargetDelete(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] EFS mount target %q deleted.", d.Id())
 
 	return nil
+}
+
+func resourceAwsEfsMountTargetDnsName(az, fileSystemId, region string) string {
+	return fmt.Sprintf("%s.%s.efs.%s.amazonaws.com", az, fileSystemId, region)
 }
