@@ -76,7 +76,7 @@ func resourceAwsApiGatewayDomainNameCreate(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(*domainName.DomainName)
-	d.Set("cloudfront_domain_name", *domainName.DistributionDomainName)
+	d.Set("cloudfront_domain_name", domainName.DistributionDomainName)
 	d.Set("cloudfront_zone_id", cloudFrontRoute53ZoneID)
 
 	return resourceAwsApiGatewayDomainNameRead(d, meta)

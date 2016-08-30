@@ -197,6 +197,11 @@ func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidRouteTableID.NotFound" {
+			log.Printf("[WARN] AWS RouteTable not found. Removing Route from state")
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 	resourceAwsRouteSetResourceData(d, route)

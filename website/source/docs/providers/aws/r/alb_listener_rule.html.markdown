@@ -23,7 +23,7 @@ resource "aws_alb_listener" "front_end" {
 }
 
 resource "aws_alb_listener_rule" "static" {
-  listener_arn = "${aws_alb_listener.front_end.arn}
+  listener_arn = "${aws_alb_listener.front_end.arn}"
   priority = 100
   
   action {

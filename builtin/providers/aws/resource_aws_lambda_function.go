@@ -301,29 +301,31 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 
 	d.Partial(true)
 
-	codeReq := &lambda.UpdateFunctionCodeInput{
-		FunctionName: aws.String(d.Id()),
-	}
-
-	codeUpdate := false
-	if d.HasChange("filename") || d.HasChange("source_code_hash") {
-		name := d.Get("filename").(string)
-		file, err := loadFileContent(name)
-		if err != nil {
-			return fmt.Errorf("Unable to load %q: %s", name, err)
+	if d.HasChange("filename") || d.HasChange("source_code_hash") || d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
+		codeReq := &lambda.UpdateFunctionCodeInput{
+			FunctionName: aws.String(d.Id()),
 		}
-		codeReq.ZipFile = file
-		codeUpdate = true
-	}
-	if d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
-		codeReq.S3Bucket = aws.String(d.Get("s3_bucket").(string))
-		codeReq.S3Key = aws.String(d.Get("s3_key").(string))
-		codeReq.S3ObjectVersion = aws.String(d.Get("s3_object_version").(string))
-		codeUpdate = true
-	}
 
-	if codeUpdate {
+		if v, ok := d.GetOk("filename"); ok {
+			file, err := loadFileContent(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to load %q: %s", v.(string), err)
+			}
+			codeReq.ZipFile = file
+		} else {
+			s3Bucket, _ := d.GetOk("s3_bucket")
+			s3Key, _ := d.GetOk("s3_key")
+			s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
+
+			codeReq.S3Bucket = aws.String(s3Bucket.(string))
+			codeReq.S3Key = aws.String(s3Key.(string))
+			if versionOk {
+				codeReq.S3ObjectVersion = aws.String(s3ObjectVersion.(string))
+			}
+		}
+
 		log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
+
 		_, err := conn.UpdateFunctionCode(codeReq)
 		if err != nil {
 			return fmt.Errorf("Error modifying Lambda Function Code %s: %s", d.Id(), err)

@@ -889,6 +889,14 @@
 			"versionExact": "v1.4.2"
 		},
 		{
+			"checksumSHA1": "bKDsdoxo5Mxft1f1UsGmTNhXRw8=",
+			"path": "github.com/aws/aws-sdk-go/service/ssm",
+			"revision": "565027b24171359f23f883d0fc48c228cdde301d",
+			"revisionTime": "2016-07-21T22:15:38Z",
+			"version": "v1.2.7",
+			"versionExact": "v1.2.7"
+		},
+		{
 			"checksumSHA1": "nH/itbdeFHpl4ysegdtgww9bFSA=",
 			"path": "github.com/aws/aws-sdk-go/service/sts",
 			"revision": "35c21ff262580265c1d77095d6f712605fd0c3f4",
@@ -1032,9 +1040,11 @@
 			"revision": "bf97c77db7c945cbcdbf09d56c6f87a66f54537b"
 		},
 		{
+			"checksumSHA1": "JKjnR1ApU6NcC79xcGaT7QRMx3A=",
 			"comment": "0.0.1-42-gea19666",
 			"path": "github.com/go-chef/chef",
-			"revision": "ea196660dd8700ad18911681b223fe6bfc29cd69"
+			"revision": "bf4e81635329d7a0fc8d7c858a899a72cdb69b9e",
+			"revisionTime": "2016-06-30T18:09:21Z"
 		},
 		{
 			"comment": "v1.8.6",
@@ -1440,10 +1450,10 @@
 			"revision": "8631ce90f28644f54aeedcb3e389a85174e067d1"
 		},
 		{
-			"checksumSHA1": "86nE93o1VIND0Doe8PuhCXnhUx0=",
+			"checksumSHA1": "y2HsVMt3eYGqywv5ljijnywJMb4=",
 			"path": "github.com/mitchellh/copystructure",
-			"revision": "cdac8253d00f2ecf0a0b19fbff173a9a72de4f82",
-			"revisionTime": "2016-08-04T03:23:30Z"
+			"revision": "6871c41ca9148d368715dedcda473f396f205df5",
+			"revisionTime": "2016-08-25T20:45:07Z"
 		},
 		{
 			"path": "github.com/mitchellh/go-homedir",
