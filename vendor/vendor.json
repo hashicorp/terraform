@@ -905,6 +905,12 @@
 			"versionExact": "v1.4.2"
 		},
 		{
+			"checksumSHA1": "nqw2Qn5xUklssHTubS5HDvEL9L4=",
+			"path": "github.com/bgentry/go-netrc/netrc",
+			"revision": "9fd32a8b3d3d3f9d43c341bfe098430e07609480",
+			"revisionTime": "2014-04-22T17:41:19Z"
+		},
+		{
 			"path": "github.com/bgentry/speakeasy",
 			"revision": "36e9cfdd690967f4f690c6edcc9ffacd006014a0"
 		},
@@ -1126,10 +1132,10 @@
 			"revision": "875fb671b3ddc66f8e2f0acc33829c8cb989a38d"
 		},
 		{
-			"checksumSHA1": "MN8EmPozxjt3pyOCYfsO5Pon8V0=",
+			"checksumSHA1": "Qw7bz5IlDicreRjfyiB8QBJi0Fc=",
 			"path": "github.com/hashicorp/go-getter",
-			"revision": "a186869fff81d32bcb4e98c88c7c7d82880271ba",
-			"revisionTime": "2016-08-24T23:43:04Z"
+			"revision": "0eb633db32e432fabba9eca8fa21192fab2b96be",
+			"revisionTime": "2016-08-30T22:50:22Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-getter/helper/url",
