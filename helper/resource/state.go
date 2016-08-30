@@ -81,30 +81,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 
 		wait := 100 * time.Millisecond
 
-		for first := true; ; first = false {
-			if !first {
-				// If a poll interval has been specified, choose that interval.
-				// Otherwise bound the default value.
-				if conf.PollInterval > 0 && conf.PollInterval < 180*time.Second {
-					wait = conf.PollInterval
-				} else {
-					if wait < conf.MinTimeout {
-						wait = conf.MinTimeout
-					} else if wait > 10*time.Second {
-						wait = 10 * time.Second
-					}
-				}
-
-				log.Printf("[TRACE] Waiting %s before next try", wait)
-				time.Sleep(wait)
-
-				// Wait between refreshes using exponential backoff, except when
-				// waiting for the target state to reoccur.
-				if targetOccurence == 0 {
-					wait *= 2
-				}
-			}
-
+		for {
 			res, currentState, err := conf.Refresh()
 			result := Result{
 				Result: res,
@@ -172,6 +149,27 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 					lastResult.Store(result)
 					return
 				}
+			}
+
+			// If a poll interval has been specified, choose that interval.
+			// Otherwise bound the default value.
+			if conf.PollInterval > 0 && conf.PollInterval < 180*time.Second {
+				wait = conf.PollInterval
+			} else {
+				if wait < conf.MinTimeout {
+					wait = conf.MinTimeout
+				} else if wait > 10*time.Second {
+					wait = 10 * time.Second
+				}
+			}
+
+			log.Printf("[TRACE] Waiting %s before next try", wait)
+			time.Sleep(wait)
+
+			// Wait between refreshes using exponential backoff, except when
+			// waiting for the target state to reoccur.
+			if targetOccurence == 0 {
+				wait *= 2
 			}
 		}
 	}()
