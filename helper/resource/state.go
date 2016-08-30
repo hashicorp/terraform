@@ -2,6 +2,7 @@ package resource
 
 import (
 	"log"
+	"sync/atomic"
 	"time"
 )
 
@@ -61,9 +62,15 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 		conf.ContinuousTargetOccurence = 1
 	}
 
-	var result interface{}
-	var resulterr error
-	var currentState string
+	// We can't safely read the result values if we timeout, so store them in
+	// an atomic.Value
+	type Result struct {
+		Result interface{}
+		State  string
+		Error  error
+	}
+	var lastResult atomic.Value
+	lastResult.Store(Result{})
 
 	doneCh := make(chan struct{})
 	go func() {
@@ -74,7 +81,6 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 
 		wait := 100 * time.Millisecond
 
-		var err error
 		for first := true; ; first = false {
 			if !first {
 				// If a poll interval has been specified, choose that interval.
@@ -99,14 +105,20 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				}
 			}
 
-			result, currentState, err = conf.Refresh()
+			res, currentState, err := conf.Refresh()
+			result := Result{
+				Result: res,
+				State:  currentState,
+				Error:  err,
+			}
+			lastResult.Store(result)
+
 			if err != nil {
-				resulterr = err
 				return
 			}
 
 			// If we're waiting for the absence of a thing, then return
-			if result == nil && len(conf.Target) == 0 {
+			if res == nil && len(conf.Target) == 0 {
 				targetOccurence += 1
 				if conf.ContinuousTargetOccurence == targetOccurence {
 					return
@@ -115,14 +127,15 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				}
 			}
 
-			if result == nil {
+			if res == nil {
 				// If we didn't find the resource, check if we have been
 				// not finding it for awhile, and if so, report an error.
 				notfoundTick += 1
 				if notfoundTick > conf.NotFoundChecks {
-					resulterr = &NotFoundError{
-						LastError: resulterr,
+					result.Error = &NotFoundError{
+						LastError: err,
 					}
+					lastResult.Store(result)
 					return
 				}
 			} else {
@@ -151,11 +164,12 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				}
 
 				if !found {
-					resulterr = &UnexpectedStateError{
-						LastError:     resulterr,
-						State:         currentState,
+					result.Error = &UnexpectedStateError{
+						LastError:     err,
+						State:         result.State,
 						ExpectedState: conf.Target,
 					}
+					lastResult.Store(result)
 					return
 				}
 			}
@@ -164,11 +178,13 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 
 	select {
 	case <-doneCh:
-		return result, resulterr
+		r := lastResult.Load().(Result)
+		return r.Result, r.Error
 	case <-time.After(conf.Timeout):
+		r := lastResult.Load().(Result)
 		return nil, &TimeoutError{
-			LastError:     resulterr,
-			LastState:     currentState,
+			LastError:     r.Error,
+			LastState:     r.State,
 			ExpectedState: conf.Target,
 		}
 	}
