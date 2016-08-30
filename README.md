@@ -36,6 +36,7 @@ For local dev first make sure Go is properly installed, including setting up a [
 Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. All the necessary dependencies are either vendored or automatically installed, so you just need to type `make`. This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
 
 ```sh
+$ cd $GOPATH/src/github.com/hashicorp/terraform
 $ make
 ```
 
