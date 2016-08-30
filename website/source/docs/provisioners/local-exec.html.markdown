@@ -13,6 +13,9 @@ is created. This invokes a process on the machine running Terraform, not on
 the resource. See the `remote-exec` [provisioner](/docs/provisioners/remote-exec.html)
 to run commands on the resource.
 
+Beware that even though the resource is fully created when the provisioner is run,
+it doesn't need to have finished booting or starting system services.
+
 ## Example usage
 
 ```
