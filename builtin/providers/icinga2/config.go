@@ -15,6 +15,7 @@ type Config struct {
 	APIURL      string
 	APIUser     string
 	APIPassword string
+	Insecure    bool
 }
 
 func (c *Config) loadAndValidate() error {
@@ -30,9 +31,13 @@ func (c *Config) loadAndValidate() error {
 // Client blah blah
 func (c *Config) Client(httpMethod string, endPoint string, jsonStr []byte) (int, interface{}, error) {
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	config := &tls.Config{}
+
+	if c.Insecure {
+		config.InsecureSkipVerify = true
 	}
+
+	transport := &http.Transport{TLSClientConfig: config}
 
 	url := fmt.Sprintf("%s/%s", c.APIURL, endPoint)
 	req, err := http.NewRequest(httpMethod, url, bytes.NewBuffer(jsonStr))

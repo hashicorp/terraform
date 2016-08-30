@@ -23,6 +23,7 @@ func init() {
 // export ICINGA2_API_URL=https://192.168.33.5:5665
 // export ICINGA2_API_USER=root
 // export ICINGA2_API_PASSWORD=icinga
+// export ICINGA2_INSECURE_SKIP_TLS_VERIFY=true
 
 func Test_provider(t *testing.T) {
 	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
@@ -49,6 +50,11 @@ func testAccPreCheck(t *testing.T) {
 	v = os.Getenv("ICINGA2_API_PASSWORD")
 	if v == "" {
 		t.Fatal("ICINGA2_API_PASSWORD must be set for acceptance tests")
+	}
+
+	v = os.Getenv("ICINGA2_INSECURE_SKIP_TLS_VERIFY")
+	if v == "" {
+		t.Fatal("ICINGA2_INSECURE_SKIP_TLS_VERIFY must be set for acceptance test, to accept self-signed cert")
 	}
 
 }
