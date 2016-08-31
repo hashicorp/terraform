@@ -755,10 +755,19 @@ func (r *RemoteState) deepcopy() *RemoteState {
 }
 
 func (r *RemoteState) Empty() bool {
-	return r == nil || r.Type == ""
+	if r == nil {
+		return true
+	}
+	r.Lock()
+	defer r.Unlock()
+
+	return r.Type == ""
 }
 
 func (r *RemoteState) Equals(other *RemoteState) bool {
+	r.Lock()
+	defer r.Unlock()
+
 	if r.Type != other.Type {
 		return false
 	}
