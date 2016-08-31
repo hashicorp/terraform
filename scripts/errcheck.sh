@@ -12,7 +12,7 @@ fi
 err_files=$(errcheck -ignoretests -ignore \
   'github.com/hashicorp/terraform/helper/schema:Set' \
   -ignore 'bytes:.*' \
-  -ignore 'io:.*' \
+  -ignore 'io:[cC]lose|[wWrite]' \
   ./builtin/providers/aws/...)
 
 if [[ -n ${err_files} ]]; then
