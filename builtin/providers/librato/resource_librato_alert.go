@@ -229,49 +229,20 @@ func resourceLibratoAlertRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLibratoAlertReadResult(d *schema.ResourceData, alert *librato.Alert) error {
 	d.SetId(strconv.FormatUint(uint64(*alert.ID), 10))
-	if alert.ID != nil {
-		if err := d.Set("id", *alert.ID); err != nil {
-			return err
-		}
-	}
-	if alert.Name != nil {
-		if err := d.Set("name", *alert.Name); err != nil {
-			return err
-		}
-	}
-	if alert.Description != nil {
-		if err := d.Set("description", *alert.Description); err != nil {
-			return err
-		}
-	}
-	if alert.Active != nil {
-		if err := d.Set("active", *alert.Active); err != nil {
-			return err
-		}
-	}
-	if alert.RearmSeconds != nil {
-		if err := d.Set("rearm_seconds", *alert.RearmSeconds); err != nil {
-			return err
-		}
-	}
-	if alert.Services != nil {
-		services := resourceLibratoAlertServicesGather(d, alert.Services.([]interface{}))
-		if err := d.Set("services", services); err != nil {
-			return err
-		}
-	}
-	if alert.Conditions != nil {
-		conditions := resourceLibratoAlertConditionsGather(d, alert.Conditions)
-		if err := d.Set("condition", conditions); err != nil {
-			return err
-		}
-	}
-	if alert.Attributes != nil {
-		attributes := resourceLibratoAlertAttributesGather(d, alert.Attributes)
-		if err := d.Set("attributes", attributes); err != nil {
-			return err
-		}
-	}
+	d.Set("id", *alert.ID)
+	d.Set("name", *alert.Name)
+	d.Set("description", *alert.Description)
+	d.Set("active", *alert.Active)
+	d.Set("rearm_seconds", *alert.RearmSeconds)
+
+	services := resourceLibratoAlertServicesGather(d, alert.Services.([]interface{}))
+	d.Set("services", services)
+
+	conditions := resourceLibratoAlertConditionsGather(d, alert.Conditions)
+	d.Set("condition", conditions)
+
+	attributes := resourceLibratoAlertAttributesGather(d, alert.Attributes)
+	d.Set("attributes", attributes)
 
 	return nil
 }
