@@ -246,12 +246,12 @@ The supported built-in functions are:
 
 ## Templates
 
-Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [resources](/docs/configuration/resources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
+Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [data-sources](/docs/configuration/data-sources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
 
-A template resource looks like:
+A template data source looks like:
 
 ```
-resource "template_file" "example" {
+data "template_file" "example" {
   template = "${hello} ${world}!"
   vars {
     hello = "goodnight"
@@ -260,7 +260,7 @@ resource "template_file" "example" {
 }
 
 output "rendered" {
-  value = "${template_file.example.rendered}"
+  value = "${data.template_file.example.rendered}"
 }
 ```
 
@@ -271,7 +271,7 @@ You may use any of the built-in functions in your template.
 ### Using Templates with Count
 
 Here is an example that combines the capabilities of templates with the interpolation
-from `count` to give us a parametized template, unique to each resource instance:
+from `count` to give us a parameterized template, unique to each resource instance:
 
 ```
 variable "count" {
@@ -285,7 +285,7 @@ variable "hostnames" {
   }
 }
 
-resource "template_file" "web_init" {
+data "template_file" "web_init" {
   // here we expand multiple template_files - the same number as we have instances
   count    = "${var.count}"
   template = "${file("templates/web_init.tpl")}"
@@ -299,11 +299,11 @@ resource "aws_instance" "web" {
   // ...
   count = "${var.count}"
   // here we link each web instance to the proper template_file
-  user_data = "${element(template_file.web_init.*.rendered, count.index)}"
+  user_data = "${element(data.template_file.web_init.*.rendered, count.index)}"
 }
 ```
 
-With this, we will build a list of `template_file.web_init` resources which we can
+With this, we will build a list of `template_file.web_init` data sources which we can
 use in combination with our list of `aws_instance.web` resources.
 
 ## Math
