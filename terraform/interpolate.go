@@ -265,6 +265,7 @@ func (i *Interpolater) valueSelfVar(
 		return fmt.Errorf(
 			"%s: invalid scope, self variables are only valid on resources", n)
 	}
+
 	rv, err := config.NewResourceVariable(fmt.Sprintf(
 		"%s.%s.%d.%s",
 		scope.Resource.Type,
@@ -359,9 +360,23 @@ func (i *Interpolater) computeResourceVariable(
 
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
-	module, _, err := i.resourceVariableInfo(scope, v)
+	module, cr, err := i.resourceVariableInfo(scope, v)
 	if err != nil {
 		return nil, err
+	}
+
+	// If we're requesting "count" its a special variable that we grab
+	// directly from the config itself.
+	if v.Field == "count" {
+		count, err := cr.Count()
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error reading %s count: %s",
+				v.ResourceId(),
+				err)
+		}
+
+		return &ast.Variable{Type: ast.TypeInt, Value: count}, nil
 	}
 
 	// If we have no module in the state yet or count, return empty

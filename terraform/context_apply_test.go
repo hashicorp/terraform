@@ -149,6 +149,39 @@ module.test:
 	}
 }
 
+func TestContext2Apply_refCount(t *testing.T) {
+	m := testModule(t, "apply-ref-count")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) < 2 {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyRefCountStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_providerAlias(t *testing.T) {
 	m := testModule(t, "apply-provider-alias")
 	p := testProvider("aws")
@@ -1118,6 +1151,34 @@ func TestContext2Apply_countVariable(t *testing.T) {
 
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountVariableStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContext2Apply_countVariableRef(t *testing.T) {
+	m := testModule(t, "apply-count-variable-ref")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyCountVariableRefStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
@@ -2400,6 +2461,59 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 	// Verify our result
 	sort.Strings(commands)
 	expectedCommands := []string{"number 0", "number 1", "number 2"}
+	if !reflect.DeepEqual(commands, expectedCommands) {
+		t.Fatalf("bad: %#v", commands)
+	}
+}
+
+func TestContext2Apply_provisionerMultiSelfRefCount(t *testing.T) {
+	var lock sync.Mutex
+	commands := make([]string, 0, 5)
+
+	m := testModule(t, "apply-provisioner-multi-self-ref-count")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		lock.Lock()
+		defer lock.Unlock()
+
+		val, ok := c.Config["command"]
+		if !ok {
+			t.Fatalf("bad value for command: %v %#v", val, c)
+		}
+
+		commands = append(commands, val.(string))
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+
+	// Verify our result
+	sort.Strings(commands)
+	expectedCommands := []string{"3", "3", "3"}
 	if !reflect.DeepEqual(commands, expectedCommands) {
 		t.Fatalf("bad: %#v", commands)
 	}
