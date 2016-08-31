@@ -149,6 +149,39 @@ module.test:
 	}
 }
 
+func TestContext2Apply_refCount(t *testing.T) {
+	m := testModule(t, "apply-ref-count")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) < 2 {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyRefCountStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_providerAlias(t *testing.T) {
 	m := testModule(t, "apply-provider-alias")
 	p := testProvider("aws")
