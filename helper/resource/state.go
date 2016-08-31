@@ -2,6 +2,7 @@ package resource
 
 import (
 	"log"
+	"sync/atomic"
 	"time"
 )
 
@@ -61,9 +62,15 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 		conf.ContinuousTargetOccurence = 1
 	}
 
-	var result interface{}
-	var resulterr error
-	var currentState string
+	// We can't safely read the result values if we timeout, so store them in
+	// an atomic.Value
+	type Result struct {
+		Result interface{}
+		State  string
+		Error  error
+	}
+	var lastResult atomic.Value
+	lastResult.Store(Result{})
 
 	doneCh := make(chan struct{})
 	go func() {
@@ -74,39 +81,21 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 
 		wait := 100 * time.Millisecond
 
-		var err error
-		for first := true; ; first = false {
-			if !first {
-				// If a poll interval has been specified, choose that interval.
-				// Otherwise bound the default value.
-				if conf.PollInterval > 0 && conf.PollInterval < 180*time.Second {
-					wait = conf.PollInterval
-				} else {
-					if wait < conf.MinTimeout {
-						wait = conf.MinTimeout
-					} else if wait > 10*time.Second {
-						wait = 10 * time.Second
-					}
-				}
-
-				log.Printf("[TRACE] Waiting %s before next try", wait)
-				time.Sleep(wait)
-
-				// Wait between refreshes using exponential backoff, except when
-				// waiting for the target state to reoccur.
-				if targetOccurence == 0 {
-					wait *= 2
-				}
+		for {
+			res, currentState, err := conf.Refresh()
+			result := Result{
+				Result: res,
+				State:  currentState,
+				Error:  err,
 			}
+			lastResult.Store(result)
 
-			result, currentState, err = conf.Refresh()
 			if err != nil {
-				resulterr = err
 				return
 			}
 
 			// If we're waiting for the absence of a thing, then return
-			if result == nil && len(conf.Target) == 0 {
+			if res == nil && len(conf.Target) == 0 {
 				targetOccurence += 1
 				if conf.ContinuousTargetOccurence == targetOccurence {
 					return
@@ -115,14 +104,15 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				}
 			}
 
-			if result == nil {
+			if res == nil {
 				// If we didn't find the resource, check if we have been
 				// not finding it for awhile, and if so, report an error.
 				notfoundTick += 1
 				if notfoundTick > conf.NotFoundChecks {
-					resulterr = &NotFoundError{
-						LastError: resulterr,
+					result.Error = &NotFoundError{
+						LastError: err,
 					}
+					lastResult.Store(result)
 					return
 				}
 			} else {
@@ -151,24 +141,48 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				}
 
 				if !found {
-					resulterr = &UnexpectedStateError{
-						LastError:     resulterr,
-						State:         currentState,
+					result.Error = &UnexpectedStateError{
+						LastError:     err,
+						State:         result.State,
 						ExpectedState: conf.Target,
 					}
+					lastResult.Store(result)
 					return
 				}
+			}
+
+			// If a poll interval has been specified, choose that interval.
+			// Otherwise bound the default value.
+			if conf.PollInterval > 0 && conf.PollInterval < 180*time.Second {
+				wait = conf.PollInterval
+			} else {
+				if wait < conf.MinTimeout {
+					wait = conf.MinTimeout
+				} else if wait > 10*time.Second {
+					wait = 10 * time.Second
+				}
+			}
+
+			log.Printf("[TRACE] Waiting %s before next try", wait)
+			time.Sleep(wait)
+
+			// Wait between refreshes using exponential backoff, except when
+			// waiting for the target state to reoccur.
+			if targetOccurence == 0 {
+				wait *= 2
 			}
 		}
 	}()
 
 	select {
 	case <-doneCh:
-		return result, resulterr
+		r := lastResult.Load().(Result)
+		return r.Result, r.Error
 	case <-time.After(conf.Timeout):
+		r := lastResult.Load().(Result)
 		return nil, &TimeoutError{
-			LastError:     resulterr,
-			LastState:     currentState,
+			LastError:     r.Error,
+			LastState:     r.State,
 			ExpectedState: conf.Target,
 		}
 	}
