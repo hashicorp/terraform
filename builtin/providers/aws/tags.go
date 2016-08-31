@@ -10,11 +10,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-const (
-	spotRequestIDPrefix        = "sir-"
-	spotRequestSpotInstance_ID = "spot_instance_id"
-)
-
 // tagsSchema returns the schema to use for tags.
 //
 func tagsSchema() *schema.Schema {
@@ -69,12 +64,12 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 	id := d.Id()
 
 	// Check for a Spot Instance Requests as it requires special
-	// handeling, the tagging process will tag the spot request it self
+	// handling, the tagging process will tag the spot request it self
 	// as its id is stored in d.Id(), to tag the instance the spot
 	// request creates we need to use the the instance id which is stored
 	// under key 'spot_instance_id'
-	if strings.Contains(id, spotRequestIDPrefix) {
-		spotInstID := d.Get(spotRequestSpotInstance_ID).(string)
+	if strings.Contains(id, "sir-") {
+		spotInstID := d.Get("spot_instance_id").(string)
 		err = setTagsActual(conn, d, spotInstID)
 		if err != nil {
 			return err
