@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/shared"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 	"github.com/xanzy/ssh-agent"
@@ -225,14 +224,9 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 }
 
 func readPrivateKey(pk string) (ssh.AuthMethod, error) {
-	key, _, err := pathorcontents.Read(pk)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to read private key %q: %s", pk, err)
-	}
-
 	// We parse the private key on our own first so that we can
 	// show a nicer error if the private key has a password.
-	block, _ := pem.Decode([]byte(key))
+	block, _ := pem.Decode([]byte(pk))
 	if block == nil {
 		return nil, fmt.Errorf("Failed to read key %q: no key found", pk)
 	}
@@ -242,7 +236,7 @@ func readPrivateKey(pk string) (ssh.AuthMethod, error) {
 				"not supported. Please decrypt the key prior to use.", pk)
 	}
 
-	signer, err := ssh.ParsePrivateKey([]byte(key))
+	signer, err := ssh.ParsePrivateKey([]byte(pk))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse key file %q: %s", pk, err)
 	}
