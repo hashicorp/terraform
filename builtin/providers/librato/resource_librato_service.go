@@ -138,27 +138,10 @@ func resourceLibratoServiceRead(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLibratoServiceReadResult(d *schema.ResourceData, service *librato.Service) error {
 	d.SetId(strconv.FormatUint(uint64(*service.ID), 10))
-	if service.ID != nil {
-		if err := d.Set("id", *service.ID); err != nil {
-			return err
-		}
-	}
-	if service.Type != nil {
-		if err := d.Set("type", *service.Type); err != nil {
-			return err
-		}
-	}
-	if service.Title != nil {
-		if err := d.Set("title", *service.Title); err != nil {
-			return err
-		}
-	}
-	if service.Settings != nil {
-		settings, _ := resourceLibratoServicesFlatten(service.Settings)
-		if err := d.Set("settings", settings); err != nil {
-			return err
-		}
-	}
+	d.Set("id", *service.ID)
+	d.Set("type", *service.Type)
+	d.Set("title", *service.Title)
+	d.Set("settings", settings)
 
 	return nil
 }
