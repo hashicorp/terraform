@@ -108,11 +108,32 @@ func resourceLibratoAlertConditionsHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["metric_name"].(string)))
+
+	source, present := m["source"]
+	if present {
+		buf.WriteString(fmt.Sprintf("%f-", source.(string)))
+	}
+
+	detect_reset, present := m["detect_reset"]
+	if present {
+		buf.WriteString(fmt.Sprintf("%f-", detect_reset.(bool)))
+	}
+
+	duration, present := m["duration"]
+	if present {
+		buf.WriteString(fmt.Sprintf("%f-", duration.(int)))
+	}
+
 	threshold, present := m["threshold"]
 	if present {
 		buf.WriteString(fmt.Sprintf("%f-", threshold.(float64)))
 	}
-	buf.WriteString(fmt.Sprintf("%s-", m["metric_name"].(string)))
+
+	summary_function, present := m["summary_function"]
+	if present {
+		buf.WriteString(fmt.Sprintf("%f-", summary_function.(string)))
+	}
 
 	return hashcode.String(buf.String())
 }
