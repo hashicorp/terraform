@@ -1322,6 +1322,9 @@ func (s *ResourceState) Unlock() { s.mu.Unlock() }
 
 // Equal tests whether two ResourceStates are equal.
 func (s *ResourceState) Equal(other *ResourceState) bool {
+	s.Lock()
+	defer s.Unlock()
+
 	if s.Type != other.Type {
 		return false
 	}
@@ -1351,43 +1354,49 @@ func (s *ResourceState) Equal(other *ResourceState) bool {
 }
 
 // Taint marks a resource as tainted.
-func (r *ResourceState) Taint() {
-	if r.Primary != nil {
-		r.Primary.Tainted = true
+func (s *ResourceState) Taint() {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.Primary != nil {
+		s.Primary.Tainted = true
 	}
 }
 
 // Untaint unmarks a resource as tainted.
-func (r *ResourceState) Untaint() {
-	if r.Primary != nil {
-		r.Primary.Tainted = false
+func (s *ResourceState) Untaint() {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.Primary != nil {
+		s.Primary.Tainted = false
 	}
 }
 
-func (r *ResourceState) init() {
-	r.Lock()
-	defer r.Unlock()
+func (s *ResourceState) init() {
+	s.Lock()
+	defer s.Unlock()
 
-	if r.Primary == nil {
-		r.Primary = &InstanceState{}
+	if s.Primary == nil {
+		s.Primary = &InstanceState{}
 	}
-	r.Primary.init()
+	s.Primary.init()
 
-	if r.Dependencies == nil {
-		r.Dependencies = []string{}
-	}
-
-	if r.Deposed == nil {
-		r.Deposed = make([]*InstanceState, 0)
+	if s.Dependencies == nil {
+		s.Dependencies = []string{}
 	}
 
-	for _, dep := range r.Deposed {
+	if s.Deposed == nil {
+		s.Deposed = make([]*InstanceState, 0)
+	}
+
+	for _, dep := range s.Deposed {
 		dep.init()
 	}
 }
 
-func (r *ResourceState) deepcopy() *ResourceState {
-	copy, err := copystructure.Config{Lock: true}.Copy(r)
+func (s *ResourceState) deepcopy() *ResourceState {
+	copy, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(err)
 	}
@@ -1396,26 +1405,35 @@ func (r *ResourceState) deepcopy() *ResourceState {
 }
 
 // prune is used to remove any instances that are no longer required
-func (r *ResourceState) prune() {
-	n := len(r.Deposed)
+func (s *ResourceState) prune() {
+	s.Lock()
+	defer s.Unlock()
+
+	n := len(s.Deposed)
 	for i := 0; i < n; i++ {
-		inst := r.Deposed[i]
+		inst := s.Deposed[i]
 		if inst == nil || inst.ID == "" {
-			copy(r.Deposed[i:], r.Deposed[i+1:])
-			r.Deposed[n-1] = nil
+			copy(s.Deposed[i:], s.Deposed[i+1:])
+			s.Deposed[n-1] = nil
 			n--
 			i--
 		}
 	}
 
-	r.Deposed = r.Deposed[:n]
+	s.Deposed = s.Deposed[:n]
 }
 
-func (r *ResourceState) sort() {
-	sort.Strings(r.Dependencies)
+func (s *ResourceState) sort() {
+	s.Lock()
+	defer s.Unlock()
+
+	sort.Strings(s.Dependencies)
 }
 
 func (s *ResourceState) String() string {
+	s.Lock()
+	defer s.Unlock()
+
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("Type = %s", s.Type))
 	return buf.String()
