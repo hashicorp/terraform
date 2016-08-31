@@ -32,8 +32,9 @@ BUG FIXES:
  * provider/aws: Add AWS error message to retry APIGateway account update [GH-8533]
  * provider/aws: adds resource retry to `aws_spot_instance_request` [GH-8516]
  * provider/aws: Handle missing EFS mount target in `aws_efs_mount_target` [GH-8529]
- * provider/github: Remove unsafe ptr dereferencing [GH-8512]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
+ * provider/github: Remove unsafe ptr dereferencing [GH-8512]
+ * provider/triton: Id trying to be used before being set [GH-8563]
 
 ## 0.7.2 (August 25, 2016)
 
