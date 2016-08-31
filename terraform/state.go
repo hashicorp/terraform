@@ -128,6 +128,11 @@ func (s *State) children(path []string) []*ModuleState {
 func (s *State) AddModule(path []string) *ModuleState {
 	s.Lock()
 	defer s.Unlock()
+
+	return s.addModule(path)
+}
+
+func (s *State) addModule(path []string) *ModuleState {
 	// check if the module exists first
 	m := s.moduleByPath(path)
 	if m != nil {
@@ -616,10 +621,10 @@ func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
 	}
-	if s.ModuleByPath(rootModulePath) == nil {
-		s.AddModule(rootModulePath)
+	if s.moduleByPath(rootModulePath) == nil {
+		s.addModule(rootModulePath)
 	}
-	s.EnsureHasLineage()
+	s.ensureHasLineage()
 
 	for _, mod := range s.Modules {
 		mod.init()
@@ -634,6 +639,10 @@ func (s *State) EnsureHasLineage() {
 	s.Lock()
 	defer s.Unlock()
 
+	s.ensureHasLineage()
+}
+
+func (s *State) ensureHasLineage() {
 	if s.Lineage == "" {
 		s.Lineage = uuid.NewV4().String()
 		log.Printf("[DEBUG] New state was assigned lineage %q\n", s.Lineage)
@@ -648,6 +657,10 @@ func (s *State) AddModuleState(mod *ModuleState) {
 	s.Lock()
 	defer s.Unlock()
 
+	s.addModuleState(mod)
+}
+
+func (s *State) addModuleState(mod *ModuleState) {
 	for i, m := range s.Modules {
 		if reflect.DeepEqual(m.Path, mod.Path) {
 			s.Modules[i] = mod
