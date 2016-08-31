@@ -92,7 +92,7 @@ The supported built-in functions are:
     systems expect for IPv4 interfaces. For example,
     ``cidrmask("10.0.0.0/8")`` returns ``255.0.0.0``. Not applicable
     to IPv6 networks since CIDR notation is the only valid notation for
-    IPv6.
+    IPv4.
 
   * `cidrsubnet(iprange, newbits, netnum)` - Takes an IP address range in
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
