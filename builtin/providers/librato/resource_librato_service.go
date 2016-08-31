@@ -1,8 +1,6 @@
 package librato
 
 import (
-	//	"crypto/sha1"
-	//	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -39,10 +37,6 @@ func resourceLibratoService() *schema.Resource {
 				Type:      schema.TypeString,
 				Required:  true,
 				StateFunc: normalizeJson,
-				//StateFunc: func(v interface{}) string {
-				//	hash := sha1.Sum([]byte(v.(string)))
-				//	return hex.EncodeToString(hash[:])
-				//},
 			},
 		},
 	}

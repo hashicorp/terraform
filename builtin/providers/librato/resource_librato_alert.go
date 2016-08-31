@@ -100,7 +100,6 @@ func resourceLibratoAlert() *schema.Resource {
 					},
 				},
 			},
-			// TODO add missing condition attrs
 		},
 	}
 }
