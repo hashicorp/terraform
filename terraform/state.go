@@ -886,6 +886,9 @@ func (s *ModuleState) Unlock() { s.mu.Unlock() }
 
 // Equal tests whether one module state is equal to another.
 func (m *ModuleState) Equal(other *ModuleState) bool {
+	m.Lock()
+	defer m.Unlock()
+
 	// Paths must be equal
 	if !reflect.DeepEqual(m.Path, other.Path) {
 		return false
@@ -934,11 +937,16 @@ func (m *ModuleState) Equal(other *ModuleState) bool {
 
 // IsRoot says whether or not this module diff is for the root module.
 func (m *ModuleState) IsRoot() bool {
+	m.Lock()
+	defer m.Unlock()
 	return reflect.DeepEqual(m.Path, rootModulePath)
 }
 
 // IsDescendent returns true if other is a descendent of this module.
 func (m *ModuleState) IsDescendent(other *ModuleState) bool {
+	m.Lock()
+	defer m.Unlock()
+
 	i := len(m.Path)
 	return len(other.Path) > i && reflect.DeepEqual(other.Path[:i], m.Path)
 }
@@ -947,6 +955,9 @@ func (m *ModuleState) IsDescendent(other *ModuleState) bool {
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
 func (m *ModuleState) Orphans(c *config.Config) []string {
+	m.Lock()
+	defer m.Unlock()
+
 	keys := make(map[string]struct{})
 	for k, _ := range m.Resources {
 		keys[k] = struct{}{}
@@ -1028,6 +1039,9 @@ func (m *ModuleState) deepcopy() *ModuleState {
 
 // prune is used to remove any resources that are no longer required
 func (m *ModuleState) prune() {
+	m.Lock()
+	defer m.Unlock()
+
 	for k, v := range m.Resources {
 		v.prune()
 
@@ -1050,6 +1064,9 @@ func (m *ModuleState) sort() {
 }
 
 func (m *ModuleState) String() string {
+	m.Lock()
+	defer m.Unlock()
+
 	var buf bytes.Buffer
 
 	if len(m.Resources) == 0 {
