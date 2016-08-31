@@ -9,7 +9,12 @@ if ! which errcheck > /dev/null; then
     go get -u github.com/kisielk/errcheck
 fi
 
-err_files=$(errcheck -ignoretests -ignore 'github.com/hashicorp/terraform/helper/schema:Set,bytes:.*,os:.*,io:.*' ./builtin/providers/aws/...)
+err_files=$(errcheck -ignoretests -ignore \
+  'github.com/hashicorp/terraform/helper/schema:Set' \
+  -ignore 'bytes:.*' \
+  -ignore 'io:.*' \
+  ./builtin/providers/aws/...)
+
 if [[ -n ${err_files} ]]; then
     echo 'Unchecked errors found in the following places:'
     echo "${err_files}"
