@@ -1156,6 +1156,34 @@ func TestContext2Apply_countVariable(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_countVariableRef(t *testing.T) {
+	m := testModule(t, "apply-count-variable-ref")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyCountVariableRefStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_mapVariableOverride(t *testing.T) {
 	m := testModule(t, "apply-map-var-override")
 	p := testProvider("aws")
