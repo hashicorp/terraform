@@ -63,7 +63,7 @@ func (s *LocalState) State() *terraform.State {
 // the original.
 //
 // StateWriter impl.
-func (s *LocalState) WriteState(state *terraform.State) error {
+func (s *LocalState) WriteState(state *terraform.State) (err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -107,7 +107,7 @@ func (s *LocalState) PersistState() error {
 }
 
 // StateRefresher impl.
-func (s *LocalState) RefreshState() error {
+func (s *LocalState) RefreshState() (err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

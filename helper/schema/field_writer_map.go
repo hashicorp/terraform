@@ -127,7 +127,10 @@ func (w *MapFieldWriter) setList(
 	if err != nil {
 		for i, _ := range vs {
 			is := strconv.FormatInt(int64(i), 10)
-			setElement(is, nil)
+			err2 := setElement(is, nil)
+			if err2 != nil {
+				break
+			}
 		}
 
 		return err
@@ -203,7 +206,10 @@ func (w *MapFieldWriter) setObject(
 	}
 	if err != nil {
 		for k1, _ := range v {
-			w.set(append(addrCopy, k1), nil)
+			err2 := w.set(append(addrCopy, k1), nil)
+			if err2 != nil {
+				break
+			}
 		}
 	}
 

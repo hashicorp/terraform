@@ -1200,7 +1200,10 @@ func interpolationFuncMd5() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			s := args[0].(string)
 			h := md5.New()
-			h.Write([]byte(s))
+			_, err := h.Write([]byte(s))
+			if err != nil {
+				panic(err) // writing to md5 never fails
+			}
 			hash := hex.EncodeToString(h.Sum(nil))
 			return hash, nil
 		},
@@ -1247,7 +1250,10 @@ func interpolationFuncSha1() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			s := args[0].(string)
 			h := sha1.New()
-			h.Write([]byte(s))
+			_, err := h.Write([]byte(s))
+			if err != nil {
+				panic(err) // writing to sha1 never fails
+			}
 			hash := hex.EncodeToString(h.Sum(nil))
 			return hash, nil
 		},
@@ -1262,7 +1268,10 @@ func interpolationFuncSha256() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			s := args[0].(string)
 			h := sha256.New()
-			h.Write([]byte(s))
+			_, err := h.Write([]byte(s))
+			if err != nil {
+				panic(err) // writing to sha256 never fails
+			}
 			hash := hex.EncodeToString(h.Sum(nil))
 			return hash, nil
 		},
@@ -1301,7 +1310,10 @@ func interpolationFuncBase64Sha256() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			s := args[0].(string)
 			h := sha256.New()
-			h.Write([]byte(s))
+			_, err := h.Write([]byte(s))
+			if err != nil {
+				panic(err) // writing to sha256 never fails
+			}
 			shaSum := h.Sum(nil)
 			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
 			return encoded, nil

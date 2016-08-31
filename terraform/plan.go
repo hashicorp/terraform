@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"bytes"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -9,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/config/module"
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 func init() {

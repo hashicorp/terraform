@@ -2,7 +2,6 @@ package module
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 // RootName is the name of the root tree.

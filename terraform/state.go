@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/mitchellh/copystructure"
 	"github.com/satori/go.uuid"
 )
@@ -758,7 +759,7 @@ func (s *State) String() string {
 	s.Lock()
 	defer s.Unlock()
 
-	var buf bytes.Buffer
+	var buf bytesnoerror.Buffer
 	for _, m := range s.Modules {
 		mStr := m.String()
 
@@ -1176,7 +1177,7 @@ func (m *ModuleState) String() string {
 	m.Lock()
 	defer m.Unlock()
 
-	var buf bytes.Buffer
+	var buf bytesnoerror.Buffer
 
 	if len(m.Resources) == 0 {
 		buf.WriteString("<no state>")
@@ -1275,7 +1276,7 @@ func (m *ModuleState) String() string {
 				}
 				sort.Strings(mapKeys)
 
-				var mapBuf bytes.Buffer
+				var mapBuf bytesnoerror.Buffer
 				mapBuf.WriteString("{")
 				for _, key := range mapKeys {
 					mapBuf.WriteString(fmt.Sprintf("%s:%s ", key, vTyped[key]))
@@ -1543,7 +1544,7 @@ func (s *ResourceState) String() string {
 	s.Lock()
 	defer s.Unlock()
 
-	var buf bytes.Buffer
+	var buf bytesnoerror.Buffer
 	buf.WriteString(fmt.Sprintf("Type = %s", s.Type))
 	return buf.String()
 }
@@ -1719,7 +1720,7 @@ func (s *InstanceState) String() string {
 	s.Lock()
 	defer s.Unlock()
 
-	var buf bytes.Buffer
+	var buf bytesnoerror.Buffer
 
 	if s == nil || s.ID == "" {
 		return "<not created>"
@@ -1977,7 +1978,7 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	// Now we write the state back out to detect any changes in normaliztion.
 	// If our state is now written out differently, bump the serial number to
 	// prevent conflicts.
-	var buf bytes.Buffer
+	var buf bytesnoerror.Buffer
 	err := WriteState(state, &buf)
 	if err != nil {
 		return nil, err

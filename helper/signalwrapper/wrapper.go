@@ -79,7 +79,12 @@ func Run(f CancellableFunc) *Wrapped {
 			// Stop the function. Goroutine since we don't care about
 			// the result and we'd like to end this goroutine as soon
 			// as possible to avoid any more signals coming in.
-			go wrapped.Cancel()
+			go func() {
+				err := wrapped.Cancel()
+				if err != nil {
+					log.Printf("[WARN] signalwrapper: failed to cancel wrapped function: %v", err)
+				}
+			}()
 		}
 	}()
 

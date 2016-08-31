@@ -31,7 +31,7 @@ const (
 //
 // This copy will omit and dot-prefixed files (such as .git/, .hg/) and
 // can't be updated on its own.
-func GetCopy(dst, src string) error {
+func GetCopy(dst, src string) (err error) {
 	// Create the temporary directory to do the real Get to
 	tmpDir, err := ioutil.TempDir("", "tf")
 	if err != nil {
@@ -42,7 +42,12 @@ func GetCopy(dst, src string) error {
 	if err := os.RemoveAll(tmpDir); err != nil {
 		return err
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		err2 := os.RemoveAll(tmpDir)
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Get to that temporary dir
 	if err := getter.Get(tmpDir, src); err != nil {

@@ -1,10 +1,11 @@
 package schema
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strconv"
+
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 func SerializeValueForHash(buf *bytes.Buffer, val interface{}, schema *Schema) {

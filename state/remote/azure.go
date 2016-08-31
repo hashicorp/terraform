@@ -164,7 +164,7 @@ type AzureClient struct {
 	leaseID       string
 }
 
-func (c *AzureClient) Get() (*Payload, error) {
+func (c *AzureClient) Get() (payload *Payload, err error) {
 	containerReference := c.blobClient.GetContainerReference(c.containerName)
 	blobReference := containerReference.GetBlobReference(c.keyName)
 	options := &mainStorage.GetBlobOptions{}
@@ -178,14 +178,19 @@ func (c *AzureClient) Get() (*Payload, error) {
 		return nil, err
 	}
 
-	defer blob.Close()
+	defer func() {
+		err2 := blob.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	data, err := ioutil.ReadAll(blob)
 	if err != nil {
 		return nil, err
 	}
 
-	payload := &Payload{
+	payload = &Payload{
 		Data: data,
 	}
 

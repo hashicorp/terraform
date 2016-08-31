@@ -118,7 +118,7 @@ func gcsFactory(conf map[string]string) (Client, error) {
 
 }
 
-func (c *GCSClient) Get() (*Payload, error) {
+func (c *GCSClient) Get() (payload *Payload, err error) {
 	// Read the object from bucket.
 	log.Printf("[INFO] Reading %s/%s", c.bucket, c.path)
 
@@ -132,7 +132,12 @@ func (c *GCSClient) Get() (*Payload, error) {
 
 		return nil, fmt.Errorf("[WARN] Error retrieving object %s/%s: %s", c.bucket, c.path, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	var buf []byte
 	w := bytes.NewBuffer(buf)
@@ -142,7 +147,7 @@ func (c *GCSClient) Get() (*Payload, error) {
 	}
 	log.Printf("[INFO] Downloaded %d bytes", n)
 
-	payload := &Payload{
+	payload = &Payload{
 		Data: w.Bytes(),
 	}
 

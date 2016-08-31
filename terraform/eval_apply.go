@@ -319,10 +319,13 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*config.Provision
 
 		// The output function
 		outputFn := func(msg string) {
-			ctx.Hook(func(h Hook) (HookAction, error) {
+			err := ctx.Hook(func(h Hook) (HookAction, error) {
 				h.ProvisionOutput(n.Info, prov.Type, msg)
 				return HookActionContinue, nil
 			})
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		// Invoke the Provisioner

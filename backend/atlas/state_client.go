@@ -58,7 +58,12 @@ func (c *stateClient) Get() (*remote.Payload, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Handle the common status codes
 	switch resp.StatusCode {
@@ -141,7 +146,12 @@ func (c *stateClient) Put(state []byte) error {
 	if err != nil {
 		return fmt.Errorf("Failed to upload state: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Handle the error codes
 	switch resp.StatusCode {
@@ -173,7 +183,12 @@ func (c *stateClient) Delete() error {
 	if err != nil {
 		return fmt.Errorf("Failed to delete state: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Handle the error codes
 	switch resp.StatusCode {

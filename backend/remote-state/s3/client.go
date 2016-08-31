@@ -91,7 +91,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	return payload, err
 }
 
-func (c *RemoteClient) get() (*remote.Payload, error) {
+func (c *RemoteClient) get() (payload *remote.Payload, err error) {
 	output, err := c.s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: &c.bucketName,
 		Key:    &c.path,
@@ -109,7 +109,12 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 		}
 	}
 
-	defer output.Body.Close()
+	defer func() {
+		err2 := output.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	buf := bytes.NewBuffer(nil)
 	if _, err := io.Copy(buf, output.Body); err != nil {
@@ -117,7 +122,7 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	}
 
 	sum := md5.Sum(buf.Bytes())
-	payload := &remote.Payload{
+	payload = &remote.Payload{
 		Data: buf.Bytes(),
 		MD5:  sum[:],
 	}

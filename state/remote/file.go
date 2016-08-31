@@ -25,7 +25,7 @@ type FileClient struct {
 	Path string
 }
 
-func (c *FileClient) Get() (*Payload, error) {
+func (c *FileClient) Get() (payload *Payload, err error) {
 	var buf bytes.Buffer
 	f, err := os.Open(c.Path)
 	if err != nil {
@@ -35,7 +35,12 @@ func (c *FileClient) Get() (*Payload, error) {
 
 		return nil, err
 	}
-	defer f.Close()
+	defer func() {
+		err2 := f.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	if _, err := io.Copy(&buf, f); err != nil {
 		return nil, err
@@ -48,12 +53,17 @@ func (c *FileClient) Get() (*Payload, error) {
 	}, nil
 }
 
-func (c *FileClient) Put(data []byte) error {
+func (c *FileClient) Put(data []byte) (err error) {
 	f, err := os.Create(c.Path)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		err2 := f.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	_, err = f.Write(data)
 	return err

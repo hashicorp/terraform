@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"sort"
 	"strings"
 
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/mitchellh/cli"
 )
 

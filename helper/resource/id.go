@@ -34,6 +34,9 @@ func PrefixedUniqueId(prefix string) string {
 
 func randomBytes(n int) []byte {
 	b := make([]byte, n)
-	rand.Read(b)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(fmt.Sprintf("failed to read random data: %v", err))
+	}
 	return b
 }
