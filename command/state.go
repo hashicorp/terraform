@@ -76,7 +76,9 @@ func State(opts *StateOpts) (*StateResult, error) {
 				return nil, err
 			}
 			is := &state.InmemState{}
-			is.WriteState(ls.State())
+			if err := is.WriteState(ls.State()); err != nil {
+				panic(err) // inmem state never fails
+			}
 
 			// Setupt he remote state, cache-only, and refresh it so that
 			// we have access to the state right away.

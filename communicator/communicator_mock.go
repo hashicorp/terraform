@@ -59,7 +59,10 @@ func (c *MockCommunicator) Upload(path string, input io.Reader) error {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(input)
+	_, err := buf.ReadFrom(input)
+	if err != nil {
+		return err
+	}
 	content := strings.TrimSpace(buf.String())
 
 	f = strings.TrimSpace(f)

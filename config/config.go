@@ -487,7 +487,7 @@ func (c *Config) Validate() error {
 		}
 
 		// Interpolate with a fixed number to verify that its a number.
-		r.RawCount.interpolate(func(root ast.Node) (interface{}, error) {
+		err := r.RawCount.interpolate(func(root ast.Node) (interface{}, error) {
 			// Execute the node but transform the AST so that it returns
 			// a fixed value of "5" for all interpolations.
 			result, err := hil.Eval(
@@ -500,13 +500,19 @@ func (c *Config) Validate() error {
 
 			return result.Value, nil
 		})
-		_, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		_, err = strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
 		if err != nil {
 			errs = append(errs, fmt.Errorf(
 				"%s: resource count must be an integer",
 				n))
 		}
-		r.RawCount.init()
+		err = r.RawCount.init()
+		if err != nil {
+			errs = append(errs, err)
+		}
 
 		// Verify depends on points to resources that all exist
 		for _, d := range r.DependsOn {

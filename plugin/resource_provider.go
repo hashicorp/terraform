@@ -392,7 +392,7 @@ type ResourceProviderValidateResourceResponse struct {
 
 func (s *ResourceProviderServer) Input(
 	args *ResourceProviderInputArgs,
-	reply *ResourceProviderInputResponse) error {
+	reply *ResourceProviderInputResponse) (err error) {
 	conn, err := s.Broker.Dial(args.InputId)
 	if err != nil {
 		*reply = ResourceProviderInputResponse{
@@ -401,7 +401,12 @@ func (s *ResourceProviderServer) Input(
 		return nil
 	}
 	client := rpc.NewClient(conn)
-	defer client.Close()
+	defer func() {
+		err2 := client.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	input := &UIInput{Client: client}
 

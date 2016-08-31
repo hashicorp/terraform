@@ -2,7 +2,6 @@ package command
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"sync"
 	"unicode"
 
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/colorstring"
 )

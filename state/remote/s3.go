@@ -109,7 +109,7 @@ type S3Client struct {
 	kmsKeyID             string
 }
 
-func (c *S3Client) Get() (*Payload, error) {
+func (c *S3Client) Get() (payload *Payload, err error) {
 	output, err := c.nativeClient.GetObject(&s3.GetObjectInput{
 		Bucket: &c.bucketName,
 		Key:    &c.keyName,
@@ -127,14 +127,19 @@ func (c *S3Client) Get() (*Payload, error) {
 		}
 	}
 
-	defer output.Body.Close()
+	defer func() {
+		err2 := output.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	buf := bytes.NewBuffer(nil)
 	if _, err := io.Copy(buf, output.Body); err != nil {
 		return nil, fmt.Errorf("Failed to read remote state: %s", err)
 	}
 
-	payload := &Payload{
+	payload = &Payload{
 		Data: buf.Bytes(),
 	}
 

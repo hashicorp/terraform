@@ -134,7 +134,9 @@ func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw i
 		addrCopy.Path = append(addrCopy.Path, extra...)
 
 		// Add it
-		s.Add(fromAddr.String(), addrCopy.String(), item)
+		if err := s.Add(fromAddr.String(), addrCopy.String(), item); err != nil {
+			return err
+		}
 	}
 
 	return nil

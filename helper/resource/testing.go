@@ -442,7 +442,7 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 
 func testModule(
 	opts terraform.ContextOpts,
-	step TestStep) (*module.Tree, error) {
+	step TestStep) (mod *module.Tree, err error) {
 	if step.PreConfig != nil {
 		step.PreConfig()
 	}
@@ -452,7 +452,13 @@ func testModule(
 		return nil, fmt.Errorf(
 			"Error creating temporary directory for config: %s", err)
 	}
-	defer os.RemoveAll(cfgPath)
+	defer func() {
+		err2 := os.RemoveAll(cfgPath)
+		if err == nil {
+			err = fmt.Errorf(
+				"Error removing temporary directory for config: %s", err2)
+		}
+	}()
 
 	// Write the configuration
 	cfgF, err := os.Create(filepath.Join(cfgPath, "main.tf"))
@@ -462,14 +468,18 @@ func testModule(
 	}
 
 	_, err = io.Copy(cfgF, strings.NewReader(step.Config))
-	cfgF.Close()
+	err2 := cfgF.Close()
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Error creating temporary file for config: %s", err)
 	}
+	if err2 != nil {
+		return nil, fmt.Errorf(
+			"Error closing temporary file for config: %s", err)
+	}
 
 	// Parse the configuration
-	mod, err := module.NewTreeModule("", cfgPath)
+	mod, err = module.NewTreeModule("", cfgPath)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Error loading configuration: %s", err)

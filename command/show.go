@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -47,7 +48,12 @@ func (c *ShowCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
 			return 1
 		}
-		defer f.Close()
+		defer func() {
+			err := f.Close()
+			if err != nil {
+				log.Printf("[WARN] Error closing file after loading: %v", err)
+			}
+		}()
 
 		plan, err = terraform.ReadPlan(f)
 		if err != nil {

@@ -150,17 +150,28 @@ func (c *Communicator) Start(rc *remote.Cmd) error {
 }
 
 func runCommand(shell *winrm.Shell, cmd *winrm.Command, rc *remote.Cmd) {
-	defer shell.Close()
+	defer func() {
+		err := shell.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	var wg sync.WaitGroup
 	go func() {
 		wg.Add(1)
-		io.Copy(rc.Stdout, cmd.Stdout)
+		_, err := io.Copy(rc.Stdout, cmd.Stdout)
+		if err != nil {
+			panic(err)
+		}
 		wg.Done()
 	}()
 	go func() {
 		wg.Add(1)
-		io.Copy(rc.Stderr, cmd.Stderr)
+		_, err := io.Copy(rc.Stderr, cmd.Stderr)
+		if err != nil {
+			panic(err)
+		}
 		wg.Done()
 	}()
 

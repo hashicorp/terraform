@@ -103,7 +103,7 @@ func (g *AcyclicGraph) TransitiveReduction() {
 		uTargets := g.DownEdges(u)
 		vs := AsVertexList(g.DownEdges(u))
 
-		g.DepthFirstWalk(vs, func(v Vertex, d int) error {
+		err := g.DepthFirstWalk(vs, func(v Vertex, d int) error {
 			shared := uTargets.Intersection(g.DownEdges(v))
 			for _, vPrime := range AsVertexList(shared) {
 				g.RemoveEdge(BasicEdge(u, vPrime))
@@ -111,6 +111,9 @@ func (g *AcyclicGraph) TransitiveReduction() {
 
 			return nil
 		})
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

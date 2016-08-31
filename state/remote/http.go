@@ -56,12 +56,17 @@ type HTTPClient struct {
 	Client *http.Client
 }
 
-func (c *HTTPClient) Get() (*Payload, error) {
+func (c *HTTPClient) Get() (payload *Payload, err error) {
 	resp, err := c.Client.Get(c.URL.String())
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Handle the common status codes
 	switch resp.StatusCode {
@@ -88,7 +93,7 @@ func (c *HTTPClient) Get() (*Payload, error) {
 	}
 
 	// Create the payload
-	payload := &Payload{
+	payload = &Payload{
 		Data: buf.Bytes(),
 	}
 
@@ -147,7 +152,12 @@ func (c *HTTPClient) Put(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("Failed to upload state: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Handle the error codes
 	switch resp.StatusCode {
@@ -158,7 +168,7 @@ func (c *HTTPClient) Put(data []byte) error {
 	}
 }
 
-func (c *HTTPClient) Delete() error {
+func (c *HTTPClient) Delete() (err error) {
 	req, err := http.NewRequest("DELETE", c.URL.String(), nil)
 	if err != nil {
 		return fmt.Errorf("Failed to make HTTP request: %s", err)
@@ -169,7 +179,12 @@ func (c *HTTPClient) Delete() error {
 	if err != nil {
 		return fmt.Errorf("Failed to delete state: %s", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Handle the error codes
 	switch resp.StatusCode {

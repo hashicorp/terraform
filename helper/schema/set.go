@@ -1,13 +1,13 @@
 package schema
 
 import (
-	"bytes"
 	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
 	"sync"
 
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/hashicorp/terraform/helper/hashcode"
 )
 

@@ -78,8 +78,8 @@ type EvalCloseProvider struct {
 }
 
 func (n *EvalCloseProvider) Eval(ctx EvalContext) (interface{}, error) {
-	ctx.CloseProvider(n.Name)
-	return nil, nil
+	err := ctx.CloseProvider(n.Name)
+	return nil, err
 }
 
 // EvalGetProvider is an EvalNode implementation that retrieves an already

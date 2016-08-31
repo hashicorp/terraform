@@ -1,8 +1,9 @@
 package dot
 
 import (
-	"bytes"
 	"fmt"
+
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 // graphWriter wraps a bytes.Buffer and tracks indent level levels.

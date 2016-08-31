@@ -2,7 +2,6 @@ package ssh
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -79,7 +79,10 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 // Connect implementation of communicator.Communicator interface
 func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	if c.conn != nil {
-		c.conn.Close()
+		err = c.conn.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Set the conn and client to nil since we'll recreate it
@@ -152,7 +155,12 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 		if err != nil {
 			return err
 		}
-		defer session.Close()
+		defer func() {
+			err := session.Close()
+			if err != nil {
+				log.Printf("[WARN] Error closing SSH session: %v", err)
+			}
+		}()
 
 		err = agent.RequestAgentForwarding(session)
 
@@ -225,7 +233,12 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	// Start a goroutine to wait for the session to end and set the
 	// exit boolean and status.
 	go func() {
-		defer session.Close()
+		defer func() {
+			err := session.Close()
+			if err != nil {
+				log.Printf("[WARN] Error closing SSH session: %v", err)
+			}
+		}()
 
 		err := session.Wait()
 		exitStatus := 0
@@ -274,7 +287,9 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 		script.WriteString(DefaultShebang)
 	}
 
-	script.ReadFrom(reader)
+	if _, err := script.ReadFrom(reader); err != nil {
+		return err
+	}
 	if err := c.Upload(path, &script); err != nil {
 		return err
 	}
@@ -304,12 +319,17 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 func (c *Communicator) UploadDir(dst string, src string) error {
 	log.Printf("Uploading dir '%s' to '%s'", src, dst)
 	scpFunc := func(w io.Writer, r *bufio.Reader) error {
-		uploadEntries := func() error {
+		uploadEntries := func() (err error) {
 			f, err := os.Open(src)
 			if err != nil {
 				return err
 			}
-			defer f.Close()
+			defer func() {
+				err2 := f.Close()
+				if err == nil {
+					err = err2
+				}
+			}()
 
 			entries, err := f.Readdir(-1)
 			if err != nil {
@@ -350,12 +370,17 @@ func (c *Communicator) newSession() (session *ssh.Session, err error) {
 	return session, nil
 }
 
-func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Reader) error) error {
+func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Reader) error) (err error) {
 	session, err := c.newSession()
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+	defer func() {
+		err2 := session.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Get a pipe to stdin so that we can send data down
 	stdinW, err := session.StdinPipe()
@@ -367,7 +392,10 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 	// and only close in the defer if it hasn't been closed already.
 	defer func() {
 		if stdinW != nil {
-			stdinW.Close()
+			err2 := stdinW.Close()
+			if err == nil {
+				err = err2
+			}
 		}
 	}()
 
@@ -401,7 +429,10 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 	// our defer func doesn't close it again since that is unsafe with
 	// the Go SSH package.
 	log.Println("SCP session complete, closing stdin pipe.")
-	stdinW.Close()
+	err = stdinW.Close()
+	if err != nil {
+		return err
+	}
 	stdinW = nil
 
 	// Wait for the SCP connection to close, meaning it has consumed all
@@ -452,15 +483,23 @@ func checkSCPStatus(r *bufio.Reader) error {
 	return nil
 }
 
-func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader) error {
+func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader) (err error) {
 	// Create a temporary file where we can copy the contents of the src
 	// so that we can determine the length, since SCP is length-prefixed.
 	tf, err := ioutil.TempFile("", "terraform-upload")
 	if err != nil {
 		return fmt.Errorf("Error creating temporary file for upload: %s", err)
 	}
-	defer os.Remove(tf.Name())
-	defer tf.Close()
+	defer func() {
+		err2 := tf.Close()
+		if err == nil {
+			err = err2
+		}
+		err2 = os.Remove(tf.Name())
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	log.Println("Copying input data into temporary file so we can read the length")
 	if _, err := io.Copy(tf, src); err != nil {
@@ -552,8 +591,13 @@ func scpUploadDir(root string, fs []os.FileInfo, w io.Writer, r *bufio.Reader) e
 				return err
 			}
 
-			err = func() error {
-				defer f.Close()
+			err = func() (err error) {
+				defer func() {
+					err2 := f.Close()
+					if err == nil {
+						err = err2
+					}
+				}()
 				return scpUploadFile(fi.Name(), f, w, r)
 			}()
 
@@ -565,12 +609,17 @@ func scpUploadDir(root string, fs []os.FileInfo, w io.Writer, r *bufio.Reader) e
 		}
 
 		// It is a directory, recursively upload
-		err := scpUploadDirProtocol(fi.Name(), w, r, func() error {
+		err := scpUploadDirProtocol(fi.Name(), w, r, func() (err error) {
 			f, err := os.Open(realPath)
 			if err != nil {
 				return err
 			}
-			defer f.Close()
+			defer func() {
+				err2 := f.Close()
+				if err == nil {
+					err = err2
+				}
+			}()
 
 			entries, err := f.Readdir(-1)
 			if err != nil {
@@ -598,7 +647,10 @@ func ConnectFunc(network, addr string) func() (net.Conn, error) {
 		}
 
 		if tcpConn, ok := c.(*net.TCPConn); ok {
-			tcpConn.SetKeepAlive(true)
+			err := tcpConn.SetKeepAlive(true)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		return c, nil
@@ -623,7 +675,10 @@ func BastionConnectFunc(
 		log.Printf("[DEBUG] Connecting via bastion (%s) to host: %s", bAddr, addr)
 		conn, err := bastion.Dial(proto, addr)
 		if err != nil {
-			bastion.Close()
+			err2 := bastion.Close()
+			if err2 != nil {
+				log.Printf("[WARN] Failed to close bastion connection: %s", err2)
+			}
 			return nil, err
 		}
 
@@ -641,6 +696,9 @@ type bastionConn struct {
 }
 
 func (c *bastionConn) Close() error {
-	c.Conn.Close()
+	err := c.Conn.Close()
+	if err != nil {
+		return err
+	}
 	return c.Bastion.Close()
 }

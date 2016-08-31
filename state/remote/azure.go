@@ -132,7 +132,7 @@ type AzureClient struct {
 	keyName       string
 }
 
-func (c *AzureClient) Get() (*Payload, error) {
+func (c *AzureClient) Get() (payload *Payload, err error) {
 	blob, err := c.blobClient.GetBlob(c.containerName, c.keyName)
 	if err != nil {
 		if storErr, ok := err.(mainStorage.AzureStorageServiceError); ok {
@@ -143,14 +143,19 @@ func (c *AzureClient) Get() (*Payload, error) {
 		return nil, err
 	}
 
-	defer blob.Close()
+	defer func() {
+		err2 := blob.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	data, err := ioutil.ReadAll(blob)
 	if err != nil {
 		return nil, err
 	}
 
-	payload := &Payload{
+	payload = &Payload{
 		Data: data,
 	}
 

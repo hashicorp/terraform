@@ -1,7 +1,6 @@
 package command
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"sort"
@@ -10,6 +9,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/hashicorp/terraform/terraform"
 )
 

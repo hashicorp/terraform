@@ -109,7 +109,7 @@ type ResourceProvisionerServer struct {
 
 func (s *ResourceProvisionerServer) Apply(
 	args *ResourceProvisionerApplyArgs,
-	result *ResourceProvisionerApplyResponse) error {
+	result *ResourceProvisionerApplyResponse) (err error) {
 	conn, err := s.Broker.Dial(args.OutputId)
 	if err != nil {
 		*result = ResourceProvisionerApplyResponse{
@@ -118,7 +118,12 @@ func (s *ResourceProvisionerServer) Apply(
 		return nil
 	}
 	client := rpc.NewClient(conn)
-	defer client.Close()
+	defer func() {
+		err2 := client.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	output := &UIOutput{Client: client}
 

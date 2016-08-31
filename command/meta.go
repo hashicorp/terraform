@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -106,7 +107,10 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	f, err := os.Open(copts.Path)
 	if err == nil {
 		plan, err := terraform.ReadPlan(f)
-		f.Close()
+		err2 := f.Close()
+		if err2 != nil {
+			log.Printf("[WARN] Error closing plan after reading: %v", err2)
+		}
 		if err == nil {
 			// Setup our state
 			state, statePath, err := StateFromPlan(m.statePath, m.stateOutPath, plan)

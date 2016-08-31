@@ -72,10 +72,16 @@ func loadTree(root string) (*importTree, error) {
 // importTree is not bound to these.
 func (t *importTree) Close() error {
 	if c, ok := t.Raw.(io.Closer); ok {
-		c.Close()
+		err := c.Close()
+		if err != nil {
+			return err
+		}
 	}
 	for _, ct := range t.Children {
-		ct.Close()
+		err := ct.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

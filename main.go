@@ -41,8 +41,16 @@ func realMain() int {
 			fmt.Fprintf(os.Stderr, "Couldn't setup logging tempfile: %s", err)
 			return 1
 		}
-		defer os.Remove(logTempFile.Name())
-		defer logTempFile.Close()
+		defer func() {
+			err := logTempFile.Close()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Couldn't close temporary log file: %s", err)
+			}
+			err = os.Remove(logTempFile.Name())
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Couldn't remove temporary log file: %s", err)
+			}
+		}()
 
 		// Setup the prefixed readers that send data properly to
 		// stdout/stderr.
@@ -63,7 +71,10 @@ func realMain() int {
 		// If >= 0, we're the parent, so just exit
 		if exitStatus >= 0 {
 			// Close the stdout writer so that our copy process can finish
-			outW.Close()
+			err := outW.Close()
+			if err != nil {
+				panic(err)
+			}
 
 			// Wait for the output copying to finish
 			<-doneCh
@@ -73,7 +84,10 @@ func realMain() int {
 
 		// We're the child, so just close the tempfile we made in order to
 		// save file handles since the tempfile is only used by the parent.
-		logTempFile.Close()
+		err = logTempFile.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't close temporary log file: %s", err)
+		}
 	}
 
 	// Call the real main
@@ -169,8 +183,8 @@ func cliConfigFile() (string, error) {
 	log.Printf("[DEBUG] Attempting to open CLI config file: %s", configFilePath)
 	f, err := os.Open(configFilePath)
 	if err == nil {
-		f.Close()
-		return configFilePath, nil
+		err = f.Close()
+		return configFilePath, err
 	}
 
 	if mustExist || !os.IsNotExist(err) {
@@ -217,15 +231,24 @@ func copyOutput(r io.Reader, doneCh chan<- struct{}) {
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		io.Copy(stderr, stderrR)
+		_, err := io.Copy(stderr, stderrR)
+		if err != nil {
+			panic(err)
+		}
 	}()
 	go func() {
 		defer wg.Done()
-		io.Copy(stdout, stdoutR)
+		_, err := io.Copy(stdout, stdoutR)
+		if err != nil {
+			panic(err)
+		}
 	}()
 	go func() {
 		defer wg.Done()
-		io.Copy(stdout, defaultR)
+		_, err := io.Copy(stdout, defaultR)
+		if err != nil {
+			panic(err)
+		}
 	}()
 
 	wg.Wait()

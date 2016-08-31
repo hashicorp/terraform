@@ -22,8 +22,8 @@ type EvalCloseProvisioner struct {
 }
 
 func (n *EvalCloseProvisioner) Eval(ctx EvalContext) (interface{}, error) {
-	ctx.CloseProvisioner(n.Name)
-	return nil, nil
+	err := ctx.CloseProvisioner(n.Name)
+	return nil, err
 }
 
 // EvalGetProvisioner is an EvalNode implementation that retrieves an already

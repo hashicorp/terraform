@@ -2,10 +2,11 @@
 package dot
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strings"
+
+	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 // Graph is a representation of a drawable DOT graph.

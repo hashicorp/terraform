@@ -45,10 +45,13 @@ func LoadFile(path string) (*Config, error) {
 
 	// Close the importTree now so that we can clear resources as quickly
 	// as possible.
-	importTree.Close()
+	err2 := importTree.Close()
 
 	if err != nil {
 		return nil, err
+	}
+	if err2 != nil {
+		return nil, err2
 	}
 
 	return configTree.Flatten()
@@ -149,12 +152,17 @@ func ext(path string) string {
 	}
 }
 
-func dirFiles(dir string) ([]string, []string, error) {
+func dirFiles(dir string) (files []string, overrides []string, err error) {
 	f, err := os.Open(dir)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer f.Close()
+	defer func() {
+		err2 := f.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	fi, err := f.Stat()
 	if err != nil {
@@ -166,7 +174,6 @@ func dirFiles(dir string) ([]string, []string, error) {
 			dir)
 	}
 
-	var files, overrides []string
 	err = nil
 	for err != io.EOF {
 		var fis []os.FileInfo

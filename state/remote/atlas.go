@@ -87,7 +87,7 @@ type AtlasClient struct {
 	conflictHandlingAttempted bool
 }
 
-func (c *AtlasClient) Get() (*Payload, error) {
+func (c *AtlasClient) Get() (payload *Payload, err error) {
 	// Make the HTTP request
 	req, err := retryablehttp.NewRequest("GET", c.url().String(), nil)
 	if err != nil {
@@ -105,7 +105,12 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Handle the common status codes
 	switch resp.StatusCode {
@@ -134,7 +139,7 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	}
 
 	// Create the payload
-	payload := &Payload{
+	payload = &Payload{
 		Data: buf.Bytes(),
 	}
 
@@ -159,7 +164,7 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	return payload, nil
 }
 
-func (c *AtlasClient) Put(state []byte) error {
+func (c *AtlasClient) Put(state []byte) (err error) {
 	// Get the target URL
 	base := c.url()
 
@@ -188,7 +193,12 @@ func (c *AtlasClient) Put(state []byte) error {
 	if err != nil {
 		return fmt.Errorf("Failed to upload state: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Handle the error codes
 	switch resp.StatusCode {
@@ -203,7 +213,7 @@ func (c *AtlasClient) Put(state []byte) error {
 	}
 }
 
-func (c *AtlasClient) Delete() error {
+func (c *AtlasClient) Delete() (err error) {
 	// Make the HTTP request
 	req, err := retryablehttp.NewRequest("DELETE", c.url().String(), nil)
 	if err != nil {
@@ -220,7 +230,12 @@ func (c *AtlasClient) Delete() error {
 	if err != nil {
 		return fmt.Errorf("Failed to delete state: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err2 := resp.Body.Close()
+		if err == nil {
+			err = err2
+		}
+	}()
 
 	// Handle the error codes
 	switch resp.StatusCode {

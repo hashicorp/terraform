@@ -47,7 +47,7 @@ func upgradeStateV2ToV3(old *State) (*State, error) {
 	return new, nil
 }
 
-func upgradeAttributesV2ToV3(instanceState *InstanceState) error {
+func upgradeAttributesV2ToV3(instanceState *InstanceState) {
 	collectionKeyRegexp := regexp.MustCompile(`^(.*\.)#$`)
 	collectionSubkeyRegexp := regexp.MustCompile(`^([^\.]+)\..*`)
 
@@ -117,8 +117,6 @@ func upgradeAttributesV2ToV3(instanceState *InstanceState) error {
 				strings.TrimSuffix(prefix, "."))
 		}
 	}
-
-	return nil
 }
 
 // uniqueSortedStrings removes duplicates from a slice of strings and returns
