@@ -141,6 +141,7 @@ func resourceLibratoServiceReadResult(d *schema.ResourceData, service *librato.S
 	d.Set("id", *service.ID)
 	d.Set("type", *service.Type)
 	d.Set("title", *service.Title)
+	settings, _ := resourceLibratoServicesFlatten(service.Settings)
 	d.Set("settings", settings)
 
 	return nil
