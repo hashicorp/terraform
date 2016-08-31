@@ -28,6 +28,8 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"librato_space":       resourceLibratoSpace(),
 			"librato_space_chart": resourceLibratoSpaceChart(),
+			"librato_alert":       resourceLibratoAlert(),
+			"librato_service":     resourceLibratoService(),
 		},
 
 		ConfigureFunc: providerConfigure,
