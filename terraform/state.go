@@ -1470,36 +1470,36 @@ type InstanceState struct {
 func (s *InstanceState) Lock()   { s.mu.Lock() }
 func (s *InstanceState) Unlock() { s.mu.Unlock() }
 
-func (i *InstanceState) init() {
-	i.Lock()
-	defer i.Unlock()
+func (s *InstanceState) init() {
+	s.Lock()
+	defer s.Unlock()
 
-	if i.Attributes == nil {
-		i.Attributes = make(map[string]string)
+	if s.Attributes == nil {
+		s.Attributes = make(map[string]string)
 	}
-	if i.Meta == nil {
-		i.Meta = make(map[string]string)
+	if s.Meta == nil {
+		s.Meta = make(map[string]string)
 	}
-	i.Ephemeral.init()
+	s.Ephemeral.init()
 }
 
 // Copy all the Fields from another InstanceState
-func (i *InstanceState) Set(from *InstanceState) {
-	i.Lock()
-	defer i.Unlock()
+func (s *InstanceState) Set(from *InstanceState) {
+	s.Lock()
+	defer s.Unlock()
 
 	from.Lock()
 	defer from.Unlock()
 
-	i.ID = from.ID
-	i.Attributes = from.Attributes
-	i.Ephemeral = from.Ephemeral
-	i.Meta = from.Meta
-	i.Tainted = from.Tainted
+	s.ID = from.ID
+	s.Attributes = from.Attributes
+	s.Ephemeral = from.Ephemeral
+	s.Meta = from.Meta
+	s.Tainted = from.Tainted
 }
 
-func (i *InstanceState) DeepCopy() *InstanceState {
-	copy, err := copystructure.Config{Lock: true}.Copy(i)
+func (s *InstanceState) DeepCopy() *InstanceState {
+	copy, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(err)
 	}
@@ -1508,7 +1508,13 @@ func (i *InstanceState) DeepCopy() *InstanceState {
 }
 
 func (s *InstanceState) Empty() bool {
-	return s == nil || s.ID == ""
+	if s == nil {
+		return true
+	}
+	s.Lock()
+	defer s.Unlock()
+
+	return s.ID == ""
 }
 
 func (s *InstanceState) Equal(other *InstanceState) bool {
@@ -1516,6 +1522,8 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 	if s == nil || other == nil {
 		return s == other
 	}
+	s.Lock()
+	defer s.Unlock()
 
 	// IDs must be equal
 	if s.ID != other.ID {
@@ -1575,6 +1583,8 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	result.init()
 
 	if s != nil {
+		s.Lock()
+		defer s.Unlock()
 		for k, v := range s.Attributes {
 			result.Attributes[k] = v
 		}
@@ -1597,16 +1607,19 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	return result
 }
 
-func (i *InstanceState) String() string {
+func (s *InstanceState) String() string {
+	s.Lock()
+	defer s.Unlock()
+
 	var buf bytes.Buffer
 
-	if i == nil || i.ID == "" {
+	if s == nil || s.ID == "" {
 		return "<not created>"
 	}
 
-	buf.WriteString(fmt.Sprintf("ID = %s\n", i.ID))
+	buf.WriteString(fmt.Sprintf("ID = %s\n", s.ID))
 
-	attributes := i.Attributes
+	attributes := s.Attributes
 	attrKeys := make([]string, 0, len(attributes))
 	for ak, _ := range attributes {
 		if ak == "id" {
@@ -1622,7 +1635,7 @@ func (i *InstanceState) String() string {
 		buf.WriteString(fmt.Sprintf("%s = %s\n", ak, av))
 	}
 
-	buf.WriteString(fmt.Sprintf("Tainted = %t\n", i.Tainted))
+	buf.WriteString(fmt.Sprintf("Tainted = %t\n", s.Tainted))
 
 	return buf.String()
 }
