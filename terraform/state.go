@@ -814,6 +814,8 @@ func (s *OutputState) Equal(other *OutputState) bool {
 	if s == nil || other == nil {
 		return false
 	}
+	s.Lock()
+	defer s.Unlock()
 
 	if s.Type != other.Type {
 		return false
