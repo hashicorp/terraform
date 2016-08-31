@@ -403,7 +403,10 @@ resource "aws_iam_role" "test-role" {
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "Service": "spotfleet.amazonaws.com"
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
@@ -451,7 +454,10 @@ resource "aws_iam_role" "test-role" {
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "Service": "spotfleet.amazonaws.com"
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
@@ -499,7 +505,10 @@ resource "aws_iam_role" "test-role" {
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "Service": "spotfleet.amazonaws.com"
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
@@ -554,7 +563,10 @@ resource "aws_iam_role" "test-role" {
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "Service": "spotfleet.amazonaws.com"
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
@@ -625,7 +637,10 @@ resource "aws_iam_role" "test-role" {
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "Service": "spotfleet.amazonaws.com"
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
@@ -680,7 +695,10 @@ resource "aws_iam_role" "test-role" {
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "Service": "spotfleet.amazonaws.com"
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
@@ -745,7 +763,10 @@ resource "aws_iam_role" "test-role" {
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "Service": "spotfleet.amazonaws.com"
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
@@ -801,7 +822,10 @@ resource "aws_iam_role" "test-role" {
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "Service": "spotfleet.amazonaws.com"
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
@@ -863,7 +887,10 @@ resource "aws_iam_role" "test-role" {
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "Service": "spotfleet.amazonaws.com"
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
