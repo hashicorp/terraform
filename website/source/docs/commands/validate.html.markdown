@@ -27,7 +27,25 @@ The following can be reported:
 
 ## Usage
 
-Usage: `terraform validate [dir]`
+Usage: `terraform validate [options] [dir]`
 
 By default, `validate` requires no flags and looks in the current directory
 for the configurations.
+
+The command-line flags are all optional. The available flags are:
+
+* `-check-vars` - If specified, the command will check that all the variables
+  without defaults in the configuration are specified.
+
+* `-no-color` - Disables output with coloring.
+
+* `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
+  can be set multiple times. Variable values are interpreted as
+  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
+  specified via this flag.
+
+* `-var-file=foo` - Set variables in the Terraform configuration from
+   a [variable file](/docs/configuration/variables.html#variable-files). If
+  "terraform.tfvars" is present, it will be automatically loaded first. Any
+  files specified by `-var-file` override any values in a "terraform.tfvars".
+  This flag can be used multiple times.
