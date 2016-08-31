@@ -6,6 +6,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
  * **New Resource:** `aws_default_route_table` [GH-8323]
+ * The count of a resource can now be referenced for interpolations: `self.count` and `type.name.count` work [GH-8581]
 
 IMPROVEMENTS:
  * core: Show last resource state in a timeout error message [GH-8510]
