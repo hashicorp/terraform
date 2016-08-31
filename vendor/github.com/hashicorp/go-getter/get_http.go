@@ -32,12 +32,23 @@ import (
 // The source URL, whether from the header or meta tag, must be a fully
 // formed URL. The shorthand syntax of "github.com/foo/bar" or relative
 // paths are not allowed.
-type HttpGetter struct{}
+type HttpGetter struct {
+	// Netrc, if true, will lookup and use auth information found
+	// in the user's netrc file if available.
+	Netrc bool
+}
 
 func (g *HttpGetter) Get(dst string, u *url.URL) error {
 	// Copy the URL so we can modify it
 	var newU url.URL = *u
 	u = &newU
+
+	if g.Netrc {
+		// Add auth from netrc if we can
+		if err := addAuthFromNetrc(u); err != nil {
+			return err
+		}
+	}
 
 	// Add terraform-get to the parameter.
 	q := u.Query()

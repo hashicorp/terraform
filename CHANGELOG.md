@@ -9,6 +9,7 @@ FEATURES:
 
 IMPROVEMENTS:
  * core: Show last resource state in a timeout error message [GH-8510]
+ * core: HTTP module sources can now use netrc files for auth 
  * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
  * provider/aws: Export `arn` of `aws_autoscaling_group` [GH-8503]
  * provider/aws: More robust handling of Lambda function archives hosted on S3 [GH-6860]
@@ -30,6 +31,7 @@ BUG FIXES:
  * provider/aws: Remove unsafe ptr dereferencing from ECS/ECR [GH-8514]
  * provider/aws: Add AWS error message to retry APIGateway account update [GH-8533]
  * provider/aws: adds resource retry to `aws_spot_instance_request` [GH-8516]
+ * provider/aws: Handle missing EFS mount target in `aws_efs_mount_target` [GH-8529]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
 
