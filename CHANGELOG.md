@@ -6,6 +6,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
  * **New Resource:** `aws_default_route_table` [GH-8323]
+ * **New Resource:** `librato_alert` [GH-8170]
+ * **New Resource:** `librato_service` [GH-8170]
  * The count of a resource can now be referenced for interpolations: `self.count` and `type.name.count` work [GH-8581]
 
 IMPROVEMENTS:
