@@ -386,6 +386,20 @@ aws_instance.foo.1:
   type = aws_instance
 `
 
+const testTerraformApplyCountVariableRefStr = `
+aws_instance.bar:
+  ID = foo
+  foo = 2
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo
+aws_instance.foo.0:
+  ID = foo
+aws_instance.foo.1:
+  ID = foo
+`
+
 const testTerraformApplyMinimalStr = `
 aws_instance.bar:
   ID = foo
