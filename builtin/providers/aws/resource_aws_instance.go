@@ -1142,8 +1142,8 @@ func awsTerminateInstance(conn *ec2.EC2, id string) error {
 	log.Printf("[DEBUG] Waiting for instance (%s) to become terminated", id)
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
-		Target:     []string{"terminated"},
+		Pending:    []string{"pending", "running", "stopped", "stopping"},
+		Target:     []string{"shutting-down", "terminated"},
 		Refresh:    InstanceStateRefreshFunc(conn, id),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
