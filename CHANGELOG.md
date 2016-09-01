@@ -40,6 +40,7 @@ BUG FIXES:
  * provider/azurerm: Reordering the checks after an Azure API Get [GH-8607]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
+ * provider/librato: Refresh space from state when not found [GH-8596]
  * provider/mysql: Fix breakage in parsing MySQL version string [GH-8571]
  * provider/template: `template_file` vars can be floating point [GH-8590]
  * provider/triton: Id trying to be used before being set [GH-8563]
