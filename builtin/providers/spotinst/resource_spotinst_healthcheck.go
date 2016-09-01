@@ -49,7 +49,6 @@ func resourceSpotinstHealthCheck() *schema.Resource {
 						"interval": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: false,
 						},
 
 						"timeout": &schema.Schema{
@@ -131,7 +130,9 @@ func resourceSpotinstHealthCheckRead(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 	if len(healthChecks) == 0 {
-		return fmt.Errorf("[ERROR] No matching health check %s", d.Id())
+		//return fmt.Errorf("[ERROR] No matching health check %s", d.Id())
+		d.SetId("")
+		return nil
 	} else if len(healthChecks) > 1 {
 		return fmt.Errorf("[ERROR] Got %d results, only one is allowed", len(healthChecks))
 	} else if hc := healthChecks[0]; hc != nil {
