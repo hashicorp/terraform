@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 
@@ -13,7 +12,7 @@ func setupTest(fixturepath string, args ...string) (*cli.MockUi, int) {
 	c := &ValidateCommand{
 		Meta: Meta{
 			Ui:          ui,
-			ContextOpts: &terraform.ContextOpts{},
+			ContextOpts: testCtxConfig(testProvider()),
 		},
 	}
 
@@ -125,12 +124,19 @@ func TestWronglyUsedInterpolationShouldFail(t *testing.T) {
 }
 
 func TestMissingDefinedVar(t *testing.T) {
-	ui, code := setupTest("validate-invalid/missing_defined_var", "-check-vars")
+	ui, code := setupTest("validate-invalid/missing_defined_var")
 	if code != 1 {
 		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
 	if !strings.Contains(ui.ErrorWriter.String(), "Required variable not set:") {
 		t.Fatalf("Should have failed: %d\n\n'%s'", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestMissingDefinedVarConfigOnly(t *testing.T) {
+	ui, code := setupTest("validate-invalid/missing_defined_var", "-config-only")
+	if code != 0 {
+		t.Fatalf("Should have passed: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }

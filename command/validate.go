@@ -19,14 +19,23 @@ func (c *ValidateCommand) Help() string {
 	helpText := `
 Usage: terraform validate [options] [dir]
 
-  Validate the terraform files in a directory. If dir is not specified,
-  then the current directory will be used.
+  Validate the terraform files in a directory. Validation includes a
+  basic check of syntax as well as checking that all variables declared
+  in the configuration are specified in one of the possible ways:
+
+      -var foo=...
+      -var-file=foo.vars
+      TF_VAR_foo environment variable
+      terraform.tfvars
+      default value
+
+  If dir is not specified, then the current directory will be used.
 
 Options:
 
-  -check-vars         If specified, the command will check that all the
-                      variables without defaults in the configuration are
-                      specified.
+  -config-only        If specified, the command will check basic syntax of
+                      the config only. It will not check that required
+                      variables have been specified.
 
   -no-color           If specified, output won't contain any color.
 
@@ -42,10 +51,10 @@ Options:
 
 func (c *ValidateCommand) Run(args []string) int {
 	args = c.Meta.process(args, true)
-	var checkVars bool
+	var configOnly bool
 
 	cmdFlags := c.Meta.flagSet("validate")
-	cmdFlags.BoolVar(&checkVars, "check-vars", false, "check-vars")
+	cmdFlags.BoolVar(&configOnly, "config-only", false, "config-only")
 	cmdFlags.Usage = func() {
 		c.Ui.Error(c.Help())
 	}
@@ -67,7 +76,7 @@ func (c *ValidateCommand) Run(args []string) int {
 			"Unable to locate directory %v\n", err.Error()))
 	}
 
-	rtnCode := c.validate(dir, checkVars)
+	rtnCode := c.validate(dir, configOnly)
 
 	return rtnCode
 }
@@ -76,7 +85,7 @@ func (c *ValidateCommand) Synopsis() string {
 	return "Validates the Terraform files"
 }
 
-func (c *ValidateCommand) validate(dir string, checkVars bool) int {
+func (c *ValidateCommand) validate(dir string, configOnly bool) int {
 	cfg, err := config.LoadDir(dir)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
@@ -90,7 +99,7 @@ func (c *ValidateCommand) validate(dir string, checkVars bool) int {
 		return 1
 	}
 
-	if checkVars {
+	if !configOnly {
 		context, _, err := c.Context(contextOpts{
 			Path: dir,
 		})

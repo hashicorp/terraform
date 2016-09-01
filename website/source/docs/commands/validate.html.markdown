@@ -24,6 +24,9 @@ The following can be reported:
  * invalid `module` name
  * interpolation used in places where it's unsupported
  	(e.g. `variable`, `depends_on`, `module.source`, `provider`)
+ * missing value for a variable (none of `-var foo=...` flag,
+   `-var-file=foo.vars` flag, `TF_VAR_foo` environment variable,
+   `terraform.tfvars`, or default value in the configuration)
 
 ## Usage
 
@@ -34,8 +37,8 @@ for the configurations.
 
 The command-line flags are all optional. The available flags are:
 
-* `-check-vars` - If specified, the command will check that all the variables
-  without defaults in the configuration are specified.
+* `-config-only` - If specified, the command will check basic syntax of the
+  config only. It will not check that required variables have been specified.
 
 * `-no-color` - Disables output with coloring.
 
