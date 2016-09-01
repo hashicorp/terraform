@@ -51,7 +51,7 @@ func TestAccAWSCloudFormation_defaultParams(t *testing.T) {
 func TestAccAWSCloudFormation_allAttributes(t *testing.T) {
 	var stack cloudformation.Stack
 
-	expectedPolicyBody := "{\"Statement\":[{\"Action\":\"Update:*\",\"Effect\":\"Deny\",\"Principal\":\"*\",\"Resource\":\"LogicalResourceId/StaticVPC\"},{\"Action\":\"Update:*\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Resource\":\"*\"}]}"
+	expectedPolicyBody := `{"Statement":[{"Effect":"Deny","Action":"Update:*","Resource":"LogicalResourceId/StaticVPC","Principal":{"AWS":"*"}},{"Effect":"Allow","Action":"Update:*","Resource":"*","Principal":{"AWS":"*"}}]}`
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -367,7 +367,7 @@ var policyBody = `
   "Statement" : [
     {
       "Effect" : "Deny",
-      "Action" : "Update:*",
+      "Action" : ["Update:*"],
       "Principal": "*",
       "Resource" : "LogicalResourceId/StaticVPC"
     },
