@@ -40,7 +40,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						
+
 						"minimum": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -181,6 +181,25 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"subnet_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+						},
+					},
+				},
+			},
+
+			"hot_ebs_volume": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"device_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"volume_ids": &schema.Schema{
+							Type:     schema.TypeList,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 					},
 				},
@@ -621,6 +640,16 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 		}
 		d.Set("availability_zone", zones)
 
+		// Set the EBS volume pool.
+		volumes := make([]map[string]interface{}, 0, len(g.Compute.EBSVolumePool))
+		for _, v := range g.Compute.EBSVolumePool {
+			volumes = append(volumes, map[string]interface{}{
+				"device_name": v.DeviceName,
+				"volume_ids":  v.VolumeIDs,
+			})
+		}
+		d.Set("hot_ebs_volume", volumes)
+
 		// Set the signals.
 		signals := make([]map[string]interface{}, 0, len(g.Strategy.Signals))
 		for _, s := range g.Strategy.Signals {
@@ -920,6 +949,20 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	if d.HasChange("hot_ebs_volume") {
+		if v, ok := d.GetOk("hot_ebs_volume"); ok {
+			if ebsVolumePool, err := expandAwsGroupEBSVolumePool(v); err != nil {
+				return err
+			} else {
+				if group.Compute == nil {
+					group.Compute = &spotinst.AwsGroupCompute{}
+				}
+				group.Compute.EBSVolumePool = ebsVolumePool
+				hasChange = true
+			}
+		}
+	}
+
 	if d.HasChange("signal") {
 		if v, ok := d.GetOk("signal"); ok {
 			if signals, err := expandAwsGroupSignals(v); err != nil {
@@ -1174,6 +1217,14 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 			return nil, err
 		} else {
 			group.Compute.AvailabilityZones = zones
+		}
+	}
+
+	if v, ok := d.GetOk("hot_ebs_volume"); ok {
+		if ebsVolumePool, err := expandAwsGroupEBSVolumePool(v); err != nil {
+			return nil, err
+		} else {
+			group.Compute.EBSVolumePool = ebsVolumePool
 		}
 	}
 
@@ -1457,6 +1508,33 @@ func expandAwsGroupAvailabilityZones(data interface{}) ([]*spotinst.AwsGroupComp
 	}
 
 	return zones, nil
+}
+
+// expandAwsGroupEBSVolumePool expands the EBS Volume Pool block.
+func expandAwsGroupEBSVolumePool(data interface{}) ([]*spotinst.AwsGroupComputeEBSVolume, error) {
+	list := data.(*schema.Set).List()
+	volumes := make([]*spotinst.AwsGroupComputeEBSVolume, 0, len(list))
+	for _, item := range list {
+		m := item.(map[string]interface{})
+		volume := &spotinst.AwsGroupComputeEBSVolume{}
+
+		if v, ok := m["device_name"].(string); ok && v != "" {
+			volume.DeviceName = spotinst.String(v)
+		}
+
+		if v, ok := m["volume_ids"].([]interface{}); ok {
+			ids := make([]string, len(v))
+			for i, j := range v {
+				ids[i] = j.(string)
+			}
+			volume.VolumeIDs = ids
+		}
+
+		log.Printf("[DEBUG] AwsGroup EBS volume (pool) configuration: %#v\n", volume)
+		volumes = append(volumes, volume)
+	}
+
+	return volumes, nil
 }
 
 // expandAwsGroupSignals expands the Signal block.

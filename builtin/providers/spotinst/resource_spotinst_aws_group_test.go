@@ -137,7 +137,7 @@ resource "spotinst_aws_group" "foo" {
 
 	instance_types {
 		ondemand = "c3.large"
-		spot = ["c3.large"]
+		spot = ["c3.large", "m4.xlarge"]
 	}
 
 	availability_zone {
@@ -156,28 +156,33 @@ resource "spotinst_aws_group" "foo" {
 		user_data = "#!/bin/sh echo hello"
 	}
 
+	hot_ebs_volume {
+		device_name = "/dev/xvdf"
+		volume_ids = ["vol-062a49b5", "vol-062a49b6"]
+	}
+
 	ebs_block_device {
-		device_name = "foo"
+		device_name = "/dev/xvda"
 		delete_on_termination = false
 	}
 
 	ebs_block_device {
-		device_name = "bar"
+		device_name = "/dev/xvdb"
 		delete_on_termination = true
 	}
 
 	ephemeral_block_device {
-		device_name = "baz"
-		virtual_name = "xvda"
+		device_name = "/dev/xvdc"
+		virtual_name = "ephemeral0"
 	}
 
 	network_interface {
 		description = "foo"
-		device_index = 1
+		device_index = 0
 		secondary_private_ip_address_count = 1
 		associate_public_ip_address = false
 		delete_on_termination = false
-		security_group_ids = ["foo"]
+		security_group_ids = ["sg-foo"]
 		network_interface_id = "bar"
 		private_ip_address = "172.0.0.1"
 		subnet_id = "foo"
@@ -261,7 +266,7 @@ resource "spotinst_aws_group" "foo" {
 
 	instance_types {
 		ondemand = "c3.large"
-		spot = ["c3.large"]
+		spot = ["c3.large", "m4.xlarge"]
 	}
 
 	availability_zone {
@@ -280,28 +285,33 @@ resource "spotinst_aws_group" "foo" {
 		user_data = "#!/bin/sh echo hello"
 	}
 
+	hot_ebs_volume {
+		device_name = "/dev/xvdf"
+		volume_ids = ["vol-062a49b5", "vol-062a49b6"]
+	}
+
 	ebs_block_device {
-		device_name = "foo"
+		device_name = "/dev/xvda"
 		delete_on_termination = false
 	}
 
 	ebs_block_device {
-		device_name = "bar"
+		device_name = "/dev/xvdb"
 		delete_on_termination = true
 	}
 
 	ephemeral_block_device {
-		device_name = "baz"
-		virtual_name = "xvda"
+		device_name = "/dev/xvdc"
+		virtual_name = "ephemeral0"
 	}
 
 	network_interface {
 		description = "foo"
-		device_index = 1
+		device_index = 0
 		secondary_private_ip_address_count = 1
 		associate_public_ip_address = false
 		delete_on_termination = false
-		security_group_ids = ["foo"]
+		security_group_ids = ["sg-foo"]
 		network_interface_id = "bar"
 		private_ip_address = "172.0.0.1"
 		subnet_id = "foo"
