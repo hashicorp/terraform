@@ -765,8 +765,7 @@ func pushTFVars() []atlas.TFVar {
 	return []atlas.TFVar{
 		{"bar", "foo", false},
 		{"baz", `{
-  A      = "a"
-  interp = "${file("t.txt")}"
+  A = "a"
 }`, true},
 		{"fob", `["a", "quotes \"in\" quotes"]`, true},
 		{"foo", "bar", false},

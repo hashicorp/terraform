@@ -165,6 +165,11 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
 	}
 
+	// Validate the module right away
+	if err := mod.Validate(); err != nil {
+		return nil, false, err
+	}
+
 	opts.Module = mod
 	opts.Parallelism = copts.Parallelism
 	opts.State = state.State()
