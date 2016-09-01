@@ -1036,7 +1036,7 @@ CREATE: aws_instance.bar.1
 CREATE: aws_instance.foo.1
   foo:  "" => "foo"
   type: "" => "aws_instance"
-CREATE: aws_volume_attachment.foo.0
+CREATE: aws_volume_attachment.foo.1
   foo: "" => "foo"
   instance_id: "" => "bar"
   type: "" => "aws_volume_attachment"
