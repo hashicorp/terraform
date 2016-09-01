@@ -2431,3 +2431,81 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }
+
+func TestContext2Plan_countIncreaseWithListIndex(t *testing.T) {
+	m := testModule(t, "plan-count-inc-index-list")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_ebs_volume.foo.0": &ResourceState{
+						Type: "aws_ebs_volume",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"type": "aws_ebs_volume",
+							},
+						},
+					},
+
+					"aws_instance.bar.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo-bar",
+								"type": "aws_instance",
+							},
+						},
+					},
+
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"type": "aws_instance",
+							},
+						},
+					},
+
+					"aws_volume_attachment.foo.0": &ResourceState{
+						Type: "aws_volume_attachment",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":         "foo",
+								"instance_id": "bar",
+								"type":        "aws_volume_attachment",
+								"volume_id":   "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanCountIncreaseIndexListStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}

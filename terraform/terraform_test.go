@@ -1021,6 +1021,47 @@ aws_instance.foo.0:
   type = aws_instance
 `
 
+const testTerraformPlanCountIncreaseIndexListStr = `
+DIFF:
+
+CREATE: aws_ebs_volume.1
+  foo: "" => "foo"
+  type: "" => "aws_ebs_volume"
+CREATE: aws_instance.bar.1
+  foo: "" => "foo"
+  type: "" => "aws_instance"
+CREATE: aws_instance.bar.1
+  foo:  "" => "foo-bar"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+CREATE: aws_volume_attachment.foo.0
+  foo: "" => "foo"
+  instance_id: "" => "bar"
+  type: "" => "aws_volume_attachment"
+  volume_id: "" => "bar"
+
+STATE:
+
+aws_ebs_volume.0:
+  ID = foo
+  type = aws_ebs_volume
+aws_instance.bar.0:
+  ID = foo-bar
+  foo = foo
+  type = aws_instance
+aws_instance.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_instance
+aws_volume_attachment.foo.0:
+  ID = bar
+  foo = foo
+  instance_id = bar
+  type = aws_volume_attachment
+  volume_id = bar
+`
 const testTerraformPlanDestroyStr = `
 DIFF:
 
