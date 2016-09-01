@@ -66,9 +66,6 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("CLOUDSTACK_2ND_NIC_NETWORK"); v == "" {
 		t.Fatal("CLOUDSTACK_2ND_NIC_NETWORK must be set for acceptance tests")
 	}
-	if v := os.Getenv("CLOUDSTACK_AFFINITY_GROUP_TYPE"); v == "" {
-		t.Fatal("CLOUDSTACK_AFFINITY_GROUP_TYPE must be set for acceptance tests")
-	}
 	if v := os.Getenv("CLOUDSTACK_DISK_OFFERING_1"); v == "" {
 		t.Fatal("CLOUDSTACK_DISK_OFFERING_1 must be set for acceptance tests")
 	}
@@ -148,9 +145,6 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("CLOUDSTACK_ZONE must be set for acceptance tests")
 	}
 }
-
-// Name of an affinity group type
-var CLOUDSTACK_AFFINITY_GROUP_TYPE = os.Getenv("CLOUDSTACK_AFFINITY_GROUP_TYPE")
 
 // Name of a valid disk offering
 var CLOUDSTACK_DISK_OFFERING_1 = os.Getenv("CLOUDSTACK_DISK_OFFERING_1")

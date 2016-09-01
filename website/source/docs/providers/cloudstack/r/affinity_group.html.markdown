@@ -14,9 +14,8 @@ Creates an affinity group.
 
 ```
 resource "cloudstack_affinity_group" "default" {
-  name = "myGroup"
-  type = "anti-affinity"
-  project = "myProject"
+  name = "test-affinity-group"
+  type = "host anti-affinity"
 }
 ```
 
@@ -40,3 +39,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The id of the affinity group.
+* `description` - The description of the affinity group.

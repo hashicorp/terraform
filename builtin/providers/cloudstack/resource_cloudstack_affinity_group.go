@@ -25,6 +25,7 @@ func resourceCloudStackAffinityGroup() *schema.Resource {
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -49,13 +50,14 @@ func resourceCloudStackAffinityGroupCreate(d *schema.ResourceData, meta interfac
 	name := d.Get("name").(string)
 	affinityGroupType := d.Get("type").(string)
 
-	log.Printf("[DEBUG] creating affinity group with name %s of type %s", name, affinityGroupType)
-
+	// Create a new parameter struct
 	p := cs.AffinityGroup.NewCreateAffinityGroupParams(name, affinityGroupType)
 
 	// Set the description
 	if description, ok := d.GetOk("description"); ok {
 		p.SetDescription(description.(string))
+	} else {
+		p.SetDescription(name)
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
@@ -63,12 +65,13 @@ func resourceCloudStackAffinityGroupCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
+	log.Printf("[DEBUG] Creating affinity group %s", name)
 	r, err := cs.AffinityGroup.CreateAffinityGroup(p)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("[DEBUG] New affinity group successfully created")
+	log.Printf("[DEBUG] Affinity group %s successfully created", name)
 	d.SetId(r.Id)
 
 	return resourceCloudStackAffinityGroupRead(d, meta)
@@ -77,20 +80,24 @@ func resourceCloudStackAffinityGroupCreate(d *schema.ResourceData, meta interfac
 func resourceCloudStackAffinityGroupRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	log.Printf("[DEBUG] looking for affinity group with name %s", d.Id())
+	log.Printf("[DEBUG] Rerieving affinity group %s", d.Get("name").(string))
 
 	// Get the affinity group details
-	ag, count, err := cs.AffinityGroup.GetAffinityGroupByID(d.Id(), cloudstack.WithProject(d.Get("project").(string)))
+	ag, count, err := cs.AffinityGroup.GetAffinityGroupByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
-			log.Printf("[DEBUG] Affinity group %s does not longer exist", d.Id())
+			log.Printf("[DEBUG] Affinity group %s does not longer exist", d.Get("name").(string))
 			d.SetId("")
 			return nil
 		}
+
 		return err
 	}
 
-	//Affinity group name is unique in a cloudstack account so dont need to check for multiple
+	// Update the config
 	d.Set("name", ag.Name)
 	d.Set("description", ag.Description)
 	d.Set("type", ag.Type)
@@ -103,8 +110,6 @@ func resourceCloudStackAffinityGroupDelete(d *schema.ResourceData, meta interfac
 
 	// Create a new parameter struct
 	p := cs.AffinityGroup.NewDeleteAffinityGroupParams()
-
-	// Set id
 	p.SetId(d.Id())
 
 	// If there is a project supplied, we retrieve and set the project id
@@ -112,7 +117,7 @@ func resourceCloudStackAffinityGroupDelete(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	// Remove the affinity group
+	// Delete the affinity group
 	_, err := cs.AffinityGroup.DeleteAffinityGroup(p)
 	if err != nil {
 		// This is a very poor way to be told the ID does no longer exist :(
@@ -121,6 +126,7 @@ func resourceCloudStackAffinityGroupDelete(d *schema.ResourceData, meta interfac
 				"or entity does not exist", d.Id())) {
 			return nil
 		}
+
 		return fmt.Errorf("Error deleting affinity group: %s", err)
 	}
 
