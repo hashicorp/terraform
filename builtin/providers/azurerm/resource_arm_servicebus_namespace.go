@@ -112,12 +112,12 @@ func resourceArmServiceBusNamespaceRead(d *schema.ResourceData, meta interface{}
 	name := id.Path["namespaces"]
 
 	resp, err := namespaceClient.Get(resGroup, name)
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure ServiceBus Namespace %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure ServiceBus Namespace %s: %s", name, err)
 	}
 
 	d.Set("name", resp.Name)

@@ -245,12 +245,12 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	name := id.Path["networkInterfaces"]
 
 	resp, err := ifaceClient.Get(resGroup, name, "")
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure Network Interface %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure Network Interface %s: %s", name, err)
 	}
 
 	iface := *resp.Properties
