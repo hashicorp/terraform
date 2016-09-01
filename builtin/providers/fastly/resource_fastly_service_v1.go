@@ -539,7 +539,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     false,
-							Description: "Should this VCL configuation be the main configuration",
+							Description: "Should this VCL configuration be the main configuration",
 						},
 					},
 				},
