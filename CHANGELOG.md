@@ -37,6 +37,7 @@ BUG FIXES:
  * provider/aws: Add AWS error message to retry APIGateway account update [GH-8533]
  * provider/aws: adds resource retry to `aws_spot_instance_request` [GH-8516]
  * provider/aws: Handle missing EFS mount target in `aws_efs_mount_target` [GH-8529]
+ * provider/azurerm: Reordering the checks after an Azure API Get [GH-8607]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
  * provider/mysql: Fix breakage in parsing MySQL version string [GH-8571]
