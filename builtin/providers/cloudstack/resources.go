@@ -45,20 +45,21 @@ func retrieveID(cs *cloudstack.CloudStackClient, name string, value string, opts
 
 	log.Printf("[DEBUG] Retrieving ID of %s: %s", name, value)
 
+	// Ignore counts, since an error is returned if there is no exact match
 	var err error
 	switch name {
 	case "disk_offering":
-		id, err = cs.DiskOffering.GetDiskOfferingID(value)
+		id, _, err = cs.DiskOffering.GetDiskOfferingID(value)
 	case "service_offering":
-		id, err = cs.ServiceOffering.GetServiceOfferingID(value)
+		id, _, err = cs.ServiceOffering.GetServiceOfferingID(value)
 	case "network_offering":
-		id, err = cs.NetworkOffering.GetNetworkOfferingID(value)
+		id, _, err = cs.NetworkOffering.GetNetworkOfferingID(value)
 	case "project":
-		id, err = cs.Project.GetProjectID(value)
+		id, _, err = cs.Project.GetProjectID(value)
 	case "vpc_offering":
-		id, err = cs.VPC.GetVPCOfferingID(value)
+		id, _, err = cs.VPC.GetVPCOfferingID(value)
 	case "zone":
-		id, err = cs.Zone.GetZoneID(value)
+		id, _, err = cs.Zone.GetZoneID(value)
 	case "os_type":
 		p := cs.GuestOS.NewListOsTypesParams()
 		p.SetDescription(value)
@@ -92,7 +93,8 @@ func retrieveTemplateID(cs *cloudstack.CloudStackClient, zoneid, value string) (
 
 	log.Printf("[DEBUG] Retrieving ID of template: %s", value)
 
-	id, err := cs.Template.GetTemplateID(value, "executable", zoneid)
+	// Ignore count, since an error is returned if there is no exact match
+	id, _, err := cs.Template.GetTemplateID(value, "executable", zoneid)
 	if err != nil {
 		return id, &retrieveError{name: "template", value: value, err: err}
 	}
