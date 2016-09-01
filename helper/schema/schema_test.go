@@ -2939,6 +2939,92 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 
 }
 
+func TestSchemaMap_DiffSuppress(t *testing.T) {
+	cases := map[string]struct {
+		Schema          map[string]*Schema
+		State           *terraform.InstanceState
+		Config          map[string]interface{}
+		ConfigVariables map[string]ast.Variable
+		ExpectedDiff    *terraform.InstanceDiff
+		Err             bool
+	}{
+		"#0 - Suppress otherwise valid diff by returning true": {
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeString,
+					Optional: true,
+					DiffSuppressFunc: func(k, old, new string, d *ResourceData) bool {
+						// Always suppress any diff
+						return true
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+
+			ExpectedDiff: nil,
+
+			Err: false,
+		},
+		"#1 - Don't suppress diff by returning false": {
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeString,
+					Optional: true,
+					DiffSuppressFunc: func(k, old, new string, d *ResourceData) bool {
+						// Always suppress any diff
+						return false
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+
+			ExpectedDiff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": {
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+
+			Err: false,
+		},
+	}
+
+	for tn, tc := range cases {
+		c, err := config.NewRawConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("#%q err: %s", tn, err)
+		}
+
+		if len(tc.ConfigVariables) > 0 {
+			if err := c.Interpolate(tc.ConfigVariables); err != nil {
+				t.Fatalf("#%q err: %s", tn, err)
+			}
+		}
+
+		d, err := schemaMap(tc.Schema).Diff(
+			tc.State, terraform.NewResourceConfig(c))
+		if err != nil != tc.Err {
+			t.Fatalf("#%q err: %s", tn, err)
+		}
+
+		if !reflect.DeepEqual(tc.ExpectedDiff, d) {
+			t.Fatalf("#%q:\n\nexpected:\n%#v\n\ngot:\n%#v", tn, tc.ExpectedDiff, d)
+		}
+	}
+}
+
 func TestSchemaMap_Validate(t *testing.T) {
 	cases := map[string]struct {
 		Schema   map[string]*Schema
