@@ -195,6 +195,13 @@ func TestConfigValidate_countResourceVar(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_countResourceVarMulti(t *testing.T) {
+	c := testConfig(t, "validate-count-resource-var-multi")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_countUserVar(t *testing.T) {
 	c := testConfig(t, "validate-count-user-var")
 	if err := c.Validate(); err != nil {
