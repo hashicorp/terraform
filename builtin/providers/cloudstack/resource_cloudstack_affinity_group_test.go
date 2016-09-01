@@ -2,7 +2,6 @@ package cloudstack
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -19,18 +18,18 @@ func TestAccCloudStackAffinityGroup_basic(t *testing.T) {
 		CheckDestroy: testAccCheckCloudStackAffinityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCloudStackAffinityGroupPair,
+				Config: testAccCloudStackAffinityGroup,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackAffinityGroupExists("terraform-test-affinity-group", &affinityGroup),
+					testAccCheckCloudStackAffinityGroupExists("cloudstack_affinity_group.foo", &affinityGroup),
 					testAccCheckCloudStackAffinityGroupAttributes(&affinityGroup),
-					testAccCheckCloudStackAffinityGroupCreateAttributes("terraform-test-affinity-group"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckCloudStackAffinityGroupExists(n string, affinityGroup *cloudstack.AffinityGroup) resource.TestCheckFunc {
+func testAccCheckCloudStackAffinityGroupExists(
+	n string, affinityGroup *cloudstack.AffinityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -42,19 +41,17 @@ func testAccCheckCloudStackAffinityGroupExists(n string, affinityGroup *cloudsta
 		}
 
 		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
-		p := cs.AffinityGroup.NewListAffinityGroupsParams()
-		p.SetName(rs.Primary.ID)
+		ag, _, err := cs.AffinityGroup.GetAffinityGroupByID(rs.Primary.ID)
 
-		list, err := cs.AffinityGroup.ListAffinityGroups(p)
 		if err != nil {
 			return err
 		}
 
-		if list.Count != 1 || list.AffinityGroups[0].Name != rs.Primary.ID {
+		if ag.Id != rs.Primary.ID {
 			return fmt.Errorf("Affinity group not found")
 		}
 
-		*affinityGroup = *list.AffinityGroups[0]
+		*affinityGroup = *ag
 
 		return nil
 	}
@@ -64,40 +61,16 @@ func testAccCheckCloudStackAffinityGroupAttributes(
 	affinityGroup *cloudstack.AffinityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if affinityGroup.Type != CLOUDSTACK_AFFINITY_GROUP_TYPE {
-			return fmt.Errorf("Affinity group: Attribute type expected %s, got %s",
-				CLOUDSTACK_AFFINITY_GROUP_TYPE, affinityGroup.Type)
+		if affinityGroup.Name != "terraform-affinity-group" {
+			return fmt.Errorf("Bad name: %s", affinityGroup.Name)
 		}
 
-		return nil
-	}
-}
-
-func testAccCheckCloudStackAffinityGroupCreateAttributes(name string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		found := false
-
-		for _, rs := range s.RootModule().Resources {
-			if rs.Type != "cloudstack_affinity_group" {
-				continue
-			}
-
-			if rs.Primary.ID != name {
-				continue
-			}
-
-			if !strings.Contains(rs.Primary.Attributes["description"], "terraform-test-description") {
-				return fmt.Errorf(
-					"Affiity group: Attribute description expected 'terraform-test-description' to be present, got %s",
-					rs.Primary.Attributes["description"])
-			}
-
-			found = true
-			break
+		if affinityGroup.Description != "terraform-affinity-group" {
+			return fmt.Errorf("Bad description: %s", affinityGroup.Description)
 		}
 
-		if !found {
-			return fmt.Errorf("Could not find affinity group %s", name)
+		if affinityGroup.Type != "host anti-affinity" {
+			return fmt.Errorf("Bad type: %s", affinityGroup.Type)
 		}
 
 		return nil
@@ -116,27 +89,17 @@ func testAccCheckCloudStackAffinityGroupDestroy(s *terraform.State) error {
 			return fmt.Errorf("No affinity group ID is set")
 		}
 
-		p := cs.AffinityGroup.NewListAffinityGroupsParams()
-		p.SetName(rs.Primary.ID)
-
-		r, err := cs.AffinityGroup.ListAffinityGroups(p)
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < r.Count; i++ {
-			if r.AffinityGroups[i].Id == rs.Primary.ID {
-				return fmt.Errorf("Affinity group %s still exists", rs.Primary.ID)
-			}
+		_, _, err := cs.AffinityGroup.GetAffinityGroupByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("Affinity group %s still exists", rs.Primary.ID)
 		}
 	}
 
 	return nil
 }
 
-var testAccCloudStackAffinityGroupPair = fmt.Sprintf(`
+var testAccCloudStackAffinityGroup = fmt.Sprintf(`
 resource "cloudstack_affinity_group" "foo" {
-  name = "terraform-test-affinty-group"
-  type = "%s"
-  description = "terraform-test-description"
-}`, CLOUDSTACK_AFFINITY_GROUP_TYPE)
+	name = "terraform-affinity-group"
+	type = "host anti-affinity"
+}`)
