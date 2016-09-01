@@ -36,6 +36,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"target": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						
 						"minimum": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -46,9 +51,9 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 							Optional: true,
 						},
 
-						"target": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
+						"unit": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -574,6 +579,7 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 			"target":  g.Capacity.Target,
 			"minimum": g.Capacity.Minimum,
 			"maximum": g.Capacity.Maximum,
+			"unit":    g.Capacity.Unit,
 		})
 		d.Set("capacity", capacity)
 
@@ -1276,6 +1282,10 @@ func expandAwsGroupCapacity(data interface{}) (*spotinst.AwsGroupCapacity, error
 
 		if v, ok := m["target"].(int); ok && v >= 0 {
 			capacity.Target = spotinst.Int(v)
+		}
+
+		if v, ok := m["unit"].(string); ok && v != "" {
+			capacity.Unit = spotinst.String(v)
 		}
 
 		log.Printf("[DEBUG] AwsGroup capacity configuration: %#v\n", capacity)
