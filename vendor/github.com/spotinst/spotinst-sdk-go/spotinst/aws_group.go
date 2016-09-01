@@ -59,6 +59,8 @@ type AwsGroupScheduledTask struct {
 	ScaleTargetCapacity *int    `json:"scaleTargetCapacity,omitempty"`
 	ScaleMinCapacity    *int    `json:"scaleMinCapacity,omitempty"`
 	ScaleMaxCapacity    *int    `json:"scaleMaxCapacity,omitempty"`
+	BatchSizePercentage *int    `json:"batchSizePercentage,omitempty"`
+	GracePeriod         *int    `json:"gracePeriod,omitempty"`
 }
 
 type AwsGroupScaling struct {
@@ -100,9 +102,10 @@ type AwsGroupStrategySignal struct {
 }
 
 type AwsGroupCapacity struct {
-	Minimum *int `json:"minimum,omitempty"`
-	Maximum *int `json:"maximum,omitempty"`
-	Target  *int `json:"target,omitempty"`
+	Minimum *int    `json:"minimum,omitempty"`
+	Maximum *int    `json:"maximum,omitempty"`
+	Target  *int    `json:"target,omitempty"`
+	Unit    *string `json:"unit,omitempty"`
 }
 
 type AwsGroupCompute struct {
@@ -111,11 +114,23 @@ type AwsGroupCompute struct {
 	LaunchSpecification *AwsGroupComputeLaunchSpecification `json:"launchSpecification,omitempty"`
 	AvailabilityZones   []*AwsGroupComputeAvailabilityZone  `json:"availabilityZones,omitempty"`
 	ElasticIPs          []string                            `json:"elasticIps,omitempty"`
+	EBSVolumePool       []*AwsGroupComputeEBSVolume         `json:"ebsVolumePool,omitempty"`
+}
+
+type AwsGroupComputeEBSVolume struct {
+	DeviceName *string  `json:"deviceName,omitempty"`
+	VolumeIDs  []string `json:"volumeIds,omitempty"`
 }
 
 type AwsGroupComputeInstanceType struct {
-	OnDemand *string  `json:"ondemand,omitempty"`
-	Spot     []string `json:"spot,omitempty"`
+	OnDemand *string                              `json:"ondemand,omitempty"`
+	Spot     []string                             `json:"spot,omitempty"`
+	Weights  []*AwsGroupComputeInstanceTypeWeight `json:"weights,omitempty"`
+}
+
+type AwsGroupComputeInstanceTypeWeight struct {
+	InstanceType *string `json:"instanceType,omitempty"`
+	Weight       *int    `json:"weightedCapacity,omitempty"`
 }
 
 type AwsGroupComputeAvailabilityZone struct {
