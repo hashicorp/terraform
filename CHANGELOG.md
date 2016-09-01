@@ -38,6 +38,7 @@ BUG FIXES:
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
  * provider/mysql: Fix breakage in parsing MySQL version string [GH-8571]
+ * provider/template: `template_file` vars can be floating point [GH-8590]
  * provider/triton: Id trying to be used before being set [GH-8563]
 
 ## 0.7.2 (August 25, 2016)
