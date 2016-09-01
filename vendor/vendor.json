@@ -1296,6 +1296,12 @@
 			"revision": "f233a8bac88d1f2dc282a98186f5a3363b806181"
 		},
 		{
+			"checksumSHA1": "cCSJGF1h+suYcgMq7wEm1carknw=",
+			"path": "github.com/jen20/awspolicyequivalence",
+			"revision": "6b9230008577fc3dcd10c104ce8fb16ed679bf66",
+			"revisionTime": "2016-09-01T18:24:20Z"
+		},
+		{
 			"checksumSHA1": "oPpOfZn11Ef6DWOoETxSW9Venzs=",
 			"path": "github.com/jen20/riviera/azure",
 			"revision": "1159d86fc8144abafeb29ee7c5a3e2e85af336ba",
