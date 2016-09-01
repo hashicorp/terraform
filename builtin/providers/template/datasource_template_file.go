@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/hil"
@@ -116,9 +117,20 @@ func execute(s string, vars map[string]interface{}) (string, error) {
 		if !ok {
 			return "", fmt.Errorf("unexpected type for variable %q: %T", k, v)
 		}
+
+		// Store the defaults (string and value)
+		var val interface{} = s
+		typ := ast.TypeString
+
+		// If we can parse a float, then use that
+		if v, err := strconv.ParseFloat(s, 64); err == nil {
+			val = v
+			typ = ast.TypeFloat
+		}
+
 		varmap[k] = ast.Variable{
-			Value: s,
-			Type:  ast.TypeString,
+			Value: val,
+			Type:  typ,
 		}
 	}
 
