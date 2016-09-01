@@ -123,13 +123,14 @@ func resourceArmVirtualNetworkPeeringRead(d *schema.ResourceData, meta interface
 	name := id.Path["virtualNetworkPeerings"]
 
 	resp, err := client.Get(resGroup, vnetName, name)
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure virtual network peering %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
 	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure virtual network peering %s: %s", name, err)
-	}
+
 	peer := *resp.Properties
 
 	// update appropriate values
