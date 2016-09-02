@@ -8,13 +8,12 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceAwsS3Bucket() *schema.Resource {
@@ -47,9 +46,10 @@ func resourceAwsS3Bucket() *schema.Resource {
 			},
 
 			"policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				StateFunc: normalizeJson,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 
 			"cors_rule": &schema.Schema{
