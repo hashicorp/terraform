@@ -129,6 +129,14 @@ func (v *FlagStringSlice) Set(raw string) error {
 	return nil
 }
 
+var (
+	// This regular expression is how we check if a value for a variable
+	// matches what we'd expect a rich HCL value to be. For example: {
+	// definitely signals a map. If a value DOESN'T match this, we return
+	// it as a raw string.
+	varFlagHCLRe = regexp.MustCompile(`^["\[\{]`)
+)
+
 // parseVarFlagAsHCL parses the value of a single variable as would have been specified
 // on the command line via -var or in an environment variable named TF_VAR_x, where x is
 // the name of the variable. In order to get around the restriction of HCL requiring a
@@ -143,13 +151,23 @@ func parseVarFlagAsHCL(input string) (string, interface{}, error) {
 
 	parsed, err := hcl.Parse(input)
 	if err != nil {
+		value := input[idx+1:]
+
+		// If it didn't parse as HCL, we check if it doesn't match our
+		// whitelist of TF-accepted HCL types for inputs. If not, then
+		// we let it through as a raw string.
+		trimmed := strings.TrimSpace(value)
+		if !varFlagHCLRe.MatchString(trimmed) {
+			return probablyName, value, nil
+		}
+
 		// This covers flags of the form `foo=bar` which is not valid HCL
 		// At this point, probablyName is actually the name, and the remainder
 		// of the expression after the equals sign is the value.
 		if regexp.MustCompile(`Unknown token: \d+:\d+ IDENT`).Match([]byte(err.Error())) {
-			value := input[idx+1:]
 			return probablyName, value, nil
 		}
+
 		return "", nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL: %s", probablyName, input, err)
 	}
 
