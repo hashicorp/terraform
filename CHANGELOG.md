@@ -45,6 +45,7 @@ BUG FIXES:
  * provider/aws: adds resource retry to `aws_spot_instance_request` [GH-8516]
  * provider/aws: Handle missing EFS mount target in `aws_efs_mount_target` [GH-8529]
  * provider/aws: Increase aws_rds_cluster timeout to 40 minutes [GH-8623]
+ * provider/aws: Set `apply_method` to state in `aws_db_parameter_group` [GH-8603]
  * provider/azurerm: Reordering the checks after an Azure API Get [GH-8607]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
