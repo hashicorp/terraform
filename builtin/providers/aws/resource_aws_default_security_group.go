@@ -37,10 +37,12 @@ func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interfac
 		},
 	}
 
+	var vpcId string
 	if v, ok := d.GetOk("vpc_id"); ok {
+		vpcId = v.(string)
 		securityGroupOpts.Filters = append(securityGroupOpts.Filters, &ec2.Filter{
 			Name:   aws.String("vpc-id"),
-			Values: []*string{aws.String(v.(string))},
+			Values: []*string{aws.String(vpcId)},
 		})
 	}
 
@@ -52,11 +54,28 @@ func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error creating Default Security Group: %s", err)
 	}
 
-	if len(resp.SecurityGroups) != 1 {
-		return fmt.Errorf("[ERR] Error finding default security group; found (%d) groups: %s", len(resp.SecurityGroups), resp)
+	var g *ec2.SecurityGroup
+	if vpcId != "" {
+		// if vpc_id contains a value, then we expect just a single Security Group
+		// returned, as default is a protected name for each VPC, and for each
+		// Region on EC2 Classic
+		if len(resp.SecurityGroups) != 1 {
+			return fmt.Errorf("[ERR] Error finding default security group; found (%d) groups: %s", len(resp.SecurityGroups), resp)
+		}
+		g = resp.SecurityGroups[0]
+	} else {
+		// we need to filter through any returned security groups for the group
+		// named "default", and does not belong to a VPC
+		for _, sg := range resp.SecurityGroups {
+			if sg.VpcId == nil && *sg.GroupName == "default" {
+				g = sg
+			}
+		}
 	}
 
-	g := resp.SecurityGroups[0]
+	if g == nil {
+		return fmt.Errorf("[ERR] Error finding default security group: no matching group found")
+	}
 
 	d.SetId(*g.GroupId)
 
@@ -81,12 +100,19 @@ func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interfac
 		}
 	}
 	if len(g.IpPermissions) > 0 {
+		for _, p := range g.IpPermissions {
+			for _, uigp := range p.UserIdGroupPairs {
+				if uigp.GroupId != nil && uigp.GroupName != nil {
+					uigp.GroupName = nil
+				}
+			}
+		}
 		req := &ec2.RevokeSecurityGroupIngressInput{
 			GroupId:       g.GroupId,
 			IpPermissions: g.IpPermissions,
 		}
 
-		log.Printf("[DEBUG] Revoking default ingress rules for Default Security Group for %s", d.Id())
+		log.Printf("[DEBUG] Revoking default ingress rules for Default Security Group for (%s): %s", d.Id(), req)
 		if _, err = conn.RevokeSecurityGroupIngress(req); err != nil {
 			return fmt.Errorf(
 				"Error revoking default ingress rules for Default Security Group (%s): %s",

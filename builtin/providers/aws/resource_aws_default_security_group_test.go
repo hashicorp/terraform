@@ -45,6 +45,38 @@ func TestAccAWSDefaultSecurityGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDefaultSecurityGroup_classic(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_default_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSDefaultSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDefaultSecurityGroupConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDefaultSecurityGroupExists("aws_default_security_group.web", &group),
+					testAccCheckAWSDefaultSecurityGroupAttributes(&group),
+					resource.TestCheckResourceAttr(
+						"aws_default_security_group.web", "name", "default"),
+					resource.TestCheckResourceAttr(
+						"aws_default_security_group.web", "ingress.3629188364.protocol", "tcp"),
+					resource.TestCheckResourceAttr(
+						"aws_default_security_group.web", "ingress.3629188364.from_port", "80"),
+					resource.TestCheckResourceAttr(
+						"aws_default_security_group.web", "ingress.3629188364.to_port", "8000"),
+					resource.TestCheckResourceAttr(
+						"aws_default_security_group.web", "ingress.3629188364.cidr_blocks.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_default_security_group.web", "ingress.3629188364.cidr_blocks.0", "10.0.0.0/8"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSDefaultSecurityGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -139,10 +171,6 @@ func testAccCheckAWSDefaultSecurityGroupAttributes(group *ec2.SecurityGroup) res
 			return fmt.Errorf("Bad name: %s", *group.GroupName)
 		}
 
-		if *group.Description != "Used in the terraform acceptance tests" {
-			return fmt.Errorf("Bad description: %s", *group.Description)
-		}
-
 		if len(group.IpPermissions) == 0 {
 			return fmt.Errorf("No IPPerms")
 		}
@@ -176,6 +204,25 @@ resource "aws_default_security_group" "web" {
 
   egress {
     protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
+	tags {
+		Name = "tf-acc-test"
+	}
+}
+`
+
+const testAccAWSDefaultSecurityGroupConfig_classic = `
+provider "aws" {
+	region = "us-east-1"
+}
+
+resource "aws_default_security_group" "web" {
+  ingress {
+    protocol = "6"
     from_port = 80
     to_port = 8000
     cidr_blocks = ["10.0.0.0/8"]
