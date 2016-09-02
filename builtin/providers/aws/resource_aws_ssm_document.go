@@ -119,7 +119,9 @@ func resourceAwsSsmDocumentCreate(d *schema.ResourceData, meta interface{}) erro
 	d.SetId(*resp.DocumentDescription.Name)
 
 	if v, ok := d.GetOk("permissions"); ok && v != nil {
-		setDocumentPermissions(d, meta)
+		if err := setDocumentPermissions(d, meta); err != nil {
+			return err
+		}
 	} else {
 		log.Printf("[DEBUG] Not setting permissions for %q", d.Id())
 	}
@@ -189,7 +191,9 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 func resourceAwsSsmDocumentUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if _, ok := d.GetOk("permissions"); ok {
-		setDocumentPermissions(d, meta)
+		if err := setDocumentPermissions(d, meta); err != nil {
+			return err
+		}
 	} else {
 		log.Printf("[DEBUG] Not setting document permissions on %q", d.Id())
 	}
@@ -200,7 +204,9 @@ func resourceAwsSsmDocumentUpdate(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsSsmDocumentDelete(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
-	deleteDocumentPermissions(d, meta)
+	if err := deleteDocumentPermissions(d, meta); err != nil {
+		return err
+	}
 
 	log.Printf("[INFO] Deleting SSM Document: %s", d.Id())
 
