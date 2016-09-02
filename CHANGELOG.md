@@ -5,14 +5,17 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * The internal structure of `.terraform/modules` changed slightly. For configurations with modules, you'll need to run `terraform get` again.
 
 FEATURES:
+ * **New Provider:** `rabbitmq` [GH-7694]
  * **New Resource:** `aws_default_route_table` [GH-8323]
  * **New Resource:** `librato_alert` [GH-8170]
  * **New Resource:** `librato_service` [GH-8170]
+ * **New Resource:** `cloudstack_affinity_group` [GH-8360]
  * The count of a resource can now be referenced for interpolations: `self.count` and `type.name.count` work [GH-8581]
 
 IMPROVEMENTS:
  * core: Show last resource state in a timeout error message [GH-8510]
  * core: HTTP module sources can now use netrc files for auth 
+ * helper/schema: Add diff suppression callback [GH-8585]
  * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
  * provider/aws: Export `arn` of `aws_autoscaling_group` [GH-8503]
  * provider/aws: More robust handling of Lambda function archives hosted on S3 [GH-6860]
@@ -35,8 +38,10 @@ BUG FIXES:
  * provider/aws: Add AWS error message to retry APIGateway account update [GH-8533]
  * provider/aws: adds resource retry to `aws_spot_instance_request` [GH-8516]
  * provider/aws: Handle missing EFS mount target in `aws_efs_mount_target` [GH-8529]
+ * provider/azurerm: Reordering the checks after an Azure API Get [GH-8607]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
+ * provider/librato: Refresh space from state when not found [GH-8596]
  * provider/mysql: Fix breakage in parsing MySQL version string [GH-8571]
  * provider/template: `template_file` vars can be floating point [GH-8590]
  * provider/triton: Id trying to be used before being set [GH-8563]
@@ -1333,7 +1338,7 @@ IMPROVEMENTS:
   * provider/aws: read `iam_instance_profile` for `aws_instance` and save to state ([#3167](https://github.com/hashicorp/terraform/issues/3167))
   * provider/aws: allow `instance` to be computed in `aws_eip` ([#3036](https://github.com/hashicorp/terraform/issues/3036))
   * provider/aws: Add `versioning` option to `aws_s3_bucket` ([#2942](https://github.com/hashicorp/terraform/issues/2942))
-  * provider/aws: Add `configuation_endpoint` to `aws_elasticache_cluster` ([#3250](https://github.com/hashicorp/terraform/issues/3250))
+  * provider/aws: Add `configuration_endpoint` to `aws_elasticache_cluster` ([#3250](https://github.com/hashicorp/terraform/issues/3250))
   * provider/aws: Add validation for `app_cookie_stickiness_policy.name` ([#3277](https://github.com/hashicorp/terraform/issues/3277))
   * provider/aws: Add validation for `db_parameter_group.name` ([#3279](https://github.com/hashicorp/terraform/issues/3279))
   * provider/aws: Set DynamoDB Table ARN after creation ([#3500](https://github.com/hashicorp/terraform/issues/3500))
