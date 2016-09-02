@@ -1363,7 +1363,9 @@ func normalizeRoutingRules(w []*s3.RoutingRule) (string, error) {
 	}
 
 	var rules []map[string]interface{}
-	json.Unmarshal(withNulls, &rules)
+	if err := json.Unmarshal(withNulls, &rules); err != nil {
+		return "", err
+	}
 
 	var cleanRules []map[string]interface{}
 	for _, rule := range rules {

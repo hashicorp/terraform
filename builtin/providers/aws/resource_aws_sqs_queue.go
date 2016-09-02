@@ -169,7 +169,9 @@ func resourceAwsSqsQueueUpdate(d *schema.ResourceData, meta interface{}) error {
 			QueueUrl:   aws.String(d.Id()),
 			Attributes: attributes,
 		}
-		sqsconn.SetQueueAttributes(req)
+		if _, err := sqsconn.SetQueueAttributes(req); err != nil {
+			return fmt.Errorf("[ERR] Error updating SQS attributes: %s", err)
+		}
 	}
 
 	return resourceAwsSqsQueueRead(d, meta)

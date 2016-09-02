@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -479,11 +480,15 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if shouldWaitForCapacity {
-		waitForASGCapacity(d, meta, capacitySatifiedUpdate)
+		if err := waitForASGCapacity(d, meta, capacitySatifiedUpdate); err != nil {
+			return errwrap.Wrapf("Error waiting for AutoScaling Group Capacity: {{err}}", err)
+		}
 	}
 
 	if d.HasChange("enabled_metrics") {
-		updateASGMetricsCollection(d, conn)
+		if err := updateASGMetricsCollection(d, conn); err != nil {
+			return errwrap.Wrapf("Error updating AutoScaling Group Metrics collection: {{err}}", err)
+		}
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)
