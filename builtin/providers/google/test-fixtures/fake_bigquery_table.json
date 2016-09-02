@@ -1,0 +1,23 @@
+[
+  {"name": "event", "type": "string", "mode": "nullable"},
+  {"name": "date", "type": "string", "mode": "nullable"},
+  {"name": "timestamp", "type": "timestamp", "mode": "nullable"},
+  {"name": "data", "type": "record", "mode": "nullable",
+    "fields": [
+      {"name": "action", "type": "record", "mode": "nullable",
+        "fields": [ 
+          {"name": "name", "type": "string", "mode": "nullable"},
+          {"name": "result", "type": "string", "mode": "nullable"}
+        ]
+      },
+      {"name": "test_name", "type": "string", "mode": "nullable"}
+   ]
+  },
+  {"name": "screen", "type": "record", "mode": "nullable",
+    "fields": [
+      {"name": "height", "type": "integer", "mode": "nullable"},
+      {"name": "width", "type": "integer", "mode": "nullable"}
+    ]
+  },
+  {"name": "source_ip", "type": "string", "mode": "nullable"}
+]
