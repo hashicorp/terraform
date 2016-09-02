@@ -117,10 +117,10 @@ func testAccCheckZoneDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.GetZone(rs.Primary.Attributes["zone"])
+		zone, err := client.GetZone(rs.Primary.Attributes["zone"])
 
 		if err == nil {
-			return fmt.Errorf("Record still exists")
+			return fmt.Errorf("Record still exists: %#v: %#v", err, zone)
 		}
 	}
 

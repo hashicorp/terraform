@@ -196,7 +196,7 @@ func testAccCheckRecordAttributesUpdated(record *nsone.Record) resource.TestChec
 
 const testAccRecordBasic = `
 resource "nsone_record" "foobar" {
-    zone = "terraform.io"
+    zone = "${nsone_zone.test.zone}"
 		domain = "test.terraform.io"
 	  type = "CNAME"
 		ttl = 60

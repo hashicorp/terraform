@@ -117,10 +117,10 @@ func testAccCheckMonitoringJobDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.GetMonitoringJob(rs.Primary.Attributes["id"])
+		mj, err := client.GetMonitoringJob(rs.Primary.Attributes["id"])
 
 		if err == nil {
-			return fmt.Errorf("Record still exists")
+			return fmt.Errorf("Monitoring Job still exists %#v: %#v", err, mj)
 		}
 	}
 
