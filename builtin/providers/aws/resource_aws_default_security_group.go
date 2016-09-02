@@ -9,129 +9,141 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// ACL Network ACLs all contain an explicit deny-all rule that cannot be
-// destroyed or changed by users. This rule is numbered very high to be a
-// catch-all.
-// See http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html#default-network-acl
-const awsDefaultAclRuleNumber = 32767
-
-func resourceAwsDefaultNetworkAcl() *schema.Resource {
+func resourceAwsDefaultSecurityGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsDefaultNetworkAclCreate,
-		// We reuse aws_network_acl's read method, the operations are the same
-		Read:   resourceAwsNetworkAclRead,
-		Delete: resourceAwsDefaultNetworkAclDelete,
-		Update: resourceAwsDefaultNetworkAclUpdate,
+		Create: resourceAwsDefaultSecurityGroupCreate,
+		// Reuse aws_security_group READ and UPDATE methods
+		Read:   resourceAwsSecurityGroupRead,
+		Update: resourceAwsSecurityGroupUpdate,
+		Delete: resourceAwsDefaultSecurityGroupDelete,
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"default_network_acl_id": &schema.Schema{
+
+			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				Computed: false,
-			},
-			// We want explicit management of Subnets here, so we do not allow them to be
-			// computed. Instead, an empty config will enforce just that; removal of the
-			// any Subnets that have been assigned to the Default Network ACL. Because we
-			// can't actually remove them, this will be a continual plan until the
-			// Subnets are themselves destroyed or reassigned to a different Network
-			// ACL
-			"subnet_ids": &schema.Schema{
-				Type:     schema.TypeSet,
 				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+				ForceNew: true,
+				Default:  "Managed by Terraform",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
 			},
-			// We want explicit management of Rules here, so we do not allow them to be
-			// computed. Instead, an empty config will enforce just that; removal of the
-			// rules
+
+			"vpc_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
 			"ingress": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: false,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
 						},
+
 						"to_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"rule_no": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
-						},
-						"action": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
+
 						"protocol": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: protocolStateFunc,
 						},
-						"cidr_block": &schema.Schema{
-							Type:     schema.TypeString,
+
+						"cidr_blocks": &schema.Schema{
+							Type:     schema.TypeList,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"icmp_type": &schema.Schema{
-							Type:     schema.TypeInt,
+
+						"security_groups": &schema.Schema{
+							Type:     schema.TypeSet,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
-						"icmp_code": &schema.Schema{
-							Type:     schema.TypeInt,
+
+						"self": &schema.Schema{
+							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
 					},
 				},
-				Set: resourceAwsNetworkAclEntryHash,
+				Set: resourceAwsSecurityGroupRuleHash,
 			},
+
 			"egress": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: false,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
 						},
+
 						"to_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"rule_no": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
-						},
-						"action": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
+
 						"protocol": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: protocolStateFunc,
 						},
-						"cidr_block": &schema.Schema{
-							Type:     schema.TypeString,
+
+						"cidr_blocks": &schema.Schema{
+							Type:     schema.TypeList,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"icmp_type": &schema.Schema{
-							Type:     schema.TypeInt,
+
+						"prefix_list_ids": &schema.Schema{
+							Type:     schema.TypeList,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"icmp_code": &schema.Schema{
-							Type:     schema.TypeInt,
+
+						"security_groups": &schema.Schema{
+							Type:     schema.TypeSet,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+
+						"self": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
 						},
 					},
 				},
-				Set: resourceAwsNetworkAclEntryHash,
+				Set: resourceAwsSecurityGroupRuleHash,
+			},
+
+			"owner_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"tags": tagsSchema(),
@@ -139,145 +151,80 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 	}
 }
 
-func resourceAwsDefaultNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
-	d.SetId(d.Get("default_network_acl_id").(string))
-
-	// revoke all default and pre-existing rules on the default network acl.
-	// In the UPDATE method, we'll apply only the rules in the configuration.
-	log.Printf("[DEBUG] Revoking default ingress and egress rules for Default Network ACL for %s", d.Id())
-	err := revokeAllNetworkACLEntries(d.Id(), meta)
-	if err != nil {
-		return err
-	}
-
-	return resourceAwsDefaultNetworkAclUpdate(d, meta)
-}
-
-func resourceAwsDefaultNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-	d.Partial(true)
 
-	if d.HasChange("ingress") {
-		err := updateNetworkAclEntries(d, "ingress", conn)
-		if err != nil {
-			return err
-		}
+	securityGroupOpts := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("group-name"),
+				Values: []*string{aws.String("default")},
+			},
+		},
 	}
 
-	if d.HasChange("egress") {
-		err := updateNetworkAclEntries(d, "egress", conn)
-		if err != nil {
-			return err
-		}
+	if v, ok := d.GetOk("vpc_id"); ok {
+		securityGroupOpts.Filters = append(securityGroupOpts.Filters, &ec2.Filter{
+			Name:   aws.String("vpc-id"),
+			Values: []*string{aws.String(v.(string))},
+		})
 	}
 
-	if d.HasChange("subnet_ids") {
-		o, n := d.GetChange("subnet_ids")
-		if o == nil {
-			o = new(schema.Set)
-		}
-		if n == nil {
-			n = new(schema.Set)
-		}
-
-		os := o.(*schema.Set)
-		ns := n.(*schema.Set)
-
-		remove := os.Difference(ns).List()
-		add := ns.Difference(os).List()
-
-		if len(remove) > 0 {
-			//
-			// NO-OP
-			//
-			// Subnets *must* belong to a Network ACL. Subnets are not "removed" from
-			// Network ACLs, instead their association is replaced. In a normal
-			// Network ACL, any removal of a Subnet is done by replacing the
-			// Subnet/ACL association with an association between the Subnet and the
-			// Default Network ACL. Because we're managing the default here, we cannot
-			// do that, so we simply log a NO-OP. In order to remove the Subnet here,
-			// it must be destroyed, or assigned to different Network ACL. Those
-			// operations are not handled here
-			log.Printf("[WARN] Cannot remove subnets from the Default Network ACL. They must be re-assigned or destroyed")
-		}
-
-		if len(add) > 0 {
-			for _, a := range add {
-				association, err := findNetworkAclAssociation(a.(string), conn)
-				if err != nil {
-					return fmt.Errorf("Failed to find acl association: acl %s with subnet %s: %s", d.Id(), a, err)
-				}
-				log.Printf("[DEBUG] Updating Network Association for Default Network ACL (%s) and Subnet (%s)", d.Id(), a.(string))
-				_, err = conn.ReplaceNetworkAclAssociation(&ec2.ReplaceNetworkAclAssociationInput{
-					AssociationId: association.NetworkAclAssociationId,
-					NetworkAclId:  aws.String(d.Id()),
-				})
-				if err != nil {
-					return err
-				}
-			}
-		}
+	var err error
+	log.Printf(
+		"[DEBUG] Commandeer Default Security Group: %s", securityGroupOpts)
+	resp, err := conn.DescribeSecurityGroups(securityGroupOpts)
+	if err != nil {
+		return fmt.Errorf("Error creating Default Security Group: %s", err)
 	}
+
+	if len(resp.SecurityGroups) != 1 {
+		return fmt.Errorf("[ERR] Error finding default security group; found (%d) groups: %s", len(resp.SecurityGroups), resp)
+	}
+
+	g := resp.SecurityGroups[0]
+
+	d.SetId(*g.GroupId)
+
+	log.Printf("[INFO] Default Security Group ID: %s", d.Id())
 
 	if err := setTags(conn, d); err != nil {
 		return err
-	} else {
-		d.SetPartial("tags")
 	}
 
-	d.Partial(false)
-	// Re-use the exiting Network ACL Resources READ method
-	return resourceAwsNetworkAclRead(d, meta)
+	log.Printf("[WARN] Removing all ingress and egress rules found on Default Security Group (%s)", d.Id())
+	if len(g.IpPermissionsEgress) > 0 {
+		req := &ec2.RevokeSecurityGroupEgressInput{
+			GroupId:       g.GroupId,
+			IpPermissions: g.IpPermissionsEgress,
+		}
+
+		log.Printf("[DEBUG] Revoking default egress rules for Default Security Group for %s", d.Id())
+		if _, err = conn.RevokeSecurityGroupEgress(req); err != nil {
+			return fmt.Errorf(
+				"Error revoking default egress rules for Default Security Group (%s): %s",
+				d.Id(), err)
+		}
+	}
+	if len(g.IpPermissions) > 0 {
+		req := &ec2.RevokeSecurityGroupIngressInput{
+			GroupId:       g.GroupId,
+			IpPermissions: g.IpPermissions,
+		}
+
+		log.Printf("[DEBUG] Revoking default ingress rules for Default Security Group for %s", d.Id())
+		if _, err = conn.RevokeSecurityGroupIngress(req); err != nil {
+			return fmt.Errorf(
+				"Error revoking default ingress rules for Default Security Group (%s): %s",
+				d.Id(), err)
+		}
+	}
+
+	return resourceAwsSecurityGroupUpdate(d, meta)
 }
 
-func resourceAwsDefaultNetworkAclDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[WARN] Cannot destroy Default Network ACL. Terraform will remove this resource from the state file, however resources may remain.")
+func resourceAwsDefaultSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[WARN] Cannot destroy Default Security Group. Terraform will remove this resource from the state file, however resources may remain.")
 	d.SetId("")
-	return nil
-}
-
-// revokeAllNetworkACLEntries revoke all ingress and egress rules that the Default
-// Network ACL currently has
-func revokeAllNetworkACLEntries(netaclId string, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2conn
-
-	resp, err := conn.DescribeNetworkAcls(&ec2.DescribeNetworkAclsInput{
-		NetworkAclIds: []*string{aws.String(netaclId)},
-	})
-
-	if err != nil {
-		log.Printf("[DEBUG] Error looking up Network ACL: %s", err)
-		return err
-	}
-
-	if resp == nil {
-		return fmt.Errorf("[ERR] Error looking up Default Network ACL Entries: No results")
-	}
-
-	networkAcl := resp.NetworkAcls[0]
-	for _, e := range networkAcl.Entries {
-		// Skip the default rules added by AWS. They can be neither
-		// configured or deleted by users. See http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html#default-network-acl
-		if *e.RuleNumber == awsDefaultAclRuleNumber {
-			continue
-		}
-
-		// track if this is an egress or ingress rule, for logging purposes
-		rt := "ingress"
-		if *e.Egress == true {
-			rt = "egress"
-		}
-
-		log.Printf("[DEBUG] Destroying Network ACL (%s) Entry number (%d)", rt, int(*e.RuleNumber))
-		_, err := conn.DeleteNetworkAclEntry(&ec2.DeleteNetworkAclEntryInput{
-			NetworkAclId: aws.String(netaclId),
-			RuleNumber:   e.RuleNumber,
-			Egress:       e.Egress,
-		})
-		if err != nil {
-			return fmt.Errorf("Error deleting entry (%s): %s", e, err)
-		}
-	}
-
 	return nil
 }

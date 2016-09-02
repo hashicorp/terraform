@@ -310,6 +310,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_s3_bucket":                                resourceAwsS3Bucket(),
 			"aws_s3_bucket_object":                         resourceAwsS3BucketObject(),
 			"aws_s3_bucket_notification":                   resourceAwsS3BucketNotification(),
+			"aws_default_security_group":                   resourceAwsDefaultSecurityGroup(),
 			"aws_security_group":                           resourceAwsSecurityGroup(),
 			"aws_security_group_rule":                      resourceAwsSecurityGroupRule(),
 			"aws_simpledb_domain":                          resourceAwsSimpleDBDomain(),
