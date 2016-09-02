@@ -552,3 +552,20 @@ func testConfig(t *testing.T, name string) *Config {
 
 	return c
 }
+
+func TestConfigDataCount(t *testing.T) {
+	c := testConfig(t, "data-count")
+	actual, err := c.Resources[0].Count()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != 5 {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	// we need to make sure "count" has been removed from the RawConfig, since
+	// it's not a real key and won't validate.
+	if _, ok := c.Resources[0].RawConfig.Raw["count"]; ok {
+		t.Fatal("count key still exists in RawConfig")
+	}
+}
