@@ -42,7 +42,7 @@ RSA key in bits. Defaults to 2048.
 
 * `ecdsa_curve` - (Optional) When `algorithm` is "ECDSA", the name of the elliptic
 curve to use. May be any one of "P224", "P256", "P384" or "P521", with "P224" as the
-default.
+default.  **Some providers may not accept the default P224 curve.  See below for help**
 
 ## Attributes Reference
 
@@ -70,3 +70,10 @@ terraform taint tls_private_key.example
 ```
 
 A new key will then be generated on the next ``terraform apply``.
+
+## Provider-specific ECDSA Curve Information
+
+Certain providers (AWS, Microsoft Azure, Google Cloud, etc.) may only support
+certain ECDSA curves when generating your private key.  
+
+* `AWS` - Supports P256 and P384 ECDSA curves
