@@ -54,6 +54,7 @@ func resourceAwsAlbListener() *schema.Resource {
 			"ssl_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"certificate_arn": {
