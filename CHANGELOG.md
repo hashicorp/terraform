@@ -7,6 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
  * **New Provider:** `rabbitmq` [GH-7694]
  * **New Resource:** `aws_default_route_table` [GH-8323]
+ * **New Resource:** `aws_ssm_association` [GH-8376]
  * **New Resource:** `librato_alert` [GH-8170]
  * **New Resource:** `librato_service` [GH-8170]
  * **New Resource:** `cloudstack_affinity_group` [GH-8360]
