@@ -28,6 +28,9 @@ The following arguments are supported:
     `OS_REGION_NAME` environment variable is used. Changing this creates a new
     member.
 
+* `pool_id` - (Required) The id of the pool that this member will be
+    assigned to.
+
 * `name` - (Optional) Human-readable name for the member.
 
 * `tenant_id` - (Optional) Required for admins. The UUID of the tenant who owns
