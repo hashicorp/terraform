@@ -1407,6 +1407,19 @@ aws_instance.foo:
   ami = ami-abcd1234
 `
 
+const testTerraformPlanIgnoreChangesWildcardStr = `
+DIFF:
+
+
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
+  ami = ami-abcd1234
+  instance_type = t2.micro
+`
+
 const testTerraformPlanComputedValueInMap = `
 DIFF:
 

@@ -83,6 +83,10 @@ include `create_before_destroy`. Referencing a resource that does not include
 ~> **NOTE on ignore\_changes:** Ignored attribute names can be matched by their
 name, not state ID. For example, if an `aws_route_table` has two routes defined
 and the `ignore_changes` list contains "route", both routes will be ignored.
+Additionally you can also use a single entry with a wildcard (e.g. `"*"`)
+which will match all attribute names. Using a partial string together with a
+wildcard (e.g. `"rout*"`) is **not** supported.
+
 
 -------------
 
