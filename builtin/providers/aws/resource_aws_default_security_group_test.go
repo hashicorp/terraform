@@ -18,27 +18,27 @@ func TestAccAWSDefaultSecurityGroup_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
-		IDRefreshName: "aws_security_group.web",
+		IDRefreshName: "aws_default_security_group.web",
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSDefaultSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSDefaultSecurityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSDefaultSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSDefaultSecurityGroupExists("aws_default_security_group.web", &group),
 					testAccCheckAWSDefaultSecurityGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "name", "default"),
+						"aws_default_security_group.web", "name", "default"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.3629188364.protocol", "tcp"),
+						"aws_default_security_group.web", "ingress.3629188364.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.3629188364.from_port", "80"),
+						"aws_default_security_group.web", "ingress.3629188364.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.3629188364.to_port", "8000"),
+						"aws_default_security_group.web", "ingress.3629188364.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.3629188364.cidr_blocks.#", "1"),
+						"aws_default_security_group.web", "ingress.3629188364.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.3629188364.cidr_blocks.0", "10.0.0.0/8"),
+						"aws_default_security_group.web", "ingress.3629188364.cidr_blocks.0", "10.0.0.0/8"),
 				),
 			},
 		},
@@ -49,7 +49,7 @@ func testAccCheckAWSDefaultSecurityGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_security_group" {
+		if rs.Type != "aws_default_security_group" {
 			continue
 		}
 
