@@ -11,9 +11,17 @@ import (
 
 func resourceAwsDefaultSecurityGroup() *schema.Resource {
 	dsg := resourceAwsSecurityGroup()
+	dsg.Create = resourceAwsDefaultSecurityGroupCreate
+	dsg.Delete = resourceAwsDefaultSecurityGroupDelete
 	delete(dsg.Schema, "name")
 	delete(dsg.Schema, "name_prefix")
 	delete(dsg.Schema, "description")
+
+	// We want explicit management of Rules here, so we do not allow them to be
+	// computed. Instead, an empty config will enforce just that; removal of the
+	// rules
+	dsg.Schema["ingress"].Computed = false
+	dsg.Schema["egress"].Computed = false
 	return dsg
 }
 
