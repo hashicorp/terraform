@@ -107,6 +107,15 @@ With the exceptions mentioned above, `aws_default_security_group` should
 identical behavior to `aws_security_group`. Please consult [AWS_SECURITY_GROUP](/docs/providers/aws/r/security_group.html)
 for further usage documentation.
 
+Removing `aws_default_security_group` from your configuration
+
+Each AWS VPC (or region, if using EC2 Classic) comes with a Default Security 
+Group that cannot be deleted. The `aws_default_security_group` allows you to 
+manage this Security Group, but Terraform cannot destroy it. Removing this resource 
+from your configuration will remove it from your statefile and management, but 
+will not destroy the Security Group. All ingress or egress rules will be left as 
+they are at the time of removal. You can resume managing them via the AWS Console.
+
 ## Attributes Reference
 
 The following attributes are exported:
