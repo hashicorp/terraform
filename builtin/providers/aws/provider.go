@@ -18,42 +18,42 @@ func Provider() terraform.ResourceProvider {
 	// The actual provider
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"access_key": &schema.Schema{
+			"access_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
 				Description: descriptions["access_key"],
 			},
 
-			"secret_key": &schema.Schema{
+			"secret_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
 				Description: descriptions["secret_key"],
 			},
 
-			"profile": &schema.Schema{
+			"profile": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
 				Description: descriptions["profile"],
 			},
 
-			"shared_credentials_file": &schema.Schema{
+			"shared_credentials_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
 				Description: descriptions["shared_credentials_file"],
 			},
 
-			"token": &schema.Schema{
+			"token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
 				Description: descriptions["token"],
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Required: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
@@ -64,21 +64,21 @@ func Provider() terraform.ResourceProvider {
 				InputDefault: "us-east-1",
 			},
 
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
 				Description: descriptions["role_arn"],
 			},
 
-			"max_retries": &schema.Schema{
+			"max_retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     11,
 				Description: descriptions["max_retries"],
 			},
 
-			"allowed_account_ids": &schema.Schema{
+			"allowed_account_ids": {
 				Type:          schema.TypeSet,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
@@ -86,7 +86,7 @@ func Provider() terraform.ResourceProvider {
 				Set:           schema.HashString,
 			},
 
-			"forbidden_account_ids": &schema.Schema{
+			"forbidden_account_ids": {
 				Type:          schema.TypeSet,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
@@ -94,14 +94,14 @@ func Provider() terraform.ResourceProvider {
 				Set:           schema.HashString,
 			},
 
-			"dynamodb_endpoint": &schema.Schema{
+			"dynamodb_endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
 				Description: descriptions["dynamodb_endpoint"],
 			},
 
-			"kinesis_endpoint": &schema.Schema{
+			"kinesis_endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
@@ -110,35 +110,35 @@ func Provider() terraform.ResourceProvider {
 
 			"endpoints": endpointsSchema(),
 
-			"insecure": &schema.Schema{
+			"insecure": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["insecure"],
 			},
 
-			"skip_credentials_validation": &schema.Schema{
+			"skip_credentials_validation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["skip_credentials_validation"],
 			},
 
-			"skip_requesting_account_id": &schema.Schema{
+			"skip_requesting_account_id": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["skip_requesting_account_id"],
 			},
 
-			"skip_metadata_api_check": &schema.Schema{
+			"skip_metadata_api_check": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["skip_metadata_api_check"],
 			},
 
-			"s3_force_path_style": &schema.Schema{
+			"s3_force_path_style": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
@@ -454,27 +454,27 @@ func endpointsSchema() *schema.Schema {
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"iam": &schema.Schema{
+				"iam": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Default:     "",
 					Description: descriptions["iam_endpoint"],
 				},
 
-				"ec2": &schema.Schema{
+				"ec2": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Default:     "",
 					Description: descriptions["ec2_endpoint"],
 				},
 
-				"elb": &schema.Schema{
+				"elb": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Default:     "",
 					Description: descriptions["elb_endpoint"],
 				},
-				"s3": &schema.Schema{
+				"s3": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Default:     "",
