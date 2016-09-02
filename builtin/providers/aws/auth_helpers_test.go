@@ -51,7 +51,7 @@ func TestAWSGetAccountId_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
 	defer awsTs()
 
 	iamEndpoints := []*iamEndpoint{
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
 			Response: &iamResponse{200, iamResponse_GetUser_valid, "text/xml"},
 		},
@@ -72,7 +72,7 @@ func TestAWSGetAccountId_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
 
 func TestAWSGetAccountId_shouldBeValid_fromIamUser(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
 			Response: &iamResponse{200, iamResponse_GetUser_valid, "text/xml"},
 		},
@@ -94,11 +94,11 @@ func TestAWSGetAccountId_shouldBeValid_fromIamUser(t *testing.T) {
 
 func TestAWSGetAccountId_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
 			Response: &iamResponse{403, iamResponse_GetUser_unauthorized, "text/xml"},
 		},
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=GetCallerIdentity&Version=2011-06-15"},
 			Response: &iamResponse{200, stsResponse_GetCallerIdentity_valid, "text/xml"},
 		},
@@ -119,15 +119,15 @@ func TestAWSGetAccountId_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
 
 func TestAWSGetAccountId_shouldBeValid_fromIamListRoles(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
 			Response: &iamResponse{403, iamResponse_GetUser_unauthorized, "text/xml"},
 		},
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=GetCallerIdentity&Version=2011-06-15"},
 			Response: &iamResponse{403, stsResponse_GetCallerIdentity_unauthorized, "text/xml"},
 		},
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=ListRoles&MaxItems=1&Version=2010-05-08"},
 			Response: &iamResponse{200, iamResponse_ListRoles_valid, "text/xml"},
 		},
@@ -148,11 +148,11 @@ func TestAWSGetAccountId_shouldBeValid_fromIamListRoles(t *testing.T) {
 
 func TestAWSGetAccountId_shouldBeValid_federatedRole(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
 			Response: &iamResponse{400, iamResponse_GetUser_federatedFailure, "text/xml"},
 		},
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=ListRoles&MaxItems=1&Version=2010-05-08"},
 			Response: &iamResponse{200, iamResponse_ListRoles_valid, "text/xml"},
 		},
@@ -173,11 +173,11 @@ func TestAWSGetAccountId_shouldBeValid_federatedRole(t *testing.T) {
 
 func TestAWSGetAccountId_shouldError_unauthorizedFromIam(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
 			Response: &iamResponse{403, iamResponse_GetUser_unauthorized, "text/xml"},
 		},
-		&iamEndpoint{
+		{
 			Request:  &iamRequest{"POST", "/", "Action=ListRoles&MaxItems=1&Version=2010-05-08"},
 			Response: &iamResponse{403, iamResponse_ListRoles_unauthorized, "text/xml"},
 		},
@@ -221,17 +221,17 @@ func TestAWSGetCredentials_shouldError(t *testing.T) {
 	c, err := GetCredentials(&cfg)
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() != "NoCredentialProviders" {
-			t.Fatalf("Expected NoCredentialProviders error")
+			t.Fatal("Expected NoCredentialProviders error")
 		}
 	}
 	_, err = c.Get()
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() != "NoCredentialProviders" {
-			t.Fatalf("Expected NoCredentialProviders error")
+			t.Fatal("Expected NoCredentialProviders error")
 		}
 	}
 	if err == nil {
-		t.Fatalf("Expected an error with empty env, keys, and IAM in AWS Config")
+		t.Fatal("Expected an error with empty env, keys, and IAM in AWS Config")
 	}
 }
 
@@ -257,16 +257,18 @@ func TestAWSGetCredentials_shouldBeStatic(t *testing.T) {
 		}
 
 		creds, err := GetCredentials(&cfg)
-		if creds == nil {
-			t.Fatalf("Expected a static creds provider to be returned")
-		}
 		if err != nil {
 			t.Fatalf("Error gettings creds: %s", err)
 		}
+		if creds == nil {
+			t.Fatal("Expected a static creds provider to be returned")
+		}
+
 		v, err := creds.Get()
 		if err != nil {
 			t.Fatalf("Error gettings creds: %s", err)
 		}
+
 		if v.AccessKeyID != c.Key {
 			t.Fatalf("AccessKeyID mismatch, expected: (%s), got (%s)", c.Key, v.AccessKeyID)
 		}
@@ -295,12 +297,13 @@ func TestAWSGetCredentials_shouldIAM(t *testing.T) {
 	cfg := Config{}
 
 	creds, err := GetCredentials(&cfg)
-	if creds == nil {
-		t.Fatalf("Expected a static creds provider to be returned")
-	}
 	if err != nil {
 		t.Fatalf("Error gettings creds: %s", err)
 	}
+	if creds == nil {
+		t.Fatal("Expected a static creds provider to be returned")
+	}
+
 	v, err := creds.Get()
 	if err != nil {
 		t.Fatalf("Error gettings creds: %s", err)
@@ -346,12 +349,13 @@ func TestAWSGetCredentials_shouldIgnoreIAM(t *testing.T) {
 		}
 
 		creds, err := GetCredentials(&cfg)
-		if creds == nil {
-			t.Fatalf("Expected a static creds provider to be returned")
-		}
 		if err != nil {
 			t.Fatalf("Error gettings creds: %s", err)
 		}
+		if creds == nil {
+			t.Fatal("Expected a static creds provider to be returned")
+		}
+
 		v, err := creds.Get()
 		if err != nil {
 			t.Fatalf("Error gettings creds: %s", err)
@@ -379,6 +383,10 @@ func TestAWSGetCredentials_shouldErrorWithInvalidEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error gettings creds: %s", err)
 	}
+	if creds == nil {
+		t.Fatal("Expected a static creds provider to be returned")
+	}
+
 	v, err := creds.Get()
 	if err == nil {
 		t.Fatal("Expected error returned when getting creds w/ invalid EC2 endpoint")
@@ -404,6 +412,9 @@ func TestAWSGetCredentials_shouldIgnoreInvalidEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Getting static credentials w/ invalid EC2 endpoint failed: %s", err)
 	}
+	if creds == nil {
+		t.Fatal("Expected a static creds provider to be returned")
+	}
 
 	if v.ProviderName != "StaticProvider" {
 		t.Fatalf("Expected provider name to be %q, %q given", "StaticProvider", v.ProviderName)
@@ -426,12 +437,13 @@ func TestAWSGetCredentials_shouldCatchEC2RoleProvider(t *testing.T) {
 	defer ts()
 
 	creds, err := GetCredentials(&Config{})
-	if creds == nil {
-		t.Fatalf("Expected an EC2Role creds provider to be returned")
-	}
 	if err != nil {
 		t.Fatalf("Error gettings creds: %s", err)
 	}
+	if creds == nil {
+		t.Fatal("Expected an EC2Role creds provider to be returned")
+	}
+
 	v, err := creds.Get()
 	if err != nil {
 		t.Fatalf("Expected no error when getting creds: %s", err)
@@ -475,12 +487,13 @@ func TestAWSGetCredentials_shouldBeShared(t *testing.T) {
 	}
 
 	creds, err := GetCredentials(&Config{Profile: "myprofile", CredsFilename: file.Name()})
-	if creds == nil {
-		t.Fatalf("Expected a provider chain to be returned")
-	}
 	if err != nil {
 		t.Fatalf("Error gettings creds: %s", err)
 	}
+	if creds == nil {
+		t.Fatal("Expected a provider chain to be returned")
+	}
+
 	v, err := creds.Get()
 	if err != nil {
 		t.Fatalf("Error gettings creds: %s", err)
@@ -505,12 +518,13 @@ func TestAWSGetCredentials_shouldBeENV(t *testing.T) {
 
 	cfg := Config{}
 	creds, err := GetCredentials(&cfg)
-	if creds == nil {
-		t.Fatalf("Expected a static creds provider to be returned")
-	}
 	if err != nil {
 		t.Fatalf("Error gettings creds: %s", err)
 	}
+	if creds == nil {
+		t.Fatalf("Expected a static creds provider to be returned")
+	}
+
 	v, err := creds.Get()
 	if err != nil {
 		t.Fatalf("Error gettings creds: %s", err)
