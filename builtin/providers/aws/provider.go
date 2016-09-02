@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/mutexkv"
@@ -39,6 +40,8 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["profile"],
 			},
 
+			"assume_role": assumeRoleSchema(),
+
 			"shared_credentials_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -62,13 +65,6 @@ func Provider() terraform.ResourceProvider {
 				}, nil),
 				Description:  descriptions["region"],
 				InputDefault: "us-east-1",
-			},
-
-			"role_arn": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "",
-				Description: descriptions["role_arn"],
 			},
 
 			"max_retries": {
@@ -360,8 +356,6 @@ func init() {
 		"profile": "The profile for API operations. If not set, the default profile\n" +
 			"created with `aws configure` will be used.",
 
-		"role_arn": "The role to be assumed using the supplied access_key and secret_key",
-
 		"shared_credentials_file": "The path to the shared credentials file. If not set\n" +
 			"this defaults to ~/.aws/credentials.",
 
@@ -402,6 +396,14 @@ func init() {
 			"i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the S3 client will\n" +
 			"use virtual hosted bucket addressing when possible\n" +
 			"(http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.",
+
+		"assume_role_role_arn": "The ARN of an IAM role to assume prior to making API calls.",
+
+		"assume_role_session_name": "The session name to use when assuming the role. If ommitted," +
+			" no session name is passed to the AssumeRole call.",
+
+		"assume_role_external_id": "The external ID to use when assuming the role. If ommitted," +
+			" no external ID is passed to the AssumeRole call.",
 	}
 }
 
@@ -413,7 +415,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		CredsFilename:           d.Get("shared_credentials_file").(string),
 		Token:                   d.Get("token").(string),
 		Region:                  d.Get("region").(string),
-		RoleArn:                 d.Get("role_arn").(string),
 		MaxRetries:              d.Get("max_retries").(int),
 		DynamoDBEndpoint:        d.Get("dynamodb_endpoint").(string),
 		KinesisEndpoint:         d.Get("kinesis_endpoint").(string),
@@ -422,6 +423,18 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		SkipRequestingAccountId: d.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),
 		S3ForcePathStyle:        d.Get("s3_force_path_style").(bool),
+	}
+
+	assumeRoleList := d.Get("assume_role").(*schema.Set).List()
+	if len(assumeRoleList) == 1 {
+		assumeRole := assumeRoleList[0].(map[string]interface{})
+		config.AssumeRoleARN = assumeRole["role_arn"].(string)
+		config.AssumeRoleSessionName = assumeRole["session_name"].(string)
+		config.AssumeRoleExternalID = assumeRole["external_id"].(string)
+		log.Printf("[INFO] assume_role configuration set: (ARN: %q, SessionID: %q, ExternalID: %q)",
+			config.AssumeRoleARN, config.AssumeRoleSessionName, config.AssumeRoleExternalID)
+	} else {
+		log.Printf("[INFO] No assume_role block read from configuration")
 	}
 
 	endpointsSet := d.Get("endpoints").(*schema.Set)
@@ -447,6 +460,45 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 // This is a global MutexKV for use within this plugin.
 var awsMutexKV = mutexkv.NewMutexKV()
+
+func assumeRoleSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"role_arn": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: descriptions["assume_role_role_arn"],
+				},
+
+				"session_name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: descriptions["assume_role_session_name"],
+				},
+
+				"external_id": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: descriptions["assume_role_external_id"],
+				},
+			},
+		},
+		Set: assumeRoleToHash,
+	}
+}
+
+func assumeRoleToHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["role_arn"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["session_name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["external_id"].(string)))
+	return hashcode.String(buf.String())
+}
 
 func endpointsSchema() *schema.Schema {
 	return &schema.Schema{
