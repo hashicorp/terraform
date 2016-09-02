@@ -7,10 +7,11 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
  * **New Provider:** `rabbitmq` [GH-7694]
  * **New Resource:** `aws_default_route_table` [GH-8323]
+ * **New Resource:** `aws_s3_bucket_policy` [GH-8615]
  * **New Resource:** `aws_ssm_association` [GH-8376]
+ * **New Resource:** `cloudstack_affinity_group` [GH-8360]
  * **New Resource:** `librato_alert` [GH-8170]
  * **New Resource:** `librato_service` [GH-8170]
- * **New Resource:** `cloudstack_affinity_group` [GH-8360]
  * The count of a resource can now be referenced for interpolations: `self.count` and `type.name.count` work [GH-8581]
 
 IMPROVEMENTS:
@@ -18,6 +19,7 @@ IMPROVEMENTS:
  * core: HTTP module sources can now use netrc files for auth
  * core: Add wildcard (match all) support to `ignore_changes` [GH-8599]
  * helper/schema: Add diff suppression callback [GH-8585]
+ * provider/aws: Spurious diffs of `aws_s3_bucket` policy attributes due to JSON field ordering are reduced [GH-8615]
  * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
  * provider/aws: Export `arn` of `aws_autoscaling_group` [GH-8503]
  * provider/aws: More robust handling of Lambda function archives hosted on S3 [GH-6860]
