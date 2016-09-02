@@ -13,9 +13,17 @@ func resourceAwsDefaultSecurityGroup() *schema.Resource {
 	dsg := resourceAwsSecurityGroup()
 	dsg.Create = resourceAwsDefaultSecurityGroupCreate
 	dsg.Delete = resourceAwsDefaultSecurityGroupDelete
-	delete(dsg.Schema, "name")
 	delete(dsg.Schema, "name_prefix")
+
+	// Descriptions cannot be updated
 	delete(dsg.Schema, "description")
+
+	// name is a computed value here
+	// delete(dsg.Schema, "name")
+	dsg.Schema["name"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
 
 	// We want explicit management of Rules here, so we do not allow them to be
 	// computed. Instead, an empty config will enforce just that; removal of the
