@@ -134,14 +134,11 @@ func TestFlagTypedKV(t *testing.T) {
 			true,
 		},
 
-		/*
-			TODO: wait for HCL merge
-			{
-				"key=/path",
-				map[string]interface{}{"key": "/path"},
-				false,
-			},
-		*/
+		{
+			"key=/path",
+			map[string]interface{}{"key": "/path"},
+			false,
+		},
 
 		{
 			"key=1234.dkr.ecr.us-east-1.amazonaws.com/proj:abcdef",
