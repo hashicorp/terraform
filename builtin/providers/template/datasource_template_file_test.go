@@ -26,8 +26,6 @@ func TestTemplateRendering(t *testing.T) {
 		{`{a="foo"}`, `$${a}`, `foo`},
 		{`{a="hello"}`, `$${replace(a, "ello", "i")}`, `hi`},
 		{`{}`, `${1+2+3}`, `6`},
-		{`{a=1, b=2}`, `$${a+b}`, `3`},
-		{`{a=0.1, b=0.2}`, `$${0+((a+b)*10)}`, `3`},
 	}
 
 	for _, tt := range cases {
