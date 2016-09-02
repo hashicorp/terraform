@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -55,7 +54,7 @@ func TestAccAWSDefaultSecurityGroup_classic(t *testing.T) {
 		CheckDestroy:  testAccCheckAWSDefaultSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSDefaultSecurityGroupConfig,
+				Config: testAccAWSDefaultSecurityGroupConfig_classic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDefaultSecurityGroupExists("aws_default_security_group.web", &group),
 					testAccCheckAWSDefaultSecurityGroupAttributes(&group),
@@ -109,24 +108,6 @@ func testAccCheckAWSDefaultSecurityGroupDestroy(s *terraform.State) error {
 	}
 
 	return nil
-}
-
-func testAccCheckAWSDefaultSecurityGroupGeneratedNamePrefix(
-	resource, prefix string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		r, ok := s.RootModule().Resources[resource]
-		if !ok {
-			return fmt.Errorf("Resource not found")
-		}
-		name, ok := r.Primary.Attributes["name"]
-		if !ok {
-			return fmt.Errorf("Name attr not found: %#v", r.Primary.Attributes)
-		}
-		if !strings.HasPrefix(name, prefix) {
-			return fmt.Errorf("Name: %q, does not have prefix: %q", name, prefix)
-		}
-		return nil
-	}
 }
 
 func testAccCheckAWSDefaultSecurityGroupExists(n string, group *ec2.SecurityGroup) resource.TestCheckFunc {

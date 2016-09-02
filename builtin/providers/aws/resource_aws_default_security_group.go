@@ -10,16 +10,16 @@ import (
 )
 
 func resourceAwsDefaultSecurityGroup() *schema.Resource {
+	// reuse aws_security_group_rule schema, and methods for READ, UPDATE
 	dsg := resourceAwsSecurityGroup()
 	dsg.Create = resourceAwsDefaultSecurityGroupCreate
 	dsg.Delete = resourceAwsDefaultSecurityGroupDelete
-	delete(dsg.Schema, "name_prefix")
 
 	// Descriptions cannot be updated
 	delete(dsg.Schema, "description")
 
-	// name is a computed value here
-	// delete(dsg.Schema, "name")
+	// name is a computed value for Default Security Groups and cannot be changed
+	delete(dsg.Schema, "name_prefix")
 	dsg.Schema["name"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Computed: true,
@@ -55,8 +55,7 @@ func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interfac
 	}
 
 	var err error
-	log.Printf(
-		"[DEBUG] Commandeer Default Security Group: %s", securityGroupOpts)
+	log.Printf("[DEBUG] Commandeer Default Security Group: %s", securityGroupOpts)
 	resp, err := conn.DescribeSecurityGroups(securityGroupOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating Default Security Group: %s", err)
@@ -64,7 +63,7 @@ func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interfac
 
 	var g *ec2.SecurityGroup
 	if vpcId != "" {
-		// if vpc_id contains a value, then we expect just a single Security Group
+		// if vpcId contains a value, then we expect just a single Security Group
 		// returned, as default is a protected name for each VPC, and for each
 		// Region on EC2 Classic
 		if len(resp.SecurityGroups) != 1 {
@@ -108,6 +107,8 @@ func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interfac
 		}
 	}
 	if len(g.IpPermissions) > 0 {
+		// a limitation in EC2 Classic is that a call to RevokeSecurityGroupIngress
+		// cannot contain both the GroupName and the GroupId
 		for _, p := range g.IpPermissions {
 			for _, uigp := range p.UserIdGroupPairs {
 				if uigp.GroupId != nil && uigp.GroupName != nil {
