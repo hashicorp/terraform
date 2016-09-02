@@ -15,7 +15,7 @@ Manages a V2 pool resource within OpenStack.
 ```
 resource "openstack_lb_pool_v2" "pool_1" {
   protocol = "ProtocolHTTP"
-  lb_method = "LBMethodRoundRobin"
+  lb_method = "ROUND_ROBIN"
   listener_id =  "d9415786-5f1a-428b-b35f-2f1523e146d2"
   persistence {
       type          = "HTTP_COOKIE"
@@ -52,10 +52,9 @@ The following arguments are supported:
     will be associated with. Changing this creates a new pool.
 	Note:  One of LoadbalancerID or ListenerID must be provided.
 
-* `lb_method` - (Required) The algorithm used to distribute load between the
-    members of the pool. The current specification supports
-    LBMethodRoundRobin, LBMethodLeastConnections and LBMethodSourceIp as valid
-    values for this attribute.
+* `lb_method` - (Required) The load balancing algorithm to
+    distribute traffic to the pool's members. Must be one of
+    ROUND_ROBIN, LEAST_CONNECTIONS, or SOURCE_IP.
 
 * `persistence` - Omit this field to prevent session persistence.  Indicates
     whether connections in the same session will be processed by the same Pool
