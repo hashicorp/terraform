@@ -244,6 +244,20 @@ func TestConfigValidate_dupResource(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_ignoreChanges(t *testing.T) {
+	c := testConfig(t, "validate-ignore-changes")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestConfigValidate_ignoreChangesBad(t *testing.T) {
+	c := testConfig(t, "validate-ignore-changes-bad")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_moduleNameBad(t *testing.T) {
 	c := testConfig(t, "validate-module-name-bad")
 	if err := c.Validate(); err == nil {
