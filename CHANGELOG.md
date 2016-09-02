@@ -29,6 +29,8 @@ IMPROVEMENTS:
  * provider/statuscake: Add support for contact-group id in statuscake test [GH-8417]
  
 BUG FIXES:
+ * core: `-var` flag inputs starting with `/` work 
+ * core: `-var` flag inputs starting with a number work and was fixed in such a way that this should overall be a lot more resilient to inputs [GH-8044]
  * core: JSON configuration with resources with a single key parse properly [GH-8485]
  * core: States with duplicate modules are detected and an error is shown [GH-8463]
  * core: Changing a module source from file to VCS no longer errors [GH-8398]
