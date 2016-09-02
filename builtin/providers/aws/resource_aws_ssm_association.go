@@ -48,20 +48,19 @@ func resourceAwsSsmAssociationCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if v, ok := d.GetOk("parameters"); ok {
-		assosciationInput.Parameters = expandDocumentParameters(v.(map[string]interface{}))
+		assosciationInput.Parameters = expandSSMDocumentParameters(v.(map[string]interface{}))
 	}
 
 	resp, err := ssmconn.CreateAssociation(assosciationInput)
-
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error creating SSM association: {{err}}", err)
 	}
 
-	if resp.AssociationDescription != nil {
-		d.SetId(*resp.AssociationDescription.Name)
-	} else {
+	if resp.AssociationDescription == nil {
 		return fmt.Errorf("[ERROR] AssociationDescription was nil")
 	}
+
+	d.SetId(*resp.AssociationDescription.Name)
 
 	return resourceAwsSsmAssociationRead(d, meta)
 }
@@ -81,17 +80,14 @@ func resourceAwsSsmAssociationRead(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error reading SSM association: {{err}}", err)
 	}
-
-	if resp.AssociationDescription != nil {
-		association := resp.AssociationDescription
-
-		d.Set("instance_id", association.InstanceId)
-		d.Set("name", association.Name)
-		d.Set("parameters", association.Parameters)
-
-	} else {
+	if resp.AssociationDescription == nil {
 		return fmt.Errorf("[ERROR] AssociationDescription was nil")
 	}
+
+	association := resp.AssociationDescription
+	d.Set("instance_id", association.InstanceId)
+	d.Set("name", association.Name)
+	d.Set("parameters", association.Parameters)
 
 	return nil
 }
@@ -115,7 +111,7 @@ func resourceAwsSsmAssociationDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func expandDocumentParameters(params map[string]interface{}) map[string][]*string {
+func expandSSMDocumentParameters(params map[string]interface{}) map[string][]*string {
 	var docParams = make(map[string][]*string)
 	for k, v := range params {
 		var values []*string

@@ -98,10 +98,9 @@ resource "aws_security_group" "tf_test_foo" {
 }
 
 resource "aws_instance" "foo" {
-  # eu-west-1
-  ami = "ami-f77ac884"
-  availability_zone = "eu-west-1a"
-  instance_type = "t2.small"
+  ami = "ami-4fccb37f"
+  availability_zone = "us-west-2a"
+  instance_type = "m1.small"
   security_groups = ["${aws_security_group.tf_test_foo.name}"]
 }
 
