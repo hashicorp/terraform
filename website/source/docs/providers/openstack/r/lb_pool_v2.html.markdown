@@ -1,6 +1,6 @@
 ---
 layout: "openstack"
-page_title: "OpenStack: openstack_lbaas_pool_v2"
+page_title: "OpenStack: openstack_lb_pool_v2"
 sidebar_current: "docs-openstack-resource-lbaas-pool-v2"
 description: |-
   Manages a V2 pool resource within OpenStack.
@@ -13,7 +13,7 @@ Manages a V2 pool resource within OpenStack.
 ## Example Usage
 
 ```
-resource "openstack_lbaas_pool_v2" "pool_1" {
+resource "openstack_lb_pool_v2" "pool_1" {
   protocol = "ProtocolHTTP"
   lb_method = "LBMethodRoundRobin"
   listener_id =  "d9415786-5f1a-428b-b35f-2f1523e146d2"
