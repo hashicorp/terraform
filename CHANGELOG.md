@@ -5,6 +5,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * The internal structure of `.terraform/modules` changed slightly. For configurations with modules, you'll need to run `terraform get` again.
 
 FEATURES:
+ * **New Provider:** `rabbitmq` [GH-7694]
  * **New Resource:** `aws_default_route_table` [GH-8323]
  * **New Resource:** `librato_alert` [GH-8170]
  * **New Resource:** `librato_service` [GH-8170]
