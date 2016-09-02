@@ -41,7 +41,7 @@ The following arguments are supported:
 * `protocol` - (Required) protocol of rule (`ICMP`, `TCP`, `UDP`)
 * `port` - (Optional) port of the rule
 
-Field `action`, `direction`, `ip_range`, `protocol`, `port` are editable.
+Fields `action`, `direction`, `ip_range`, `protocol`, `port` are editable.
 
 ## Attributes Reference
 
