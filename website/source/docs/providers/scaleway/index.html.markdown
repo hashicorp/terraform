@@ -60,7 +60,7 @@ resource "scaleway_security_group_rule" "http_accept" {
   direction = "inbound"
   ip_range = "0.0.0.0/0"
   protocol = "TCP"
-  dest_port_from = 80
+  port = 80
 }
 
 resource "scaleway_security_group_rule" "https_accept" {
@@ -70,7 +70,7 @@ resource "scaleway_security_group_rule" "https_accept" {
   direction = "inbound"
   ip_range = "0.0.0.0/0"
   protocol = "TCP"
-  dest_port_from = 443
+  port = 443
 }
 
 ```
