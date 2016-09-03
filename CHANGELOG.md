@@ -53,6 +53,7 @@ BUG FIXES:
  * provider/aws: Wait for `aws_route_53_record` to be in-sync after a delete [GH-8646]
  * provider/aws: `aws_volume_attachment` detachment errors are caught [GH-8479]
  * provider/aws: adds resource retry to `aws_spot_instance_request` [GH-8516]
+ * provider/aws: Add validation of Health Check target to aws_elb. [GH-8578]
  * provider/azurerm: Reordering the checks after an Azure API Get [GH-8607]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
