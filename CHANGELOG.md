@@ -36,6 +36,7 @@ IMPROVEMENTS:
  
 BUG FIXES:
  * core: Changing a module source from file to VCS no longer errors [GH-8398]
+ * core: Configuration is now validated prior to input, fixing an obscure parse error when attempting to interpolate a count [GH-8591]
  * core: JSON configuration with resources with a single key parse properly [GH-8485]
  * core: States with duplicate modules are detected and an error is shown [GH-8463]
  * core: Validate uniqueness of variables/outputs in a module [GH-8482]
