@@ -146,6 +146,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ami":                      dataSourceAwsAmi(),
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
 			"aws_caller_identity":          dataSourceAwsCallerIdentity(),
+			"aws_cloudformation_stack":     dataSourceAwsCloudFormationStack(),
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
 			"aws_elb_service_account":      dataSourceAwsElbServiceAccount(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
