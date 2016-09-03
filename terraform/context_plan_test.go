@@ -911,6 +911,37 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_computedDataCountResource(t *testing.T) {
+	m := testModule(t, "plan-computed-data-count")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if got := len(plan.Diff.Modules); got != 1 {
+		t.Fatalf("got %d modules; want 1", got)
+	}
+
+	moduleDiff := plan.Diff.Modules[0]
+
+	// make sure we created 3 "bar"s
+	for i := 0; i < 3; i++ {
+		resource := fmt.Sprintf("data.aws_vpc.bar.%d", i)
+		if _, ok := moduleDiff.Resources[resource]; !ok {
+			t.Fatalf("missing diff for %s", resource)
+		}
+	}
+}
+
 // Higher level test at TestResource_dataSourceListPlanPanic
 func TestContext2Plan_dataSourceTypeMismatch(t *testing.T) {
 	m := testModule(t, "plan-data-source-type-mismatch")
