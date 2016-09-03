@@ -37,7 +37,7 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
-* `network` - (Required) The name of the network to attach this route to.
+* `network` - (Required) The name or self_link of the network to attach this route to.
 
 * `priority` - (Required) The priority of this route, used to break ties.
 

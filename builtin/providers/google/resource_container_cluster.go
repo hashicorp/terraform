@@ -289,8 +289,12 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		cluster.MonitoringService = v.(string)
 	}
 
-	if v, ok := d.GetOk("network"); ok {
-		cluster.Network = v.(string)
+	if _, ok := d.GetOk("network"); ok {
+		network, err := getNetworkName(d, "network")
+		if err != nil {
+			return err
+		}
+		cluster.Network = network
 	}
 
 	if v, ok := d.GetOk("subnetwork"); ok {
@@ -425,7 +429,7 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("description", cluster.Description)
 	d.Set("logging_service", cluster.LoggingService)
 	d.Set("monitoring_service", cluster.MonitoringService)
-	d.Set("network", cluster.Network)
+	d.Set("network", d.Get("network").(string))
 	d.Set("subnetwork", cluster.Subnetwork)
 	d.Set("node_config", flattenClusterNodeConfig(cluster.NodeConfig))
 	d.Set("instance_group_urls", cluster.InstanceGroupUrls)

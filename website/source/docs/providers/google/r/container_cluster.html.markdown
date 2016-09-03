@@ -66,7 +66,7 @@ resource "google_container_cluster" "primary" {
     `monitoring.googleapis.com` and `none`. Defaults to
     `monitoring.googleapis.com`
 
-* `network` - (Optional) The name of the Google Compute Engine network to which
+* `network` - (Optional) The name or self_link of the Google Compute Engine network to which
     the cluster is connected
 
 * `node_config` -  (Optional) The machine type and image to use for all nodes in
