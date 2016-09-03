@@ -15,8 +15,10 @@ FEATURES:
  * **New Resource:** `cloudstack_affinity_group` [GH-8360]
  * **New Resource:** `librato_alert` [GH-8170]
  * **New Resource:** `librato_service` [GH-8170]
+ * **New Remote State Backend:** `local` [GH-8647]
  * Data source blocks can now have a count associated with them [GH-8635]
  * The count of a resource can now be referenced for interpolations: `self.count` and `type.name.count` work [GH-8581]
+ * Provisioners now support connection using IPv6 in addition to IPv4 [GH-6616]
 
 IMPROVEMENTS:
  * core: Add wildcard (match all) support to `ignore_changes` [GH-8599]
@@ -36,6 +38,7 @@ IMPROVEMENTS:
  
 BUG FIXES:
  * core: Changing a module source from file to VCS no longer errors [GH-8398]
+ * core: Configuration is now validated prior to input, fixing an obscure parse error when attempting to interpolate a count [GH-8591]
  * core: JSON configuration with resources with a single key parse properly [GH-8485]
  * core: States with duplicate modules are detected and an error is shown [GH-8463]
  * core: Validate uniqueness of variables/outputs in a module [GH-8482]
