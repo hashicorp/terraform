@@ -58,7 +58,7 @@ BUG FIXES:
  * provider/librato: Refresh space from state when not found [GH-8596]
  * provider/mysql: Fix breakage in parsing MySQL version string [GH-8571]
  * provider/template: `template_file` vars can be floating point [GH-8590]
- * provider/triton: Id trying to be used before being set [GH-8563]
+ * provider/triton: Fix bug where the ID of a `triton_key` was used prior to being set [GH-8563]
 
 ## 0.7.2 (August 25, 2016)
 
