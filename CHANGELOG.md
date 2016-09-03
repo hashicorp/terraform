@@ -33,6 +33,7 @@ IMPROVEMENTS:
  * provider/aws: More robust handling of Lambda function archives hosted on S3 [GH-6860]
  * provider/aws: Spurious diffs of `aws_s3_bucket` policy attributes due to JSON field ordering are reduced [GH-8615]
  * provider/aws: `name_regex` attribute for local post-filtering of `aws_ami` data source results [GH-8403]
+ * provider/aws: support for lifecycle hooks at ASG creation [GH-5620]
  * provider/consul: Make provider settings truly optional [GH-8551]
  * provider/statuscake: Add support for contact-group id in statuscake test [GH-8417]
  
