@@ -7,6 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
  * **New Provider:** `rabbitmq` [GH-7694]
  * **New Data Source:** `aws_cloudformation_stack` [GH-8640]
+ * **New Resource:** `aws_cloudwatch_log_stream` [GH-8626]
  * **New Resource:** `aws_default_route_table` [GH-8323]
  * **New Resource:** `aws_spot_datafeed_subscription` [GH-8640]
  * **New Resource:** `aws_s3_bucket_policy` [GH-8615]
