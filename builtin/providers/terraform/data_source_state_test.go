@@ -32,7 +32,7 @@ func TestState_complexOutputs(t *testing.T) {
 			{
 				Config: testAccState_complexOutputs,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckStateValue("terraform_remote_state.foo", "backend", "_local"),
+					testAccCheckStateValue("terraform_remote_state.foo", "backend", "local"),
 					testAccCheckStateValue("terraform_remote_state.foo", "config.path", "./test-fixtures/complex_outputs.tfstate"),
 					testAccCheckStateValue("terraform_remote_state.foo", "computed_set.#", "2"),
 					testAccCheckStateValue("terraform_remote_state.foo", `map.%`, "2"),
@@ -65,7 +65,7 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 
 const testAccState_basic = `
 data "terraform_remote_state" "foo" {
-	backend = "_local"
+	backend = "local"
 
 	config {
 		path = "./test-fixtures/basic.tfstate"
@@ -74,7 +74,7 @@ data "terraform_remote_state" "foo" {
 
 const testAccState_complexOutputs = `
 resource "terraform_remote_state" "foo" {
-	backend = "_local"
+	backend = "local"
 
 	config {
 		path = "./test-fixtures/complex_outputs.tfstate"
