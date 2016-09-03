@@ -94,7 +94,10 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		d.Set("vpc_id", *vpnAttachment.VpcId)
 	}
-	d.Set("availability_zone", vpnGateway.AvailabilityZone)
+
+	if vpnGateway.AvailabilityZone != nil && *vpnGateway.AvailabilityZone != "" {
+		d.Set("availability_zone", vpnGateway.AvailabilityZone)
+	}
 	d.Set("tags", tagsToMap(vpnGateway.Tags))
 
 	return nil
