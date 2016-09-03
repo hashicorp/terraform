@@ -62,6 +62,7 @@ BUG FIXES:
  * provider/aws: adds resource retry to `aws_spot_instance_request` [GH-8516]
  * provider/aws: Add validation of Health Check target to aws_elb. [GH-8578]
  * provider/aws: Skip detaching when aws_internet_gateway not found [GH-8454]
+ * provider/aws: Handle all kinds of CloudFormation stack failures [GH-5606]
  * provider/azurerm: Reordering the checks after an Azure API Get [GH-8607]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
