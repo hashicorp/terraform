@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
 )
 
 type Config struct {
@@ -45,7 +45,6 @@ func (c *Config) loadAndValidate() error {
 		UserID:           c.UserID,
 		Password:         c.Password,
 		TokenID:          c.Token,
-		APIKey:           c.APIKey,
 		IdentityEndpoint: c.IdentityEndpoint,
 		TenantID:         c.TenantID,
 		TenantName:       c.TenantName,
