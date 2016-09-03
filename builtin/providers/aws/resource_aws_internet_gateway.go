@@ -254,24 +254,28 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 
 // InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // an EC2 instance.
-func detachIGStateRefreshFunc(conn *ec2.EC2, instanceID, vpcID string) resource.StateRefreshFunc {
+func detachIGStateRefreshFunc(conn *ec2.EC2, gatewayID, vpcID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		_, err := conn.DetachInternetGateway(&ec2.DetachInternetGatewayInput{
-			InternetGatewayId: aws.String(instanceID),
+			InternetGatewayId: aws.String(gatewayID),
 			VpcId:             aws.String(vpcID),
 		})
 		if err != nil {
-			ec2err, ok := err.(awserr.Error)
-			if ok {
-				if ec2err.Code() == "InvalidInternetGatewayID.NotFound" {
-					return nil, "Not Found", err
-				} else if ec2err.Code() == "Gateway.NotAttached" {
+			if ec2err, ok := err.(awserr.Error); ok {
+				switch ec2err.Code() {
+				case "InvalidInternetGatewayID.NotFound":
+					log.Printf("[TRACE] Error detaching Internet Gateway '%s' from VPC '%s': %s", gatewayID, vpcID, err)
+					return nil, "Not Found", nil
+
+				case "Gateway.NotAttached":
 					return "detached", "detached", nil
-				} else if ec2err.Code() == "DependencyViolation" {
+
+				case "DependencyViolation":
 					return nil, "detaching", nil
 				}
 			}
 		}
+
 		// DetachInternetGateway only returns an error, so if it's nil, assume we're
 		// detached
 		return "detached", "detached", nil
