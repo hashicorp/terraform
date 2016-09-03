@@ -50,6 +50,7 @@ BUG FIXES:
  * provider/aws: Fix. Adjust create and destroy timeout in aws_vpn_gateway_attachment. [GH-8636]
  * provider/aws: Remove `aws_elasticsearch_domain` from state if it doesn't exist [GH-8643]
  * provider/aws: Do not set empty string to state for `aws_vpn_gateway` availability zone [GH-8645]
+ * provider/aws: Wait for `aws_route_53_record` to be in-sync after a delete [GH-8646]
  * provider/azurerm: Reordering the checks after an Azure API Get [GH-8607]
  * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
  * provider/github: Remove unsafe ptr dereferencing [GH-8512]
