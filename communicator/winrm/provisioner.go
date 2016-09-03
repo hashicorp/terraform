@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/communicator/shared"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 )
@@ -72,6 +73,11 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	if connInfo.User == "" {
 		connInfo.User = DefaultUser
 	}
+
+	// Format the host if needed.
+	// Needed for IPv6 support.
+	connInfo.Host = shared.IpFormat(connInfo.Host)
+
 	if connInfo.Port == 0 {
 		connInfo.Port = DefaultPort
 	}
