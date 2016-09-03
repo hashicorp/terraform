@@ -32,6 +32,34 @@ func TestAccAWSAvailabilityZones_basic(t *testing.T) {
 	})
 }
 
+func TestResourceCheckAwsAvailabilityZones_validateStateType(t *testing.T) {
+	_, errors := validateStateType("incorrect", "state")
+	if len(errors) == 0 {
+		t.Fatalf("Expected to trigger a validation error")
+	}
+
+	var testCases = []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "available",
+			ErrCount: 0,
+		},
+		{
+			Value:    "unavailable",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, errors := validateStateType(tc.Value, "state")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
 func testAccCheckAwsAvailabilityZonesMeta(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
