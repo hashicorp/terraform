@@ -17,6 +17,7 @@ FEATURES:
  * **New Resource:** `librato_service` [GH-8170]
  * Data source blocks can now have a count associated with them [GH-8635]
  * The count of a resource can now be referenced for interpolations: `self.count` and `type.name.count` work [GH-8581]
+ * Provisioners now support connection using IPv6 in addition to IPv4 [GH-6616]
 
 IMPROVEMENTS:
  * core: Add wildcard (match all) support to `ignore_changes` [GH-8599]
