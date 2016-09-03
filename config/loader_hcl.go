@@ -457,6 +457,7 @@ func loadDataResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 		// Remove the fields we handle specially
 		delete(config, "depends_on")
 		delete(config, "provider")
+		delete(config, "count")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
