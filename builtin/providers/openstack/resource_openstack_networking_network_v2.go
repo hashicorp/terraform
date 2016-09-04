@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 )
 
 func resourceNetworkingNetworkV2() *schema.Resource {
@@ -264,7 +264,7 @@ func waitForNetworkDelete(networkingClient *gophercloud.ServiceClient, networkId
 
 		n, err := networks.Get(networkingClient, networkId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return n, "ACTIVE", err
 			}
@@ -276,7 +276,7 @@ func waitForNetworkDelete(networkingClient *gophercloud.ServiceClient, networkId
 
 		err = networks.Delete(networkingClient, networkId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return n, "ACTIVE", err
 			}
