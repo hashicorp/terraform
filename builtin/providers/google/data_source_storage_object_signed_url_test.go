@@ -12,7 +12,9 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/oauth2/google"
 	"io/ioutil"
+	"net/http"
 	"net/url"
+	"strings"
 )
 
 const fakeCredentials = `{
@@ -130,11 +132,90 @@ func TestDatasourceSignedUrl_accTest(t *testing.T) {
 			resource.TestStep{
 				Config: testAccTestGoogleStorageObjectSingedUrl(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccGoogleSignedUrlRetrieval("data.google_storage_object_signed_url.story_url"),
+					testAccGoogleSignedUrlRetrieval("data.google_storage_object_signed_url.story_url", nil),
 				),
 			},
 		},
 	})
+}
+
+func TestDatasourceSignedUrl_wHeaders(t *testing.T) {
+
+	headers := map[string]string{
+		"x-goog-test": "foo",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccTestGoogleStorageObjectSingedUrl_wHeader(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccGoogleSignedUrlRetrieval("data.google_storage_object_signed_url.story_url_w_headers", headers),
+				),
+			},
+		},
+	})
+}
+
+func TestDatasourceSignedUrl_wContentType(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccTestGoogleStorageObjectSingedUrl_wContentType(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccGoogleSignedUrlRetrieval("data.google_storage_object_signed_url.story_url_w_content_type", nil),
+				),
+			},
+		},
+	})
+}
+
+func TestDatasourceSignedUrl_wMD5(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccTestGoogleStorageObjectSingedUrl_wMD5(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccGoogleSignedUrlRetrieval("data.google_storage_object_signed_url.story_url_w_md5", nil),
+				),
+			},
+		},
+	})
+}
+
+// formatRequest generates ascii representation of a request
+func formatRequest(r *http.Request) string {
+	// Create return string
+	var request []string
+	request = append(request, "--------")
+	// Add the request string
+	url := fmt.Sprintf("%v %v %v", r.Method, r.URL, r.Proto)
+	request = append(request, url)
+	// Add the host
+	request = append(request, fmt.Sprintf("Host: %v", r.Host))
+	// Loop through headers
+	for name, headers := range r.Header {
+		//name = strings.ToLower(name)
+		for _, h := range headers {
+			request = append(request, fmt.Sprintf("%v: %v", name, h))
+		}
+	}
+
+	// If this is a POST, add post data
+	if r.Method == "POST" {
+		r.ParseForm()
+		request = append(request, "\n")
+		request = append(request, r.Form.Encode())
+	}
+	request = append(request, "--------")
+	// Return the request as a string
+	return strings.Join(request, "\n")
 }
 
 func testAccGoogleSignedUrlExists(n string) resource.TestCheckFunc {
@@ -151,9 +232,12 @@ func testAccGoogleSignedUrlExists(n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccGoogleSignedUrlRetrieval(n string) resource.TestCheckFunc {
+func testAccGoogleSignedUrlRetrieval(n string, headers map[string]string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		r := s.RootModule().Resources[n]
+		if r == nil {
+			return fmt.Errorf("Datasource not found")
+		}
 		a := r.Primary.Attributes
 
 		if a["signed_url"] == "" {
@@ -161,10 +245,38 @@ func testAccGoogleSignedUrlRetrieval(n string) resource.TestCheckFunc {
 		}
 
 		url := a["signed_url"]
+		fmt.Printf("URL: %s\n", url)
+		method := a["http_method"]
+
+		req, _ := http.NewRequest(method, url, nil)
+
+		// Apply custom headers to request
+		for k, v := range headers {
+			fmt.Printf("Adding Header (%s: %s)\n", k, v)
+			req.Header.Set(k, v)
+		}
+
+		contentType := a["content_type"]
+		if contentType != "" {
+			fmt.Printf("Adding Content-Type: %s\n", contentType)
+			req.Header.Add("Content-Type", contentType)
+		}
+
+		md5Digest := a["md5_digest"]
+		if md5Digest != "" {
+			fmt.Printf("Adding Content-MD5: %s\n", md5Digest)
+			req.Header.Add("Content-MD5", md5Digest)
+		}
 
 		// send request to GET object using signed url
 		client := cleanhttp.DefaultClient()
-		response, err := client.Get(url)
+
+		// Print request
+		//dump, _ := httputil.DumpRequest(req, true)
+		//fmt.Printf("%+q\n", strings.Replace(string(dump), "\\n", "\n", 99))
+		fmt.Printf("%s\n", formatRequest(req))
+
+		response, err := client.Do(req)
 		if err != nil {
 			return err
 		}
@@ -206,6 +318,69 @@ data "google_storage_object_signed_url" "story_url" {
   bucket = "${google_storage_bucket.bucket.name}"
   path   = "${google_storage_bucket_object.story.name}"
 
+}`, bucketName)
 }
-`, bucketName)
+
+func testAccTestGoogleStorageObjectSingedUrl_wHeader() string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "tf-signurltest-%s"
+}
+
+resource "google_storage_bucket_object" "story" {
+  name   = "path/to/file"
+  bucket = "${google_storage_bucket.bucket.name}"
+
+  content = "once upon a time..."
+}
+
+data "google_storage_object_signed_url" "story_url_w_headers" {
+  bucket = "${google_storage_bucket.bucket.name}"
+  path   = "${google_storage_bucket_object.story.name}"
+  http_headers {
+  	x-goog-test = "foo"
+  }
+}`, acctest.RandString(6))
+}
+
+func testAccTestGoogleStorageObjectSingedUrl_wContentType() string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "tf-signurltest-%s"
+}
+
+resource "google_storage_bucket_object" "story" {
+  name   = "path/to/file"
+  bucket = "${google_storage_bucket.bucket.name}"
+
+  content = "once upon a time..."
+}
+
+data "google_storage_object_signed_url" "story_url_w_content_type" {
+  bucket = "${google_storage_bucket.bucket.name}"
+  path   = "${google_storage_bucket_object.story.name}"
+
+  content_type = "text/plain"
+}`, acctest.RandString(6))
+}
+
+func testAccTestGoogleStorageObjectSingedUrl_wMD5() string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "tf-signurltest-%s"
+}
+
+resource "google_storage_bucket_object" "story" {
+  name   = "path/to/file"
+  bucket = "${google_storage_bucket.bucket.name}"
+
+  content = "once upon a time..."
+}
+
+data "google_storage_object_signed_url" "story_url_w_md5" {
+  bucket = "${google_storage_bucket.bucket.name}"
+  path   = "${google_storage_bucket_object.story.name}"
+
+  md5_digest = "${google_storage_bucket_object.story.md5hash}"
+}`, acctest.RandString(6))
 }
