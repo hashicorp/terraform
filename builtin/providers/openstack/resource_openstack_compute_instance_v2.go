@@ -9,21 +9,21 @@ import (
 	"os"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/schedulerhints"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/tenantnetworks"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/schedulerhints"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/startstop"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/tenantnetworks"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/flavors"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/images"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 )
 
 func resourceComputeInstanceV2() *schema.Resource {
@@ -376,6 +376,8 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
+	configDrive := d.Get("config_drive").(bool)
+
 	createOpts = &servers.CreateOpts{
 		Name:             d.Get("name").(string),
 		ImageRef:         imageId,
@@ -384,7 +386,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		AvailabilityZone: d.Get("availability_zone").(string),
 		Networks:         networks,
 		Metadata:         resourceInstanceMetadataV2(d),
-		ConfigDrive:      d.Get("config_drive").(bool),
+		ConfigDrive:      &configDrive,
 		AdminPass:        d.Get("admin_pass").(string),
 		UserData:         []byte(d.Get("user_data").(string)),
 		Personality:      resourceInstancePersonalityV2(d),
@@ -613,9 +615,9 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		log.Printf("[DEBUG] Security groups to remove: %v", secgroupsToRemove)
 
 		for _, g := range secgroupsToRemove.List() {
-			err := secgroups.RemoveServerFromGroup(computeClient, d.Id(), g.(string)).ExtractErr()
+			err := secgroups.RemoveServer(computeClient, d.Id(), g.(string)).ExtractErr()
 			if err != nil && err.Error() != "EOF" {
-				errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+				errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 				if !ok {
 					return fmt.Errorf("Error removing security group (%s) from OpenStack server (%s): %s", g, d.Id(), err)
 				}
@@ -630,7 +632,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		}
 
 		for _, g := range secgroupsToAdd.List() {
-			err := secgroups.AddServerToGroup(computeClient, d.Id(), g.(string)).ExtractErr()
+			err := secgroups.AddServer(computeClient, d.Id(), g.(string)).ExtractErr()
 			if err != nil && err.Error() != "EOF" {
 				return fmt.Errorf("Error adding security group (%s) to OpenStack server (%s): %s", g, d.Id(), err)
 			}
@@ -873,7 +875,7 @@ func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID stri
 	return func() (interface{}, string, error) {
 		s, err := servers.Get(client, instanceID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return nil, "", err
 			}
@@ -970,7 +972,7 @@ func getInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.Res
 
 		allPages, err := tenantnetworks.List(computeClient).AllPages()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return nil, err
 			}
@@ -1137,13 +1139,12 @@ func associateFloatingIPsToInstance(computeClient *gophercloud.ServiceClient, d 
 }
 
 func associateFloatingIPToInstance(computeClient *gophercloud.ServiceClient, floatingIP string, instanceID string, fixedIP string) error {
-	associateOpts := floatingip.AssociateOpts{
-		ServerID:   instanceID,
+	associateOpts := floatingips.AssociateOpts{
 		FloatingIP: floatingIP,
 		FixedIP:    fixedIP,
 	}
 
-	if err := floatingip.AssociateInstance(computeClient, associateOpts).ExtractErr(); err != nil {
+	if err := floatingips.AssociateInstance(computeClient, instanceID, associateOpts).ExtractErr(); err != nil {
 		return fmt.Errorf("Error associating floating IP: %s", err)
 	}
 
@@ -1151,13 +1152,11 @@ func associateFloatingIPToInstance(computeClient *gophercloud.ServiceClient, flo
 }
 
 func disassociateFloatingIPFromInstance(computeClient *gophercloud.ServiceClient, floatingIP string, instanceID string, fixedIP string) error {
-	associateOpts := floatingip.AssociateOpts{
-		ServerID:   instanceID,
+	disassociateOpts := floatingips.DisassociateOpts{
 		FloatingIP: floatingIP,
-		FixedIP:    fixedIP,
 	}
 
-	if err := floatingip.DisassociateInstance(computeClient, associateOpts).ExtractErr(); err != nil {
+	if err := floatingips.DisassociateInstance(computeClient, instanceID, disassociateOpts).ExtractErr(); err != nil {
 		return fmt.Errorf("Error disassociating floating IP: %s", err)
 	}
 
@@ -1291,7 +1290,7 @@ func setImageInformation(computeClient *gophercloud.ServiceClient, server *serve
 	if imageId != "" {
 		d.Set("image_id", imageId)
 		if image, err := images.Get(computeClient, imageId).Extract(); err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return err
 			}
