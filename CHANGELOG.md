@@ -11,6 +11,7 @@ FEATURES:
  * **New Resource:** `aws_default_route_table` [GH-8323]
  * **New Resource:** `aws_spot_datafeed_subscription` [GH-8640]
  * **New Resource:** `aws_s3_bucket_policy` [GH-8615]
+ * **New Resource:** `aws_sns_topic_policy` [GH-8654]
  * **New Resource:** `aws_ssm_association` [GH-8376]
  * **New Resource:** `cloudstack_affinity_group` [GH-8360]
  * **New Resource:** `librato_alert` [GH-8170]
