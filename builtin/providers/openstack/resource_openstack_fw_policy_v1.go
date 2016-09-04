@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 )
 
 func resourceFWPolicyV1() *schema.Resource {
@@ -186,7 +186,7 @@ func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {
 			break
 		}
 
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 		if !ok || httpError.Actual != 409 {
 			return err
 		}
