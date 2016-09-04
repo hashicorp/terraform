@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 )
 
 func resourceNetworkingSubnetV2() *schema.Resource {
@@ -74,9 +74,10 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Computed: true,
 			},
 			"no_gateway": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: false,
+				Type:       schema.TypeBool,
+				Optional:   true,
+				ForceNew:   false,
+				Deprecated: "This argument is no longer required. Instead, omit gateway_ip or set it to an empty string",
 			},
 			"ip_version": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -133,8 +134,7 @@ type SubnetCreateOpts struct {
 	TenantID        string
 	AllocationPools []subnets.AllocationPool
 	GatewayIP       string
-	NoGateway       bool
-	IPVersion       int
+	IPVersion       gophercloud.IPVersion
 	EnableDHCP      *bool
 	DNSNameservers  []string
 	HostRoutes      []subnets.HostRoute
@@ -151,13 +151,8 @@ func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error)
 	if opts.CIDR == "" {
 		return nil, fmt.Errorf("A valid CIDR is required")
 	}
-	if opts.IPVersion != 0 && opts.IPVersion != subnets.IPv4 && opts.IPVersion != subnets.IPv6 {
+	if opts.IPVersion != 0 && opts.IPVersion != gophercloud.IPv4 && opts.IPVersion != gophercloud.IPv6 {
 		return nil, fmt.Errorf("An IP type must either be 4 or 6")
-	}
-
-	// Both GatewayIP and NoGateway should not be set
-	if opts.GatewayIP != "" && opts.NoGateway {
-		return nil, fmt.Errorf("Both disabling the gateway and specifying a gateway is not allowed")
 	}
 
 	s["network_id"] = opts.NetworkID
@@ -171,8 +166,6 @@ func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error)
 	}
 	if opts.GatewayIP != "" {
 		s["gateway_ip"] = opts.GatewayIP
-	} else if opts.NoGateway {
-		s["gateway_ip"] = nil
 	}
 	if opts.TenantID != "" {
 		s["tenant_id"] = opts.TenantID
@@ -221,12 +214,15 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		TenantID:        d.Get("tenant_id").(string),
 		AllocationPools: resourceSubnetAllocationPoolsV2(d),
 		GatewayIP:       d.Get("gateway_ip").(string),
-		NoGateway:       d.Get("no_gateway").(bool),
-		IPVersion:       d.Get("ip_version").(int),
 		DNSNameservers:  resourceSubnetDNSNameserversV2(d),
 		HostRoutes:      resourceSubnetHostRoutesV2(d),
 		EnableDHCP:      &enableDHCP,
 		ValueSpecs:      subnetValueSpecs(d),
+	}
+
+	if v, ok := d.GetOk("ip_version"); ok {
+		ipVersion := resourceNetworkingSubnetV2DetermineIPVersion(v.(int))
+		createOpts.IPVersion = ipVersion
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -306,7 +302,7 @@ func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("no_gateway") {
-		updateOpts.NoGateway = d.Get("no_gateway").(bool)
+		updateOpts.GatewayIP = ""
 	}
 
 	if d.HasChange("dns_nameservers") {
@@ -392,6 +388,18 @@ func resourceSubnetHostRoutesV2(d *schema.ResourceData) []subnets.HostRoute {
 	return hr
 }
 
+func resourceNetworkingSubnetV2DetermineIPVersion(v int) gophercloud.IPVersion {
+	var ipVersion gophercloud.IPVersion
+	switch v {
+	case 4:
+		ipVersion = gophercloud.IPv4
+	case 6:
+		ipVersion = gophercloud.IPv6
+	}
+
+	return ipVersion
+}
+
 func waitForSubnetActive(networkingClient *gophercloud.ServiceClient, subnetId string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		s, err := subnets.Get(networkingClient, subnetId).Extract()
@@ -410,7 +418,7 @@ func waitForSubnetDelete(networkingClient *gophercloud.ServiceClient, subnetId s
 
 		s, err := subnets.Get(networkingClient, subnetId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return s, "ACTIVE", err
 			}
@@ -422,7 +430,7 @@ func waitForSubnetDelete(networkingClient *gophercloud.ServiceClient, subnetId s
 
 		err = subnets.Delete(networkingClient, subnetId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return s, "ACTIVE", err
 			}
