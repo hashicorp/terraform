@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
 )
 
 func resourceMemberV2() *schema.Resource {
@@ -99,9 +99,8 @@ func resourceMemberV2Create(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	subnetID := d.Get("subnet_id").(string)
 	adminStateUp := d.Get("admin_state_up").(bool)
-	createOpts := pools.MemberCreateOpts{
+	createOpts := pools.CreateMemberOpts{
 		Name:         d.Get("name").(string),
 		TenantID:     d.Get("tenant_id").(string),
 		Address:      d.Get("address").(string),
@@ -109,15 +108,16 @@ func resourceMemberV2Create(d *schema.ResourceData, meta interface{}) error {
 		Weight:       d.Get("weight").(int),
 		AdminStateUp: &adminStateUp,
 	}
+
 	// Must omit if not set
-	if subnetID != "" {
-		createOpts.SubnetID = subnetID
+	if v, ok := d.GetOk("subnet_id"); ok {
+		createOpts.SubnetID = v.(string)
 	}
 
 	poolID := d.Get("pool_id").(string)
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	member, err := pools.CreateAssociateMember(networkingClient, poolID, createOpts).ExtractMember()
+	member, err := pools.CreateMember(networkingClient, poolID, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LBaaSV2 member: %s", err)
 	}
@@ -151,7 +151,7 @@ func resourceMemberV2Read(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	member, err := pools.GetAssociateMember(networkingClient, d.Get("pool_id").(string), d.Id()).ExtractMember()
+	member, err := pools.GetMember(networkingClient, d.Get("pool_id").(string), d.Id()).Extract()
 	if err != nil {
 		return CheckDeleted(d, err, "LBV2 Member")
 	}
@@ -177,7 +177,7 @@ func resourceMemberV2Update(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	var updateOpts pools.MemberUpdateOpts
+	var updateOpts pools.UpdateMemberOpts
 	if d.HasChange("name") {
 		updateOpts.Name = d.Get("name").(string)
 	}
@@ -191,7 +191,7 @@ func resourceMemberV2Update(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Updating OpenStack LBaaSV2 Member %s with options: %+v", d.Id(), updateOpts)
 
-	_, err = pools.UpdateAssociateMember(networkingClient, d.Get("pool_id").(string), d.Id(), updateOpts).ExtractMember()
+	_, err = pools.UpdateMember(networkingClient, d.Get("pool_id").(string), d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack LBaaSV2 Member: %s", err)
 	}
@@ -226,7 +226,7 @@ func resourceMemberV2Delete(d *schema.ResourceData, meta interface{}) error {
 
 func waitForMemberActive(networkingClient *gophercloud.ServiceClient, poolID string, memberID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		member, err := pools.GetAssociateMember(networkingClient, poolID, memberID).ExtractMember()
+		member, err := pools.GetMember(networkingClient, poolID, memberID).Extract()
 		if err != nil {
 			return nil, "", err
 		}
@@ -241,9 +241,9 @@ func waitForMemberDelete(networkingClient *gophercloud.ServiceClient, poolID str
 	return func() (interface{}, string, error) {
 		log.Printf("[DEBUG] Attempting to delete OpenStack LBaaSV2 Member %s", memberID)
 
-		member, err := pools.GetAssociateMember(networkingClient, poolID, memberID).ExtractMember()
+		member, err := pools.GetMember(networkingClient, poolID, memberID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return member, "ACTIVE", err
 			}
@@ -256,7 +256,7 @@ func waitForMemberDelete(networkingClient *gophercloud.ServiceClient, poolID str
 		log.Printf("[DEBUG] Openstack LBaaSV2 Member: %+v", member)
 		err = pools.DeleteMember(networkingClient, poolID, memberID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return member, "ACTIVE", err
 			}

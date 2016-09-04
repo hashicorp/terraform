@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 )
 
 func resourceLoadBalancerV2() *schema.Resource {
@@ -228,7 +228,7 @@ func waitForLoadBalancerDelete(networkingClient *gophercloud.ServiceClient, lbID
 
 		lb, err := loadbalancers.Get(networkingClient, lbID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return lb, "ACTIVE", err
 			}
@@ -241,7 +241,7 @@ func waitForLoadBalancerDelete(networkingClient *gophercloud.ServiceClient, lbID
 		log.Printf("[DEBUG] Openstack LoadBalancerV2: %+v", lb)
 		err = loadbalancers.Delete(networkingClient, lbID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return lb, "ACTIVE", err
 			}

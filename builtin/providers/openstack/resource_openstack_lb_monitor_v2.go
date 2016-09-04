@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/monitors"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/monitors"
 )
 
 func resourceMonitorV2() *schema.Resource {
@@ -258,7 +258,7 @@ func waitForMonitorDelete(networkingClient *gophercloud.ServiceClient, monitorID
 
 		monitor, err := monitors.Get(networkingClient, monitorID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return monitor, "ACTIVE", err
 			}
@@ -271,7 +271,7 @@ func waitForMonitorDelete(networkingClient *gophercloud.ServiceClient, monitorID
 		log.Printf("[DEBUG] Openstack LBaaSV2 Monitor: %+v", monitor)
 		err = monitors.Delete(networkingClient, monitorID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return monitor, "ACTIVE", err
 			}

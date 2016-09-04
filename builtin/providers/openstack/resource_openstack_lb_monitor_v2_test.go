@@ -2,12 +2,11 @@ package openstack
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/monitors"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/monitors"
 )
 
 func TestAccLBV2Monitor_basic(t *testing.T) {
@@ -44,13 +43,10 @@ func testAccCheckLBV2MonitorDestroy(s *terraform.State) error {
 	}
 
 	for _, rs := range s.RootModule().Resources {
-		log.Printf("[FINDME] rs TYPE is: %T", rs)
-
 		if rs.Type != "openstack_lb_monitor_v2" {
 			continue
 		}
 
-		log.Printf("[FINDME] rs.Primary.Attributes:  %#v", rs.Primary.Attributes)
 		_, err := monitors.Get(networkingClient, rs.Primary.ID).Extract()
 		if err == nil {
 			return fmt.Errorf("Monitor still exists: %s", rs.Primary.ID)
