@@ -6,12 +6,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 )
 
 func resourceBlockStorageVolumeV1() *schema.Resource {
@@ -306,7 +306,7 @@ func VolumeV1StateRefreshFunc(client *gophercloud.ServiceClient, volumeID string
 	return func() (interface{}, string, error) {
 		v, err := volumes.Get(client, volumeID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return nil, "", err
 			}
