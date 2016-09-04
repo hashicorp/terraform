@@ -1098,11 +1098,7 @@ func testAccCheckComputeV2InstanceDoesNotExist(t *testing.T, n string, instance 
 
 		_, err = servers.Get(computeClient, instance.ID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				return nil
 			}
 			return err

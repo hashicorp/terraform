@@ -243,27 +243,21 @@ func waitForMemberDelete(networkingClient *gophercloud.ServiceClient, poolID str
 
 		member, err := pools.GetMember(networkingClient, poolID, memberID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return member, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Member %s", memberID)
 				return member, "DELETED", nil
 			}
+			return member, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] Openstack LBaaSV2 Member: %+v", member)
 		err = pools.DeleteMember(networkingClient, poolID, memberID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return member, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Member %s", memberID)
 				return member, "DELETED", nil
 			}
+			return member, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LBaaSV2 Member %s still active.", memberID)

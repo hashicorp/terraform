@@ -418,26 +418,20 @@ func waitForSubnetDelete(networkingClient *gophercloud.ServiceClient, subnetId s
 
 		s, err := subnets.Get(networkingClient, subnetId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return s, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Subnet %s", subnetId)
 				return s, "DELETED", nil
 			}
+			return s, "ACTIVE", err
 		}
 
 		err = subnets.Delete(networkingClient, subnetId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return s, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Subnet %s", subnetId)
 				return s, "DELETED", nil
 			}
+			return s, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Subnet %s still active.\n", subnetId)

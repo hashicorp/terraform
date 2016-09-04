@@ -258,27 +258,21 @@ func waitForMonitorDelete(networkingClient *gophercloud.ServiceClient, monitorID
 
 		monitor, err := monitors.Get(networkingClient, monitorID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return monitor, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Monitor %s", monitorID)
 				return monitor, "DELETED", nil
 			}
+			return monitor, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] Openstack LBaaSV2 Monitor: %+v", monitor)
 		err = monitors.Delete(networkingClient, monitorID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return monitor, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Monitor %s", monitorID)
 				return monitor, "DELETED", nil
 			}
+			return monitor, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LBaaSV2 Monitor %s still active.", monitorID)

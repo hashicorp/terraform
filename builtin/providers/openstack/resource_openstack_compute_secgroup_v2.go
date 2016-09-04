@@ -197,15 +197,11 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 			rule := resourceSecGroupRuleV2(d, r)
 			err := secgroups.DeleteRule(computeClient, rule.ID).ExtractErr()
 			if err != nil {
-				errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-				if !ok {
-					return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
-				}
-				if errCode.Actual == 404 {
+				if _, ok := err.(gophercloud.ErrDefault404); ok {
 					continue
-				} else {
-					return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s)", rule.ID, d.Id())
 				}
+
+				return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s)", rule.ID, d.Id())
 			} else {
 				log.Printf("[DEBUG] Removed rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
 			}

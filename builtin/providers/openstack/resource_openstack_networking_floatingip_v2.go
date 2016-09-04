@@ -259,26 +259,20 @@ func waitForFloatingIPDelete(networkingClient *gophercloud.ServiceClient, fId st
 
 		f, err := floatingips.Get(networkingClient, fId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return f, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Floating IP %s", fId)
 				return f, "DELETED", nil
 			}
+			return f, "ACTIVE", err
 		}
 
 		err = floatingips.Delete(networkingClient, fId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return f, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Floating IP %s", fId)
 				return f, "DELETED", nil
 			}
+			return f, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Floating IP %s still active.\n", fId)
