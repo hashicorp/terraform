@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/listeners"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/listeners"
 )
 
 func resourceListenerV2() *schema.Resource {
@@ -285,7 +285,7 @@ func waitForListenerDelete(networkingClient *gophercloud.ServiceClient, listener
 
 		listener, err := listeners.Get(networkingClient, listenerID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return listener, "ACTIVE", err
 			}
@@ -298,7 +298,7 @@ func waitForListenerDelete(networkingClient *gophercloud.ServiceClient, listener
 		log.Printf("[DEBUG] Openstack LBaaSV2 listener: %+v", listener)
 		err = listeners.Delete(networkingClient, listenerID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return listener, "ACTIVE", err
 			}

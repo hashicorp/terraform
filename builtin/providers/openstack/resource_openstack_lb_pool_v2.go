@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
 )
 
 func resourcePoolV2() *schema.Resource {
@@ -291,7 +291,7 @@ func waitForPoolDelete(networkingClient *gophercloud.ServiceClient, poolID strin
 
 		pool, err := pools.Get(networkingClient, poolID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return pool, "ACTIVE", err
 			}
@@ -304,7 +304,7 @@ func waitForPoolDelete(networkingClient *gophercloud.ServiceClient, poolID strin
 		log.Printf("[DEBUG] Openstack LBaaSV2 Pool: %+v", pool)
 		err = pools.Delete(networkingClient, poolID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return pool, "ACTIVE", err
 			}
