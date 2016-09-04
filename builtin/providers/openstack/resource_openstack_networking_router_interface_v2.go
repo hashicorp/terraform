@@ -8,9 +8,9 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 )
 
 func resourceNetworkingRouterInterfaceV2() *schema.Resource {
@@ -52,7 +52,7 @@ func resourceNetworkingRouterInterfaceV2Create(d *schema.ResourceData, meta inte
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	createOpts := routers.InterfaceOpts{
+	createOpts := routers.AddInterfaceOpts{
 		SubnetID: d.Get("subnet_id").(string),
 		PortID:   d.Get("port_id").(string),
 	}
@@ -91,7 +91,7 @@ func resourceNetworkingRouterInterfaceV2Read(d *schema.ResourceData, meta interf
 
 	n, err := ports.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 		if !ok {
 			return fmt.Errorf("Error retrieving OpenStack Neutron Router Interface: %s", err)
 		}
@@ -152,14 +152,14 @@ func waitForRouterInterfaceDelete(networkingClient *gophercloud.ServiceClient, d
 
 		log.Printf("[DEBUG] Attempting to delete OpenStack Router Interface %s.\n", routerInterfaceId)
 
-		removeOpts := routers.InterfaceOpts{
+		removeOpts := routers.RemoveInterfaceOpts{
 			SubnetID: d.Get("subnet_id").(string),
 			PortID:   d.Get("port_id").(string),
 		}
 
 		r, err := ports.Get(networkingClient, routerInterfaceId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return r, "ACTIVE", err
 			}
@@ -171,7 +171,7 @@ func waitForRouterInterfaceDelete(networkingClient *gophercloud.ServiceClient, d
 
 		_, err = routers.RemoveInterface(networkingClient, routerId, removeOpts).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return r, "ACTIVE", err
 			}
