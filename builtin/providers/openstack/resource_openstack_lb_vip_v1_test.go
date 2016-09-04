@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
 )
 
 func TestAccLBV1VIP_basic(t *testing.T) {

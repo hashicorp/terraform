@@ -5,11 +5,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
 )
 
 func resourceLBVipV1() *schema.Resource {
@@ -207,20 +207,28 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 
 	var updateOpts vips.UpdateOpts
 	if d.HasChange("name") {
-		updateOpts.Name = d.Get("name").(string)
+		v := d.Get("name").(string)
+		updateOpts.Name = &v
 	}
+
 	if d.HasChange("pool_id") {
-		updateOpts.PoolID = d.Get("pool_id").(string)
+		v := d.Get("pool_id").(string)
+		updateOpts.PoolID = &v
 	}
+
 	if d.HasChange("description") {
-		updateOpts.Description = d.Get("description").(string)
+		v := d.Get("description").(string)
+		updateOpts.Description = &v
 	}
+
 	if d.HasChange("persistence") {
 		updateOpts.Persistence = resourceVipPersistenceV1(d)
 	}
+
 	if d.HasChange("conn_limit") {
 		updateOpts.ConnLimit = gophercloud.MaybeInt(d.Get("conn_limit").(int))
 	}
+
 	if d.HasChange("floating_ip") {
 		portID := d.Get("port_id").(string)
 
@@ -254,6 +262,7 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 			lbVipV1AssignFloatingIP(floatingIP, portID, networkingClient)
 		}
 	}
+
 	if d.HasChange("admin_state_up") {
 		asu := d.Get("admin_state_up").(bool)
 		updateOpts.AdminStateUp = &asu
@@ -361,7 +370,7 @@ func waitForLBVIPDelete(networkingClient *gophercloud.ServiceClient, vipId strin
 
 		p, err := vips.Get(networkingClient, vipId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return p, "ACTIVE", err
 			}
@@ -374,7 +383,7 @@ func waitForLBVIPDelete(networkingClient *gophercloud.ServiceClient, vipId strin
 		log.Printf("[DEBUG] OpenStack LB VIP: %+v", p)
 		err = vips.Delete(networkingClient, vipId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return p, "ACTIVE", err
 			}
