@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/members"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/members"
 )
 
 func TestAccLBV1Member_basic(t *testing.T) {
