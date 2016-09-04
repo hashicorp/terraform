@@ -474,7 +474,7 @@ func (m schemaMap) Input(
 
 		var value interface{}
 		switch v.Type {
-		case TypeBool, TypeInt, TypeFloat, TypeSet:
+		case TypeBool, TypeInt, TypeFloat, TypeList, TypeSet:
 			continue
 		case TypeString:
 			value, err = m.inputString(input, k, v)
