@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 )
 
 func resourceNetworkingRouterV2() *schema.Resource {
@@ -171,7 +171,7 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 
 	n, err := routers.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 		if !ok {
 			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 		}
@@ -276,7 +276,7 @@ func waitForRouterDelete(networkingClient *gophercloud.ServiceClient, routerId s
 
 		r, err := routers.Get(networkingClient, routerId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return r, "ACTIVE", err
 			}
@@ -288,7 +288,7 @@ func waitForRouterDelete(networkingClient *gophercloud.ServiceClient, routerId s
 
 		err = routers.Delete(networkingClient, routerId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return r, "ACTIVE", err
 			}
