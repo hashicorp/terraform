@@ -171,15 +171,11 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 
 	n, err := routers.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-		if !ok {
-			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
-		}
-
-		if httpError.Actual == 404 {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			d.SetId("")
 			return nil
 		}
+
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 	}
 
@@ -276,26 +272,20 @@ func waitForRouterDelete(networkingClient *gophercloud.ServiceClient, routerId s
 
 		r, err := routers.Get(networkingClient, routerId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Router %s", routerId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		err = routers.Delete(networkingClient, routerId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Router %s", routerId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Router %s still active.\n", routerId)

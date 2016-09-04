@@ -359,26 +359,20 @@ func waitForNetworkPortDelete(networkingClient *gophercloud.ServiceClient, portI
 
 		p, err := ports.Get(networkingClient, portId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		err = ports.Delete(networkingClient, portId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Port %s still active.\n", portId)

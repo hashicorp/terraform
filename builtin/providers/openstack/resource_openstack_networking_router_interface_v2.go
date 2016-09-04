@@ -91,15 +91,11 @@ func resourceNetworkingRouterInterfaceV2Read(d *schema.ResourceData, meta interf
 
 	n, err := ports.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-		if !ok {
-			return fmt.Errorf("Error retrieving OpenStack Neutron Router Interface: %s", err)
-		}
-
-		if httpError.Actual == 404 {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			d.SetId("")
 			return nil
 		}
+
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router Interface: %s", err)
 	}
 
@@ -159,26 +155,20 @@ func waitForRouterInterfaceDelete(networkingClient *gophercloud.ServiceClient, d
 
 		r, err := ports.Get(networkingClient, routerInterfaceId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Router Interface %s", routerInterfaceId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		_, err = routers.RemoveInterface(networkingClient, routerId, removeOpts).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Router Interface %s", routerInterfaceId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Router Interface %s still active.\n", routerInterfaceId)

@@ -264,26 +264,20 @@ func waitForNetworkDelete(networkingClient *gophercloud.ServiceClient, networkId
 
 		n, err := networks.Get(networkingClient, networkId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return n, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
 				return n, "DELETED", nil
 			}
+			return n, "ACTIVE", err
 		}
 
 		err = networks.Delete(networkingClient, networkId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return n, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
 				return n, "DELETED", nil
 			}
+			return n, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Network %s still active.\n", networkId)

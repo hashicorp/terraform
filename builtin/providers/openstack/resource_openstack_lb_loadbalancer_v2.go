@@ -228,27 +228,21 @@ func waitForLoadBalancerDelete(networkingClient *gophercloud.ServiceClient, lbID
 
 		lb, err := loadbalancers.Get(networkingClient, lbID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return lb, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LoadBalancerV2 %s", lbID)
 				return lb, "DELETED", nil
 			}
+			return lb, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] Openstack LoadBalancerV2: %+v", lb)
 		err = loadbalancers.Delete(networkingClient, lbID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return lb, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LoadBalancerV2 %s", lbID)
 				return lb, "DELETED", nil
 			}
+			return lb, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LoadBalancerV2 %s still active.", lbID)

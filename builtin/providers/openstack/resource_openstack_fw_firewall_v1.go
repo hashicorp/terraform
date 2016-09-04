@@ -231,14 +231,11 @@ func waitForFirewallDeletion(networkingClient *gophercloud.ServiceClient, id str
 		log.Printf("[DEBUG] Get firewall %s => %#v", id, fw)
 
 		if err != nil {
-			httpStatus := err.(*gophercloud.ErrUnexpectedResponseCode)
-			log.Printf("[DEBUG] Get firewall %s status is %d", id, httpStatus.Actual)
-
-			if httpStatus.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Firewall %s is actually deleted", id)
 				return "", "DELETED", nil
 			}
-			return nil, "", fmt.Errorf("Unexpected status code %d", httpStatus.Actual)
+			return nil, "", fmt.Errorf("Unexpected error: %s", err)
 		}
 
 		log.Printf("[DEBUG] Firewall %s deletion is pending", id)

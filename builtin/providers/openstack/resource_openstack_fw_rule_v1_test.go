@@ -88,9 +88,8 @@ func testAccCheckFWRuleV1Destroy(s *terraform.State) error {
 		if err == nil {
 			return fmt.Errorf("Firewall rule (%s) still exists.", rs.Primary.ID)
 		}
-		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-		if !ok || httpError.Actual != 404 {
-			return httpError
+		if _, ok := err.(gophercloud.ErrDefault404); !ok {
+			return err
 		}
 	}
 	return nil
@@ -121,17 +120,13 @@ func testAccCheckFWRuleV1Exists(n string, expected *rules.Rule) resource.TestChe
 			// if we get a 404 error. Fail on any other error.
 			found, err = rules.Get(networkingClient, rs.Primary.ID).Extract()
 			if err != nil {
-				httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-				if !ok || httpError.Actual != 404 {
+				if _, ok := err.(gophercloud.ErrDefault404); ok {
 					time.Sleep(time.Second)
 					continue
 				}
+				return err
 			}
 			break
-		}
-
-		if err != nil {
-			return err
 		}
 
 		expected.ID = found.ID

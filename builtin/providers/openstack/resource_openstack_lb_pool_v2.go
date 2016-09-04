@@ -291,27 +291,21 @@ func waitForPoolDelete(networkingClient *gophercloud.ServiceClient, poolID strin
 
 		pool, err := pools.Get(networkingClient, poolID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return pool, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Pool %s", poolID)
 				return pool, "DELETED", nil
 			}
+			return pool, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] Openstack LBaaSV2 Pool: %+v", pool)
 		err = pools.Delete(networkingClient, poolID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return pool, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Pool %s", poolID)
 				return pool, "DELETED", nil
 			}
+			return pool, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LBaaSV2 Pool %s still active.", poolID)

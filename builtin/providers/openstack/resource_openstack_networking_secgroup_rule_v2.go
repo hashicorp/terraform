@@ -241,26 +241,20 @@ func waitForSecGroupRuleDelete(networkingClient *gophercloud.ServiceClient, secG
 
 		r, err := rules.Get(networkingClient, secGroupRuleId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Neutron Security Group Rule %s", secGroupRuleId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		err = rules.Delete(networkingClient, secGroupRuleId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Neutron Security Group Rule %s", secGroupRuleId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Neutron Security Group Rule %s still active.\n", secGroupRuleId)

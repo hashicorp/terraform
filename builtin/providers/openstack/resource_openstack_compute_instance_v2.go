@@ -617,15 +617,11 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		for _, g := range secgroupsToRemove.List() {
 			err := secgroups.RemoveServer(computeClient, d.Id(), g.(string)).ExtractErr()
 			if err != nil && err.Error() != "EOF" {
-				errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-				if !ok {
-					return fmt.Errorf("Error removing security group (%s) from OpenStack server (%s): %s", g, d.Id(), err)
-				}
-				if errCode.Actual == 404 {
+				if _, ok := err.(gophercloud.ErrDefault404); ok {
 					continue
-				} else {
-					return fmt.Errorf("Error removing security group (%s) from OpenStack server (%s): %s", g, d.Id(), err)
 				}
+
+				return fmt.Errorf("Error removing security group (%s) from OpenStack server (%s): %s", g, d.Id(), err)
 			} else {
 				log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g, d.Id())
 			}
@@ -875,11 +871,7 @@ func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID stri
 	return func() (interface{}, string, error) {
 		s, err := servers.Get(client, instanceID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return nil, "", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				return s, "DELETED", nil
 			}
 			return nil, "", err
@@ -972,16 +964,19 @@ func getInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.Res
 
 		allPages, err := tenantnetworks.List(computeClient).AllPages()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
+				tenantNetworkExt = false
+			}
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 403 {
+					tenantNetworkExt = false
+				}
+
 				return nil, err
 			}
 
-			if errCode.Actual == 404 || errCode.Actual == 403 {
-				tenantNetworkExt = false
-			} else {
-				return nil, err
-			}
+			return nil, err
 		}
 
 		networkID := ""
@@ -1290,19 +1285,14 @@ func setImageInformation(computeClient *gophercloud.ServiceClient, server *serve
 	if imageId != "" {
 		d.Set("image_id", imageId)
 		if image, err := images.Get(computeClient, imageId).Extract(); err != nil {
-			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-			if !ok {
-				return err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				// If the image name can't be found, set the value to "Image not found".
 				// The most likely scenario is that the image no longer exists in the Image Service
 				// but the instance still has a record from when it existed.
 				d.Set("image_name", "Image not found")
 				return nil
-			} else {
-				return err
 			}
+			return err
 		} else {
 			d.Set("image_name", image.Name)
 		}

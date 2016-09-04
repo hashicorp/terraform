@@ -59,15 +59,11 @@ func resourceNetworkingRouterRouteV2Create(d *schema.ResourceData, meta interfac
 
 	n, err := routers.Get(networkingClient, routerId).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-		if !ok {
-			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
-		}
-
-		if httpError.Actual == 404 {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			d.SetId("")
 			return nil
 		}
+
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 	}
 
@@ -121,15 +117,11 @@ func resourceNetworkingRouterRouteV2Read(d *schema.ResourceData, meta interface{
 
 	n, err := routers.Get(networkingClient, routerId).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-		if !ok {
-			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
-		}
-
-		if httpError.Actual == 404 {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			d.SetId("")
 			return nil
 		}
+
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 	}
 
@@ -168,14 +160,10 @@ func resourceNetworkingRouterRouteV2Delete(d *schema.ResourceData, meta interfac
 
 	n, err := routers.Get(networkingClient, routerId).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
-		if !ok {
-			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
-		}
-
-		if httpError.Actual == 404 {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			return nil
 		}
+
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 	}
 
