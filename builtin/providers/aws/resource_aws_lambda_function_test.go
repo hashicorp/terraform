@@ -258,26 +258,20 @@ func TestAccAWSLambdaFunction_s3Update_unversioned(t *testing.T) {
 					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3", "tf_acc_lambda_name_s3_unversioned", &conf),
 					testAccCheckAwsLambdaFunctionName(&conf, "tf_acc_lambda_name_s3_unversioned"),
 					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, "tf_acc_lambda_name_s3_unversioned"),
-					testAccCheckAwsLambdaSourceCodeHash(&conf, "un6qF9S9hKvXbWwJ6m2EYaVCWjcr0PCZWiTV3h4zB0I="),
+					testAccCheckAwsLambdaSourceCodeHash(&conf, "8DPiX+G1l2LQ8hjBkwRchQFf1TSCEvPrYGRKlM9UoyY="),
 				),
 			},
 			resource.TestStep{
-				ExpectNonEmptyPlan: true,
 				PreConfig: func() {
 					// Upload 2nd version
 					testAccCreateZipFromFiles(map[string]string{"test-fixtures/lambda_func_modified.js": "lambda.js"}, zipFile)
 				},
 				Config: genAWSLambdaFunctionConfig_s3_unversioned(bucketName, key2, path),
-			},
-			// Extra step because of missing ComputedWhen
-			// See https://github.com/hashicorp/terraform/pull/4846 & https://github.com/hashicorp/terraform/pull/5330
-			resource.TestStep{
-				Config: genAWSLambdaFunctionConfig_s3_unversioned(bucketName, key2, path),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3", "tf_acc_lambda_name_s3_unversioned", &conf),
 					testAccCheckAwsLambdaFunctionName(&conf, "tf_acc_lambda_name_s3_unversioned"),
 					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, "tf_acc_lambda_name_s3_unversioned"),
-					testAccCheckAwsLambdaSourceCodeHash(&conf, "Y5Jf4Si63UDy1wKNfPs+U56ZL0NxsieKPt9EwRl4GQM="),
+					testAccCheckAwsLambdaSourceCodeHash(&conf, "0tdaP9H9hsk9c2CycSwOG/sa/x5JyAmSYunA/ce99Pg="),
 				),
 			},
 		},
