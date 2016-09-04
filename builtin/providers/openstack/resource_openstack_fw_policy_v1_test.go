@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 )
 
 func TestAccFWPolicyV1_basic(t *testing.T) {
@@ -80,7 +80,7 @@ func testAccCheckFWPolicyV1Destroy(s *terraform.State) error {
 		if err == nil {
 			return fmt.Errorf("Firewall policy (%s) still exists.", rs.Primary.ID)
 		}
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 		if !ok || httpError.Actual != 404 {
 			return httpError
 		}
@@ -113,7 +113,7 @@ func testAccCheckFWPolicyV1Exists(n, name, description string, ruleCount int) re
 			// if we get a 404 error. Fail on any other error.
 			found, err = policies.Get(networkingClient, rs.Primary.ID).Extract()
 			if err != nil {
-				httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+				httpError, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 				if !ok || httpError.Actual != 404 {
 					time.Sleep(time.Second)
 					continue
