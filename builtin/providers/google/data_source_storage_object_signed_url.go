@@ -10,16 +10,18 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
-	"github.com/hashicorp/terraform/helper/schema"
-	"golang.org/x/oauth2/google"
-	"golang.org/x/oauth2/jwt"
 	"log"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform/helper/pathorcontents"
+	"github.com/hashicorp/terraform/helper/schema"
+	"golang.org/x/oauth2/google"
+	"golang.org/x/oauth2/jwt"
+	"sort"
 )
 
 const gcsBaseUrl = "https://storage.googleapis.com"
@@ -34,12 +36,11 @@ func dataSourceGoogleSignedUrl() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			//TODO: implement support
-			//"content_type": &schema.Schema{
-			//	Type:     schema.TypeString,
-			//	Optional: true,
-			//	Default:  "",
-			//},
+			"content_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
 			"credentials": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -54,17 +55,16 @@ func dataSourceGoogleSignedUrl() *schema.Resource {
 				Optional: true,
 				Default:  "GET",
 			},
-			//TODO: implement support
-			//"http_headers": &schema.Schema{
-			//	Type:     schema.TypeList,
-			//	Optional: true,
-			//},
-			//TODO: implement support
-			//"md5_digest": &schema.Schema{
-			//	Type:     schema.TypeString,
-			//	Optional: true,
-			//	Default:  "",
-			//},
+			"http_headers": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem:     schema.TypeString,
+			},
+			"md5_digest": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -80,7 +80,6 @@ func dataSourceGoogleSignedUrl() *schema.Resource {
 func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Build UrlData object from data source attributes
 	urlData := &UrlData{}
 
@@ -103,6 +102,25 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 	expires := time.Now().Unix() + int64(duration.Seconds())
 	urlData.Expires = int(expires)
 
+	if v, ok := d.GetOk("content_type"); ok {
+		urlData.ContentType = v.(string)
+	}
+
+	if v, ok := d.GetOk("http_headers"); ok {
+		hdrMap := v.(map[string]interface{})
+
+		if len(hdrMap) > 0 {
+			urlData.HttpHeaders = make(map[string]string, len(hdrMap))
+			for k, v := range hdrMap {
+				urlData.HttpHeaders[k] = v.(string)
+			}
+		}
+	}
+
+	if v, ok := d.GetOk("md5_digest"); ok {
+		urlData.Md5Digest = v.(string)
+	}
+
 	// object path
 	path := []string{
 		"",
@@ -112,7 +130,6 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 	objectPath := strings.Join(path, "/")
 	urlData.Path = objectPath
 
-	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Load JWT Config from Google Credentials
 	jwtConfig, err := loadJwtConfig(d, config)
 	if err != nil {
@@ -120,7 +137,6 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 	}
 	urlData.JwtConfig = jwtConfig
 
-	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Sign url object data
 	signature, err := SignString(urlData.CreateSigningString(), jwtConfig)
 	if err != nil {
@@ -128,7 +144,6 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 	}
 	urlData.Signature = signature
 
-	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Construct URL
 	finalUrl := urlData.BuildUrl()
 	d.SetId(urlData.EncodedSignature())
@@ -204,11 +219,14 @@ func parsePrivateKey(key []byte) (*rsa.PrivateKey, error) {
 }
 
 type UrlData struct {
-	JwtConfig  *jwt.Config
-	HttpMethod string
-	Expires    int
-	Path       string
-	Signature  []byte
+	JwtConfig   *jwt.Config
+	ContentType string
+	HttpMethod  string
+	Expires     int
+	Md5Digest   string
+	HttpHeaders map[string]string
+	Path        string
+	Signature   []byte
 }
 
 // Creates a string in the form ready for signing:
@@ -229,11 +247,11 @@ func (u *UrlData) CreateSigningString() []byte {
 	buf.WriteString("\n")
 
 	// MD5 digest (optional)
-	// TODO
+	buf.WriteString(u.Md5Digest)
 	buf.WriteString("\n")
 
 	// request content-type (optional)
-	// TODO
+	buf.WriteString(u.ContentType)
 	buf.WriteString("\n")
 
 	// signed url expiration
@@ -241,10 +259,22 @@ func (u *UrlData) CreateSigningString() []byte {
 	buf.WriteString("\n")
 
 	// additional request headers (optional)
-	// TODO
+	// Must be sorted in lexigraphical order
+	var keys []string
+	for k := range u.HttpHeaders {
+		keys = append(keys, strings.ToLower(k))
+	}
+	sort.Strings(keys)
+
+	// To perform the opertion you want
+	for _, k := range keys {
+		buf.WriteString(fmt.Sprintf("%s:%s\n", k, u.HttpHeaders[k]))
+	}
 
 	// object path
 	buf.WriteString(u.Path)
+
+	fmt.Printf("SIGNING STRING: \n%s\n", buf.String())
 
 	return buf.Bytes()
 }
