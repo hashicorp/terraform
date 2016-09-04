@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/security/groups"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
 )
 
 func resourceNetworkingSecGroupV2() *schema.Resource {
@@ -131,7 +131,7 @@ func waitForSecGroupDelete(networkingClient *gophercloud.ServiceClient, secGroup
 
 		r, err := groups.Get(networkingClient, secGroupId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return r, "ACTIVE", err
 			}
@@ -143,7 +143,7 @@ func waitForSecGroupDelete(networkingClient *gophercloud.ServiceClient, secGroup
 
 		err = groups.Delete(networkingClient, secGroupId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return r, "ACTIVE", err
 			}
