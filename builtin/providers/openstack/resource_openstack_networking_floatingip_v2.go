@@ -8,10 +8,10 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
-	"github.com/rackspace/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/pagination"
 )
 
 func resourceNetworkingFloatingIPV2() *schema.Resource {
@@ -259,7 +259,7 @@ func waitForFloatingIPDelete(networkingClient *gophercloud.ServiceClient, fId st
 
 		f, err := floatingips.Get(networkingClient, fId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return f, "ACTIVE", err
 			}
@@ -271,7 +271,7 @@ func waitForFloatingIPDelete(networkingClient *gophercloud.ServiceClient, fId st
 
 		err = floatingips.Delete(networkingClient, fId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if !ok {
 				return f, "ACTIVE", err
 			}
