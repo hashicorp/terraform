@@ -3,7 +3,8 @@
 FEATURES:
 
 IMPROVEMENTS:
- * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name` ([#8639](https://github.com/hashicorp/terraform/issues/8639))
+ * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name` [GH-8639]
+ * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration [GH-8666]
 
 BUG FIXES:
 
