@@ -13,38 +13,38 @@ func Provider() terraform.ResourceProvider {
 			"host": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("POSTGRESQL_HOST", nil),
-				Description: "The postgresql server address",
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_HOST"}, nil),
+				Description: "The PostgreSQL server address",
 			},
 			"port": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     5432,
-				Description: "The postgresql server port",
+				Description: "The PostgreSQL server port",
 			},
 			"username": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("POSTGRESQL_USERNAME", nil),
-				Description: "Username for postgresql server connection",
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOST", "POSTGRESQL_HOST"}, nil),
+				Description: "Username for PostgreSQL server connection",
 			},
 			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("POSTGRESQL_PASSWORD", nil),
-				Description: "Password for postgresql server connection",
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGPASSWORD", "POSTGRESQL_PASSWORD"}, nil),
+				Description: "Password for PostgreSQL server connection",
 			},
 			"ssl_mode": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "prefer",
-				Description: "Connection mode for postgresql server",
+				Description: "Connection mode for PostgreSQL server",
 			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"postgresql_database": resourcePostgresqlDatabase(),
-			"postgresql_role":     resourcePostgresqlRole(),
+			"postgresql_database": resourcePostgreSQLDatabase(),
+			"postgresql_role":     resourcePostgreSQLRole(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -62,7 +62,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	client, err := config.NewClient()
 	if err != nil {
-		return nil, errwrap.Wrapf("Error initializing Postgresql client: %s", err)
+		return nil, errwrap.Wrapf("Error initializing PostgreSQL client: %s", err)
 	}
 
 	return client, nil
