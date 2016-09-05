@@ -12,19 +12,19 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"host": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOST", "POSTGRESQL_HOST"}, nil),
 				Description: "The PostgreSQL server address",
 			},
 			"port": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     5432,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGPORT"}, nil),
 				Description: "The PostgreSQL server port",
 			},
 			"username": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_USER"}, nil),
 				Description: "Username for PostgreSQL server connection",
 			},
