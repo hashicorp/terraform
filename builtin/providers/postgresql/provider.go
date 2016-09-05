@@ -34,10 +34,10 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGPASSWORD", "POSTGRESQL_PASSWORD"}, nil),
 				Description: "Password for PostgreSQL server connection",
 			},
-			"ssl_mode": {
+			"sslmode": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("PGSSLMODE", "require"),
+				DefaultFunc: schema.EnvDefaultFunc("PGSSLMODE", nil),
 				Description: "Connection mode for PostgreSQL server",
 			},
 			"connect_timeout": {
