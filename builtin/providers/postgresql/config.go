@@ -22,7 +22,7 @@ type Client struct {
 	connStr  string
 }
 
-//NewClient returns new client config
+// NewClient returns new client config
 func (c *Config) NewClient() (*Client, error) {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s", c.Host, c.Port, c.Username, c.Password, c.SslMode)
 
@@ -34,11 +34,12 @@ func (c *Config) NewClient() (*Client, error) {
 	return &client, nil
 }
 
-//Connect will manually connect/diconnect to prevent a large number or db connections being made
+// Connect will manually connect/disconnect to prevent a large
+// number or db connections being made
 func (c *Client) Connect() (*sql.DB, error) {
 	db, err := sql.Open("postgres", c.connStr)
 	if err != nil {
-		return nil, fmt.Errorf("Error connecting to postgresql server: %s", err)
+		return nil, fmt.Errorf("Error connecting to PostgreSQL server: %s", err)
 	}
 
 	return db, nil
