@@ -1,8 +1,7 @@
 package postgresql
 
 import (
-	"fmt"
-
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -11,31 +10,31 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"host": &schema.Schema{
+			"host": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("POSTGRESQL_HOST", nil),
 				Description: "The postgresql server address",
 			},
-			"port": &schema.Schema{
+			"port": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     5432,
 				Description: "The postgresql server port",
 			},
-			"username": &schema.Schema{
+			"username": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("POSTGRESQL_USERNAME", nil),
 				Description: "Username for postgresql server connection",
 			},
-			"password": &schema.Schema{
+			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("POSTGRESQL_PASSWORD", nil),
 				Description: "Password for postgresql server connection",
 			},
-			"ssl_mode": &schema.Schema{
+			"ssl_mode": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "prefer",
@@ -63,7 +62,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	client, err := config.NewClient()
 	if err != nil {
-		return nil, fmt.Errorf("Error initializing Postgresql client: %s", err)
+		return nil, errwrap.Wrapf("Error initializing Postgresql client: %s", err)
 	}
 
 	return client, nil
