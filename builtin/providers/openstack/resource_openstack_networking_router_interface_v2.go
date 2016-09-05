@@ -146,7 +146,7 @@ func waitForRouterInterfaceDelete(networkingClient *gophercloud.ServiceClient, d
 		routerId := d.Get("router_id").(string)
 		routerInterfaceId := d.Id()
 
-		log.Printf("[DEBUG] Attempting to delete OpenStack Router Interface %s.\n", routerInterfaceId)
+		log.Printf("[DEBUG] Attempting to delete OpenStack Router Interface %s.", routerInterfaceId)
 
 		removeOpts := routers.RemoveInterfaceOpts{
 			SubnetID: d.Get("subnet_id").(string),
@@ -168,10 +168,18 @@ func waitForRouterInterfaceDelete(networkingClient *gophercloud.ServiceClient, d
 				log.Printf("[DEBUG] Successfully deleted OpenStack Router Interface %s", routerInterfaceId)
 				return r, "DELETED", nil
 			}
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] Received a 409 response. Interface still in use.")
+					return r, "ACTIVE", nil
+				}
+			}
+
 			return r, "ACTIVE", err
 		}
 
-		log.Printf("[DEBUG] OpenStack Router Interface %s still active.\n", routerInterfaceId)
+		log.Printf("[DEBUG] OpenStack Router Interface %s still active.", routerInterfaceId)
 		return r, "ACTIVE", nil
 	}
 }
