@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -17,11 +18,15 @@ import (
 	"strings"
 	"time"
 
+	"sort"
+
+	"regexp"
+
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
-	"sort"
 )
 
 const gcsBaseUrl = "https://storage.googleapis.com"
@@ -35,6 +40,11 @@ func dataSourceGoogleSignedUrl() *schema.Resource {
 			"bucket": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"content_md5": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
 			},
 			"content_type": &schema.Schema{
 				Type:     schema.TypeString,
@@ -50,20 +60,17 @@ func dataSourceGoogleSignedUrl() *schema.Resource {
 				Optional: true,
 				Default:  "1h",
 			},
+			"extension_headers": &schema.Schema{
+				Type:         schema.TypeMap,
+				Optional:     true,
+				Elem:         schema.TypeString,
+				ValidateFunc: validateExtensionHeaders,
+			},
 			"http_method": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "GET",
-			},
-			"http_headers": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem:     schema.TypeString,
-			},
-			"md5_digest": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "GET",
+				ValidateFunc: validateHttpMethod,
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
@@ -77,6 +84,26 @@ func dataSourceGoogleSignedUrl() *schema.Resource {
 	}
 }
 
+func validateExtensionHeaders(v interface{}, k string) (ws []string, errors []error) {
+	hdrMap := v.(map[string]interface{})
+	for k, _ := range hdrMap {
+		if !strings.HasPrefix(strings.ToLower(k), "x-goog") {
+			errors = append(errors, fmt.Errorf(
+				"extension_header (%s) not valid, header name must begin with 'x-goog-'", k))
+		}
+	}
+	return
+}
+
+func validateHttpMethod(v interface{}, k string) (ws []string, errs []error) {
+	value := v.(string)
+	value = strings.ToUpper(value)
+	if !regexp.MustCompile(`^(GET|HEAD|PUT|DELETE)$`).MatchString(value) {
+		errs = append(errs, errors.New("HTTP method must be one of [GET|HEAD|PUT|DELETE]"))
+	}
+	return
+}
+
 func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -87,7 +114,7 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 	if method, ok := d.GetOk("http_method"); ok && len(method.(string)) >= 3 {
 		urlData.HttpMethod = method.(string)
 	} else {
-		return fmt.Errorf("not a valid http method")
+		return errors.New("not a valid http method")
 	}
 
 	// convert duration to an expiration datetime (unix time in seconds)
@@ -97,16 +124,23 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 	}
 	duration, err := time.ParseDuration(durationString)
 	if err != nil {
-		return fmt.Errorf("could not parse duration")
+		return errwrap.Wrapf("could not parse duration: {{err}}", err)
 	}
 	expires := time.Now().Unix() + int64(duration.Seconds())
 	urlData.Expires = int(expires)
 
+	// content_md5 is optional
+	if v, ok := d.GetOk("content_md5"); ok {
+		urlData.ContentMd5 = v.(string)
+	}
+
+	// content_type is optional
 	if v, ok := d.GetOk("content_type"); ok {
 		urlData.ContentType = v.(string)
 	}
 
-	if v, ok := d.GetOk("http_headers"); ok {
+	// extension_headers (x-goog-* HTTP headers) are optional
+	if v, ok := d.GetOk("extension_headers"); ok {
 		hdrMap := v.(map[string]interface{})
 
 		if len(hdrMap) > 0 {
@@ -115,10 +149,6 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 				urlData.HttpHeaders[k] = v.(string)
 			}
 		}
-	}
-
-	if v, ok := d.GetOk("md5_digest"); ok {
-		urlData.Md5Digest = v.(string)
 	}
 
 	// object path
@@ -137,26 +167,28 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 	}
 	urlData.JwtConfig = jwtConfig
 
-	// Sign url object data
-	signature, err := SignString(urlData.CreateSigningString(), jwtConfig)
-	if err != nil {
-		return fmt.Errorf("could not sign data: %v", err)
-	}
-	urlData.Signature = signature
-
 	// Construct URL
-	finalUrl := urlData.BuildUrl()
-	d.SetId(urlData.EncodedSignature())
-	d.Set("signed_url", finalUrl)
+	signedUrl, err := urlData.SignedUrl()
+	if err != nil {
+		return err
+	}
+
+	// Success
+	d.Set("signed_url", signedUrl)
+
+	encodedSig, err := urlData.EncodedSignature()
+	if err != nil {
+		return err
+	}
+	d.SetId(encodedSig)
 
 	return nil
 }
 
-// This looks for credentials json in the following places,
+// loadJwtConfig looks for credentials json in the following places,
 // in order of preference:
-//
-//   1. Credentials provided in data source `credentials` attribute.
-//   2. Credentials provided in the provider definition.
+//   1. `credentials` attribute of the datasource
+//   2. `credentials` attribute in the provider definition.
 //   3. A JSON file whose path is specified by the
 //      GOOGLE_APPLICATION_CREDENTIALS environment variable.
 func loadJwtConfig(d *schema.ResourceData, meta interface{}) (*jwt.Config, error) {
@@ -180,17 +212,17 @@ func loadJwtConfig(d *schema.ResourceData, meta interface{}) (*jwt.Config, error
 	if strings.TrimSpace(credentials) != "" {
 		contents, _, err := pathorcontents.Read(credentials)
 		if err != nil {
-			return nil, fmt.Errorf("Error loading credentials: %s", err)
+			return nil, errwrap.Wrapf("Error loading credentials: {{err}}", err)
 		}
 
 		cfg, err := google.JWTConfigFromJSON([]byte(contents), "")
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing credentials: \n %s \n Error: %s", contents, err)
+			return nil, errwrap.Wrapf("Error parsing credentials: {{err}}", err)
 		}
 		return cfg, nil
 	}
 
-	return nil, fmt.Errorf("Credentials not found in datasource, provider configuration or GOOGLE_APPLICATION_CREDENTIALS environment variable.")
+	return nil, errors.New("Credentials not found in datasource, provider configuration or GOOGLE_APPLICATION_CREDENTIALS environment variable.")
 }
 
 // parsePrivateKey converts the binary contents of a private key file
@@ -208,29 +240,29 @@ func parsePrivateKey(key []byte) (*rsa.PrivateKey, error) {
 	if err != nil {
 		parsedKey, err = x509.ParsePKCS1PrivateKey(key)
 		if err != nil {
-			return nil, fmt.Errorf("private key should be a PEM or plain PKSC1 or PKCS8; parse error: %v", err)
+			return nil, errwrap.Wrapf("private key should be a PEM or plain PKSC1 or PKCS8; parse error: {{err}}", err)
 		}
 	}
 	parsed, ok := parsedKey.(*rsa.PrivateKey)
 	if !ok {
-		return nil, fmt.Errorf("private key is invalid")
+		return nil, errors.New("private key is invalid")
 	}
 	return parsed, nil
 }
 
+// UrlData stores the values required to create a Signed Url
 type UrlData struct {
 	JwtConfig   *jwt.Config
+	ContentMd5  string
 	ContentType string
 	HttpMethod  string
 	Expires     int
-	Md5Digest   string
 	HttpHeaders map[string]string
 	Path        string
-	Signature   []byte
 }
 
-// Creates a string in the form ready for signing:
-// https://cloud.google.com/storage/docs/access-control/create-signed-urls-program
+// SigningString creates a string representation of the UrlData in a form ready for signing:
+// see https://cloud.google.com/storage/docs/access-control/create-signed-urls-program
 // Example output:
 // -------------------
 // GET
@@ -239,59 +271,78 @@ type UrlData struct {
 // 1388534400
 // bucket/objectname
 // -------------------
-func (u *UrlData) CreateSigningString() []byte {
+func (u *UrlData) SigningString() []byte {
 	var buf bytes.Buffer
 
-	// HTTP VERB
+	// HTTP Verb
 	buf.WriteString(u.HttpMethod)
 	buf.WriteString("\n")
 
-	// MD5 digest (optional)
-	buf.WriteString(u.Md5Digest)
+	// Content MD5 (optional, always add new line)
+	buf.WriteString(u.ContentMd5)
 	buf.WriteString("\n")
 
-	// request content-type (optional)
+	// Content Type (optional, always add new line)
 	buf.WriteString(u.ContentType)
 	buf.WriteString("\n")
 
-	// signed url expiration
+	// Expiration
 	buf.WriteString(strconv.Itoa(u.Expires))
 	buf.WriteString("\n")
 
-	// additional request headers (optional)
+	// Extra HTTP headers (optional)
 	// Must be sorted in lexigraphical order
 	var keys []string
 	for k := range u.HttpHeaders {
 		keys = append(keys, strings.ToLower(k))
 	}
 	sort.Strings(keys)
-
-	// To perform the opertion you want
+	// Write sorted headers to signing string buffer
 	for _, k := range keys {
 		buf.WriteString(fmt.Sprintf("%s:%s\n", k, u.HttpHeaders[k]))
 	}
 
-	// object path
+	// Storate Object path (includes bucketname)
 	buf.WriteString(u.Path)
-
-	fmt.Printf("SIGNING STRING: \n%s\n", buf.String())
 
 	return buf.Bytes()
 }
 
-func (u *UrlData) EncodedSignature() string {
+func (u *UrlData) Signature() ([]byte, error) {
+	// Sign url data
+	signature, err := SignString(u.SigningString(), u.JwtConfig)
+	if err != nil {
+		return nil, err
+
+	}
+
+	return signature, nil
+}
+
+// EncodedSignature returns the Signature() after base64 encoding and url escaping
+func (u *UrlData) EncodedSignature() (string, error) {
+	signature, err := u.Signature()
+	if err != nil {
+		return "", err
+	}
+
 	// base64 encode signature
-	encoded := base64.StdEncoding.EncodeToString(u.Signature)
+	encoded := base64.StdEncoding.EncodeToString(signature)
 	// encoded signature may include /, = characters that need escaping
 	encoded = url.QueryEscape(encoded)
 
-	return encoded
+	return encoded, nil
 }
 
-// Builds the final signed URL a client can use to retrieve storage object
-func (u *UrlData) BuildUrl() string {
+// SignedUrl constructs the final signed URL a client can use to retrieve storage object
+func (u *UrlData) SignedUrl() (string, error) {
 
-	// set url
+	encodedSig, err := u.EncodedSignature()
+	if err != nil {
+		return "", err
+	}
+
+	// build url
 	// https://cloud.google.com/storage/docs/access-control/create-signed-urls-program
 	var urlBuffer bytes.Buffer
 	urlBuffer.WriteString(gcsBaseUrl)
@@ -301,16 +352,17 @@ func (u *UrlData) BuildUrl() string {
 	urlBuffer.WriteString("&Expires=")
 	urlBuffer.WriteString(strconv.Itoa(u.Expires))
 	urlBuffer.WriteString("&Signature=")
-	urlBuffer.WriteString(u.EncodedSignature())
+	urlBuffer.WriteString(encodedSig)
 
-	return urlBuffer.String()
+	return urlBuffer.String(), nil
 }
 
+// SignString calculates the SHA256 signature of the input string
 func SignString(toSign []byte, cfg *jwt.Config) ([]byte, error) {
 	// Parse private key
 	pk, err := parsePrivateKey(cfg.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse key: %v\nKey:%s", err, string(cfg.PrivateKey))
+		return nil, errwrap.Wrapf("failed to sign string, could not parse key: {{err}}", err)
 	}
 
 	// Hash string
@@ -320,7 +372,7 @@ func SignString(toSign []byte, cfg *jwt.Config) ([]byte, error) {
 	// Sign string
 	signed, err := rsa.SignPKCS1v15(rand.Reader, pk, crypto.SHA256, hasher.Sum(nil))
 	if err != nil {
-		return nil, fmt.Errorf("error signing string: %s\n", err)
+		return nil, errwrap.Wrapf("failed to sign string, an error occurred: {{err}}", err)
 	}
 
 	return signed, nil
