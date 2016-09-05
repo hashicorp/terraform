@@ -186,16 +186,22 @@ func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {
 			break
 		}
 
-		if _, ok := err.(gophercloud.ErrDefault404); !ok {
-			return err
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
+			return nil
 		}
 
-		// This error usually means that the policy is attached
-		// to a firewall. At this point, the firewall is probably
-		// being delete. So, we retry a few times.
+		if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+			if errCode.Actual == 409 {
+				// This error usually means that the policy is attached
+				// to a firewall. At this point, the firewall is probably
+				// being delete. So, we retry a few times.
+				time.Sleep(time.Second * 2)
+				continue
+			}
+		}
 
-		time.Sleep(time.Second * 2)
+		return err
 	}
 
-	return err
+	return nil
 }
