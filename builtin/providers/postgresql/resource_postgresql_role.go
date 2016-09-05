@@ -9,12 +9,12 @@ import (
 	"github.com/lib/pq"
 )
 
-func resourcePostgresqlRole() *schema.Resource {
+func resourcePostgreSQLRole() *schema.Resource {
 	return &schema.Resource{
-		Create: resourcePostgresqlRoleCreate,
-		Read:   resourcePostgresqlRoleRead,
-		Update: resourcePostgresqlRoleUpdate,
-		Delete: resourcePostgresqlRoleDelete,
+		Create: resourcePostgreSQLRoleCreate,
+		Read:   resourcePostgreSQLRoleRead,
+		Update: resourcePostgreSQLRoleUpdate,
+		Delete: resourcePostgreSQLRoleDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -43,7 +43,7 @@ func resourcePostgresqlRole() *schema.Resource {
 	}
 }
 
-func resourcePostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -65,10 +65,10 @@ func resourcePostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) erro
 
 	d.SetId(roleName)
 
-	return resourcePostgresqlRoleRead(d, meta)
+	return resourcePostgreSQLRoleRead(d, meta)
 }
 
-func resourcePostgresqlRoleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLRoleDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -89,7 +89,7 @@ func resourcePostgresqlRoleDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourcePostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -100,7 +100,7 @@ func resourcePostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error 
 	roleName := d.Get("name").(string)
 
 	var canLogin bool
-	err = conn.QueryRow("select rolcanlogin from pg_roles where rolname=$1", roleName).Scan(&canLogin)
+	err = conn.QueryRow("SELECT rolcanlogin FROM pg_roles WHERE rolname=$1", roleName).Scan(&canLogin)
 	switch {
 	case err == sql.ErrNoRows:
 		d.SetId("")
@@ -113,7 +113,7 @@ func resourcePostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error 
 	}
 }
 
-func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -162,7 +162,7 @@ func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Partial(false)
-	return resourcePostgresqlRoleRead(d, meta)
+	return resourcePostgreSQLRoleRead(d, meta)
 }
 
 func getLoginStr(canLogin bool) string {
