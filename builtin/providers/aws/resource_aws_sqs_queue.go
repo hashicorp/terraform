@@ -75,6 +75,7 @@ func resourceAwsSqsQueue() *schema.Resource {
 			"policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				StateFunc: func(v interface{}) string {
 					s, ok := v.(string)
 					if !ok || s == "" {
