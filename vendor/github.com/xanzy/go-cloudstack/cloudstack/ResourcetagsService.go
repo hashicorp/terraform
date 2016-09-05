@@ -80,7 +80,7 @@ func (s *ResourcetagsService) NewListStorageTagsParams() *ListStorageTagsParams 
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ResourcetagsService) GetStorageTagID(keyword string, opts ...OptionFunc) (string, error) {
+func (s *ResourcetagsService) GetStorageTagID(keyword string, opts ...OptionFunc) (string, int, error) {
 	p := &ListStorageTagsParams{}
 	p.p = make(map[string]interface{})
 
@@ -88,31 +88,31 @@ func (s *ResourcetagsService) GetStorageTagID(keyword string, opts ...OptionFunc
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListStorageTags(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", keyword, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", keyword, l)
 	}
 
 	if l.Count == 1 {
-		return l.StorageTags[0].Id, nil
+		return l.StorageTags[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.StorageTags {
 			if v.Name == keyword {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
 }
 
 // Lists storage tags

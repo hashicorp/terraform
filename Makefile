@@ -39,7 +39,7 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 # test runs the unit tests
-test: fmtcheck generate
+test: fmtcheck errcheck generate
 	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
 
 # testacc runs acceptance tests
@@ -88,5 +88,8 @@ fmt:
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
+
+errcheck:
+	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
 .PHONY: bin default generate test vet fmt fmtcheck tools

@@ -93,10 +93,10 @@ func resourceAwsCodeCommitRepositoryCreate(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(d.Get("repository_name").(string))
-	d.Set("repository_id", *out.RepositoryMetadata.RepositoryId)
-	d.Set("arn", *out.RepositoryMetadata.Arn)
-	d.Set("clone_url_http", *out.RepositoryMetadata.CloneUrlHttp)
-	d.Set("clone_url_ssh", *out.RepositoryMetadata.CloneUrlSsh)
+	d.Set("repository_id", out.RepositoryMetadata.RepositoryId)
+	d.Set("arn", out.RepositoryMetadata.Arn)
+	d.Set("clone_url_http", out.RepositoryMetadata.CloneUrlHttp)
+	d.Set("clone_url_ssh", out.RepositoryMetadata.CloneUrlSsh)
 
 	return resourceAwsCodeCommitRepositoryUpdate(d, meta)
 }
@@ -133,14 +133,14 @@ func resourceAwsCodeCommitRepositoryRead(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error reading CodeCommit Repository: %s", err.Error())
 	}
 
-	d.Set("repository_id", *out.RepositoryMetadata.RepositoryId)
-	d.Set("arn", *out.RepositoryMetadata.Arn)
-	d.Set("clone_url_http", *out.RepositoryMetadata.CloneUrlHttp)
-	d.Set("clone_url_ssh", *out.RepositoryMetadata.CloneUrlSsh)
+	d.Set("repository_id", out.RepositoryMetadata.RepositoryId)
+	d.Set("arn", out.RepositoryMetadata.Arn)
+	d.Set("clone_url_http", out.RepositoryMetadata.CloneUrlHttp)
+	d.Set("clone_url_ssh", out.RepositoryMetadata.CloneUrlSsh)
 
 	if _, ok := d.GetOk("default_branch"); ok {
 		if out.RepositoryMetadata.DefaultBranch != nil {
-			d.Set("default_branch", *out.RepositoryMetadata.DefaultBranch)
+			d.Set("default_branch", out.RepositoryMetadata.DefaultBranch)
 		}
 	}
 

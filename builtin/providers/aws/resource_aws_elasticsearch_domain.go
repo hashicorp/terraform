@@ -22,9 +22,9 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"access_policies": &schema.Schema{
-				Type:      schema.TypeString,
-				StateFunc: normalizeJson,
-				Optional:  true,
+				Type:             schema.TypeString,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
+				Optional:         true,
 			},
 			"advanced_options": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -256,6 +256,11 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 		DomainName: aws.String(d.Get("domain_name").(string)),
 	})
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ResourceNotFoundException" {
+			log.Printf("[INFO] ElasticSearch Domain %q not found", d.Get("domain_name").(string))
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

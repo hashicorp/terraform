@@ -256,12 +256,11 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 
 	resp, err := client.GetProperties(resGroup, name)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
-			d.SetId("")
-			return nil
-		}
-
 		return fmt.Errorf("Error reading the state of AzureRM Storage Account %q: %s", name, err)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		d.SetId("")
+		return nil
 	}
 
 	keys, err := client.ListKeys(resGroup, name)

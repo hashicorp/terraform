@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
@@ -91,10 +92,25 @@ func TestPush_noUploadModules(t *testing.T) {
 	// Path of the test. We have to do some renaming to avoid our own
 	// VCS getting in the way.
 	path := testFixturePath("push-no-upload")
-	defer testRename(t, path, "DOTterraform", ".terraform")()
+	defer os.RemoveAll(filepath.Join(path, ".terraform"))
 
 	// Move into that directory
 	defer testChdir(t, path)()
+
+	// Do a "terraform get"
+	{
+		ui := new(cli.MockUi)
+		c := &GetCommand{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(testProvider()),
+				Ui:          ui,
+			},
+		}
+
+		if code := c.Run([]string{}); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+	}
 
 	// Create remote state file, this should be pulled
 	conf, srv := testRemoteState(t, testState(), 200)
@@ -107,6 +123,7 @@ func TestPush_noUploadModules(t *testing.T) {
 	defer os.Remove(testStateFileRemote(t, s))
 
 	args := []string{
+		"-vcs=false",
 		"-name=mitchellh/tf-test",
 		"-upload-modules=false",
 		path,
@@ -115,9 +132,14 @@ func TestPush_noUploadModules(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
+	// NOTE: The duplicates below are not ideal but are how things work
+	// currently due to how we manually add the files to the archive. This
+	// is definitely a "bug" we can fix in the future.
 	actual := testArchiveStr(t, archivePath)
 	expected := []string{
 		".terraform/",
+		".terraform/",
+		".terraform/terraform.tfstate",
 		".terraform/terraform.tfstate",
 		"child/",
 		"child/main.tf",
@@ -743,8 +765,7 @@ func pushTFVars() []atlas.TFVar {
 	return []atlas.TFVar{
 		{"bar", "foo", false},
 		{"baz", `{
-  A      = "a"
-  interp = "${file("t.txt")}"
+  A = "a"
 }`, true},
 		{"fob", `["a", "quotes \"in\" quotes"]`, true},
 		{"foo", "bar", false},

@@ -599,6 +599,183 @@ func TestResourceAWSELB_validateElbNameCannotEndWithHyphen(t *testing.T) {
 	}
 }
 
+func TestResourceAWSELB_validateAccessLogsInterval(t *testing.T) {
+	type testCases struct {
+		Value    int
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    0,
+			ErrCount: 1,
+		},
+		{
+			Value:    10,
+			ErrCount: 1,
+		},
+		{
+			Value:    -1,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateAccessLogsInterval(tc.Value, "interval")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+}
+
+func TestResourceAWSELB_validateListenerProtocol(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect",
+			ErrCount: 1,
+		},
+		{
+			Value:    "HTTP:",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateListenerProtocol(tc.Value, "protocol")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    "TCP",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ssl",
+			ErrCount: 0,
+		},
+		{
+			Value:    "HTTP",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateListenerProtocol(tc.Value, "protocol")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
+func TestResourceAWSELB_validateHealthCheckTarget(t *testing.T) {
+	type testCase struct {
+		Value    string
+		ErrCount int
+	}
+
+	randomRunes := func(n int) string {
+		rand.Seed(time.Now().UTC().UnixNano())
+
+		// A complete set of modern Katakana characters.
+		runes := []rune("アイウエオ" +
+			"カキクケコガギグゲゴサシスセソザジズゼゾ" +
+			"タチツテトダヂヅデドナニヌネノハヒフヘホ" +
+			"バビブベボパピプペポマミムメモヤユヨラリ" +
+			"ルレロワヰヱヲン")
+
+		s := make([]rune, n)
+		for i := range s {
+			s[i] = runes[rand.Intn(len(runes))]
+		}
+		return string(s)
+	}
+
+	validCases := []testCase{
+		{
+			Value:    "TCP:1234",
+			ErrCount: 0,
+		},
+		{
+			Value:    "http:80/test",
+			ErrCount: 0,
+		},
+		{
+			Value:    fmt.Sprintf("HTTP:8080/%s", randomRunes(5)),
+			ErrCount: 0,
+		},
+		{
+			Value:    "SSL:8080",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateHeathCheckTarget(tc.Value, "target")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+
+	invalidCases := []testCase{
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:1234/",
+			ErrCount: 1,
+		},
+		{
+			Value:    "SSL:8080/",
+			ErrCount: 1,
+		},
+		{
+			Value:    "HTTP:8080",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect-value",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:123456",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect:80/",
+			ErrCount: 1,
+		},
+		{
+			Value:    fmt.Sprintf("HTTP:8080/%s%s", randomString(512), randomRunes(512)),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateHeathCheckTarget(tc.Value, "target")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
 func testAccCheckAWSELBDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elbconn
 

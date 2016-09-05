@@ -2,9 +2,9 @@ package mysql
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	mysqlc "github.com/ziutek/mymysql/mysql"
 	mysqlts "github.com/ziutek/mymysql/thrsafe"
 
@@ -13,10 +13,8 @@ import (
 )
 
 type providerConfiguration struct {
-	Conn         mysqlc.Conn
-	VersionMajor uint
-	VersionMinor uint
-	VersionPatch uint
+	Conn          mysqlc.Conn
+	ServerVersion *version.Version
 }
 
 func Provider() terraform.ResourceProvider {
@@ -88,16 +86,14 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, err
 	}
 
-	major, minor, patch, err := mysqlVersion(conn)
+	ver, err := serverVersion(conn)
 	if err != nil {
 		return nil, err
 	}
 
 	return &providerConfiguration{
-		Conn:         conn,
-		VersionMajor: major,
-		VersionMinor: minor,
-		VersionPatch: patch,
+		Conn:          conn,
+		ServerVersion: ver,
 	}, nil
 }
 
@@ -107,36 +103,14 @@ func quoteIdentifier(in string) string {
 	return fmt.Sprintf("`%s`", identQuoteReplacer.Replace(in))
 }
 
-func mysqlVersion(conn mysqlc.Conn) (uint, uint, uint, error) {
+func serverVersion(conn mysqlc.Conn) (*version.Version, error) {
 	rows, _, err := conn.Query("SELECT VERSION()")
 	if err != nil {
-		return 0, 0, 0, err
+		return nil, err
 	}
 	if len(rows) == 0 {
-		return 0, 0, 0, fmt.Errorf("SELECT VERSION() returned an empty set")
+		return nil, fmt.Errorf("SELECT VERSION() returned an empty set")
 	}
 
-	versionString := rows[0].Str(0)
-	version := strings.Split(versionString, ".")
-	invalidVersionErr := fmt.Errorf("Invalid major.minor.patch in %q", versionString)
-	if len(version) != 3 {
-		return 0, 0, 0, invalidVersionErr
-	}
-
-	major, err := strconv.ParseUint(version[0], 10, 32)
-	if err != nil {
-		return 0, 0, 0, invalidVersionErr
-	}
-
-	minor, err := strconv.ParseUint(version[1], 10, 32)
-	if err != nil {
-		return 0, 0, 0, invalidVersionErr
-	}
-
-	patch, err := strconv.ParseUint(version[2], 10, 32)
-	if err != nil {
-		return 0, 0, 0, invalidVersionErr
-	}
-
-	return uint(major), uint(minor), uint(patch), nil
+	return version.NewVersion(rows[0].Str(0))
 }

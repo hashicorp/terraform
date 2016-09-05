@@ -188,7 +188,7 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 	ignorableAttrKeys := make(map[string]bool)
 	for _, ignoredKey := range ignoreChanges {
 		for k := range diff.CopyAttributes() {
-			if strings.HasPrefix(k, ignoredKey) {
+			if ignoredKey == "*" || strings.HasPrefix(k, ignoredKey) {
 				ignorableAttrKeys[k] = true
 			}
 		}
