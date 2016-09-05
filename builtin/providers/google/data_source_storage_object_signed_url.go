@@ -87,7 +87,7 @@ func dataSourceGoogleSignedUrl() *schema.Resource {
 func validateExtensionHeaders(v interface{}, k string) (ws []string, errors []error) {
 	hdrMap := v.(map[string]interface{})
 	for k, _ := range hdrMap {
-		if !strings.HasPrefix(strings.ToLower(k), "x-goog") {
+		if !strings.HasPrefix(strings.ToLower(k), "x-goog-") {
 			errors = append(errors, fmt.Errorf(
 				"extension_header (%s) not valid, header name must begin with 'x-goog-'", k))
 		}
@@ -99,7 +99,7 @@ func validateHttpMethod(v interface{}, k string) (ws []string, errs []error) {
 	value := v.(string)
 	value = strings.ToUpper(value)
 	if !regexp.MustCompile(`^(GET|HEAD|PUT|DELETE)$`).MatchString(value) {
-		errs = append(errs, errors.New("HTTP method must be one of [GET|HEAD|PUT|DELETE]"))
+		errs = append(errs, errors.New("http_method must be one of [GET|HEAD|PUT|DELETE]"))
 	}
 	return
 }
@@ -111,10 +111,8 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 	urlData := &UrlData{}
 
 	// HTTP Method
-	if method, ok := d.GetOk("http_method"); ok && len(method.(string)) >= 3 {
+	if method, ok := d.GetOk("http_method"); ok {
 		urlData.HttpMethod = method.(string)
-	} else {
-		return errors.New("not a valid http method")
 	}
 
 	// convert duration to an expiration datetime (unix time in seconds)
