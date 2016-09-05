@@ -111,6 +111,23 @@ You can provide custom metadata API endpoint via `AWS_METADATA_ENDPOINT` variabl
 which expects the endpoint URL including the version
 and defaults to `http://169.254.169.254:80/latest`.
 
+###Assume role
+
+If provided with a role ARN, Terraform will attempt to assume this role
+using the supplied credentials.
+
+Usage:
+
+```
+provider "aws" {
+  assume_role {
+    role_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+    session_name = "SESSION_NAME"
+    external_id = "EXTERNAL_ID"
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported in the `provider` block:
@@ -129,6 +146,9 @@ The following arguments are supported in the `provider` block:
 
 * `profile` - (Optional) This is the AWS profile name as set in the shared credentials
   file.
+
+* `assume_role` - (Optional) An `assume_role` block (documented below).`Only one
+  `assume_role` block may be in the configuration.
 
 * `shared_credentials_file` = (Optional) This is the path to the shared credentials file.
   If this is not set and a profile is specified, ~/.aws/credentials will be used.
@@ -187,7 +207,17 @@ The following arguments are supported in the `provider` block:
   S3 client will use virtual hosted bucket addressing when possible
   (http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.
 
-Nested `endpoints` block supports the followings:
+The nested `assume_role` block supports the following:
+
+* `role_arn` - (Required) The ARN of the role to assume.
+
+* `session_name` - (Optional) The session name to use when making the
+  AssumeRole call.
+
+* `external_id` - (Optional) The external ID to use when making the
+  AssumeRole  call.
+
+Nested `endpoints` block supports the following:
 
 * `iam` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to

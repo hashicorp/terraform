@@ -395,6 +395,40 @@ func TestPlan_statePast(t *testing.T) {
 	}
 }
 
+func TestPlan_validate(t *testing.T) {
+	// This is triggered by not asking for input so we have to set this to false
+	test = false
+	defer func() { test = true }()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(testFixturePath("plan-invalid")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	actual := ui.ErrorWriter.String()
+	if !strings.Contains(actual, "can't reference") {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 func TestPlan_vars(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)

@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/hashicorp/terraform/communicator/shared"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
@@ -84,6 +85,11 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	if connInfo.User == "" {
 		connInfo.User = DefaultUser
 	}
+
+	// Format the host if needed.
+	// Needed for IPv6 support.
+	connInfo.Host = shared.IpFormat(connInfo.Host)
+
 	if connInfo.Port == 0 {
 		connInfo.Port = DefaultPort
 	}
@@ -107,6 +113,10 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 
 	// Default all bastion config attrs to their non-bastion counterparts
 	if connInfo.BastionHost != "" {
+		// Format the bastion host if needed.
+		// Needed for IPv6 support.
+		connInfo.BastionHost = shared.IpFormat(connInfo.BastionHost)
+
 		if connInfo.BastionUser == "" {
 			connInfo.BastionUser = connInfo.User
 		}

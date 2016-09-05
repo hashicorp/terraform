@@ -650,6 +650,10 @@ func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
 			if i.ParameterValue != nil {
 				r["value"] = strings.ToLower(*i.ParameterValue)
 			}
+			if i.ApplyMethod != nil {
+				r["apply_method"] = strings.ToLower(*i.ApplyMethod)
+			}
+
 			result = append(result, r)
 		}
 	}
@@ -983,6 +987,14 @@ func flattenCloudFormationParameters(cfParams []*cloudformation.Parameter,
 		if isConfigured {
 			params[*p.ParameterKey] = *p.ParameterValue
 		}
+	}
+	return params
+}
+
+func flattenAllCloudFormationParameters(cfParams []*cloudformation.Parameter) map[string]interface{} {
+	params := make(map[string]interface{}, len(cfParams))
+	for _, p := range cfParams {
+		params[*p.ParameterKey] = *p.ParameterValue
 	}
 	return params
 }

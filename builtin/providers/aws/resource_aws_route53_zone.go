@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -265,7 +266,9 @@ func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) erro
 	r53 := meta.(*AWSClient).r53conn
 
 	if d.Get("force_destroy").(bool) {
-		deleteAllRecordsInHostedZoneId(d.Id(), d.Get("name").(string), r53)
+		if err := deleteAllRecordsInHostedZoneId(d.Id(), d.Get("name").(string), r53); err != nil {
+			return errwrap.Wrapf("{{err}}", err)
+		}
 	}
 
 	log.Printf("[DEBUG] Deleting Route53 hosted zone: %s (ID: %s)",

@@ -25,10 +25,10 @@ func resourceAwsVpcPeeringConnection() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"peer_owner_id": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("AWS_ACCOUNT_ID", nil),
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
 			},
 			"peer_vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -60,10 +60,14 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 
 	// Create the vpc peering connection
 	createOpts := &ec2.CreateVpcPeeringConnectionInput{
-		PeerOwnerId: aws.String(d.Get("peer_owner_id").(string)),
-		PeerVpcId:   aws.String(d.Get("peer_vpc_id").(string)),
-		VpcId:       aws.String(d.Get("vpc_id").(string)),
+		PeerVpcId: aws.String(d.Get("peer_vpc_id").(string)),
+		VpcId:     aws.String(d.Get("vpc_id").(string)),
 	}
+
+	if v, ok := d.GetOk("peer_owner_id"); ok {
+		createOpts.PeerOwnerId = aws.String(v.(string))
+	}
+
 	log.Printf("[DEBUG] VPC Peering Create options: %#v", createOpts)
 
 	resp, err := conn.CreateVpcPeeringConnection(createOpts)

@@ -570,6 +570,15 @@ func (c *Config) Validate() error {
 				}
 			}
 		}
+
+		// Verify ignore_changes contains valid entries
+		for _, v := range r.Lifecycle.IgnoreChanges {
+			if strings.Contains(v, "*") && v != "*" {
+				errs = append(errs, fmt.Errorf(
+					"%s: ignore_changes does not support using a partial string "+
+						"together with a wildcard: %s", n, v))
+			}
+		}
 	}
 
 	for source, vs := range vars {

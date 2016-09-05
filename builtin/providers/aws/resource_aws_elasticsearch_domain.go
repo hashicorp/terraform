@@ -256,6 +256,11 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 		DomainName: aws.String(d.Get("domain_name").(string)),
 	})
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ResourceNotFoundException" {
+			log.Printf("[INFO] ElasticSearch Domain %q not found", d.Get("domain_name").(string))
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
