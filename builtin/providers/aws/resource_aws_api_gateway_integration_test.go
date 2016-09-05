@@ -34,6 +34,8 @@ func TestAccAWSAPIGatewayIntegration_basic(t *testing.T) {
 						"aws_api_gateway_integration.test", "request_templates.application/json", ""),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration.test", "request_templates.application/xml", "#set($inputRoot = $input.path('$'))\n{ }"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_integration.test", "passthrough_behavior", "WHEN_NO_MATCH"),
 				),
 			},
 
@@ -48,6 +50,8 @@ func TestAccAWSAPIGatewayIntegration_basic(t *testing.T) {
 						"aws_api_gateway_integration.test", "integration_http_method", ""),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration.test", "uri", ""),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_integration.test", "passthrough_behavior", "NEVER"),
 				),
 			},
 		},
@@ -184,15 +188,14 @@ resource "aws_api_gateway_integration" "test" {
     "application/xml" = "#set($inputRoot = $input.path('$'))\n{ }"
   }
 
-  request_parameters_in_json = <<PARAMS
-  {
-	  "integration.request.header.X-Authorization": "'static'"
+  request_parameters = {
+	  "integration.request.header.X-Authorization" = "'static'"
   }
-  PARAMS
 
   type = "HTTP"
   uri = "https://www.google.de"
   integration_http_method = "GET"
+  passthrough_behavior = "WHEN_NO_MATCH"
 }
 `
 
@@ -223,12 +226,12 @@ resource "aws_api_gateway_integration" "test" {
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
 
-  request_parameters_in_json = <<PARAMS
-  {
-	  "integration.request.header.X-Authorization": "'updated'"
+  request_parameters = {
+	  "integration.request.header.X-Authorization" = "'updated'"
   }
-  PARAMS
 
   type = "MOCK"
+  passthrough_behavior = "NEVER"
+
 }
 `

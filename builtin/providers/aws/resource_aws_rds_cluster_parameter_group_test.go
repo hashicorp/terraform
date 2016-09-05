@@ -44,7 +44,7 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "parameter.2478663599.value", "utf8"),
 					resource.TestCheckResourceAttr(
-						"aws_rds_cluster_parameter_group.bar", "tags.#", "1"),
+						"aws_rds_cluster_parameter_group.bar", "tags.%", "1"),
 				),
 			},
 			resource.TestStep{
@@ -79,7 +79,7 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "parameter.2478663599.value", "utf8"),
 					resource.TestCheckResourceAttr(
-						"aws_rds_cluster_parameter_group.bar", "tags.#", "2"),
+						"aws_rds_cluster_parameter_group.bar", "tags.%", "2"),
 				),
 			},
 		},

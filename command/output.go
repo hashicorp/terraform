@@ -2,10 +2,10 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -19,7 +19,10 @@ func (c *OutputCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
 	var module string
+	var jsonOutput bool
+
 	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -29,7 +32,7 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) > 2 {
+	if len(args) > 1 {
 		c.Ui.Error(
 			"The output command expects exactly one argument with the name\n" +
 				"of an output variable or no arguments to show all outputs.\n")
@@ -40,11 +43,6 @@ func (c *OutputCommand) Run(args []string) int {
 	name := ""
 	if len(args) > 0 {
 		name = args[0]
-	}
-
-	index := ""
-	if len(args) > 1 {
-		index = args[1]
 	}
 
 	stateStore, err := c.Meta.State()
@@ -81,8 +79,18 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if name == "" {
-		c.Ui.Output(outputsAsString(state, nil, false))
-		return 0
+		if jsonOutput {
+			jsonOutputs, err := json.MarshalIndent(mod.Outputs, "", "    ")
+			if err != nil {
+				return 1
+			}
+
+			c.Ui.Output(string(jsonOutputs))
+			return 0
+		} else {
+			c.Ui.Output(outputsAsString(state, modPath, nil, false))
+			return 0
+		}
 	}
 
 	v, ok := mod.Outputs[name]
@@ -95,75 +103,114 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	switch output := v.Value.(type) {
-	case string:
-		c.Ui.Output(output)
-		return 0
-	case []interface{}:
-		if index == "" {
-			c.Ui.Output(formatListOutput("", "", output))
-			break
-		}
-
-		indexInt, err := strconv.Atoi(index)
+	if jsonOutput {
+		jsonOutputs, err := json.MarshalIndent(v, "", "    ")
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"The index %q requested is not valid for the list output\n"+
-					"%q - indices must be numeric, and in the range 0-%d", index, name,
-				len(output)-1))
-			break
-		}
-
-		if indexInt < 0 || indexInt >= len(output) {
-			c.Ui.Error(fmt.Sprintf(
-				"The index %d requested is not valid for the list output\n"+
-					"%q - indices must be in the range 0-%d", indexInt, name,
-				len(output)-1))
-			break
-		}
-
-		c.Ui.Output(fmt.Sprintf("%s", output[indexInt]))
-		return 0
-	case map[string]interface{}:
-		if index == "" {
-			c.Ui.Output(formatMapOutput("", "", output))
-			break
-		}
-
-		if value, ok := output[index]; ok {
-			c.Ui.Output(fmt.Sprintf("%s", value))
-			return 0
-		} else {
 			return 1
 		}
-	default:
-		c.Ui.Error(fmt.Sprintf("Unknown output type: %T", v.Type))
-		return 1
+
+		c.Ui.Output(string(jsonOutputs))
+	} else {
+		switch output := v.Value.(type) {
+		case string:
+			c.Ui.Output(output)
+			return 0
+		case []interface{}:
+			c.Ui.Output(formatListOutput("", "", output))
+			return 0
+		case map[string]interface{}:
+			c.Ui.Output(formatMapOutput("", "", output))
+			return 0
+		default:
+			c.Ui.Error(fmt.Sprintf("Unknown output type: %T", v.Type))
+			return 1
+		}
 	}
 
 	return 0
+}
+
+func formatNestedList(indent string, outputList []interface{}) string {
+	outputBuf := new(bytes.Buffer)
+	outputBuf.WriteString(fmt.Sprintf("%s[", indent))
+
+	lastIdx := len(outputList) - 1
+
+	for i, value := range outputList {
+		outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, "    ", value))
+		if i != lastIdx {
+			outputBuf.WriteString(",")
+		}
+	}
+
+	outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
+	return strings.TrimPrefix(outputBuf.String(), "\n")
 }
 
 func formatListOutput(indent, outputName string, outputList []interface{}) string {
 	keyIndent := ""
 
 	outputBuf := new(bytes.Buffer)
+
 	if outputName != "" {
 		outputBuf.WriteString(fmt.Sprintf("%s%s = [", indent, outputName))
-		keyIndent = "  "
+		keyIndent = "    "
 	}
 
-	for _, value := range outputList {
-		outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, keyIndent, value))
+	lastIdx := len(outputList) - 1
+
+	for i, value := range outputList {
+		switch typedValue := value.(type) {
+		case string:
+			outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, keyIndent, value))
+		case []interface{}:
+			outputBuf.WriteString(fmt.Sprintf("\n%s%s", indent,
+				formatNestedList(indent+keyIndent, typedValue)))
+		case map[string]interface{}:
+			outputBuf.WriteString(fmt.Sprintf("\n%s%s", indent,
+				formatNestedMap(indent+keyIndent, typedValue)))
+		}
+
+		if lastIdx != i {
+			outputBuf.WriteString(",")
+		}
 	}
 
 	if outputName != "" {
-		outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
+		if len(outputList) > 0 {
+			outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
+		} else {
+			outputBuf.WriteString("]")
+		}
 	}
 
 	return strings.TrimPrefix(outputBuf.String(), "\n")
 }
 
+func formatNestedMap(indent string, outputMap map[string]interface{}) string {
+	ks := make([]string, 0, len(outputMap))
+	for k, _ := range outputMap {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+
+	outputBuf := new(bytes.Buffer)
+	outputBuf.WriteString(fmt.Sprintf("%s{", indent))
+
+	lastIdx := len(outputMap) - 1
+	for i, k := range ks {
+		v := outputMap[k]
+		outputBuf.WriteString(fmt.Sprintf("\n%s%s = %v", indent+"    ", k, v))
+
+		if lastIdx != i {
+			outputBuf.WriteString(",")
+		}
+	}
+
+	outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
+
+	return strings.TrimPrefix(outputBuf.String(), "\n")
+}
 func formatMapOutput(indent, outputName string, outputMap map[string]interface{}) string {
 	ks := make([]string, 0, len(outputMap))
 	for k, _ := range outputMap {
@@ -185,7 +232,11 @@ func formatMapOutput(indent, outputName string, outputMap map[string]interface{}
 	}
 
 	if outputName != "" {
-		outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
+		if len(outputMap) > 0 {
+			outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
+		} else {
+			outputBuf.WriteString("}")
+		}
 	}
 
 	return strings.TrimPrefix(outputBuf.String(), "\n")
@@ -207,6 +258,9 @@ Options:
 
   -module=name     If specified, returns the outputs for a
                    specific module
+
+  -json            If specified, machine readable output will be
+                   printed in JSON format
 
 `
 	return strings.TrimSpace(helpText)

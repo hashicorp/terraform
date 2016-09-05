@@ -78,6 +78,7 @@ The following arguments are supported:
 * `cdrom` - (Optional) Configures a CDROM device and mounts an image as its media; see [CDROM](#cdrom) below for more details.
 * `windows_opt_config` - (Optional) Extra options for clones of Windows machines.
 * `linked_clone` - (Optional) Specifies if the new machine is a [linked clone](https://www.vmware.com/support/ws5/doc/ws_clone_overview.html#wp1036396) of another machine or not.
+* `enable_disk_uuid` - (Optional) This option causes the vm to mount disks by uuid on the guest OS.
 * `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
 * `skip_customization` - (Optional) skip virtual machine customization (useful if OS is not in the guest OS support matrix of VMware like "other3xLinux64Guest").
 
@@ -116,7 +117,7 @@ The `disk` block supports:
 * `size` - (Required if template and bootable_vmdks_path not provided) Size of this disk (in GB).
 * `name` - (Required if size is provided when creating a new disk) This "name" is used for the disk file name in vSphere, when the new disk is created.
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
-* `type` - (Optional) 'eager_zeroed' (the default), or 'thin' are supported options.
+* `type` - (Optional) 'eager_zeroed' (the default), 'lazy', or 'thin' are supported options.
 * `vmdk` - (Required if template and size not provided) Path to a vmdk in a vSphere datastore.
 * `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
 * `controller_type` = (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
@@ -134,6 +135,7 @@ The `cdrom` block supports:
 The following attributes are exported:
 
 * `id` - The instance ID.
+* `uuid` - The instance UUID.
 * `name` - See Argument Reference above.
 * `vcpu` - See Argument Reference above.
 * `memory` - See Argument Reference above.

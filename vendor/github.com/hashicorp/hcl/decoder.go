@@ -489,7 +489,7 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 	// the yacc parser would always ensure top-level elements were arrays. The new
 	// parser does not make the same guarantees, thus we need to convert any
 	// top-level literal elements into a list.
-	if _, ok := node.(*ast.LiteralType); ok {
+	if _, ok := node.(*ast.LiteralType); ok && item != nil {
 		node = &ast.ObjectList{Items: []*ast.ObjectItem{item}}
 	}
 
@@ -517,6 +517,12 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 		structType := structVal.Type()
 		for i := 0; i < structType.NumField(); i++ {
 			fieldType := structType.Field(i)
+			tagParts := strings.Split(fieldType.Tag.Get(tagName), ",")
+
+			// Ignore fields with tag name "-"
+			if tagParts[0] == "-" {
+				continue
+			}
 
 			if fieldType.Anonymous {
 				fieldKind := fieldType.Type.Kind()
@@ -531,7 +537,6 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 				// We have an embedded field. We "squash" the fields down
 				// if specified in the tag.
 				squash := false
-				tagParts := strings.Split(fieldType.Tag.Get(tagName), ",")
 				for _, tag := range tagParts[1:] {
 					if tag == "squash" {
 						squash = true

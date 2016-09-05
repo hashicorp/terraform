@@ -17,7 +17,6 @@ but only compute floating IPs can be used with compute instances.
 
 ```
 resource "openstack_networking_floatingip_v2" "floatip_1" {
-  region = ""
   pool = "public"
 }
 ```
@@ -56,3 +55,11 @@ The following attributes are exported:
 * `port_id` - ID of associated port.
 * `tenant_id` - the ID of the tenant in which to create the floating IP.
 * `fixed_ip` - The fixed IP which the floating IP maps to.
+
+## Import
+
+Floating IPs can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_networking_floatingip_v2.floatip_1 2c7f39f3-702b-48d1-940c-b50384177ee1
+```

@@ -48,6 +48,18 @@ func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
 	return result, nil
 }
 
+// RawMap returns a copy of the RawConfig.Raw map.
+func (r *RawConfig) RawMap() map[string]interface{} {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	m := make(map[string]interface{})
+	for k, v := range r.Raw {
+		m[k] = v
+	}
+	return m
+}
+
 // Copy returns a copy of this RawConfig, uninterpolated.
 func (r *RawConfig) Copy() *RawConfig {
 	r.lock.Lock()
@@ -93,6 +105,8 @@ func (r *RawConfig) Value() interface{} {
 // structure will always successfully decode into its ultimate
 // structure using something like mapstructure.
 func (r *RawConfig) Config() map[string]interface{} {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	return r.config
 }
 
@@ -190,6 +204,9 @@ func (r *RawConfig) Merge(other *RawConfig) *RawConfig {
 }
 
 func (r *RawConfig) init() error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	r.config = r.Raw
 	r.Interpolations = nil
 	r.Variables = nil
@@ -259,6 +276,8 @@ func (r *RawConfig) merge(r2 *RawConfig) *RawConfig {
 // UnknownKeys returns the keys of the configuration that are unknown
 // because they had interpolated variables that must be computed.
 func (r *RawConfig) UnknownKeys() []string {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	return r.unknownKeys
 }
 

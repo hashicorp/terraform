@@ -32,14 +32,12 @@ resource "openstack_fw_rule_v1" "rule_2" {
 }
 
 resource "openstack_fw_policy_v1" "policy_1" {
-  region = ""
   name = "my-policy"
   rules = ["${openstack_fw_rule_v1.rule_1.id}",
            "${openstack_fw_rule_v1.rule_2.id}"]
 }
 
 resource "openstack_fw_firewall_v1" "firewall_1" {
-  region = ""
   name = "my-firewall"
   policy_id = "${openstack_fw_policy_v1.policy_1.id}"
 }
@@ -81,3 +79,11 @@ The following attributes are exported:
 * `description` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
+
+## Import
+
+Firewalls can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_fw_firewall_v1.firewall_1 c9e39fb2-ce20-46c8-a964-25f3898c7a97
+```

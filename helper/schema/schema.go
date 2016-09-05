@@ -19,10 +19,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
-	"log"
 )
 
 // Schema is used to describe the structure of a value.
@@ -53,6 +51,15 @@ type Schema struct {
 	// value either comes from the config, is computed, or is both.
 	Optional bool
 	Required bool
+
+	// If this is non-nil, the provided function will be used during diff
+	// of this field. If this is nil, a default diff for the type of the
+	// schema will be used.
+	//
+	// This allows comparison based on something other than primitive, list
+	// or map equality - for example SSH public keys may be considered
+	// equivalent regardless of trailing whitespace.
+	DiffSuppressFunc SchemaDiffSuppressFunc
 
 	// If this is non-nil, then this will be a default value that is used
 	// when this item is not set in the configuration/state.
@@ -154,6 +161,13 @@ type Schema struct {
 	// values.
 	Sensitive bool
 }
+
+// SchemaDiffSuppresFunc is a function which can be used to determine
+// whether a detected diff on a schema element is "valid" or not, and
+// suppress it from the plan if necessary.
+//
+// Return true if the diff should be suppressed, false to retain it.
+type SchemaDiffSuppressFunc func(k, old, new string, d *ResourceData) bool
 
 // SchemaDefaultFunc is a function called to return a default value for
 // a field.
@@ -605,18 +619,30 @@ func (m schemaMap) diff(
 	diff *terraform.InstanceDiff,
 	d *ResourceData,
 	all bool) error {
+
+	unsupressedDiff := new(terraform.InstanceDiff)
+	unsupressedDiff.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+
 	var err error
 	switch schema.Type {
 	case TypeBool, TypeInt, TypeFloat, TypeString:
-		err = m.diffString(k, schema, diff, d, all)
+		err = m.diffString(k, schema, unsupressedDiff, d, all)
 	case TypeList:
-		err = m.diffList(k, schema, diff, d, all)
+		err = m.diffList(k, schema, unsupressedDiff, d, all)
 	case TypeMap:
-		err = m.diffMap(k, schema, diff, d, all)
+		err = m.diffMap(k, schema, unsupressedDiff, d, all)
 	case TypeSet:
-		err = m.diffSet(k, schema, diff, d, all)
+		err = m.diffSet(k, schema, unsupressedDiff, d, all)
 	default:
 		err = fmt.Errorf("%s: unknown type %#v", k, schema.Type)
+	}
+
+	for attrK, attrV := range unsupressedDiff.Attributes {
+		if schema.DiffSuppressFunc != nil && schema.DiffSuppressFunc(attrK, attrV.Old, attrV.New, d) {
+			continue
+		}
+
+		diff.Attributes[attrK] = attrV
 	}
 
 	return err
@@ -762,8 +788,8 @@ func (m schemaMap) diffMap(
 	stateExists := o != nil
 
 	// Delete any count values, since we don't use those
-	delete(configMap, "#")
-	delete(stateMap, "#")
+	delete(configMap, "%")
+	delete(stateMap, "%")
 
 	// Check if the number of elements has changed.
 	oldLen, newLen := len(stateMap), len(configMap)
@@ -797,7 +823,7 @@ func (m schemaMap) diffMap(
 			oldStr = ""
 		}
 
-		diff.Attributes[k+".#"] = countSchema.finalizeDiff(
+		diff.Attributes[k+".%"] = countSchema.finalizeDiff(
 			&terraform.ResourceAttrDiff{
 				Old: oldStr,
 				New: newStr,
@@ -1145,8 +1171,6 @@ func (m schemaMap) validateMap(
 		// If raw and reified are equal, this is a string and should
 		// be rejected.
 		reified, reifiedOk := c.Get(k)
-		log.Printf("[jen20] reified: %s", spew.Sdump(reified))
-		log.Printf("[jen20]     raw: %s", spew.Sdump(raw))
 		if reifiedOk && raw == reified && !c.IsComputed(k) {
 			return nil, []error{fmt.Errorf("%s: should be a map", k)}
 		}

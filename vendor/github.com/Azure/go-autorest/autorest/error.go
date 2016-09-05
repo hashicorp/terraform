@@ -24,7 +24,7 @@ type DetailedError struct {
 	Method string
 
 	// StatusCode is the HTTP Response StatusCode (if non-zero) that led to the error.
-	StatusCode int
+	StatusCode interface{}
 
 	// Message is the error message.
 	Message string

@@ -499,6 +499,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 							},
 						},
 					},
+					Outputs: map[string]*OutputState{},
 				},
 			},
 		},

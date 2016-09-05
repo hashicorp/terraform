@@ -1,17 +1,13 @@
 package terraform
 
-import (
-	"fmt"
-
-	"github.com/mitchellh/copystructure"
-)
-
 // stateV1 keeps track of a snapshot state-of-the-world that Terraform
 // can use to keep track of what real world resources it is actually
 // managing.
 //
 // stateV1 is _only used for the purposes of backwards compatibility
 // and is no longer used in Terraform.
+//
+// For the upgrade process, see state_upgrade_v1_to_v2.go
 type stateV1 struct {
 	// Version is the protocol version. "1" for a StateV1.
 	Version int `json:"version"`
@@ -29,42 +25,6 @@ type stateV1 struct {
 	Modules []*moduleStateV1 `json:"modules"`
 }
 
-// upgrade is used to upgrade a V1 state representation
-// into a State (current) representation.
-func (old *stateV1) upgrade() (*State, error) {
-	if old == nil {
-		return nil, nil
-	}
-
-	remote, err := old.Remote.upgrade()
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading State V1: %v", err)
-	}
-
-	modules := make([]*ModuleState, len(old.Modules))
-	for i, module := range old.Modules {
-		upgraded, err := module.upgrade()
-		if err != nil {
-			return nil, fmt.Errorf("Error upgrading State V1: %v", err)
-		}
-		modules[i] = upgraded
-	}
-	if len(modules) == 0 {
-		modules = nil
-	}
-
-	newState := &State{
-		Version: old.Version,
-		Serial:  old.Serial,
-		Remote:  remote,
-		Modules: modules,
-	}
-
-	newState.sort()
-
-	return newState, nil
-}
-
 type remoteStateV1 struct {
 	// Type controls the client we use for the remote state
 	Type string `json:"type"`
@@ -72,22 +32,6 @@ type remoteStateV1 struct {
 	// Config is used to store arbitrary configuration that
 	// is type specific
 	Config map[string]string `json:"config"`
-}
-
-func (old *remoteStateV1) upgrade() (*RemoteState, error) {
-	if old == nil {
-		return nil, nil
-	}
-
-	config, err := copystructure.Copy(old.Config)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading RemoteState V1: %v", err)
-	}
-
-	return &RemoteState{
-		Type:   old.Type,
-		Config: config.(map[string]string),
-	}, nil
 }
 
 type moduleStateV1 struct {
@@ -119,54 +63,6 @@ type moduleStateV1 struct {
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
 	Dependencies []string `json:"depends_on,omitempty"`
-}
-
-func (old *moduleStateV1) upgrade() (*ModuleState, error) {
-	if old == nil {
-		return nil, nil
-	}
-
-	path, err := copystructure.Copy(old.Path)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
-	}
-
-	// Outputs needs upgrading to use the new structure
-	outputs := make(map[string]*OutputState)
-	for key, output := range old.Outputs {
-		outputs[key] = &OutputState{
-			Type:      "string",
-			Value:     output,
-			Sensitive: false,
-		}
-	}
-	if len(outputs) == 0 {
-		outputs = nil
-	}
-
-	resources := make(map[string]*ResourceState)
-	for key, oldResource := range old.Resources {
-		upgraded, err := oldResource.upgrade()
-		if err != nil {
-			return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
-		}
-		resources[key] = upgraded
-	}
-	if len(resources) == 0 {
-		resources = nil
-	}
-
-	dependencies, err := copystructure.Copy(old.Dependencies)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
-	}
-
-	return &ModuleState{
-		Path:         path.([]string),
-		Outputs:      outputs,
-		Resources:    resources,
-		Dependencies: dependencies.([]string),
-	}, nil
 }
 
 type resourceStateV1 struct {
@@ -220,42 +116,6 @@ type resourceStateV1 struct {
 	Provider string `json:"provider,omitempty"`
 }
 
-func (old *resourceStateV1) upgrade() (*ResourceState, error) {
-	if old == nil {
-		return nil, nil
-	}
-
-	dependencies, err := copystructure.Copy(old.Dependencies)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
-	}
-
-	primary, err := old.Primary.upgrade()
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
-	}
-
-	deposed := make([]*InstanceState, len(old.Deposed))
-	for i, v := range old.Deposed {
-		upgraded, err := v.upgrade()
-		if err != nil {
-			return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
-		}
-		deposed[i] = upgraded
-	}
-	if len(deposed) == 0 {
-		deposed = nil
-	}
-
-	return &ResourceState{
-		Type:         old.Type,
-		Dependencies: dependencies.([]string),
-		Primary:      primary,
-		Deposed:      deposed,
-		Provider:     old.Provider,
-	}, nil
-}
-
 type instanceStateV1 struct {
 	// A unique ID for this resource. This is opaque to Terraform
 	// and is only meant as a lookup mechanism for the providers.
@@ -277,45 +137,9 @@ type instanceStateV1 struct {
 	Meta map[string]string `json:"meta,omitempty"`
 }
 
-func (old *instanceStateV1) upgrade() (*InstanceState, error) {
-	if old == nil {
-		return nil, nil
-	}
-
-	attributes, err := copystructure.Copy(old.Attributes)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
-	}
-	ephemeral, err := old.Ephemeral.upgrade()
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
-	}
-	meta, err := copystructure.Copy(old.Meta)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
-	}
-
-	return &InstanceState{
-		ID:         old.ID,
-		Attributes: attributes.(map[string]string),
-		Ephemeral:  *ephemeral,
-		Meta:       meta.(map[string]string),
-	}, nil
-}
-
 type ephemeralStateV1 struct {
 	// ConnInfo is used for the providers to export information which is
 	// used to connect to the resource for provisioning. For example,
 	// this could contain SSH or WinRM credentials.
 	ConnInfo map[string]string `json:"-"`
-}
-
-func (old *ephemeralStateV1) upgrade() (*EphemeralState, error) {
-	connInfo, err := copystructure.Copy(old.ConnInfo)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading EphemeralState V1: %v", err)
-	}
-	return &EphemeralState{
-		ConnInfo: connInfo.(map[string]string),
-	}, nil
 }

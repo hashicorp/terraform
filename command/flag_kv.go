@@ -3,21 +3,46 @@ package command
 import (
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/go-homedir"
 )
 
-// FlagKV is a flag.Value implementation for parsing user variables
-// from the command-line in the format of '-var key=value'.
-type FlagKV map[string]string
+// FlagTypedKVis a flag.Value implementation for parsing user variables
+// from the command-line in the format of '-var key=value', where value is
+// a type intended for use as a Terraform variable
+type FlagTypedKV map[string]interface{}
 
-func (v *FlagKV) String() string {
+func (v *FlagTypedKV) String() string {
 	return ""
 }
 
-func (v *FlagKV) Set(raw string) error {
+func (v *FlagTypedKV) Set(raw string) error {
+	key, value, err := parseVarFlagAsHCL(raw)
+	if err != nil {
+		return err
+	}
+
+	if *v == nil {
+		*v = make(map[string]interface{})
+	}
+
+	(*v)[key] = value
+	return nil
+}
+
+// FlagStringKV is a flag.Value implementation for parsing user variables
+// from the command-line in the format of '-var key=value', where value is
+// only ever a primitive.
+type FlagStringKV map[string]string
+
+func (v *FlagStringKV) String() string {
+	return ""
+}
+
+func (v *FlagStringKV) Set(raw string) error {
 	idx := strings.Index(raw, "=")
 	if idx == -1 {
 		return fmt.Errorf("No '=' value in arg: %s", raw)
@@ -34,7 +59,7 @@ func (v *FlagKV) Set(raw string) error {
 
 // FlagKVFile is a flag.Value implementation for parsing user variables
 // from the command line in the form of files. i.e. '-var-file=foo'
-type FlagKVFile map[string]string
+type FlagKVFile map[string]interface{}
 
 func (v *FlagKVFile) String() string {
 	return ""
@@ -47,7 +72,7 @@ func (v *FlagKVFile) Set(raw string) error {
 	}
 
 	if *v == nil {
-		*v = make(map[string]string)
+		*v = make(map[string]interface{})
 	}
 
 	for key, value := range vs {
@@ -57,7 +82,7 @@ func (v *FlagKVFile) Set(raw string) error {
 	return nil
 }
 
-func loadKVFile(rawPath string) (map[string]string, error) {
+func loadKVFile(rawPath string) (map[string]interface{}, error) {
 	path, err := homedir.Expand(rawPath)
 	if err != nil {
 		return nil, fmt.Errorf(
@@ -78,7 +103,7 @@ func loadKVFile(rawPath string) (map[string]string, error) {
 			"Error parsing %s: %s", path, err)
 	}
 
-	var result map[string]string
+	var result map[string]interface{}
 	if err := hcl.DecodeObject(&result, obj); err != nil {
 		return nil, fmt.Errorf(
 			"Error decoding Terraform vars file: %s\n\n"+
@@ -102,4 +127,68 @@ func (v *FlagStringSlice) Set(raw string) error {
 	*v = append(*v, raw)
 
 	return nil
+}
+
+var (
+	// This regular expression is how we check if a value for a variable
+	// matches what we'd expect a rich HCL value to be. For example: {
+	// definitely signals a map. If a value DOESN'T match this, we return
+	// it as a raw string.
+	varFlagHCLRe = regexp.MustCompile(`^["\[\{]`)
+)
+
+// parseVarFlagAsHCL parses the value of a single variable as would have been specified
+// on the command line via -var or in an environment variable named TF_VAR_x, where x is
+// the name of the variable. In order to get around the restriction of HCL requiring a
+// top level object, we prepend a sentinel key, decode the user-specified value as its
+// value and pull the value back out of the resulting map.
+func parseVarFlagAsHCL(input string) (string, interface{}, error) {
+	idx := strings.Index(input, "=")
+	if idx == -1 {
+		return "", nil, fmt.Errorf("No '=' value in variable: %s", input)
+	}
+	probablyName := input[0:idx]
+
+	parsed, err := hcl.Parse(input)
+	if err != nil {
+		value := input[idx+1:]
+
+		// If it didn't parse as HCL, we check if it doesn't match our
+		// whitelist of TF-accepted HCL types for inputs. If not, then
+		// we let it through as a raw string.
+		trimmed := strings.TrimSpace(value)
+		if !varFlagHCLRe.MatchString(trimmed) {
+			return probablyName, value, nil
+		}
+
+		// This covers flags of the form `foo=bar` which is not valid HCL
+		// At this point, probablyName is actually the name, and the remainder
+		// of the expression after the equals sign is the value.
+		if regexp.MustCompile(`Unknown token: \d+:\d+ IDENT`).Match([]byte(err.Error())) {
+			return probablyName, value, nil
+		}
+
+		return "", nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL: %s", probablyName, input, err)
+	}
+
+	var decoded map[string]interface{}
+	if hcl.DecodeObject(&decoded, parsed); err != nil {
+		return "", nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL: %s", probablyName, input, err)
+	}
+
+	// Cover cases such as key=
+	if len(decoded) == 0 {
+		return probablyName, "", nil
+	}
+
+	if len(decoded) > 1 {
+		return "", nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. Only one value may be specified.", probablyName, input)
+	}
+
+	for k, v := range decoded {
+		return k, v, nil
+	}
+
+	// Should be unreachable
+	return "", nil, fmt.Errorf("No value for variable: %s", input)
 }

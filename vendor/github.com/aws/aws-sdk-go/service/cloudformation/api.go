@@ -14,7 +14,28 @@ import (
 
 const opCancelUpdateStack = "CancelUpdateStack"
 
-// CancelUpdateStackRequest generates a request for the CancelUpdateStack operation.
+// CancelUpdateStackRequest generates a "aws/request.Request" representing the
+// client's request for the CancelUpdateStack operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelUpdateStack method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelUpdateStackRequest method.
+//    req, resp := client.CancelUpdateStackRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) CancelUpdateStackRequest(input *CancelUpdateStackInput) (req *request.Request, output *CancelUpdateStackOutput) {
 	op := &request.Operation{
 		Name:       opCancelUpdateStack,
@@ -37,7 +58,7 @@ func (c *CloudFormation) CancelUpdateStackRequest(input *CancelUpdateStackInput)
 // Cancels an update on the specified stack. If the call completes successfully,
 // the stack rolls back the update and reverts to the previous stack configuration.
 //
-// You can cancel only stacks that are in the UPDATE_IN_PROGRESS state.
+//  You can cancel only stacks that are in the UPDATE_IN_PROGRESS state.
 func (c *CloudFormation) CancelUpdateStack(input *CancelUpdateStackInput) (*CancelUpdateStackOutput, error) {
 	req, out := c.CancelUpdateStackRequest(input)
 	err := req.Send()
@@ -46,7 +67,28 @@ func (c *CloudFormation) CancelUpdateStack(input *CancelUpdateStackInput) (*Canc
 
 const opContinueUpdateRollback = "ContinueUpdateRollback"
 
-// ContinueUpdateRollbackRequest generates a request for the ContinueUpdateRollback operation.
+// ContinueUpdateRollbackRequest generates a "aws/request.Request" representing the
+// client's request for the ContinueUpdateRollback operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ContinueUpdateRollback method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ContinueUpdateRollbackRequest method.
+//    req, resp := client.ContinueUpdateRollbackRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) ContinueUpdateRollbackRequest(input *ContinueUpdateRollbackInput) (req *request.Request, output *ContinueUpdateRollbackOutput) {
 	op := &request.Operation{
 		Name:       opContinueUpdateRollback,
@@ -85,7 +127,28 @@ func (c *CloudFormation) ContinueUpdateRollback(input *ContinueUpdateRollbackInp
 
 const opCreateChangeSet = "CreateChangeSet"
 
-// CreateChangeSetRequest generates a request for the CreateChangeSet operation.
+// CreateChangeSetRequest generates a "aws/request.Request" representing the
+// client's request for the CreateChangeSet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateChangeSet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateChangeSetRequest method.
+//    req, resp := client.CreateChangeSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) CreateChangeSetRequest(input *CreateChangeSetInput) (req *request.Request, output *CreateChangeSetOutput) {
 	op := &request.Operation{
 		Name:       opCreateChangeSet,
@@ -125,7 +188,28 @@ func (c *CloudFormation) CreateChangeSet(input *CreateChangeSetInput) (*CreateCh
 
 const opCreateStack = "CreateStack"
 
-// CreateStackRequest generates a request for the CreateStack operation.
+// CreateStackRequest generates a "aws/request.Request" representing the
+// client's request for the CreateStack operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateStack method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateStackRequest method.
+//    req, resp := client.CreateStackRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) CreateStackRequest(input *CreateStackInput) (req *request.Request, output *CreateStackOutput) {
 	op := &request.Operation{
 		Name:       opCreateStack,
@@ -154,7 +238,28 @@ func (c *CloudFormation) CreateStack(input *CreateStackInput) (*CreateStackOutpu
 
 const opDeleteChangeSet = "DeleteChangeSet"
 
-// DeleteChangeSetRequest generates a request for the DeleteChangeSet operation.
+// DeleteChangeSetRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteChangeSet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteChangeSet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteChangeSetRequest method.
+//    req, resp := client.DeleteChangeSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) DeleteChangeSetRequest(input *DeleteChangeSetInput) (req *request.Request, output *DeleteChangeSetOutput) {
 	op := &request.Operation{
 		Name:       opDeleteChangeSet,
@@ -185,7 +290,28 @@ func (c *CloudFormation) DeleteChangeSet(input *DeleteChangeSetInput) (*DeleteCh
 
 const opDeleteStack = "DeleteStack"
 
-// DeleteStackRequest generates a request for the DeleteStack operation.
+// DeleteStackRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteStack operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteStack method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteStackRequest method.
+//    req, resp := client.DeleteStackRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) DeleteStackRequest(input *DeleteStackInput) (req *request.Request, output *DeleteStackOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStack,
@@ -216,7 +342,28 @@ func (c *CloudFormation) DeleteStack(input *DeleteStackInput) (*DeleteStackOutpu
 
 const opDescribeAccountLimits = "DescribeAccountLimits"
 
-// DescribeAccountLimitsRequest generates a request for the DescribeAccountLimits operation.
+// DescribeAccountLimitsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAccountLimits operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAccountLimits method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAccountLimitsRequest method.
+//    req, resp := client.DescribeAccountLimitsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) DescribeAccountLimitsRequest(input *DescribeAccountLimitsInput) (req *request.Request, output *DescribeAccountLimitsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAccountLimits,
@@ -244,7 +391,28 @@ func (c *CloudFormation) DescribeAccountLimits(input *DescribeAccountLimitsInput
 
 const opDescribeChangeSet = "DescribeChangeSet"
 
-// DescribeChangeSetRequest generates a request for the DescribeChangeSet operation.
+// DescribeChangeSetRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeChangeSet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeChangeSet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeChangeSetRequest method.
+//    req, resp := client.DescribeChangeSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) DescribeChangeSetRequest(input *DescribeChangeSetInput) (req *request.Request, output *DescribeChangeSetOutput) {
 	op := &request.Operation{
 		Name:       opDescribeChangeSet,
@@ -274,7 +442,28 @@ func (c *CloudFormation) DescribeChangeSet(input *DescribeChangeSetInput) (*Desc
 
 const opDescribeStackEvents = "DescribeStackEvents"
 
-// DescribeStackEventsRequest generates a request for the DescribeStackEvents operation.
+// DescribeStackEventsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeStackEvents operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeStackEvents method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeStackEventsRequest method.
+//    req, resp := client.DescribeStackEventsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) DescribeStackEventsRequest(input *DescribeStackEventsInput) (req *request.Request, output *DescribeStackEventsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStackEvents,
@@ -298,18 +487,35 @@ func (c *CloudFormation) DescribeStackEventsRequest(input *DescribeStackEventsIn
 	return
 }
 
-// Returns all stack related events for a specified stack. For more information
-// about a stack's event history, go to Stacks (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/concept-stack.html)
+// Returns all stack related events for a specified stack in reverse chronological
+// order. For more information about a stack's event history, go to Stacks (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/concept-stack.html)
 // in the AWS CloudFormation User Guide.
 //
-// You can list events for stacks that have failed to create or have been deleted
-// by specifying the unique stack identifier (stack ID).
+//  You can list events for stacks that have failed to create or have been
+// deleted by specifying the unique stack identifier (stack ID).
 func (c *CloudFormation) DescribeStackEvents(input *DescribeStackEventsInput) (*DescribeStackEventsOutput, error) {
 	req, out := c.DescribeStackEventsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// DescribeStackEventsPages iterates over the pages of a DescribeStackEvents operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeStackEvents method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeStackEvents operation.
+//    pageNum := 0
+//    err := client.DescribeStackEventsPages(params,
+//        func(page *DescribeStackEventsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudFormation) DescribeStackEventsPages(input *DescribeStackEventsInput, fn func(p *DescribeStackEventsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeStackEventsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -320,7 +526,28 @@ func (c *CloudFormation) DescribeStackEventsPages(input *DescribeStackEventsInpu
 
 const opDescribeStackResource = "DescribeStackResource"
 
-// DescribeStackResourceRequest generates a request for the DescribeStackResource operation.
+// DescribeStackResourceRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeStackResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeStackResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeStackResourceRequest method.
+//    req, resp := client.DescribeStackResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) DescribeStackResourceRequest(input *DescribeStackResourceInput) (req *request.Request, output *DescribeStackResourceOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStackResource,
@@ -350,7 +577,28 @@ func (c *CloudFormation) DescribeStackResource(input *DescribeStackResourceInput
 
 const opDescribeStackResources = "DescribeStackResources"
 
-// DescribeStackResourcesRequest generates a request for the DescribeStackResources operation.
+// DescribeStackResourcesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeStackResources operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeStackResources method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeStackResourcesRequest method.
+//    req, resp := client.DescribeStackResourcesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) DescribeStackResourcesRequest(input *DescribeStackResourcesInput) (req *request.Request, output *DescribeStackResourcesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStackResources,
@@ -373,17 +621,18 @@ func (c *CloudFormation) DescribeStackResourcesRequest(input *DescribeStackResou
 // returned. If PhysicalResourceId is specified, the associated resources of
 // the stack that the resource belongs to are returned.
 //
-// Only the first 100 resources will be returned. If your stack has more resources
-// than this, you should use ListStackResources instead. For deleted stacks,
-// DescribeStackResources returns resource information for up to 90 days after
-// the stack has been deleted.
+//  Only the first 100 resources will be returned. If your stack has more resources
+// than this, you should use ListStackResources instead.
+//
+//  For deleted stacks, DescribeStackResources returns resource information
+// for up to 90 days after the stack has been deleted.
 //
 // You must specify either StackName or PhysicalResourceId, but not both. In
 // addition, you can specify LogicalResourceId to filter the returned result.
 // For more information about resources, the LogicalResourceId and PhysicalResourceId,
 // go to the AWS CloudFormation User Guide (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/).
 //
-// A ValidationError is returned if you specify both StackName and PhysicalResourceId
+//  A ValidationError is returned if you specify both StackName and PhysicalResourceId
 // in the same request.
 func (c *CloudFormation) DescribeStackResources(input *DescribeStackResourcesInput) (*DescribeStackResourcesOutput, error) {
 	req, out := c.DescribeStackResourcesRequest(input)
@@ -393,7 +642,28 @@ func (c *CloudFormation) DescribeStackResources(input *DescribeStackResourcesInp
 
 const opDescribeStacks = "DescribeStacks"
 
-// DescribeStacksRequest generates a request for the DescribeStacks operation.
+// DescribeStacksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeStacks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeStacks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeStacksRequest method.
+//    req, resp := client.DescribeStacksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) DescribeStacksRequest(input *DescribeStacksInput) (req *request.Request, output *DescribeStacksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStacks,
@@ -425,6 +695,23 @@ func (c *CloudFormation) DescribeStacks(input *DescribeStacksInput) (*DescribeSt
 	return out, err
 }
 
+// DescribeStacksPages iterates over the pages of a DescribeStacks operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeStacks method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeStacks operation.
+//    pageNum := 0
+//    err := client.DescribeStacksPages(params,
+//        func(page *DescribeStacksOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudFormation) DescribeStacksPages(input *DescribeStacksInput, fn func(p *DescribeStacksOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeStacksRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -435,7 +722,28 @@ func (c *CloudFormation) DescribeStacksPages(input *DescribeStacksInput, fn func
 
 const opEstimateTemplateCost = "EstimateTemplateCost"
 
-// EstimateTemplateCostRequest generates a request for the EstimateTemplateCost operation.
+// EstimateTemplateCostRequest generates a "aws/request.Request" representing the
+// client's request for the EstimateTemplateCost operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EstimateTemplateCost method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EstimateTemplateCostRequest method.
+//    req, resp := client.EstimateTemplateCostRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) EstimateTemplateCostRequest(input *EstimateTemplateCostInput) (req *request.Request, output *EstimateTemplateCostOutput) {
 	op := &request.Operation{
 		Name:       opEstimateTemplateCost,
@@ -464,7 +772,28 @@ func (c *CloudFormation) EstimateTemplateCost(input *EstimateTemplateCostInput) 
 
 const opExecuteChangeSet = "ExecuteChangeSet"
 
-// ExecuteChangeSetRequest generates a request for the ExecuteChangeSet operation.
+// ExecuteChangeSetRequest generates a "aws/request.Request" representing the
+// client's request for the ExecuteChangeSet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ExecuteChangeSet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ExecuteChangeSetRequest method.
+//    req, resp := client.ExecuteChangeSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) ExecuteChangeSetRequest(input *ExecuteChangeSetInput) (req *request.Request, output *ExecuteChangeSetOutput) {
 	op := &request.Operation{
 		Name:       opExecuteChangeSet,
@@ -502,7 +831,28 @@ func (c *CloudFormation) ExecuteChangeSet(input *ExecuteChangeSetInput) (*Execut
 
 const opGetStackPolicy = "GetStackPolicy"
 
-// GetStackPolicyRequest generates a request for the GetStackPolicy operation.
+// GetStackPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetStackPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetStackPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetStackPolicyRequest method.
+//    req, resp := client.GetStackPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) GetStackPolicyRequest(input *GetStackPolicyInput) (req *request.Request, output *GetStackPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetStackPolicy,
@@ -530,7 +880,28 @@ func (c *CloudFormation) GetStackPolicy(input *GetStackPolicyInput) (*GetStackPo
 
 const opGetTemplate = "GetTemplate"
 
-// GetTemplateRequest generates a request for the GetTemplate operation.
+// GetTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the GetTemplate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetTemplate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetTemplateRequest method.
+//    req, resp := client.GetTemplateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) GetTemplateRequest(input *GetTemplateInput) (req *request.Request, output *GetTemplateOutput) {
 	op := &request.Operation{
 		Name:       opGetTemplate,
@@ -554,7 +925,7 @@ func (c *CloudFormation) GetTemplateRequest(input *GetTemplateInput) (req *reque
 // For deleted stacks, GetTemplate returns the template for up to 90 days after
 // the stack has been deleted.
 //
-//  If the template does not exist, a ValidationError is returned.
+//   If the template does not exist, a ValidationError is returned.
 func (c *CloudFormation) GetTemplate(input *GetTemplateInput) (*GetTemplateOutput, error) {
 	req, out := c.GetTemplateRequest(input)
 	err := req.Send()
@@ -563,7 +934,28 @@ func (c *CloudFormation) GetTemplate(input *GetTemplateInput) (*GetTemplateOutpu
 
 const opGetTemplateSummary = "GetTemplateSummary"
 
-// GetTemplateSummaryRequest generates a request for the GetTemplateSummary operation.
+// GetTemplateSummaryRequest generates a "aws/request.Request" representing the
+// client's request for the GetTemplateSummary operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetTemplateSummary method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetTemplateSummaryRequest method.
+//    req, resp := client.GetTemplateSummaryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) GetTemplateSummaryRequest(input *GetTemplateSummaryInput) (req *request.Request, output *GetTemplateSummaryOutput) {
 	op := &request.Operation{
 		Name:       opGetTemplateSummary,
@@ -599,7 +991,28 @@ func (c *CloudFormation) GetTemplateSummary(input *GetTemplateSummaryInput) (*Ge
 
 const opListChangeSets = "ListChangeSets"
 
-// ListChangeSetsRequest generates a request for the ListChangeSets operation.
+// ListChangeSetsRequest generates a "aws/request.Request" representing the
+// client's request for the ListChangeSets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListChangeSets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListChangeSetsRequest method.
+//    req, resp := client.ListChangeSetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) ListChangeSetsRequest(input *ListChangeSetsInput) (req *request.Request, output *ListChangeSetsOutput) {
 	op := &request.Operation{
 		Name:       opListChangeSets,
@@ -628,7 +1041,28 @@ func (c *CloudFormation) ListChangeSets(input *ListChangeSetsInput) (*ListChange
 
 const opListStackResources = "ListStackResources"
 
-// ListStackResourcesRequest generates a request for the ListStackResources operation.
+// ListStackResourcesRequest generates a "aws/request.Request" representing the
+// client's request for the ListStackResources operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListStackResources method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListStackResourcesRequest method.
+//    req, resp := client.ListStackResourcesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) ListStackResourcesRequest(input *ListStackResourcesInput) (req *request.Request, output *ListStackResourcesOutput) {
 	op := &request.Operation{
 		Name:       opListStackResources,
@@ -662,6 +1096,23 @@ func (c *CloudFormation) ListStackResources(input *ListStackResourcesInput) (*Li
 	return out, err
 }
 
+// ListStackResourcesPages iterates over the pages of a ListStackResources operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListStackResources method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListStackResources operation.
+//    pageNum := 0
+//    err := client.ListStackResourcesPages(params,
+//        func(page *ListStackResourcesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudFormation) ListStackResourcesPages(input *ListStackResourcesInput, fn func(p *ListStackResourcesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListStackResourcesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -672,7 +1123,28 @@ func (c *CloudFormation) ListStackResourcesPages(input *ListStackResourcesInput,
 
 const opListStacks = "ListStacks"
 
-// ListStacksRequest generates a request for the ListStacks operation.
+// ListStacksRequest generates a "aws/request.Request" representing the
+// client's request for the ListStacks operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListStacks method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListStacksRequest method.
+//    req, resp := client.ListStacksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) ListStacksRequest(input *ListStacksInput) (req *request.Request, output *ListStacksOutput) {
 	op := &request.Operation{
 		Name:       opListStacks,
@@ -707,6 +1179,23 @@ func (c *CloudFormation) ListStacks(input *ListStacksInput) (*ListStacksOutput, 
 	return out, err
 }
 
+// ListStacksPages iterates over the pages of a ListStacks operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListStacks method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListStacks operation.
+//    pageNum := 0
+//    err := client.ListStacksPages(params,
+//        func(page *ListStacksOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *CloudFormation) ListStacksPages(input *ListStacksInput, fn func(p *ListStacksOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListStacksRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -717,7 +1206,28 @@ func (c *CloudFormation) ListStacksPages(input *ListStacksInput, fn func(p *List
 
 const opSetStackPolicy = "SetStackPolicy"
 
-// SetStackPolicyRequest generates a request for the SetStackPolicy operation.
+// SetStackPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the SetStackPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetStackPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetStackPolicyRequest method.
+//    req, resp := client.SetStackPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) SetStackPolicyRequest(input *SetStackPolicyInput) (req *request.Request, output *SetStackPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetStackPolicy,
@@ -746,7 +1256,28 @@ func (c *CloudFormation) SetStackPolicy(input *SetStackPolicyInput) (*SetStackPo
 
 const opSignalResource = "SignalResource"
 
-// SignalResourceRequest generates a request for the SignalResource operation.
+// SignalResourceRequest generates a "aws/request.Request" representing the
+// client's request for the SignalResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SignalResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SignalResourceRequest method.
+//    req, resp := client.SignalResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) SignalResourceRequest(input *SignalResourceInput) (req *request.Request, output *SignalResourceOutput) {
 	op := &request.Operation{
 		Name:       opSignalResource,
@@ -780,7 +1311,28 @@ func (c *CloudFormation) SignalResource(input *SignalResourceInput) (*SignalReso
 
 const opUpdateStack = "UpdateStack"
 
-// UpdateStackRequest generates a request for the UpdateStack operation.
+// UpdateStackRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateStack operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateStack method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateStackRequest method.
+//    req, resp := client.UpdateStackRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) UpdateStackRequest(input *UpdateStackInput) (req *request.Request, output *UpdateStackOutput) {
 	op := &request.Operation{
 		Name:       opUpdateStack,
@@ -815,7 +1367,28 @@ func (c *CloudFormation) UpdateStack(input *UpdateStackInput) (*UpdateStackOutpu
 
 const opValidateTemplate = "ValidateTemplate"
 
-// ValidateTemplateRequest generates a request for the ValidateTemplate operation.
+// ValidateTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the ValidateTemplate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ValidateTemplate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ValidateTemplateRequest method.
+//    req, resp := client.ValidateTemplateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *CloudFormation) ValidateTemplateRequest(input *ValidateTemplateInput) (req *request.Request, output *ValidateTemplateOutput) {
 	op := &request.Operation{
 		Name:       opValidateTemplate,
@@ -947,6 +1520,13 @@ type ChangeSetSummary struct {
 	// Descriptive information about the change set.
 	Description *string `min:"1" type:"string"`
 
+	// If the change set execution status is AVAILABLE, you can execute the change
+	// set. If you can’t execute the change set, the status indicates why. For example,
+	// a change set might be in an UNAVAILABLE state because AWS CloudFormation
+	// is still creating it or in an OBSOLETE state because the stack was already
+	// updated.
+	ExecutionStatus *string `type:"string" enum:"ExecutionStatus"`
+
 	// The ID of the stack with which the change set is associated.
 	StackId *string `type:"string"`
 
@@ -1026,14 +1606,14 @@ func (s ContinueUpdateRollbackOutput) GoString() string {
 type CreateChangeSetInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of capabilities that you must specify before AWS CloudFormation can
-	// update certain stacks. Some stack templates might include resources that
-	// can affect permissions in your AWS account, for example, by creating new
-	// AWS Identity and Access Management (IAM) users. For those stacks, you must
-	// explicitly acknowledge their capabilities by specifying this parameter.
+	// A list of values that you must specify before AWS CloudFormation can update
+	// certain stacks. Some stack templates might include resources that can affect
+	// permissions in your AWS account, for example, by creating new AWS Identity
+	// and Access Management (IAM) users. For those stacks, you must explicitly
+	// acknowledge their capabilities by specifying this parameter.
 	//
-	// Currently, the only valid value is CAPABILITY_IAM, which is required for
-	// the following resources:  AWS::IAM::AccessKey (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-accesskey.html),
+	// The only valid values are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. The following
+	// resources require you to specify this parameter:  AWS::IAM::AccessKey (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-accesskey.html),
 	//  AWS::IAM::Group (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-group.html),
 	//  AWS::IAM::InstanceProfile (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-instanceprofile.html),
 	//  AWS::IAM::Policy (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-policy.html),
@@ -1042,8 +1622,14 @@ type CreateChangeSetInput struct {
 	// and  AWS::IAM::UserToGroupAddition (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-addusertogroup.html).
 	// If your stack template contains these resources, we recommend that you review
 	// all permissions associated with them and edit their permissions if necessary.
-	// If your template contains any of the listed resources and you don't specify
-	// this parameter, this action returns an InsufficientCapabilities error.
+	//
+	// If you have IAM resources, you can specify either capability. If you have
+	// IAM resources with custom names, you must specify CAPABILITY_NAMED_IAM. If
+	// you don't specify this parameter, this action returns an InsufficientCapabilities
+	// error.
+	//
+	// For more information, see Acknowledging IAM Resources in AWS CloudFormation
+	// Templates (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html#capabilities).
 	Capabilities []*string `type:"list"`
 
 	// The name of the change set. The name must be unique among all change sets
@@ -1183,14 +1769,14 @@ func (s CreateChangeSetOutput) GoString() string {
 type CreateStackInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of capabilities that you must specify before AWS CloudFormation can
-	// create certain stacks. Some stack templates might include resources that
-	// can affect permissions in your AWS account, for example, by creating new
-	// AWS Identity and Access Management (IAM) users. For those stacks, you must
-	// explicitly acknowledge their capabilities by specifying this parameter.
+	// A list of values that you must specify before AWS CloudFormation can create
+	// certain stacks. Some stack templates might include resources that can affect
+	// permissions in your AWS account, for example, by creating new AWS Identity
+	// and Access Management (IAM) users. For those stacks, you must explicitly
+	// acknowledge their capabilities by specifying this parameter.
 	//
-	// Currently, the only valid value is CAPABILITY_IAM, which is required for
-	// the following resources:  AWS::IAM::AccessKey (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-accesskey.html),
+	// The only valid values are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. The following
+	// resources require you to specify this parameter:  AWS::IAM::AccessKey (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-accesskey.html),
 	//  AWS::IAM::Group (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-group.html),
 	//  AWS::IAM::InstanceProfile (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-instanceprofile.html),
 	//  AWS::IAM::Policy (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-policy.html),
@@ -1199,8 +1785,14 @@ type CreateStackInput struct {
 	// and  AWS::IAM::UserToGroupAddition (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-addusertogroup.html).
 	// If your stack template contains these resources, we recommend that you review
 	// all permissions associated with them and edit their permissions if necessary.
-	// If your template contains any of the listed resources and you don't specify
-	// this parameter, this action returns an InsufficientCapabilities error.
+	//
+	// If you have IAM resources, you can specify either capability. If you have
+	// IAM resources with custom names, you must specify CAPABILITY_NAMED_IAM. If
+	// you don't specify this parameter, this action returns an InsufficientCapabilities
+	// error.
+	//
+	// For more information, see Acknowledging IAM Resources in AWS CloudFormation
+	// Templates (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html#capabilities).
 	Capabilities []*string `type:"list"`
 
 	// Set to true to disable rollback of the stack if stack creation failed. You
@@ -1210,7 +1802,7 @@ type CreateStackInput struct {
 	DisableRollback *bool `type:"boolean"`
 
 	// The Simple Notification Service (SNS) topic ARNs to publish stack related
-	// events. You can find your SNS topic ARNs using the SNS console (http://console.aws.amazon.com/sns)
+	// events. You can find your SNS topic ARNs using the SNS console (https://console.aws.amazon.com/sns)
 	// or your Command Line Interface (CLI).
 	NotificationARNs []*string `type:"list"`
 
@@ -1230,9 +1822,9 @@ type CreateStackInput struct {
 	// create stack action, such as AWS::EC2::Instance, AWS::EC2::*, or Custom::MyCustomInstance.
 	// Use the following syntax to describe template resource types: AWS::* (for
 	// all AWS resource), Custom::* (for all custom resources), Custom::logical_ID
-	// (for a specific custom resource), AWS::service_name::* (for all resources
+	//  (for a specific custom resource), AWS::service_name::* (for all resources
 	// of a particular AWS service), and AWS::service_name::resource_logical_ID
-	// (for a specific AWS resource).
+	//  (for a specific AWS resource).
 	//
 	// If the list of resource types doesn't include a resource that you're creating,
 	// the stack creation fails. By default, AWS CloudFormation grants permissions
@@ -1245,8 +1837,8 @@ type CreateStackInput struct {
 	// The name that is associated with the stack. The name must be unique in the
 	// region in which you are creating the stack.
 	//
-	// A stack name can contain only alphanumeric characters (case sensitive) and
-	// hyphens. It must start with an alphabetic character and cannot be longer
+	//  A stack name can contain only alphanumeric characters (case sensitive)
+	// and hyphens. It must start with an alphabetic character and cannot be longer
 	// than 128 characters.
 	StackName *string `type:"string" required:"true"`
 
@@ -1584,6 +2176,13 @@ type DescribeChangeSetOutput struct {
 	// Information about the change set.
 	Description *string `min:"1" type:"string"`
 
+	// If the change set execution status is AVAILABLE, you can execute the change
+	// set. If you can’t execute the change set, the status indicates why. For example,
+	// a change set might be in an UNAVAILABLE state because AWS CloudFormation
+	// is still creating it or in an OBSOLETE state because the stack was already
+	// updated.
+	ExecutionStatus *string `type:"string" enum:"ExecutionStatus"`
+
 	// If the output exceeds 1 MB, a string that identifies the next page of changes.
 	// If there is no additional page, this value is null.
 	NextToken *string `min:"1" type:"string"`
@@ -1637,9 +2236,12 @@ type DescribeStackEventsInput struct {
 	// The name or the unique stack ID that is associated with the stack, which
 	// are not always interchangeable:
 	//
-	//  Running stacks: You can specify either the stack's name or its unique stack
-	// ID. Deleted stacks: You must specify the unique stack ID.  Default: There
-	// is no default value.
+	//   Running stacks: You can specify either the stack's name or its unique
+	// stack ID.
+	//
+	//   Deleted stacks: You must specify the unique stack ID.
+	//
+	//   Default: There is no default value.
 	StackName *string `type:"string"`
 }
 
@@ -1700,9 +2302,12 @@ type DescribeStackResourceInput struct {
 	// The name or the unique stack ID that is associated with the stack, which
 	// are not always interchangeable:
 	//
-	//  Running stacks: You can specify either the stack's name or its unique stack
-	// ID. Deleted stacks: You must specify the unique stack ID.  Default: There
-	// is no default value.
+	//   Running stacks: You can specify either the stack's name or its unique
+	// stack ID.
+	//
+	//   Deleted stacks: You must specify the unique stack ID.
+	//
+	//   Default: There is no default value.
 	StackName *string `type:"string" required:"true"`
 }
 
@@ -1777,9 +2382,12 @@ type DescribeStackResourcesInput struct {
 	// The name or the unique stack ID that is associated with the stack, which
 	// are not always interchangeable:
 	//
-	//  Running stacks: You can specify either the stack's name or its unique stack
-	// ID. Deleted stacks: You must specify the unique stack ID.  Default: There
-	// is no default value.
+	//   Running stacks: You can specify either the stack's name or its unique
+	// stack ID.
+	//
+	//   Deleted stacks: You must specify the unique stack ID.
+	//
+	//   Default: There is no default value.
 	//
 	// Required: Conditional. If you do not specify StackName, you must specify
 	// PhysicalResourceId.
@@ -1824,9 +2432,12 @@ type DescribeStacksInput struct {
 	// The name or the unique stack ID that is associated with the stack, which
 	// are not always interchangeable:
 	//
-	//  Running stacks: You can specify either the stack's name or its unique stack
-	// ID. Deleted stacks: You must specify the unique stack ID.  Default: There
-	// is no default value.
+	//   Running stacks: You can specify either the stack's name or its unique
+	// stack ID.
+	//
+	//   Deleted stacks: You must specify the unique stack ID.
+	//
+	//   Default: There is no default value.
 	StackName *string `type:"string"`
 }
 
@@ -1875,6 +2486,7 @@ func (s DescribeStacksOutput) GoString() string {
 	return s.String()
 }
 
+// The input for an EstimateTemplateCost action.
 type EstimateTemplateCostInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2061,9 +2673,12 @@ type GetTemplateInput struct {
 	// The name or the unique stack ID that is associated with the stack, which
 	// are not always interchangeable:
 	//
-	//  Running stacks: You can specify either the stack's name or its unique stack
-	// ID. Deleted stacks: You must specify the unique stack ID.  Default: There
-	// is no default value.
+	//   Running stacks: You can specify either the stack's name or its unique
+	// stack ID.
+	//
+	//   Deleted stacks: You must specify the unique stack ID.
+	//
+	//   Default: There is no default value.
 	StackName *string `type:"string" required:"true"`
 }
 
@@ -2175,11 +2790,14 @@ func (s *GetTemplateSummaryInput) Validate() error {
 type GetTemplateSummaryOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The capabilities found within the template. Currently, AWS CloudFormation
-	// supports only the CAPABILITY_IAM capability. If your template contains IAM
-	// resources, you must specify the CAPABILITY_IAM value for this parameter when
-	// you use the CreateStack or UpdateStack actions with your template; otherwise,
-	// those actions return an InsufficientCapabilities error.
+	// The capabilities found within the template. If your template contains IAM
+	// resources, you must specify the CAPABILITY_IAM or CAPABILITY_NAMED_IAM value
+	// for this parameter when you use the CreateStack or UpdateStack actions with
+	// your template; otherwise, those actions return an InsufficientCapabilities
+	// error.
+	//
+	// For more information, see Acknowledging IAM Resources in AWS CloudFormation
+	// Templates (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html#capabilities).
 	Capabilities []*string `type:"list"`
 
 	// The list of resources that generated the values in the Capabilities response
@@ -2291,9 +2909,12 @@ type ListStackResourcesInput struct {
 	// The name or the unique stack ID that is associated with the stack, which
 	// are not always interchangeable:
 	//
-	//  Running stacks: You can specify either the stack's name or its unique stack
-	// ID. Deleted stacks: You must specify the unique stack ID.  Default: There
-	// is no default value.
+	//   Running stacks: You can specify either the stack's name or its unique
+	// stack ID.
+	//
+	//   Deleted stacks: You must specify the unique stack ID.
+	//
+	//   Default: There is no default value.
 	StackName *string `type:"string" required:"true"`
 }
 
@@ -2578,17 +3199,23 @@ type ResourceChangeDetail struct {
 	// The group to which the CausingEntity value belongs. There are five entity
 	// groups:
 	//
-	//  ResourceReference entities are Ref intrinsic functions that refer to resources
-	// in the template, such as { "Ref" : "MyEC2InstanceResource" }. ParameterReference
-	// entities are Ref intrinsic functions that get template parameter values,
-	// such as { "Ref" : "MyPasswordParameter" }. ResourceAttribute entities are
-	// Fn::GetAtt intrinsic functions that get resource attribute values, such as
-	// { "Fn::GetAtt" : [ "MyEC2InstanceResource", "PublicDnsName" ] }. DirectModification
-	// entities are changes that are made directly to the template. Automatic entities
-	// are AWS::CloudFormation::Stack resource types, which are also known as nested
-	// stacks. If you made no changes to the AWS::CloudFormation::Stack resource,
-	// AWS CloudFormation sets the ChangeSource to Automatic because the nested
-	// stack's template might have changed. Changes to a nested stack's template
+	//    ResourceReference entities are Ref intrinsic functions that refer to
+	// resources in the template, such as { "Ref" : "MyEC2InstanceResource" }.
+	//
+	//    ParameterReference entities are Ref intrinsic functions that get template
+	// parameter values, such as { "Ref" : "MyPasswordParameter" }.
+	//
+	//    ResourceAttribute entities are Fn::GetAtt intrinsic functions that get
+	// resource attribute values, such as { "Fn::GetAtt" : [ "MyEC2InstanceResource",
+	// "PublicDnsName" ] }.
+	//
+	//    DirectModification entities are changes that are made directly to the
+	// template.
+	//
+	//    Automatic entities are AWS::CloudFormation::Stack resource types, which
+	// are also known as nested stacks. If you made no changes to the AWS::CloudFormation::Stack
+	// resource, AWS CloudFormation sets the ChangeSource to Automatic because the
+	// nested stack's template might have changed. Changes to a nested stack's template
 	// aren't visible to AWS CloudFormation until you run an update on the parent
 	// stack.
 	ChangeSource *string `type:"string" enum:"ChangeSource"`
@@ -2809,7 +3436,9 @@ type Stack struct {
 
 	// Boolean to enable or disable rollback on stack creation failures:
 	//
-	//   true: disable rollback false: enable rollback
+	//    true: disable rollback
+	//
+	//    false: enable rollback
 	DisableRollback *bool `type:"boolean"`
 
 	// The time the stack was last updated. This field will only be returned if
@@ -3126,18 +3755,18 @@ func (s TemplateParameter) GoString() string {
 	return s.String()
 }
 
-// The input for UpdateStack action.
+// The input for an UpdateStack action.
 type UpdateStackInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of capabilities that you must specify before AWS CloudFormation can
-	// update certain stacks. Some stack templates might include resources that
-	// can affect permissions in your AWS account, for example, by creating new
-	// AWS Identity and Access Management (IAM) users. For those stacks, you must
-	// explicitly acknowledge their capabilities by specifying this parameter.
+	// A list of values that you must specify before AWS CloudFormation can update
+	// certain stacks. Some stack templates might include resources that can affect
+	// permissions in your AWS account, for example, by creating new AWS Identity
+	// and Access Management (IAM) users. For those stacks, you must explicitly
+	// acknowledge their capabilities by specifying this parameter.
 	//
-	// Currently, the only valid value is CAPABILITY_IAM, which is required for
-	// the following resources:  AWS::IAM::AccessKey (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-accesskey.html),
+	// The only valid values are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. The following
+	// resources require you to specify this parameter:  AWS::IAM::AccessKey (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-accesskey.html),
 	//  AWS::IAM::Group (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-group.html),
 	//  AWS::IAM::InstanceProfile (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-instanceprofile.html),
 	//  AWS::IAM::Policy (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-policy.html),
@@ -3146,8 +3775,14 @@ type UpdateStackInput struct {
 	// and  AWS::IAM::UserToGroupAddition (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-addusertogroup.html).
 	// If your stack template contains these resources, we recommend that you review
 	// all permissions associated with them and edit their permissions if necessary.
-	// If your template contains any of the listed resources and you don't specify
-	// this parameter, this action returns an InsufficientCapabilities error.
+	//
+	// If you have IAM resources, you can specify either capability. If you have
+	// IAM resources with custom names, you must specify CAPABILITY_NAMED_IAM. If
+	// you don't specify this parameter, this action returns an InsufficientCapabilities
+	// error.
+	//
+	// For more information, see Acknowledging IAM Resources in AWS CloudFormation
+	// Templates (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html#capabilities).
 	Capabilities []*string `type:"list"`
 
 	// Amazon Simple Notification Service topic Amazon Resource Names (ARNs) that
@@ -3284,7 +3919,7 @@ func (s *UpdateStackInput) Validate() error {
 	return nil
 }
 
-// The output for a UpdateStack action.
+// The output for an UpdateStack action.
 type UpdateStackOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3355,11 +3990,14 @@ func (s *ValidateTemplateInput) Validate() error {
 type ValidateTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The capabilities found within the template. Currently, AWS CloudFormation
-	// supports only the CAPABILITY_IAM capability. If your template contains IAM
-	// resources, you must specify the CAPABILITY_IAM value for this parameter when
-	// you use the CreateStack or UpdateStack actions with your template; otherwise,
-	// those actions return an InsufficientCapabilities error.
+	// The capabilities found within the template. If your template contains IAM
+	// resources, you must specify the CAPABILITY_IAM or CAPABILITY_NAMED_IAM value
+	// for this parameter when you use the CreateStack or UpdateStack actions with
+	// your template; otherwise, those actions return an InsufficientCapabilities
+	// error.
+	//
+	// For more information, see Acknowledging IAM Resources in AWS CloudFormation
+	// Templates (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html#capabilities).
 	Capabilities []*string `type:"list"`
 
 	// The list of resources that generated the values in the Capabilities response
@@ -3386,6 +4024,8 @@ func (s ValidateTemplateOutput) GoString() string {
 const (
 	// @enum Capability
 	CapabilityCapabilityIam = "CAPABILITY_IAM"
+	// @enum Capability
+	CapabilityCapabilityNamedIam = "CAPABILITY_NAMED_IAM"
 )
 
 const (
@@ -3433,6 +4073,21 @@ const (
 	EvaluationTypeStatic = "Static"
 	// @enum EvaluationType
 	EvaluationTypeDynamic = "Dynamic"
+)
+
+const (
+	// @enum ExecutionStatus
+	ExecutionStatusUnavailable = "UNAVAILABLE"
+	// @enum ExecutionStatus
+	ExecutionStatusAvailable = "AVAILABLE"
+	// @enum ExecutionStatus
+	ExecutionStatusExecuteInProgress = "EXECUTE_IN_PROGRESS"
+	// @enum ExecutionStatus
+	ExecutionStatusExecuteComplete = "EXECUTE_COMPLETE"
+	// @enum ExecutionStatus
+	ExecutionStatusExecuteFailed = "EXECUTE_FAILED"
+	// @enum ExecutionStatus
+	ExecutionStatusObsolete = "OBSOLETE"
 )
 
 const (

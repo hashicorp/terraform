@@ -6,6 +6,7 @@
 package command
 
 import (
+	archiveprovider "github.com/hashicorp/terraform/builtin/providers/archive"
 	atlasprovider "github.com/hashicorp/terraform/builtin/providers/atlas"
 	awsprovider "github.com/hashicorp/terraform/builtin/providers/aws"
 	azureprovider "github.com/hashicorp/terraform/builtin/providers/azure"
@@ -29,6 +30,7 @@ import (
 	herokuprovider "github.com/hashicorp/terraform/builtin/providers/heroku"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
+	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
@@ -36,8 +38,10 @@ import (
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
 	postgresqlprovider "github.com/hashicorp/terraform/builtin/providers/postgresql"
 	powerdnsprovider "github.com/hashicorp/terraform/builtin/providers/powerdns"
+	rabbitmqprovider "github.com/hashicorp/terraform/builtin/providers/rabbitmq"
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
+	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
 	softlayerprovider "github.com/hashicorp/terraform/builtin/providers/softlayer"
 	statuscakeprovider "github.com/hashicorp/terraform/builtin/providers/statuscake"
 	templateprovider "github.com/hashicorp/terraform/builtin/providers/template"
@@ -58,6 +62,7 @@ import (
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
+	"archive":      archiveprovider.Provider,
 	"atlas":        atlasprovider.Provider,
 	"aws":          awsprovider.Provider,
 	"azure":        azureprovider.Provider,
@@ -81,6 +86,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"heroku":       herokuprovider.Provider,
 	"influxdb":     influxdbprovider.Provider,
 	"librato":      libratoprovider.Provider,
+	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
 	"mysql":        mysqlprovider.Provider,
 	"null":         nullprovider.Provider,
@@ -88,8 +94,10 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"packet":       packetprovider.Provider,
 	"postgresql":   postgresqlprovider.Provider,
 	"powerdns":     powerdnsprovider.Provider,
+	"rabbitmq":     rabbitmqprovider.Provider,
 	"random":       randomprovider.Provider,
 	"rundeck":      rundeckprovider.Provider,
+	"scaleway":     scalewayprovider.Provider,
 	"softlayer":    softlayerprovider.Provider,
 	"statuscake":   statuscakeprovider.Provider,
 	"template":     templateprovider.Provider,

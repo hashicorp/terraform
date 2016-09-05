@@ -930,7 +930,7 @@ func (p *CreateFirewallRuleParams) SetType(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
 	}
-	p.p["firewallType"] = v
+	p.p["type"] = v
 	return
 }
 
@@ -1590,7 +1590,7 @@ func (p *CreateEgressFirewallRuleParams) SetType(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
 	}
-	p.p["firewallType"] = v
+	p.p["type"] = v
 	return
 }
 

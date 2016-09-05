@@ -31,3 +31,12 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `arn` - The Amazon Resource Name (ARN) specifying the log group.
+
+
+## Import
+
+Cloudwatch Log Groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_cloudwatch_log_group.test_group yada
+```

@@ -24,7 +24,7 @@ func TestAccAzureRMSearchService_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_search_service.test", "tags.#", "2"),
+						"azurerm_search_service.test", "tags.%", "2"),
 				),
 			},
 		},
@@ -46,7 +46,7 @@ func TestAccAzureRMSearchService_updateReplicaCountAndTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_search_service.test", "tags.#", "2"),
+						"azurerm_search_service.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_search_service.test", "replica_count", "1"),
 				),
@@ -57,7 +57,7 @@ func TestAccAzureRMSearchService_updateReplicaCountAndTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_search_service.test", "tags.#", "1"),
+						"azurerm_search_service.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_search_service.test", "replica_count", "2"),
 				),

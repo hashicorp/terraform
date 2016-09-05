@@ -18,6 +18,9 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 		Read:   resourceDigitalOceanDropletRead,
 		Update: resourceDigitalOceanDropletUpdate,
 		Delete: resourceDigitalOceanDropletDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"image": &schema.Schema{
@@ -35,6 +38,10 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				StateFunc: func(val interface{}) string {
+					// DO API V2 region slug is always lowercase
+					return strings.ToLower(val.(string))
+				},
 			},
 
 			"size": &schema.Schema{
@@ -69,6 +76,9 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 			"ipv6_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
 
 			"ipv6_address_private": &schema.Schema{
@@ -97,10 +107,22 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"tags": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"user_data": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"volume_ids": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
 			},
 		},
 	}
@@ -133,6 +155,14 @@ func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{})
 
 	if attr, ok := d.GetOk("user_data"); ok {
 		opts.UserData = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("volume_ids"); ok {
+		for _, id := range attr.([]interface{}) {
+			opts.Volumes = append(opts.Volumes, godo.DropletCreateVolume{
+				ID: id.(string),
+			})
+		}
 	}
 
 	// Get configured ssh_keys
@@ -174,6 +204,12 @@ func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{})
 			"Error waiting for droplet (%s) to become ready: %s", d.Id(), err)
 	}
 
+	// droplet needs to be active in order to set tags
+	err = setTags(client, d)
+	if err != nil {
+		return fmt.Errorf("Error setting tags: %s", err)
+	}
+
 	return resourceDigitalOceanDropletRead(d, meta)
 }
 
@@ -210,9 +246,17 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("status", droplet.Status)
 	d.Set("locked", strconv.FormatBool(droplet.Locked))
 
+	if len(droplet.VolumeIDs) > 0 {
+		vlms := make([]interface{}, 0, len(droplet.VolumeIDs))
+		for _, vid := range droplet.VolumeIDs {
+			vlms = append(vlms, vid)
+		}
+		d.Set("volume_ids", vlms)
+	}
+
 	if publicIPv6 := findIPv6AddrByType(droplet, "public"); publicIPv6 != "" {
 		d.Set("ipv6", true)
-		d.Set("ipv6_address", publicIPv6)
+		d.Set("ipv6_address", strings.ToLower(publicIPv6))
 		d.Set("ipv6_address_private", findIPv6AddrByType(droplet, "private"))
 	}
 
@@ -228,6 +272,8 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 		"type": "ssh",
 		"host": findIPv4AddrByType(droplet, "public"),
 	})
+
+	d.Set("tags", droplet.Tags)
 
 	return nil
 }
@@ -369,6 +415,56 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			return fmt.Errorf(
 				"Error waiting for ipv6 to be turned on for droplet (%s): %s", d.Id(), err)
+		}
+	}
+
+	if d.HasChange("tags") {
+		err = setTags(client, d)
+		if err != nil {
+			return fmt.Errorf("Error updating tags: %s", err)
+		}
+	}
+
+	if d.HasChange("volume_ids") {
+		oldIDs, newIDs := d.GetChange("volume_ids")
+		newSet := func(ids []interface{}) map[string]struct{} {
+			out := make(map[string]struct{}, len(ids))
+			for _, id := range ids {
+				out[id.(string)] = struct{}{}
+			}
+			return out
+		}
+		// leftDiff returns all elements in Left that are not in Right
+		leftDiff := func(left, right map[string]struct{}) map[string]struct{} {
+			out := make(map[string]struct{})
+			for l := range left {
+				if _, ok := right[l]; !ok {
+					out[l] = struct{}{}
+				}
+			}
+			return out
+		}
+		oldIDSet := newSet(oldIDs.([]interface{}))
+		newIDSet := newSet(newIDs.([]interface{}))
+		for volumeID := range leftDiff(newIDSet, oldIDSet) {
+			action, _, err := client.StorageActions.Attach(volumeID, id)
+			if err != nil {
+				return fmt.Errorf("Error attaching volume %q to droplet (%s): %s", volumeID, d.Id(), err)
+			}
+			// can't fire >1 action at a time, so waiting for each is OK
+			if err := waitForAction(client, action); err != nil {
+				return fmt.Errorf("Error waiting for volume %q to attach to droplet (%s): %s", volumeID, d.Id(), err)
+			}
+		}
+		for volumeID := range leftDiff(oldIDSet, newIDSet) {
+			action, _, err := client.StorageActions.Detach(volumeID)
+			if err != nil {
+				return fmt.Errorf("Error detaching volume %q from droplet (%s): %s", volumeID, d.Id(), err)
+			}
+			// can't fire >1 action at a time, so waiting for each is OK
+			if err := waitForAction(client, action); err != nil {
+				return fmt.Errorf("Error waiting for volume %q to detach from droplet (%s): %s", volumeID, d.Id(), err)
+			}
 		}
 	}
 

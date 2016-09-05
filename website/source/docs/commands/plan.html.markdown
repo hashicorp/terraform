@@ -23,9 +23,6 @@ for the configuration and state file to refresh.
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-backup=path` - Path to the backup file. Defaults to `-state-out` with
-  the ".backup" extension. Disabled by setting to "-".
-
 * `-destroy` - If set, generates a plan to destroy all the known resources.
 
 * `-detailed-exitcode` - Return a detailed exit code when the command exits.
@@ -54,18 +51,23 @@ The command-line flags are all optional. The list of available flags are:
 * `-refresh=true` - Update the state prior to checking for differences.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
+  Ignored when [remote state](/docs/state/remote/index.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/internals/resource-addressing.html) to target. Operation will
   be limited to this resource and its dependencies. This flag can be used
   multiple times.
 
-* `-var 'foo=bar'` - Set a variable in the Terraform configuration. This
-  flag can be set multiple times.
+* `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
+  can be set multiple times. Variable values are interpreted as
+  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
+  specified via this flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-   a file. If "terraform.tfvars" is present, it will be automatically
-   loaded if this flag is not specified. This flag can be used multiple times.
+   a [variable file](/docs/configuration/variables.html#variable-files). If
+  "terraform.tfvars" is present, it will be automatically loaded first. Any
+  files specified by `-var-file` override any values in a "terraform.tfvars".
+  This flag can be used multiple times.
 
 ## Security Warning
 

@@ -18,12 +18,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/schedulerhints"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/startstop"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/tenantnetworks"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/flavors"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/images"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
-	"github.com/rackspace/gophercloud/pagination"
 )
 
 func resourceComputeInstanceV2() *schema.Resource {
@@ -237,17 +237,16 @@ func resourceComputeInstanceV2() *schema.Resource {
 			"volume": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
 							Computed: true,
 						},
 						"volume_id": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Required: true,
 						},
 						"device": &schema.Schema{
 							Type:     schema.TypeString,
@@ -318,6 +317,11 @@ func resourceComputeInstanceV2() *schema.Resource {
 				},
 				Set: resourceComputeInstancePersonalityHash,
 			},
+			"stop_before_destroy": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -342,12 +346,6 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 	flavorId, err := getFlavorID(computeClient, d)
 	if err != nil {
-		return err
-	}
-
-	// determine if volume configuration is correct
-	// this includes ensuring volume_ids are set
-	if err := checkVolumeConfig(d); err != nil {
 		return err
 	}
 
@@ -616,28 +614,28 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 		for _, g := range secgroupsToRemove.List() {
 			err := secgroups.RemoveServerFromGroup(computeClient, d.Id(), g.(string)).ExtractErr()
-			if err != nil {
+			if err != nil && err.Error() != "EOF" {
 				errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 				if !ok {
-					return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
+					return fmt.Errorf("Error removing security group (%s) from OpenStack server (%s): %s", g, d.Id(), err)
 				}
 				if errCode.Actual == 404 {
 					continue
 				} else {
-					return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
+					return fmt.Errorf("Error removing security group (%s) from OpenStack server (%s): %s", g, d.Id(), err)
 				}
 			} else {
-				log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g.(string), d.Id())
+				log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g, d.Id())
 			}
-		}
-		for _, g := range secgroupsToAdd.List() {
-			err := secgroups.AddServerToGroup(computeClient, d.Id(), g.(string)).ExtractErr()
-			if err != nil {
-				return fmt.Errorf("Error adding security group to OpenStack server (%s): %s", d.Id(), err)
-			}
-			log.Printf("[DEBUG] Added security group (%s) to instance (%s)", g.(string), d.Id())
 		}
 
+		for _, g := range secgroupsToAdd.List() {
+			err := secgroups.AddServerToGroup(computeClient, d.Id(), g.(string)).ExtractErr()
+			if err != nil && err.Error() != "EOF" {
+				return fmt.Errorf("Error adding security group (%s) to OpenStack server (%s): %s", g, d.Id(), err)
+			}
+			log.Printf("[DEBUG] Added security group (%s) to instance (%s)", g, d.Id())
+		}
 	}
 
 	if d.HasChange("admin_pass") {
@@ -706,16 +704,12 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if d.HasChange("volume") {
-		// ensure the volume configuration is correct
-		if err := checkVolumeConfig(d); err != nil {
-			return err
-		}
-
 		// old attachments and new attachments
 		oldAttachments, newAttachments := d.GetChange("volume")
 		// for each old attachment, detach the volume
 		oldAttachmentSet := oldAttachments.(*schema.Set).List()
 
+		log.Printf("[DEBUG] Attempting to detach the following volumes: %#v", oldAttachmentSet)
 		if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
 			return err
 		} else {
@@ -808,6 +802,43 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
+	// Make sure all volumes are detached before deleting
+	volumes := d.Get("volume")
+	if volumeSet, ok := volumes.(*schema.Set); ok {
+		volumeList := volumeSet.List()
+		if len(volumeList) > 0 {
+			log.Printf("[DEBUG] Attempting to detach the following volumes: %#v", volumeList)
+			if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+				return err
+			} else {
+				if err := detachVolumesFromInstance(computeClient, blockClient, d.Id(), volumeList); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if d.Get("stop_before_destroy").(bool) {
+		err = startstop.Stop(computeClient, d.Id()).ExtractErr()
+		if err != nil {
+			log.Printf("[WARN] Error stopping OpenStack instance: %s", err)
+		} else {
+			stopStateConf := &resource.StateChangeConf{
+				Pending:    []string{"ACTIVE"},
+				Target:     []string{"SHUTOFF"},
+				Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
+				Timeout:    3 * time.Minute,
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+			log.Printf("[DEBUG] Waiting for instance (%s) to stop", d.Id())
+			_, err = stopStateConf.WaitForState()
+			if err != nil {
+				log.Printf("[WARN] Error waiting for instance (%s) to stop: %s, proceeding to delete", d.Id(), err)
+			}
+		}
+	}
+
 	err = servers.Delete(computeClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack server: %s", err)
@@ -817,7 +848,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Waiting for instance (%s) to delete", d.Id())
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"ACTIVE"},
+		Pending:    []string{"ACTIVE", "SHUTOFF"},
 		Target:     []string{"DELETED"},
 		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 		Timeout:    30 * time.Minute,
@@ -1370,6 +1401,7 @@ func detachVolumesFromInstance(computeClient *gophercloud.ServiceClient, blockCl
 		va := v.(map[string]interface{})
 		aId := va["id"].(string)
 
+		log.Printf("[INFO] Attempting to detach volume %s", va["volume_id"])
 		if err := volumeattach.Delete(computeClient, serverId, aId).ExtractErr(); err != nil {
 			return err
 		}
@@ -1393,51 +1425,39 @@ func detachVolumesFromInstance(computeClient *gophercloud.ServiceClient, blockCl
 }
 
 func getVolumeAttachments(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) error {
-	var attachments []volumeattach.VolumeAttachment
+	var vols []map[string]interface{}
 
-	err := volumeattach.List(computeClient, d.Id()).EachPage(func(page pagination.Page) (bool, error) {
-		actual, err := volumeattach.ExtractVolumeAttachments(page)
-		if err != nil {
-			return false, err
-		}
-
-		attachments = actual
-		return true, nil
-	})
-
+	allPages, err := volumeattach.List(computeClient, d.Id()).AllPages()
 	if err != nil {
 		return err
 	}
 
-	vols := make([]map[string]interface{}, len(attachments))
-	for i, attachment := range attachments {
-		vols[i] = make(map[string]interface{})
-		vols[i]["id"] = attachment.ID
-		vols[i]["volume_id"] = attachment.VolumeID
-		vols[i]["device"] = attachment.Device
+	allVolumeAttachments, err := volumeattach.ExtractVolumeAttachments(allPages)
+	if err != nil {
+		return err
 	}
-	log.Printf("[INFO] Volume attachments: %v", vols)
-	d.Set("volume", vols)
 
-	return nil
-}
-
-func checkVolumeConfig(d *schema.ResourceData) error {
-	// Although a volume_id is required to attach a volume, in order to be able to report
-	// the attached volumes of an instance, it must be "computed" and thus "optional".
-	// This accounts for situations such as "boot from volume" as well as volumes being
-	// attached to the instance outside of Terraform.
-	if v := d.Get("volume"); v != nil {
-		vols := v.(*schema.Set).List()
-		if len(vols) > 0 {
-			for _, v := range vols {
-				va := v.(map[string]interface{})
-				if va["volume_id"].(string) == "" {
-					return fmt.Errorf("A volume_id must be specified when attaching volumes.")
+	if v, ok := d.GetOk("volume"); ok {
+		volumes := v.(*schema.Set).List()
+		for _, volume := range volumes {
+			if volumeMap, ok := volume.(map[string]interface{}); ok {
+				if v, ok := volumeMap["volume_id"].(string); ok {
+					for _, volumeAttachment := range allVolumeAttachments {
+						if v == volumeAttachment.ID {
+							vol := make(map[string]interface{})
+							vol["id"] = volumeAttachment.ID
+							vol["volume_id"] = volumeAttachment.VolumeID
+							vol["device"] = volumeAttachment.Device
+							vols = append(vols, vol)
+						}
+					}
 				}
 			}
 		}
 	}
+
+	log.Printf("[INFO] Volume attachments: %v", vols)
+	d.Set("volume", vols)
 
 	return nil
 }

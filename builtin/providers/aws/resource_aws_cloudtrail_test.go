@@ -176,7 +176,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 				Config: testAccAWSCloudTrailConfig_tags(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
-					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "2"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.%", "2"),
 					testAccCheckCloudTrailLoadTags(&trail, &trailTags),
 					testAccCheckCloudTrailCheckTags(&trailTags, map[string]string{"Foo": "moo", "Pooh": "hi"}),
 					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
@@ -187,7 +187,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 				Config: testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
-					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "3"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.%", "3"),
 					testAccCheckCloudTrailLoadTags(&trail, &trailTagsModified),
 					testAccCheckCloudTrailCheckTags(&trailTagsModified, map[string]string{"Foo": "moo", "Moo": "boom", "Pooh": "hi"}),
 					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
@@ -198,7 +198,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 				Config: testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
-					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "0"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.%", "0"),
 					testAccCheckCloudTrailLoadTags(&trail, &trailTagsModified),
 					testAccCheckCloudTrailCheckTags(&trailTagsModified, map[string]string{}),
 					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),

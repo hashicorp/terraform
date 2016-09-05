@@ -32,20 +32,24 @@ The command-line flags are all optional. The list of available flags are:
 * `-no-color` - Disables output with coloring
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
+  Ignored when [remote state](/docs/state/remote/index.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
-  `-state` path will be used.
+  `-state` path will be used. Ignored when
+  [remote state](/docs/state/remote/index.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/internals/resource-addressing.html) to target. Operation will
   be limited to this resource and its dependencies. This flag can be used
   multiple times.
 
-* `-var 'foo=bar'` - Set a variable in the Terraform configuration. This
-  flag can be set multiple times.
+* `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
+  can be set multiple times. Variable values are interpreted as
+  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
+  specified via this flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-   a file. If "terraform.tfvars" is present, it will be automatically
-   loaded if this flag is not specified. This flag can be used multiple times.
-
-
+   a [variable file](/docs/configuration/variables.html#variable-files). If
+  "terraform.tfvars" is present, it will be automatically loaded first. Any
+  files specified by `-var-file` override any values in a "terraform.tfvars".
+  This flag can be used multiple times.

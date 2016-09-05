@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
 	"sort"
 	"time"
 
@@ -42,6 +43,11 @@ func dataSourceAwsAmi() *schema.Resource {
 						},
 					},
 				},
+			},
+			"name_regex": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 			"most_recent": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -206,10 +212,11 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 	executableUsers, executableUsersOk := d.GetOk("executable_users")
 	filters, filtersOk := d.GetOk("filter")
+	nameRegex, nameRegexOk := d.GetOk("name_regex")
 	owners, ownersOk := d.GetOk("owners")
 
-	if executableUsersOk == false && filtersOk == false && ownersOk == false {
-		return fmt.Errorf("One of executable_users, filters, or owners must be assigned")
+	if executableUsersOk == false && filtersOk == false && nameRegexOk == false && ownersOk == false {
+		return fmt.Errorf("One of executable_users, filters, name_regex, or owners must be assigned")
 	}
 
 	params := &ec2.DescribeImagesInput{}
@@ -227,20 +234,33 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	var filteredImages []*ec2.Image
+	if nameRegexOk == true {
+		r := regexp.MustCompile(nameRegex.(string))
+		for _, image := range resp.Images {
+			if r.MatchString(*image.Name) == true {
+				filteredImages = append(filteredImages, image)
+			}
+		}
+	} else {
+		filteredImages = resp.Images[:]
+	}
+
 	var image *ec2.Image
-	if len(resp.Images) < 1 {
+	if len(filteredImages) < 1 {
 		return fmt.Errorf("Your query returned no results. Please change your filters and try again.")
-	} else if len(resp.Images) > 1 {
+	} else if len(filteredImages) > 1 {
 		if (d.Get("most_recent").(bool)) == true {
 			log.Printf("[DEBUG] aws_ami - multiple results found and most_recent is set")
-			image = mostRecentAmi(resp.Images)
+			image = mostRecentAmi(filteredImages)
 		} else {
 			log.Printf("[DEBUG] aws_ami - multiple results found and most_recent not set")
 			return fmt.Errorf("Your query returned more than one result. Please try a more specific search, or set most_recent to true.")
 		}
 	} else {
-		log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *resp.Images[0].ImageId)
-		image = resp.Images[0]
+		log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *filteredImages[0].ImageId)
+		image = filteredImages[0]
 	}
 	return amiDescriptionAttributes(d, image)
 }
@@ -283,39 +303,39 @@ func mostRecentAmi(images []*ec2.Image) *ec2.Image {
 func amiDescriptionAttributes(d *schema.ResourceData, image *ec2.Image) error {
 	// Simple attributes first
 	d.SetId(*image.ImageId)
-	d.Set("architecture", *image.Architecture)
-	d.Set("creation_date", *image.CreationDate)
+	d.Set("architecture", image.Architecture)
+	d.Set("creation_date", image.CreationDate)
 	if image.Description != nil {
-		d.Set("description", *image.Description)
+		d.Set("description", image.Description)
 	}
-	d.Set("hypervisor", *image.Hypervisor)
-	d.Set("image_id", *image.ImageId)
-	d.Set("image_location", *image.ImageLocation)
+	d.Set("hypervisor", image.Hypervisor)
+	d.Set("image_id", image.ImageId)
+	d.Set("image_location", image.ImageLocation)
 	if image.ImageOwnerAlias != nil {
-		d.Set("image_owner_alias", *image.ImageOwnerAlias)
+		d.Set("image_owner_alias", image.ImageOwnerAlias)
 	}
-	d.Set("image_type", *image.ImageType)
+	d.Set("image_type", image.ImageType)
 	if image.KernelId != nil {
-		d.Set("kernel_id", *image.KernelId)
+		d.Set("kernel_id", image.KernelId)
 	}
-	d.Set("name", *image.Name)
-	d.Set("owner_id", *image.OwnerId)
+	d.Set("name", image.Name)
+	d.Set("owner_id", image.OwnerId)
 	if image.Platform != nil {
-		d.Set("platform", *image.Platform)
+		d.Set("platform", image.Platform)
 	}
-	d.Set("public", *image.Public)
+	d.Set("public", image.Public)
 	if image.RamdiskId != nil {
-		d.Set("ramdisk_id", *image.RamdiskId)
+		d.Set("ramdisk_id", image.RamdiskId)
 	}
 	if image.RootDeviceName != nil {
-		d.Set("root_device_name", *image.RootDeviceName)
+		d.Set("root_device_name", image.RootDeviceName)
 	}
-	d.Set("root_device_type", *image.RootDeviceType)
+	d.Set("root_device_type", image.RootDeviceType)
 	if image.SriovNetSupport != nil {
-		d.Set("sriov_net_support", *image.SriovNetSupport)
+		d.Set("sriov_net_support", image.SriovNetSupport)
 	}
-	d.Set("state", *image.State)
-	d.Set("virtualization_type", *image.VirtualizationType)
+	d.Set("state", image.State)
+	d.Set("virtualization_type", image.VirtualizationType)
 	// Complex types get their own functions
 	if err := d.Set("block_device_mappings", amiBlockDeviceMappings(image.BlockDeviceMappings)); err != nil {
 		return err

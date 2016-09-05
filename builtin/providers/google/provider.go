@@ -3,10 +3,13 @@ package google
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -64,6 +67,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_global_forwarding_rule": resourceComputeGlobalForwardingRule(),
 			"google_compute_http_health_check":      resourceComputeHttpHealthCheck(),
 			"google_compute_https_health_check":     resourceComputeHttpsHealthCheck(),
+			"google_compute_image":                  resourceComputeImage(),
 			"google_compute_instance":               resourceComputeInstance(),
 			"google_compute_instance_group":         resourceComputeInstanceGroup(),
 			"google_compute_instance_group_manager": resourceComputeInstanceGroupManager(),
@@ -194,4 +198,28 @@ func getProject(d *schema.ResourceData, config *Config) (string, error) {
 		return "", fmt.Errorf("%q: required field is not set", "project")
 	}
 	return res.(string), nil
+}
+
+func getZonalResourceFromRegion(getResource func(string) (interface{}, error), region string, compute *compute.Service, project string) (interface{}, error) {
+	zoneList, err := compute.Zones.List(project).Do()
+	if err != nil {
+		return nil, err
+	}
+	var resource interface{}
+	for _, zone := range zoneList.Items {
+		if strings.Contains(zone.Name, region) {
+			resource, err = getResource(zone.Name)
+			if err != nil {
+				if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+					// Resource was not found in this zone
+					continue
+				}
+				return nil, fmt.Errorf("Error reading Resource: %s", err)
+			}
+			// Resource was found
+			return resource, nil
+		}
+	}
+	// Resource does not exist in this region
+	return nil, nil
 }

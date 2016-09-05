@@ -232,12 +232,19 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-		"[reset][bold][green]\n"+
-			"Apply complete! Resources: %d added, %d changed, %d destroyed.",
-		countHook.Added,
-		countHook.Changed,
-		countHook.Removed)))
+	if c.Destroy {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset][bold][green]\n"+
+				"Destroy complete! Resources: %d destroyed.",
+			countHook.Removed)))
+	} else {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset][bold][green]\n"+
+				"Apply complete! Resources: %d added, %d changed, %d destroyed.",
+			countHook.Added,
+			countHook.Changed,
+			countHook.Removed)))
+	}
 
 	if countHook.Added > 0 || countHook.Changed > 0 {
 		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
@@ -251,7 +258,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if !c.Destroy {
-		if outputs := outputsAsString(state, ctx.Module().Config().Outputs, true); outputs != "" {
+		if outputs := outputsAsString(state, terraform.RootModulePath, ctx.Module().Config().Outputs, true); outputs != "" {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
@@ -377,12 +384,12 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *terraform.State, schema []*config.Output, includeHeader bool) string {
+func outputsAsString(state *terraform.State, modPath []string, schema []*config.Output, includeHeader bool) string {
 	if state == nil {
 		return ""
 	}
 
-	outputs := state.RootModule().Outputs
+	outputs := state.ModuleByPath(modPath).Outputs
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
 		schemaMap := make(map[string]*config.Output)

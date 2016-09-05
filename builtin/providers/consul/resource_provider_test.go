@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -17,12 +16,6 @@ func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"consul": testAccProvider,
-	}
-
-	// Use the demo address for the acceptance tests
-	testAccProvider.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
-		conf := consulapi.DefaultConfig()
-		return consulapi.NewClient(conf)
 	}
 }
 
@@ -56,8 +49,35 @@ func TestResourceProvider_Configure(t *testing.T) {
 	}
 }
 
-func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("CONSUL_HTTP_ADDR"); v == "" {
-		t.Fatal("CONSUL_HTTP_ADDR must be set for acceptance tests")
+func TestResourceProvider_ConfigureTLS(t *testing.T) {
+	rp := Provider()
+
+	raw := map[string]interface{}{
+		"address":    "demo.consul.io:80",
+		"ca_file":    "test-fixtures/cacert.pem",
+		"cert_file":  "test-fixtures/usercert.pem",
+		"datacenter": "nyc3",
+		"key_file":   "test-fixtures/userkey.pem",
+		"scheme":     "https",
 	}
+
+	rawConfig, err := config.NewRawConfig(raw)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	err = rp.Configure(terraform.NewResourceConfig(rawConfig))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func testAccPreCheck(t *testing.T) {
+	if v := os.Getenv("CONSUL_HTTP_ADDR"); v != "" {
+		return
+	}
+	if v := os.Getenv("CONSUL_ADDRESS"); v != "" {
+		return
+	}
+	t.Fatal("Either CONSUL_ADDRESS or CONSUL_HTTP_ADDR must be set for acceptance tests")
 }

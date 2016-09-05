@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_iam_policy_document"
-sidebar_current: "docs-aws-resource-iam-policy-document"
+sidebar_current: "docs-aws-datasource-iam-policy-document"
 description: |-
   Generates an IAM policy document in JSON format
 ---
@@ -17,6 +17,7 @@ such as the `aws_iam_policy` resource.
 ```
 data "aws_iam_policy_document" "example" {
     statement {
+        sid = "1"
         actions = [
             "s3:ListAllMyBuckets",
             "s3:GetBucketLocation",
@@ -59,7 +60,7 @@ data "aws_iam_policy_document" "example" {
 resource "aws_iam_policy" "example" {
     name = "example_policy"
     path = "/"
-    policy = "${data.aws_iam_policy.example.json}"
+    policy = "${data.aws_iam_policy_document.example.json}"
 }
 ```
 
@@ -71,14 +72,14 @@ valid to use literal JSON strings within your configuration, or to use the
 
 The following arguments are supported:
 
-* `id` (Optional) - An ID for the policy document.
+* `policy_id` (Optional) - An ID for the policy document.
 * `statement` (Required) - A nested configuration block (described below)
   configuring one *statement* to be included in the policy document.
 
 Each document configuration must have one or more `statement` blocks, which
 each accept the following arguments:
 
-* `id` (Optional) - An ID for the policy statement.
+* `sid` (Optional) - An ID for the policy statement.
 * `effect` (Optional) - Either "Allow" or "Deny", to specify whether this
   statement allows or denies the given actions. The default is "Allow".
 * `actions` (Optional) - A list of actions that this statement either allows

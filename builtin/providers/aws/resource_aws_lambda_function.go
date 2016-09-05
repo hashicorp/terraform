@@ -24,6 +24,13 @@ func resourceAwsLambdaFunction() *schema.Resource {
 		Update: resourceAwsLambdaFunctionUpdate,
 		Delete: resourceAwsLambdaFunctionDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("function_name", d.Id())
+				return []*schema.ResourceData{d}, nil
+			},
+		},
+
 		Schema: map[string]*schema.Schema{
 			"filename": &schema.Schema{
 				Type:          schema.TypeString,
@@ -174,19 +181,21 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 			return err
 		}
 
-		var subnetIds []*string
-		for _, id := range config["subnet_ids"].(*schema.Set).List() {
-			subnetIds = append(subnetIds, aws.String(id.(string)))
-		}
+		if config != nil {
+			var subnetIds []*string
+			for _, id := range config["subnet_ids"].(*schema.Set).List() {
+				subnetIds = append(subnetIds, aws.String(id.(string)))
+			}
 
-		var securityGroupIds []*string
-		for _, id := range config["security_group_ids"].(*schema.Set).List() {
-			securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
-		}
+			var securityGroupIds []*string
+			for _, id := range config["security_group_ids"].(*schema.Set).List() {
+				securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
+			}
 
-		params.VpcConfig = &lambda.VpcConfig{
-			SubnetIds:        subnetIds,
-			SecurityGroupIds: securityGroupIds,
+			params.VpcConfig = &lambda.VpcConfig{
+				SubnetIds:        subnetIds,
+				SecurityGroupIds: securityGroupIds,
+			}
 		}
 	}
 
@@ -230,7 +239,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	getFunctionOutput, err := conn.GetFunction(params)
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" && !d.IsNewResource() {
 			d.SetId("")
 			return nil
 		}
@@ -292,28 +301,31 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 
 	d.Partial(true)
 
-	codeReq := &lambda.UpdateFunctionCodeInput{
-		FunctionName: aws.String(d.Id()),
-	}
-
-	codeUpdate := false
-	if v, ok := d.GetOk("filename"); ok && d.HasChange("source_code_hash") {
-		file, err := loadFileContent(v.(string))
-		if err != nil {
-			return fmt.Errorf("Unable to load %q: %s", v.(string), err)
+	if d.HasChange("filename") || d.HasChange("source_code_hash") || d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
+		codeReq := &lambda.UpdateFunctionCodeInput{
+			FunctionName: aws.String(d.Id()),
 		}
-		codeReq.ZipFile = file
-		codeUpdate = true
-	}
-	if d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
-		codeReq.S3Bucket = aws.String(d.Get("s3_bucket").(string))
-		codeReq.S3Key = aws.String(d.Get("s3_key").(string))
-		codeReq.S3ObjectVersion = aws.String(d.Get("s3_object_version").(string))
-		codeUpdate = true
-	}
 
-	log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
-	if codeUpdate {
+		if v, ok := d.GetOk("filename"); ok {
+			file, err := loadFileContent(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to load %q: %s", v.(string), err)
+			}
+			codeReq.ZipFile = file
+		} else {
+			s3Bucket, _ := d.GetOk("s3_bucket")
+			s3Key, _ := d.GetOk("s3_key")
+			s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
+
+			codeReq.S3Bucket = aws.String(s3Bucket.(string))
+			codeReq.S3Key = aws.String(s3Key.(string))
+			if versionOk {
+				codeReq.S3ObjectVersion = aws.String(s3ObjectVersion.(string))
+			}
+		}
+
+		log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
+
 		_, err := conn.UpdateFunctionCode(codeReq)
 		if err != nil {
 			return fmt.Errorf("Error modifying Lambda Function Code %s: %s", d.Id(), err)
@@ -352,8 +364,8 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		configUpdate = true
 	}
 
-	log.Printf("[DEBUG] Send Update Lambda Function Configuration request: %#v", configReq)
 	if configUpdate {
+		log.Printf("[DEBUG] Send Update Lambda Function Configuration request: %#v", configReq)
 		_, err := conn.UpdateFunctionConfiguration(configReq)
 		if err != nil {
 			return fmt.Errorf("Error modifying Lambda Function Configuration %s: %s", d.Id(), err)
@@ -392,6 +404,11 @@ func validateVPCConfig(v interface{}) (map[string]interface{}, error) {
 
 	if !ok {
 		return nil, errors.New("vpc_config is <nil>")
+	}
+
+	// if subnet_ids and security_group_ids are both empty then the VPC is optional
+	if config["subnet_ids"].(*schema.Set).Len() == 0 && config["security_group_ids"].(*schema.Set).Len() == 0 {
+		return nil, nil
 	}
 
 	if config["subnet_ids"].(*schema.Set).Len() == 0 {

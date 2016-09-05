@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"reflect"
 	"testing"
 
@@ -29,12 +28,12 @@ func TestState(t *testing.T, s interface{}) {
 
 	// Check that the initial state is correct
 	if state := reader.State(); !current.Equal(state) {
-		t.Fatalf("not initial: %#v\n\n%#v", state, current)
+		t.Fatalf("not initial:\n%#v\n\n%#v", state, current)
 	}
 
 	// Write a new state and verify that we have it
 	if ws, ok := s.(StateWriter); ok {
-		current.Modules = append(current.Modules, &terraform.ModuleState{
+		current.AddModuleState(&terraform.ModuleState{
 			Path: []string{"root"},
 			Outputs: map[string]*terraform.OutputState{
 				"bar": &terraform.OutputState{
@@ -50,7 +49,7 @@ func TestState(t *testing.T, s interface{}) {
 		}
 
 		if actual := reader.State(); !actual.Equal(current) {
-			t.Fatalf("bad: %#v\n\n%#v", actual, current)
+			t.Fatalf("bad:\n%#v\n\n%#v", actual, current)
 		}
 	}
 
@@ -118,9 +117,11 @@ func TestState(t *testing.T, s interface{}) {
 			t.Fatalf("bad: expected %d, got %d", serial, reader.State().Serial)
 		}
 
-		// Check that State() returns a copy
-		reader.State().Serial++
-		if reflect.DeepEqual(reader.State(), current) {
+		// Check that State() returns a copy by modifying the copy and comparing
+		// to the current state.
+		stateCopy := reader.State()
+		stateCopy.Serial++
+		if reflect.DeepEqual(stateCopy, current) {
 			t.Fatal("State() should return a copy")
 		}
 	}
@@ -144,7 +145,7 @@ func TestStateInitial() *terraform.State {
 		},
 	}
 
-	var scratch bytes.Buffer
-	terraform.WriteState(initial, &scratch)
+	initial.Init()
+
 	return initial
 }

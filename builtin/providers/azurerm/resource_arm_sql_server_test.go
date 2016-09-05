@@ -44,7 +44,7 @@ func TestAccAzureRMSqlServer_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlServerExists("azurerm_sql_server.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_sql_server.test", "tags.#", "2"),
+						"azurerm_sql_server.test", "tags.%", "2"),
 				),
 			},
 
@@ -53,7 +53,7 @@ func TestAccAzureRMSqlServer_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlServerExists("azurerm_sql_server.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_sql_server.test", "tags.#", "1"),
+						"azurerm_sql_server.test", "tags.%", "1"),
 				),
 			},
 		},

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -105,7 +106,17 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 		AssumeRolePolicyDocument: aws.String(d.Get("assume_role_policy").(string)),
 	}
 
-	createResp, err := iamconn.CreateRole(request)
+	var createResp *iam.CreateRoleOutput
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+		var err error
+		createResp, err = iamconn.CreateRole(request)
+		// IAM users (referenced in Principal field of assume policy)
+		// can take ~30 seconds to propagate in AWS
+		if isAWSErr(err, "MalformedPolicyDocument", "Invalid principal in policy") {
+			return resource.RetryableError(err)
+		}
+		return resource.NonRetryableError(err)
+	})
 	if err != nil {
 		return fmt.Errorf("Error creating IAM Role %s: %s", name, err)
 	}

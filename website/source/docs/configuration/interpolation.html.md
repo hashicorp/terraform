@@ -9,14 +9,13 @@ description: |-
 # Interpolation Syntax
 
 Embedded within strings in Terraform, whether you're using the
-Terraform syntax or JSON syntax, you can interpolate other values
-into strings. These interpolations are wrapped in `${}`, such as
-`${var.foo}`.
+Terraform syntax or JSON syntax, you can interpolate other values. These
+interpolations are wrapped in `${}`, such as `${var.foo}`.
 
 The interpolation syntax is powerful and allows you to reference
 variables, attributes of resources, call functions, etc.
 
-You can also perform simple math in interpolations, allowing
+You can also perform [simple math](#math) in interpolations, allowing
 you to write expressions such as `${count.index + 1}`.
 
 You can escape interpolation with double dollar signs: `$${foo}`
@@ -26,11 +25,10 @@ will be rendered as a literal `${foo}`.
 
 **To reference user variables**, use the `var.` prefix followed by the
 variable name. For example, `${var.foo}` will interpolate the
-`foo` variable value. If the variable is a mapping, then you
+`foo` variable value. If the variable is a map, then you
 can reference static keys in the map with the syntax
-`var.MAP.KEY`. For example, `${var.amis.us-east-1}` would
-get the value of the `us-east-1` key within the `amis` variable
-that is a mapping.
+`var.MAP["KEY"]`. For example, `${var.amis["us-east-1"]` would
+get the value of the `us-east-1` key within the `amis` map variable.
 
 **To reference attributes of your own resource**, the syntax is
 `self.ATTRIBUTE`. For example `${self.private_ip_address}` will
@@ -94,7 +92,7 @@ The supported built-in functions are:
     systems expect for IPv4 interfaces. For example,
     ``cidrmask("10.0.0.0/8")`` returns ``255.0.0.0``. Not applicable
     to IPv6 networks since CIDR notation is the only valid notation for
-    IPv6.
+    IPv4.
 
   * `cidrsubnet(iprange, newbits, netnum)` - Takes an IP address range in
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
@@ -111,15 +109,19 @@ The supported built-in functions are:
      variables or when parsing module outputs.
      Example: `compact(module.my_asg.load_balancer_names)`
 
-  * `concat(list1, list2)` - Combines two or more lists into a single list.
+  * `concat(list1, list2, ...)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
+
+  * `distinct(list)` - Removes duplicate items from a list. Keeps the first
+     occurrence of each element, and removes subsequent occurences. This
+     function is only valid for flat lists. Example: `distinct(var.usernames)`
 
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
       elements, this function will wrap using a standard mod algorithm.
-      A list is only possible with splat variables from resources with
-      a count greater than one.
-      Example: `element(aws_subnet.foo.*.id, count.index)`
+      This function only works on flat lists. Examples:
+      * `element(aws_subnet.foo.*.id, count.index)`
+      * `element(var.list_of_strings, 2)`
 
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
@@ -129,13 +131,13 @@ The supported built-in functions are:
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
 
-  * `format(format, args...)` - Formats a string according to the given
+  * `format(format, args, ...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
       Good documentation for the syntax can be [found here](https://golang.org/pkg/fmt/).
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index + 1)`.
 
-  * `formatlist(format, args...)` - Formats each element of a list
+  * `formatlist(format, args, ...)` - Formats each element of a list
       according to the given format, similarly to `format`, and returns a list.
       Non-list arguments are repeated for each list element.
       For example, to convert a list of DNS addresses to a list of URLs, you might use:
@@ -145,30 +147,54 @@ The supported built-in functions are:
       `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
       Passing lists with different lengths to formatlist results in an error.
 
-  * `index(list, elem)` - Finds the index of a given element in a list. Example:
-      `index(aws_instance.foo.*.tags.Name, "foo-test")`
+  * `index(list, elem)` - Finds the index of a given element in a list.
+      This function only works on flat lists.
+      Example: `index(aws_instance.foo.*.tags.Name, "foo-test")`
 
-  * `join(delim, list)` - Joins the list with the delimiter. A list is
-      only possible with splat variables from resources with a count
-      greater than one. Example: `join(",", aws_instance.foo.*.id)`
+  * `join(delim, list)` - Joins the list with the delimiter for a resultant string.
+      This function works only on flat lists.
+      Examples:
+      * `join(",", aws_instance.foo.*.id)`
+      * `join(",", var.ami_list)`
 
   * `jsonencode(item)` - Returns a JSON-encoded representation of the given
     item, which may be a string, list of strings, or map from string to string.
     Note that if the item is a string, the return value includes the double
     quotes.
 
-  * `length(list)` - Returns a number of members in a given list
-      or a number of characters in a given string.
+  * `keys(map)` - Returns a lexically sorted list of the map keys.
+
+  * `length(list)` - Returns a number of members in a given list or map, or a number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
       * `${length("a,b,c")}` = 5
+      * `${length(map("key", "val"))}` = 1
 
-  * `lookup(map, key [, default])` - Performs a dynamic lookup into a mapping
+  * `list(items, ...)` - Returns a list consisting of the arguments to the function.
+      This function provides a way of representing list literals in interpolation.
+      * `${list("a", "b", "c")}` returns a list of `"a", "b", "c"`.
+      * `${list()}` returns an empty list.
+
+  * `lookup(map, key [, default])` - Performs a dynamic lookup into a map
       variable. The `map` parameter should be another variable, such
       as `var.amis`. If `key` does not exist in `map`, the interpolation will
       fail unless you specify a third argument, `default`, which should be a
-      string value to return if no `key` is found in `map.
+      string value to return if no `key` is found in `map`. This function
+      only works on flat maps and will return an error for maps that
+      include nested lists or maps.
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
+
+  * `map(key, value, ...)` - Returns a map consisting of the key/value pairs
+    specified as arguments. Every odd argument must be a string key, and every
+    even argument must have the same type as the other values specified.
+    Duplicate keys are not allowed. Examples:
+    * `map("hello", "world")`
+    * `map("us-east", list("a", "b", "c"), "us-west", list("b", "c", "d"))`
+
+  * `merge(map1, map2, ...)` - Returns the union of 2 or more maps. The maps
+	are consumed in the order provided, and duplicate keys overwrite previous
+	entries.
+	* `${merge(map("a", "b"), map("c", "d"))}` returns `{"a": "b", "c": "d"}`
 
   * `md5(string)` - Returns a (conventional) hexadecimal representation of the
     MD5 hash of the given string.
@@ -195,6 +221,11 @@ The supported built-in functions are:
       Example: `element(split(",", var.r53_failover_policy), signum(count.index))`
       where the 0th index points to `PRIMARY` and 1st to `FAILOVER`
 
+  * `sort(list)` - Returns a lexographically sorted list of the strings contained in
+      the list passed as an argument. Sort may only be used with lists which contain only
+      strings.
+      Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`
+
   * `split(delim, string)` - Splits the string previously created by `join`
       back into a list. This is useful for pushing lists through module
       outputs since they currently only support string values. Depending on the
@@ -209,14 +240,18 @@ The supported built-in functions are:
 
   * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
+  * `values(map)` - Returns a list of the map values, in the order of the keys
+    returned by the `keys` function. This function only works on flat maps and
+    will return an error for maps that include nested lists or maps.
+
 ## Templates
 
-Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [resources](/docs/configuration/resources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
+Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [data-sources](/docs/configuration/data-sources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
 
-A template resource looks like:
+A template data source looks like:
 
 ```
-resource "template_file" "example" {
+data "template_file" "example" {
   template = "${hello} ${world}!"
   vars {
     hello = "goodnight"
@@ -225,7 +260,7 @@ resource "template_file" "example" {
 }
 
 output "rendered" {
-  value = "${template_file.example.rendered}"
+  value = "${data.template_file.example.rendered}"
 }
 ```
 
@@ -236,7 +271,7 @@ You may use any of the built-in functions in your template.
 ### Using Templates with Count
 
 Here is an example that combines the capabilities of templates with the interpolation
-from `count` to give us a parametized template, unique to each resource instance:
+from `count` to give us a parameterized template, unique to each resource instance:
 
 ```
 variable "count" {
@@ -250,7 +285,7 @@ variable "hostnames" {
   }
 }
 
-resource "template_file" "web_init" {
+data "template_file" "web_init" {
   // here we expand multiple template_files - the same number as we have instances
   count    = "${var.count}"
   template = "${file("templates/web_init.tpl")}"
@@ -264,14 +299,16 @@ resource "aws_instance" "web" {
   // ...
   count = "${var.count}"
   // here we link each web instance to the proper template_file
-  user_data = "${element(template_file.web_init.*.rendered, count.index)}"
+  user_data = "${element(data.template_file.web_init.*.rendered, count.index)}"
 }
 ```
 
-With this, we will build a list of `template_file.web_init` resources which we can
+With this, we will build a list of `template_file.web_init` data sources which we can
 use in combination with our list of `aws_instance.web` resources.
 
 ## Math
+
+<a id="math"></a>
 
 Simple math can be performed in interpolations:
 

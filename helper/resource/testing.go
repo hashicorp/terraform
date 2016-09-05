@@ -14,16 +14,13 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 const TestEnvVar = "TF_ACC"
-
-// UnitTestOverride is a value that when set in TestEnvVar indicates that this
-// is a unit test borrowing the acceptance testing framework.
-const UnitTestOverride = "UnitTestOverride"
 
 // TestCheckFunc is the callback type used with acceptance tests to check
 // the state of a resource. The state passed in is the latest state known,
@@ -40,6 +37,13 @@ type ImportStateCheckFunc func([]*terraform.InstanceState) error
 // When the destroy plan is executed, the config from the last TestStep
 // is used to plan it.
 type TestCase struct {
+	// IsUnitTest allows a test to run regardless of the TF_ACC
+	// environment variable. This should be used with care - only for
+	// fast tests on local resources (e.g. remote state with a local
+	// backend) but can be used to increase confidence in correct
+	// operation of Terraform without waiting for a full acctest run.
+	IsUnitTest bool
+
 	// PreCheck, if non-nil, will be called before any test steps are
 	// executed. It will only be executed in the case that the steps
 	// would run, so it can be used for some validation before running
@@ -135,6 +139,11 @@ type TestStep struct {
 	// looking to verify that a diff occurs
 	ExpectNonEmptyPlan bool
 
+	// ExpectError allows the construction of test cases that we expect to fail
+	// with an error. The specified regexp must match against the error for the
+	// test to pass.
+	ExpectError *regexp.Regexp
+
 	// PreventPostDestroyRefresh can be set to true for cases where data sources
 	// are tested alongside real resources
 	PreventPostDestroyRefresh bool
@@ -181,15 +190,14 @@ type TestStep struct {
 // output.
 func Test(t TestT, c TestCase) {
 	// We only run acceptance tests if an env var is set because they're
-	// slow and generally require some outside configuration.
-	if os.Getenv(TestEnvVar) == "" {
+	// slow and generally require some outside configuration. You can opt out
+	// of this with OverrideEnvVar on individual TestCases.
+	if os.Getenv(TestEnvVar) == "" && !c.IsUnitTest {
 		t.Skip(fmt.Sprintf(
 			"Acceptance tests skipped unless env '%s' set",
 			TestEnvVar))
 		return
 	}
-
-	isUnitTest := (os.Getenv(TestEnvVar) == UnitTestOverride)
 
 	logWriter, err := logging.LogOutput()
 	if err != nil {
@@ -198,7 +206,7 @@ func Test(t TestT, c TestCase) {
 	log.SetOutput(logWriter)
 
 	// We require verbose mode so that the user knows what is going on.
-	if !testTesting && !testing.Verbose() && !isUnitTest {
+	if !testTesting && !testing.Verbose() && !c.IsUnitTest {
 		t.Fatal("Acceptance tests must be run with the -v flag on tests")
 		return
 	}
@@ -242,10 +250,21 @@ func Test(t TestT, c TestCase) {
 
 		// If there was an error, exit
 		if err != nil {
-			errored = true
-			t.Error(fmt.Sprintf(
-				"Step %d error: %s", i, err))
-			break
+			// Perhaps we expected an error? Check if it matches
+			if step.ExpectError != nil {
+				if !step.ExpectError.MatchString(err.Error()) {
+					errored = true
+					t.Error(fmt.Sprintf(
+						"Step %d, expected error:\n\n%s\n\nTo match:\n\n%s\n\n",
+						i, err, step.ExpectError))
+					break
+				}
+			} else {
+				errored = true
+				t.Error(fmt.Sprintf(
+					"Step %d error: %s", i, err))
+				break
+			}
 		}
 
 		// If we've never checked an id-only refresh and our state isn't
@@ -318,15 +337,7 @@ func Test(t TestT, c TestCase) {
 // normal unit test suite. This should only be used for resource that don't
 // have any external dependencies.
 func UnitTest(t TestT, c TestCase) {
-	oldEnv := os.Getenv(TestEnvVar)
-	if err := os.Setenv(TestEnvVar, UnitTestOverride); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := os.Setenv(TestEnvVar, oldEnv); err != nil {
-			t.Fatal(err)
-		}
-	}()
+	c.IsUnitTest = true
 	Test(t, c)
 }
 
@@ -510,6 +521,53 @@ func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 	}
 }
 
+// ComposeAggregateTestCheckFunc lets you compose multiple TestCheckFuncs into
+// a single TestCheckFunc.
+//
+// As a user testing their provider, this lets you decompose your checks
+// into smaller pieces more easily.
+//
+// Unlike ComposeTestCheckFunc, ComposeAggergateTestCheckFunc runs _all_ of the
+// TestCheckFuncs and aggregates failures.
+func ComposeAggregateTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
+	return func(s *terraform.State) error {
+		var result *multierror.Error
+
+		for i, f := range fs {
+			if err := f(s); err != nil {
+				result = multierror.Append(result, fmt.Errorf("Check %d/%d error: %s", i+1, len(fs), err))
+			}
+		}
+
+		return result.ErrorOrNil()
+	}
+}
+
+// TestCheckResourceAttrSet is a TestCheckFunc which ensures a value
+// exists in state for the given name/key combination. It is useful when
+// testing that computed values were set, when it is not possible to
+// know ahead of time what the values will be.
+func TestCheckResourceAttrSet(name, key string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		ms := s.RootModule()
+		rs, ok := ms.Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		is := rs.Primary
+		if is == nil {
+			return fmt.Errorf("No primary instance: %s", name)
+		}
+
+		if val, ok := is.Attributes[key]; ok && val != "" {
+			return nil
+		}
+
+		return fmt.Errorf("%s: Attribute '%s' expected to be set", name, key)
+	}
+}
+
 func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 	return func(s *terraform.State) error {
 		ms := s.RootModule()
@@ -586,6 +644,26 @@ func TestCheckOutput(name, value string) TestCheckFunc {
 				name,
 				value,
 				rs)
+		}
+
+		return nil
+	}
+}
+
+func TestMatchOutput(name string, r *regexp.Regexp) TestCheckFunc {
+	return func(s *terraform.State) error {
+		ms := s.RootModule()
+		rs, ok := ms.Outputs[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		if !r.MatchString(rs.Value.(string)) {
+			return fmt.Errorf(
+				"Output '%s': %#v didn't match %q",
+				name,
+				rs,
+				r.String())
 		}
 
 		return nil

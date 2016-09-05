@@ -83,6 +83,10 @@ include `create_before_destroy`. Referencing a resource that does not include
 ~> **NOTE on ignore\_changes:** Ignored attribute names can be matched by their
 name, not state ID. For example, if an `aws_route_table` has two routes defined
 and the `ignore_changes` list contains "route", both routes will be ignored.
+Additionally you can also use a single entry with a wildcard (e.g. `"*"`)
+which will match all attribute names. Using a partial string together with a
+wildcard (e.g. `"rout*"`) is **not** supported.
+
 
 -------------
 
@@ -122,7 +126,8 @@ When declaring multiple instances of a resource using [`count`](#count), it is
 common to want each instance to have a different value for a given attribute.
 
 You can use the `${count.index}`
-[interpolation](/docs/configuration/interpolation.html) along with a mapping [variable](/docs/configuration/variables.html) to accomplish this.
+[interpolation](/docs/configuration/interpolation.html) along with a map
+[variable](/docs/configuration/variables.html) to accomplish this.
 
 For example, here's how you could create three [AWS Instances](/docs/providers/aws/r/instance.html) each with their own static IP
 address:

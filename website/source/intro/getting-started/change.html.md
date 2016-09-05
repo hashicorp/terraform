@@ -33,7 +33,7 @@ resource "aws_instance" "example" {
 }
 ```
 
-~> **Note:** EC2 Classic users please use AMI `ami-2106ed4c` and type `t1.micro`
+~> **Note:** EC2 Classic users please use AMI `ami-656be372` and type `t1.micro`
 
 We've changed the AMI from being an Ubuntu 14.04 LTS AMI to being
 an Ubuntu 16.04 LTS AMI. Terraform configurations are meant to be

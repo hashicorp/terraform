@@ -44,7 +44,7 @@ func TestAccAzureRMResourceGroup_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_resource_group.test", "tags.#", "2"),
+						"azurerm_resource_group.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_resource_group.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -57,7 +57,7 @@ func TestAccAzureRMResourceGroup_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_resource_group.test", "tags.#", "1"),
+						"azurerm_resource_group.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_resource_group.test", "tags.environment", "staging"),
 				),

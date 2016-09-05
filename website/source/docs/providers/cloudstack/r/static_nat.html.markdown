@@ -38,6 +38,9 @@ The following arguments are supported:
     forwarding rule (useful when the virtual machine has a secondairy NIC).
     Changing this forces a new resource to be created.
 
+* `project` - (Optional) The name or ID of the project to deploy this
+    instance to. Changing this forces a new resource to be created.
+
 ## Attributes Reference
 
 The following attributes are exported:
