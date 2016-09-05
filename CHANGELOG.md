@@ -41,6 +41,7 @@ IMPROVEMENTS:
  * provider/aws: Support for lifecycle hooks at ASG creation ([#5620](https://github.com/hashicorp/terraform/issues/5620))
  * provider/consul: Make provider settings truly optional ([#8551](https://github.com/hashicorp/terraform/issues/8551))
  * provider/statuscake: Add support for contact-group id in statuscake test ([#8417](https://github.com/hashicorp/terraform/issues/8417))
+ * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name`. ([#8639](https://github.com/hashicorp/terraform/issues/8639))
  
 BUG FIXES:
  * core: Changing a module source from file to VCS no longer errors ([#8398](https://github.com/hashicorp/terraform/issues/8398))
