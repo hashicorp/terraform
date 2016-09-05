@@ -168,8 +168,8 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			},
 
 			"availability_zone": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
+				Type:          schema.TypeSet,
+				Optional:      true,
 				ConflictsWith: []string{"availability_zones"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -187,9 +187,9 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			},
 
 			"availability_zones": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:          schema.TypeList,
+				Optional:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
 				ConflictsWith: []string{"availability_zone"},
 			},
 
