@@ -26,7 +26,6 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 			"owner": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
 				Computed: true,
 			},
 		},

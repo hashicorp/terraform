@@ -13,7 +13,7 @@ func Provider() terraform.ResourceProvider {
 			"host": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_HOST"}, nil),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOST", "POSTGRESQL_HOST"}, nil),
 				Description: "The PostgreSQL server address",
 			},
 			"port": {
@@ -25,19 +25,19 @@ func Provider() terraform.ResourceProvider {
 			"username": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOST", "POSTGRESQL_HOST"}, nil),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_USER"}, nil),
 				Description: "Username for PostgreSQL server connection",
 			},
 			"password": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGPASSWORD", "POSTGRESQL_PASSWORD"}, nil),
 				Description: "Password for PostgreSQL server connection",
 			},
 			"ssl_mode": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "prefer",
+				DefaultFunc: schema.EnvDefaultFunc("PGSSLMODE", "require"),
 				Description: "Connection mode for PostgreSQL server",
 			},
 		},
