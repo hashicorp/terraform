@@ -20,6 +20,9 @@ func resourceAwsS3BucketNotification() *schema.Resource {
 		Read:   resourceAwsS3BucketNotificationRead,
 		Update: resourceAwsS3BucketNotificationPut,
 		Delete: resourceAwsS3BucketNotificationDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"bucket": &schema.Schema{

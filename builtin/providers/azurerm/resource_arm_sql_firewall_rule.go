@@ -15,6 +15,9 @@ func resourceArmSqlFirewallRule() *schema.Resource {
 		Read:   resourceArmSqlFirewallRuleRead,
 		Update: resourceArmSqlFirewallRuleCreate,
 		Delete: resourceArmSqlFirewallRuleDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -109,6 +112,7 @@ func resourceArmSqlFirewallRuleRead(d *schema.ResourceData, meta interface{}) er
 
 	resp := readResponse.Parsed.(*sql.GetFirewallRuleResponse)
 
+	d.Set("name", resp.Name)
 	d.Set("start_ip_address", resp.StartIPAddress)
 	d.Set("end_ip_address", resp.EndIPAddress)
 

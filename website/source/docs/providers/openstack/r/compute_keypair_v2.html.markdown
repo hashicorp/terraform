@@ -41,3 +41,11 @@ The following attributes are exported:
 * `region` - See Argument Reference above.
 * `name` - See Argument Reference above.
 * `public_key` - See Argument Reference above.
+
+## Import
+
+Keypairs can be imported using the `name`, e.g.
+
+```
+$ terraform import openstack_compute_keypair_v2.my-keypair test-keypair
+```

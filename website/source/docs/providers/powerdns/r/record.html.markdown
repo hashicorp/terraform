@@ -12,6 +12,23 @@ Provides a PowerDNS record resource.
 
 ## Example Usage
 
+Note that PowerDNS internally lowercases certain records (e.g. CNAME and AAAA), which can lead to resources being marked for a change in every singe plan.
+
+For the v1 API (PowerDNS version 4):
+
+```
+# Add a record to the zone
+resource "powerdns_record" "foobar" {
+	zone = "example.com."
+	name = "www.example.com"
+	type = "A"
+	ttl = 300
+	records = ["192.168.0.11"]
+}
+```
+
+For the legacy API (PowerDNS version 3.4):
+
 ```
 # Add a record to the zone
 resource "powerdns_record" "foobar" {

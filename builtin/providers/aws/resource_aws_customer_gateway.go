@@ -148,6 +148,12 @@ func resourceAwsCustomerGatewayRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("[ERROR] Error finding CustomerGateway: %s", d.Id())
 	}
 
+	if *resp.CustomerGateways[0].State == "deleted" {
+		log.Printf("[INFO] Customer Gateway is in `deleted` state: %s", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	customerGateway := resp.CustomerGateways[0]
 	d.Set("ip_address", customerGateway.IpAddress)
 	d.Set("type", customerGateway.Type)

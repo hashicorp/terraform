@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/flatmap"
 )
 
 const (
@@ -161,7 +162,6 @@ func (i *Interpolater) valueModuleVar(
 		} else {
 			// Same reasons as the comment above.
 			result[n] = unknownVariable()
-
 		}
 	}
 
@@ -265,6 +265,7 @@ func (i *Interpolater) valueSelfVar(
 		return fmt.Errorf(
 			"%s: invalid scope, self variables are only valid on resources", n)
 	}
+
 	rv, err := config.NewResourceVariable(fmt.Sprintf(
 		"%s.%s.%d.%s",
 		scope.Resource.Type,
@@ -353,11 +354,29 @@ func (i *Interpolater) computeResourceVariable(
 
 	unknownVariable := unknownVariable()
 
+	// These variables must be declared early because of the use of GOTO
+	var isList bool
+	var isMap bool
+
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
-	module, _, err := i.resourceVariableInfo(scope, v)
+	module, cr, err := i.resourceVariableInfo(scope, v)
 	if err != nil {
 		return nil, err
+	}
+
+	// If we're requesting "count" its a special variable that we grab
+	// directly from the config itself.
+	if v.Field == "count" {
+		count, err := cr.Count()
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error reading %s count: %s",
+				v.ResourceId(),
+				err)
+		}
+
+		return &ast.Variable{Type: ast.TypeInt, Value: count}, nil
 	}
 
 	// If we have no module in the state yet or count, return empty
@@ -388,7 +407,9 @@ func (i *Interpolater) computeResourceVariable(
 	}
 
 	// computed list or map attribute
-	if _, ok := r.Primary.Attributes[v.Field+".#"]; ok {
+	_, isList = r.Primary.Attributes[v.Field+".#"]
+	_, isMap = r.Primary.Attributes[v.Field+".%"]
+	if isList || isMap {
 		variable, err := i.interpolateComplexTypeAttribute(v.Field, r.Primary.Attributes)
 		return &variable, err
 	}
@@ -478,12 +499,17 @@ func (i *Interpolater) computeResourceMultiVariable(
 			err)
 	}
 
-	// If we have no module in the state yet or count, return empty
-	if module == nil || len(module.Resources) == 0 || count == 0 {
-		return &ast.Variable{Type: ast.TypeString, Value: ""}, nil
+	// If count is zero, we return an empty list
+	if count == 0 {
+		return &ast.Variable{Type: ast.TypeList, Value: []ast.Variable{}}, nil
 	}
 
-	var values []string
+	// If we have no module in the state yet or count, return unknown
+	if module == nil || len(module.Resources) == 0 {
+		return &unknownVariable, nil
+	}
+
+	var values []interface{}
 	for j := 0; j < count; j++ {
 		id := fmt.Sprintf("%s.%d", v.ResourceId(), j)
 
@@ -511,9 +537,10 @@ func (i *Interpolater) computeResourceMultiVariable(
 			continue
 		}
 
-		// computed list attribute
-		_, ok = r.Primary.Attributes[v.Field+".#"]
-		if !ok {
+		// computed list or map attribute
+		_, isList := r.Primary.Attributes[v.Field+".#"]
+		_, isMap := r.Primary.Attributes[v.Field+".%"]
+		if !(isList || isMap) {
 			continue
 		}
 		multiAttr, err := i.interpolateComplexTypeAttribute(v.Field, r.Primary.Attributes)
@@ -525,14 +552,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 			return &ast.Variable{Type: ast.TypeString, Value: ""}, nil
 		}
 
-		for _, element := range multiAttr.Value.([]ast.Variable) {
-			strVal := element.Value.(string)
-			if strVal == config.UnknownVariableValue {
-				return &unknownVariable, nil
-			}
-
-			values = append(values, strVal)
-		}
+		values = append(values, multiAttr)
 	}
 
 	if len(values) == 0 {
@@ -566,49 +586,65 @@ func (i *Interpolater) interpolateComplexTypeAttribute(
 	resourceID string,
 	attributes map[string]string) (ast.Variable, error) {
 
-	attr := attributes[resourceID+".#"]
-	log.Printf("[DEBUG] Interpolating computed complex type attribute %s (%s)",
-		resourceID, attr)
+	// We can now distinguish between lists and maps in state by the count field:
+	//    - lists (and by extension, sets) use the traditional .# notation
+	//    - maps use the newer .% notation
+	// Consequently here we can decide how to deal with the keys appropriately
+	// based on whether the type is a map of list.
+	if lengthAttr, isList := attributes[resourceID+".#"]; isList {
+		log.Printf("[DEBUG] Interpolating computed list element attribute %s (%s)",
+			resourceID, lengthAttr)
 
-	// In Terraform's internal dotted representation of list-like attributes, the
-	// ".#" count field is marked as unknown to indicate "this whole list is
-	// unknown". We must honor that meaning here so computed references can be
-	// treated properly during the plan phase.
-	if attr == config.UnknownVariableValue {
-		return unknownVariable(), nil
-	}
-
-	// At this stage we don't know whether the item is a list or a map, so we
-	// examine the keys to see whether they are all numeric.
-	var numericKeys []string
-	var allKeys []string
-	numberedListKey := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
-	otherListKey := regexp.MustCompile("^" + resourceID + "\\.([^#]+)$")
-	for id, _ := range attributes {
-		if numberedListKey.MatchString(id) {
-			numericKeys = append(numericKeys, id)
+		// In Terraform's internal dotted representation of list-like attributes, the
+		// ".#" count field is marked as unknown to indicate "this whole list is
+		// unknown". We must honor that meaning here so computed references can be
+		// treated properly during the plan phase.
+		if lengthAttr == config.UnknownVariableValue {
+			return unknownVariable(), nil
 		}
-		if submatches := otherListKey.FindAllStringSubmatch(id, -1); len(submatches) > 0 {
-			allKeys = append(allKeys, submatches[0][1])
-		}
-	}
 
-	if len(numericKeys) == len(allKeys) {
-		// This is a list
+		keys := make([]string, 0)
+		listElementKey := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
+		for id := range attributes {
+			if listElementKey.MatchString(id) {
+				keys = append(keys, id)
+			}
+		}
+		sort.Strings(keys)
+
 		var members []string
-		for _, key := range numericKeys {
+		for _, key := range keys {
 			members = append(members, attributes[key])
 		}
-		sort.Strings(members)
-		return hil.InterfaceToVariable(members)
-	} else {
-		// This is a map
-		members := make(map[string]interface{})
-		for _, key := range allKeys {
-			members[key] = attributes[resourceID+"."+key]
-		}
+
 		return hil.InterfaceToVariable(members)
 	}
+
+	if lengthAttr, isMap := attributes[resourceID+".%"]; isMap {
+		log.Printf("[DEBUG] Interpolating computed map element attribute %s (%s)",
+			resourceID, lengthAttr)
+
+		// In Terraform's internal dotted representation of map attributes, the
+		// ".%" count field is marked as unknown to indicate "this whole list is
+		// unknown". We must honor that meaning here so computed references can be
+		// treated properly during the plan phase.
+		if lengthAttr == config.UnknownVariableValue {
+			return unknownVariable(), nil
+		}
+
+		resourceFlatMap := make(map[string]string)
+		mapElementKey := regexp.MustCompile("^" + resourceID + "\\.([^%]+)$")
+		for id, val := range attributes {
+			if mapElementKey.MatchString(id) {
+				resourceFlatMap[id] = val
+			}
+		}
+
+		expanded := flatmap.Expand(resourceFlatMap, resourceID)
+		return hil.InterfaceToVariable(expanded)
+	}
+
+	return ast.Variable{}, fmt.Errorf("No complex type %s found", resourceID)
 }
 
 func (i *Interpolater) resourceVariableInfo(

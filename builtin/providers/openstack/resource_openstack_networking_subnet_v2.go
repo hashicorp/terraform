@@ -18,6 +18,9 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 		Read:   resourceNetworkingSubnetV2Read,
 		Update: resourceNetworkingSubnetV2Update,
 		Delete: resourceNetworkingSubnetV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -111,8 +114,89 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 					},
 				},
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
+}
+
+// SubnetCreateOpts represents the attributes used when creating a new subnet.
+type SubnetCreateOpts struct {
+	// Required
+	NetworkID string
+	CIDR      string
+	// Optional
+	Name            string
+	TenantID        string
+	AllocationPools []subnets.AllocationPool
+	GatewayIP       string
+	NoGateway       bool
+	IPVersion       int
+	EnableDHCP      *bool
+	DNSNameservers  []string
+	HostRoutes      []subnets.HostRoute
+	ValueSpecs      map[string]string
+}
+
+// ToSubnetCreateMap casts a CreateOpts struct to a map.
+func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error) {
+	s := make(map[string]interface{})
+
+	if opts.NetworkID == "" {
+		return nil, fmt.Errorf("A network ID is required")
+	}
+	if opts.CIDR == "" {
+		return nil, fmt.Errorf("A valid CIDR is required")
+	}
+	if opts.IPVersion != 0 && opts.IPVersion != subnets.IPv4 && opts.IPVersion != subnets.IPv6 {
+		return nil, fmt.Errorf("An IP type must either be 4 or 6")
+	}
+
+	// Both GatewayIP and NoGateway should not be set
+	if opts.GatewayIP != "" && opts.NoGateway {
+		return nil, fmt.Errorf("Both disabling the gateway and specifying a gateway is not allowed")
+	}
+
+	s["network_id"] = opts.NetworkID
+	s["cidr"] = opts.CIDR
+
+	if opts.EnableDHCP != nil {
+		s["enable_dhcp"] = &opts.EnableDHCP
+	}
+	if opts.Name != "" {
+		s["name"] = opts.Name
+	}
+	if opts.GatewayIP != "" {
+		s["gateway_ip"] = opts.GatewayIP
+	} else if opts.NoGateway {
+		s["gateway_ip"] = nil
+	}
+	if opts.TenantID != "" {
+		s["tenant_id"] = opts.TenantID
+	}
+	if opts.IPVersion != 0 {
+		s["ip_version"] = opts.IPVersion
+	}
+	if len(opts.AllocationPools) != 0 {
+		s["allocation_pools"] = opts.AllocationPools
+	}
+	if len(opts.DNSNameservers) != 0 {
+		s["dns_nameservers"] = opts.DNSNameservers
+	}
+	if len(opts.HostRoutes) != 0 {
+		s["host_routes"] = opts.HostRoutes
+	}
+
+	if opts.ValueSpecs != nil {
+		for k, v := range opts.ValueSpecs {
+			s[k] = v
+		}
+	}
+
+	return map[string]interface{}{"subnet": s}, nil
 }
 
 func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) error {
@@ -130,7 +214,7 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 
 	enableDHCP := d.Get("enable_dhcp").(bool)
 
-	createOpts := subnets.CreateOpts{
+	createOpts := SubnetCreateOpts{
 		NetworkID:       d.Get("network_id").(string),
 		CIDR:            d.Get("cidr").(string),
 		Name:            d.Get("name").(string),
@@ -142,6 +226,7 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		DNSNameservers:  resourceSubnetDNSNameserversV2(d),
 		HostRoutes:      resourceSubnetHostRoutesV2(d),
 		EnableDHCP:      &enableDHCP,
+		ValueSpecs:      subnetValueSpecs(d),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -190,6 +275,8 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 	d.Set("gateway_ip", s.GatewayIP)
 	d.Set("dns_nameservers", s.DNSNameservers)
 	d.Set("host_routes", s.HostRoutes)
+	d.Set("enable_dhcp", s.EnableDHCP)
+	d.Set("network_id", s.NetworkID)
 
 	return nil
 }
@@ -348,4 +435,12 @@ func waitForSubnetDelete(networkingClient *gophercloud.ServiceClient, subnetId s
 		log.Printf("[DEBUG] OpenStack Subnet %s still active.\n", subnetId)
 		return s, "ACTIVE", nil
 	}
+}
+
+func subnetValueSpecs(d *schema.ResourceData) map[string]string {
+	m := make(map[string]string)
+	for key, val := range d.Get("value_specs").(map[string]interface{}) {
+		m[key] = val.(string)
+	}
+	return m
 }

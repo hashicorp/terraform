@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"time"
 
@@ -24,6 +25,14 @@ import (
 // cloudFrontRoute53ZoneID defines the route 53 zone ID for CloudFront. This
 // is used to set the zone_id attribute.
 const cloudFrontRoute53ZoneID = "Z2FDTNDATAQYW2"
+
+// Define Sort interface for []*string so we can ensure the order of
+// geo_restrictions.locations
+type StringPtrSlice []*string
+
+func (p StringPtrSlice) Len() int           { return len(p) }
+func (p StringPtrSlice) Less(i, j int) bool { return *p[i] < *p[j] }
+func (p StringPtrSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 // Assemble the *cloudfront.DistributionConfig variable. Calls out to various
 // expander functions to convert attributes and sub-attributes to the various
@@ -873,6 +882,7 @@ func expandGeoRestriction(m map[string]interface{}) *cloudfront.GeoRestriction {
 	if v, ok := m["locations"]; ok {
 		gr.Quantity = aws.Int64(int64(len(v.([]interface{}))))
 		gr.Items = expandStringList(v.([]interface{}))
+		sort.Sort(StringPtrSlice(gr.Items))
 	} else {
 		gr.Quantity = aws.Int64(0)
 	}
@@ -884,6 +894,7 @@ func flattenGeoRestriction(gr *cloudfront.GeoRestriction) map[string]interface{}
 
 	m["restriction_type"] = *gr.RestrictionType
 	if gr.Items != nil {
+		sort.Sort(StringPtrSlice(gr.Items))
 		m["locations"] = flattenStringList(gr.Items)
 	}
 	return m

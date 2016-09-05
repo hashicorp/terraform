@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -28,6 +29,27 @@ func TestAccAWSRDSClusterInstance_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
 					testAccCheckAWSDBClusterInstanceAttributes(&v),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRDSClusterInstance_kmsKey(t *testing.T) {
+	var v rds.DBInstance
+	keyRegex := regexp.MustCompile("^arn:aws:kms:")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSClusterInstanceConfigKmsKey(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
+					resource.TestMatchResourceAttr(
+						"aws_rds_cluster_instance.cluster_instances", "kms_key_id", keyRegex),
 				),
 			},
 		},
@@ -165,6 +187,25 @@ func testAccCheckAWSClusterInstanceExists(n string, v *rds.DBInstance) resource.
 	}
 }
 
+func TestAccAWSRDSClusterInstance_withInstanceEnhancedMonitor(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSClusterInstanceEnhancedMonitor(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
+					testAccCheckAWSDBClusterInstanceAttributes(&v),
+				),
+			},
+		},
+	})
+}
+
 // Add some random to the name, to avoid collision
 func testAccAWSClusterInstanceConfig(n int) string {
 	return fmt.Sprintf(`
@@ -181,10 +222,11 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
   cluster_identifier      = "${aws_rds_cluster.default.id}"
   instance_class          = "db.r3.large"
   db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
+  promotion_tier          = "3"
 }
 
 resource "aws_db_parameter_group" "bar" {
-  name   = "tfcluster-test-group"
+  name   = "tfcluster-test-group-%d"
   family = "aurora5.6"
 
   parameter {
@@ -197,5 +239,126 @@ resource "aws_db_parameter_group" "bar" {
     foo = "bar"
   }
 }
-`, n, n)
+`, n, n, n)
+}
+
+func testAccAWSClusterInstanceConfigKmsKey(n int) string {
+	return fmt.Sprintf(`
+
+resource "aws_kms_key" "foo" {
+    description = "Terraform acc test %d"
+    policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_rds_cluster" "default" {
+  cluster_identifier = "tf-aurora-cluster-test-%d"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+  database_name      = "mydb"
+  master_username    = "foo"
+  master_password    = "mustbeeightcharaters"
+  storage_encrypted = true
+  kms_key_id = "${aws_kms_key.foo.arn}"
+}
+
+resource "aws_rds_cluster_instance" "cluster_instances" {
+  identifier              = "tf-cluster-instance-%d"
+  cluster_identifier      = "${aws_rds_cluster.default.id}"
+  instance_class          = "db.r3.large"
+  db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
+  storage_encrypted = true
+  kms_key_id = "${aws_kms_key.foo.arn}"
+}
+
+resource "aws_db_parameter_group" "bar" {
+  name   = "tfcluster-test-group-%d"
+  family = "aurora5.6"
+
+  parameter {
+    name         = "back_log"
+    value        = "32767"
+    apply_method = "pending-reboot"
+  }
+
+  tags {
+    foo = "bar"
+  }
+}
+`, n, n, n, n)
+}
+
+func testAccAWSClusterInstanceEnhancedMonitor(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster" "default" {
+  cluster_identifier = "tf-aurora-cluster-test-%d"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+  database_name      = "mydb"
+  master_username    = "foo"
+  master_password    = "mustbeeightcharaters"
+}
+
+resource "aws_rds_cluster_instance" "cluster_instances" {
+  identifier              = "tf-cluster-instance-%d"
+  cluster_identifier      = "${aws_rds_cluster.default.id}"
+  instance_class          = "db.r3.large"
+  db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
+  monitoring_interval     = "60"
+  monitoring_role_arn     = "${aws_iam_role.tf_enhanced_monitor_role.arn}"
+}
+
+resource "aws_iam_role" "tf_enhanced_monitor_role" {
+    name = "tf_enhanced_monitor_role-%d"
+    assume_role_policy = <<EOF
+{
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": "sts:AssumeRole",
+                    "Principal": {
+                        "Service": "monitoring.rds.amazonaws.com"
+                    },
+                    "Effect": "Allow",
+                    "Sid": ""
+                }
+            ]
+   }
+EOF
+}
+
+resource "aws_iam_policy_attachment" "rds_m_attach" {
+    name = "AmazonRDSEnhancedMonitoringRole"
+    roles = ["${aws_iam_role.tf_enhanced_monitor_role.name}"]
+    policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
+resource "aws_db_parameter_group" "bar" {
+  name   = "tfcluster-test-group-%d"
+  family = "aurora5.6"
+
+  parameter {
+    name         = "back_log"
+    value        = "32767"
+    apply_method = "pending-reboot"
+  }
+
+  tags {
+    foo = "bar"
+  }
+}
+`, n, n, n, n)
 }

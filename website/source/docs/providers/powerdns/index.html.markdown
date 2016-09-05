@@ -9,7 +9,7 @@ description: |-
 # PowerDNS Provider
 
 The PowerDNS provider is used manipulate DNS records supported by PowerDNS server. The provider needs to be configured
-with the proper credentials before it can be used.
+with the proper credentials before it can be used. It supports both the [legacy API](https://doc.powerdns.com/3/httpapi/api_spec/) and the new [version 1 API](https://doc.powerdns.com/md/httpapi/api_spec/), however resources may need to be configured differently.
 
 Use the navigation to the left to read about the available resources.
 

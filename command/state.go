@@ -169,7 +169,8 @@ func State(opts *StateOpts) (*StateResult, error) {
 
 // StateFromPlan gets our state from the plan.
 func StateFromPlan(
-	localPath string, plan *terraform.Plan) (state.State, string, error) {
+	localPath, outPath string,
+	plan *terraform.Plan) (state.State, string, error) {
 	var result state.State
 	resultPath := localPath
 	if plan != nil && plan.State != nil &&
@@ -186,7 +187,10 @@ func StateFromPlan(
 	}
 
 	if result == nil {
-		local := &state.LocalState{Path: resultPath}
+		local := &state.LocalState{
+			Path:    resultPath,
+			PathOut: outPath,
+		}
 		local.SetState(plan.State)
 		result = local
 	}

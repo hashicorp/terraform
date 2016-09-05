@@ -173,7 +173,7 @@ func TestRefresh_defaultState(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.RefreshReturn = newInstanceState("yes")
 
 	args := []string{
 		testFixturePath("refresh"),
@@ -200,7 +200,8 @@ func TestRefresh_defaultState(t *testing.T) {
 	actual := newState.RootModule().Resources["test_instance.foo"].Primary
 	expected := p.RefreshReturn
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Logf("expected:\n%#v", expected)
+		t.Fatalf("bad:\n%#v", actual)
 	}
 
 	f, err = os.Open(statePath + DefaultBackupExtension)
@@ -347,7 +348,7 @@ func TestRefresh_outPath(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.RefreshReturn = newInstanceState("yes")
 
 	args := []string{
 		"-state", statePath,
@@ -577,7 +578,7 @@ func TestRefresh_backup(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.RefreshReturn = newInstanceState("yes")
 
 	args := []string{
 		"-state", statePath,
@@ -662,7 +663,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.RefreshReturn = newInstanceState("yes")
 
 	args := []string{
 		"-state", statePath,
@@ -739,6 +740,20 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	actual := ui.OutputWriter.String()
 	if !strings.Contains(actual, outputValue) {
 		t.Fatalf("Expected:\n%s\n\nTo include: %q", actual, outputValue)
+	}
+}
+
+// When creating an InstaneState for direct comparison to one contained in
+// terraform.State, all fields must be initialized (duplicating the
+// InstanceState.init() method)
+func newInstanceState(id string) *terraform.InstanceState {
+	return &terraform.InstanceState{
+		ID:         id,
+		Attributes: make(map[string]string),
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: make(map[string]string),
+		},
+		Meta: make(map[string]string),
 	}
 }
 

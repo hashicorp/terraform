@@ -2,9 +2,9 @@ package azurerm
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
-	"github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -14,6 +14,9 @@ func resourceArmLocalNetworkGateway() *schema.Resource {
 		Read:   resourceArmLocalNetworkGatewayRead,
 		Update: resourceArmLocalNetworkGatewayCreate,
 		Delete: resourceArmLocalNetworkGatewayDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -107,14 +110,15 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 
 	resp, err := lnetClient.Get(resGroup, name)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
-			d.SetId("")
-			return nil
-		}
-
 		return fmt.Errorf("Error reading the state of Azure ARM local network gateway '%s': %s", name, err)
 	}
+	if resp.StatusCode == http.StatusNotFound {
+		d.SetId("")
+		return nil
+	}
 
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
 	d.Set("gateway_address", resp.Properties.GatewayIPAddress)
 
 	prefs := []string{}

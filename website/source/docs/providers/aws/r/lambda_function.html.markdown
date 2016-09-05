@@ -65,6 +65,8 @@ resource "aws_lambda_function" "test_lambda" {
 * `subnet_ids` - (Required) A list of subnet IDs associated with the Lambda function.
 * `security_group_ids` - (Required) A list of security group IDs associated with the Lambda function.
 
+~> **NOTE:** if both `subnet_ids` and `security_group_ids` are empty then vpc_config is considered to be empty or unset.
+
 ## Attributes Reference
 
 * `arn` - The Amazon Resource Name (ARN) identifying your Lambda Function.
@@ -79,3 +81,11 @@ resource "aws_lambda_function" "test_lambda" {
 [5]: https://docs.aws.amazon.com/lambda/latest/dg/limits.html
 [6]: https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html#SSS-CreateFunction-request-Runtime
 [7]: http://docs.aws.amazon.com/lambda/latest/dg/vpc.html
+
+## Import
+
+Lambda Functions can be imported using the `function_name`, e.g. 
+
+```
+$ terraform import aws_lambda_function.tesr_lambda my_test_lambda_function
+```

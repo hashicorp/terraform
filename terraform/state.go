@@ -7,19 +7,23 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
+	"github.com/satori/go.uuid"
 )
 
 const (
 	// StateVersion is the current version for our state file
-	StateVersion = 2
+	StateVersion = 3
 )
 
 // rootModulePath is the path of the root module
@@ -62,13 +66,26 @@ type State struct {
 	// updates.
 	Serial int64 `json:"serial"`
 
+	// Lineage is set when a new, blank state is created and then
+	// never updated. This allows us to determine whether the serials
+	// of two states can be meaningfully compared.
+	// Apart from the guarantee that collisions between two lineages
+	// are very unlikely, this value is opaque and external callers
+	// should only compare lineage strings byte-for-byte for equality.
+	Lineage string `json:"lineage"`
+
 	// Remote is used to track the metadata required to
 	// pull and push state files from a remote storage endpoint.
 	Remote *RemoteState `json:"remote,omitempty"`
 
 	// Modules contains all the modules in a breadth-first order
 	Modules []*ModuleState `json:"modules"`
+
+	mu sync.Mutex
 }
+
+func (s *State) Lock()   { s.mu.Lock() }
+func (s *State) Unlock() { s.mu.Unlock() }
 
 // NewState is used to initialize a blank state
 func NewState() *State {
@@ -103,7 +120,13 @@ func (s *State) Children(path []string) []*ModuleState {
 // This should be the preferred method to add module states since it
 // allows us to optimize lookups later as well as control sorting.
 func (s *State) AddModule(path []string) *ModuleState {
-	m := &ModuleState{Path: path}
+	// check if the module exists first
+	m := s.ModuleByPath(path)
+	if m != nil {
+		return m
+	}
+
+	m = &ModuleState{Path: path}
 	m.init()
 	s.Modules = append(s.Modules, m)
 	s.sort()
@@ -223,6 +246,46 @@ func (s *State) IsRemote() bool {
 	}
 
 	return true
+}
+
+// Validate validates the integrity of this state file.
+//
+// Certain properties of the statefile are expected by Terraform in order
+// to behave properly. The core of Terraform will assume that once it
+// receives a State structure that it has been validated. This validation
+// check should be called to ensure that.
+//
+// If this returns an error, then the user should be notified. The error
+// response will include detailed information on the nature of the error.
+func (s *State) Validate() error {
+	var result error
+
+	// !!!! FOR DEVELOPERS !!!!
+	//
+	// Any errors returned from this Validate function will BLOCK TERRAFORM
+	// from loading a state file. Therefore, this should only contain checks
+	// that are only resolvable through manual intervention.
+	//
+	// !!!! FOR DEVELOPERS !!!!
+
+	// Make sure there are no duplicate module states. We open a new
+	// block here so we can use basic variable names and future validations
+	// can do the same.
+	{
+		found := make(map[string]struct{})
+		for _, ms := range s.Modules {
+			key := strings.Join(ms.Path, ".")
+			if _, ok := found[key]; ok {
+				result = multierror.Append(result, fmt.Errorf(
+					strings.TrimSpace(stateValidateErrMultiModule), key))
+				continue
+			}
+
+			found[key] = struct{}{}
+		}
+	}
+
+	return result
 }
 
 // Remove removes the item in the state at the given address, returning
@@ -382,25 +445,77 @@ func (s *State) Equal(other *State) bool {
 	return true
 }
 
+type StateAgeComparison int
+
+const (
+	StateAgeEqual         StateAgeComparison = 0
+	StateAgeReceiverNewer StateAgeComparison = 1
+	StateAgeReceiverOlder StateAgeComparison = -1
+)
+
+// CompareAges compares one state with another for which is "older".
+//
+// This is a simple check using the state's serial, and is thus only as
+// reliable as the serial itself. In the normal case, only one state
+// exists for a given combination of lineage/serial, but Terraform
+// does not guarantee this and so the result of this method should be
+// used with care.
+//
+// Returns an integer that is negative if the receiver is older than
+// the argument, positive if the converse, and zero if they are equal.
+// An error is returned if the two states are not of the same lineage,
+// in which case the integer returned has no meaning.
+func (s *State) CompareAges(other *State) (StateAgeComparison, error) {
+
+	// nil states are "older" than actual states
+	switch {
+	case s != nil && other == nil:
+		return StateAgeReceiverNewer, nil
+	case s == nil && other != nil:
+		return StateAgeReceiverOlder, nil
+	case s == nil && other == nil:
+		return StateAgeEqual, nil
+	}
+
+	if !s.SameLineage(other) {
+		return StateAgeEqual, fmt.Errorf(
+			"can't compare two states of differing lineage",
+		)
+	}
+
+	switch {
+	case s.Serial < other.Serial:
+		return StateAgeReceiverOlder, nil
+	case s.Serial > other.Serial:
+		return StateAgeReceiverNewer, nil
+	default:
+		return StateAgeEqual, nil
+	}
+}
+
+// SameLineage returns true only if the state given in argument belongs
+// to the same "lineage" of states as the reciever.
+func (s *State) SameLineage(other *State) bool {
+	// If one of the states has no lineage then it is assumed to predate
+	// this concept, and so we'll accept it as belonging to any lineage
+	// so that a lineage string can be assigned to newer versions
+	// without breaking compatibility with older versions.
+	if s.Lineage == "" || other.Lineage == "" {
+		return true
+	}
+
+	return s.Lineage == other.Lineage
+}
+
 // DeepCopy performs a deep copy of the state structure and returns
 // a new structure.
 func (s *State) DeepCopy() *State {
-	if s == nil {
-		return nil
+	copy, err := copystructure.Config{Lock: true}.Copy(s)
+	if err != nil {
+		panic(err)
 	}
-	n := &State{
-		Version:   s.Version,
-		TFVersion: s.TFVersion,
-		Serial:    s.Serial,
-		Modules:   make([]*ModuleState, 0, len(s.Modules)),
-	}
-	for _, mod := range s.Modules {
-		n.Modules = append(n.Modules, mod.deepcopy())
-	}
-	if s.Remote != nil {
-		n.Remote = s.Remote.deepcopy()
-	}
-	return n
+
+	return copy.(*State)
 }
 
 // IncrementSerialMaybe increments the serial number of this state
@@ -436,6 +551,10 @@ func (s *State) FromFutureTerraform() bool {
 	return SemVersion.LessThan(v)
 }
 
+func (s *State) Init() {
+	s.init()
+}
+
 func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
@@ -443,6 +562,39 @@ func (s *State) init() {
 	if s.ModuleByPath(rootModulePath) == nil {
 		s.AddModule(rootModulePath)
 	}
+	s.EnsureHasLineage()
+
+	for _, mod := range s.Modules {
+		mod.init()
+	}
+
+	if s.Remote != nil {
+		s.Remote.init()
+	}
+}
+
+func (s *State) EnsureHasLineage() {
+	if s.Lineage == "" {
+		s.Lineage = uuid.NewV4().String()
+		log.Printf("[DEBUG] New state was assigned lineage %q\n", s.Lineage)
+	} else {
+		log.Printf("[TRACE] Preserving existing state lineage %q\n", s.Lineage)
+	}
+}
+
+// AddModuleState insert this module state and override any existing ModuleState
+func (s *State) AddModuleState(mod *ModuleState) {
+	mod.init()
+
+	for i, m := range s.Modules {
+		if reflect.DeepEqual(m.Path, mod.Path) {
+			s.Modules[i] = mod
+			return
+		}
+	}
+
+	s.Modules = append(s.Modules, mod)
+	s.sort()
 }
 
 // prune is used to remove any resources that are no longer required
@@ -466,10 +618,6 @@ func (s *State) sort() {
 	for _, m := range s.Modules {
 		m.sort()
 	}
-}
-
-func (s *State) GoString() string {
-	return fmt.Sprintf("*%#v", *s)
 }
 
 func (s *State) String() string {
@@ -512,9 +660,26 @@ type RemoteState struct {
 	// Config is used to store arbitrary configuration that
 	// is type specific
 	Config map[string]string `json:"config"`
+
+	mu sync.Mutex
+}
+
+func (s *RemoteState) Lock()   { s.mu.Lock() }
+func (s *RemoteState) Unlock() { s.mu.Unlock() }
+
+func (r *RemoteState) init() {
+	r.Lock()
+	defer r.Unlock()
+
+	if r.Config == nil {
+		r.Config = make(map[string]string)
+	}
 }
 
 func (r *RemoteState) deepcopy() *RemoteState {
+	r.Lock()
+	defer r.Unlock()
+
 	confCopy := make(map[string]string, len(r.Config))
 	for k, v := range r.Config {
 		confCopy[k] = v
@@ -544,10 +709,6 @@ func (r *RemoteState) Equals(other *RemoteState) bool {
 	return true
 }
 
-func (r *RemoteState) GoString() string {
-	return fmt.Sprintf("*%#v", *r)
-}
-
 // OutputState is used to track the state relevant to a single output.
 type OutputState struct {
 	// Sensitive describes whether the output is considered sensitive,
@@ -559,11 +720,15 @@ type OutputState struct {
 	// Value contains the value of the output, in the structure described
 	// by the Type field.
 	Value interface{} `json:"value"`
+
+	mu sync.Mutex
 }
 
+func (s *OutputState) Lock()   { s.mu.Lock() }
+func (s *OutputState) Unlock() { s.mu.Unlock() }
+
 func (s *OutputState) String() string {
-	// This is a v0.6.x implementation only
-	return fmt.Sprintf("%s", s.Value.(string))
+	return fmt.Sprintf("%#v", s.Value)
 }
 
 // Equal compares two OutputState structures for equality. nil values are
@@ -597,18 +762,12 @@ func (s *OutputState) deepcopy() *OutputState {
 		return nil
 	}
 
-	valueCopy, err := copystructure.Copy(s.Value)
+	stateCopy, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(fmt.Errorf("Error copying output value: %s", err))
 	}
 
-	n := &OutputState{
-		Type:      s.Type,
-		Sensitive: s.Sensitive,
-		Value:     valueCopy,
-	}
-
-	return n
+	return stateCopy.(*OutputState)
 }
 
 // ModuleState is used to track all the state relevant to a single
@@ -642,8 +801,13 @@ type ModuleState struct {
 	// Terraform. If Terraform doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
-	Dependencies []string `json:"depends_on,omitempty"`
+	Dependencies []string `json:"depends_on"`
+
+	mu sync.Mutex
 }
+
+func (s *ModuleState) Lock()   { s.mu.Lock() }
+func (s *ModuleState) Unlock() { s.mu.Unlock() }
 
 // Equal tests whether one module state is equal to another.
 func (m *ModuleState) Equal(other *ModuleState) bool {
@@ -698,6 +862,12 @@ func (m *ModuleState) IsRoot() bool {
 	return reflect.DeepEqual(m.Path, rootModulePath)
 }
 
+// IsDescendent returns true if other is a descendent of this module.
+func (m *ModuleState) IsDescendent(other *ModuleState) bool {
+	i := len(m.Path)
+	return len(other.Path) > i && reflect.DeepEqual(other.Path[:i], m.Path)
+}
+
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
@@ -746,11 +916,25 @@ func (m *ModuleState) View(id string) *ModuleState {
 }
 
 func (m *ModuleState) init() {
+	m.Lock()
+	defer m.Unlock()
+
+	if m.Path == nil {
+		m.Path = []string{}
+	}
 	if m.Outputs == nil {
 		m.Outputs = make(map[string]*OutputState)
 	}
 	if m.Resources == nil {
 		m.Resources = make(map[string]*ResourceState)
+	}
+
+	if m.Dependencies == nil {
+		m.Dependencies = make([]string, 0)
+	}
+
+	for _, rs := range m.Resources {
+		rs.init()
 	}
 }
 
@@ -758,21 +942,13 @@ func (m *ModuleState) deepcopy() *ModuleState {
 	if m == nil {
 		return nil
 	}
-	n := &ModuleState{
-		Path:         make([]string, len(m.Path)),
-		Outputs:      make(map[string]*OutputState, len(m.Outputs)),
-		Resources:    make(map[string]*ResourceState, len(m.Resources)),
-		Dependencies: make([]string, len(m.Dependencies)),
+
+	stateCopy, err := copystructure.Config{Lock: true}.Copy(m)
+	if err != nil {
+		panic(err)
 	}
-	copy(n.Path, m.Path)
-	copy(n.Dependencies, m.Dependencies)
-	for k, v := range m.Outputs {
-		n.Outputs[k] = v.deepcopy()
-	}
-	for k, v := range m.Resources {
-		n.Resources[k] = v.deepcopy()
-	}
-	return n
+
+	return stateCopy.(*ModuleState)
 }
 
 // prune is used to remove any resources that are no longer required
@@ -796,10 +972,6 @@ func (m *ModuleState) sort() {
 	for _, v := range m.Resources {
 		v.sort()
 	}
-}
-
-func (m *ModuleState) GoString() string {
-	return fmt.Sprintf("*%#v", *m)
 }
 
 func (m *ModuleState) String() string {
@@ -1024,7 +1196,7 @@ type ResourceState struct {
 	// Terraform. If Terraform doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
-	Dependencies []string `json:"depends_on,omitempty"`
+	Dependencies []string `json:"depends_on"`
 
 	// Primary is the current active instance for this resource.
 	// It can be replaced but only after a successful creation.
@@ -1042,14 +1214,19 @@ type ResourceState struct {
 	//
 	// An instance will remain in the Deposed list until it is successfully
 	// destroyed and purged.
-	Deposed []*InstanceState `json:"deposed,omitempty"`
+	Deposed []*InstanceState `json:"deposed"`
 
 	// Provider is used when a resource is connected to a provider with an alias.
 	// If this string is empty, the resource is connected to the default provider,
 	// e.g. "aws_instance" goes with the "aws" provider.
 	// If the resource block contained a "provider" key, that value will be set here.
-	Provider string `json:"provider,omitempty"`
+	Provider string `json:"provider"`
+
+	mu sync.Mutex
 }
+
+func (s *ResourceState) Lock()   { s.mu.Lock() }
+func (s *ResourceState) Unlock() { s.mu.Unlock() }
 
 // Equal tests whether two ResourceStates are equal.
 func (s *ResourceState) Equal(other *ResourceState) bool {
@@ -1096,35 +1273,34 @@ func (r *ResourceState) Untaint() {
 }
 
 func (r *ResourceState) init() {
+	r.Lock()
+	defer r.Unlock()
+
 	if r.Primary == nil {
 		r.Primary = &InstanceState{}
 	}
 	r.Primary.init()
+
+	if r.Dependencies == nil {
+		r.Dependencies = []string{}
+	}
+
+	if r.Deposed == nil {
+		r.Deposed = make([]*InstanceState, 0)
+	}
+
+	for _, dep := range r.Deposed {
+		dep.init()
+	}
 }
 
 func (r *ResourceState) deepcopy() *ResourceState {
-	if r == nil {
-		return nil
+	copy, err := copystructure.Config{Lock: true}.Copy(r)
+	if err != nil {
+		panic(err)
 	}
 
-	n := &ResourceState{
-		Type:         r.Type,
-		Dependencies: nil,
-		Primary:      r.Primary.DeepCopy(),
-		Provider:     r.Provider,
-	}
-	if r.Dependencies != nil {
-		n.Dependencies = make([]string, len(r.Dependencies))
-		copy(n.Dependencies, r.Dependencies)
-	}
-	if r.Deposed != nil {
-		n.Deposed = make([]*InstanceState, 0, len(r.Deposed))
-		for _, inst := range r.Deposed {
-			n.Deposed = append(n.Deposed, inst.DeepCopy())
-		}
-	}
-
-	return n
+	return copy.(*ResourceState)
 }
 
 // prune is used to remove any instances that are no longer required
@@ -1147,10 +1323,6 @@ func (r *ResourceState) sort() {
 	sort.Strings(r.Dependencies)
 }
 
-func (s *ResourceState) GoString() string {
-	return fmt.Sprintf("*%#v", *s)
-}
-
 func (s *ResourceState) String() string {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("Type = %s", s.Type))
@@ -1167,7 +1339,7 @@ type InstanceState struct {
 	// Attributes are basic information about the resource. Any keys here
 	// are accessible in variable format within Terraform configurations:
 	// ${resourcetype.name.attribute}.
-	Attributes map[string]string `json:"attributes,omitempty"`
+	Attributes map[string]string `json:"attributes"`
 
 	// Ephemeral is used to store any state associated with this instance
 	// that is necessary for the Terraform run to complete, but is not
@@ -1177,13 +1349,21 @@ type InstanceState struct {
 	// Meta is a simple K/V map that is persisted to the State but otherwise
 	// ignored by Terraform core. It's meant to be used for accounting by
 	// external client code.
-	Meta map[string]string `json:"meta,omitempty"`
+	Meta map[string]string `json:"meta"`
 
 	// Tainted is used to mark a resource for recreation.
-	Tainted bool `json:"tainted,omitempty"`
+	Tainted bool `json:"tainted"`
+
+	mu sync.Mutex
 }
 
+func (s *InstanceState) Lock()   { s.mu.Lock() }
+func (s *InstanceState) Unlock() { s.mu.Unlock() }
+
 func (i *InstanceState) init() {
+	i.Lock()
+	defer i.Unlock()
+
 	if i.Attributes == nil {
 		i.Attributes = make(map[string]string)
 	}
@@ -1193,28 +1373,28 @@ func (i *InstanceState) init() {
 	i.Ephemeral.init()
 }
 
+// Copy all the Fields from another InstanceState
+func (i *InstanceState) Set(from *InstanceState) {
+	i.Lock()
+	defer i.Unlock()
+
+	from.Lock()
+	defer from.Unlock()
+
+	i.ID = from.ID
+	i.Attributes = from.Attributes
+	i.Ephemeral = from.Ephemeral
+	i.Meta = from.Meta
+	i.Tainted = from.Tainted
+}
+
 func (i *InstanceState) DeepCopy() *InstanceState {
-	if i == nil {
-		return nil
+	copy, err := copystructure.Config{Lock: true}.Copy(i)
+	if err != nil {
+		panic(err)
 	}
-	n := &InstanceState{
-		ID:        i.ID,
-		Ephemeral: *i.Ephemeral.DeepCopy(),
-		Tainted:   i.Tainted,
-	}
-	if i.Attributes != nil {
-		n.Attributes = make(map[string]string, len(i.Attributes))
-		for k, v := range i.Attributes {
-			n.Attributes[k] = v
-		}
-	}
-	if i.Meta != nil {
-		n.Meta = make(map[string]string, len(i.Meta))
-		for k, v := range i.Meta {
-			n.Meta[k] = v
-		}
-	}
-	return n
+
+	return copy.(*InstanceState)
 }
 
 func (s *InstanceState) Empty() bool {
@@ -1290,7 +1470,7 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 		}
 	}
 	if d != nil {
-		for k, diff := range d.Attributes {
+		for k, diff := range d.CopyAttributes() {
 			if diff.NewRemoved {
 				delete(result.Attributes, k)
 				continue
@@ -1305,10 +1485,6 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	}
 
 	return result
-}
-
-func (i *InstanceState) GoString() string {
-	return fmt.Sprintf("*%#v", *i)
 }
 
 func (i *InstanceState) String() string {
@@ -1362,21 +1538,35 @@ func (e *EphemeralState) init() {
 }
 
 func (e *EphemeralState) DeepCopy() *EphemeralState {
-	if e == nil {
-		return nil
+	copy, err := copystructure.Config{Lock: true}.Copy(e)
+	if err != nil {
+		panic(err)
 	}
-	n := &EphemeralState{}
-	if e.ConnInfo != nil {
-		n.ConnInfo = make(map[string]string, len(e.ConnInfo))
-		for k, v := range e.ConnInfo {
-			n.ConnInfo[k] = v
-		}
-	}
-	return n
+
+	return copy.(*EphemeralState)
 }
 
 type jsonStateVersionIdentifier struct {
 	Version int `json:"version"`
+}
+
+// Check if this is a V0 format - the magic bytes at the start of the file
+// should be "tfstate" if so. We no longer support upgrading this type of
+// state but return an error message explaining to a user how they can
+// upgrade via the 0.6.x series.
+func testForV0State(buf *bufio.Reader) error {
+	start, err := buf.Peek(len("tfstate"))
+	if err != nil {
+		return fmt.Errorf("Failed to check for magic bytes: %v", err)
+	}
+	if string(start) == "tfstate" {
+		return fmt.Errorf("Terraform 0.7 no longer supports upgrading the binary state\n" +
+			"format which was used prior to Terraform 0.3. Please upgrade\n" +
+			"this state file using Terraform 0.6.16 prior to using it with\n" +
+			"Terraform 0.7.")
+	}
+
+	return nil
 }
 
 // ReadState reads a state structure out of a reader in the format that
@@ -1384,18 +1574,8 @@ type jsonStateVersionIdentifier struct {
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
 
-	// Check if this is a V0 format
-	start, err := buf.Peek(len(stateFormatMagic))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to check for magic bytes: %v", err)
-	}
-	if string(start) == stateFormatMagic {
-		// Read the old state
-		old, err := ReadStateV0(buf)
-		if err != nil {
-			return nil, err
-		}
-		return old.upgrade()
+	if err := testForV0State(buf); err != nil {
+		return nil, err
 	}
 
 	// If we are JSON we buffer the whole thing in memory so we can read it twice.
@@ -1410,39 +1590,78 @@ func ReadState(src io.Reader) (*State, error) {
 		return nil, fmt.Errorf("Decoding state file version failed: %v", err)
 	}
 
+	var result *State
 	switch versionIdentifier.Version {
 	case 0:
 		return nil, fmt.Errorf("State version 0 is not supported as JSON.")
 	case 1:
-		old, err := ReadStateV1(jsonBytes)
+		v1State, err := ReadStateV1(jsonBytes)
 		if err != nil {
 			return nil, err
 		}
-		return old.upgrade()
+
+		v2State, err := upgradeStateV1ToV2(v1State)
+		if err != nil {
+			return nil, err
+		}
+
+		v3State, err := upgradeStateV2ToV3(v2State)
+		if err != nil {
+			return nil, err
+		}
+
+		// increment the Serial whenever we upgrade state
+		v3State.Serial++
+		result = v3State
 	case 2:
-		state, err := ReadStateV2(jsonBytes)
+		v2State, err := ReadStateV2(jsonBytes)
 		if err != nil {
 			return nil, err
 		}
-		return state, nil
+		v3State, err := upgradeStateV2ToV3(v2State)
+		if err != nil {
+			return nil, err
+		}
+
+		v3State.Serial++
+		result = v3State
+	case 3:
+		v3State, err := ReadStateV3(jsonBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		result = v3State
 	default:
-		return nil, fmt.Errorf("State version %d not supported, please update.",
-			versionIdentifier.Version)
+		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+			SemVersion.String(), versionIdentifier.Version)
 	}
+
+	// If we reached this place we must have a result set
+	if result == nil {
+		panic("resulting state in load not set, assertion failed")
+	}
+
+	// Validate the state file is valid
+	if err := result.Validate(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func ReadStateV1(jsonBytes []byte) (*stateV1, error) {
-	state := &stateV1{}
-	if err := json.Unmarshal(jsonBytes, state); err != nil {
+	v1State := &stateV1{}
+	if err := json.Unmarshal(jsonBytes, v1State); err != nil {
 		return nil, fmt.Errorf("Decoding state file failed: %v", err)
 	}
 
-	if state.Version != 1 {
+	if v1State.Version != 1 {
 		return nil, fmt.Errorf("Decoded state version did not match the decoder selection: "+
-			"read %d, expected 1", state.Version)
+			"read %d, expected 1", v1State.Version)
 	}
 
-	return state, nil
+	return v1State, nil
 }
 
 func ReadStateV2(jsonBytes []byte) (*State, error) {
@@ -1454,8 +1673,8 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
 	if state.Version > StateVersion {
-		return nil, fmt.Errorf("State version %d not supported, please update.",
-			state.Version)
+		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+			SemVersion.String(), state.Version)
 	}
 
 	// Make sure the version is semantic
@@ -1474,6 +1693,58 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	// Sort it
 	state.sort()
 
+	// catch any unitialized fields in the state
+	state.init()
+
+	return state, nil
+}
+
+func ReadStateV3(jsonBytes []byte) (*State, error) {
+	state := &State{}
+	if err := json.Unmarshal(jsonBytes, state); err != nil {
+		return nil, fmt.Errorf("Decoding state file failed: %v", err)
+	}
+
+	// Check the version, this to ensure we don't read a future
+	// version that we don't understand
+	if state.Version > StateVersion {
+		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+			SemVersion.String(), state.Version)
+	}
+
+	// Make sure the version is semantic
+	if state.TFVersion != "" {
+		if _, err := version.NewVersion(state.TFVersion); err != nil {
+			return nil, fmt.Errorf(
+				"State contains invalid version: %s\n\n"+
+					"Terraform validates the version format prior to writing it. This\n"+
+					"means that this is invalid of the state becoming corrupted through\n"+
+					"some external means. Please manually modify the Terraform version\n"+
+					"field to be a proper semantic version.",
+				state.TFVersion)
+		}
+	}
+
+	// Sort it
+	state.sort()
+
+	// catch any unitialized fields in the state
+	state.init()
+
+	// Now we write the state back out to detect any changes in normaliztion.
+	// If our state is now written out differently, bump the serial number to
+	// prevent conflicts.
+	var buf bytes.Buffer
+	err := WriteState(state, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	if !bytes.Equal(jsonBytes, buf.Bytes()) {
+		log.Println("[INFO] state modified during read or write. incrementing serial number")
+		state.Serial++
+	}
+
 	return state, nil
 }
 
@@ -1481,6 +1752,9 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 func WriteState(d *State, dst io.Writer) error {
 	// Make sure it is sorted
 	d.sort()
+
+	// make sure we have no uninitialized fields
+	d.init()
 
 	// Ensure the version is set
 	d.Version = StateVersion
@@ -1538,3 +1812,12 @@ func (s moduleStateSort) Less(i, j int) bool {
 func (s moduleStateSort) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
+
+const stateValidateErrMultiModule = `
+Multiple modules with the same path: %s
+
+This means that there are multiple entries in the "modules" field
+in your state file that point to the same module. This will cause Terraform
+to behave in unexpected and error prone ways and is invalid. Please back up
+and modify your state file manually to resolve this.
+`

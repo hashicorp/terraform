@@ -133,6 +133,12 @@ type ObjectItem struct {
 }
 
 func (o *ObjectItem) Pos() token.Pos {
+	// I'm not entirely sure what causes this, but removing this causes
+	// a test failure. We should investigate at some point.
+	if len(o.Keys) == 0 {
+		return token.Pos{}
+	}
+
 	return o.Keys[0].Pos()
 }
 
@@ -208,4 +214,5 @@ func (c *CommentGroup) Pos() token.Pos {
 // GoStringer
 //-------------------------------------------------------------------
 
-func (o *ObjectKey) GoString() string { return fmt.Sprintf("*%#v", *o) }
+func (o *ObjectKey) GoString() string  { return fmt.Sprintf("*%#v", *o) }
+func (o *ObjectList) GoString() string { return fmt.Sprintf("*%#v", *o) }

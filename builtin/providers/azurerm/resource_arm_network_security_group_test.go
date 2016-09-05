@@ -36,7 +36,7 @@ func TestAccAzureRMNetworkSecurityGroup_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_network_security_group.test", "tags.#", "2"),
+						"azurerm_network_security_group.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_network_security_group.test", "tags.environment", "Production"),
 					resource.TestCheckResourceAttr(
@@ -49,7 +49,7 @@ func TestAccAzureRMNetworkSecurityGroup_withTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_network_security_group.test", "tags.#", "1"),
+						"azurerm_network_security_group.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_network_security_group.test", "tags.environment", "staging"),
 				),

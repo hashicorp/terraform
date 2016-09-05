@@ -1,0 +1,986 @@
+package aws
+
+import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/hex"
+	"fmt"
+	"log"
+	"strconv"
+	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
+)
+
+func resourceAwsSpotFleetRequest() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsSpotFleetRequestCreate,
+		Read:   resourceAwsSpotFleetRequestRead,
+		Delete: resourceAwsSpotFleetRequestDelete,
+		Update: resourceAwsSpotFleetRequestUpdate,
+
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsSpotFleetRequestMigrateState,
+
+		Schema: map[string]*schema.Schema{
+			"iam_fleet_role": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			// http://docs.aws.amazon.com/sdk-for-go/api/service/ec2.html#type-SpotFleetLaunchSpecification
+			// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SpotFleetLaunchSpecification.html
+			"launch_specification": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"vpc_security_group_ids": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"associate_public_ip_address": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+						"ebs_block_device": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"delete_on_termination": &schema.Schema{
+										Type:     schema.TypeBool,
+										Optional: true,
+										Default:  true,
+										ForceNew: true,
+									},
+									"device_name": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+										ForceNew: true,
+									},
+									"encrypted": &schema.Schema{
+										Type:     schema.TypeBool,
+										Optional: true,
+										Computed: true,
+										ForceNew: true,
+									},
+									"iops": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+										Computed: true,
+										ForceNew: true,
+									},
+									"snapshot_id": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+										ForceNew: true,
+									},
+									"volume_size": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+										Computed: true,
+										ForceNew: true,
+									},
+									"volume_type": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+										ForceNew: true,
+									},
+								},
+							},
+							Set: hashEbsBlockDevice,
+						},
+						"ephemeral_block_device": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"device_name": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"virtual_name": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+							Set: hashEphemeralBlockDevice,
+						},
+						"root_block_device": &schema.Schema{
+							// TODO: This is a set because we don't support singleton
+							//       sub-resources today. We'll enforce that the set only ever has
+							//       length zero or one below. When TF gains support for
+							//       sub-resources this can be converted.
+							Type:     schema.TypeSet,
+							Optional: true,
+							Computed: true,
+							Elem: &schema.Resource{
+								// "You can only modify the volume size, volume type, and Delete on
+								// Termination flag on the block device mapping entry for the root
+								// device volume." - bit.ly/ec2bdmap
+								Schema: map[string]*schema.Schema{
+									"delete_on_termination": &schema.Schema{
+										Type:     schema.TypeBool,
+										Optional: true,
+										Default:  true,
+										ForceNew: true,
+									},
+									"iops": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+										Computed: true,
+										ForceNew: true,
+									},
+									"volume_size": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+										Computed: true,
+										ForceNew: true,
+									},
+									"volume_type": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+										ForceNew: true,
+									},
+								},
+							},
+							Set: hashRootBlockDevice,
+						},
+						"ebs_optimized": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"iam_instance_profile": &schema.Schema{
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Optional: true,
+						},
+						"ami": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"instance_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"key_name": &schema.Schema{
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     true,
+							Computed:     true,
+							ValidateFunc: validateSpotFleetRequestKeyName,
+						},
+						"monitoring": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"placement_group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+						"spot_price": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"user_data": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							StateFunc: func(v interface{}) string {
+								switch v.(type) {
+								case string:
+									hash := sha1.Sum([]byte(v.(string)))
+									return hex.EncodeToString(hash[:])
+								default:
+									return ""
+								}
+							},
+						},
+						"weighted_capacity": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"subnet_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+						"availability_zone": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: hashLaunchSpecification,
+			},
+			// Everything on a spot fleet is ForceNew except target_capacity
+			"target_capacity": &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+				ForceNew: false,
+			},
+			"allocation_strategy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "lowestPrice",
+				ForceNew: true,
+			},
+			"excess_capacity_termination_policy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "Default",
+				ForceNew: false,
+			},
+			"spot_price": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"terminate_instances_with_expiration": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+			"valid_from": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"valid_until": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"spot_request_state": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"client_token": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{}) (*ec2.SpotFleetLaunchSpecification, error) {
+	conn := meta.(*AWSClient).ec2conn
+
+	opts := &ec2.SpotFleetLaunchSpecification{
+		ImageId:      aws.String(d["ami"].(string)),
+		InstanceType: aws.String(d["instance_type"].(string)),
+		SpotPrice:    aws.String(d["spot_price"].(string)),
+	}
+
+	if v, ok := d["availability_zone"]; ok {
+		opts.Placement = &ec2.SpotPlacement{
+			AvailabilityZone: aws.String(v.(string)),
+		}
+	}
+
+	if v, ok := d["ebs_optimized"]; ok {
+		opts.EbsOptimized = aws.Bool(v.(bool))
+	}
+
+	if v, ok := d["monitoring"]; ok {
+		opts.Monitoring = &ec2.SpotFleetMonitoring{
+			Enabled: aws.Bool(v.(bool)),
+		}
+	}
+
+	if v, ok := d["iam_instance_profile"]; ok {
+		opts.IamInstanceProfile = &ec2.IamInstanceProfileSpecification{
+			Name: aws.String(v.(string)),
+		}
+	}
+
+	if v, ok := d["user_data"]; ok {
+		opts.UserData = aws.String(
+			base64.StdEncoding.EncodeToString([]byte(v.(string))))
+	}
+
+	if v, ok := d["key_name"]; ok {
+		opts.KeyName = aws.String(v.(string))
+	}
+
+	if v, ok := d["weighted_capacity"]; ok && v != "" {
+		wc, err := strconv.ParseFloat(v.(string), 64)
+		if err != nil {
+			return nil, err
+		}
+		opts.WeightedCapacity = aws.Float64(wc)
+	}
+
+	var groups []*string
+	if v, ok := d["security_groups"]; ok {
+		sgs := v.(*schema.Set).List()
+		for _, v := range sgs {
+			str := v.(string)
+			groups = append(groups, aws.String(str))
+		}
+	}
+
+	var groupIds []*string
+	if v, ok := d["vpc_security_group_ids"]; ok {
+		if s := v.(*schema.Set); s.Len() > 0 {
+			for _, v := range s.List() {
+				opts.SecurityGroups = append(opts.SecurityGroups, &ec2.GroupIdentifier{GroupId: aws.String(v.(string))})
+				groupIds = append(groupIds, aws.String(v.(string)))
+			}
+		}
+	}
+
+	subnetId, hasSubnetId := d["subnet_id"]
+	if hasSubnetId {
+		opts.SubnetId = aws.String(subnetId.(string))
+	}
+
+	associatePublicIpAddress, hasPublicIpAddress := d["associate_public_ip_address"]
+	if hasPublicIpAddress && associatePublicIpAddress.(bool) == true && hasSubnetId {
+
+		// If we have a non-default VPC / Subnet specified, we can flag
+		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
+		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
+		// you get: Network interfaces and an instance-level subnet ID may not be specified on the same request
+		// You also need to attach Security Groups to the NetworkInterface instead of the instance,
+		// to avoid: Network interfaces and an instance-level security groups may not be specified on
+		// the same request
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			AssociatePublicIpAddress: aws.Bool(true),
+			DeviceIndex:              aws.Int64(int64(0)),
+			SubnetId:                 aws.String(subnetId.(string)),
+			Groups:                   groupIds,
+		}
+
+		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+		opts.SubnetId = aws.String("")
+	}
+
+	blockDevices, err := readSpotFleetBlockDeviceMappingsFromConfig(d, conn)
+	if err != nil {
+		return nil, err
+	}
+	if len(blockDevices) > 0 {
+		opts.BlockDeviceMappings = blockDevices
+	}
+
+	return opts, nil
+}
+
+func validateSpotFleetRequestKeyName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if value == "" {
+		errors = append(errors, fmt.Errorf("Key name cannot be empty."))
+	}
+
+	return
+}
+
+func readSpotFleetBlockDeviceMappingsFromConfig(
+	d map[string]interface{}, conn *ec2.EC2) ([]*ec2.BlockDeviceMapping, error) {
+	blockDevices := make([]*ec2.BlockDeviceMapping, 0)
+
+	if v, ok := d["ebs_block_device"]; ok {
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			bd := v.(map[string]interface{})
+			ebs := &ec2.EbsBlockDevice{
+				DeleteOnTermination: aws.Bool(bd["delete_on_termination"].(bool)),
+			}
+
+			if v, ok := bd["snapshot_id"].(string); ok && v != "" {
+				ebs.SnapshotId = aws.String(v)
+			}
+
+			if v, ok := bd["encrypted"].(bool); ok && v {
+				ebs.Encrypted = aws.Bool(v)
+			}
+
+			if v, ok := bd["volume_size"].(int); ok && v != 0 {
+				ebs.VolumeSize = aws.Int64(int64(v))
+			}
+
+			if v, ok := bd["volume_type"].(string); ok && v != "" {
+				ebs.VolumeType = aws.String(v)
+			}
+
+			if v, ok := bd["iops"].(int); ok && v > 0 {
+				ebs.Iops = aws.Int64(int64(v))
+			}
+
+			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
+				DeviceName: aws.String(bd["device_name"].(string)),
+				Ebs:        ebs,
+			})
+		}
+	}
+
+	if v, ok := d["ephemeral_block_device"]; ok {
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			bd := v.(map[string]interface{})
+			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
+				DeviceName:  aws.String(bd["device_name"].(string)),
+				VirtualName: aws.String(bd["virtual_name"].(string)),
+			})
+		}
+	}
+
+	if v, ok := d["root_block_device"]; ok {
+		vL := v.(*schema.Set).List()
+		if len(vL) > 1 {
+			return nil, fmt.Errorf("Cannot specify more than one root_block_device.")
+		}
+		for _, v := range vL {
+			bd := v.(map[string]interface{})
+			ebs := &ec2.EbsBlockDevice{
+				DeleteOnTermination: aws.Bool(bd["delete_on_termination"].(bool)),
+			}
+
+			if v, ok := bd["volume_size"].(int); ok && v != 0 {
+				ebs.VolumeSize = aws.Int64(int64(v))
+			}
+
+			if v, ok := bd["volume_type"].(string); ok && v != "" {
+				ebs.VolumeType = aws.String(v)
+			}
+
+			if v, ok := bd["iops"].(int); ok && v > 0 {
+				ebs.Iops = aws.Int64(int64(v))
+			}
+
+			if dn, err := fetchRootDeviceName(d["ami"].(string), conn); err == nil {
+				if dn == nil {
+					return nil, fmt.Errorf(
+						"Expected 1 AMI for ID: %s, got none",
+						d["ami"].(string))
+				}
+
+				blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
+					DeviceName: dn,
+					Ebs:        ebs,
+				})
+			} else {
+				return nil, err
+			}
+		}
+	}
+
+	return blockDevices, nil
+}
+
+func buildAwsSpotFleetLaunchSpecifications(
+	d *schema.ResourceData, meta interface{}) ([]*ec2.SpotFleetLaunchSpecification, error) {
+
+	user_specs := d.Get("launch_specification").(*schema.Set).List()
+	specs := make([]*ec2.SpotFleetLaunchSpecification, len(user_specs))
+	for i, user_spec := range user_specs {
+		user_spec_map := user_spec.(map[string]interface{})
+		// panic: interface conversion: interface {} is map[string]interface {}, not *schema.ResourceData
+		opts, err := buildSpotFleetLaunchSpecification(user_spec_map, meta)
+		if err != nil {
+			return nil, err
+		}
+		specs[i] = opts
+	}
+
+	return specs, nil
+}
+
+func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{}) error {
+	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RequestSpotFleet.html
+	conn := meta.(*AWSClient).ec2conn
+
+	launch_specs, err := buildAwsSpotFleetLaunchSpecifications(d, meta)
+	if err != nil {
+		return err
+	}
+
+	// http://docs.aws.amazon.com/sdk-for-go/api/service/ec2.html#type-SpotFleetRequestConfigData
+	spotFleetConfig := &ec2.SpotFleetRequestConfigData{
+		IamFleetRole:                     aws.String(d.Get("iam_fleet_role").(string)),
+		LaunchSpecifications:             launch_specs,
+		SpotPrice:                        aws.String(d.Get("spot_price").(string)),
+		TargetCapacity:                   aws.Int64(int64(d.Get("target_capacity").(int))),
+		ClientToken:                      aws.String(resource.UniqueId()),
+		TerminateInstancesWithExpiration: aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
+	}
+
+	if v, ok := d.GetOk("excess_capacity_termination_policy"); ok {
+		spotFleetConfig.ExcessCapacityTerminationPolicy = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("allocation_strategy"); ok {
+		spotFleetConfig.AllocationStrategy = aws.String(v.(string))
+	} else {
+		spotFleetConfig.AllocationStrategy = aws.String("lowestPrice")
+	}
+
+	if v, ok := d.GetOk("valid_from"); ok {
+		valid_from, err := time.Parse(awsAutoscalingScheduleTimeLayout, v.(string))
+		if err != nil {
+			return err
+		}
+		spotFleetConfig.ValidFrom = &valid_from
+	}
+
+	if v, ok := d.GetOk("valid_until"); ok {
+		valid_until, err := time.Parse(awsAutoscalingScheduleTimeLayout, v.(string))
+		if err != nil {
+			return err
+		}
+		spotFleetConfig.ValidUntil = &valid_until
+	} else {
+		valid_until := time.Now().Add(24 * time.Hour)
+		spotFleetConfig.ValidUntil = &valid_until
+	}
+
+	// http://docs.aws.amazon.com/sdk-for-go/api/service/ec2.html#type-RequestSpotFleetInput
+	spotFleetOpts := &ec2.RequestSpotFleetInput{
+		SpotFleetRequestConfig: spotFleetConfig,
+		DryRun:                 aws.Bool(false),
+	}
+
+	log.Printf("[DEBUG] Requesting spot fleet with these opts: %+v", spotFleetOpts)
+
+	// Since IAM is eventually consistent, we retry creation as a newly created role may not
+	// take effect immediately, resulting in an InvalidSpotFleetRequestConfig error
+	var resp *ec2.RequestSpotFleetOutput
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		var err error
+		resp, err = conn.RequestSpotFleet(spotFleetOpts)
+
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				// IAM is eventually consistent :/
+				if awsErr.Code() == "InvalidSpotFleetRequestConfig" {
+					return resource.RetryableError(
+						fmt.Errorf("[WARN] Error creating Spot fleet request, retrying: %s", err))
+				}
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("Error requesting spot fleet: %s", err)
+	}
+
+	d.SetId(*resp.SpotFleetRequestId)
+
+	log.Printf("[INFO] Spot Fleet Request ID: %s", d.Id())
+	log.Println("[INFO] Waiting for Spot Fleet Request to be active")
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"submitted"},
+		Target:     []string{"active"},
+		Refresh:    resourceAwsSpotFleetRequestStateRefreshFunc(d, meta),
+		Timeout:    10 * time.Minute,
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
+
+	return resourceAwsSpotFleetRequestRead(d, meta)
+}
+
+func resourceAwsSpotFleetRequestStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		conn := meta.(*AWSClient).ec2conn
+		req := &ec2.DescribeSpotFleetRequestsInput{
+			SpotFleetRequestIds: []*string{aws.String(d.Id())},
+		}
+		resp, err := conn.DescribeSpotFleetRequests(req)
+
+		if err != nil {
+			log.Printf("Error on retrieving Spot Fleet Request when waiting: %s", err)
+			return nil, "", nil
+		}
+
+		if resp == nil {
+			return nil, "", nil
+		}
+
+		if len(resp.SpotFleetRequestConfigs) == 0 {
+			return nil, "", nil
+		}
+
+		spotFleetRequest := resp.SpotFleetRequestConfigs[0]
+
+		return spotFleetRequest, *spotFleetRequest.SpotFleetRequestState, nil
+	}
+}
+
+func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) error {
+	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSpotFleetRequests.html
+	conn := meta.(*AWSClient).ec2conn
+
+	req := &ec2.DescribeSpotFleetRequestsInput{
+		SpotFleetRequestIds: []*string{aws.String(d.Id())},
+	}
+	resp, err := conn.DescribeSpotFleetRequests(req)
+
+	if err != nil {
+		// If the spot request was not found, return nil so that we can show
+		// that it is gone.
+		ec2err, ok := err.(awserr.Error)
+		if ok && ec2err.Code() == "InvalidSpotFleetRequestID.NotFound" {
+			d.SetId("")
+			return nil
+		}
+
+		// Some other error, report it
+		return err
+	}
+
+	sfr := resp.SpotFleetRequestConfigs[0]
+
+	// if the request is cancelled, then it is gone
+	cancelledStates := map[string]bool{
+		"cancelled":             true,
+		"cancelled_running":     true,
+		"cancelled_terminating": true,
+	}
+	if _, ok := cancelledStates[*sfr.SpotFleetRequestState]; ok {
+		d.SetId("")
+		return nil
+	}
+
+	d.SetId(*sfr.SpotFleetRequestId)
+	d.Set("spot_request_state", aws.StringValue(sfr.SpotFleetRequestState))
+
+	config := sfr.SpotFleetRequestConfig
+
+	if config.AllocationStrategy != nil {
+		d.Set("allocation_strategy", aws.StringValue(config.AllocationStrategy))
+	}
+
+	if config.ClientToken != nil {
+		d.Set("client_token", aws.StringValue(config.ClientToken))
+	}
+
+	if config.ExcessCapacityTerminationPolicy != nil {
+		d.Set("excess_capacity_termination_policy",
+			aws.StringValue(config.ExcessCapacityTerminationPolicy))
+	}
+
+	if config.IamFleetRole != nil {
+		d.Set("iam_fleet_role", aws.StringValue(config.IamFleetRole))
+	}
+
+	if config.SpotPrice != nil {
+		d.Set("spot_price", aws.StringValue(config.SpotPrice))
+	}
+
+	if config.TargetCapacity != nil {
+		d.Set("target_capacity", aws.Int64Value(config.TargetCapacity))
+	}
+
+	if config.TerminateInstancesWithExpiration != nil {
+		d.Set("terminate_instances_with_expiration",
+			aws.BoolValue(config.TerminateInstancesWithExpiration))
+	}
+
+	if config.ValidFrom != nil {
+		d.Set("valid_from",
+			aws.TimeValue(config.ValidFrom).Format(awsAutoscalingScheduleTimeLayout))
+	}
+
+	if config.ValidUntil != nil {
+		d.Set("valid_until",
+			aws.TimeValue(config.ValidUntil).Format(awsAutoscalingScheduleTimeLayout))
+	}
+
+	d.Set("launch_specification", launchSpecsToSet(config.LaunchSpecifications, conn))
+
+	return nil
+}
+
+func launchSpecsToSet(ls []*ec2.SpotFleetLaunchSpecification, conn *ec2.EC2) *schema.Set {
+	specs := &schema.Set{F: hashLaunchSpecification}
+	for _, val := range ls {
+		dn, err := fetchRootDeviceName(aws.StringValue(val.ImageId), conn)
+		if err != nil {
+			log.Panic(err)
+		} else {
+			ls := launchSpecToMap(val, dn)
+			specs.Add(ls)
+		}
+	}
+	return specs
+}
+
+func launchSpecToMap(
+	l *ec2.SpotFleetLaunchSpecification,
+	rootDevName *string,
+) map[string]interface{} {
+	m := make(map[string]interface{})
+
+	m["root_block_device"] = rootBlockDeviceToSet(l.BlockDeviceMappings, rootDevName)
+	m["ebs_block_device"] = ebsBlockDevicesToSet(l.BlockDeviceMappings, rootDevName)
+	m["ephemeral_block_device"] = ephemeralBlockDevicesToSet(l.BlockDeviceMappings)
+
+	if l.ImageId != nil {
+		m["ami"] = aws.StringValue(l.ImageId)
+	}
+
+	if l.InstanceType != nil {
+		m["instance_type"] = aws.StringValue(l.InstanceType)
+	}
+
+	if l.SpotPrice != nil {
+		m["spot_price"] = aws.StringValue(l.SpotPrice)
+	}
+
+	if l.EbsOptimized != nil {
+		m["ebs_optimized"] = aws.BoolValue(l.EbsOptimized)
+	}
+
+	if l.Monitoring != nil && l.Monitoring.Enabled != nil {
+		m["monitoring"] = aws.BoolValue(l.Monitoring.Enabled)
+	}
+
+	if l.IamInstanceProfile != nil && l.IamInstanceProfile.Name != nil {
+		m["iam_instance_profile"] = aws.StringValue(l.IamInstanceProfile.Name)
+	}
+
+	if l.UserData != nil {
+		ud_dec, err := base64.StdEncoding.DecodeString(aws.StringValue(l.UserData))
+		if err == nil {
+			m["user_data"] = string(ud_dec)
+		}
+	}
+
+	if l.KeyName != nil {
+		m["key_name"] = aws.StringValue(l.KeyName)
+	}
+
+	if l.Placement != nil {
+		m["availability_zone"] = aws.StringValue(l.Placement.AvailabilityZone)
+	}
+
+	if l.SubnetId != nil {
+		m["subnet_id"] = aws.StringValue(l.SubnetId)
+	}
+
+	if l.WeightedCapacity != nil {
+		m["weighted_capacity"] = strconv.FormatFloat(*l.WeightedCapacity, 'f', 0, 64)
+	}
+
+	// m["security_groups"] = securityGroupsToSet(l.SecutiryGroups)
+	return m
+}
+
+func ebsBlockDevicesToSet(bdm []*ec2.BlockDeviceMapping, rootDevName *string) *schema.Set {
+	set := &schema.Set{F: hashEphemeralBlockDevice}
+
+	for _, val := range bdm {
+		if val.Ebs != nil {
+			m := make(map[string]interface{})
+
+			ebs := val.Ebs
+
+			if val.DeviceName != nil {
+				if aws.StringValue(rootDevName) == aws.StringValue(val.DeviceName) {
+					continue
+				}
+
+				m["device_name"] = aws.StringValue(val.DeviceName)
+			}
+
+			if ebs.DeleteOnTermination != nil {
+				m["delete_on_termination"] = aws.BoolValue(ebs.DeleteOnTermination)
+			}
+
+			if ebs.SnapshotId != nil {
+				m["snapshot_id"] = aws.StringValue(ebs.SnapshotId)
+			}
+
+			if ebs.Encrypted != nil {
+				m["encrypted"] = aws.BoolValue(ebs.Encrypted)
+			}
+
+			if ebs.VolumeSize != nil {
+				m["volume_size"] = aws.Int64Value(ebs.VolumeSize)
+			}
+
+			if ebs.VolumeType != nil {
+				m["volume_type"] = aws.StringValue(ebs.VolumeType)
+			}
+
+			if ebs.Iops != nil {
+				m["iops"] = aws.Int64Value(ebs.Iops)
+			}
+
+			set.Add(m)
+		}
+	}
+
+	return set
+}
+
+func ephemeralBlockDevicesToSet(bdm []*ec2.BlockDeviceMapping) *schema.Set {
+	set := &schema.Set{F: hashEphemeralBlockDevice}
+
+	for _, val := range bdm {
+		if val.VirtualName != nil {
+			m := make(map[string]interface{})
+			m["virtual_name"] = aws.StringValue(val.VirtualName)
+
+			if val.DeviceName != nil {
+				m["device_name"] = aws.StringValue(val.DeviceName)
+			}
+
+			set.Add(m)
+		}
+	}
+
+	return set
+}
+
+func rootBlockDeviceToSet(
+	bdm []*ec2.BlockDeviceMapping,
+	rootDevName *string,
+) *schema.Set {
+	set := &schema.Set{F: hashRootBlockDevice}
+
+	if rootDevName != nil {
+		for _, val := range bdm {
+			if aws.StringValue(val.DeviceName) == aws.StringValue(rootDevName) {
+				m := make(map[string]interface{})
+				if val.Ebs.DeleteOnTermination != nil {
+					m["delete_on_termination"] = aws.BoolValue(val.Ebs.DeleteOnTermination)
+				}
+
+				if val.Ebs.VolumeSize != nil {
+					m["volume_size"] = aws.Int64Value(val.Ebs.VolumeSize)
+				}
+
+				if val.Ebs.VolumeType != nil {
+					m["volume_type"] = aws.StringValue(val.Ebs.VolumeType)
+				}
+
+				if val.Ebs.Iops != nil {
+					m["iops"] = aws.Int64Value(val.Ebs.Iops)
+				}
+
+				set.Add(m)
+			}
+		}
+	}
+
+	return set
+}
+
+func resourceAwsSpotFleetRequestUpdate(d *schema.ResourceData, meta interface{}) error {
+	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifySpotFleetRequest.html
+	conn := meta.(*AWSClient).ec2conn
+
+	d.Partial(true)
+
+	req := &ec2.ModifySpotFleetRequestInput{
+		SpotFleetRequestId: aws.String(d.Id()),
+	}
+
+	if val, ok := d.GetOk("target_capacity"); ok {
+		req.TargetCapacity = aws.Int64(int64(val.(int)))
+	}
+
+	if val, ok := d.GetOk("excess_capacity_termination_policy"); ok {
+		req.ExcessCapacityTerminationPolicy = aws.String(val.(string))
+	}
+
+	resp, err := conn.ModifySpotFleetRequest(req)
+	if err == nil && aws.BoolValue(resp.Return) {
+		// TODO: rollback to old values?
+	}
+
+	return nil
+}
+
+func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{}) error {
+	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CancelSpotFleetRequests.html
+	conn := meta.(*AWSClient).ec2conn
+
+	log.Printf("[INFO] Cancelling spot fleet request: %s", d.Id())
+	_, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
+		SpotFleetRequestIds: []*string{aws.String(d.Id())},
+		TerminateInstances:  aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
+	})
+
+	if err != nil {
+		return fmt.Errorf("Error cancelling spot request (%s): %s", d.Id(), err)
+	}
+
+	return nil
+}
+
+func hashEphemeralBlockDevice(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["virtual_name"].(string)))
+	return hashcode.String(buf.String())
+}
+
+func hashRootBlockDevice(v interface{}) int {
+	// there can be only one root device; no need to hash anything
+	return 0
+}
+
+func hashLaunchSpecification(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["ami"].(string)))
+	if m["availability_zone"] != "" {
+		buf.WriteString(fmt.Sprintf("%s-", m["availability_zone"].(string)))
+	}
+	if m["subnet_id"] != "" {
+		buf.WriteString(fmt.Sprintf("%s-", m["subnet_id"].(string)))
+	}
+	buf.WriteString(fmt.Sprintf("%s-", m["instance_type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["spot_price"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["user_data"].(string)))
+	return hashcode.String(buf.String())
+}
+
+func hashEbsBlockDevice(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
+	return hashcode.String(buf.String())
+}

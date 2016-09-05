@@ -2,6 +2,7 @@ package schema
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"strconv"
 )
@@ -33,6 +34,7 @@ func SerializeValueForHash(buf *bytes.Buffer, val interface{}, schema *Schema) {
 		}
 		buf.WriteRune(')')
 	case TypeMap:
+
 		m := val.(map[string]interface{})
 		var keys []string
 		for k := range m {
@@ -42,9 +44,24 @@ func SerializeValueForHash(buf *bytes.Buffer, val interface{}, schema *Schema) {
 		buf.WriteRune('[')
 		for _, k := range keys {
 			innerVal := m[k]
+			if innerVal == nil {
+				continue
+			}
 			buf.WriteString(k)
 			buf.WriteRune(':')
-			serializeCollectionMemberForHash(buf, innerVal, schema.Elem)
+
+			switch innerVal := innerVal.(type) {
+			case int:
+				buf.WriteString(strconv.Itoa(innerVal))
+			case float64:
+				buf.WriteString(strconv.FormatFloat(innerVal, 'g', -1, 64))
+			case string:
+				buf.WriteString(innerVal)
+			default:
+				panic(fmt.Sprintf("unknown value type in TypeMap %T", innerVal))
+			}
+
+			buf.WriteRune(';')
 		}
 		buf.WriteRune(']')
 	case TypeSet:
@@ -100,6 +117,6 @@ func serializeCollectionMemberForHash(buf *bytes.Buffer, val interface{}, elem i
 		SerializeResourceForHash(buf, val, tElem)
 		buf.WriteString(">;")
 	default:
-		panic("invalid element type")
+		panic(fmt.Sprintf("invalid element type: %T", tElem))
 	}
 }

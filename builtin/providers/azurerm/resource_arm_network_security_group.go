@@ -3,10 +3,13 @@ package azurerm
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -16,6 +19,9 @@ func resourceArmNetworkSecurityGroup() *schema.Resource {
 		Read:   resourceArmNetworkSecurityGroupRead,
 		Update: resourceArmNetworkSecurityGroupCreate,
 		Delete: resourceArmNetworkSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -157,6 +163,18 @@ func resourceArmNetworkSecurityGroupCreate(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Cannot read Virtual Network %s (resource group %s) ID", name, resGroup)
 	}
 
+	log.Printf("[DEBUG] Waiting for NSG (%s) to become available", d.Get("name"))
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"Updating", "Creating"},
+		Target:     []string{"Succeeded"},
+		Refresh:    networkSecurityGroupStateRefreshFunc(client, resGroup, name),
+		Timeout:    30 * time.Minute,
+		MinTimeout: 15 * time.Second,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for NSG (%s) to become available: %s", d.Get("name"), err)
+	}
+
 	d.SetId(*read.ID)
 
 	return resourceArmNetworkSecurityGroupRead(d, meta)
@@ -173,18 +191,20 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 	name := id.Path["networkSecurityGroups"]
 
 	resp, err := secGroupClient.Get(resGroup, name, "")
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure Network Security Group %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure Network Security Group %s: %s", name, err)
 	}
 
 	if resp.Properties.SecurityRules != nil {
 		d.Set("security_rule", flattenNetworkSecurityRules(resp.Properties.SecurityRules))
 	}
 
+	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
 	flattenAndSetTags(d, resp.Tags)
 
 	return nil
@@ -281,4 +301,15 @@ func expandAzureRmSecurityRules(d *schema.ResourceData) ([]network.SecurityRule,
 	}
 
 	return rules, nil
+}
+
+func networkSecurityGroupStateRefreshFunc(client *ArmClient, resourceGroupName string, sgName string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		res, err := client.secGroupClient.Get(resourceGroupName, sgName, "")
+		if err != nil {
+			return nil, "", fmt.Errorf("Error issuing read request in networkSecurityGroupStateRefreshFunc to Azure ARM for NSG '%s' (RG: '%s'): %s", sgName, resourceGroupName, err)
+		}
+
+		return res, *res.Properties.ProvisioningState, nil
+	}
 }

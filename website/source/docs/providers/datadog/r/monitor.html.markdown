@@ -37,6 +37,10 @@ resource "datadog_monitor" "foo" {
   silenced {
     "*" = 0
   }
+  tags {
+    "foo" = "bar"
+    "bar" = "baz"
+  }
 }
 ```
 
@@ -78,6 +82,7 @@ The following arguments are supported:
     We highly recommend you set this to False for sparse metrics, otherwise some evaluations will be skipped.
     Default: True for "on average", "at all times" and "in total" aggregation. False otherwise.
 * `locked` (Optional) A boolean indicating whether changes to to this monitor should be restricted to the creator or admins. Defaults to False.
+* `tags` (Optional) A list of tags to associate with your monitor. This can help you categorize and filter monitors in the manage monitors page of the UI. Note: it's not currently possible to filter by these tags when querying via the API
     
     To mute the alert completely:
     
@@ -96,3 +101,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - ID of the Datadog monitor
+
+## Import
+
+Monitors can be imported using their numeric ID, e.g.
+
+```
+$ terraform import datadog_monitor.bytes_received_localhost 2081
+```

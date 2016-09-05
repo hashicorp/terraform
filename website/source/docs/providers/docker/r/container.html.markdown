@@ -46,7 +46,9 @@ The following arguments are supported:
     `user` or `user:group` which user and group can be passed literraly or
     by name.
 * `dns` - (Optional, set of strings) Set of DNS servers.
-* `env` - (Optional, set of strings) Environmental variables to set.
+* `dns_opts` - (Optional, set of strings) Set of DNS options used by the DNS provider(s), see `resolv.conf` documentation for valid list of options.
+* `dns_search` - (Optional, set of strings) Set of DNS search domains that are used when bare unqualified hostnames are used inside of the container.
+* `env` - (Optional, set of strings) Environment variables to set.
 * `labels` - (Optional, map of strings) Key/value pairs to set as labels on the
   container.
 * `links` - (Optional, set of strings) Set of links for link based
@@ -68,7 +70,7 @@ The following arguments are supported:
 * `volumes` - (Optional, block) See [Volumes](#volumes) below for details.
 * `memory` - (Optional, int) The memory limit for the container in MBs.
 * `memory_swap` - (Optional, int) The total memory limit (memory + swap) for the
-  container in MBs.
+  container in MBs. This setting may compute to `-1` after `terraform apply` if the target host doesn't support memory swap, when that is the case docker will use a soft limitation.
 * `cpu_shares` - (Optional, int) CPU shares (relative weight) for the container.
 * `log_driver` - (Optional, string) The logging driver to use for the container.
   Defaults to "json-file".
@@ -77,6 +79,7 @@ The following arguments are supported:
 * `network_mode` - (Optional, string) Network mode of the container.
 * `networks` - (Optional, set of strings) Id of the networks in which the
   container is.
+* `destroy_grace_seconds` - (Optional, int) If defined will attempt to stop the container before destroying. Container will be destroyed after `n` seconds or on successful stop.
 
 <a id="ports"></a>
 ### Ports

@@ -227,7 +227,9 @@ The following arguments are supported:
 
 * `security_groups` - (Optional) An array of one or more security group names
     to associate with the server. Changing this results in adding/removing
-    security groups from the existing server.
+    security groups from the existing server. *Note*: When attaching the
+    instance to networks using Ports, place the security groups on the Port
+    and not the instance.
 
 * `availability_zone` - (Optional) The availability zone in which to create
     the server. Changing this creates a new server.
@@ -263,6 +265,11 @@ The following arguments are supported:
 * `personality` - (Optional) Customize the personality of an instance by
     defining one or more files and their contents. The personality structure
     is described below.
+
+* `stop_before_destroy` - (Optional) Whether to try stop instance gracefully
+    before destroying it, thus giving chance for guest OS daemons to stop correctly.
+    If instance doesn't stop within timeout, it will be destroyed anyway.
+
 
 The `network` block supports:
 
@@ -422,6 +429,58 @@ resource "openstack_compute_instance_v2" "foo" {
     destination_type = "local"
     source_type = "blank"
     volume_size = 1
+  }
+}
+```
+
+### Instances and Ports
+
+Neutron Ports are a great feature and provide a lot of functionality. However,
+there are some notes to be aware of when mixing Instances and Ports:
+
+* When attaching an Instance to one or more networks using Ports, place the
+security groups on the Port and not the Instance. If you place the security
+groups on the Instance, the security groups will not be applied upon creation,
+but they will be applied upon a refresh. This is a known OpenStack bug.
+
+* Network IP information is not available within an instance for networks that
+are attached with Ports. This is mostly due to the flexibility Neutron Ports
+provide when it comes to IP addresses. For example, a Neutron Port can have
+multiple Fixed IP addresses associated with it. It's not possible to know which
+single IP address the user would want returned to the Instance's state
+information. Therefore, in order for a Provisioner to connect to an Instance
+via it's network Port, customize the `connection` information:
+
+```
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  admin_state_up = "true"
+
+  network_id = "0a1d0a27-cffa-4de3-92c5-9d3fd3f2e74d"
+  security_group_ids = [
+    "2f02d20a-8dca-49b7-b26f-b6ce9fddaf4f",
+    "ca1e5ed7-dae8-4605-987b-fadaeeb30461",
+  ]
+
+}
+
+resource "openstack_compute_instance_v2" "instance_1" {
+  name        = "instance_1"
+
+  network {
+    port = "${openstack_networking_port_v2.port_1.id}"
+  }
+
+  connection {
+    user = "root"
+    host = "${openstack_networking_port_v2.port_1.fixed_ip.0.ip_address}"
+    private_key = "~/path/to/key"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo terraform executed > /tmp/foo"
+    ]
   }
 }
 ```

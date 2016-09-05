@@ -19,6 +19,7 @@ resource "azurerm_virtual_network" "test" {
   resource_group_name = "${azurerm_resource_group.test.name}"
   address_space       = ["10.0.0.0/16"]
   location            = "West US"
+  dns_servers         = ["10.0.0.4", "10.0.0.5"]
 
   subnet {
     name           = "subnet1"
@@ -58,8 +59,7 @@ The following arguments are supported:
 * `location` - (Required) The location/region where the virtual network is
     created. Changing this forces a new resource to be created.
 
-* `dns_servers` - (Optional) List of names of DNS servers previously registered
-    on Azure.
+* `dns_servers` - (Optional) List of IP addresses of DNS servers
 
 * `subnet` - (Optional) Can be specified multiple times to define multiple
     subnets. Each `subnet` block supports fields documented below.
@@ -80,3 +80,12 @@ The `subnet` block supports:
 The following attributes are exported:
 
 * `id` - The virtual NetworkConfiguration ID.
+
+
+## Import
+
+Virtual Networks can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_virtual_network.testNetwork /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/virtualNetworks/myvnet1
+```

@@ -3,7 +3,7 @@ layout: "aws"
 page_title: "AWS: aws_availability_zones"
 sidebar_current: "docs-aws-datasource-availability-zones"
 description: |-
-    Provides a list of availability zones which can be used by an AWS account
+    Provides a list of Availability Zones which can be used by an AWS account.
 ---
 
 # aws\_availability\_zones
@@ -16,24 +16,34 @@ configured in the provider.
 
 ```
 # Declare the data source
-data "aws_availability_zones" "zones" {}
+data "aws_availability_zones" "available" {}
 
-# Create a subnet in each availability zone
-resource "aws_subnet" "public" {
-    count = "${length(data.aws_availability_zones.zones.instance)}"
-    
-    availability_zone = "${data.aws_availability_zones.zones.instance[count.index]}"
+# e.g. Create subnets in the first two available availability zones
 
-    # Other properties...
+resource "aws_subnet" "primary" {
+  availability_zone = "${data.aws_availability_zones.available.names[0]}"
+
+  # Other properties...
+}
+
+resource "aws_subnet" "secondary" {
+  availability_zone = "${data.aws_availability_zones.available.names[1]}"
+
+  # Other properties...
 }
 ```
 
 ## Argument Reference
 
-There are no arguments for this data source.
+The following arguments are supported:
+
+* `state` - (Optional) Allows to filter list of Availability Zones based on their
+current state. Can be either `"available"`, `"information"`, `"impaired"` or
+`"unavailable"`. By default the list includes a complete set of Availability Zones
+to which the underlying AWS account has access, regardless of their state.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `instance` - A list of the availability zone names available to the account.
+* `names` - A list of the Availability Zone names available to the account.

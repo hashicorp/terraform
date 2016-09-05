@@ -16,6 +16,9 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 		Read:   resourceAwsCloudWatchMetricAlarmRead,
 		Update: resourceAwsCloudWatchMetricAlarmUpdate,
 		Delete: resourceAwsCloudWatchMetricAlarmDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"alarm_name": &schema.Schema{
@@ -259,7 +262,7 @@ func getAwsCloudWatchMetricAlarm(d *schema.ResourceData, meta interface{}) (*clo
 
 	resp, err := conn.DescribeAlarms(&params)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	// Find it and return it

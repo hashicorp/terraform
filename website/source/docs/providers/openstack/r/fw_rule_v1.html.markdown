@@ -88,3 +88,11 @@ The following attributes are exported:
 * `destination_port` - See Argument Reference above.
 * `enabled` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
+
+## Import
+
+Firewall Rules can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_fw_rule_v1.rule_1 8dbc0c28-e49c-463f-b712-5c5d1bbac327
+```

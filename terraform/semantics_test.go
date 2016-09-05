@@ -14,13 +14,13 @@ func TestSMCUserVariables(t *testing.T) {
 	}
 
 	// Required variables set, optional variables unset
-	errs = smcUserVariables(c, map[string]string{"foo": "bar"})
+	errs = smcUserVariables(c, map[string]interface{}{"foo": "bar"})
 	if len(errs) != 0 {
 		t.Fatalf("err: %#v", errs)
 	}
 
 	// Mapping element override
-	errs = smcUserVariables(c, map[string]string{
+	errs = smcUserVariables(c, map[string]interface{}{
 		"foo":     "bar",
 		"map.foo": "baz",
 	})
@@ -29,7 +29,7 @@ func TestSMCUserVariables(t *testing.T) {
 	}
 
 	// Mapping complete override
-	errs = smcUserVariables(c, map[string]string{
+	errs = smcUserVariables(c, map[string]interface{}{
 		"foo": "bar",
 		"map": "baz",
 	})

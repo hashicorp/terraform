@@ -19,6 +19,9 @@ func resourceAwsElasticBeanstalkApplication() *schema.Resource {
 		Read:   resourceAwsElasticBeanstalkApplicationRead,
 		Update: resourceAwsElasticBeanstalkApplicationUpdate,
 		Delete: resourceAwsElasticBeanstalkApplicationDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -94,6 +97,7 @@ func resourceAwsElasticBeanstalkApplicationRead(d *schema.ResourceData, meta int
 		return err
 	}
 
+	d.Set("name", a.ApplicationName)
 	d.Set("description", a.Description)
 	return nil
 }

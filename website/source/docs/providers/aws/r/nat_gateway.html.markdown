@@ -49,3 +49,11 @@ The following attributes are exported:
 * `network_interface_id` - The ENI ID of the network interface created by the NAT gateway.
 * `private_ip` - The private IP address of the NAT Gateway.
 * `public_ip` - The public IP address of the NAT Gateway.
+
+## Import
+
+NAT Gateways can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_nat_gateway.private_gw nat-05dba92075d71c408
+```

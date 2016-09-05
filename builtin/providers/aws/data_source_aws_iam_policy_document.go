@@ -24,20 +24,20 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 		Read: dataSourceAwsIamPolicyDocumentRead,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"policy_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"statement": &schema.Schema{
-				Type:     schema.TypeSet,
+			"statement": {
+				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"sid": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"effect": &schema.Schema{
+						"effect": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "Allow",
@@ -48,20 +48,20 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 						"not_resources":  setOfString,
 						"principals":     dataSourceAwsIamPolicyPrincipalSchema(),
 						"not_principals": dataSourceAwsIamPolicyPrincipalSchema(),
-						"condition": &schema.Schema{
+						"condition": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"test": &schema.Schema{
+									"test": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"variable": &schema.Schema{
+									"variable": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"values": &schema.Schema{
+									"values": {
 										Type:     schema.TypeSet,
 										Required: true,
 										Elem: &schema.Schema{
@@ -74,7 +74,7 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 					},
 				},
 			},
-			"json": &schema.Schema{
+			"json": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -87,17 +87,21 @@ func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}
 		Version: "2012-10-17",
 	}
 
-	if policyId, hasPolicyId := d.GetOk("id"); hasPolicyId {
+	if policyId, hasPolicyId := d.GetOk("policy_id"); hasPolicyId {
 		doc.Id = policyId.(string)
 	}
 
-	var cfgStmts = d.Get("statement").(*schema.Set).List()
+	var cfgStmts = d.Get("statement").([]interface{})
 	stmts := make([]*IAMPolicyStatement, len(cfgStmts))
 	doc.Statements = stmts
 	for i, stmtI := range cfgStmts {
 		cfgStmt := stmtI.(map[string]interface{})
 		stmt := &IAMPolicyStatement{
 			Effect: cfgStmt["effect"].(string),
+		}
+
+		if sid, ok := cfgStmt["sid"]; ok {
+			stmt.Sid = sid.(string)
 		}
 
 		if actions := cfgStmt["actions"].(*schema.Set).List(); len(actions) > 0 {
@@ -146,12 +150,19 @@ func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func dataSourceAwsIamPolicyDocumentReplaceVarsInList(in []string) []string {
-	out := make([]string, len(in))
-	for i, item := range in {
-		out[i] = dataSourceAwsIamPolicyDocumentVarReplacer.Replace(item)
+func dataSourceAwsIamPolicyDocumentReplaceVarsInList(in interface{}) interface{} {
+	switch v := in.(type) {
+	case string:
+		return dataSourceAwsIamPolicyDocumentVarReplacer.Replace(v)
+	case []string:
+		out := make([]string, len(v))
+		for i, item := range v {
+			out[i] = dataSourceAwsIamPolicyDocumentVarReplacer.Replace(item)
+		}
+		return out
+	default:
+		panic("dataSourceAwsIamPolicyDocumentReplaceVarsInList: input not string nor []string")
 	}
-	return out
 }
 
 func dataSourceAwsIamPolicyDocumentMakeConditions(in []interface{}) IAMPolicyStatementConditionSet {

@@ -328,6 +328,16 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Name:   n.ProvidedBy()[0],
 					Output: &provider,
 				},
+				// Re-run validation to catch any errors we missed, e.g. type
+				// mismatches on computed values.
+				&EvalValidateResource{
+					Provider:       &provider,
+					Config:         &resourceConfig,
+					ResourceName:   n.Resource.Name,
+					ResourceType:   n.Resource.Type,
+					ResourceMode:   n.Resource.Mode,
+					IgnoreWarnings: true,
+				},
 				&EvalReadState{
 					Name:   n.stateId(),
 					Output: &state,
@@ -335,16 +345,13 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 				&EvalDiff{
 					Info:        info,
 					Config:      &resourceConfig,
+					Resource:    n.Resource,
 					Provider:    &provider,
 					State:       &state,
 					OutputDiff:  &diff,
 					OutputState: &state,
 				},
 				&EvalCheckPreventDestroy{
-					Resource: n.Resource,
-					Diff:     &diff,
-				},
-				&EvalIgnoreChanges{
 					Resource: n.Resource,
 					Diff:     &diff,
 				},
@@ -394,7 +401,6 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 	var err error
 	var createNew bool
 	var createBeforeDestroyEnabled bool
-	var wasChangeType DiffChangeType
 	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
@@ -412,12 +418,11 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 							return true, EvalEarlyExitError{}
 						}
 
-						if diffApply.Destroy && len(diffApply.Attributes) == 0 {
+						if diffApply.GetDestroy() && diffApply.GetAttributesLen() == 0 {
 							return true, EvalEarlyExitError{}
 						}
 
-						wasChangeType = diffApply.ChangeType()
-						diffApply.Destroy = false
+						diffApply.SetDestroy(false)
 						return true, nil
 					},
 					Then: EvalNoop{},
@@ -427,7 +432,7 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					If: func(ctx EvalContext) (bool, error) {
 						destroy := false
 						if diffApply != nil {
-							destroy = diffApply.Destroy || diffApply.RequiresNew()
+							destroy = diffApply.GetDestroy() || diffApply.RequiresNew()
 						}
 
 						createBeforeDestroyEnabled =
@@ -454,19 +459,24 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Name:   n.stateId(),
 					Output: &state,
 				},
-
+				// Re-run validation to catch any errors we missed, e.g. type
+				// mismatches on computed values.
+				&EvalValidateResource{
+					Provider:       &provider,
+					Config:         &resourceConfig,
+					ResourceName:   n.Resource.Name,
+					ResourceType:   n.Resource.Type,
+					ResourceMode:   n.Resource.Mode,
+					IgnoreWarnings: true,
+				},
 				&EvalDiff{
 					Info:       info,
 					Config:     &resourceConfig,
+					Resource:   n.Resource,
 					Provider:   &provider,
 					Diff:       &diffApply,
 					State:      &state,
 					OutputDiff: &diffApply,
-				},
-				&EvalIgnoreChanges{
-					Resource:      n.Resource,
-					Diff:          &diffApply,
-					WasChangeType: &wasChangeType,
 				},
 
 				// Get the saved diff
@@ -752,7 +762,7 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 							return true, EvalEarlyExitError{}
 						}
 
-						if len(diff.Attributes) == 0 {
+						if diff.GetAttributesLen() == 0 {
 							return true, EvalEarlyExitError{}
 						}
 
@@ -877,7 +887,7 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 				// If we're not destroying, then compare diffs
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if diffApply != nil && diffApply.Destroy {
+						if diffApply != nil && diffApply.GetDestroy() {
 							return true, nil
 						}
 
@@ -885,6 +895,9 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 					},
 					Then: EvalNoop{},
 				},
+
+				// Load the instance info so we have the module path set
+				&EvalInstanceInfo{Info: info},
 
 				&EvalGetProvider{
 					Name:   n.ProvidedBy()[0],

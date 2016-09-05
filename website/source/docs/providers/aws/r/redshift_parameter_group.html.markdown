@@ -50,3 +50,11 @@ You can read more about the parameters that Redshift supports in the [documentat
 The following attributes are exported:
 
 * `id` - The Redshift parameter group name.
+
+## Import
+
+Redshift Parameter Groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_redshift_parameter_group.paramgroup1 parameter-group-test-terraform
+```

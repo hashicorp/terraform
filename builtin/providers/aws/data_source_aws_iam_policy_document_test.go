@@ -16,7 +16,7 @@ func TestAccAWSIAMPolicyDocument(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSIAMPolicyDocumentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckStateValue(
@@ -52,7 +52,9 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 
 var testAccAWSIAMPolicyDocumentConfig = `
 data "aws_iam_policy_document" "test" {
+    policy_id = "policy_id"
     statement {
+    	sid = "1"
         actions = [
             "s3:ListAllMyBuckets",
             "s3:GetBucketLocation",
@@ -73,7 +75,6 @@ data "aws_iam_policy_document" "test" {
             test = "StringLike"
             variable = "s3:prefix"
             values = [
-                "",
                 "home/",
                 "home/&{aws:username}/",
             ]
@@ -110,63 +111,51 @@ data "aws_iam_policy_document" "test" {
 
 var testAccAWSIAMPolicyDocumentExpectedJSON = `{
   "Version": "2012-10-17",
+  "Id": "policy_id",
   "Statement": [
     {
+      "Sid": "1",
       "Effect": "Allow",
       "Action": [
-        "s3:GetBucketLocation",
-        "s3:ListAllMyBuckets"
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketLocation"
       ],
-      "Resource": [
-        "arn:aws:s3:::*"
-      ]
+      "Resource": "arn:aws:s3:::*"
     },
     {
+      "Sid": "",
       "Effect": "Allow",
-      "Action": [
-        "s3:ListBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::foo"
-      ],
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::foo",
       "NotPrincipal": {
-        "AWS": [
-          "arn:blahblah:example"
-        ]
+        "AWS": "arn:blahblah:example"
       },
       "Condition": {
         "StringLike": {
           "s3:prefix": [
-            "",
-            "home/",
-            "home/${aws:username}/"
+            "home/${aws:username}/",
+            "home/"
           ]
         }
       }
     },
     {
+      "Sid": "",
       "Effect": "Allow",
-      "Action": [
-        "s3:*"
-      ],
+      "Action": "s3:*",
       "Resource": [
         "arn:aws:s3:::foo/home/${aws:username}/*",
         "arn:aws:s3:::foo/home/${aws:username}"
       ],
       "Principal": {
-        "AWS": [
-          "arn:blahblah:example"
-        ]
+        "AWS": "arn:blahblah:example"
       }
     },
     {
+      "Sid": "",
       "Effect": "Deny",
-      "NotAction": [
-        "s3:*"
-      ],
-      "NotResource": [
-        "arn:aws:s3:::*"
-      ]
+      "NotAction": "s3:*",
+      "NotResource": "arn:aws:s3:::*"
     }
   ]
 }`
