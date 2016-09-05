@@ -89,8 +89,16 @@ func resourceScalewaySecurityGroupRuleCreate(d *schema.ResourceData, m interface
 		return err
 	}
 
+	matches := func(rule api.ScalewaySecurityGroupRule) bool {
+		return rule.Action == req.Action &&
+			rule.Direction == req.Direction &&
+			rule.IPRange == req.IPRange &&
+			rule.Protocol == req.Protocol &&
+			rule.DestPortFrom == req.DestPortFrom
+	}
+
 	for _, rule := range resp.Rules {
-		if rule.Action == req.Action && rule.Direction == req.Direction && rule.IPRange == req.IPRange && rule.Protocol == req.Protocol {
+		if matches(rule) {
 			d.SetId(rule.ID)
 			break
 		}
