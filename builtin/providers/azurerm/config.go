@@ -135,12 +135,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 		return nil, err
 	}
 
-	// This is necessary because no-one thought about API usability. OAuthConfigForTenant
-	// returns a pointer, which can be nil. NewServicePrincipalToken does not take a pointer.
-	// Consequently we have to nil check this and do _something_ if it is nil, which should
-	// be either an invariant of OAuthConfigForTenant (guarantee the token is not nil if
-	// there is no error), or NewServicePrincipalToken should error out if the configuration
-	// is required and is nil. This is the worst of all worlds, however.
+	// OAuthConfigForTenant returns a pointer, which can be nil.
 	if oauthConfig == nil {
 		return nil, fmt.Errorf("Unable to configure OAuthConfig for tenant %s", c.TenantID)
 	}
