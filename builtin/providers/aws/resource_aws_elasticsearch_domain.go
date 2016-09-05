@@ -22,9 +22,9 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"access_policies": &schema.Schema{
-				Type:      schema.TypeString,
-				StateFunc: normalizeJson,
-				Optional:  true,
+				Type:             schema.TypeString,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
+				Optional:         true,
 			},
 			"advanced_options": &schema.Schema{
 				Type:     schema.TypeMap,
