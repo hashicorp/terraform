@@ -8,7 +8,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/spotinst/spotinst-sdk-go/spotinst"
 )
@@ -171,6 +170,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				ConflictsWith: []string{"availability_zones"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -184,6 +184,13 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						},
 					},
 				},
+			},
+
+			"availability_zones": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				ConflictsWith: []string{"availability_zone"},
 			},
 
 			"hot_ebs_volume": &schema.Schema{
@@ -277,12 +284,9 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 			},
 
 			"elastic_ips": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
 			},
 
 			"tags": &schema.Schema{
@@ -949,6 +953,20 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	if d.HasChange("availability_zones") {
+		if v, ok := d.GetOk("availability_zones"); ok {
+			if zones, err := expandAwsGroupAvailabilityZonesSlice(v); err != nil {
+				return err
+			} else {
+				if group.Compute == nil {
+					group.Compute = &spotinst.AwsGroupCompute{}
+				}
+				group.Compute.AvailabilityZones = zones
+				hasChange = true
+			}
+		}
+	}
+
 	if d.HasChange("hot_ebs_volume") {
 		if v, ok := d.GetOk("hot_ebs_volume"); ok {
 			if ebsVolumePool, err := expandAwsGroupEBSVolumePool(v); err != nil {
@@ -1214,6 +1232,14 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 
 	if v, ok := d.GetOk("availability_zone"); ok {
 		if zones, err := expandAwsGroupAvailabilityZones(v); err != nil {
+			return nil, err
+		} else {
+			group.Compute.AvailabilityZones = zones
+		}
+	}
+
+	if v, ok := d.GetOk("availability_zones"); ok {
+		if zones, err := expandAwsGroupAvailabilityZonesSlice(v); err != nil {
 			return nil, err
 		} else {
 			group.Compute.AvailabilityZones = zones
@@ -1505,6 +1531,28 @@ func expandAwsGroupAvailabilityZones(data interface{}) ([]*spotinst.AwsGroupComp
 
 		log.Printf("[DEBUG] AwsGroup availability zone configuration: %#v\n", zone)
 		zones = append(zones, zone)
+	}
+
+	return zones, nil
+}
+
+// expandAwsGroupAvailabilityZonesSlice expands the Availability Zone block when provided as a slice.
+func expandAwsGroupAvailabilityZonesSlice(data interface{}) ([]*spotinst.AwsGroupComputeAvailabilityZone, error) {
+	list := data.([]interface{})
+	zones := make([]*spotinst.AwsGroupComputeAvailabilityZone, 0, len(list))
+	for _, str := range list {
+		if s, ok := str.(string); ok {
+			parts := strings.Split(s, ":")
+			zone := &spotinst.AwsGroupComputeAvailabilityZone{}
+			if len(parts) >= 1 && parts[0] != "" {
+				zone.Name = spotinst.String(parts[0])
+			}
+			if len(parts) == 2 && parts[1] != "" {
+				zone.SubnetID = spotinst.String(parts[1])
+			}
+			log.Printf("[DEBUG] AwsGroup availability zone configuration: %#v\n", zone)
+			zones = append(zones, zone)
+		}
 	}
 
 	return zones, nil
@@ -1835,7 +1883,7 @@ func expandAwsGroupNirmataIntegration(data interface{}) (*spotinst.AwsGroupNirma
 
 // expandAwsGroupElasticIPs expands the Elastic IPs block.
 func expandAwsGroupElasticIPs(data interface{}) ([]string, error) {
-	list := data.(*schema.Set).List()
+	list := data.([]interface{})
 	eips := make([]string, 0, len(list))
 	for _, str := range list {
 		if eip, ok := str.(string); ok {
