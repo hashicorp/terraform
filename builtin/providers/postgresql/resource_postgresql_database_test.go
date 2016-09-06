@@ -6,19 +6,19 @@ import (
 	"testing"
 
 	"errors"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccPostgresqlDatabase_Basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPostgresqlDatabaseDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPostgresqlDatabaseConfig,
+				Config: testAccPostgreSQLDatabaseConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPostgresqlDatabaseExists("postgresql_database.mydb"),
 					resource.TestCheckResourceAttr(
@@ -32,14 +32,13 @@ func TestAccPostgresqlDatabase_Basic(t *testing.T) {
 }
 
 func TestAccPostgresqlDatabase_DefaultOwner(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPostgresqlDatabaseDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPostgresqlDatabaseConfig,
+				Config: testAccPostgreSQLDatabaseConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPostgresqlDatabaseExists("postgresql_database.mydb_default_owner"),
 					resource.TestCheckResourceAttr(
@@ -119,7 +118,7 @@ func checkDatabaseExists(client *Client, dbName string) (bool, error) {
 	}
 }
 
-var testAccPostgresqlDatabaseConfig = `
+var testAccPostgreSQLDatabaseConfig = `
 resource "postgresql_role" "myrole" {
   name = "myrole"
   login = true
@@ -133,6 +132,19 @@ resource "postgresql_database" "mydb" {
 resource "postgresql_database" "mydb2" {
    name = "mydb2"
    owner = "${postgresql_role.myrole.name}"
+}
+
+resource "postgresql_database" "mydb3" {
+   name = "mydb3"
+   owner = "${postgresql_role.myrole.name}"
+   template = "template1"
+   encoding = "SQL_ASCII"
+   lc_collate = "C"
+   lc_ctype = "C"
+   tablespace_name = "pg_default"
+   connection_limit = -1
+   allow_connections = false
+   is_template = false
 }
 
 resource "postgresql_database" "mydb_default_owner" {
