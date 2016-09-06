@@ -258,10 +258,6 @@ func getAwsAppautoscalingPutScalingPolicyInput(d *schema.ResourceData) (applicat
 		params.ServiceNamespace = aws.String(v.(string))
 	}
 
-	if v, ok := d.GetOk("policy_type"); ok {
-		params.PolicyType = aws.String(v.(string))
-	}
-
 	if v, ok := d.GetOk("scalable_dimension"); ok {
 		params.ScalableDimension = aws.String(v.(string))
 	}
