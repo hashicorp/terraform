@@ -53,9 +53,9 @@ func normalizeModulePath(p []string) []string {
 
 // State keeps track of a snapshot state-of-the-world that Terraform
 // can use to keep track of what real world resources it is actually
-// managing. This is the latest format as of Terraform 0.3
+// managing.
 type State struct {
-	// Version is the protocol version. Currently only "1".
+	// Version is the state file protocol version.
 	Version int `json:"version"`
 
 	// TFVersion is the version of Terraform that wrote this state.
