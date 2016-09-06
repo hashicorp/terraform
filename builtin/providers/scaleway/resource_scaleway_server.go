@@ -1,8 +1,11 @@
 package scaleway
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/scaleway/scaleway-cli/pkg/api"
@@ -70,6 +73,13 @@ func resourceScalewayServer() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"volumes": &schema.Schema{
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+				Required: true,
+			},
 		},
 	}
 }
@@ -89,8 +99,35 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 	server.DynamicIPRequired = Bool(d.Get("dynamic_ip_required").(bool))
 	server.CommercialType = d.Get("type").(string)
 
+	arch := ""
+	if arch == "" {
+		server.CommercialType = strings.ToUpper(server.CommercialType)
+		switch server.CommercialType[:2] {
+		case "C1":
+			arch = "arm"
+		case "C2", "VC":
+			arch = "x86_64"
+		default:
+			log.Printf("[ERROR] %s wrong commercial type", server.CommercialType)
+			return errors.New("Wrong commercial type")
+		}
+	}
+
 	if bootscript, ok := d.GetOk("bootscript"); ok {
-		server.Bootscript = String(bootscript.(string))
+		bootscript_id := bootscript.(string)
+
+		bootscripts, err := scaleway.GetBootscripts()
+		if err != nil {
+			return err
+		}
+
+		for _, b := range *bootscripts {
+			if b.Title == bootscript {
+				bootscript_id = b.Identifier
+			}
+		}
+
+		server.Bootscript = &bootscript_id
 	}
 
 	if raw, ok := d.GetOk("tags"); ok {
@@ -99,6 +136,25 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	if raw, ok := d.GetOk("volumes"); ok {
+		server.Volumes = make(map[string]string)
+		for i, vol := range raw.([]interface{}) {
+			var volume = api.ScalewayVolumeDefinition{
+				Name:         fmt.Sprintf("%s-%s", server.Name, strconv.Itoa(vol.(int))),
+				Size:         uint64(vol.(int)) * gb,
+				Type:         "l_ssd",
+				Organization: scaleway.Organization,
+			}
+			vol_id, err := scaleway.PostVolume(volume)
+			if err != nil {
+				log.Printf("[ERROR] Got error while creating volume: %q\n", err)
+				return err
+			}
+			server.Volumes[strconv.Itoa(i+1)] = vol_id
+		}
+	}
+
+	log.Printf("creating server: %q\n", server)
 	id, err := scaleway.PostServer(server)
 	if err != nil {
 		return err
