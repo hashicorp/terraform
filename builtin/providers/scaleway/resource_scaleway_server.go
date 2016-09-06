@@ -100,7 +100,7 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 	server.CommercialType = d.Get("type").(string)
 
 	if bootscript, ok := d.GetOk("bootscript"); ok {
-		bootscript_id := bootscript.(string)
+		bootscript_id := String(bootscript.(string))
 
 		bootscripts, err := scaleway.GetBootscripts()
 		if err != nil {
