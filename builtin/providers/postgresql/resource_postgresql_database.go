@@ -21,12 +21,60 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"owner": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+			},
+			"template": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of the template from which to create the new database.",
+			},
+			"encoding": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Character set encoding to use in the new database.",
+			},
+			"lc_collate": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Collation order (LC_COLLATE) to use in the new database.",
+			},
+			"lc_ctype": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Character classification (LC_CTYPE) to use in the new database.",
+			},
+			"tablespace_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of the tablespace that will be associated with the new database.",
+			},
+			"connection_limit": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "How many concurrent connections can be made to this database.",
+				ValidateFunc: func(v interface{}, key string) (warnings []string, errors []error) {
+					value := v.(int)
+					if value < -1 {
+						errors = append(errors, fmt.Errorf("%d can not be less than -1", key))
+					}
+					return
+				},
+			},
+			"allow_connections": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "If false then no one can connect to this database.",
+			},
+			"is_template": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "If true, then this database can be cloned by any user with CREATEDB privileges.",
 			},
 		},
 	}
@@ -40,24 +88,85 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	}
 	defer conn.Close()
 
-	dbName := d.Get("name").(string)
-	dbOwner := d.Get("owner").(string)
 	connUsername := client.username
 
-	var dbOwnerCfg string
-	if dbOwner != "" {
-		dbOwnerCfg = fmt.Sprintf("WITH OWNER=%s", pq.QuoteIdentifier(dbOwner))
-	} else {
-		dbOwnerCfg = ""
+	const numOptions = 9
+	createOpts := make([]string, 0, numOptions)
+
+	stringOpts := []struct {
+		hclKey string
+		sqlKey string
+	}{
+		{"owner", "OWNER"},
+		{"template", "TEMPLATE"},
+		{"encoding", "ENCODING"},
+		{"lc_collate", "LC_COLLATE"},
+		{"lc_ctype", "LC_CTYPE"},
+		{"tablespace_name", "TABLESPACE"},
+	}
+	for _, opt := range stringOpts {
+		v, ok := d.GetOk(opt.hclKey)
+		var val string
+		if !ok {
+			// Set the owner to the connection username
+			if opt.hclKey == "owner" && v.(string) == "" {
+				val = connUsername
+			} else {
+				continue
+			}
+		}
+
+		val = v.(string)
+
+		// Set the owner to the connection username
+		if opt.hclKey == "owner" && val == "" {
+			val = connUsername
+		}
+
+		if val != "" {
+			createOpts = append(createOpts, fmt.Sprintf("%s=%s", opt.sqlKey, pq.QuoteIdentifier(val)))
+		}
 	}
 
-	//needed in order to set the owner of the db if the connection user is not a superuser
-	err = grantRoleMembership(conn, dbOwner, connUsername)
-	if err != nil {
-		return err
+	intOpts := []struct {
+		hclKey string
+		sqlKey string
+	}{
+		{"connection_limit", "CONNECTION LIMIT"},
+	}
+	for _, opt := range intOpts {
+		v, ok := d.GetOk(opt.hclKey)
+		if !ok {
+			continue
+		}
+
+		val := v.(int)
+		createOpts = append(createOpts, fmt.Sprintf("%s=%d", opt.sqlKey, val))
 	}
 
-	query := fmt.Sprintf("CREATE DATABASE %s %s", pq.QuoteIdentifier(dbName), dbOwnerCfg)
+	boolOpts := []struct {
+		hclKey string
+		sqlKey string
+	}{
+		{"allow_connections", "ALLOW_CONNECTIONS"},
+		{"is_template", "IS_TEMPLATE"},
+	}
+	for _, opt := range boolOpts {
+		v, ok := d.GetOk(opt.hclKey)
+		if !ok {
+			continue
+		}
+
+		val := v.(bool)
+		createOpts = append(createOpts, fmt.Sprintf("%s=%t", opt.sqlKey, val))
+	}
+
+	dbName := d.Get("name").(string)
+	createStr := strings.Join(createOpts, " ")
+	if len(createOpts) > 0 {
+		createStr = " WITH " + createStr
+	}
+	query := fmt.Sprintf("CREATE DATABASE %s%s", pq.QuoteIdentifier(dbName), createStr)
 	_, err = conn.Query(query)
 	if err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Error creating database %s: {{err}}", dbName), err)
