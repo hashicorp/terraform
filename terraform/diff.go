@@ -2,14 +2,13 @@ package terraform
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"reflect"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
-
-	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 // DiffChangeType is an enum with the kind of changes a diff has planned.

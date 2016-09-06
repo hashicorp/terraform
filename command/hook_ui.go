@@ -10,7 +10,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -80,7 +79,7 @@ func (h *UiHook) PreApply(
 		return terraform.HookActionContinue, nil
 	}
 
-	attrBuf := new(bytesnoerror.Buffer)
+	attrBuf := new(bytes.Buffer)
 
 	// Get all the attributes that are changing, and sort them. Also
 	// determine the longest key so that we can align them all.
@@ -232,7 +231,7 @@ func (h *UiHook) ProvisionOutput(
 	provId string,
 	msg string) {
 	id := n.HumanId()
-	var buf bytesnoerror.Buffer
+	var buf bytes.Buffer
 	buf.WriteString(h.Colorize.Color("[reset]"))
 
 	prefix := fmt.Sprintf("%s (%s): ", id, provId)

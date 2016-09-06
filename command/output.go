@@ -1,13 +1,12 @@
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"sort"
 	"strings"
-
-	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 // OutputCommand is a Command implementation that reads an output
