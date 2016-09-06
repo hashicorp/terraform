@@ -26,32 +26,37 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 			"owner": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "The role name of the user who will own the new database",
 			},
 			"template": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The name of the template from which to create the new database.",
+				Description: "The name of the template from which to create the new database",
 			},
 			"encoding": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Character set encoding to use in the new database.",
+				Computed:    true,
+				Description: "Character set encoding to use in the new database",
 			},
 			"lc_collate": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Collation order (LC_COLLATE) to use in the new database.",
+				Computed:    true,
+				Description: "Collation order (LC_COLLATE) to use in the new database",
 			},
 			"lc_ctype": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Character classification (LC_CTYPE) to use in the new database.",
+				Computed:    true,
+				Description: "Character classification (LC_CTYPE) to use in the new database",
 			},
 			"tablespace_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The name of the tablespace that will be associated with the new database.",
+				Computed:    true,
+				Description: "The name of the tablespace that will be associated with the new database",
 			},
 			"connection_limit": {
 				Type:         schema.TypeInt,
@@ -63,14 +68,14 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 			"allow_connections": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     true,
-				Description: "If false then no one can connect to this database.",
+				Computed:    true,
+				Description: "If false then no one can connect to this database",
 			},
 			"is_template": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
-				Description: "If true, then this database can be cloned by any user with CREATEDB privileges.",
+				Computed:    true,
+				Description: "If true, then this database can be cloned by any user with CREATEDB privileges",
 			},
 		},
 	}
