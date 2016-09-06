@@ -319,17 +319,12 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 func (c *Communicator) UploadDir(dst string, src string) error {
 	log.Printf("Uploading dir '%s' to '%s'", src, dst)
 	scpFunc := func(w io.Writer, r *bufio.Reader) error {
-		uploadEntries := func() (err error) {
+		uploadEntries := func() error {
 			f, err := os.Open(src)
 			if err != nil {
 				return err
 			}
-			defer func() {
-				err2 := f.Close()
-				if err == nil {
-					err = err2
-				}
-			}()
+			defer f.Close()
 
 			entries, err := f.Readdir(-1)
 			if err != nil {
@@ -491,15 +486,12 @@ func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader) (err
 		return fmt.Errorf("Error creating temporary file for upload: %s", err)
 	}
 	defer func() {
-		err2 := tf.Close()
-		if err == nil {
-			err = err2
-		}
-		err2 = os.Remove(tf.Name())
+		err2 := os.Remove(tf.Name())
 		if err == nil {
 			err = err2
 		}
 	}()
+	defer tf.Close()
 
 	log.Println("Copying input data into temporary file so we can read the length")
 	if _, err := io.Copy(tf, src); err != nil {
@@ -591,13 +583,8 @@ func scpUploadDir(root string, fs []os.FileInfo, w io.Writer, r *bufio.Reader) e
 				return err
 			}
 
-			err = func() (err error) {
-				defer func() {
-					err2 := f.Close()
-					if err == nil {
-						err = err2
-					}
-				}()
+			err = func() error {
+				defer f.Close()
 				return scpUploadFile(fi.Name(), f, w, r)
 			}()
 
@@ -609,17 +596,12 @@ func scpUploadDir(root string, fs []os.FileInfo, w io.Writer, r *bufio.Reader) e
 		}
 
 		// It is a directory, recursively upload
-		err := scpUploadDirProtocol(fi.Name(), w, r, func() (err error) {
+		err := scpUploadDirProtocol(fi.Name(), w, r, func() error {
 			f, err := os.Open(realPath)
 			if err != nil {
 				return err
 			}
-			defer func() {
-				err2 := f.Close()
-				if err == nil {
-					err = err2
-				}
-			}()
+			defer f.Close()
 
 			entries, err := f.Readdir(-1)
 			if err != nil {

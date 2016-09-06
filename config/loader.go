@@ -152,17 +152,12 @@ func ext(path string) string {
 	}
 }
 
-func dirFiles(dir string) (files []string, overrides []string, err error) {
+func dirFiles(dir string) ([]string, []string, error) {
 	f, err := os.Open(dir)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer func() {
-		err2 := f.Close()
-		if err == nil {
-			err = err2
-		}
-	}()
+	defer f.Close()
 
 	fi, err := f.Stat()
 	if err != nil {
@@ -174,6 +169,7 @@ func dirFiles(dir string) (files []string, overrides []string, err error) {
 			dir)
 	}
 
+	var files, overrides []string
 	err = nil
 	for err != io.EOF {
 		var fis []os.FileInfo

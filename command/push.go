@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/atlas-go/archive"
 	"github.com/hashicorp/atlas-go/v1"
 	"github.com/hashicorp/terraform/terraform"
-	"log"
 )
 
 type PushCommand struct {
@@ -504,12 +503,7 @@ func (c *mockPushClient) Upsert(opts *pushUpsertOptions) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			log.Printf("[WARN] Error closing mockPushClient file: %v", err)
-		}
-	}()
+	defer f.Close()
 
 	data := opts.Archive
 	size := opts.Archive.Size

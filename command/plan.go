@@ -99,12 +99,7 @@ func (c *PlanCommand) Run(args []string) int {
 		log.Printf("[INFO] Writing plan output to: %s", outPath)
 		f, err := os.Create(outPath)
 		if err == nil {
-			defer func() {
-				err := f.Close()
-				if err != nil {
-					log.Printf("[WARN] Error closing plan after writing: %v", err)
-				}
-			}()
+			defer f.Close()
 			err = terraform.WritePlan(plan, f)
 		}
 		if err != nil {

@@ -42,10 +42,7 @@ func realMain() int {
 			return 1
 		}
 		defer func() {
-			err := logTempFile.Close()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Couldn't close temporary log file: %s", err)
-			}
+			logTempFile.Close()
 			err = os.Remove(logTempFile.Name())
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Couldn't remove temporary log file: %s", err)
@@ -84,10 +81,7 @@ func realMain() int {
 
 		// We're the child, so just close the tempfile we made in order to
 		// save file handles since the tempfile is only used by the parent.
-		err = logTempFile.Close()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't close temporary log file: %s", err)
-		}
+		logTempFile.Close()
 	}
 
 	// Call the real main
@@ -183,8 +177,8 @@ func cliConfigFile() (string, error) {
 	log.Printf("[DEBUG] Attempting to open CLI config file: %s", configFilePath)
 	f, err := os.Open(configFilePath)
 	if err == nil {
-		err = f.Close()
-		return configFilePath, err
+		f.Close()
+		return configFilePath, nil
 	}
 
 	if mustExist || !os.IsNotExist(err) {

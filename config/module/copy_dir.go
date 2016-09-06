@@ -9,8 +9,8 @@ import (
 
 // copyDir copies the src directory contents into dst. Both directories
 // should already exist.
-func copyDir(dst, src string) (err error) {
-	src, err = filepath.EvalSymlinks(src)
+func copyDir(dst, src string) error {
+	src, err := filepath.EvalSymlinks(src)
 	if err != nil {
 		return err
 	}
@@ -64,23 +64,13 @@ func copyDir(dst, src string) (err error) {
 		if err != nil {
 			return err
 		}
-		defer func() {
-			err2 := srcF.Close()
-			if err == nil {
-				err = err2
-			}
-		}()
+		defer srcF.Close()
 
 		dstF, err := os.Create(dstPath)
 		if err != nil {
 			return err
 		}
-		defer func() {
-			err2 := dstF.Close()
-			if err == nil {
-				err = err2
-			}
-		}()
+		defer dstF.Close()
 
 		if _, err := io.Copy(dstF, srcF); err != nil {
 			return err

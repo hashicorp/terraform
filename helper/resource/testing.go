@@ -468,14 +468,10 @@ func testModule(
 	}
 
 	_, err = io.Copy(cfgF, strings.NewReader(step.Config))
-	err2 := cfgF.Close()
+	cfgF.Close()
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Error creating temporary file for config: %s", err)
-	}
-	if err2 != nil {
-		return nil, fmt.Errorf(
-			"Error closing temporary file for config: %s", err)
 	}
 
 	// Parse the configuration

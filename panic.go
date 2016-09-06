@@ -44,12 +44,7 @@ func panicHandler(logF *os.File) panicwrap.HandlerFunc {
 			fmt.Fprintf(os.Stderr, "Failed to create crash log file: %s", err)
 			return
 		}
-		defer func() {
-			err := f.Close()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to close crash log file: %s", err)
-			}
-		}()
+		defer f.Close()
 
 		// Seek the log file back to the beginning
 		if _, err = logF.Seek(0, 0); err != nil {

@@ -34,7 +34,7 @@ func (s *LocalState) State() *terraform.State {
 // WriteState for LocalState always persists the state as well.
 //
 // StateWriter impl.
-func (s *LocalState) WriteState(state *terraform.State) (err error) {
+func (s *LocalState) WriteState(state *terraform.State) error {
 	s.state = state
 
 	path := s.PathOut
@@ -61,12 +61,7 @@ func (s *LocalState) WriteState(state *terraform.State) (err error) {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err2 := f.Close()
-		if err == nil {
-			err = err2
-		}
-	}()
+	defer f.Close()
 
 	s.state.IncrementSerialMaybe(s.readState)
 	s.readState = s.state
@@ -87,7 +82,7 @@ func (s *LocalState) PersistState() error {
 }
 
 // StateRefresher impl.
-func (s *LocalState) RefreshState() (err error) {
+func (s *LocalState) RefreshState() error {
 	// If we've never loaded before, read from Path, otherwise we
 	// read from PathOut.
 	path := s.Path
@@ -107,12 +102,7 @@ func (s *LocalState) RefreshState() (err error) {
 
 	var state *terraform.State
 	if f != nil {
-		defer func() {
-			err2 := f.Close()
-			if err == nil {
-				err = err2
-			}
-		}()
+		defer f.Close()
 		state, err = terraform.ReadState(f)
 		if err != nil {
 			return err
