@@ -773,3 +773,29 @@ func validateSfnStateMachineName(v interface{}, k string) (ws []string, errors [
 	}
 	return
 }
+
+func validateAppautoscalingScalableDimension(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	dimensions := map[string]bool{
+		"ecs:service:DesiredCount":              true,
+		"ec2:spot-fleet-request:TargetCapacity": true,
+	}
+
+	if !dimensions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid scalable dimension value: %q", k, value))
+	}
+	return
+}
+
+func validateAppautoscalingServiceNamespace(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	namespaces := map[string]bool{
+		"ecs": true,
+		"ec2": true,
+	}
+
+	if !namespaces[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid service namespace value: %q", k, value))
+	}
+	return
+}
