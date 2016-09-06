@@ -1,11 +1,9 @@
 package scaleway
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/scaleway/scaleway-cli/pkg/api"
@@ -100,7 +98,7 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 	server.CommercialType = d.Get("type").(string)
 
 	if bootscript, ok := d.GetOk("bootscript"); ok {
-		bootscript_id := String(bootscript.(string))
+		bootscript_id := bootscript.(string)
 
 		bootscripts, err := scaleway.GetBootscripts()
 		if err != nil {
