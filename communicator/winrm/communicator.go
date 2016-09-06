@@ -145,15 +145,20 @@ func (c *Communicator) Start(rc *remote.Cmd) error {
 		return err
 	}
 
-	go runCommand(shell, cmd, rc)
+	go func() {
+		err := runCommand(shell, cmd, rc)
+		if err != nil {
+			log.Printf("WinRM command error: %s", err)
+		}
+	}()
 	return nil
 }
 
-func runCommand(shell *winrm.Shell, cmd *winrm.Command, rc *remote.Cmd) {
+func runCommand(shell *winrm.Shell, cmd *winrm.Command, rc *remote.Cmd) (err error) {
 	defer func() {
-		err := shell.Close()
-		if err != nil {
-			panic(err)
+		err2 := shell.Close()
+		if err == nil {
+			err = err2
 		}
 	}()
 
@@ -178,6 +183,7 @@ func runCommand(shell *winrm.Shell, cmd *winrm.Command, rc *remote.Cmd) {
 	cmd.Wait()
 	wg.Wait()
 	rc.SetExited(cmd.ExitCode())
+	return nil
 }
 
 // Upload implementation of communicator.Communicator interface
