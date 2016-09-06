@@ -15,33 +15,33 @@ func Provider() terraform.ResourceProvider {
 				Optional: true,
 				// TODO(sean@): Remove POSTGRESQL_HOST in 0.8
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOST", "POSTGRESQL_HOST"}, nil),
-				Description: "The PostgreSQL server address",
+				Description: "Name of PostgreSQL server address to connect to",
 			},
 			"port": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("PGPORT", 5432),
-				Description: "The PostgreSQL server port",
+				Description: "The PostgreSQL port number to connect to at the server host, or socket file name extension for Unix-domain connections",
 			},
 			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
 				// TODO(sean@): Remove POSTGRESQL_USER in 0.8
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_USER"}, "postgres"),
-				Description: "Username for PostgreSQL server connection",
+				Description: "PostgreSQL user name to connect as",
 			},
 			"password": {
 				Type:     schema.TypeString,
 				Optional: true,
 				// TODO(sean@): Remove POSTGRESQL_PASSWORD in 0.8
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGPASSWORD", "POSTGRESQL_PASSWORD"}, nil),
-				Description: "Password for PostgreSQL server connection",
+				Description: "Password to be used if the PostgreSQL server demands password authentication",
 			},
 			"sslmode": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("PGSSLMODE", nil),
-				Description: "Connection mode for PostgreSQL server",
+				Description: "This option determines whether or with what priority a secure SSL TCP/IP connection will be negotiated with the PostgreSQL server",
 			},
 			"connect_timeout": {
 				Type:        schema.TypeInt,
