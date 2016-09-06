@@ -454,7 +454,7 @@ func testModule(
 	}
 	defer func() {
 		err2 := os.RemoveAll(cfgPath)
-		if err == nil {
+		if err == nil && err2 != nil {
 			err = fmt.Errorf(
 				"Error removing temporary directory for config: %s", err2)
 		}
