@@ -102,10 +102,10 @@ func resourceAwsNatGatewayRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	status := map[string]bool {
-		"deleted": true,
+	status := map[string]bool{
+		"deleted":  true,
 		"deleting": true,
-		"failed": true,
+		"failed":   true,
 	}
 
 	if ngRaw == nil || status[strings.ToLower(state)] {
