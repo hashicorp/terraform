@@ -38,18 +38,21 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: "Character set encoding to use in the new database",
 			},
 			"lc_collate": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: "Collation order (LC_COLLATE) to use in the new database",
 			},
 			"lc_ctype": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: "Character classification (LC_CTYPE) to use in the new database",
 			},
 			"tablespace_name": {
