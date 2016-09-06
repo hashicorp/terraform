@@ -99,20 +99,6 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 	server.DynamicIPRequired = Bool(d.Get("dynamic_ip_required").(bool))
 	server.CommercialType = d.Get("type").(string)
 
-	arch := ""
-	if arch == "" {
-		server.CommercialType = strings.ToUpper(server.CommercialType)
-		switch server.CommercialType[:2] {
-		case "C1":
-			arch = "arm"
-		case "C2", "VC":
-			arch = "x86_64"
-		default:
-			log.Printf("[ERROR] %s wrong commercial type", server.CommercialType)
-			return errors.New("Wrong commercial type")
-		}
-	}
-
 	if bootscript, ok := d.GetOk("bootscript"); ok {
 		bootscript_id := bootscript.(string)
 
