@@ -19,13 +19,14 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The PostgreSQL database name to connect to",
 			},
 			"owner": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The role name of the user who will own the new database",
 			},
 			"template": {
 				Type:        schema.TypeString,
