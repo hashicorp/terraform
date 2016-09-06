@@ -7,6 +7,7 @@ IMPROVEMENTS:
  * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration [GH-8666]
 
 BUG FIXES:
+ * provider/scaleway: fix security_group_rule identification [GH-8661]
 
 ## 0.7.3 (September 5, 2016)
 
