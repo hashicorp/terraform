@@ -32,7 +32,7 @@ resource "aws_api_gateway_domain_name" "example" {
 
 resource "aws_api_gateway_base_path_mapping" "test" {
   api_id      = "${aws_api_gateway_rest_api.MyDemoAPI.id}"
-  stage       = "${aws_api_gateway_deployment.example.stage_name}"
+  stage_name       = "${aws_api_gateway_deployment.example.stage_name}"
   domain_name = "${aws_api_gateway_domain_name.example.domain_name}"
 }
 ```
@@ -43,5 +43,5 @@ The following arguments are supported:
 
 * `domain_name` - (Required) The already-registered domain name to connect the API to.
 * `api_id` - (Required) The id of the API to connect.
-* `stage` - (Optional) The name of a specific deployment stage to expose at the given path. If omitted, callers may select any stage by including its name as a path element after the base path.
+* `stage_name` - (Optional) The name of a specific deployment stage to expose at the given path. If omitted, callers may select any stage by including its name as a path element after the base path.
 * `base_path` - (Optional) Path segment that must be prepended to the path when accessing the API via this mapping. If omitted, the API is exposed at the root of the given domain.
