@@ -13,7 +13,7 @@ func Provider() terraform.ResourceProvider {
 			"host": {
 				Type:     schema.TypeString,
 				Optional: true,
-				// FIXME: Remove POSTGRESQL_HOST in 0.8
+				// TODO(sean@): Remove POSTGRESQL_HOST in 0.8
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOST", "POSTGRESQL_HOST"}, nil),
 				Description: "The PostgreSQL server address",
 			},
@@ -26,14 +26,14 @@ func Provider() terraform.ResourceProvider {
 			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
-				// FIXME: Remove POSTGRESQL_USER in 0.8
+				// TODO(sean@): Remove POSTGRESQL_USER in 0.8
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_USER"}, "postgres"),
 				Description: "Username for PostgreSQL server connection",
 			},
 			"password": {
 				Type:     schema.TypeString,
 				Optional: true,
-				// FIXME: Remove POSTGRESQL_PASSWORD in 0.8
+				// TODO(sean@): Remove POSTGRESQL_PASSWORD in 0.8
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGPASSWORD", "POSTGRESQL_PASSWORD"}, nil),
 				Description: "Password for PostgreSQL server connection",
 			},
