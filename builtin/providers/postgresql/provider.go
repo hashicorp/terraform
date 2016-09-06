@@ -20,14 +20,14 @@ func Provider() terraform.ResourceProvider {
 			"port": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGPORT"}, nil),
+				DefaultFunc: schema.EnvDefaultFunc("PGPORT", 5432),
 				Description: "The PostgreSQL server port",
 			},
 			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
 				// FIXME: Remove POSTGRESQL_USER in 0.8
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_USER"}, nil),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_USER"}, "postgres"),
 				Description: "Username for PostgreSQL server connection",
 			},
 			"password": {
