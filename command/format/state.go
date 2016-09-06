@@ -1,11 +1,11 @@
 package format
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"strings"
 
-	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/colorstring"
 )

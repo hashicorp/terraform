@@ -2,11 +2,11 @@ package command
 
 // Marshal an object as an hcl value.
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 
 	"github.com/hashicorp/hcl/hcl/printer"
-	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 // This will only work operate on []interface{}, map[string]interface{}, and
@@ -118,7 +118,7 @@ func (e *encodeState) encodeFloat(f interface{}) error {
 }
 
 func (e *encodeState) encodeString(s string) error {
-	e.WriteBytes(quoteHCLString(s))
+	e.Write(quoteHCLString(s))
 	return nil
 }
 

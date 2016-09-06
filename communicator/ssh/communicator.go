@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -338,7 +337,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 		return fmt.Errorf("Error reading script: %s", err)
 	}
 
-	var script bytesnoerror.Buffer
+	var script bytes.Buffer
 	if string(prefix) != "#!" {
 		script.WriteString(DefaultShebang)
 	}
@@ -350,7 +349,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 		return err
 	}
 
-	var stdout, stderr bytesnoerror.Buffer
+	var stdout, stderr bytes.Buffer
 	cmd := &remote.Cmd{
 		Command: fmt.Sprintf("chmod 0777 %s", path),
 		Stdout:  &stdout,
@@ -463,7 +462,7 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 	stdoutR := bufio.NewReader(stdoutPipe)
 
 	// Set stderr to a bytes buffer
-	stderr := new(bytesnoerror.Buffer)
+	stderr := new(bytes.Buffer)
 	session.Stderr = stderr
 
 	// Start the sink mode on the other side

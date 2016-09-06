@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/hashicorp/terraform/terraform"
 )
 

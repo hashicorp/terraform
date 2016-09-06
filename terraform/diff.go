@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 	"github.com/mitchellh/copystructure"
 )
 

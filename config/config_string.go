@@ -1,11 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"strings"
-
-	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 // TestString is a Stringer-like function that outputs a string that can

@@ -1,12 +1,11 @@
 package dag
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
-
-	bytes "github.com/hashicorp/terraform/helper/bytesnoerror"
 )
 
 // Graph is used to represent a dependency graph.
