@@ -169,8 +169,11 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 			continue
 		}
 
-		val := v.(bool)
-		createOpts = append(createOpts, fmt.Sprintf("%s=%t", opt.sqlKey, val))
+		valStr := "FALSE"
+		if val := v.(bool); val {
+			valStr = "TRUE"
+		}
+		createOpts = append(createOpts, fmt.Sprintf("%s=%s", opt.sqlKey, valStr))
 	}
 
 	dbName := d.Get("name").(string)
