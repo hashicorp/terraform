@@ -54,16 +54,11 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 				Description: "The name of the tablespace that will be associated with the new database.",
 			},
 			"connection_limit": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "How many concurrent connections can be made to this database.",
-				ValidateFunc: func(v interface{}, key string) (warnings []string, errors []error) {
-					value := v.(int)
-					if value < -1 {
-						errors = append(errors, fmt.Errorf("%d can not be less than -1", key))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				Description:  "How many concurrent connections can be made to this database",
+				ValidateFunc: validateConnLimit,
 			},
 			"allow_connections": {
 				Type:        schema.TypeBool,
@@ -79,6 +74,14 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 			},
 		},
 	}
+}
+
+func validateConnLimit(v interface{}, key string) (warnings []string, errors []error) {
+	value := v.(int)
+	if value < -1 {
+		errors = append(errors, fmt.Errorf("%d can not be less than -1", key))
+	}
+	return
 }
 
 func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
