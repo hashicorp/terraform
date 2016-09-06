@@ -28,11 +28,12 @@ The following arguments are supported:
 * `name` - (Required) name of ARM server
 * `image` - (Required) base image of ARM server
 * `type` - (Required) type of ARM server
-* `bootscript` - (Optional) server bootscript
+* `bootscript` - (Optional) server bootscript, can be bootscript id or name. ex: "x86_64 4.5.7 docker \#4"
 * `tags` - (Optional) list of tags for server
 * `enable_ipv6` - (Optional) enable ipv6
 * `dynamic_ip_required` - (Optional) make server publicly available
 * `security_group` - (Optional) assign security group to server
+* `volumes` - (Optional) list of sizes (in GB) of extra volumes to create
 
 Field `name`, `type`, `tags`, `dynamic_ip_required`, `security_group` are editable.
 
