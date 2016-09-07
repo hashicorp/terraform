@@ -1,5 +1,6 @@
 package nsone
 
+// Apikey wraps an NS1 /account/apikeys resource
 type Apikey struct {
 	Id          string         `json:"id,omitempty"`
 	Name        string         `json:"name"`

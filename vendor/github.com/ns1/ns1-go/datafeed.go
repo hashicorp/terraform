@@ -1,5 +1,6 @@
 package nsone
 
+// DataFeed wraps an NS1 /data/feeds resource
 type DataFeed struct {
 	SourceId string                 `json:"-"`
 	Id       string                 `json:"id,omitempty"`
@@ -8,6 +9,7 @@ type DataFeed struct {
 	Data     map[string]interface{} `json:"data,omitempty"`
 }
 
-func NewDataFeed(source_id string) *DataFeed {
-	return &DataFeed{SourceId: source_id}
+// NewDataFeed takes a sourceID and creates a new *DataFeed
+func NewDataFeed(sourceID string) *DataFeed {
+	return &DataFeed{SourceId: sourceID}
 }

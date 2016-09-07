@@ -1,11 +1,13 @@
 package nsone
 
+// FeedDestination wraps an element of a DataSource's "destinations" attribute
 type FeedDestination struct {
-	Destid   string `json"destif"`
-	Desttype string `json"desttype"`
-	Record   string `json"record"`
+	Destid   string `json:"destid"`
+	Desttype string `json:"desttype"`
+	Record   string `json:"record"`
 }
 
+// DataSource wraps an NS1 /data/sources resource
 type DataSource struct {
 	Id           string            `json:"id,omitempty"`
 	Name         string            `json:"name"`
@@ -15,11 +17,12 @@ type DataSource struct {
 	Destinations []FeedDestination `json:"destinations,omitempty"`
 }
 
-func NewDataSource(name string, source_type string) *DataSource {
+// NewDataSource takes a name and sourceType and creates a new *DataSource
+func NewDataSource(name string, sourceType string) *DataSource {
 	cf := make(map[string]string, 0)
 	return &DataSource{
 		Name:       name,
-		SourceType: source_type,
+		SourceType: sourceType,
 		Config:     cf,
 	}
 }
