@@ -8,6 +8,10 @@ description: |-
 
 # Environment Variables
 
+## TF_DATA_DIR
+
+This specifies the name of the directory where Terraform stores metadata files such as module sources and remote state files by default, overriding the default of `.terraform`.
+
 ## TF_LOG
 
 If set to any value, enables detailed logs to appear on stderr which is useful for debugging. For example:

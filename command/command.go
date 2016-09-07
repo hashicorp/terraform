@@ -14,6 +14,10 @@ var test bool = false
 // DefaultDataDir is the default directory for storing local data.
 const DefaultDataDir = ".terraform"
 
+// DataDirEnvVar is the name of the environment variable that can be used to
+// override the data directory.
+const DataDirEnvVar = "TF_DATA_DIR"
+
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"
 
