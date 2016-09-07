@@ -531,10 +531,6 @@
 			"Rev": "36e9cfdd690967f4f690c6edcc9ffacd006014a0"
 		},
 		{
-			"ImportPath": "github.com/bobtfish/go-nsone-api",
-			"Rev": "f3fee829f41c32830c3ea01e00e0dd73f41cf08b"
-		},
-		{
 			"ImportPath": "github.com/cenkalti/backoff",
 			"Rev": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
 		},
@@ -1014,6 +1010,11 @@
 			"ImportPath": "github.com/nesv/go-dynect/dynect",
 			"Comment": "v0.2.0-8-g841842b",
 			"Rev": "841842b16b39cf2b5007278956976d7d909bd98b"
+		},
+		{
+			"ImportPath": "github.com/ns1/ns1-go",
+			"Comment": "v1-2-g7c167e5",
+			"Rev": "7c167e5c28b7b40d82fb3d954daf7bfd55f9c6e2"
 		},
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",

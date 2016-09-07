@@ -12,38 +12,45 @@ import (
 	"time"
 )
 
+// RateLimit stores X-Ratelimit-* headers
 type RateLimit struct {
 	Limit     int
 	Remaining int
 	Period    int
 }
 
+// PercentageLeft returns the ratio of Remaining to Limit as a percentage
 func (rl RateLimit) PercentageLeft() int {
 	return rl.Remaining * 100 / rl.Limit
 }
 
+// WaitTime returns the time.Duration ratio of Period to Limit
 func (rl RateLimit) WaitTime() time.Duration {
 	return (time.Second * time.Duration(rl.Period)) / time.Duration(rl.Limit)
 }
 
+// WaitTimeRemaining returns the time.Duration ratio of Period to Remaining
 func (rl RateLimit) WaitTimeRemaining() time.Duration {
 	return (time.Second * time.Duration(rl.Period)) / time.Duration(rl.Remaining)
 }
 
-func (a *APIClient) RateLimitStrategyNone() {
-	a.RateLimitFunc = defaultRateLimitFunc
+// RateLimitStrategyNone sets RateLimitFunc to an empty func
+func (c *APIClient) RateLimitStrategyNone() {
+	c.RateLimitFunc = defaultRateLimitFunc
 }
 
-func (a *APIClient) RateLimitStrategySleep() {
-	a.RateLimitFunc = func(rl RateLimit) {
+// RateLimitStrategySleep sets RateLimitFunc to sleep by WaitTimeRemaining
+func (c *APIClient) RateLimitStrategySleep() {
+	c.RateLimitFunc = func(rl RateLimit) {
 		remaining := rl.WaitTimeRemaining()
-		if a.debug {
-			log.Println("Rate limiting - Limit %d Remaining %d in period %d: Sleeping %dns", rl.Limit, rl.Remaining, rl.Period, remaining)
+		if c.debug {
+			log.Printf("Rate limiting - Limit %d Remaining %d in period %d: Sleeping %dns", rl.Limit, rl.Remaining, rl.Period, remaining)
 		}
 		time.Sleep(remaining)
 	}
 }
 
+// APIClient stores NS1 client state
 type APIClient struct {
 	ApiKey        string
 	RateLimitFunc func(RateLimit)
@@ -52,6 +59,7 @@ type APIClient struct {
 
 var defaultRateLimitFunc = func(rl RateLimit) {}
 
+// New takes an API Key and creates an *APIClient
 func New(k string) *APIClient {
 	return &APIClient{
 		ApiKey:        k,
@@ -60,6 +68,7 @@ func New(k string) *APIClient {
 	}
 }
 
+// Debug enables debug logging
 func (c *APIClient) Debug() {
 	c.debug = true
 }
@@ -67,7 +76,9 @@ func (c *APIClient) Debug() {
 func (c APIClient) doHTTP(method string, uri string, rbody []byte) ([]byte, int, error) {
 	var body []byte
 	r := bytes.NewReader(rbody)
-	log.Printf("[DEBUG] %s: %s (%s)", method, uri, string(rbody))
+	if c.debug {
+		log.Printf("[DEBUG] %s: %s (%s)", method, uri, string(rbody))
+	}
 	req, err := http.NewRequest(method, uri, r)
 	if err != nil {
 		return body, 510, err
@@ -78,7 +89,9 @@ func (c APIClient) doHTTP(method string, uri string, rbody []byte) ([]byte, int,
 	if err != nil {
 		return body, 510, err
 	}
-	log.Println(resp)
+	if c.debug {
+		log.Println(resp)
+	}
 	body, _ = ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if len(resp.Header["X-Ratelimit-Limit"]) > 0 {
@@ -100,19 +113,21 @@ func (c APIClient) doHTTP(method string, uri string, rbody []byte) ([]byte, int,
 		}
 	}
 	if resp.StatusCode != 200 {
-		return body, resp.StatusCode, errors.New(fmt.Sprintf("%s: %s", resp.Status, string(body)))
+		return body, resp.StatusCode, fmt.Errorf("%s: %s", resp.Status, string(body))
 	}
-	log.Println(fmt.Sprintf("Response body: %s", string(body)))
+	if c.debug {
+		log.Println(fmt.Sprintf("Response body: %s", string(body)))
+	}
 	return body, resp.StatusCode, nil
 
 }
 
-func (c APIClient) doHTTPUnmarshal(method string, uri string, rbody []byte, unpack_into interface{}) (int, error) {
+func (c APIClient) doHTTPUnmarshal(method string, uri string, rbody []byte, unpackInto interface{}) (int, error) {
 	body, status, err := c.doHTTP(method, uri, rbody)
 	if err != nil {
 		return status, err
 	}
-	return status, json.Unmarshal(body, unpack_into)
+	return status, json.Unmarshal(body, unpackInto)
 }
 
 func (c APIClient) doHTTPBoth(method string, uri string, s interface{}) error {
@@ -129,39 +144,41 @@ func (c APIClient) doHTTPDelete(uri string) error {
 	return err
 }
 
+// GetZones returns all active zones and basic zone configuration details for each
 func (c APIClient) GetZones() ([]Zone, error) {
 	var zl []Zone
 	_, err := c.doHTTPUnmarshal("GET", "https://api.nsone.net/v1/zones", nil, &zl)
 	return zl, err
 }
 
+// GetZone takes a zone and returns a single active zone and its basic configuration details
 func (c APIClient) GetZone(zone string) (*Zone, error) {
 	z := NewZone(zone)
-	status, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/zones/%s", z.Zone), nil, z)
-	if status == 404 {
-		z.Id = ""
-		z.Zone = ""
-		return z, nil
-	}
+	_, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/zones/%s", z.Zone), nil, z)
 	return z, err
 }
 
+// DeleteZone takes a zone and destroys an existing DNS zone and all records in the zone
 func (c APIClient) DeleteZone(zone string) error {
 	return c.doHTTPDelete(fmt.Sprintf("https://api.nsone.net/v1/zones/%s", zone))
 }
 
+// CreateZone takes a *Zone and creates a new DNS zone
 func (c APIClient) CreateZone(z *Zone) error {
 	return c.doHTTPBoth("PUT", fmt.Sprintf("https://api.nsone.net/v1/zones/%s", z.Zone), z)
 }
 
+// UpdateZone takes a *Zone and modifies basic details of a DNS zone
 func (c APIClient) UpdateZone(z *Zone) error {
 	return c.doHTTPBoth("POST", fmt.Sprintf("https://api.nsone.net/v1/zones/%s", z.Zone), z)
 }
 
+// CreateRecord takes a *Record and creates a new DNS record in the specified zone, for the specified domain, of the given record type
 func (c APIClient) CreateRecord(r *Record) error {
 	return c.doHTTPBoth("PUT", fmt.Sprintf("https://api.nsone.net/v1/zones/%s/%s/%s", r.Zone, r.Domain, r.Type), r)
 }
 
+// GetRecord takes a zone, domain and record type t and returns full configuration for a DNS record
 func (c APIClient) GetRecord(zone string, domain string, t string) (*Record, error) {
 	r := NewRecord(zone, domain, t)
 	status, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/zones/%s/%s/%s", r.Zone, r.Domain, r.Type), nil, r)
@@ -175,38 +192,47 @@ func (c APIClient) GetRecord(zone string, domain string, t string) (*Record, err
 	return r, err
 }
 
+// DeleteRecord takes a zone, domain and record type t and removes an existing record and all associated answers and configuration details
 func (c APIClient) DeleteRecord(zone string, domain string, t string) error {
 	return c.doHTTPDelete(fmt.Sprintf("https://api.nsone.net/v1/zones/%s/%s/%s", zone, domain, t))
 }
 
+// UpdateRecord takes a *Record and modifies configuration details for an existing DNS record
 func (c APIClient) UpdateRecord(r *Record) error {
 	return c.doHTTPBoth("POST", fmt.Sprintf("https://api.nsone.net/v1/zones/%s/%s/%s", r.Zone, r.Domain, r.Type), r)
 }
 
+// CreateDataSource takes a *DataSource and creates a new data source
 func (c APIClient) CreateDataSource(ds *DataSource) error {
 	return c.doHTTPBoth("PUT", "https://api.nsone.net/v1/data/sources", ds)
 }
 
+// GetDataSource takes an ID returns the details for a single data source
 func (c APIClient) GetDataSource(id string) (*DataSource, error) {
 	ds := DataSource{}
 	_, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/data/sources/%s", id), nil, &ds)
 	return &ds, err
 }
 
+// DeleteDataSource takes an ID and removes an existing data source and all connected feeds from the cource
 func (c APIClient) DeleteDataSource(id string) error {
 	return c.doHTTPDelete(fmt.Sprintf("https://api.nsone.net/v1/data/sources/%s", id))
 }
 
+// UpdateDataSource takes a *DataSource modifies basic details of a data source
 func (c APIClient) UpdateDataSource(ds *DataSource) error {
 	return c.doHTTPBoth("POST", fmt.Sprintf("https://api.nsone.net/v1/data/sources/%s", ds.Id), ds)
 }
+
+// CreateDataFeed takes a *DataFeed and connects a new data feed to an existing data source
 func (c APIClient) CreateDataFeed(df *DataFeed) error {
 	return c.doHTTPBoth("PUT", fmt.Sprintf("https://api.nsone.net/v1/data/feeds/%s", df.SourceId), df)
 }
 
-func (c APIClient) GetDataFeed(ds_id string, df_id string) (*DataFeed, error) {
-	df := NewDataFeed(ds_id)
-	status, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/data/feeds/%s/%s", ds_id, df_id), nil, df)
+// GetDataFeed takes a data source ID and a data feed ID and returns the details of a single data feed
+func (c APIClient) GetDataFeed(dsID string, dfID string) (*DataFeed, error) {
+	df := NewDataFeed(dsID)
+	status, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/data/feeds/%s/%s", dsID, dfID), nil, df)
 	if status == 404 {
 		df.SourceId = ""
 		df.Id = ""
@@ -216,49 +242,53 @@ func (c APIClient) GetDataFeed(ds_id string, df_id string) (*DataFeed, error) {
 	return df, err
 }
 
-func (c APIClient) DeleteDataFeed(ds_id string, df_id string) error {
-	return c.doHTTPDelete(fmt.Sprintf("https://api.nsone.net/v1/data/feeds/%s/%s", ds_id, df_id))
+// DeleteDataFeed takes a data source ID and a data feed ID and disconnects the feed from the data source and all attached destination metadata tables
+func (c APIClient) DeleteDataFeed(dsID string, dfID string) error {
+	return c.doHTTPDelete(fmt.Sprintf("https://api.nsone.net/v1/data/feeds/%s/%s", dsID, dfID))
 }
 
+// UpdateDataFeed takes a *DataFeed and modifies and existing data feed
 func (c APIClient) UpdateDataFeed(df *DataFeed) error {
 	return c.doHTTPBoth("POST", fmt.Sprintf("https://api.nsone.net/v1/data/feeds/%s/%s", df.SourceId, df.Id), df)
 }
 
+// GetMonitoringJobTypes returns the list of all available monitoring job types
 func (c APIClient) GetMonitoringJobTypes() (MonitoringJobTypes, error) {
 	var mjt MonitoringJobTypes
 	_, err := c.doHTTPUnmarshal("GET", "https://api.nsone.net/v1/monitoring/jobtypes", nil, &mjt)
 	return mjt, err
 }
 
+// GetMonitoringJobs returns the list of all monitoring jobs for the account
 func (c APIClient) GetMonitoringJobs() (MonitoringJobs, error) {
 	var mj MonitoringJobs
 	_, err := c.doHTTPUnmarshal("GET", "https://api.nsone.net/v1/monitoring/jobs", nil, &mj)
 	return mj, err
 }
 
+// GetMonitoringJob takes an ID and returns details for a specific monitoring job
 func (c APIClient) GetMonitoringJob(id string) (MonitoringJob, error) {
 	var mj MonitoringJob
-	status, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/monitoring/jobs/%s", id), nil, &mj)
-	if status == 404 {
-		mj.Id = ""
-		mj.Name = ""
-		return mj, nil
-	}
+	_, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/monitoring/jobs/%s", id), nil, &mj)
 	return mj, err
 }
 
+// CreateMonitoringJob takes a *MonitoringJob and creates a new monitoring job
 func (c APIClient) CreateMonitoringJob(mj *MonitoringJob) error {
 	return c.doHTTPBoth("PUT", "https://api.nsone.net/v1/monitoring/jobs", mj)
 }
 
+// DeleteMonitoringJob takes an ID and immediately terminates and deletes and existing monitoring job
 func (c APIClient) DeleteMonitoringJob(id string) error {
 	return c.doHTTPDelete(fmt.Sprintf("https://api.nsone.net/v1/monitoring/jobs/%s", id))
 }
 
+// UpdateMonitoringJob takes a *MonitoringJob and change the configuration details of an existing monitoring job
 func (c APIClient) UpdateMonitoringJob(mj *MonitoringJob) error {
 	return c.doHTTPBoth("POST", fmt.Sprintf("https://api.nsone.net/v1/monitoring/jobs/%s", mj.Id), mj)
 }
 
+// GetQPSStats returns current queries per second (QPS) for the account
 func (c APIClient) GetQPSStats() (v float64, err error) {
 	var s map[string]float64
 	_, err = c.doHTTPUnmarshal("GET", "https://api.nsone.net/v1/stats/qps", nil, &s)
@@ -272,12 +302,14 @@ func (c APIClient) GetQPSStats() (v float64, err error) {
 	return v, nil
 }
 
+// GetUsers returns a list of all users with access to the account
 func (c APIClient) GetUsers() ([]User, error) {
 	var users []User
 	_, err := c.doHTTPUnmarshal("GET", "https://api.nsone.net/v1/account/users", nil, &users)
 	return users, err
 }
 
+// GetUser takes a username and returns the details for a single user
 func (c APIClient) GetUser(username string) (User, error) {
 	var u User
 	status, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/account/users/%s", username), nil, &u)
@@ -289,24 +321,29 @@ func (c APIClient) GetUser(username string) (User, error) {
 	return u, err
 }
 
+// CreateUser takes a *User and creates a new user
 func (c APIClient) CreateUser(u *User) error {
 	return c.doHTTPBoth("PUT", fmt.Sprintf("https://api.nsone.net/v1/account/users/%s", u.Username), &u)
 }
 
+// DeleteUser takes a username and deletes a user from the account
 func (c APIClient) DeleteUser(username string) error {
 	return c.doHTTPDelete(fmt.Sprintf("https://api.nsone.net/v1/account/users/%s", username))
 }
 
+// UpdateUser takes a *User and change contact details, notification settings or access rights for a user
 func (c APIClient) UpdateUser(user *User) error {
 	return c.doHTTPBoth("POST", fmt.Sprintf("https://api.nsone.net/v1/account/users/%s", user.Username), user)
 }
 
+// GetApikeys returns a list of all API keys under the account
 func (c APIClient) GetApikeys() ([]Apikey, error) {
 	var apikeys []Apikey
 	_, err := c.doHTTPUnmarshal("GET", "https://api.nsone.net/v1/account/apikeys", nil, &apikeys)
 	return apikeys, err
 }
 
+// GetApikey takes an ID and returns details, including permissions, for a single API key
 func (c APIClient) GetApikey(id string) (Apikey, error) {
 	var k Apikey
 	status, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/account/apikeys/%s", id), nil, &k)
@@ -319,24 +356,29 @@ func (c APIClient) GetApikey(id string) (Apikey, error) {
 	return k, err
 }
 
+// CreateApikey takes an *Apikey and creates a new API key
 func (c APIClient) CreateApikey(k *Apikey) error {
 	return c.doHTTPBoth("PUT", fmt.Sprintf("https://api.nsone.net/v1/account/apikeys/%s", k.Id), &k)
 }
 
+// DeleteApikey takes an ID and deletes and API key
 func (c APIClient) DeleteApikey(id string) error {
 	return c.doHTTPDelete(fmt.Sprintf("https://api.nsone.net/v1/account/apikeys/%s", id))
 }
 
+// UpdateApikey takes an *Apikey and change name or access rights for an API key
 func (c APIClient) UpdateApikey(k *Apikey) error {
 	return c.doHTTPBoth("POST", fmt.Sprintf("https://api.nsone.net/v1/account/apikeys/%s", k.Id), k)
 }
 
+// GetTeams returns a list of all teams under the account
 func (c APIClient) GetTeams() ([]Team, error) {
 	var teams []Team
 	_, err := c.doHTTPUnmarshal("GET", "https://api.nsone.net/v1/account/teams", nil, &teams)
 	return teams, err
 }
 
+// GetTeam takes an ID and returns details, including permissions, for a single team
 func (c APIClient) GetTeam(id string) (Team, error) {
 	var t Team
 	status, err := c.doHTTPUnmarshal("GET", fmt.Sprintf("https://api.nsone.net/v1/account/teams/%s", id), nil, &t)
@@ -348,14 +390,17 @@ func (c APIClient) GetTeam(id string) (Team, error) {
 	return t, err
 }
 
+// CreateTeam takes a *Team and creates a new team
 func (c APIClient) CreateTeam(t *Team) error {
 	return c.doHTTPBoth("PUT", "https://api.nsone.net/v1/account/teams", &t)
 }
 
+// DeleteTeam takes an ID and deletes a team. Any users of API keys that belong to the team will be removed from the team.
 func (c APIClient) DeleteTeam(id string) error {
 	return c.doHTTPDelete(fmt.Sprintf("https://api.nsone.net/v1/account/teams/%s", id))
 }
 
+// UpdateTeam takes a *Team and change name or access rights for a team
 func (c APIClient) UpdateTeam(t *Team) error {
 	return c.doHTTPBoth("POST", fmt.Sprintf("https://api.nsone.net/v1/account/teams/%s", t.Id), t)
 }

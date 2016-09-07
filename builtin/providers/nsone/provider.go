@@ -1,7 +1,7 @@
 package nsone
 
 import (
-	"github.com/bobtfish/go-nsone-api"
+	"github.com/ns1/ns1-go"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )

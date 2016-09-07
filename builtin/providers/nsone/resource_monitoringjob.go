@@ -2,7 +2,7 @@ package nsone
 
 import (
 	"fmt"
-	"github.com/bobtfish/go-nsone-api"
+	"github.com/ns1/ns1-go"
 	"github.com/hashicorp/terraform/helper/schema"
 	"regexp"
 	"strconv"
