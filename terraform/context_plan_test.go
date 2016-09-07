@@ -2447,6 +2447,7 @@ func TestContext2Plan_countIncreaseWithListIndex(t *testing.T) {
 							ID: "bar",
 							Attributes: map[string]string{
 								"foo":  "foo",
+								"id":   "bar",
 								"type": "aws_ebs_volume",
 							},
 						},
@@ -2458,6 +2459,7 @@ func TestContext2Plan_countIncreaseWithListIndex(t *testing.T) {
 							ID: "bar",
 							Attributes: map[string]string{
 								"foo":  "foo-bar",
+								"id":   "bar",
 								"type": "aws_instance",
 							},
 						},
@@ -2469,6 +2471,7 @@ func TestContext2Plan_countIncreaseWithListIndex(t *testing.T) {
 							ID: "bar",
 							Attributes: map[string]string{
 								"foo":  "foo",
+								"id":   "bar",
 								"type": "aws_instance",
 							},
 						},
@@ -2477,12 +2480,13 @@ func TestContext2Plan_countIncreaseWithListIndex(t *testing.T) {
 					"aws_volume_attachment.foo.0": &ResourceState{
 						Type: "aws_volume_attachment",
 						Primary: &InstanceState{
-							ID: "bar",
+							ID: "quux",
 							Attributes: map[string]string{
 								"foo":         "foo",
-								"instance_id": "bar",
+								"id":          "quux",
+								"instance_id": "bar-baz",
 								"type":        "aws_volume_attachment",
-								"volume_id":   "bar",
+								"volume_id":   "bar-baz",
 							},
 						},
 					},

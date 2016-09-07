@@ -150,6 +150,7 @@ func (i *Interpolater) valueModuleVar(
 		// modules reference other modules, and graph ordering should
 		// ensure that the module is in the state, so if we reach this
 		// point otherwise it really is a panic.
+
 		result[n] = unknownVariable()
 	} else {
 		// Get the value from the outputs
@@ -529,10 +530,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 		}
 
 		if singleAttr, ok := r.Primary.Attributes[v.Field]; ok {
-			if singleAttr == config.UnknownVariableValue {
-				return &unknownVariable, nil
-			}
-
 			values = append(values, singleAttr)
 			continue
 		}

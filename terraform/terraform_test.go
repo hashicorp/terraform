@@ -1024,12 +1024,9 @@ aws_instance.foo.0:
 const testTerraformPlanCountIncreaseIndexListStr = `
 DIFF:
 
-CREATE: aws_ebs_volume.1
-  foo: "" => "foo"
+CREATE: aws_ebs_volume.foo.1
+  foo:  "" => "foo"
   type: "" => "aws_ebs_volume"
-CREATE: aws_instance.bar.1
-  foo: "" => "foo"
-  type: "" => "aws_instance"
 CREATE: aws_instance.bar.1
   foo:  "" => "foo-bar"
   type: "" => "aws_instance"
@@ -1037,30 +1034,30 @@ CREATE: aws_instance.foo.1
   foo:  "" => "foo"
   type: "" => "aws_instance"
 CREATE: aws_volume_attachment.foo.1
-  foo: "" => "foo"
-  instance_id: "" => "bar"
-  type: "" => "aws_volume_attachment"
-  volume_id: "" => "bar"
+  instance_id: "" => "<computed>"
+  type:        "" => "aws_volume_attachment"
+  volume_id:   "" => "<computed>"
 
 STATE:
 
-aws_ebs_volume.0:
-  ID = foo
+aws_ebs_volume.foo.0:
+  ID = bar
+  foo = foo
   type = aws_ebs_volume
 aws_instance.bar.0:
-  ID = foo-bar
-  foo = foo
+  ID = bar
+  foo = foo-bar
   type = aws_instance
 aws_instance.foo.0:
   ID = bar
   foo = foo
   type = aws_instance
 aws_volume_attachment.foo.0:
-  ID = bar
+  ID = quux
   foo = foo
-  instance_id = bar
+  instance_id = bar-baz
   type = aws_volume_attachment
-  volume_id = bar
+  volume_id = bar-baz
 `
 const testTerraformPlanDestroyStr = `
 DIFF:

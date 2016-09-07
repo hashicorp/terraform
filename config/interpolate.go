@@ -305,53 +305,97 @@ func (v *UserVariable) GoString() string {
 // DetectVariables takes an AST root and returns all the interpolated
 // variables that are detected in the AST tree.
 func DetectVariables(root ast.Node) ([]InterpolatedVariable, error) {
-	var result []InterpolatedVariable
-	var resultErr error
+	collector := VariableCollector{}
+	VisitVariables(root, &collector)
 
-	// Visitor callback
-	fn := func(n ast.Node) ast.Node {
-		if resultErr != nil {
-			return n
-		}
+	if collector.HasErrors() {
+		errors := collector.GetErrors()
+		return nil, errors[len(errors)-1]
+	}
 
+	variables := collector.Collect()
+
+	return variables, nil
+}
+
+func VisitVariables(node ast.Node, visitor VariableVisitor) {
+	node.Accept(func(n ast.Node) ast.Node {
 		switch vn := n.(type) {
 		case *ast.VariableAccess:
 			v, err := NewInterpolatedVariable(vn.Name)
 			if err != nil {
-				resultErr = err
+				visitor.Error(vn.Name, err)
 				return n
 			}
-			result = append(result, v)
+			visitor.Access(v)
 		case *ast.Index:
+			var err error
+			var key, target InterpolatedVariable
 			if va, ok := vn.Target.(*ast.VariableAccess); ok {
-				v, err := NewInterpolatedVariable(va.Name)
+				target, err = NewInterpolatedVariable(va.Name)
 				if err != nil {
-					resultErr = err
+					visitor.Error(va.Name, err)
 					return n
 				}
-				result = append(result, v)
 			}
 			if va, ok := vn.Key.(*ast.VariableAccess); ok {
-				v, err := NewInterpolatedVariable(va.Name)
+				key, err = NewInterpolatedVariable(va.Name)
 				if err != nil {
-					resultErr = err
+					visitor.Error(va.Name, err)
 					return n
 				}
-				result = append(result, v)
+			}
+			// I don't know why it's possible to have an index without a key,
+			// but this appears to be a case that needs to be supported
+			if nil == key {
+				visitor.Access(target)
+			} else {
+				visitor.Index(target, key)
 			}
 		default:
 			return n
 		}
 
 		return n
+	})
+}
+
+type VariableVisitor interface {
+	Access(variable InterpolatedVariable)
+	Error(name string, err error)
+	Index(target InterpolatedVariable, key InterpolatedVariable)
+}
+
+type VariableCollector struct {
+	errors    []error
+	variables []InterpolatedVariable
+}
+
+func (vc *VariableCollector) Access(variable InterpolatedVariable) {
+	vc.variables = append(vc.variables, variable)
+}
+
+func (vc *VariableCollector) Error(name string, err error) {
+	vc.errors = append(vc.errors, err)
+}
+
+func (vc *VariableCollector) Collect() []InterpolatedVariable {
+	return vc.variables
+}
+
+func (vc *VariableCollector) GetErrors() []error {
+	return vc.errors
+}
+
+func (vc *VariableCollector) HasErrors() bool {
+	return 0 < len(vc.errors)
+}
+
+func (vc *VariableCollector) Index(target InterpolatedVariable, key InterpolatedVariable) {
+	if nil != target {
+		vc.variables = append(vc.variables, target)
 	}
-
-	// Visitor pattern
-	root.Accept(fn)
-
-	if resultErr != nil {
-		return nil, resultErr
+	if nil != key {
+		vc.variables = append(vc.variables, key)
 	}
-
-	return result, nil
 }

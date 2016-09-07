@@ -468,6 +468,7 @@ func (s *ResourceProviderServer) Apply(
 func (s *ResourceProviderServer) Diff(
 	args *ResourceProviderDiffArgs,
 	result *ResourceProviderDiffResponse) error {
+
 	diff, err := s.Provider.Diff(args.Info, args.State, args.Config)
 	*result = ResourceProviderDiffResponse{
 		Diff:  diff,

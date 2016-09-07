@@ -110,6 +110,64 @@ func (r *RawConfig) Config() map[string]interface{} {
 	return r.config
 }
 
+type unknownVariableTester struct {
+	Variables map[string]ast.Variable
+	errors    []error
+	positive  bool
+}
+
+func (uvt *unknownVariableTester) Access(variable InterpolatedVariable) {
+	varVal, ok := uvt.Variables[variable.FullKey()]
+	if !ok {
+		return
+	}
+	if varVal.Value == UnknownVariableValue {
+		uvt.positive = true
+	} else if varVal.Type == ast.TypeList {
+		for _, elVal := range varVal.Value.([]ast.Variable) {
+			if elVal.Value == UnknownVariableValue {
+				uvt.positive = true
+			}
+		}
+	}
+}
+
+func (uvt *unknownVariableTester) Error(name string, err error) {
+	uvt.errors = append(uvt.errors, err)
+}
+
+func (uvt *unknownVariableTester) HasErrors() bool {
+	return len(uvt.errors) > 0
+}
+
+func (uvt *unknownVariableTester) GetErrors() []error {
+	return uvt.errors
+}
+
+func (uvt *unknownVariableTester) Index(target InterpolatedVariable, key InterpolatedVariable) {
+	var keyVal, targetVal ast.Variable
+
+	keyVal, hasKey := uvt.Variables[key.FullKey()]
+
+	if hasKey && keyVal.Value == UnknownVariableValue {
+		uvt.positive = true
+	}
+
+	targetVal, hasTarget := uvt.Variables[target.FullKey()]
+
+	// gh-3449: if we are trying to access a known element with a known key,
+	// then we needn't mark the test as positive
+	if hasTarget && len(targetVal.Value.([]ast.Variable))-1 >= keyVal.Value.(int) {
+		if targetVal.Value.([]ast.Variable)[keyVal.Value.(int)].Value == UnknownVariableValue {
+			uvt.positive = true
+		}
+	}
+}
+
+func (uvt *unknownVariableTester) IsPositive() bool {
+	return uvt.positive
+}
+
 // Interpolate uses the given mapping of variable values and uses
 // those as the values to replace any variables in this raw
 // configuration.
@@ -133,15 +191,19 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 		// `${count.index+1}`: in a world where `count.index` is computed,
 		// this would fail a type check since the computed placeholder is
 		// a string, but realistically the whole value is just computed.
-		vars, err := DetectVariables(root)
-		if err != nil {
-			return "", err
+		unknownVariableTester := unknownVariableTester{
+			Variables: vs,
 		}
-		for _, v := range vars {
-			varVal, ok := vs[v.FullKey()]
-			if ok && varVal.Value == UnknownVariableValue {
-				return UnknownVariableValue, nil
-			}
+
+		VisitVariables(root, &unknownVariableTester)
+
+		if unknownVariableTester.HasErrors() {
+			errors := unknownVariableTester.GetErrors()
+			return "", errors[len(errors)-1]
+		}
+
+		if unknownVariableTester.IsPositive() {
+			return UnknownVariableValue, nil
 		}
 
 		// None of the variables we need are computed, meaning we should

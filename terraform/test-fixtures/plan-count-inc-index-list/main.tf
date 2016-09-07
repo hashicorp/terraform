@@ -19,6 +19,6 @@ resource "aws_ebs_volume" "foo" {
 
 resource "aws_volume_attachment" "foo" {
     count = "${var.count}"
-    instance_id = "${element(aws_instance.foo.*.id,count.index)}"
-    volume_id = "${element(aws_ebs_volume.foo.*.id,count.index)}"
+    instance_id = "${aws_instance.foo.*.id[count.index]}-baz"
+    volume_id = "${aws_ebs_volume.foo.*.id[count.index]}-baz"
 }

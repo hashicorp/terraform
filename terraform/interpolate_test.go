@@ -353,8 +353,11 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 	}
 
 	testInterpolate(t, i, scope, "aws_instance.web.*.foo", ast.Variable{
-		Value: config.UnknownVariableValue,
-		Type:  ast.TypeString,
+		Value: []ast.Variable{ast.Variable{
+			Value: config.UnknownVariableValue,
+			Type:  ast.TypeString,
+		}},
+		Type: ast.TypeList,
 	})
 }
 
