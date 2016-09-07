@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/hmrc/vmware-govcd"
+	"github.com/vmware/govcloudair"
 )
 
 type Config struct {
@@ -18,7 +18,7 @@ type Config struct {
 }
 
 type VCDClient struct {
-	*govcd.VCDClient
+	*govcloudair.VCDClient
 	MaxRetryTimeout int
 	InsecureFlag    bool
 }
@@ -30,7 +30,7 @@ func (c *Config) Client() (*VCDClient, error) {
 	}
 
 	vcdclient := &VCDClient{
-		govcd.NewVCDClient(*u, c.InsecureFlag),
+		govcloudair.NewVCDClient(*u, c.InsecureFlag),
 		c.MaxRetryTimeout, c.InsecureFlag}
 	org, vcd, err := vcdclient.Authenticate(c.User, c.Password, c.Org, c.VDC)
 	if err != nil {

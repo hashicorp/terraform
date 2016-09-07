@@ -7,11 +7,11 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hmrc/vmware-govcd"
+	"github.com/vmware/govcloudair"
 )
 
 func TestAccVcdVApp_PowerOff(t *testing.T) {
-	var vapp govcd.VApp
+	var vapp govcloudair.VApp
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -48,7 +48,7 @@ func TestAccVcdVApp_PowerOff(t *testing.T) {
 	})
 }
 
-func testAccCheckVcdVAppExists(n string, vapp *govcd.VApp) resource.TestCheckFunc {
+func testAccCheckVcdVAppExists(n string, vapp *govcloudair.VApp) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -92,7 +92,7 @@ func testAccCheckVcdVAppDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckVcdVAppAttributes(vapp *govcd.VApp) resource.TestCheckFunc {
+func testAccCheckVcdVAppAttributes(vapp *govcloudair.VApp) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if vapp.VApp.Name != "foobar" {
@@ -113,7 +113,7 @@ func testAccCheckVcdVAppAttributes(vapp *govcd.VApp) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckVcdVAppAttributes_off(vapp *govcd.VApp) resource.TestCheckFunc {
+func testAccCheckVcdVAppAttributes_off(vapp *govcloudair.VApp) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if vapp.VApp.Name != "foobar" {

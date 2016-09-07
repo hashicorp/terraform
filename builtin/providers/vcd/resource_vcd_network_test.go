@@ -8,11 +8,11 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hmrc/vmware-govcd"
+	"github.com/vmware/govcloudair"
 )
 
 func TestAccVcdNetwork_Basic(t *testing.T) {
-	var network govcd.OrgVDCNetwork
+	var network govcloudair.OrgVDCNetwork
 	generatedHrefRegexp := regexp.MustCompile("^https://")
 
 	resource.Test(t, resource.TestCase{
@@ -39,7 +39,7 @@ func TestAccVcdNetwork_Basic(t *testing.T) {
 	})
 }
 
-func testAccCheckVcdNetworkExists(n string, network *govcd.OrgVDCNetwork) resource.TestCheckFunc {
+func testAccCheckVcdNetworkExists(n string, network *govcloudair.OrgVDCNetwork) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -83,7 +83,7 @@ func testAccCheckVcdNetworkDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckVcdNetworkAttributes(network *govcd.OrgVDCNetwork) resource.TestCheckFunc {
+func testAccCheckVcdNetworkAttributes(network *govcloudair.OrgVDCNetwork) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if network.OrgVDCNetwork.Name != "foonet" {
