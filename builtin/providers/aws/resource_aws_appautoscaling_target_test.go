@@ -195,6 +195,7 @@ EOF
 resource "aws_ecs_cluster" "foo" {
 	name = "%s"
 }
+
 resource "aws_ecs_task_definition" "task" {
 	family = "foobar"
 	container_definitions = <<EOF
@@ -209,6 +210,7 @@ resource "aws_ecs_task_definition" "task" {
 ]
 EOF
 }
+
 resource "aws_ecs_service" "service" {
 	name = "foobar"
 	cluster = "${aws_ecs_cluster.foo.id}"
@@ -218,6 +220,7 @@ resource "aws_ecs_service" "service" {
 	deployment_maximum_percent = 200
 	deployment_minimum_healthy_percent = 50
 }
+
 resource "aws_appautoscaling_target" "bar" {
 	service_namespace = "ecs"
 	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
@@ -287,6 +290,7 @@ EOF
 resource "aws_ecs_cluster" "foo" {
 	name = "%s"
 }
+
 resource "aws_ecs_task_definition" "task" {
 	family = "foobar"
 	container_definitions = <<EOF
@@ -301,6 +305,7 @@ resource "aws_ecs_task_definition" "task" {
 ]
 EOF
 }
+
 resource "aws_ecs_service" "service" {
 	name = "foobar"
 	cluster = "${aws_ecs_cluster.foo.id}"
@@ -310,6 +315,7 @@ resource "aws_ecs_service" "service" {
 	deployment_maximum_percent = 200
 	deployment_minimum_healthy_percent = 50
 }
+
 resource "aws_appautoscaling_target" "bar" {
 	service_namespace = "ecs"
 	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
