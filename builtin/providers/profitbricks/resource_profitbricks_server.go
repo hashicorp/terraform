@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/profitbricks/profitbricks-sdk-go"
@@ -11,7 +12,6 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
-	"errors"
 	"strings"
 )
 
@@ -587,7 +587,7 @@ func resourceProfitBricksServerDelete(d *schema.ResourceData, meta interface{}) 
 
 	server := profitbricks.GetServer(dcId, d.Id())
 
-	if (server.Properties.BootVolume != nil) {
+	if server.Properties.BootVolume != nil {
 		resp := profitbricks.DeleteVolume(dcId, server.Properties.BootVolume.Id)
 		err := waitTillProvisioned(meta, resp.Headers.Get("Location"))
 		if err != nil {
@@ -617,7 +617,7 @@ func getSshKey(d *schema.ResourceData, path string) (privatekey string, publicke
 
 	block, _ := pem.Decode(pemBytes)
 
-	if (block == nil) {
+	if block == nil {
 		return "", "", errors.New("File " + path + " contains nothing")
 	}
 
