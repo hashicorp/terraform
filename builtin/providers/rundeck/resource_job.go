@@ -621,7 +621,7 @@ func notificationFromMap(notificationMap map[string]interface{}) (*rundeck.Notif
 	return notification, nil
 }
 
-func jobNotificationFromConfig(configI map[string]interface{}, handle string) (*rundeck.Notification, error) {
+func notificationFromConfig(configI map[string]interface{}, handle string) (*rundeck.Notification, error) {
 	notificationConfigI := configI[handle].([]interface{})
 	if len(notificationConfigI) > 0 {
 		notification, error := notificationFromMap(notificationConfigI[0].(map[string]interface{}))
@@ -637,33 +637,37 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 
 	// Element: Job
 	job := &rundeck.JobDetail{
-		ID:                        d.Id(),
-		Name:                      d.Get("name").(string),
-		GroupName:                 d.Get("group_name").(string),
-		ProjectName:               d.Get("project_name").(string),
-		Description:               d.Get("description").(string),
-		LogLevel:                  d.Get("log_level").(string),
-		AllowConcurrentExecutions: d.Get("allow_concurrent_executions").(bool),
-		NodesSelectedByDefault:    d.Get("nodes_selected_by_default").(bool),
-		Timeout:                   d.Get("execution_timeout").(string),
-		Retry:                     d.Get("execution_retry").(string),
+		ID:                     d.Id(),
+		Name:                   d.Get("name").(string),
+		GroupName:              d.Get("group_name").(string),
+		ProjectName:            d.Get("project_name").(string),
+		Description:            d.Get("description").(string),
+		LogLevel:               d.Get("log_level").(string),
+		NodesSelectedByDefault: d.Get("nodes_selected_by_default").(bool),
+		Timeout:                d.Get("execution_timeout").(string),
+		Retry:                  d.Get("execution_retry").(string),
+	}
+
+	// Issue: #8677: Rundeck Provider: rundeck_job doesn't have idempotency
+	if d.Get("allow_concurrent_executions").(bool) {
+		job.AllowConcurrentExecutions = true
 	}
 
 	// Element: Job>Notification
 	notificationConfigI := d.Get("notification").([]interface{})
 	if len(notificationConfigI) > 0 {
 		notificationConfigI := notificationConfigI[0].(map[string]interface{})
-		onFailure, error := jobNotificationFromConfig(notificationConfigI, "onfailure")
+		onFailure, error := notificationFromConfig(notificationConfigI, "onfailure")
 		if error != nil {
 			return nil, error
 		}
 
-		onStart, error := jobNotificationFromConfig(notificationConfigI, "onstart")
+		onStart, error := notificationFromConfig(notificationConfigI, "onstart")
 		if error != nil {
 			return nil, error
 		}
 
-		onSuccess, error := jobNotificationFromConfig(notificationConfigI, "onsuccess")
+		onSuccess, error := notificationFromConfig(notificationConfigI, "onsuccess")
 		if error != nil {
 			return nil, error
 		}
@@ -891,6 +895,7 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 
 	d.Set("description", job.Description)
 	d.Set("log_level", job.LogLevel)
+
 	d.Set("allow_concurrent_executions", job.AllowConcurrentExecutions)
 	d.Set("nodes_selected_by_default", job.NodesSelectedByDefault)
 	d.Set("execution_timeout", job.Timeout)
