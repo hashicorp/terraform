@@ -20,21 +20,6 @@ func resourceAwsAppautoscalingTarget() *schema.Resource {
 		Delete: resourceAwsAppautoscalingTargetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1862-L1873
-					value := v.(string)
-					if len(value) > 255 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 255 characters", k))
-					}
-					return
-				},
-			},
 			"max_capacity": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
