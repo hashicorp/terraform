@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+
+	nsone "gopkg.in/ns1/ns1-go.v2/rest"
 )
 
 func TestAccRecord_basic(t *testing.T) {

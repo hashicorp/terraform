@@ -2,10 +2,12 @@ package nsone
 
 import (
 	"fmt"
-	"github.com/bobtfish/go-nsone-api"
-	"github.com/hashicorp/terraform/helper/schema"
 	"regexp"
 	"strconv"
+
+	"github.com/hashicorp/terraform/helper/schema"
+
+	nsone "gopkg.in/ns1/ns1-go.v2/rest"
 )
 
 func monitoringJobResource() *schema.Resource {

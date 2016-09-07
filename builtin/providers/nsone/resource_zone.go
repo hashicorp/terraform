@@ -3,8 +3,9 @@ package nsone
 import (
 	"strings"
 
-	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	nsone "gopkg.in/ns1/ns1-go.v2/rest"
 )
 
 func zoneResource() *schema.Resource {

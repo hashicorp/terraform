@@ -1,8 +1,9 @@
 package nsone
 
 import (
-	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	nsone "gopkg.in/ns1/ns1-go.v2/rest"
 )
 
 func addPermsSchema(s map[string]*schema.Schema) map[string]*schema.Schema {
