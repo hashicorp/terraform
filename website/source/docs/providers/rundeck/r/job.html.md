@@ -6,37 +6,6 @@ description: |-
   The rundeck_job resource allows Rundeck jobs to be managed by Terraform.
 ---
 
-<!-- TOC depthFrom:1 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
-
-- [rundeck\_job](#rundeckjob)
-	- [Example Usage](#example-usage)
-	- [Attributes Reference](#attributes-reference)
-	- [Argument Reference](#argument-reference)
-		- [Dispatch](#dispatch)
-			- [Example Usage](#example-usage)
-			- [Argument Reference](#argument-reference)
-		- [Option](#option)
-			- [Example Usage](#example-usage)
-			- [Argument Reference](#argument-reference)
-		- [Command](#command)
-			- [Example Usage](#example-usage)
-			- [Argument Reference](#argument-reference)
-				- [Job Argument Reference](#job-argument-reference)
-					- [Example Usage](#example-usage)
-					- [Argument Reference](#argument-reference)
-				- [(Node) Step Plugin Argument Reference](#node-step-plugin-argument-reference)
-					- [Example Usage](#example-usage)
-					- [Argument Reference](#argument-reference)
-				- [Errorhandler Argument Reference](#errorhandler-argument-reference)
-					- [Example Usage](#example-usage)
-		- [Notification](#notification)
-			- [Example Usage](#example-usage)
-			- [Argument Reference](#argument-reference)
-				- [Email Argument Reference](#email-argument-reference)
-				- [WebHook Argument Reference](#webhook-argument-reference)
-
-<!-- /TOC -->
-
 # rundeck\_job
 
 The job resource allows Rundeck jobs to be managed by Terraform. In Rundeck a job is a particular
