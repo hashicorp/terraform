@@ -153,9 +153,8 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	err = d.Set("tags", tagsToMap(pc.Tags))
-	if err != nil {
-		return err
+	if _, ok := d.GetOk("tags"); ok {
+		d.Set("tags", tagsToMap(pc.Tags))
 	}
 
 	return nil
