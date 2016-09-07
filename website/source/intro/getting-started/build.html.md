@@ -74,8 +74,8 @@ AWS access key and secret key, available from
 We're hardcoding them for now, but will extract these into
 variables later in the getting started guide.
 
-~>**Note**: If you simply leave out AWS credentials, Terraform will automatically search for saved API credentials (for example, in ~/.aws/credentials) or AIM instance profile credentials. This option is much cleaner for situations where tf files are checked into source control or where there is more than one admin user.
-See details [here] (https://aws.amazon.com/blogs/apn/terraform-beyond-the-basics-with-aws/). Not only do you NOT want AIM crdentials in source control, but you also want different IAM credentials for each admin user.
+~>**Note**: If you simply leave out AWS credentials, Terraform will automatically search for saved API credentials (for example, in ~/.aws/credentials) or IAM instance profile credentials. This option is much cleaner for situations where tf files are checked into source control or where there is more than one admin user.
+See details [here] (https://aws.amazon.com/blogs/apn/terraform-beyond-the-basics-with-aws/). Not only do you NOT want AIM credentials in source control, but you also want different IAM credentials for each admin user.
 
 This is a complete configuration that Terraform is ready to apply.
 The general structure should be intuitive and straightforward.
