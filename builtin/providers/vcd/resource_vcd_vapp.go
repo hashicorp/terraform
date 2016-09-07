@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	types "github.com/hmrc/vmware-govcd/types/v56"
+	types "github.com/vmware/govcloudair/types/v56"
 )
 
 func resourceVcdVApp() *schema.Resource {
@@ -109,7 +109,7 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		networkHref = net.OrgVDCNetwork.HREF
 	}
-	// vapptemplate := govcd.NewVAppTemplate(&vcdClient.Client)
+	// vapptemplate := govcloudair.NewVAppTemplate(&vcdClient.Client)
 	//
 	createvapp := &types.InstantiateVAppTemplateParams{
 		Ovf:   "http://schemas.dmtf.org/ovf/envelope/1",

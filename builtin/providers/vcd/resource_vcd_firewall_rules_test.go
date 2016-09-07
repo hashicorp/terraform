@@ -8,12 +8,12 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hmrc/vmware-govcd"
+	"github.com/vmware/govcloudair"
 )
 
 func TestAccVcdFirewallRules_basic(t *testing.T) {
 
-	var existingRules, fwRules govcd.EdgeGateway
+	var existingRules, fwRules govcloudair.EdgeGateway
 	newConfig := createFirewallRulesConfigs(&existingRules)
 
 	resource.Test(t, resource.TestCase{
@@ -32,7 +32,7 @@ func TestAccVcdFirewallRules_basic(t *testing.T) {
 
 }
 
-func testAccCheckVcdFirewallRulesExists(n string, gateway *govcd.EdgeGateway) resource.TestCheckFunc {
+func testAccCheckVcdFirewallRulesExists(n string, gateway *govcloudair.EdgeGateway) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -57,7 +57,7 @@ func testAccCheckVcdFirewallRulesExists(n string, gateway *govcd.EdgeGateway) re
 	}
 }
 
-func testAccCheckVcdFirewallRulesAttributes(newRules, existingRules *govcd.EdgeGateway) resource.TestCheckFunc {
+func testAccCheckVcdFirewallRulesAttributes(newRules, existingRules *govcloudair.EdgeGateway) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if len(newRules.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.FirewallService.FirewallRule) != len(existingRules.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.FirewallService.FirewallRule)+1 {
@@ -70,7 +70,7 @@ func testAccCheckVcdFirewallRulesAttributes(newRules, existingRules *govcd.EdgeG
 	}
 }
 
-func createFirewallRulesConfigs(existingRules *govcd.EdgeGateway) string {
+func createFirewallRulesConfigs(existingRules *govcloudair.EdgeGateway) string {
 	config := Config{
 		User:            os.Getenv("VCD_USER"),
 		Password:        os.Getenv("VCD_PASSWORD"),
