@@ -36,5 +36,4 @@ The following arguments are supported:
 
 
 ## Attribute Reference
-* `arn` - The ARN assigned by AWS to the scaling policy.
 * `name` - The scaling policy's name.

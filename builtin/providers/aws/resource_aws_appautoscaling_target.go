@@ -35,10 +35,6 @@ func resourceAwsAppautoscalingTarget() *schema.Resource {
 					return
 				},
 			},
-			"arn": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"max_capacity": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
