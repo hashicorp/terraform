@@ -3,6 +3,7 @@
 FEATURES:
 
 IMPROVEMENTS:
+ * provider/aws: Support 'publish' attribute in lambda_function [GH-8653]
  * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name` [GH-8639]
  * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration [GH-8666]
 
