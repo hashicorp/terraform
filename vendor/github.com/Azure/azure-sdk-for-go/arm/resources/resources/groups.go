@@ -31,7 +31,12 @@ type GroupsClient struct {
 
 // NewGroupsClient creates an instance of the GroupsClient client.
 func NewGroupsClient(subscriptionID string) GroupsClient {
-	return GroupsClient{New(subscriptionID)}
+	return NewGroupsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewGroupsClientWithBaseURI creates an instance of the GroupsClient client.
+func NewGroupsClientWithBaseURI(baseURI string, subscriptionID string) GroupsClient {
+	return GroupsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CheckExistence checks whether resource group exists.
@@ -446,10 +451,11 @@ func (client GroupsClient) ListNextResults(lastResults ResourceGroupListResult) 
 // ListResources get all of the resources under a subscription.
 //
 // resourceGroupName is query parameters. If null is passed returns all
-// resource groups. filter is the filter to apply on the operation. top is
-// query parameters. If null is passed returns all resource groups.
-func (client GroupsClient) ListResources(resourceGroupName string, filter string, top *int32) (result ResourceListResult, err error) {
-	req, err := client.ListResourcesPreparer(resourceGroupName, filter, top)
+// resource groups. filter is the filter to apply on the operation. expand is
+// the $expand query parameter top is query parameters. If null is passed
+// returns all resource groups.
+func (client GroupsClient) ListResources(resourceGroupName string, filter string, expand string, top *int32) (result ResourceListResult, err error) {
+	req, err := client.ListResourcesPreparer(resourceGroupName, filter, expand, top)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", nil, "Failure preparing request")
 	}
@@ -469,7 +475,7 @@ func (client GroupsClient) ListResources(resourceGroupName string, filter string
 }
 
 // ListResourcesPreparer prepares the ListResources request.
-func (client GroupsClient) ListResourcesPreparer(resourceGroupName string, filter string, top *int32) (*http.Request, error) {
+func (client GroupsClient) ListResourcesPreparer(resourceGroupName string, filter string, expand string, top *int32) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
@@ -480,6 +486,9 @@ func (client GroupsClient) ListResourcesPreparer(resourceGroupName string, filte
 	}
 	if len(filter) > 0 {
 		queryParameters["$filter"] = autorest.Encode("query", filter)
+	}
+	if len(expand) > 0 {
+		queryParameters["$expand"] = autorest.Encode("query", expand)
 	}
 	if top != nil {
 		queryParameters["$top"] = autorest.Encode("query", *top)

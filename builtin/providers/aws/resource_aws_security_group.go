@@ -239,6 +239,10 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 			d.Id(), err)
 	}
 
+	if err := setTags(conn, d); err != nil {
+		return err
+	}
+
 	// AWS defaults all Security Groups to have an ALLOW ALL egress rule. Here we
 	// revoke that rule, so users don't unknowingly have/use it.
 	group := resp.(*ec2.SecurityGroup)
@@ -340,11 +344,12 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if err := setTags(conn, d); err != nil {
-		return err
+	if !d.IsNewResource() {
+		if err := setTags(conn, d); err != nil {
+			return err
+		}
+		d.SetPartial("tags")
 	}
-
-	d.SetPartial("tags")
 
 	return resourceAwsSecurityGroupRead(d, meta)
 }
@@ -353,6 +358,10 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
+
+	if err := deleteLingeringLambdaENIs(conn, d); err != nil {
+		return fmt.Errorf("Failed to delete Lambda ENIs: %s", err)
+	}
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
@@ -969,4 +978,88 @@ func protocolForValue(v string) string {
 	// fall through
 	log.Printf("[WARN] Unable to determine valid protocol: no matching protocols found")
 	return protocol
+}
+
+// The AWS Lambda service creates ENIs behind the scenes and keeps these around for a while
+// which would prevent SGs attached to such ENIs from being destroyed
+func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
+	// Here we carefully find the offenders
+	params := &ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("group-id"),
+				Values: []*string{aws.String(d.Id())},
+			},
+			&ec2.Filter{
+				Name:   aws.String("description"),
+				Values: []*string{aws.String("AWS Lambda VPC ENI: *")},
+			},
+			&ec2.Filter{
+				Name:   aws.String("requester-id"),
+				Values: []*string{aws.String("*:awslambda_*")},
+			},
+		},
+	}
+	networkInterfaceResp, err := conn.DescribeNetworkInterfaces(params)
+	if err != nil {
+		return err
+	}
+
+	// Then we detach and finally delete those
+	v := networkInterfaceResp.NetworkInterfaces
+	for _, eni := range v {
+		if eni.Attachment != nil {
+			detachNetworkInterfaceParams := &ec2.DetachNetworkInterfaceInput{
+				AttachmentId: eni.Attachment.AttachmentId,
+			}
+			_, detachNetworkInterfaceErr := conn.DetachNetworkInterface(detachNetworkInterfaceParams)
+
+			if detachNetworkInterfaceErr != nil {
+				return detachNetworkInterfaceErr
+			}
+
+			log.Printf("[DEBUG] Waiting for ENI (%s) to become detached", *eni.NetworkInterfaceId)
+			stateConf := &resource.StateChangeConf{
+				Pending: []string{"true"},
+				Target:  []string{"false"},
+				Refresh: networkInterfaceAttachedRefreshFunc(conn, *eni.NetworkInterfaceId),
+				Timeout: 10 * time.Minute,
+			}
+			if _, err := stateConf.WaitForState(); err != nil {
+				return fmt.Errorf(
+					"Error waiting for ENI (%s) to become detached: %s", *eni.NetworkInterfaceId, err)
+			}
+		}
+
+		deleteNetworkInterfaceParams := &ec2.DeleteNetworkInterfaceInput{
+			NetworkInterfaceId: eni.NetworkInterfaceId,
+		}
+		_, deleteNetworkInterfaceErr := conn.DeleteNetworkInterface(deleteNetworkInterfaceParams)
+
+		if deleteNetworkInterfaceErr != nil {
+			return deleteNetworkInterfaceErr
+		}
+	}
+
+	return nil
+}
+
+func networkInterfaceAttachedRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+
+		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
+			NetworkInterfaceIds: []*string{aws.String(id)},
+		}
+		describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
+
+		if err != nil {
+			log.Printf("[ERROR] Could not find network interface %s. %s", id, err)
+			return nil, "", err
+		}
+
+		eni := describeResp.NetworkInterfaces[0]
+		hasAttachment := strconv.FormatBool(eni.Attachment != nil)
+		log.Printf("[DEBUG] ENI %s has attachment state %s", id, hasAttachment)
+		return eni, hasAttachment, nil
+	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
+	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
@@ -45,6 +46,7 @@ type ArmClient struct {
 	vnetGatewayConnectionsClient network.VirtualNetworkGatewayConnectionsClient
 	vnetGatewayClient            network.VirtualNetworkGatewaysClient
 	vnetClient                   network.VirtualNetworksClient
+	vnetPeeringsClient           network.VirtualNetworkPeeringsClient
 	routeTablesClient            network.RouteTablesClient
 	routesClient                 network.RoutesClient
 
@@ -65,6 +67,8 @@ type ArmClient struct {
 
 	trafficManagerProfilesClient  trafficmanager.ProfilesClient
 	trafficManagerEndpointsClient trafficmanager.EndpointsClient
+
+	serviceBusNamespacesClient servicebus.NamespacesClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -131,12 +135,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 		return nil, err
 	}
 
-	// This is necessary because no-one thought about API usability. OAuthConfigForTenant
-	// returns a pointer, which can be nil. NewServicePrincipalToken does not take a pointer.
-	// Consequently we have to nil check this and do _something_ if it is nil, which should
-	// be either an invariant of OAuthConfigForTenant (guarantee the token is not nil if
-	// there is no error), or NewServicePrincipalToken should error out if the configuration
-	// is required and is nil. This is the worst of all worlds, however.
+	// OAuthConfigForTenant returns a pointer, which can be nil.
 	if oauthConfig == nil {
 		return nil, fmt.Errorf("Unable to configure OAuthConfig for tenant %s", c.TenantID)
 	}
@@ -257,6 +256,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vnc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vnetClient = vnc
 
+	vnpc := network.NewVirtualNetworkPeeringsClient(c.SubscriptionID)
+	setUserAgent(&vnpc.Client)
+	vnpc.Authorizer = spt
+	vnpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.vnetPeeringsClient = vnpc
+
 	rtc := network.NewRouteTablesClient(c.SubscriptionID)
 	setUserAgent(&rtc.Client)
 	rtc.Authorizer = spt
@@ -340,6 +345,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tmec.Authorizer = spt
 	tmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerEndpointsClient = tmec
+
+	sbnc := servicebus.NewNamespacesClient(c.SubscriptionID)
+	setUserAgent(&sbnc.Client)
+	sbnc.Authorizer = spt
+	sbnc.Sender = autorest.CreateSender(withRequestLogging())
+	client.serviceBusNamespacesClient = sbnc
 
 	return &client, nil
 }

@@ -73,9 +73,17 @@ func testAccCheckComputeTargetPoolExists(n string) resource.TestCheckFunc {
 }
 
 var testAccComputeTargetPool_basic = fmt.Sprintf(`
+resource "google_compute_http_health_check" "foobar" {
+	name = "healthcheck-test-%s"
+	host = "example.com"
+}
+
 resource "google_compute_target_pool" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
 	instances = ["us-central1-a/foo", "us-central1-b/bar"]
 	name = "tpool-test-%s"
 	session_affinity = "CLIENT_IP_PROTO"
-}`, acctest.RandString(10))
+	health_checks = [
+		"${google_compute_http_health_check.foobar.name}"
+	]
+}`, acctest.RandString(10), acctest.RandString(10))

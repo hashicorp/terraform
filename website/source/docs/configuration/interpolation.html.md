@@ -27,9 +27,8 @@ will be rendered as a literal `${foo}`.
 variable name. For example, `${var.foo}` will interpolate the
 `foo` variable value. If the variable is a map, then you
 can reference static keys in the map with the syntax
-`var.MAP.KEY`. For example, `${var.amis.us-east-1}` would
-get the value of the `us-east-1` key within the `amis` variable
-that is a map.
+`var.MAP["KEY"]`. For example, `${var.amis["us-east-1"]` would
+get the value of the `us-east-1` key within the `amis` map variable.
 
 **To reference attributes of your own resource**, the syntax is
 `self.ATTRIBUTE`. For example `${self.private_ip_address}` will
@@ -93,7 +92,7 @@ The supported built-in functions are:
     systems expect for IPv4 interfaces. For example,
     ``cidrmask("10.0.0.0/8")`` returns ``255.0.0.0``. Not applicable
     to IPv6 networks since CIDR notation is the only valid notation for
-    IPv6.
+    IPv4.
 
   * `cidrsubnet(iprange, newbits, netnum)` - Takes an IP address range in
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
@@ -110,7 +109,7 @@ The supported built-in functions are:
      variables or when parsing module outputs.
      Example: `compact(module.my_asg.load_balancer_names)`
 
-  * `concat(list1, list2)` - Combines two or more lists into a single list.
+  * `concat(list1, list2, ...)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
   * `distinct(list)` - Removes duplicate items from a list. Keeps the first
@@ -132,13 +131,13 @@ The supported built-in functions are:
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
 
-  * `format(format, args...)` - Formats a string according to the given
+  * `format(format, args, ...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
       Good documentation for the syntax can be [found here](https://golang.org/pkg/fmt/).
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index + 1)`.
 
-  * `formatlist(format, args...)` - Formats each element of a list
+  * `formatlist(format, args, ...)` - Formats each element of a list
       according to the given format, similarly to `format`, and returns a list.
       Non-list arguments are repeated for each list element.
       For example, to convert a list of DNS addresses to a list of URLs, you might use:
@@ -165,13 +164,12 @@ The supported built-in functions are:
 
   * `keys(map)` - Returns a lexically sorted list of the map keys.
 
-  * `length(list)` - Returns a number of members in a given list, map, or string.
-      or a number of characters in a given string.
+  * `length(list)` - Returns a number of members in a given list or map, or a number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
       * `${length("a,b,c")}` = 5
       * `${length(map("key", "val"))}` = 1
 
-  * `list(items...)` - Returns a list consisting of the arguments to the function.
+  * `list(items, ...)` - Returns a list consisting of the arguments to the function.
       This function provides a way of representing list literals in interpolation.
       * `${list("a", "b", "c")}` returns a list of `"a", "b", "c"`.
       * `${list()}` returns an empty list.
@@ -192,6 +190,11 @@ The supported built-in functions are:
     Duplicate keys are not allowed. Examples:
     * `map("hello", "world")`
     * `map("us-east", list("a", "b", "c"), "us-west", list("b", "c", "d"))`
+
+  * `merge(map1, map2, ...)` - Returns the union of 2 or more maps. The maps
+	are consumed in the order provided, and duplicate keys overwrite previous
+	entries.
+	* `${merge(map("a", "b"), map("c", "d"))}` returns `{"a": "b", "c": "d"}`
 
   * `md5(string)` - Returns a (conventional) hexadecimal representation of the
     MD5 hash of the given string.
@@ -243,12 +246,12 @@ The supported built-in functions are:
 
 ## Templates
 
-Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [resources](/docs/configuration/resources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
+Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [data-sources](/docs/configuration/data-sources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
 
-A template resource looks like:
+A template data source looks like:
 
 ```
-resource "template_file" "example" {
+data "template_file" "example" {
   template = "${hello} ${world}!"
   vars {
     hello = "goodnight"
@@ -257,7 +260,7 @@ resource "template_file" "example" {
 }
 
 output "rendered" {
-  value = "${template_file.example.rendered}"
+  value = "${data.template_file.example.rendered}"
 }
 ```
 
@@ -268,7 +271,7 @@ You may use any of the built-in functions in your template.
 ### Using Templates with Count
 
 Here is an example that combines the capabilities of templates with the interpolation
-from `count` to give us a parametized template, unique to each resource instance:
+from `count` to give us a parameterized template, unique to each resource instance:
 
 ```
 variable "count" {
@@ -282,7 +285,7 @@ variable "hostnames" {
   }
 }
 
-resource "template_file" "web_init" {
+data "template_file" "web_init" {
   // here we expand multiple template_files - the same number as we have instances
   count    = "${var.count}"
   template = "${file("templates/web_init.tpl")}"
@@ -296,11 +299,11 @@ resource "aws_instance" "web" {
   // ...
   count = "${var.count}"
   // here we link each web instance to the proper template_file
-  user_data = "${element(template_file.web_init.*.rendered, count.index)}"
+  user_data = "${element(data.template_file.web_init.*.rendered, count.index)}"
 }
 ```
 
-With this, we will build a list of `template_file.web_init` resources which we can
+With this, we will build a list of `template_file.web_init` data sources which we can
 use in combination with our list of `aws_instance.web` resources.
 
 ## Math

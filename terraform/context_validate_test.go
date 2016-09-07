@@ -6,6 +6,25 @@ import (
 	"testing"
 )
 
+func TestContext2Validate_badCount(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-bad-count")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContext2Validate_badVar(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-bad-var")

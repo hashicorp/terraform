@@ -41,6 +41,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"cloudstack_affinity_group":       resourceCloudStackAffinityGroup(),
 			"cloudstack_disk":                 resourceCloudStackDisk(),
 			"cloudstack_egress_firewall":      resourceCloudStackEgressFirewall(),
 			"cloudstack_firewall":             resourceCloudStackFirewall(),

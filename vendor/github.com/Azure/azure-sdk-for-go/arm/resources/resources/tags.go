@@ -31,7 +31,12 @@ type TagsClient struct {
 
 // NewTagsClient creates an instance of the TagsClient client.
 func NewTagsClient(subscriptionID string) TagsClient {
-	return TagsClient{New(subscriptionID)}
+	return NewTagsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewTagsClientWithBaseURI creates an instance of the TagsClient client.
+func NewTagsClientWithBaseURI(baseURI string, subscriptionID string) TagsClient {
+	return TagsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate create a subscription resource tag.

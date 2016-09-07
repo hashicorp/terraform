@@ -29,13 +29,14 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("POSTGRESQL_HOST"); v == "" {
-		t.Fatal("POSTGRESQL_HOST must be set for acceptance tests")
+	var host string
+	if host = os.Getenv("PGHOST"); host == "" {
+		t.Fatal("PGHOST must be set for acceptance tests")
 	}
-	if v := os.Getenv("POSTGRESQL_USERNAME"); v == "" {
-		t.Fatal("POSTGRESQL_USERNAME must be set for acceptance tests")
+	if v := os.Getenv("PGUSER"); v == "" {
+		t.Fatal("PGUSER must be set for acceptance tests")
 	}
-	if v := os.Getenv("POSTGRESQL_PASSWORD"); v == "" {
-		t.Fatal("POSTGRESQL_PASSWORD must be set for acceptance tests")
+	if v := os.Getenv("PGPASSWORD"); v == "" && host != "localhost" {
+		t.Fatal("PGPASSWORD must be set for acceptance tests if PGHOST is not localhost")
 	}
 }

@@ -539,7 +539,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     false,
-							Description: "Should this VCL configuation be the main configuration",
+							Description: "Should this VCL configuration be the main configuration",
 						},
 					},
 				},
@@ -1519,7 +1519,7 @@ func findService(id string, meta interface{}) (*gofastly.Service, error) {
 
 	l, err := conn.ListServices(&gofastly.ListServicesInput{})
 	if err != nil {
-		return nil, fmt.Errorf("[WARN] Error listing services when deleting Fastly Service (%s): %s", id, err)
+		return nil, fmt.Errorf("[WARN] Error listing services (%s): %s", id, err)
 	}
 
 	for _, s := range l {

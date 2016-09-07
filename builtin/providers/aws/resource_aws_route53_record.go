@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -269,13 +270,41 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Creating resource records for zone: %s, name: %s\n\n%s",
 		zone, *rec.Name, req)
 
+	respRaw, err := changeRoute53RecordSet(conn, req)
+	if err != nil {
+		return errwrap.Wrapf("[ERR]: Error building changeset: {{err}}", err)
+	}
+
+	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
+
+	// Generate an ID
+	vars := []string{
+		zone,
+		strings.ToLower(d.Get("name").(string)),
+		d.Get("type").(string),
+	}
+	if v, ok := d.GetOk("set_identifier"); ok {
+		vars = append(vars, v.(string))
+	}
+
+	d.SetId(strings.Join(vars, "_"))
+
+	err = waitForRoute53RecordSetToSync(conn, cleanChangeID(*changeInfo.Id))
+	if err != nil {
+		return err
+	}
+
+	return resourceAwsRoute53RecordRead(d, meta)
+}
+
+func changeRoute53RecordSet(conn *route53.Route53, input *route53.ChangeResourceRecordSetsInput) (interface{}, error) {
 	wait := resource.StateChangeConf{
 		Pending:    []string{"rejected"},
 		Target:     []string{"accepted"},
 		Timeout:    5 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
-			resp, err := conn.ChangeResourceRecordSets(req)
+			resp, err := conn.ChangeResourceRecordSets(input)
 			if err != nil {
 				if r53err, ok := err.(awserr.Error); ok {
 					if r53err.Code() == "PriorRequestNotComplete" {
@@ -292,26 +321,11 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		},
 	}
 
-	respRaw, err := wait.WaitForState()
-	if err != nil {
-		return err
-	}
-	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
+	return wait.WaitForState()
+}
 
-	// Generate an ID
-	vars := []string{
-		zone,
-		strings.ToLower(d.Get("name").(string)),
-		d.Get("type").(string),
-	}
-	if v, ok := d.GetOk("set_identifier"); ok {
-		vars = append(vars, v.(string))
-	}
-
-	d.SetId(strings.Join(vars, "_"))
-
-	// Wait until we are done
-	wait = resource.StateChangeConf{
+func waitForRoute53RecordSetToSync(conn *route53.Route53, requestId string) error {
+	wait := resource.StateChangeConf{
 		Delay:      30 * time.Second,
 		Pending:    []string{"PENDING"},
 		Target:     []string{"INSYNC"},
@@ -319,17 +333,13 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
 			changeRequest := &route53.GetChangeInput{
-				Id: aws.String(cleanChangeID(*changeInfo.Id)),
+				Id: aws.String(requestId),
 			}
 			return resourceAwsGoRoute53Wait(conn, changeRequest)
 		},
 	}
-	_, err = wait.WaitForState()
-	if err != nil {
-		return err
-	}
-
-	return resourceAwsRoute53RecordRead(d, meta)
+	_, err := wait.WaitForState()
+	return err
 }
 
 func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
@@ -518,13 +528,29 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		ChangeBatch:  changeBatch,
 	}
 
+	respRaw, err := deleteRoute53RecordSet(conn, req)
+	if err != nil {
+		return errwrap.Wrapf("[ERR]: Error building changeset: {{err}}", err)
+	}
+
+	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
+
+	err = waitForRoute53RecordSetToSync(conn, cleanChangeID(*changeInfo.Id))
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func deleteRoute53RecordSet(conn *route53.Route53, input *route53.ChangeResourceRecordSetsInput) (interface{}, error) {
 	wait := resource.StateChangeConf{
 		Pending:    []string{"rejected"},
 		Target:     []string{"accepted"},
 		Timeout:    5 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
-			_, err := conn.ChangeResourceRecordSets(req)
+			resp, err := conn.ChangeResourceRecordSets(input)
 			if err != nil {
 				if r53err, ok := err.(awserr.Error); ok {
 					if r53err.Code() == "PriorRequestNotComplete" {
@@ -535,22 +561,18 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 
 					if r53err.Code() == "InvalidChangeBatch" {
 						// This means that the record is already gone.
-						return 42, "accepted", nil
+						return resp, "accepted", nil
 					}
 				}
 
 				return 42, "failure", err
 			}
 
-			return 42, "accepted", nil
+			return resp, "accepted", nil
 		},
 	}
 
-	if _, err := wait.WaitForState(); err != nil {
-		return err
-	}
-
-	return nil
+	return wait.WaitForState()
 }
 
 func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (*route53.ResourceRecordSet, error) {

@@ -47,11 +47,12 @@ func tempDir(t *testing.T) string {
 }
 
 // tempEnv lets you temporarily set an environment variable. It returns
+// a function to defer to reset the old value.
 // the old value that should be set via a defer.
-func tempEnv(t *testing.T, k string, v string) string {
+func tempEnv(t *testing.T, k string, v string) func() {
 	old := os.Getenv(k)
 	os.Setenv(k, v)
-	return old
+	return func() { os.Setenv(k, old) }
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
@@ -237,6 +238,22 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyRefCountStr = `
+aws_instance.bar:
+  ID = foo
+  foo = 3
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo
+aws_instance.foo.0:
+  ID = foo
+aws_instance.foo.1:
+  ID = foo
+aws_instance.foo.2:
+  ID = foo
+`
+
 const testTerraformApplyProviderAliasStr = `
 aws_instance.bar:
   ID = foo
@@ -367,6 +384,20 @@ aws_instance.foo.1:
   ID = foo
   foo = foo
   type = aws_instance
+`
+
+const testTerraformApplyCountVariableRefStr = `
+aws_instance.bar:
+  ID = foo
+  foo = 2
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo
+aws_instance.foo.0:
+  ID = foo
+aws_instance.foo.1:
+  ID = foo
 `
 
 const testTerraformApplyMinimalStr = `
@@ -1376,6 +1407,19 @@ aws_instance.foo:
   ami = ami-abcd1234
 `
 
+const testTerraformPlanIgnoreChangesWildcardStr = `
+DIFF:
+
+
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
+  ami = ami-abcd1234
+  instance_type = t2.micro
+`
+
 const testTerraformPlanComputedValueInMap = `
 DIFF:
 
@@ -1413,3 +1457,14 @@ module.mod2:
 STATE:
 
 <no state>`
+
+const testTerraformInputHCL = `
+hcl_instance.hcltest:
+  ID = foo
+  bar.w = z
+  bar.x = y
+  foo.# = 2
+  foo.0 = a
+  foo.1 = b
+  type = hcl_instance
+`

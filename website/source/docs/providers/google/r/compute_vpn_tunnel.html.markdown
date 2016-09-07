@@ -38,7 +38,7 @@ resource "google_compute_forwarding_rule" "fr_esp" {
 resource "google_compute_forwarding_rule" "fr_udp500" {
   name        = "fr-udp500"
   ip_protocol = "UDP"
-  port_range  = "500"
+  port_range  = "500-500"
   ip_address  = "${google_compute_address.vpn_static_ip.address}"
   target      = "${google_compute_vpn_gateway.target_gateway.self_link}"
 }
@@ -46,7 +46,7 @@ resource "google_compute_forwarding_rule" "fr_udp500" {
 resource "google_compute_forwarding_rule" "fr_udp4500" {
   name        = "fr-udp4500"
   ip_protocol = "UDP"
-  port_range  = "4500"
+  port_range  = "4500-4500"
   ip_address  = "${google_compute_address.vpn_static_ip.address}"
   target      = "${google_compute_vpn_gateway.target_gateway.self_link}"
 }

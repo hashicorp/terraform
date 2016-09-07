@@ -106,8 +106,7 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// Look up the network to attach the route to
-	network, err := config.clientCompute.Networks.Get(
-		project, d.Get("network").(string)).Do()
+	network, err := getNetworkLink(d, config, "network")
 	if err != nil {
 		return fmt.Errorf("Error reading network: %s", err)
 	}
@@ -149,7 +148,7 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 	route := &compute.Route{
 		Name:             d.Get("name").(string),
 		DestRange:        d.Get("dest_range").(string),
-		Network:          network.SelfLink,
+		Network:          network,
 		NextHopInstance:  nextHopInstance,
 		NextHopVpnTunnel: nextHopVpnTunnel,
 		NextHopIp:        nextHopIp,
@@ -167,7 +166,7 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 	// It probably maybe worked, so store the ID now
 	d.SetId(route.Name)
 
-	err = computeOperationWaitGlobal(config, op, "Creating Route")
+	err = computeOperationWaitGlobal(config, op, project, "Creating Route")
 	if err != nil {
 		return err
 	}
@@ -218,7 +217,7 @@ func resourceComputeRouteDelete(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error deleting route: %s", err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Deleting Route")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Route")
 	if err != nil {
 		return err
 	}

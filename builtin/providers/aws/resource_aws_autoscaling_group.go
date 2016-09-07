@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -169,15 +170,104 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Default:  false,
 			},
 
+			"target_group_arns": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"initial_lifecycle_hook": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"default_result": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+						"heartbeat_timeout": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"lifecycle_transition": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"notification_metadata": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"notification_target_arn": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"role_arn": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+
 			"tag": autoscalingTagsSchema(),
 		},
 	}
 }
 
+func generatePutLifecycleHookInputs(asgName string, cfgs []interface{}) []autoscaling.PutLifecycleHookInput {
+	res := make([]autoscaling.PutLifecycleHookInput, 0, len(cfgs))
+
+	for _, raw := range cfgs {
+		cfg := raw.(map[string]interface{})
+
+		input := autoscaling.PutLifecycleHookInput{
+			AutoScalingGroupName: &asgName,
+			LifecycleHookName:    aws.String(cfg["name"].(string)),
+		}
+
+		if v, ok := cfg["default_result"]; ok && v.(string) != "" {
+			input.DefaultResult = aws.String(v.(string))
+		}
+
+		if v, ok := cfg["heartbeat_timeout"]; ok && v.(int) > 0 {
+			input.HeartbeatTimeout = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := cfg["lifecycle_transition"]; ok && v.(string) != "" {
+			input.LifecycleTransition = aws.String(v.(string))
+		}
+
+		if v, ok := cfg["notification_metadata"]; ok && v.(string) != "" {
+			input.NotificationMetadata = aws.String(v.(string))
+		}
+
+		if v, ok := cfg["notification_target_arn"]; ok && v.(string) != "" {
+			input.NotificationTargetARN = aws.String(v.(string))
+		}
+
+		if v, ok := cfg["role_arn"]; ok && v.(string) != "" {
+			input.RoleARN = aws.String(v.(string))
+		}
+
+		res = append(res, input)
+	}
+
+	return res
+}
+
 func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).autoscalingconn
-
-	var autoScalingGroupOpts autoscaling.CreateAutoScalingGroupInput
 
 	var asgName string
 	if v, ok := d.GetOk("name"); ok {
@@ -187,65 +277,106 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		d.Set("name", asgName)
 	}
 
-	autoScalingGroupOpts.AutoScalingGroupName = aws.String(asgName)
-	autoScalingGroupOpts.LaunchConfigurationName = aws.String(d.Get("launch_configuration").(string))
-	autoScalingGroupOpts.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
-	autoScalingGroupOpts.MaxSize = aws.Int64(int64(d.Get("max_size").(int)))
-	autoScalingGroupOpts.NewInstancesProtectedFromScaleIn = aws.Bool(d.Get("protect_from_scale_in").(bool))
+	createOpts := autoscaling.CreateAutoScalingGroupInput{
+		AutoScalingGroupName:             aws.String(asgName),
+		LaunchConfigurationName:          aws.String(d.Get("launch_configuration").(string)),
+		NewInstancesProtectedFromScaleIn: aws.Bool(d.Get("protect_from_scale_in").(bool)),
+	}
+	updateOpts := autoscaling.UpdateAutoScalingGroupInput{
+		AutoScalingGroupName: aws.String(asgName),
+	}
+
+	initialLifecycleHooks := d.Get("initial_lifecycle_hook").(*schema.Set).List()
+	twoPhases := len(initialLifecycleHooks) > 0
+
+	minSize := aws.Int64(int64(d.Get("min_size").(int)))
+	maxSize := aws.Int64(int64(d.Get("max_size").(int)))
+
+	if twoPhases {
+		createOpts.MinSize = aws.Int64(int64(0))
+		createOpts.MaxSize = aws.Int64(int64(0))
+
+		updateOpts.MinSize = minSize
+		updateOpts.MaxSize = maxSize
+
+		if v, ok := d.GetOk("desired_capacity"); ok {
+			updateOpts.DesiredCapacity = aws.Int64(int64(v.(int)))
+		}
+	} else {
+		createOpts.MinSize = minSize
+		createOpts.MaxSize = maxSize
+
+		if v, ok := d.GetOk("desired_capacity"); ok {
+			createOpts.DesiredCapacity = aws.Int64(int64(v.(int)))
+		}
+	}
 
 	// Availability Zones are optional if VPC Zone Identifer(s) are specified
 	if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
-		autoScalingGroupOpts.AvailabilityZones = expandStringList(v.(*schema.Set).List())
+		createOpts.AvailabilityZones = expandStringList(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("tag"); ok {
-		autoScalingGroupOpts.Tags = autoscalingTagsFromMap(
+		createOpts.Tags = autoscalingTagsFromMap(
 			setToMapByKey(v.(*schema.Set), "key"), d.Get("name").(string))
 	}
 
 	if v, ok := d.GetOk("default_cooldown"); ok {
-		autoScalingGroupOpts.DefaultCooldown = aws.Int64(int64(v.(int)))
+		createOpts.DefaultCooldown = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("health_check_type"); ok && v.(string) != "" {
-		autoScalingGroupOpts.HealthCheckType = aws.String(v.(string))
-	}
-
-	if v, ok := d.GetOk("desired_capacity"); ok {
-		autoScalingGroupOpts.DesiredCapacity = aws.Int64(int64(v.(int)))
+		createOpts.HealthCheckType = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("health_check_grace_period"); ok {
-		autoScalingGroupOpts.HealthCheckGracePeriod = aws.Int64(int64(v.(int)))
+		createOpts.HealthCheckGracePeriod = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("placement_group"); ok {
-		autoScalingGroupOpts.PlacementGroup = aws.String(v.(string))
+		createOpts.PlacementGroup = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
-		autoScalingGroupOpts.LoadBalancerNames = expandStringList(
+		createOpts.LoadBalancerNames = expandStringList(
 			v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("vpc_zone_identifier"); ok && v.(*schema.Set).Len() > 0 {
-		autoScalingGroupOpts.VPCZoneIdentifier = expandVpcZoneIdentifiers(v.(*schema.Set).List())
+		createOpts.VPCZoneIdentifier = expandVpcZoneIdentifiers(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("termination_policies"); ok && len(v.([]interface{})) > 0 {
-		autoScalingGroupOpts.TerminationPolicies = expandStringList(v.([]interface{}))
+		createOpts.TerminationPolicies = expandStringList(v.([]interface{}))
 	}
 
-	log.Printf("[DEBUG] AutoScaling Group create configuration: %#v", autoScalingGroupOpts)
-	_, err := conn.CreateAutoScalingGroup(&autoScalingGroupOpts)
+	if v, ok := d.GetOk("target_group_arns"); ok && len(v.(*schema.Set).List()) > 0 {
+		createOpts.TargetGroupARNs = expandStringList(v.(*schema.Set).List())
+	}
+
+	log.Printf("[DEBUG] AutoScaling Group create configuration: %#v", createOpts)
+	_, err := conn.CreateAutoScalingGroup(&createOpts)
 	if err != nil {
-		return fmt.Errorf("Error creating Autoscaling Group: %s", err)
+		return fmt.Errorf("Error creating AutoScaling Group: %s", err)
 	}
 
 	d.SetId(d.Get("name").(string))
 	log.Printf("[INFO] AutoScaling Group ID: %s", d.Id())
 
-	if err := waitForASGCapacity(d, meta, capacitySatifiedCreate); err != nil {
+	if twoPhases {
+		for _, hook := range generatePutLifecycleHookInputs(asgName, initialLifecycleHooks) {
+			if err = resourceAwsAutoscalingLifecycleHookPutOp(conn, &hook); err != nil {
+				return fmt.Errorf("Error creating initial lifecycle hooks: %s", err)
+			}
+		}
+
+		_, err = conn.UpdateAutoScalingGroup(&updateOpts)
+		if err != nil {
+			return fmt.Errorf("Error setting AutoScaling Group initial capacity: %s", err)
+		}
+	}
+
+	if err := waitForASGCapacity(d, meta, capacitySatisfiedCreate); err != nil {
 		return err
 	}
 
@@ -274,11 +405,15 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("availability_zones", flattenStringList(g.AvailabilityZones))
 	d.Set("default_cooldown", g.DefaultCooldown)
+	d.Set("arn", g.AutoScalingGroupARN)
 	d.Set("desired_capacity", g.DesiredCapacity)
 	d.Set("health_check_grace_period", g.HealthCheckGracePeriod)
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
 	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
+	if err := d.Set("target_group_arns", flattenStringList(g.TargetGroupARNs)); err != nil {
+		log.Printf("[ERR] Error setting target groups: %s", err)
+	}
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
 	d.Set("placement_group", g.PlacementGroup)
@@ -422,12 +557,52 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	if d.HasChange("target_group_arns") {
+
+		o, n := d.GetChange("target_group_arns")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+		remove := expandStringList(os.Difference(ns).List())
+		add := expandStringList(ns.Difference(os).List())
+
+		if len(remove) > 0 {
+			_, err := conn.DetachLoadBalancerTargetGroups(&autoscaling.DetachLoadBalancerTargetGroupsInput{
+				AutoScalingGroupName: aws.String(d.Id()),
+				TargetGroupARNs:      remove,
+			})
+			if err != nil {
+				return fmt.Errorf("[WARN] Error updating Load Balancers Target Groups for AutoScaling Group (%s), error: %s", d.Id(), err)
+			}
+		}
+
+		if len(add) > 0 {
+			_, err := conn.AttachLoadBalancerTargetGroups(&autoscaling.AttachLoadBalancerTargetGroupsInput{
+				AutoScalingGroupName: aws.String(d.Id()),
+				TargetGroupARNs:      add,
+			})
+			if err != nil {
+				return fmt.Errorf("[WARN] Error updating Load Balancers Target Groups for AutoScaling Group (%s), error: %s", d.Id(), err)
+			}
+		}
+	}
+
 	if shouldWaitForCapacity {
-		waitForASGCapacity(d, meta, capacitySatifiedUpdate)
+		if err := waitForASGCapacity(d, meta, capacitySatisfiedUpdate); err != nil {
+			return errwrap.Wrapf("Error waiting for AutoScaling Group Capacity: {{err}}", err)
+		}
 	}
 
 	if d.HasChange("enabled_metrics") {
-		updateASGMetricsCollection(d, conn)
+		if err := updateASGMetricsCollection(d, conn); err != nil {
+			return errwrap.Wrapf("Error updating AutoScaling Group Metrics collection: {{err}}", err)
+		}
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)

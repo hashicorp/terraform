@@ -54,6 +54,8 @@ func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request
 }
 
 // Create an ApiKey resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/create-api-key.html)
 func (c *APIGateway) CreateApiKey(input *CreateApiKeyInput) (*ApiKey, error) {
 	req, out := c.CreateApiKeyRequest(input)
 	err := req.Send()
@@ -102,6 +104,8 @@ func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req 
 }
 
 // Adds a new Authorizer resource to an existing RestApi resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/create-authorizer.html)
 func (c *APIGateway) CreateAuthorizer(input *CreateAuthorizerInput) (*Authorizer, error) {
 	req, out := c.CreateAuthorizerRequest(input)
 	err := req.Send()
@@ -446,6 +450,103 @@ func (c *APIGateway) CreateStage(input *CreateStageInput) (*Stage, error) {
 	return out, err
 }
 
+const opCreateUsagePlan = "CreateUsagePlan"
+
+// CreateUsagePlanRequest generates a "aws/request.Request" representing the
+// client's request for the CreateUsagePlan operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateUsagePlan method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateUsagePlanRequest method.
+//    req, resp := client.CreateUsagePlanRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) CreateUsagePlanRequest(input *CreateUsagePlanInput) (req *request.Request, output *UsagePlan) {
+	op := &request.Operation{
+		Name:       opCreateUsagePlan,
+		HTTPMethod: "POST",
+		HTTPPath:   "/usageplans",
+	}
+
+	if input == nil {
+		input = &CreateUsagePlanInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlan{}
+	req.Data = output
+	return
+}
+
+// Creates a usage plan with the throttle and quota limits, as well as the associated
+// API stages, specified in the payload.
+func (c *APIGateway) CreateUsagePlan(input *CreateUsagePlanInput) (*UsagePlan, error) {
+	req, out := c.CreateUsagePlanRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opCreateUsagePlanKey = "CreateUsagePlanKey"
+
+// CreateUsagePlanKeyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateUsagePlanKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateUsagePlanKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateUsagePlanKeyRequest method.
+//    req, resp := client.CreateUsagePlanKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) CreateUsagePlanKeyRequest(input *CreateUsagePlanKeyInput) (req *request.Request, output *UsagePlanKey) {
+	op := &request.Operation{
+		Name:       opCreateUsagePlanKey,
+		HTTPMethod: "POST",
+		HTTPPath:   "/usageplans/{usageplanId}/keys",
+	}
+
+	if input == nil {
+		input = &CreateUsagePlanKeyInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlanKey{}
+	req.Data = output
+	return
+}
+
+// Creates a usage plan key for adding an existing API key to a usage plan.
+func (c *APIGateway) CreateUsagePlanKey(input *CreateUsagePlanKeyInput) (*UsagePlanKey, error) {
+	req, out := c.CreateUsagePlanKeyRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDeleteApiKey = "DeleteApiKey"
 
 // DeleteApiKeyRequest generates a "aws/request.Request" representing the
@@ -540,6 +641,8 @@ func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req 
 }
 
 // Deletes an existing Authorizer resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/delete-authorizer.html)
 func (c *APIGateway) DeleteAuthorizer(input *DeleteAuthorizerInput) (*DeleteAuthorizerOutput, error) {
 	req, out := c.DeleteAuthorizerRequest(input)
 	err := req.Send()
@@ -1147,6 +1250,107 @@ func (c *APIGateway) DeleteStage(input *DeleteStageInput) (*DeleteStageOutput, e
 	return out, err
 }
 
+const opDeleteUsagePlan = "DeleteUsagePlan"
+
+// DeleteUsagePlanRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteUsagePlan operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteUsagePlan method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteUsagePlanRequest method.
+//    req, resp := client.DeleteUsagePlanRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) DeleteUsagePlanRequest(input *DeleteUsagePlanInput) (req *request.Request, output *DeleteUsagePlanOutput) {
+	op := &request.Operation{
+		Name:       opDeleteUsagePlan,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/usageplans/{usageplanId}",
+	}
+
+	if input == nil {
+		input = &DeleteUsagePlanInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &DeleteUsagePlanOutput{}
+	req.Data = output
+	return
+}
+
+// Deletes a usage plan of a given plan Id.
+func (c *APIGateway) DeleteUsagePlan(input *DeleteUsagePlanInput) (*DeleteUsagePlanOutput, error) {
+	req, out := c.DeleteUsagePlanRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDeleteUsagePlanKey = "DeleteUsagePlanKey"
+
+// DeleteUsagePlanKeyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteUsagePlanKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteUsagePlanKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteUsagePlanKeyRequest method.
+//    req, resp := client.DeleteUsagePlanKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) DeleteUsagePlanKeyRequest(input *DeleteUsagePlanKeyInput) (req *request.Request, output *DeleteUsagePlanKeyOutput) {
+	op := &request.Operation{
+		Name:       opDeleteUsagePlanKey,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/usageplans/{usageplanId}/keys/{keyId}",
+	}
+
+	if input == nil {
+		input = &DeleteUsagePlanKeyInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &DeleteUsagePlanKeyOutput{}
+	req.Data = output
+	return
+}
+
+// Deletes a usage plan key and remove the underlying API key from the associated
+// usage plan.
+func (c *APIGateway) DeleteUsagePlanKey(input *DeleteUsagePlanKeyInput) (*DeleteUsagePlanKeyOutput, error) {
+	req, out := c.DeleteUsagePlanKeyRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opFlushStageAuthorizersCache = "FlushStageAuthorizersCache"
 
 // FlushStageAuthorizersCacheRequest generates a "aws/request.Request" representing the
@@ -1512,6 +1716,8 @@ func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *reque
 }
 
 // Describe an existing Authorizer resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-authorizer.html)
 func (c *APIGateway) GetAuthorizer(input *GetAuthorizerInput) (*Authorizer, error) {
 	req, out := c.GetAuthorizerRequest(input)
 	err := req.Send()
@@ -1560,6 +1766,8 @@ func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *req
 }
 
 // Describe an existing Authorizers resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-authorizers.html)
 func (c *APIGateway) GetAuthorizers(input *GetAuthorizersInput) (*GetAuthorizersOutput, error) {
 	req, out := c.GetAuthorizersRequest(input)
 	err := req.Send()
@@ -2889,6 +3097,388 @@ func (c *APIGateway) GetStages(input *GetStagesInput) (*GetStagesOutput, error) 
 	return out, err
 }
 
+const opGetUsage = "GetUsage"
+
+// GetUsageRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsageRequest method.
+//    req, resp := client.GetUsageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsageRequest(input *GetUsageInput) (req *request.Request, output *Usage) {
+	op := &request.Operation{
+		Name:       opGetUsage,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans/{usageplanId}/usage",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"position"},
+			OutputTokens:    []string{"position"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetUsageInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &Usage{}
+	req.Data = output
+	return
+}
+
+// Gets the usage data of a usage plan in a specified time interval.
+func (c *APIGateway) GetUsage(input *GetUsageInput) (*Usage, error) {
+	req, out := c.GetUsageRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// GetUsagePages iterates over the pages of a GetUsage operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetUsage method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetUsage operation.
+//    pageNum := 0
+//    err := client.GetUsagePages(params,
+//        func(page *Usage, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *APIGateway) GetUsagePages(input *GetUsageInput, fn func(p *Usage, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.GetUsageRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*Usage), lastPage)
+	})
+}
+
+const opGetUsagePlan = "GetUsagePlan"
+
+// GetUsagePlanRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsagePlan operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsagePlan method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsagePlanRequest method.
+//    req, resp := client.GetUsagePlanRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsagePlanRequest(input *GetUsagePlanInput) (req *request.Request, output *UsagePlan) {
+	op := &request.Operation{
+		Name:       opGetUsagePlan,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans/{usageplanId}",
+	}
+
+	if input == nil {
+		input = &GetUsagePlanInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlan{}
+	req.Data = output
+	return
+}
+
+// Gets a usage plan of a given plan identifier.
+func (c *APIGateway) GetUsagePlan(input *GetUsagePlanInput) (*UsagePlan, error) {
+	req, out := c.GetUsagePlanRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetUsagePlanKey = "GetUsagePlanKey"
+
+// GetUsagePlanKeyRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsagePlanKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsagePlanKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsagePlanKeyRequest method.
+//    req, resp := client.GetUsagePlanKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsagePlanKeyRequest(input *GetUsagePlanKeyInput) (req *request.Request, output *UsagePlanKey) {
+	op := &request.Operation{
+		Name:       opGetUsagePlanKey,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans/{usageplanId}/keys/{keyId}",
+	}
+
+	if input == nil {
+		input = &GetUsagePlanKeyInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlanKey{}
+	req.Data = output
+	return
+}
+
+// Gets a usage plan key of a given key identifier.
+func (c *APIGateway) GetUsagePlanKey(input *GetUsagePlanKeyInput) (*UsagePlanKey, error) {
+	req, out := c.GetUsagePlanKeyRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetUsagePlanKeys = "GetUsagePlanKeys"
+
+// GetUsagePlanKeysRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsagePlanKeys operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsagePlanKeys method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsagePlanKeysRequest method.
+//    req, resp := client.GetUsagePlanKeysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsagePlanKeysRequest(input *GetUsagePlanKeysInput) (req *request.Request, output *GetUsagePlanKeysOutput) {
+	op := &request.Operation{
+		Name:       opGetUsagePlanKeys,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans/{usageplanId}/keys",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"position"},
+			OutputTokens:    []string{"position"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetUsagePlanKeysInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetUsagePlanKeysOutput{}
+	req.Data = output
+	return
+}
+
+// Gets all the usage plan keys representing the API keys added to a specified
+// usage plan.
+func (c *APIGateway) GetUsagePlanKeys(input *GetUsagePlanKeysInput) (*GetUsagePlanKeysOutput, error) {
+	req, out := c.GetUsagePlanKeysRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// GetUsagePlanKeysPages iterates over the pages of a GetUsagePlanKeys operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetUsagePlanKeys method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetUsagePlanKeys operation.
+//    pageNum := 0
+//    err := client.GetUsagePlanKeysPages(params,
+//        func(page *GetUsagePlanKeysOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *APIGateway) GetUsagePlanKeysPages(input *GetUsagePlanKeysInput, fn func(p *GetUsagePlanKeysOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.GetUsagePlanKeysRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*GetUsagePlanKeysOutput), lastPage)
+	})
+}
+
+const opGetUsagePlans = "GetUsagePlans"
+
+// GetUsagePlansRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsagePlans operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsagePlans method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsagePlansRequest method.
+//    req, resp := client.GetUsagePlansRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsagePlansRequest(input *GetUsagePlansInput) (req *request.Request, output *GetUsagePlansOutput) {
+	op := &request.Operation{
+		Name:       opGetUsagePlans,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"position"},
+			OutputTokens:    []string{"position"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetUsagePlansInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetUsagePlansOutput{}
+	req.Data = output
+	return
+}
+
+// Gets all the usage plans of the caller's account.
+func (c *APIGateway) GetUsagePlans(input *GetUsagePlansInput) (*GetUsagePlansOutput, error) {
+	req, out := c.GetUsagePlansRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// GetUsagePlansPages iterates over the pages of a GetUsagePlans operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetUsagePlans method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetUsagePlans operation.
+//    pageNum := 0
+//    err := client.GetUsagePlansPages(params,
+//        func(page *GetUsagePlansOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *APIGateway) GetUsagePlansPages(input *GetUsagePlansInput, fn func(p *GetUsagePlansOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.GetUsagePlansRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*GetUsagePlansOutput), lastPage)
+	})
+}
+
+const opImportApiKeys = "ImportApiKeys"
+
+// ImportApiKeysRequest generates a "aws/request.Request" representing the
+// client's request for the ImportApiKeys operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportApiKeys method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportApiKeysRequest method.
+//    req, resp := client.ImportApiKeysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) ImportApiKeysRequest(input *ImportApiKeysInput) (req *request.Request, output *ImportApiKeysOutput) {
+	op := &request.Operation{
+		Name:       opImportApiKeys,
+		HTTPMethod: "POST",
+		HTTPPath:   "/apikeys?mode=import",
+	}
+
+	if input == nil {
+		input = &ImportApiKeysInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ImportApiKeysOutput{}
+	req.Data = output
+	return
+}
+
+// Import API keys from an external source, such as a CSV-formatted file.
+func (c *APIGateway) ImportApiKeys(input *ImportApiKeysInput) (*ImportApiKeysOutput, error) {
+	req, out := c.ImportApiKeysRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opImportRestApi = "ImportRestApi"
 
 // ImportRestApiRequest generates a "aws/request.Request" representing the
@@ -3224,6 +3814,8 @@ func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInpu
 
 // Simulate the execution of an Authorizer in your RestApi with headers, parameters,
 // and an incoming request body.
+//
+//  Enable custom authorizers (http://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
 func (c *APIGateway) TestInvokeAuthorizer(input *TestInvokeAuthorizerInput) (*TestInvokeAuthorizerOutput, error) {
 	req, out := c.TestInvokeAuthorizerRequest(input)
 	err := req.Send()
@@ -3417,6 +4009,8 @@ func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req 
 }
 
 // Updates an existing Authorizer resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/update-authorizer.html)
 func (c *APIGateway) UpdateAuthorizer(input *UpdateAuthorizerInput) (*Authorizer, error) {
 	req, out := c.UpdateAuthorizerRequest(input)
 	err := req.Send()
@@ -3999,16 +4593,150 @@ func (c *APIGateway) UpdateStage(input *UpdateStageInput) (*Stage, error) {
 	return out, err
 }
 
+const opUpdateUsage = "UpdateUsage"
+
+// UpdateUsageRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateUsage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateUsage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateUsageRequest method.
+//    req, resp := client.UpdateUsageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) UpdateUsageRequest(input *UpdateUsageInput) (req *request.Request, output *Usage) {
+	op := &request.Operation{
+		Name:       opUpdateUsage,
+		HTTPMethod: "PATCH",
+		HTTPPath:   "/usageplans/{usageplanId}/keys/{keyId}/usage",
+	}
+
+	if input == nil {
+		input = &UpdateUsageInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &Usage{}
+	req.Data = output
+	return
+}
+
+// Grants a temporary extension to the reamining quota of a usage plan associated
+// with a specified API key.
+func (c *APIGateway) UpdateUsage(input *UpdateUsageInput) (*Usage, error) {
+	req, out := c.UpdateUsageRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opUpdateUsagePlan = "UpdateUsagePlan"
+
+// UpdateUsagePlanRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateUsagePlan operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateUsagePlan method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateUsagePlanRequest method.
+//    req, resp := client.UpdateUsagePlanRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) UpdateUsagePlanRequest(input *UpdateUsagePlanInput) (req *request.Request, output *UsagePlan) {
+	op := &request.Operation{
+		Name:       opUpdateUsagePlan,
+		HTTPMethod: "PATCH",
+		HTTPPath:   "/usageplans/{usageplanId}",
+	}
+
+	if input == nil {
+		input = &UpdateUsagePlanInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlan{}
+	req.Data = output
+	return
+}
+
+// Updates a usage plan of a given plan Id.
+func (c *APIGateway) UpdateUsagePlan(input *UpdateUsagePlanInput) (*UsagePlan, error) {
+	req, out := c.UpdateUsagePlanRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 // Represents an AWS account that is associated with Amazon API Gateway.
+//
+//  To view the account info, call GET on this resource.
+//
+// Error Codes
+//
+// The following exception may be thrown when the request fails.
+//
+//  UnauthorizedException NotFoundException TooManyRequestsException  For detailed
+// error code information, including the corresponding HTTP Status Codes, see
+// API Gateway Error Codes (http://docs.aws.amazon.com/apigateway/api-reference/handling-errors/#api-error-codes)
+//
+// Example: Get the information about an account.
+//
+// Request
+//
+// GET /account HTTP/1.1 Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com
+// X-Amz-Date: 20160531T184618Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/us-east-1/apigateway/aws4_request,
+// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}  Response
+//
+// The successful response returns a 200 OK status code and a payload similar
+// to the following:
+//
+// { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/account-apigateway-{rel}.html",
+// "name": "account", "templated": true }, "self": { "href": "/account" }, "account:update":
+// { "href": "/account" } }, "cloudwatchRoleArn": "arn:aws:iam::123456789012:role/apigAwsProxyRole",
+// "throttleSettings": { "rateLimit": 500, "burstLimit": 1000 } }  In addition
+// to making the REST API call directly, you can use the AWS CLI and an AWS
+// SDK to access this resource.
+//
+//   API Gateway Limits (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-limits.html)
+// Developer Guide (http://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html),
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-account.html)
 type Account struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies the Amazon resource name (ARN) of an Amazon CloudWatch role for
-	// the current Account resource.
+	// The version of the API keys used for the account.
+	ApiKeyVersion *string `locationName:"apiKeyVersion" type:"string"`
+
+	// The ARN of an Amazon CloudWatch role for the current Account.
 	CloudwatchRoleArn *string `locationName:"cloudwatchRoleArn" type:"string"`
 
-	// Specifies the application programming interface (API) throttle settings for
-	// the current Account resource.
+	// A list of features supported for the account. When usage plans are enabled,
+	// the features list will include an entry of "UsagePlans".
+	Features []*string `locationName:"features" type:"list"`
+
+	// Specifies the API request limits configured for the current Account.
 	ThrottleSettings *ThrottleSettings `locationName:"throttleSettings" type:"structure"`
 }
 
@@ -4026,6 +4754,8 @@ func (s Account) GoString() string {
 // that require an API key. API keys can be mapped to any Stage on any RestApi,
 // which indicates that the callers with the API key can make requests to that
 // stage.
+//
+//  Use API Keys (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-api-keys.html)
 type ApiKey struct {
 	_ struct{} `type:"structure"`
 
@@ -4050,6 +4780,9 @@ type ApiKey struct {
 
 	// A list of Stage resources that are associated with the ApiKey resource.
 	StageKeys []*string `locationName:"stageKeys" type:"list"`
+
+	// The value of the API Key.
+	Value *string `locationName:"value" type:"string"`
 }
 
 // String returns the string representation
@@ -4062,8 +4795,31 @@ func (s ApiKey) GoString() string {
 	return s.String()
 }
 
+// API stage name of the associated API stage in a usage plan.
+type ApiStage struct {
+	_ struct{} `type:"structure"`
+
+	// API Id of the associated API stage in a usage plan.
+	ApiId *string `locationName:"apiId" type:"string"`
+
+	// API stage name of the associated API stage in a usage plan.
+	Stage *string `locationName:"stage" type:"string"`
+}
+
+// String returns the string representation
+func (s ApiStage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApiStage) GoString() string {
+	return s.String()
+}
+
 // Represents an authorization layer for methods. If enabled on a method, API
 // Gateway will activate the authorizer when a client calls the method.
+//
+//  Enable custom authorization (http://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
 type Authorizer struct {
 	_ struct{} `type:"structure"`
 
@@ -4072,7 +4828,7 @@ type Authorizer struct {
 	AuthType *string `locationName:"authType" type:"string"`
 
 	// Specifies the credentials required for the authorizer, if any. Two options
-	// are available. To specify an IAM Role for Amazon API Gateway to assume, use
+	// are available. To specify an IAM role for Amazon API Gateway to assume, use
 	// the role's Amazon Resource Name (ARN). To use resource-based permissions
 	// on the Lambda function, specify null.
 	AuthorizerCredentials *string `locationName:"authorizerCredentials" type:"string"`
@@ -4110,6 +4866,9 @@ type Authorizer struct {
 	// [Required] The name of the authorizer.
 	Name *string `locationName:"name" type:"string"`
 
+	// A list of the provider ARNs of the authorizer.
+	ProviderARNs []*string `locationName:"providerARNs" type:"list"`
+
 	// [Required] The type of the authorizer. Currently, the only valid type is
 	// TOKEN.
 	Type *string `locationName:"type" type:"string" enum:"AuthorizerType"`
@@ -4125,8 +4884,11 @@ func (s Authorizer) GoString() string {
 	return s.String()
 }
 
-// Represents the base path that callers of the API that must provide as part
-// of the URL after the domain name.
+// Represents the base path that callers of the API must provide as part of
+// the URL after the domain name.
+//
+// A custom domain name plus a BasePathMapping specification identifies a deployed
+// RestApi in a given stage of the owner Account.  Use Custom Domain Names (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type BasePathMapping struct {
 	_ struct{} `type:"structure"`
 
@@ -4151,26 +4913,30 @@ func (s BasePathMapping) GoString() string {
 	return s.String()
 }
 
-// Represents a Client Certificate used to configure client-side SSL authentication
+// Represents a client certificate used to configure client-side SSL authentication
 // while sending requests to the integration endpoint.
+//
+// Client certificates are used authenticate an API by the back-end server.
+// To authenticate an API client (or user), use a custom Authorizer.  Use Client-Side
+// Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
 type ClientCertificate struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier of the Client Certificate.
+	// The identifier of the client certificate.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
-	// The date when the Client Certificate was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
+	// The date when the client certificate was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
 	// target="_blank).
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
-	// The description of the Client Certificate.
+	// The description of the client certificate.
 	Description *string `locationName:"description" type:"string"`
 
-	// The date when the Client Certificate will expire, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
+	// The date when the client certificate will expire, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
 	// target="_blank).
 	ExpirationDate *time.Time `locationName:"expirationDate" type:"timestamp" timestampFormat:"unix"`
 
-	// The PEM-encoded public key of the Client Certificate, that can be used to
+	// The PEM-encoded public key of the client certificate, which can be used to
 	// configure certificate authentication in the integration endpoint .
 	PemEncodedCertificate *string `locationName:"pemEncodedCertificate" type:"string"`
 }
@@ -4195,11 +4961,18 @@ type CreateApiKeyInput struct {
 	// Specifies whether the ApiKey can be used by callers.
 	Enabled *bool `locationName:"enabled" type:"boolean"`
 
+	// Specifies whether (true) or not (false) the key identifier is distinct from
+	// the created API key value.
+	GenerateDistinctId *bool `locationName:"generateDistinctId" type:"boolean"`
+
 	// The name of the ApiKey.
 	Name *string `locationName:"name" type:"string"`
 
-	// Specifies whether the ApiKey can be used by callers.
+	// DEPRECATED FOR USAGE PLANS - Specifies stages associated with the API key.
 	StageKeys []*StageKey `locationName:"stageKeys" type:"list"`
+
+	// Specifies a value of the API key.
+	Value *string `locationName:"value" type:"string"`
 }
 
 // String returns the string representation
@@ -4227,7 +5000,7 @@ type CreateAuthorizerInput struct {
 	AuthorizerResultTtlInSeconds *int64 `locationName:"authorizerResultTtlInSeconds" type:"integer"`
 
 	// [Required] Specifies the authorizer's Uniform Resource Identifier (URI).
-	AuthorizerUri *string `locationName:"authorizerUri" type:"string" required:"true"`
+	AuthorizerUri *string `locationName:"authorizerUri" type:"string"`
 
 	// [Required] The source of the identity in an incoming request.
 	IdentitySource *string `locationName:"identitySource" type:"string" required:"true"`
@@ -4237,6 +5010,9 @@ type CreateAuthorizerInput struct {
 
 	// [Required] The name of the authorizer.
 	Name *string `locationName:"name" type:"string" required:"true"`
+
+	// A list of the Cognito Your User Pool authorizer's provider ARNs.
+	ProviderARNs []*string `locationName:"providerARNs" type:"list"`
 
 	// The RestApi identifier under which the Authorizer will be created.
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
@@ -4258,9 +5034,6 @@ func (s CreateAuthorizerInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateAuthorizerInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateAuthorizerInput"}
-	if s.AuthorizerUri == nil {
-		invalidParams.Add(request.NewErrParamRequired("AuthorizerUri"))
-	}
 	if s.IdentitySource == nil {
 		invalidParams.Add(request.NewErrParamRequired("IdentitySource"))
 	}
@@ -4352,8 +5125,8 @@ type CreateDeploymentInput struct {
 	StageName *string `locationName:"stageName" type:"string" required:"true"`
 
 	// A map that defines the stage variables for the Stage resource that is associated
-	// with the new deployment. Variable names can have alphanumeric characters,
-	// and the values must match [A-Za-z0-9-._~:/?#&=,]+.
+	// with the new deployment. Variable names can have alphanumeric and underscore
+	// characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
 }
 
@@ -4540,7 +5313,7 @@ func (s *CreateResourceInput) Validate() error {
 type CreateRestApiInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Id of the RestApi that you want to clone from.
+	// The ID of the RestApi that you want to clone from.
 	CloneFrom *string `locationName:"cloneFrom" type:"string"`
 
 	// The description of the RestApi.
@@ -4596,7 +5369,8 @@ type CreateStageInput struct {
 	StageName *string `locationName:"stageName" type:"string" required:"true"`
 
 	// A map that defines the stage variables for the new Stage resource. Variable
-	// names can have alphanumeric characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+.
+	// names can have alphanumeric and underscore characters, and the values must
+	// match [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
 }
 
@@ -4621,6 +5395,96 @@ func (s *CreateStageInput) Validate() error {
 	}
 	if s.StageName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The POST request to create a usage plan with the name, description, throttle
+// limits and quota limits, as well as the associated API stages, specified
+// in the payload.
+type CreateUsagePlanInput struct {
+	_ struct{} `type:"structure"`
+
+	// The associated API stages of the usage plan.
+	ApiStages []*ApiStage `locationName:"apiStages" type:"list"`
+
+	// The description of the usage plan.
+	Description *string `locationName:"description" type:"string"`
+
+	// The name of the usage plan.
+	Name *string `locationName:"name" type:"string" required:"true"`
+
+	// The quota of the usage plan.
+	Quota *QuotaSettings `locationName:"quota" type:"structure"`
+
+	// The throttling limits of the usage plan.
+	Throttle *ThrottleSettings `locationName:"throttle" type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateUsagePlanInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateUsagePlanInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateUsagePlanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateUsagePlanInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The POST request to create a usage plan key for adding an existing API key
+// to a usage plan.
+type CreateUsagePlanKeyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of a UsagePlanKey resource for a plan customer.
+	KeyId *string `locationName:"keyId" type:"string" required:"true"`
+
+	// The type of a UsagePlanKey resource for a plan customer.
+	KeyType *string `locationName:"keyType" type:"string" required:"true"`
+
+	// The Id of the UsagePlan resource representing the usage plan containing the
+	// to-be-created UsagePlanKey resource representing a plan customer.
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateUsagePlanKeyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateUsagePlanKeyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateUsagePlanKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateUsagePlanKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyType == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyType"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5041,7 +5905,7 @@ func (s DeleteIntegrationResponseOutput) GoString() string {
 type DeleteMethodInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb that identifies the Method resource.
+	// The HTTP verb of the Method resource.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the Method resource.
@@ -5098,7 +5962,7 @@ func (s DeleteMethodOutput) GoString() string {
 type DeleteMethodResponseInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb identifier for the parent Method resource.
+	// The HTTP verb of the Method resource.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the MethodResponse resource.
@@ -5355,13 +6219,117 @@ func (s DeleteStageOutput) GoString() string {
 	return s.String()
 }
 
+// The DELETE request to delete a uasge plan of a given plan Id.
+type DeleteUsagePlanInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Id of the to-be-deleted usage plan.
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteUsagePlanInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsagePlanInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteUsagePlanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteUsagePlanInput"}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The DELETE request to delete a usage plan key and remove the underlying API
+// key from the associated usage plan.
+type DeleteUsagePlanKeyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Id of the UsagePlanKey resource to be deleted.
+	KeyId *string `location:"uri" locationName:"keyId" type:"string" required:"true"`
+
+	// The Id of the UsagePlan resource representing the usage plan containing the
+	// to-be-deleted UsagePlanKey resource representing a plan customer.
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteUsagePlanKeyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsagePlanKeyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteUsagePlanKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteUsagePlanKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DeleteUsagePlanKeyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteUsagePlanKeyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsagePlanKeyOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteUsagePlanOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteUsagePlanOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsagePlanOutput) GoString() string {
+	return s.String()
+}
+
 // An immutable representation of a RestApi resource that can be called by users
 // using Stages. A deployment must be associated with a Stage for it to be callable
 // over the Internet.
+//
+// To create a deployment, call POST on the Deployments resource of a RestApi.
+// To view, update, or delete a deployment, call GET, PATCH, or DELETE on the
+// specified deployment resource (/restapis/{restapi_id}/deployments/{deployment_id}).
+// RestApi, Deployments, Stage, AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-deployment.html),
+// AWS SDKs (https://aws.amazon.com/tools/)
 type Deployment struct {
 	_ struct{} `type:"structure"`
 
-	// Gets a summary of the RestApi at the date and time that the deployment resource
+	// A summary of the RestApi at the date and time that the deployment resource
 	// was created.
 	ApiSummary map[string]map[string]*MethodSnapshot `locationName:"apiSummary" type:"map"`
 
@@ -5387,6 +6355,8 @@ func (s Deployment) GoString() string {
 
 // Represents a domain name that is contained in a simpler, more intuitive URL
 // that can be called.
+//
+//  Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type DomainName struct {
 	_ struct{} `type:"structure"`
 
@@ -5558,6 +6528,10 @@ type GetApiKeyInput struct {
 
 	// The identifier of the ApiKey resource.
 	ApiKey *string `location:"uri" locationName:"api_Key" type:"string" required:"true"`
+
+	// A boolean flag to specify whether (true) or not (false) the result contains
+	// the key value.
+	IncludeValue *bool `location:"querystring" locationName:"includeValue" type:"boolean"`
 }
 
 // String returns the string representation
@@ -5587,8 +6561,15 @@ func (s *GetApiKeyInput) Validate() error {
 type GetApiKeysInput struct {
 	_ struct{} `type:"structure"`
 
+	// A boolean flag to specify whether (true) or not (false) the result contains
+	// key values.
+	IncludeValues *bool `location:"querystring" locationName:"includeValues" type:"boolean"`
+
 	// The maximum number of ApiKeys to get information about.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// The name of queried API keys.
+	NameQuery *string `location:"querystring" locationName:"name" type:"string"`
 
 	// The position of the current ApiKeys resource to get information about.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
@@ -5604,7 +6585,9 @@ func (s GetApiKeysInput) GoString() string {
 	return s.String()
 }
 
-// Represents a collection of ApiKey resources.
+// Represents a collection of API keys as represented by an ApiKeys resource.
+//
+//  Use API Keys (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-api-keys.html)
 type GetApiKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5612,6 +6595,10 @@ type GetApiKeysOutput struct {
 	Items []*ApiKey `locationName:"item" type:"list"`
 
 	Position *string `locationName:"position" type:"string"`
+
+	// A list of warning messages logged during the import of API keys when the
+	// failOnWarnings option is set to true.
+	Warnings []*string `locationName:"warnings" type:"list"`
 }
 
 // String returns the string representation
@@ -5669,7 +6656,7 @@ type GetAuthorizersInput struct {
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
 	// If not all Authorizer resources in the response were present, the position
-	// will specificy where to start the next page of results.
+	// will specify where to start the next page of results.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The RestApi identifier for the Authorizers resource.
@@ -5700,6 +6687,8 @@ func (s *GetAuthorizersInput) Validate() error {
 }
 
 // Represents a collection of Authorizer resources.
+//
+//  Enable custom authorization (http://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
 type GetAuthorizersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5800,6 +6789,8 @@ func (s *GetBasePathMappingsInput) Validate() error {
 }
 
 // Represents a collection of BasePathMapping resources.
+//
+//  Use Custom Domain Names (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type GetBasePathMappingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5876,6 +6867,8 @@ func (s GetClientCertificatesInput) GoString() string {
 }
 
 // Represents a collection of ClientCertificate resources.
+//
+//  Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
 type GetClientCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5975,9 +6968,16 @@ func (s *GetDeploymentsInput) Validate() error {
 }
 
 // Represents a collection resource that contains zero or more references to
-// your existing deployments, and links that guide you on ways to interact with
+// your existing deployments, and links that guide you on how to interact with
 // your collection. The collection offers a paginated view of the contained
 // deployments.
+//
+// To create a new deployment of a RestApi, make a POST request against this
+// resource. To view, update, or delete an existing deployment, make a GET,
+// PATCH, or DELETE request, respectively, on a specified Deployment resource.
+//  Deploying an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html),
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-deployment.html),
+// AWS SDKs (https://aws.amazon.com/tools/)
 type GetDeploymentsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6052,6 +7052,8 @@ func (s GetDomainNamesInput) GoString() string {
 }
 
 // Represents a collection of DomainName resources.
+//
+//  Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type GetDomainNamesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6076,20 +7078,21 @@ func (s GetDomainNamesOutput) GoString() string {
 type GetExportInput struct {
 	_ struct{} `type:"structure"`
 
-	// The content-type of the export, for example 'application/json'. Currently
-	// 'application/json' and 'application/yaml' are supported for exportType 'swagger'.
-	// Should be specifed in the 'Accept' header for direct API requests.
+	// The content-type of the export, for example application/json. Currently application/json
+	// and application/yaml are supported for exportType of swagger. This should
+	// be specified in the Accept header for direct API requests.
 	Accepts *string `location:"header" locationName:"Accept" type:"string"`
 
 	// The type of export. Currently only 'swagger' is supported.
 	ExportType *string `location:"uri" locationName:"export_type" type:"string" required:"true"`
 
 	// A key-value map of query string parameters that specify properties of the
-	// export, depending on the requested exportType. For exportType 'swagger',
-	// any combination of the following parameters are supported: 'integrations'
-	// will export x-amazon-apigateway-integration extensions 'authorizers' will
-	// export x-amazon-apigateway-authorizer extensions 'postman' will export with
-	// Postman extensions, allowing for import to the Postman tool
+	// export, depending on the requested exportType. For exportType swagger, any
+	// combination of the following parameters are supported: integrations will
+	// export the API with x-amazon-apigateway-integration extensions. authorizers
+	// will export the API with x-amazon-apigateway-authorizer extensions. postman
+	// will export the API with Postman extensions, allowing for import to the Postman
+	// tool
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
 	// The identifier of the RestApi to be exported.
@@ -6135,7 +7138,7 @@ type GetExportOutput struct {
 	// The binary blob response to GetExport, which contains the export.
 	Body []byte `locationName:"body" type:"blob"`
 
-	// The content-disposition header value in the HTTP reseponse.
+	// The content-disposition header value in the HTTP response.
 	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
 
 	// The content-type header value in the HTTP response. This will correspond
@@ -6249,7 +7252,7 @@ func (s *GetIntegrationResponseInput) Validate() error {
 type GetMethodInput struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies the put method request's HTTP method type.
+	// Specifies the method request's HTTP method type.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the Method resource.
@@ -6292,7 +7295,7 @@ func (s *GetMethodInput) Validate() error {
 type GetMethodResponseInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb identifier for the parent Method resource.
+	// The HTTP verb of the Method resource.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the MethodResponse resource.
@@ -6301,7 +7304,7 @@ type GetMethodResponseInput struct {
 	// The RestApi identifier for the MethodResponse resource.
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
-	// The status code identifier for the MethodResponse resource.
+	// The status code for the MethodResponse resource.
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -6341,7 +7344,9 @@ func (s *GetMethodResponseInput) Validate() error {
 type GetModelInput struct {
 	_ struct{} `type:"structure"`
 
-	// Resolves all external model references and returns a flattened model schema.
+	// A query parameter of a Boolean value to resolve (true) all external model
+	// references and returns a flattened model schema or not (false) The default
+	// is false.
 	Flatten *bool `location:"querystring" locationName:"flatten" type:"boolean"`
 
 	// The name of the model as an identifier.
@@ -6415,6 +7420,8 @@ func (s *GetModelTemplateInput) Validate() error {
 }
 
 // Represents a mapping template used to transform a payload.
+//
+//  Mapping Templates (http://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html#models-mappings-mappings)
 type GetModelTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6473,6 +7480,8 @@ func (s *GetModelsInput) Validate() error {
 }
 
 // Represents a collection of Model resources.
+//
+//  Method, MethodResponse, Models and Mappings (http://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html)
 type GetModelsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6569,6 +7578,8 @@ func (s *GetResourcesInput) Validate() error {
 }
 
 // Represents a collection of Resource resources.
+//
+//  Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type GetResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6642,8 +7653,10 @@ func (s GetRestApisInput) GoString() string {
 	return s.String()
 }
 
-// Contains references to your APIs and links that guide you in ways to interact
+// Contains references to your APIs and links that guide you in how to interact
 // with your collection. A collection offers a paginated view of your APIs.
+//
+//  Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type GetRestApisOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6668,9 +7681,9 @@ type GetSdkInput struct {
 	_ struct{} `type:"structure"`
 
 	// A key-value map of query string parameters that specify properties of the
-	// SDK, depending on the requested sdkType. For sdkType 'objectivec', a parameter
-	// named "classPrefix" is required. For sdkType 'android', parameters named
-	// "groupId", "artifactId", "artifactVersion", and "invokerPackage" are required.
+	// SDK, depending on the requested sdkType. For sdkType of objectivec, a parameter
+	// named classPrefix is required. For sdkType of android, parameters named groupId,
+	// artifactId, artifactVersion, and invokerPackage are required.
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
 	// The identifier of the RestApi that the SDK will use.
@@ -6720,7 +7733,7 @@ type GetSdkOutput struct {
 	// The binary blob response to GetSdk, which contains the generated SDK.
 	Body []byte `locationName:"body" type:"blob"`
 
-	// The content-disposition header value in the HTTP reseponse.
+	// The content-disposition header value in the HTTP response.
 	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
 
 	// The content-type header value in the HTTP response.
@@ -6809,7 +7822,9 @@ func (s *GetStagesInput) Validate() error {
 	return nil
 }
 
-// A list of Stage resource that are associated with the ApiKey resource.
+// A list of Stage resources that are associated with the ApiKey resource.
+//
+// Deploying API in Stages (http://docs.aws.amazon.com/apigateway/latest/developerguide/stages.html)
 type GetStagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6824,6 +7839,308 @@ func (s GetStagesOutput) String() string {
 
 // GoString returns the string representation
 func (s GetStagesOutput) GoString() string {
+	return s.String()
+}
+
+// The GET request to get the usage data of a usage plan in a specified time
+// interval.
+type GetUsageInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ending date (e.g., 2016-12-31) of the usage data.
+	EndDate *string `location:"querystring" locationName:"endDate" type:"string" required:"true"`
+
+	// The Id of the API key associated with the resultant usage data.
+	KeyId *string `location:"querystring" locationName:"keyId" type:"string"`
+
+	// The maximum number of results to be returned.
+	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// Position
+	Position *string `location:"querystring" locationName:"position" type:"string"`
+
+	// The starting date (e.g., 2016-01-01) of the usage data.
+	StartDate *string `location:"querystring" locationName:"startDate" type:"string" required:"true"`
+
+	// The Id of the usage plan associated with the usage data.
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetUsageInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsageInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetUsageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetUsageInput"}
+	if s.EndDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndDate"))
+	}
+	if s.StartDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartDate"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The GET request to get a usage plan of a given plan identifier.
+type GetUsagePlanInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the UsagePlan resource to be retrieved.
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetUsagePlanInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlanInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetUsagePlanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetUsagePlanInput"}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The GET request to get a usage plan key of a given key identifier.
+type GetUsagePlanKeyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The key Id of the to-be-retrieved UsagePlanKey resource representing a plan
+	// customer.
+	KeyId *string `location:"uri" locationName:"keyId" type:"string" required:"true"`
+
+	// The Id of the UsagePlan resource representing the usage plan containing the
+	// to-be-retrieved UsagePlanKey resource representing a plan customer.
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetUsagePlanKeyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlanKeyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetUsagePlanKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetUsagePlanKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The GET request to get all the usage plan keys representing the API keys
+// added to a specified usage plan.
+type GetUsagePlanKeysInput struct {
+	_ struct{} `type:"structure"`
+
+	// A query parameter specifying the maximum number usage plan keys returned
+	// by the GET request.
+	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// A query parameter specifying the name of the to-be-returned usage plan keys.
+	NameQuery *string `location:"querystring" locationName:"name" type:"string"`
+
+	// A query parameter specifying the zero-based index specifying the position
+	// of a usage plan key.
+	Position *string `location:"querystring" locationName:"position" type:"string"`
+
+	// The Id of the UsagePlan resource representing the usage plan containing the
+	// to-be-retrieved UsagePlanKey resource representing a plan customer.
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetUsagePlanKeysInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlanKeysInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetUsagePlanKeysInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetUsagePlanKeysInput"}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Represents the collection of usage plan keys added to usage plans for the
+// associated API keys and, possibly, other types of keys.
+//
+//  Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+type GetUsagePlanKeysOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Gets the current item of the usage plan keys collection.
+	Items []*UsagePlanKey `locationName:"item" type:"list"`
+
+	Position *string `locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetUsagePlanKeysOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlanKeysOutput) GoString() string {
+	return s.String()
+}
+
+// The GET request to get all the usage plans of the caller's account.
+type GetUsagePlansInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the API key associated with the usage plans.
+	KeyId *string `location:"querystring" locationName:"keyId" type:"string"`
+
+	// The number of UsagePlan resources to be returned as the result.
+	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// The zero-based array index specifying the position of the to-be-retrieved
+	// UsagePlan resource.
+	Position *string `location:"querystring" locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetUsagePlansInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlansInput) GoString() string {
+	return s.String()
+}
+
+// Represents a collection of usage plans for an AWS account.
+//
+//  Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+type GetUsagePlansOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Gets the current item when enumerating the collection of UsagePlan.
+	Items []*UsagePlan `locationName:"item" type:"list"`
+
+	Position *string `locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetUsagePlansOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlansOutput) GoString() string {
+	return s.String()
+}
+
+// The POST request to import API keys from an external source, such as a CSV-formatted
+// file.
+type ImportApiKeysInput struct {
+	_ struct{} `type:"structure" payload:"Body"`
+
+	// The payload of the POST request to import API keys. For the payload format,
+	// see API Key File Format (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-key-file-format.html).
+	Body []byte `locationName:"body" type:"blob" required:"true"`
+
+	// A query parameter to indicate whether to rollback ApiKey importation (true)
+	// or not (false) when error is encountered.
+	FailOnWarnings *bool `location:"querystring" locationName:"failonwarnings" type:"boolean"`
+
+	// A query parameter to specify the input format to imported API keys. Currently,
+	// only the csv format is supported.
+	Format *string `location:"querystring" locationName:"format" type:"string" required:"true" enum:"ApiKeysFormat"`
+}
+
+// String returns the string representation
+func (s ImportApiKeysInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportApiKeysInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ImportApiKeysInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ImportApiKeysInput"}
+	if s.Body == nil {
+		invalidParams.Add(request.NewErrParamRequired("Body"))
+	}
+	if s.Format == nil {
+		invalidParams.Add(request.NewErrParamRequired("Format"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The identifier of an API key used to reference an API key in a usage plan.
+type ImportApiKeysOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of all the ApiKey identifiers.
+	Ids []*string `locationName:"ids" type:"list"`
+
+	// A list of warning messages.
+	Warnings []*string `locationName:"warnings" type:"list"`
+}
+
+// String returns the string representation
+func (s ImportApiKeysOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportApiKeysOutput) GoString() string {
 	return s.String()
 }
 
@@ -6867,7 +8184,10 @@ func (s *ImportRestApiInput) Validate() error {
 	return nil
 }
 
-// Represents a HTTP, AWS, or Mock integration.
+// Represents an HTTP, AWS, or Mock integration.
+//
+// In the API Gateway console, the built-in Lambda integration is an AWS integration.
+//  Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type Integration struct {
 	_ struct{} `type:"structure"`
 
@@ -6889,32 +8209,56 @@ type Integration struct {
 	HttpMethod *string `locationName:"httpMethod" type:"string"`
 
 	// Specifies the integration's responses.
+	//
+	//   Example: Get integration responses of a method
+	//
+	// Request
+	//
+	//  GET /restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200
+	// HTTP/1.1 Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com
+	// X-Amz-Date: 20160607T191449Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160607/us-east-1/apigateway/aws4_request,
+	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}  Response
+	//
+	// The successful response returns 200 OK status and a payload as follows:
+	//
+	// { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// "name": "integrationresponse", "templated": true }, "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+	// "title": "200" }, "integrationresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+	// }, "integrationresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+	// } }, "responseParameters": { "method.response.header.Content-Type": "'application/xml'"
+	// }, "responseTemplates": { "application/json": "$util.urlDecode(\"%3CkinesisStreams%3E#foreach($stream
+	// in $input.path('$.StreamNames'))%3Cstream%3E%3Cname%3E$stream%3C/name%3E%3C/stream%3E#end%3C/kinesisStreams%3E\")\n"
+	// }, "statusCode": "200" }    Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 	IntegrationResponses map[string]*IntegrationResponse `locationName:"integrationResponses" type:"map"`
 
-	// Specifies the pass-through behavior for incoming requests based on the Content-Type
-	// header in the request, and the available requestTemplates defined on the
-	// Integration. There are three valid values: WHEN_NO_MATCH, WHEN_NO_TEMPLATES,
+	// Specifies how the method request body of an unmapped content type will be
+	// passed through the integration request to the back end without transformation.
+	// A content type is unmapped if no mapping template is defined in the integration
+	// or the content type does not match any of the mapped content types, as specified
+	// in requestTemplates. There are three valid values: WHEN_NO_MATCH, WHEN_NO_TEMPLATES,
 	// and NEVER.
 	//
-	//  WHEN_NO_MATCH passes the request body for unmapped content types through
-	// to the Integration backend without transformation.
-	//
-	// NEVER rejects unmapped content types with an HTTP 415 'Unsupported Media
-	// Type' response.
-	//
-	// WHEN_NO_TEMPLATES will allow pass-through when the Integration has NO content
-	// types mapped to templates. However if there is at least one content type
-	// defined, unmapped content types will be rejected with the same 415 response.
+	//   WHEN_NO_MATCH passes the method request body through the integration request
+	// to the back end without transformation when the method request content type
+	// does not match any content type associated with the mapping templates defined
+	// in the integration request.   WHEN_NO_TEMPLATES passes the method request
+	// body through the integration request to the back end without transformation
+	// when no mapping template is defined in the integration request. If a template
+	// is defined when this option is selected, the method request of an unmapped
+	// content-type will be rejected with an HTTP 415 Unsupported Media Type response.
+	//   NEVER rejects the method request with an HTTP 415 Unsupported Media Type
+	// response when either the method request content type does not match any content
+	// type associated with the mapping templates defined in the integration request
+	// or no mapping template is defined in the integration request.
 	PassthroughBehavior *string `locationName:"passthroughBehavior" type:"string"`
 
-	// Represents requests parameters that are sent with the backend request. Request
-	// parameters are represented as a key/value map, with a destination as the
-	// key and a source as the value. A source must match an existing method request
-	// parameter, or a static value. Static values must be enclosed with single
-	// quotes, and be pre-encoded based on their destination in the request. The
-	// destination must match the pattern integration.request.{location}.{name},
-	// where location is either querystring, path, or header. name must be a valid,
-	// unique parameter name.
+	// A key-value map specifying request parameters that are passed from the method
+	// request to the back end. The key is an integration request parameter name
+	// and the associated value is a method request parameter value or static value
+	// that must be enclosed within single quotes and pre-encoded as required by
+	// the back end. The method request parameter value must match the pattern of
+	// method.request.{location}.{name}, where location is querystring, path, or
+	// header and name must be a valid and unique method request parameter name.
 	RequestParameters map[string]*string `locationName:"requestParameters" type:"map"`
 
 	// Represents a map of Velocity templates that are applied on the request payload
@@ -6950,17 +8294,22 @@ func (s Integration) GoString() string {
 
 // Represents an integration response. The status code must map to an existing
 // MethodResponse, and parameters and templates can be used to transform the
-// backend response.
+// back-end response.
+//
+//  Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type IntegrationResponse struct {
 	_ struct{} `type:"structure"`
 
-	// Represents response parameters that can be read from the backend response.
-	// Response parameters are represented as a key/value map, with a destination
-	// as the key and a source as the value. A destination must match an existing
-	// response parameter in the MethodResponse. The source can be a header from
-	// the backend response, or a static value. Static values are specified using
-	// enclosing single quotes, and backend response headers can be read using the
-	// pattern integration.response.header.{name}.
+	// A key-value map specifying response parameters that are passed to the method
+	// response from the back end. The key is a method response header parameter
+	// name and the mapped value is an integration response header value, a static
+	// value enclosed within a pair of single quotes, or a JSON expression from
+	// the integration response body. The mapping key must match the pattern of
+	// method.response.header.{name}, where name is a valid and unique header name.
+	// The mapped non-static value must match the pattern of integration.response.header.{name}
+	// or integration.response.body.{JSON-expression}, where name is a valid and
+	// unique response header name and JSON-expression is a valid JSON expression
+	// without the $ prefix.
 	ResponseParameters map[string]*string `locationName:"responseParameters" type:"map"`
 
 	// Specifies the templates used to transform the integration response body.
@@ -6969,9 +8318,13 @@ type IntegrationResponse struct {
 	ResponseTemplates map[string]*string `locationName:"responseTemplates" type:"map"`
 
 	// Specifies the regular expression (regex) pattern used to choose an integration
-	// response based on the response from the backend. If the backend is an AWS
-	// Lambda function, the AWS Lambda function error header is matched. For all
-	// other HTTP and AWS backends, the HTTP status code is matched.
+	// response based on the response from the back end. For example, if the success
+	// response returns nothing and the error response returns some string, you
+	// could use the .+ regex to match error response. However, make sure that the
+	// error response does not contain any newline (\n) character in such cases.
+	// If the back end is an AWS Lambda function, the AWS Lambda function error
+	// header is matched. For all other HTTP and AWS back ends, the HTTP status
+	// code is matched.
 	SelectionPattern *string `locationName:"selectionPattern" type:"string"`
 
 	// Specifies the status code that is used to map the integration response to
@@ -6989,44 +8342,175 @@ func (s IntegrationResponse) GoString() string {
 	return s.String()
 }
 
-// Represents a method.
+// Represents a client-facing interface by which the client calls the API to
+// access back-end resources. A Method resource is integrated with an Integration
+// resource. Both consist of a request and one or more responses. The method
+// request takes the client input that is passed to the back end through the
+// integration request. A method response returns the output from the back end
+// to the client through an integration response. A method request is embodied
+// in a Method resource, whereas an integration request is embodied in an Integration
+// resource. On the other hand, a method response is represented by a MethodResponse
+// resource, whereas an integration response is represented by an IntegrationResponse
+// resource.
+//
+//   Example: Retrive the GET method on a specified resource
+//
+// Request
+//
+// The following example request retrieves the information about the GET method
+// on an API resource (3kzxbg5sa2) of an API (fugvjdxtri).
+//
+// GET /restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET HTTP/1.1 Content-Type:
+// application/json Host: apigateway.us-east-1.amazonaws.com X-Amz-Date: 20160603T210259Z
+// Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160603/us-east-1/apigateway/aws4_request,
+// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash} Response
+//
+// The successful response returns a 200 OK status code and a payload similar
+// to the following:
+//
+// { "_links": { "curies": [ { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+// "name": "integration", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+// "name": "integrationresponse", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-{rel}.html",
+// "name": "method", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+// "name": "methodresponse", "templated": true } ], "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET",
+// "name": "GET", "title": "GET" }, "integration:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+// }, "method:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
+// }, "method:integration": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+// }, "method:responses": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+// "name": "200", "title": "200" }, "method:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
+// }, "methodresponse:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/{status_code}",
+// "templated": true } }, "apiKeyRequired": true, "authorizationType": "NONE",
+// "httpMethod": "GET", "_embedded": { "method:integration": { "_links": { "self":
+// { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+// }, "integration:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+// }, "integration:responses": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+// "name": "200", "title": "200" }, "integration:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+// }, "integrationresponse:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/{status_code}",
+// "templated": true } }, "cacheKeyParameters": [], "cacheNamespace": "3kzxbg5sa2",
+// "credentials": "arn:aws:iam::123456789012:role/apigAwsProxyRole", "httpMethod":
+// "POST", "passthroughBehavior": "WHEN_NO_MATCH", "requestParameters": { "integration.request.header.Content-Type":
+// "'application/x-amz-json-1.1'" }, "requestTemplates": { "application/json":
+// "{\n}" }, "type": "AWS", "uri": "arn:aws:apigateway:us-east-1:kinesis:action/ListStreams",
+// "_embedded": { "integration:responses": { "_links": { "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+// "name": "200", "title": "200" }, "integrationresponse:delete": { "href":
+// "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+// }, "integrationresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+// } }, "responseParameters": { "method.response.header.Content-Type": "'application/xml'"
+// }, "responseTemplates": { "application/json": "$util.urlDecode(\"%3CkinesisStreams%3E%23foreach(%24stream%20in%20%24input.path(%27%24.StreamNames%27))%3Cstream%3E%3Cname%3E%24stream%3C%2Fname%3E%3C%2Fstream%3E%23end%3C%2FkinesisStreams%3E\")"
+// }, "statusCode": "200" } } }, "method:responses": { "_links": { "self": {
+// "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+// "name": "200", "title": "200" }, "methodresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+// }, "methodresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+// } }, "responseModels": { "application/json": "Empty" }, "responseParameters":
+// { "method.response.header.Content-Type": false }, "statusCode": "200" } }
+// } In the example above, the response template for the 200 OK response maps
+// the JSON output from the ListStreams action in the back end to an XML output.
+// The mapping template is URL-encoded as %3CkinesisStreams%3E%23foreach(%24stream%20in%20%24input.path(%27%24.StreamNames%27))%3Cstream%3E%3Cname%3E%24stream%3C%2Fname%3E%3C%2Fstream%3E%23end%3C%2FkinesisStreams%3E
+// and the output is decoded using the $util.urlDecode() (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#util-templat-reference)
+// helper function.
+//
+//   MethodResponse, Integration, IntegrationResponse, Resource, Set up an
+// API's method (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-method-settings.html)
 type Method struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies whether the method requires a valid ApiKey.
+	// A boolean flag specifying whether a valid ApiKey is required to invoke this
+	// method.
 	ApiKeyRequired *bool `locationName:"apiKeyRequired" type:"boolean"`
 
 	// The method's authorization type.
 	AuthorizationType *string `locationName:"authorizationType" type:"string"`
 
-	// Specifies the identifier of an Authorizer to use on this Method. The authorizationType
+	// The identifier of an Authorizer to use on this method. The authorizationType
 	// must be CUSTOM.
 	AuthorizerId *string `locationName:"authorizerId" type:"string"`
 
-	// The HTTP method.
+	// The method's HTTP verb.
 	HttpMethod *string `locationName:"httpMethod" type:"string"`
 
-	// The method's integration.
+	// Gets the method's integration responsible for passing the client-submitted
+	// request to the back end and performing necessary transformations to make
+	// the request compliant with the back end.
+	//
+	//   Example:
+	//
+	// Request
+	//
+	//  GET /restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration HTTP/1.1
+	// Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com Content-Length:
+	// 117 X-Amz-Date: 20160613T213210Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160613/us-east-1/apigateway/aws4_request,
+	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash} Response
+	//
+	// The successful response returns a 200 OK status code and a payload similar
+	// to the following:
+	//
+	// { "_links": { "curies": [ { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+	// "name": "integration", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// "name": "integrationresponse", "templated": true } ], "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
+	// }, "integration:delete": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
+	// }, "integration:responses": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200",
+	// "name": "200", "title": "200" }, "integration:update": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
+	// }, "integrationresponse:put": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/{status_code}",
+	// "templated": true } }, "cacheKeyParameters": [], "cacheNamespace": "0cjtch",
+	// "credentials": "arn:aws:iam::123456789012:role/apigAwsProxyRole", "httpMethod":
+	// "POST", "passthroughBehavior": "WHEN_NO_MATCH", "requestTemplates": { "application/json":
+	// "{\n \"a\": \"$input.params('operand1')\",\n \"b\": \"$input.params('operand2')\",
+	// \n \"op\": \"$input.params('operator')\" \n}" }, "type": "AWS", "uri": "arn:aws:apigateway:us-west-2:lambda:path//2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:Calc/invocations",
+	// "_embedded": { "integration:responses": { "_links": { "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200",
+	// "name": "200", "title": "200" }, "integrationresponse:delete": { "href":
+	// "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200"
+	// }, "integrationresponse:update": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200"
+	// } }, "responseParameters": { "method.response.header.operator": "integration.response.body.op",
+	// "method.response.header.operand_2": "integration.response.body.b", "method.response.header.operand_1":
+	// "integration.response.body.a" }, "responseTemplates": { "application/json":
+	// "#set($res = $input.path('$'))\n{\n \"result\": \"$res.a, $res.b, $res.op
+	// => $res.c\",\n \"a\" : \"$res.a\",\n \"b\" : \"$res.b\",\n \"op\" : \"$res.op\",\n
+	// \"c\" : \"$res.c\"\n}" }, "selectionPattern": "", "statusCode": "200" } }
+	// }    AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-integration.html)
 	MethodIntegration *Integration `locationName:"methodIntegration" type:"structure"`
 
-	// Represents available responses that can be sent to the caller. Method responses
-	// are represented as a key/value map, with an HTTP status code as the key and
-	// a MethodResponse as the value. The status codes are available for the Integration
-	// responses to map to.
+	// Gets a method response associated with a given HTTP status code.
+	//
+	//  The collection of method responses are encapsulated in a key-value map,
+	// where the key is a response's HTTP status code and the value is a MethodResponse
+	// resource that specifies the response returned to the caller from the back
+	// end through the integration response.
+	//
+	// Example: Get a 200 OK response of a GET method
+	//
+	// Request
+	//
+	//  GET /restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200 HTTP/1.1
+	// Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com Content-Length:
+	// 117 X-Amz-Date: 20160613T215008Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160613/us-east-1/apigateway/aws4_request,
+	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash} Response
+	//
+	// The successful response returns a 200 OK status code and a payload similar
+	// to the following:
+	//
+	// { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+	// "name": "methodresponse", "templated": true }, "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200",
+	// "title": "200" }, "methodresponse:delete": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200"
+	// }, "methodresponse:update": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200"
+	// } }, "responseModels": { "application/json": "Empty" }, "responseParameters":
+	// { "method.response.header.operator": false, "method.response.header.operand_2":
+	// false, "method.response.header.operand_1": false }, "statusCode": "200" }
+	//    AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-method-response.html)
 	MethodResponses map[string]*MethodResponse `locationName:"methodResponses" type:"map"`
 
-	// Specifies the Model resources used for the request's content type. Request
-	// models are represented as a key/value map, with a content type as the key
-	// and a Model name as the value.
+	// A key-value map specifying data schemas, represented by Model resources,
+	// (as the mapped value) of the request payloads of given content types (as
+	// the mapping key).
 	RequestModels map[string]*string `locationName:"requestModels" type:"map"`
 
-	// Represents request parameters that can be accepted by Amazon API Gateway.
-	// Request parameters are represented as a key/value map, with a source as the
-	// key and a Boolean flag as the value. The Boolean flag is used to specify
-	// whether the parameter is required. A source must match the pattern method.request.{location}.{name},
-	// where location is either querystring, path, or header. name is a valid, unique
-	// parameter name. Sources specified here are available to the integration for
-	// mapping to integration request parameters or templates.
+	// A key-value map defining required or optional method request parameters that
+	// can be accepted by Amazon API Gateway. A key is a method request parameter
+	// name matching the pattern of method.request.{location}.{name}, where location
+	// is querystring, path, or header and name is a valid and unique parameter
+	// name. The value associated with the key is a Boolean flag indicating whether
+	// the parameter is required (true) or optional (false). The method request
+	// parameter names defined here are available in Integration to be mapped to
+	// integration request parameters or templates.
 	RequestParameters map[string]*bool `locationName:"requestParameters" type:"map"`
 }
 
@@ -7040,9 +8524,30 @@ func (s Method) GoString() string {
 	return s.String()
 }
 
-// Represents a method response. Amazon API Gateway sends back the status code
-// to the caller as the HTTP status code. Parameters and models can be used
-// to transform the response from the method's integration.
+// Represents a method response of a given HTTP status code returned to the
+// client. The method response is passed from the back end through the associated
+// integration response that can be transformed using a mapping template.
+//
+//   Example: A MethodResponse instance of an API
+//
+// Request
+//
+// The example request retrieves a MethodResponse of the 200 status code.
+//
+// GET /restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200
+// HTTP/1.1 Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com
+// X-Amz-Date: 20160603T222952Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160603/us-east-1/apigateway/aws4_request,
+// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash} Response
+//
+// The successful response returns 200 OK status and a payload as follows:
+//
+// { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+// "name": "methodresponse", "templated": true }, "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+// "title": "200" }, "methodresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+// }, "methodresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+// } }, "responseModels": { "application/json": "Empty" }, "responseParameters":
+// { "method.response.header.Content-Type": false }, "statusCode": "200" }
+//   Method, IntegrationResponse, Integration Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type MethodResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -7051,13 +8556,18 @@ type MethodResponse struct {
 	// and a Model name as the value.
 	ResponseModels map[string]*string `locationName:"responseModels" type:"map"`
 
-	// Represents response parameters that can be sent back to the caller by Amazon
-	// API Gateway. Response parameters are represented as a key/value map, with
-	// a destination as the key and a boolean flag as the value, which is used to
-	// specify whether the parameter is required. A destination must match the pattern
-	// method.response.header.{name}, where name is a valid, unique header name.
-	// Destinations specified here are available to the integration for mapping
-	// from integration response parameters.
+	// A key-value map specifying required or optional response parameters that
+	// Amazon API Gateway can send back to the caller. A key defines a method response
+	// header and the value specifies whether the associated method response header
+	// is required or not. The expression of the key must match the pattern method.response.header.{name},
+	// where name is a valid and unique header name. Amazon API Gateway passes certain
+	// integration response data to the method response headers specified here according
+	// to the mapping you prescribe in the API's IntegrationResponse. The integration
+	// response data that can be mapped include an integration response header expressed
+	// in integration.response.header.{name}, a static value enclosed within a pair
+	// of single quotes (e.g., 'application/json'), or a JSON expression from the
+	// back-end response payload in the form of integration.response.body.{JSON-expression},
+	// where JSON-expression is a valid JSON expression without the $ prefix.)
 	ResponseParameters map[string]*bool `locationName:"responseParameters" type:"map"`
 
 	// The method response's status code.
@@ -7083,8 +8593,8 @@ type MethodSetting struct {
 	// is a Boolean.
 	CacheDataEncrypted *bool `locationName:"cacheDataEncrypted" type:"boolean"`
 
-	// Specifies the time to live (TTL) in seconds, for cached responses. The higher
-	// a the TTL, the longer the response will be cached. The PATCH path for this
+	// Specifies the time to live (TTL), in seconds, for cached responses. The higher
+	// the TTL, the longer the response will be cached. The PATCH path for this
 	// setting is /{method_setting_key}/caching/ttlInSeconds, and the value is an
 	// integer.
 	CacheTtlInSeconds *int64 `locationName:"cacheTtlInSeconds" type:"integer"`
@@ -7095,10 +8605,9 @@ type MethodSetting struct {
 	// the value is a Boolean.
 	CachingEnabled *bool `locationName:"cachingEnabled" type:"boolean"`
 
-	// Specifies the whether data trace logging is enabled for this method, which
-	// effects the log entries pushed to Amazon CloudWatch Logs. The PATCH path
-	// for this setting is /{method_setting_key}/logging/dataTrace, and the value
-	// is a Boolean.
+	// Specifies whether data trace logging is enabled for this method, which effects
+	// the log entries pushed to Amazon CloudWatch Logs. The PATCH path for this
+	// setting is /{method_setting_key}/logging/dataTrace, and the value is a Boolean.
 	DataTraceEnabled *bool `locationName:"dataTraceEnabled" type:"boolean"`
 
 	// Specifies the logging level for this method, which effects the log entries
@@ -7124,8 +8633,8 @@ type MethodSetting struct {
 	// and the value is a double.
 	ThrottlingRateLimit *float64 `locationName:"throttlingRateLimit" type:"double"`
 
-	// Specifies the strategy on how to handle the unauthorized requests for cache
-	// invalidation. The PATCH path for this setting is /{method_setting_key}/caching/unauthorizedCacheControlHeaderStrategy,
+	// Specifies how to handle unauthorized requests for cache invalidation. The
+	// PATCH path for this setting is /{method_setting_key}/caching/unauthorizedCacheControlHeaderStrategy,
 	// and the available values are FAIL_WITH_403, SUCCEED_WITH_RESPONSE_HEADER,
 	// SUCCEED_WITHOUT_RESPONSE_HEADER.
 	UnauthorizedCacheControlHeaderStrategy *string `locationName:"unauthorizedCacheControlHeaderStrategy" type:"string" enum:"UnauthorizedCacheControlHeaderStrategy"`
@@ -7162,7 +8671,17 @@ func (s MethodSnapshot) GoString() string {
 	return s.String()
 }
 
-// Represents the structure of a request or response payload for a method.
+// Represents the data structure of a method's request or response payload.
+//
+//  A request model defines the data structure of the client-supplied request
+// payload. A response model defines the data structure of the response payload
+// returned by the back end. Although not required, models are useful for mapping
+// payloads between the front end and back end.
+//
+// A model is used for generating an API's SDK, validating the input request
+// body, and creating a skeletal mapping template.
+//
+//   Method, MethodResponse, Models and Mappings (http://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html)
 type Model struct {
 	_ struct{} `type:"structure"`
 
@@ -7180,6 +8699,10 @@ type Model struct {
 
 	// The schema for the model. For application/json models, this should be JSON-schema
 	// draft v4 (http://json-schema.org/documentation.html" target="_blank) model.
+	// Do not include "\*/" characters in the description of any properties because
+	// such "\*/" characters may be interpreted as the closing marker for comments
+	// in some languages, such as Java or JavaScript, causing the installation of
+	// your API's SDK generated by API Gateway to fail.
 	Schema *string `locationName:"schema" type:"string"`
 }
 
@@ -7199,23 +8722,27 @@ func (s Model) GoString() string {
 type PatchOperation struct {
 	_ struct{} `type:"structure"`
 
-	// The "move" and "copy" operation object MUST contain a "from" member, which
-	// is a string containing a JSON Pointer value that references the location
-	// in the target document to move the value from.
+	// Not supported.
 	From *string `locationName:"from" type:"string"`
 
-	// A patch operation whose value indicates the operation to perform. Its value
-	// MUST be one of "add", "remove", "replace", "move", "copy", or "test"; other
-	// values are errors.
+	// An update operation to be performed with this PATCH request. The valid value
+	// can be "add", "remove", or "replace". Not all valid operations are supported
+	// for a given resource. Support of the operations depends on specific operational
+	// contexts. Attempts to apply an unsupported operation on a resource will return
+	// an error message.
 	Op *string `locationName:"op" type:"string" enum:"op"`
 
-	// Operation objects MUST have exactly one "path" member. That member's value
-	// is a string containing a `JSON-Pointer` value that references a location
-	// within the target document (the "target location") where the operation is
-	// performed.
+	// The op operation's target, as identified by a JSON Pointer (https://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-08)
+	// value that references a location within the targeted resource. For example,
+	// if the target resource has an updateable property of {"name":"value"}, the
+	// path for this property is /name. If the name property value is a JSON object
+	// (e.g., {"name": {"child/name": "child-value"}}), the path for the child/name
+	// property will be /name/child~1name. Any slash ("/") character appearing in
+	// path names must be escaped with "~1", as shown in the example above. Each
+	// op operation can have only one path associated with it.
 	Path *string `locationName:"path" type:"string"`
 
-	// The actual value content.
+	// The new target value of the update operation.
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -7250,29 +8777,28 @@ type PutIntegrationInput struct {
 	IntegrationHttpMethod *string `locationName:"httpMethod" type:"string"`
 
 	// Specifies the pass-through behavior for incoming requests based on the Content-Type
-	// header in the request, and the available requestTemplates defined on the
-	// Integration. There are three valid values: WHEN_NO_MATCH, WHEN_NO_TEMPLATES,
-	// and NEVER.
+	// header in the request, and the available mapping templates specified as the
+	// requestTemplates property on the Integration resource. There are three valid
+	// values: WHEN_NO_MATCH, WHEN_NO_TEMPLATES, and NEVER.
 	//
 	//  WHEN_NO_MATCH passes the request body for unmapped content types through
-	// to the Integration backend without transformation.
+	// to the integration back end without transformation.
 	//
 	// NEVER rejects unmapped content types with an HTTP 415 'Unsupported Media
 	// Type' response.
 	//
-	// WHEN_NO_TEMPLATES will allow pass-through when the Integration has NO content
+	// WHEN_NO_TEMPLATES allows pass-through when the integration has NO content
 	// types mapped to templates. However if there is at least one content type
 	// defined, unmapped content types will be rejected with the same 415 response.
 	PassthroughBehavior *string `locationName:"passthroughBehavior" type:"string"`
 
-	// Represents request parameters that are sent with the backend request. Request
-	// parameters are represented as a key/value map, with a destination as the
-	// key and a source as the value. A source must match an existing method request
-	// parameter, or a static value. Static values must be enclosed with single
-	// quotes, and be pre-encoded based on their destination in the request. The
-	// destination must match the pattern integration.request.{location}.{name},
-	// where location is either querystring, path, or header. name must be a valid,
-	// unique parameter name.
+	// A key-value map specifying request parameters that are passed from the method
+	// request to the back end. The key is an integration request parameter name
+	// and the associated value is a method request parameter value or static value
+	// that must be enclosed within single quotes and pre-encoded as required by
+	// the back end. The method request parameter value must match the pattern of
+	// method.request.{location}.{name}, where location is querystring, path, or
+	// header and name must be a valid and unique method request parameter name.
 	RequestParameters map[string]*string `locationName:"requestParameters" type:"map"`
 
 	// Represents a map of Velocity templates that are applied on the request payload
@@ -7339,13 +8865,16 @@ type PutIntegrationResponseInput struct {
 	// Specifies a put integration response request's resource identifier.
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
-	// Represents response parameters that can be read from the backend response.
-	// Response parameters are represented as a key/value map, with a destination
-	// as the key and a source as the value. A destination must match an existing
-	// response parameter in the Method. The source can be a header from the backend
-	// response, or a static value. Static values are specified using enclosing
-	// single quotes, and backend response headers can be read using the pattern
-	// integration.response.header.{name}.
+	// A key-value map specifying response parameters that are passed to the method
+	// response from the back end. The key is a method response header parameter
+	// name and the mapped value is an integration response header value, a static
+	// value enclosed within a pair of single quotes, or a JSON expression from
+	// the integration response body. The mapping key must match the pattern of
+	// method.response.header.{name}, where name is a valid and unique header name.
+	// The mapped non-static value must match the pattern of integration.response.header.{name}
+	// or integration.response.body.{JSON-expression}, where name must be a valid
+	// and unique response header name and JSON-expression a valid JSON expression
+	// without the $ prefix.
 	ResponseParameters map[string]*string `locationName:"responseParameters" type:"map"`
 
 	// Specifies a put integration response's templates.
@@ -7408,7 +8937,7 @@ type PutMethodInput struct {
 	// is CUSTOM.
 	AuthorizerId *string `locationName:"authorizerId" type:"string"`
 
-	// Specifies the put method request's HTTP method type.
+	// Specifies the method request's HTTP method type.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// Specifies the Model resources used for the request's content type. Request
@@ -7416,14 +8945,14 @@ type PutMethodInput struct {
 	// and a Model name as the value.
 	RequestModels map[string]*string `locationName:"requestModels" type:"map"`
 
-	// Represents requests parameters that are sent with the backend request. Request
-	// parameters are represented as a key/value map, with a destination as the
-	// key and a source as the value. A source must match an existing method request
-	// parameter, or a static value. Static values must be enclosed with single
-	// quotes, and be pre-encoded based on their destination in the request. The
-	// destination must match the pattern integration.request.{location}.{name},
-	// where location is either querystring, path, or header. name must be a valid,
-	// unique parameter name.
+	// A key-value map defining required or optional method request parameters that
+	// can be accepted by Amazon API Gateway. A key defines a method request parameter
+	// name matching the pattern of method.request.{location}.{name}, where location
+	// is querystring, path, or header and name is a valid and unique parameter
+	// name. The value associated with the key is a Boolean flag indicating whether
+	// the parameter is required (true) or optional (false). The method request
+	// parameter names defined here are available in Integration to be mapped to
+	// integration request parameters or body-mapping templates.
 	RequestParameters map[string]*bool `locationName:"requestParameters" type:"map"`
 
 	// The Resource identifier for the new Method resource.
@@ -7469,7 +8998,7 @@ func (s *PutMethodInput) Validate() error {
 type PutMethodResponseInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb that identifies the Method resource.
+	// The HTTP verb of the Method resource.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the Method resource.
@@ -7480,13 +9009,17 @@ type PutMethodResponseInput struct {
 	// and a Model name as the value.
 	ResponseModels map[string]*string `locationName:"responseModels" type:"map"`
 
-	// Represents response parameters that can be sent back to the caller by Amazon
-	// API Gateway. Response parameters are represented as a key/value map, with
-	// a destination as the key and a Boolean flag as the value. The Boolean flag
-	// is used to specify whether the parameter is required. A destination must
-	// match the pattern method.response.header.{name}, where name is a valid, unique
-	// header name. Destinations specified here are available to the integration
-	// for mapping from integration response parameters.
+	// A key-value map specifying required or optional response parameters that
+	// Amazon API Gateway can send back to the caller. A key defines a method response
+	// header name and the associated value is a Boolean flag indicating whether
+	// the method response parameter is required or not. The method response header
+	// names must match the pattern of method.response.header.{name}, where name
+	// is a valid and unique header name. The response parameter names defined here
+	// are available in the integration response to be mapped from an integration
+	// response header expressed in integration.response.header.{name}, a static
+	// value enclosed within a pair of single quotes (e.g., 'application/json'),
+	// or a JSON expression from the back-end response payload in the form of integration.response.body.{JSON-expression},
+	// where JSON-expression is a valid JSON expression without the $ prefix.)
 	ResponseParameters map[string]*bool `locationName:"responseParameters" type:"map"`
 
 	// The RestApi identifier for the Method resource.
@@ -7578,7 +9111,35 @@ func (s *PutRestApiInput) Validate() error {
 	return nil
 }
 
-// Represents a resource.
+// Quotas configured for a usage plan.
+type QuotaSettings struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of requests that can be made in a given time period.
+	Limit *int64 `locationName:"limit" type:"integer"`
+
+	// The number of requests subtracted from the given limit in the initial time
+	// period.
+	Offset *int64 `locationName:"offset" type:"integer"`
+
+	// The time period in which the limit applies. Valid values are "DAY", "WEEK"
+	// or "MONTH".
+	Period *string `locationName:"period" type:"string" enum:"QuotaPeriodType"`
+}
+
+// String returns the string representation
+func (s QuotaSettings) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s QuotaSettings) GoString() string {
+	return s.String()
+}
+
+// Represents an API resource.
+//
+//  Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type Resource struct {
 	_ struct{} `type:"structure"`
 
@@ -7594,8 +9155,61 @@ type Resource struct {
 	// The last path segment for this resource.
 	PathPart *string `locationName:"pathPart" type:"string"`
 
-	// Map of methods for this resource, which is included only if the request uses
-	// the embed query option.
+	// Gets an API resource's method of a given HTTP verb.
+	//
+	//  The resource methods are a map of methods indexed by methods' HTTP verbs
+	// enabled on the resource. This method map is included in the 200 OK response
+	// of the GET /restapis/{restapi_id}/resources/{resource_id} or GET /restapis/{restapi_id}/resources/{resource_id}?embed=methods
+	// request.
+	//
+	// Example: Get the GET method of an API resource
+	//
+	// Request
+	//
+	// GET /restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET HTTP/1.1 Content-Type:
+	// application/json Host: apigateway.us-east-1.amazonaws.com X-Amz-Date: 20160608T031827Z
+	// Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160608/us-east-1/apigateway/aws4_request,
+	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash} Response
+	//
+	// { "_links": { "curies": [ { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+	// "name": "integration", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// "name": "integrationresponse", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-{rel}.html",
+	// "name": "method", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+	// "name": "methodresponse", "templated": true } ], "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET",
+	// "name": "GET", "title": "GET" }, "integration:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "method:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
+	// }, "method:integration": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "method:responses": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+	// "name": "200", "title": "200" }, "method:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
+	// }, "methodresponse:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/{status_code}",
+	// "templated": true } }, "apiKeyRequired": false, "authorizationType": "NONE",
+	// "httpMethod": "GET", "_embedded": { "method:integration": { "_links": { "self":
+	// { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "integration:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "integration:responses": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+	// "name": "200", "title": "200" }, "integration:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "integrationresponse:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/{status_code}",
+	// "templated": true } }, "cacheKeyParameters": [], "cacheNamespace": "3kzxbg5sa2",
+	// "credentials": "arn:aws:iam::123456789012:role/apigAwsProxyRole", "httpMethod":
+	// "POST", "passthroughBehavior": "WHEN_NO_MATCH", "requestParameters": { "integration.request.header.Content-Type":
+	// "'application/x-amz-json-1.1'" }, "requestTemplates": { "application/json":
+	// "{\n}" }, "type": "AWS", "uri": "arn:aws:apigateway:us-east-1:kinesis:action/ListStreams",
+	// "_embedded": { "integration:responses": { "_links": { "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+	// "name": "200", "title": "200" }, "integrationresponse:delete": { "href":
+	// "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+	// }, "integrationresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+	// } }, "responseParameters": { "method.response.header.Content-Type": "'application/xml'"
+	// }, "responseTemplates": { "application/json": "$util.urlDecode(\"%3CkinesisStreams%3E#foreach($stream
+	// in $input.path('$.StreamNames'))%3Cstream%3E%3Cname%3E$stream%3C/name%3E%3C/stream%3E#end%3C/kinesisStreams%3E\")\n"
+	// }, "statusCode": "200" } } }, "method:responses": { "_links": { "self": {
+	// "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+	// "name": "200", "title": "200" }, "methodresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+	// }, "methodresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+	// } }, "responseModels": { "application/json": "Empty" }, "responseParameters":
+	// { "method.response.header.Content-Type": false }, "statusCode": "200" } }
+	// } If the OPTIONS is enabled on the resource, you can follow the example here
+	// to get that method. Just replace the GET of the last path segment in the
+	// request URL with OPTIONS.
 	ResourceMethods map[string]*Method `locationName:"resourceMethods" type:"map"`
 }
 
@@ -7610,6 +9224,8 @@ func (s Resource) GoString() string {
 }
 
 // Represents a REST API.
+//
+//  Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type RestApi struct {
 	_ struct{} `type:"structure"`
 
@@ -7627,6 +9243,8 @@ type RestApi struct {
 	// The API's name.
 	Name *string `locationName:"name" type:"string"`
 
+	// The warning messages reported when failonwarnings is turned on during API
+	// import.
 	Warnings []*string `locationName:"warnings" type:"list"`
 }
 
@@ -7642,6 +9260,8 @@ func (s RestApi) GoString() string {
 
 // Represents a unique identifier for a version of a deployed RestApi that is
 // callable by users.
+//
+//  Deploy an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html)
 type Stage struct {
 	_ struct{} `type:"structure"`
 
@@ -7654,6 +9274,7 @@ type Stage struct {
 	// The status of the cache cluster for the stage, if enabled.
 	CacheClusterStatus *string `locationName:"cacheClusterStatus" type:"string" enum:"CacheClusterStatus"`
 
+	// The identifier of a client certificate for an API stage.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
 	// The date and time that the stage was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
@@ -7670,9 +9291,11 @@ type Stage struct {
 	// 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm" target="_blank).
 	LastUpdatedDate *time.Time `locationName:"lastUpdatedDate" type:"timestamp" timestampFormat:"unix"`
 
-	// A map that defines the method settings for a Stage resource. Keys are defined
-	// as {resource_path}/{http_method} for an individual method override, or \*/\*
-	// for the settings applied to all methods in the stage.
+	// A map that defines the method settings for a Stage resource. Keys (designated
+	// as /{method_setting_key below) are method paths defined as {resource_path}/{http_method}
+	// for an individual method override, or /\*/\* for overriding all methods in
+	// the stage. Any forward slash ("/") characters in the resource_path part must
+	// be encoded as "~1" as in, for example, ~1resource~1sub-resource/GET.
 	MethodSettings map[string]*MethodSetting `locationName:"methodSettings" type:"map"`
 
 	// The name of the stage is the first path segment in the Uniform Resource Identifier
@@ -7680,7 +9303,8 @@ type Stage struct {
 	StageName *string `locationName:"stageName" type:"string"`
 
 	// A map that defines the stage variables for a Stage resource. Variable names
-	// can have alphanumeric characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+.
+	// can have alphanumeric and underscore characters, and the values must match
+	// [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
 }
 
@@ -7771,23 +9395,28 @@ func (s *TestInvokeAuthorizerInput) Validate() error {
 	return nil
 }
 
-// Represents the response of the test invoke request in for a custom Authorizer
+// Represents the response of the test invoke request for a custom Authorizer
 type TestInvokeAuthorizerOutput struct {
 	_ struct{} `type:"structure"`
 
 	Authorization map[string][]*string `locationName:"authorization" type:"map"`
 
+	// The open identity claims (http://openid.net/specs/openid-connect-core-1_0.html#StandardClaims),
+	// with any supported custom attributes, returned from the Cognito Your User
+	// Pool configured for the API.
+	Claims map[string]*string `locationName:"claims" type:"map"`
+
 	// The HTTP status code that the client would have received. Value is 0 if the
 	// authorizer succeeded.
 	ClientStatus *int64 `locationName:"clientStatus" type:"integer"`
 
-	// The execution latency of the test authorizer request
+	// The execution latency of the test authorizer request.
 	Latency *int64 `locationName:"latency" type:"long"`
 
 	// The Amazon API Gateway execution log for the test authorizer request.
 	Log *string `locationName:"log" type:"string"`
 
-	// The policy JSON document returned by the Authorizer
+	// The JSON policy document returned by the Authorizer
 	Policy *string `locationName:"policy" type:"string"`
 
 	// The principal identity returned by the Authorizer
@@ -7812,8 +9441,8 @@ type TestInvokeMethodInput struct {
 	Body *string `locationName:"body" type:"string"`
 
 	// A ClientCertificate identifier to use in the test invocation. API Gateway
-	// will use use the certificate when making the HTTPS request to the defined
-	// backend endpoint.
+	// will use the certificate when making the HTTPS request to the defined back-end
+	// endpoint.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
 	// A key-value map of headers to simulate an incoming invocation request.
@@ -7866,14 +9495,16 @@ func (s *TestInvokeMethodInput) Validate() error {
 	return nil
 }
 
-// Represents the response of the test invoke request in HTTP method.
+// Represents the response of the test invoke request in the HTTP method.
+//
+//  Test API using the API Gateway console (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-test-method.html#how-to-test-method-console)
 type TestInvokeMethodOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The body of HTTP response.
+	// The body of the HTTP response.
 	Body *string `locationName:"body" type:"string"`
 
-	// The headers of HTTP response.
+	// The headers of the HTTP response.
 	Headers map[string]*string `locationName:"headers" type:"map"`
 
 	// The execution latency of the test invoke request.
@@ -7896,14 +9527,16 @@ func (s TestInvokeMethodOutput) GoString() string {
 	return s.String()
 }
 
-// Returns the throttle settings.
+// The API request rate limits.
 type ThrottleSettings struct {
 	_ struct{} `type:"structure"`
 
-	// Returns the burstLimit when ThrottleSettings is called.
+	// The API request burst limit, the maximum rate limit over a time ranging from
+	// one to a few seconds, depending upon whether the underlying token bucket
+	// is at its full capacity.
 	BurstLimit *int64 `locationName:"burstLimit" type:"integer"`
 
-	// Returns the rateLimit when ThrottleSettings is called.
+	// The API request steady-state rate limit.
 	RateLimit *float64 `locationName:"rateLimit" type:"double"`
 }
 
@@ -7922,8 +9555,8 @@ func (s ThrottleSettings) GoString() string {
 type UpdateAccountInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -7944,8 +9577,8 @@ type UpdateApiKeyInput struct {
 	// The identifier of the ApiKey resource to be updated.
 	ApiKey *string `location:"uri" locationName:"api_Key" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -7979,8 +9612,8 @@ type UpdateAuthorizerInput struct {
 	// The identifier of the Authorizer resource.
 	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The RestApi identifier for the Authorizer resource.
@@ -8023,8 +9656,8 @@ type UpdateBasePathMappingInput struct {
 	// The domain name of the BasePathMapping resource to change.
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -8061,8 +9694,8 @@ type UpdateClientCertificateInput struct {
 	// The identifier of the ClientCertificate resource to be updated.
 	ClientCertificateId *string `location:"uri" locationName:"clientcertificate_id" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -8093,12 +9726,12 @@ func (s *UpdateClientCertificateInput) Validate() error {
 type UpdateDeploymentInput struct {
 	_ struct{} `type:"structure"`
 
-	// The replacment identifier for the Deployment resource to change information
+	// The replacement identifier for the Deployment resource to change information
 	// about.
 	DeploymentId *string `location:"uri" locationName:"deployment_id" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The replacement identifier of the RestApi resource for the Deployment resource
@@ -8139,8 +9772,8 @@ type UpdateDomainNameInput struct {
 	// The name of the DomainName resource to be changed.
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -8174,8 +9807,8 @@ type UpdateIntegrationInput struct {
 	// Represents an update integration request's HTTP method.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// Represents an update integration request's resource identifier.
@@ -8221,8 +9854,8 @@ type UpdateIntegrationResponseInput struct {
 	// Specifies an update integration response request's HTTP method.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// Specifies an update integration response request's resource identifier.
@@ -8271,11 +9904,11 @@ func (s *UpdateIntegrationResponseInput) Validate() error {
 type UpdateMethodInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb that identifies the Method resource.
+	// The HTTP verb of the Method resource.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The Resource identifier for the Method resource.
@@ -8318,11 +9951,11 @@ func (s *UpdateMethodInput) Validate() error {
 type UpdateMethodResponseInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb identifier for the parent Method resource.
+	// The HTTP verb of the Method resource.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The Resource identifier for the MethodResponse resource.
@@ -8331,7 +9964,7 @@ type UpdateMethodResponseInput struct {
 	// The RestApi identifier for the MethodResponse resource.
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
-	// The status code identifier for the MethodResponse resource.
+	// The status code for the MethodResponse resource.
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -8374,8 +10007,8 @@ type UpdateModelInput struct {
 	// The name of the model to update.
 	ModelName *string `location:"uri" locationName:"model_name" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The RestApi identifier under which the model exists.
@@ -8412,8 +10045,8 @@ func (s *UpdateModelInput) Validate() error {
 type UpdateResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The identifier of the Resource resource.
@@ -8453,8 +10086,8 @@ func (s *UpdateResourceInput) Validate() error {
 type UpdateRestApiInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The ID of the RestApi you want to update.
@@ -8488,8 +10121,8 @@ func (s *UpdateRestApiInput) Validate() error {
 type UpdateStageInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The identifier of the RestApi resource for the Stage resource to change information
@@ -8526,10 +10159,203 @@ func (s *UpdateStageInput) Validate() error {
 	return nil
 }
 
-// The authorizer type. Only current value is TOKEN.
+// The PATCH request to grant a temporary extension to the reamining quota of
+// a usage plan associated with a specified API key.
+type UpdateUsageInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the API key associated with the usage plan in which a temporary
+	// extension is granted to the remaining quota.
+	KeyId *string `location:"uri" locationName:"keyId" type:"string" required:"true"`
+
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
+	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
+
+	// The Id of the usage plan associated with the usage data.
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateUsageInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateUsageInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateUsageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateUsageInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The PATCH request to update a usage plan of a given plan Id.
+type UpdateUsagePlanInput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
+	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
+
+	// The Id of the to-be-updated usage plan.
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateUsagePlanInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateUsagePlanInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateUsagePlanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateUsagePlanInput"}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Represents the usage data of a usage plan.
+//
+//   Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html),
+// Manage Usage in a Usage Plan (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-usage-plans-with-console.html#api-gateway-usage-plan-manage-usage)
+type Usage struct {
+	_ struct{} `type:"structure"`
+
+	// The ending date of the usage data.
+	EndDate *string `locationName:"endDate" type:"string"`
+
+	// The usage data, as daily logs of used and remaining quotas, over the specified
+	// time interval indexed over the API keys in a usage plan. For example, {...,
+	// "values" : { "{api_key}" : [ [0, 100], [10, 90], [100, 10]]}, where {api_key}
+	// stands for an API key value and the daily log entry is of the format [used
+	// quota, remaining quota].
+	Items map[string][][]*int64 `locationName:"values" type:"map"`
+
+	Position *string `locationName:"position" type:"string"`
+
+	// The starting date of the usage data.
+	StartDate *string `locationName:"startDate" type:"string"`
+
+	// The plan Id associated with this usage data.
+	UsagePlanId *string `locationName:"usagePlanId" type:"string"`
+}
+
+// String returns the string representation
+func (s Usage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Usage) GoString() string {
+	return s.String()
+}
+
+// Represents a usage plan than can specify who can assess associated API stages
+// with specified request limits and quotas.
+//
+//  In a usage plan, you associate an API by specifying the API's Id and a
+// stage name of the specified API. You add plan customers by adding API keys
+// to the plan.
+//
+//   Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+type UsagePlan struct {
+	_ struct{} `type:"structure"`
+
+	// The associated API stages of a usage plan.
+	ApiStages []*ApiStage `locationName:"apiStages" type:"list"`
+
+	// The description of a usage plan.
+	Description *string `locationName:"description" type:"string"`
+
+	// The identifier of a UsagePlan resource.
+	Id *string `locationName:"id" type:"string"`
+
+	// The name of a usage plan.
+	Name *string `locationName:"name" type:"string"`
+
+	// The maximum number of permitted requests per a given unit time interval.
+	Quota *QuotaSettings `locationName:"quota" type:"structure"`
+
+	// The request throttle limits of a usage plan.
+	Throttle *ThrottleSettings `locationName:"throttle" type:"structure"`
+}
+
+// String returns the string representation
+func (s UsagePlan) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UsagePlan) GoString() string {
+	return s.String()
+}
+
+// Represents a usage plan key to identify a plan customer.
+//
+//  To associate an API stage with a selected API key in a usage plan, you
+// must create a UsagePlanKey resource to represent the selected ApiKey.
+//
+// "  Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+type UsagePlanKey struct {
+	_ struct{} `type:"structure"`
+
+	// The Id of a usage plan key.
+	Id *string `locationName:"id" type:"string"`
+
+	// The name of a usage plan key.
+	Name *string `locationName:"name" type:"string"`
+
+	// The type of a usage plan key. Currently, the valid key type is API_KEY.
+	Type *string `locationName:"type" type:"string"`
+
+	// The value of a usage plan key.
+	Value *string `locationName:"value" type:"string"`
+}
+
+// String returns the string representation
+func (s UsagePlanKey) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UsagePlanKey) GoString() string {
+	return s.String()
+}
+
+const (
+	// @enum ApiKeysFormat
+	ApiKeysFormatCsv = "csv"
+)
+
+// The authorizer type. the only current value is TOKEN.
 const (
 	// @enum AuthorizerType
 	AuthorizerTypeToken = "TOKEN"
+	// @enum AuthorizerType
+	AuthorizerTypeCognitoUserPools = "COGNITO_USER_POOLS"
 )
 
 // Returns the size of the CacheCluster.
@@ -8581,6 +10407,15 @@ const (
 	PutModeMerge = "merge"
 	// @enum PutMode
 	PutModeOverwrite = "overwrite"
+)
+
+const (
+	// @enum QuotaPeriodType
+	QuotaPeriodTypeDay = "DAY"
+	// @enum QuotaPeriodType
+	QuotaPeriodTypeWeek = "WEEK"
+	// @enum QuotaPeriodType
+	QuotaPeriodTypeMonth = "MONTH"
 )
 
 const (

@@ -93,8 +93,8 @@ func waitForASGCapacity(
 
 type capacitySatisfiedFunc func(*schema.ResourceData, int, int) (bool, string)
 
-// capacitySatifiedCreate treats all targets as minimums
-func capacitySatifiedCreate(d *schema.ResourceData, haveASG, haveELB int) (bool, string) {
+// capacitySatisfiedCreate treats all targets as minimums
+func capacitySatisfiedCreate(d *schema.ResourceData, haveASG, haveELB int) (bool, string) {
 	minASG := d.Get("min_size").(int)
 	if wantASG := d.Get("desired_capacity").(int); wantASG > 0 {
 		minASG = wantASG
@@ -114,8 +114,8 @@ func capacitySatifiedCreate(d *schema.ResourceData, haveASG, haveELB int) (bool,
 	return true, ""
 }
 
-// capacitySatifiedUpdate only cares about specific targets
-func capacitySatifiedUpdate(d *schema.ResourceData, haveASG, haveELB int) (bool, string) {
+// capacitySatisfiedUpdate only cares about specific targets
+func capacitySatisfiedUpdate(d *schema.ResourceData, haveASG, haveELB int) (bool, string) {
 	if wantASG := d.Get("desired_capacity").(int); wantASG > 0 {
 		if haveASG != wantASG {
 			return false, fmt.Sprintf(

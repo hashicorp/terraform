@@ -254,7 +254,7 @@ func (c *ApplicationAutoScaling) DescribeScalingActivitiesRequest(input *Describ
 }
 
 // Provides descriptive information for scaling activities with a specified
-// service namespace.
+// service namespace for the previous six weeks.
 //
 // You can filter the results in a service namespace with the ResourceId and
 // ScalableDimension parameters.
@@ -928,7 +928,8 @@ type PutScalingPolicyInput struct {
 	// The name of the scaling policy.
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
-	// The policy type. This parameter is required if you are creating a new policy.
+	// The policy type. If you are creating a new policy, this parameter is required.
+	// If you are updating an existing policy, this parameter is not required.
 	PolicyType *string `type:"string" enum:"PolicyType"`
 
 	// The unique resource identifier string for the scalable target that this scaling
@@ -947,8 +948,9 @@ type PutScalingPolicyInput struct {
 	// in the Amazon Web Services General Reference.
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 
-	// The configuration for the step scaling policy. This parameter is required
-	// if you are creating a new policy. For more information, see StepScalingPolicyConfiguration
+	// The configuration for the step scaling policy. If you are creating a new
+	// policy, this parameter is required. If you are updating an existing policy,
+	// this parameter is not required. For more information, see StepScalingPolicyConfiguration
 	// and StepAdjustment.
 	StepScalingPolicyConfiguration *StepScalingPolicyConfiguration `type:"structure"`
 }

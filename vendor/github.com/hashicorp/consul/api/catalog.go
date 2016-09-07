@@ -6,13 +6,14 @@ type Node struct {
 }
 
 type CatalogService struct {
-	Node           string
-	Address        string
-	ServiceID      string
-	ServiceName    string
-	ServiceAddress string
-	ServiceTags    []string
-	ServicePort    int
+	Node                     string
+	Address                  string
+	ServiceID                string
+	ServiceName              string
+	ServiceAddress           string
+	ServiceTags              []string
+	ServicePort              int
+	ServiceEnableTagOverride bool
 }
 
 type CatalogNode struct {

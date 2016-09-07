@@ -53,7 +53,7 @@ The following attributes are exported:
 
 ## Import
 
-IAM Account Password Policy can be imported using the work `iam-account-password-policy`, e.g. 
+IAM Account Password Policy can be imported using the word `iam-account-password-policy`, e.g. 
 
 ```
 $ terraform import aws_iam_account_password_policy.strict iam-account-password-policy

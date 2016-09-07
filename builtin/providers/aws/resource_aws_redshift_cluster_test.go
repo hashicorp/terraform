@@ -319,7 +319,7 @@ func TestResourceAWSRedshiftClusterDbNameValidation(t *testing.T) {
 		},
 		{
 			Value:    "testing1",
-			ErrCount: 1,
+			ErrCount: 0,
 		},
 		{
 			Value:    "testing-",
@@ -404,6 +404,42 @@ func TestResourceAWSRedshiftClusterMasterUsernameValidation(t *testing.T) {
 
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected the Redshift Cluster master_username to trigger a validation error")
+		}
+	}
+}
+
+func TestResourceAWSRedshiftClusterMasterPasswordValidation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "1TESTING",
+			ErrCount: 1,
+		},
+		{
+			Value:    "1testing",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TestTest",
+			ErrCount: 1,
+		},
+		{
+			Value:    "T3st",
+			ErrCount: 1,
+		},
+		{
+			Value:    "1Testing",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateRedshiftClusterMasterPassword(tc.Value, "aws_redshift_cluster_master_password")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the Redshift Cluster master_password to trigger a validation error")
 		}
 	}
 }

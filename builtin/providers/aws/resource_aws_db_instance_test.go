@@ -158,6 +158,7 @@ func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 
 func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 	var dbInstance rds.DBInstance
+	rName := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -165,7 +166,7 @@ func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccSnapshotInstanceConfig_enhancedMonitoring,
+				Config: testAccSnapshotInstanceConfig_enhancedMonitoring(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.enhanced_monitoring", &dbInstance),
 					resource.TestCheckResourceAttr(
@@ -347,9 +348,9 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			if newerr.Code() == "DBSnapshotNotFound" {
 				return fmt.Errorf("Snapshot %s not found", snapshot_identifier)
 			}
-		} else { // snapshot was found
+		} else { // snapshot was found,
 			// verify we have the tags copied to the snapshot
-			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta())
+			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
 			// tags have a different ARN, just swapping :db: for :snapshot:
 			tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
 			if err != nil {
@@ -656,9 +657,10 @@ resource "aws_db_instance" "no_snapshot" {
 `, acctest.RandString(5))
 }
 
-var testAccSnapshotInstanceConfig_enhancedMonitoring = `
+func testAccSnapshotInstanceConfig_enhancedMonitoring(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_role" "enhanced_policy_role" {
-    name = "enhanced-monitoring-role"
+    name = "enhanced-monitoring-role-%s"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -687,7 +689,7 @@ resource "aws_iam_policy_attachment" "test-attach" {
 }
 
 resource "aws_db_instance" "enhanced_monitoring" {
-	identifier = "foobarbaz-test-terraform-enhanced-monitoring"
+	identifier = "foobarbaz-enhanced-monitoring-%s"
 	depends_on = ["aws_iam_policy_attachment.test-attach"]
 
 	allocated_storage = 5
@@ -705,8 +707,8 @@ resource "aws_db_instance" "enhanced_monitoring" {
 	monitoring_interval = "5"
 
 	skip_final_snapshot = true
+}`, rName, rName)
 }
-`
 
 func testAccSnapshotInstanceConfig_iopsUpdate(rName string, iops int) string {
 	return fmt.Sprintf(`

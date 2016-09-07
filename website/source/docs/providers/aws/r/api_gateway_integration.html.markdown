@@ -56,9 +56,7 @@ The following arguments are supported:
   Not all methods are compatible with all `AWS` integrations.
   e.g. Lambda function [can only be invoked](https://github.com/awslabs/aws-apigateway-importer/issues/9#issuecomment-129651005) via `POST`.
 * `request_templates` - (Optional) A map of the integration's request templates.
+* `request_parameters` - (Optional) A map of request query string parameters and headers that should be passed to the backend responder.
+  For example: `request_parameters = { "integration.request.header.X-Some-Other-Header" = "method.request.header.X-Some-Header" }`
 * `passthrough_behavior` - (Optional) The integration passthrough behavior (`WHEN_NO_MATCH`, `WHEN_NO_TEMPLATES`, `NEVER`).  **Required** if `request_templates` is used.
-* `request_parameters_in_json` - (Optional) A map written as a JSON string specifying
-  the request query string parameters and headers that should be passed to the
-  backend responder.
-  For example: `request_parameters_in_json = "{\"integration.request.header.X-Some-Other-Header\":\"method.request.header.X-Some-Header\"}"` 
-  would add the header `X-Some-Header` from method to the integration as the header `X-Some-Other-Header`.
+* `request_parameters_in_json` - **Deprecated**, use `request_parameters` instead.

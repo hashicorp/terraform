@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -309,11 +310,14 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("customer_gateway_configuration", vpnConnection.CustomerGatewayConfiguration)
 
 	if vpnConnection.CustomerGatewayConfiguration != nil {
-		tunnelInfo := xmlConfigToTunnelInfo(*vpnConnection.CustomerGatewayConfiguration)
-		d.Set("tunnel1_address", tunnelInfo.Tunnel1Address)
-		d.Set("tunnel1_preshared_key", tunnelInfo.Tunnel1PreSharedKey)
-		d.Set("tunnel2_address", tunnelInfo.Tunnel2Address)
-		d.Set("tunnel2_preshared_key", tunnelInfo.Tunnel2PreSharedKey)
+		if tunnelInfo, err := xmlConfigToTunnelInfo(*vpnConnection.CustomerGatewayConfiguration); err != nil {
+			log.Printf("[ERR] Error unmarshaling XML configuration for (%s): %s", d.Id(), err)
+		} else {
+			d.Set("tunnel1_address", tunnelInfo.Tunnel1Address)
+			d.Set("tunnel1_preshared_key", tunnelInfo.Tunnel1PreSharedKey)
+			d.Set("tunnel2_address", tunnelInfo.Tunnel2Address)
+			d.Set("tunnel2_preshared_key", tunnelInfo.Tunnel2PreSharedKey)
+		}
 	}
 
 	if err := d.Set("vgw_telemetry", telemetryToMapList(vpnConnection.VgwTelemetry)); err != nil {
@@ -416,9 +420,11 @@ func telemetryToMapList(telemetry []*ec2.VgwTelemetry) []map[string]interface{} 
 	return result
 }
 
-func xmlConfigToTunnelInfo(xmlConfig string) TunnelInfo {
+func xmlConfigToTunnelInfo(xmlConfig string) (*TunnelInfo, error) {
 	var vpnConfig XmlVpnConnectionConfig
-	xml.Unmarshal([]byte(xmlConfig), &vpnConfig)
+	if err := xml.Unmarshal([]byte(xmlConfig), &vpnConfig); err != nil {
+		return nil, errwrap.Wrapf("Error Unmarshalling XML: {{err}}", err)
+	}
 
 	// don't expect consistent ordering from the XML
 	sort.Sort(vpnConfig)
@@ -431,5 +437,5 @@ func xmlConfigToTunnelInfo(xmlConfig string) TunnelInfo {
 		Tunnel2PreSharedKey: vpnConfig.Tunnels[1].PreSharedKey,
 	}
 
-	return tunnelInfo
+	return &tunnelInfo, nil
 }

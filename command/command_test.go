@@ -131,7 +131,7 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 
 // testState returns a test State structure that we use for a lot of tests.
 func testState() *terraform.State {
-	return &terraform.State{
+	state := &terraform.State{
 		Version: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
@@ -148,6 +148,8 @@ func testState() *terraform.State {
 			},
 		},
 	}
+	state.Init()
+	return state
 }
 
 func testStateFile(t *testing.T, s *terraform.State) string {
@@ -252,6 +254,42 @@ func testTempDir(t *testing.T) string {
 	}
 
 	return d
+}
+
+// testRename renames the path to new and returns a function to defer to
+// revert the rename.
+func testRename(t *testing.T, base, path, new string) func() {
+	if base != "" {
+		path = filepath.Join(base, path)
+		new = filepath.Join(base, new)
+	}
+
+	if err := os.Rename(path, new); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return func() {
+		// Just re-rename and ignore the return value
+		testRename(t, "", new, path)
+	}
+}
+
+// testChdir changes the directory and returns a function to defer to
+// revert the old cwd.
+func testChdir(t *testing.T, new string) func() {
+	old, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := os.Chdir(new); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	return func() {
+		// Re-run the function ignoring the defer result
+		testChdir(t, old)
+	}
 }
 
 // testCwd is used to change the current working directory

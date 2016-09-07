@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -136,23 +137,34 @@ func resourceArmTrafficManagerEndpointRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 	resGroup := id.ResourceGroup
-	endpointType := d.Get("type").(string)
+
+	// lookup endpointType in Azure ID path
+	var endpointType string
+	typeRegex := regexp.MustCompile("azureEndpoints|externalEndpoints|nestedEndpoints")
+	for k := range id.Path {
+		if typeRegex.MatchString(k) {
+			endpointType = k
+		}
+	}
 	profileName := id.Path["trafficManagerProfiles"]
 
 	// endpoint name is keyed by endpoint type in ARM ID
 	name := id.Path[endpointType]
 
 	resp, err := client.Get(resGroup, profileName, endpointType, name)
+	if err != nil {
+		return fmt.Errorf("Error making Read request on TrafficManager Endpoint %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
 	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on TrafficManager Endpoint %s: %s", name, err)
-	}
+
 	endpoint := *resp.Properties
 
 	d.Set("name", resp.Name)
+	d.Set("type", endpointType)
+	d.Set("profile_name", profileName)
 	d.Set("endpoint_status", endpoint.EndpointStatus)
 	d.Set("target_resource_id", endpoint.TargetResourceID)
 	d.Set("target", endpoint.Target)

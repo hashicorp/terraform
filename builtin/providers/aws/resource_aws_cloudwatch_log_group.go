@@ -76,11 +76,11 @@ func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{})
 
 	log.Printf("[DEBUG] Found Log Group: %#v", *lg)
 
-	d.Set("arn", *lg.Arn)
-	d.Set("name", *lg.LogGroupName)
+	d.Set("arn", lg.Arn)
+	d.Set("name", lg.LogGroupName)
 
 	if lg.RetentionInDays != nil {
-		d.Set("retention_in_days", *lg.RetentionInDays)
+		d.Set("retention_in_days", lg.RetentionInDays)
 	}
 
 	return nil

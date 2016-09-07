@@ -32,6 +32,7 @@ func resourceAwsVpnGateway() *schema.Resource {
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"tags": tagsSchema(),
@@ -80,19 +81,23 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	vpnGateway := resp.VpnGateways[0]
-	if vpnGateway == nil {
+	if vpnGateway == nil || *vpnGateway.State == "deleted" {
 		// Seems we have lost our VPN gateway
 		d.SetId("")
 		return nil
 	}
 
-	if len(vpnGateway.VpcAttachments) == 0 || *vpnGateway.VpcAttachments[0].State == "detached" || *vpnGateway.VpcAttachments[0].State == "deleted" {
+	vpnAttachment := vpnGatewayGetAttachment(vpnGateway)
+	if len(vpnGateway.VpcAttachments) == 0 || *vpnAttachment.State == "detached" {
 		// Gateway exists but not attached to the VPC
 		d.Set("vpc_id", "")
 	} else {
-		d.Set("vpc_id", vpnGateway.VpcAttachments[0].VpcId)
+		d.Set("vpc_id", *vpnAttachment.VpcId)
 	}
-	d.Set("availability_zone", vpnGateway.AvailabilityZone)
+
+	if vpnGateway.AvailabilityZone != nil && *vpnGateway.AvailabilityZone != "" {
+		d.Set("availability_zone", vpnGateway.AvailabilityZone)
+	}
 	d.Set("tags", tagsToMap(vpnGateway.Tags))
 
 	return nil
@@ -301,12 +306,21 @@ func vpnGatewayAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string)
 		}
 
 		vpnGateway := resp.VpnGateways[0]
-
 		if len(vpnGateway.VpcAttachments) == 0 {
 			// No attachments, we're detached
 			return vpnGateway, "detached", nil
 		}
 
-		return vpnGateway, *vpnGateway.VpcAttachments[0].State, nil
+		vpnAttachment := vpnGatewayGetAttachment(vpnGateway)
+		return vpnGateway, *vpnAttachment.State, nil
 	}
+}
+
+func vpnGatewayGetAttachment(vgw *ec2.VpnGateway) *ec2.VpcAttachment {
+	for _, v := range vgw.VpcAttachments {
+		if *v.State == "attached" {
+			return v
+		}
+	}
+	return &ec2.VpcAttachment{State: aws.String("detached")}
 }

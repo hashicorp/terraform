@@ -153,6 +153,8 @@ func resourceComputeInstance() *schema.Resource {
 
 						"address": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
 							Computed: true,
 						},
 
@@ -250,14 +252,16 @@ func resourceComputeInstance() *schema.Resource {
 
 			"service_account": &schema.Schema{
 				Type:     schema.TypeList,
+				MaxItems: 1,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"email": &schema.Schema{
 							Type:     schema.TypeString,
-							Computed: true,
 							ForceNew: true,
+							Optional: true,
+							Computed: true,
 						},
 
 						"scopes": &schema.Schema{
@@ -465,22 +469,22 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		networkInterfaces = make([]*compute.NetworkInterface, 0, networkInterfacesCount)
 		for i := 0; i < networkInterfacesCount; i++ {
 			prefix := fmt.Sprintf("network_interface.%d", i)
-			// Load up the name of this network_interfac
+			// Load up the name of this network_interface
 			networkName := d.Get(prefix + ".network").(string)
 			subnetworkName := d.Get(prefix + ".subnetwork").(string)
+			address := d.Get(prefix + ".address").(string)
 			var networkLink, subnetworkLink string
 
 			if networkName != "" && subnetworkName != "" {
 				return fmt.Errorf("Cannot specify both network and subnetwork values.")
 			} else if networkName != "" {
-				network, err := config.clientCompute.Networks.Get(
-					project, networkName).Do()
+				networkLink, err = getNetworkLink(d, config, prefix+".network")
 				if err != nil {
 					return fmt.Errorf(
 						"Error referencing network '%s': %s",
 						networkName, err)
 				}
-				networkLink = network.SelfLink
+
 			} else {
 				region := getRegionFromZone(d.Get("zone").(string))
 				subnetwork, err := config.clientCompute.Subnetworks.Get(
@@ -497,6 +501,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			var iface compute.NetworkInterface
 			iface.Network = networkLink
 			iface.Subnetwork = subnetworkLink
+			iface.NetworkIP = address
 
 			// Handle access_config structs
 			accessConfigsCount := d.Get(prefix + ".access_config.#").(int)
@@ -524,8 +529,13 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			scopes[i] = canonicalizeServiceScope(v.(string))
 		}
 
+		email := "default"
+		if v := d.Get(prefix + ".email"); v != nil {
+			email = v.(string)
+		}
+
 		serviceAccount := &compute.ServiceAccount{
-			Email:  "default",
+			Email:  email,
 			Scopes: scopes,
 		}
 
@@ -577,7 +587,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(instance.Name)
 
 	// Wait for the operation to complete
-	waitErr := computeOperationWaitZone(config, op, zone.Name, "instance to create")
+	waitErr := computeOperationWaitZone(config, op, project, zone.Name, "instance to create")
 	if waitErr != nil {
 		// The resource didn't actually create
 		d.SetId("")
@@ -786,7 +796,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				return fmt.Errorf("Error updating metadata: %s", err)
 			}
 
-			opErr := computeOperationWaitZone(config, op, zone, "metadata to update")
+			opErr := computeOperationWaitZone(config, op, project, zone, "metadata to update")
 			if opErr != nil {
 				return opErr
 			}
@@ -806,7 +816,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("Error updating tags: %s", err)
 		}
 
-		opErr := computeOperationWaitZone(config, op, zone, "tags to update")
+		opErr := computeOperationWaitZone(config, op, project, zone, "tags to update")
 		if opErr != nil {
 			return opErr
 		}
@@ -837,7 +847,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("Error updating scheduling policy: %s", err)
 		}
 
-		opErr := computeOperationWaitZone(config, op, zone,
+		opErr := computeOperationWaitZone(config, op, project, zone,
 			"scheduling policy update")
 		if opErr != nil {
 			return opErr
@@ -879,7 +889,8 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 					if err != nil {
 						return fmt.Errorf("Error deleting old access_config: %s", err)
 					}
-					opErr := computeOperationWaitZone(config, op, zone, "old access_config to delete")
+					opErr := computeOperationWaitZone(config, op, project, zone,
+						"old access_config to delete")
 					if opErr != nil {
 						return opErr
 					}
@@ -898,7 +909,8 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 					if err != nil {
 						return fmt.Errorf("Error adding new access_config: %s", err)
 					}
-					opErr := computeOperationWaitZone(config, op, zone, "new access_config to add")
+					opErr := computeOperationWaitZone(config, op, project, zone,
+						"new access_config to add")
 					if opErr != nil {
 						return opErr
 					}
@@ -929,7 +941,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 	}
 
 	// Wait for the operation to complete
-	opErr := computeOperationWaitZone(config, op, zone, "instance to delete")
+	opErr := computeOperationWaitZone(config, op, project, zone, "instance to delete")
 	if opErr != nil {
 		return opErr
 	}

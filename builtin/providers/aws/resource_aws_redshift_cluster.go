@@ -51,13 +51,15 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 
 			"master_username": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				ValidateFunc: validateRedshiftClusterMasterUsername,
 			},
 
 			"master_password": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				ValidateFunc: validateRedshiftClusterMasterPassword,
 			},
 
 			"cluster_security_groups": &schema.Schema{
@@ -225,6 +227,16 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"snapshot_identifier": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"snapshot_cluster_identifier": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -241,89 +253,151 @@ func resourceAwsRedshiftClusterImport(
 
 func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).redshiftconn
-
-	log.Printf("[INFO] Building Redshift Cluster Options")
 	tags := tagsFromMapRedshift(d.Get("tags").(map[string]interface{}))
-	createOpts := &redshift.CreateClusterInput{
-		ClusterIdentifier:                aws.String(d.Get("cluster_identifier").(string)),
-		Port:                             aws.Int64(int64(d.Get("port").(int))),
-		MasterUserPassword:               aws.String(d.Get("master_password").(string)),
-		MasterUsername:                   aws.String(d.Get("master_username").(string)),
-		ClusterVersion:                   aws.String(d.Get("cluster_version").(string)),
-		NodeType:                         aws.String(d.Get("node_type").(string)),
-		DBName:                           aws.String(d.Get("database_name").(string)),
-		AllowVersionUpgrade:              aws.Bool(d.Get("allow_version_upgrade").(bool)),
-		PubliclyAccessible:               aws.Bool(d.Get("publicly_accessible").(bool)),
-		AutomatedSnapshotRetentionPeriod: aws.Int64(int64(d.Get("automated_snapshot_retention_period").(int))),
-		Tags: tags,
-	}
 
-	if v := d.Get("number_of_nodes").(int); v > 1 {
-		createOpts.ClusterType = aws.String("multi-node")
-		createOpts.NumberOfNodes = aws.Int64(int64(d.Get("number_of_nodes").(int)))
+	if v, ok := d.GetOk("snapshot_identifier"); ok {
+		restoreOpts := &redshift.RestoreFromClusterSnapshotInput{
+			ClusterIdentifier:                aws.String(d.Get("cluster_identifier").(string)),
+			SnapshotIdentifier:               aws.String(v.(string)),
+			Port:                             aws.Int64(int64(d.Get("port").(int))),
+			AllowVersionUpgrade:              aws.Bool(d.Get("allow_version_upgrade").(bool)),
+			NodeType:                         aws.String(d.Get("node_type").(string)),
+			PubliclyAccessible:               aws.Bool(d.Get("publicly_accessible").(bool)),
+			AutomatedSnapshotRetentionPeriod: aws.Int64(int64(d.Get("automated_snapshot_retention_period").(int))),
+		}
+
+		if v, ok := d.GetOk("snapshot_cluster_identifier"); ok {
+			restoreOpts.SnapshotClusterIdentifier = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("availability_zone"); ok {
+			restoreOpts.AvailabilityZone = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("cluster_subnet_group_name"); ok {
+			restoreOpts.ClusterSubnetGroupName = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("cluster_parameter_group_name"); ok {
+			restoreOpts.ClusterParameterGroupName = aws.String(v.(string))
+		}
+
+		if v := d.Get("cluster_security_groups").(*schema.Set); v.Len() > 0 {
+			restoreOpts.ClusterSecurityGroups = expandStringList(v.List())
+		}
+
+		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
+			restoreOpts.VpcSecurityGroupIds = expandStringList(v.List())
+		}
+
+		if v, ok := d.GetOk("preferred_maintenance_window"); ok {
+			restoreOpts.PreferredMaintenanceWindow = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("kms_key_id"); ok {
+			restoreOpts.KmsKeyId = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("elastic_ip"); ok {
+			restoreOpts.ElasticIp = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("iam_roles"); ok {
+			restoreOpts.IamRoles = expandStringList(v.(*schema.Set).List())
+		}
+
+		log.Printf("[DEBUG] Redshift Cluster restore cluster options: %s", restoreOpts)
+
+		resp, err := conn.RestoreFromClusterSnapshot(restoreOpts)
+		if err != nil {
+			log.Printf("[ERROR] Error Restoring Redshift Cluster from Snapshot: %s", err)
+			return err
+		}
+
+		d.SetId(*resp.Cluster.ClusterIdentifier)
+
 	} else {
-		createOpts.ClusterType = aws.String("single-node")
-	}
+		createOpts := &redshift.CreateClusterInput{
+			ClusterIdentifier:                aws.String(d.Get("cluster_identifier").(string)),
+			Port:                             aws.Int64(int64(d.Get("port").(int))),
+			MasterUserPassword:               aws.String(d.Get("master_password").(string)),
+			MasterUsername:                   aws.String(d.Get("master_username").(string)),
+			ClusterVersion:                   aws.String(d.Get("cluster_version").(string)),
+			NodeType:                         aws.String(d.Get("node_type").(string)),
+			DBName:                           aws.String(d.Get("database_name").(string)),
+			AllowVersionUpgrade:              aws.Bool(d.Get("allow_version_upgrade").(bool)),
+			PubliclyAccessible:               aws.Bool(d.Get("publicly_accessible").(bool)),
+			AutomatedSnapshotRetentionPeriod: aws.Int64(int64(d.Get("automated_snapshot_retention_period").(int))),
+			Tags: tags,
+		}
 
-	if v := d.Get("cluster_security_groups").(*schema.Set); v.Len() > 0 {
-		createOpts.ClusterSecurityGroups = expandStringList(v.List())
-	}
+		if v := d.Get("number_of_nodes").(int); v > 1 {
+			createOpts.ClusterType = aws.String("multi-node")
+			createOpts.NumberOfNodes = aws.Int64(int64(d.Get("number_of_nodes").(int)))
+		} else {
+			createOpts.ClusterType = aws.String("single-node")
+		}
 
-	if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
-		createOpts.VpcSecurityGroupIds = expandStringList(v.List())
-	}
+		if v := d.Get("cluster_security_groups").(*schema.Set); v.Len() > 0 {
+			createOpts.ClusterSecurityGroups = expandStringList(v.List())
+		}
 
-	if v, ok := d.GetOk("cluster_subnet_group_name"); ok {
-		createOpts.ClusterSubnetGroupName = aws.String(v.(string))
-	}
+		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
+			createOpts.VpcSecurityGroupIds = expandStringList(v.List())
+		}
 
-	if v, ok := d.GetOk("availability_zone"); ok {
-		createOpts.AvailabilityZone = aws.String(v.(string))
-	}
+		if v, ok := d.GetOk("cluster_subnet_group_name"); ok {
+			createOpts.ClusterSubnetGroupName = aws.String(v.(string))
+		}
 
-	if v, ok := d.GetOk("preferred_maintenance_window"); ok {
-		createOpts.PreferredMaintenanceWindow = aws.String(v.(string))
-	}
+		if v, ok := d.GetOk("availability_zone"); ok {
+			createOpts.AvailabilityZone = aws.String(v.(string))
+		}
 
-	if v, ok := d.GetOk("cluster_parameter_group_name"); ok {
-		createOpts.ClusterParameterGroupName = aws.String(v.(string))
-	}
+		if v, ok := d.GetOk("preferred_maintenance_window"); ok {
+			createOpts.PreferredMaintenanceWindow = aws.String(v.(string))
+		}
 
-	if v, ok := d.GetOk("encrypted"); ok {
-		createOpts.Encrypted = aws.Bool(v.(bool))
-	}
+		if v, ok := d.GetOk("cluster_parameter_group_name"); ok {
+			createOpts.ClusterParameterGroupName = aws.String(v.(string))
+		}
 
-	if v, ok := d.GetOk("kms_key_id"); ok {
-		createOpts.KmsKeyId = aws.String(v.(string))
-	}
+		if v, ok := d.GetOk("encrypted"); ok {
+			createOpts.Encrypted = aws.Bool(v.(bool))
+		}
 
-	if v, ok := d.GetOk("elastic_ip"); ok {
-		createOpts.ElasticIp = aws.String(v.(string))
-	}
+		if v, ok := d.GetOk("kms_key_id"); ok {
+			createOpts.KmsKeyId = aws.String(v.(string))
+		}
 
-	if v, ok := d.GetOk("iam_roles"); ok {
-		createOpts.IamRoles = expandStringList(v.(*schema.Set).List())
-	}
+		if v, ok := d.GetOk("elastic_ip"); ok {
+			createOpts.ElasticIp = aws.String(v.(string))
+		}
 
-	log.Printf("[DEBUG] Redshift Cluster create options: %s", createOpts)
-	resp, err := conn.CreateCluster(createOpts)
-	if err != nil {
-		log.Printf("[ERROR] Error creating Redshift Cluster: %s", err)
-		return err
-	}
+		if v, ok := d.GetOk("iam_roles"); ok {
+			createOpts.IamRoles = expandStringList(v.(*schema.Set).List())
+		}
 
-	log.Printf("[DEBUG]: Cluster create response: %s", resp)
-	d.SetId(*resp.Cluster.ClusterIdentifier)
+		log.Printf("[DEBUG] Redshift Cluster create options: %s", createOpts)
+		resp, err := conn.CreateCluster(createOpts)
+		if err != nil {
+			log.Printf("[ERROR] Error creating Redshift Cluster: %s", err)
+			return err
+		}
+
+		log.Printf("[DEBUG]: Cluster create response: %s", resp)
+		d.SetId(*resp.Cluster.ClusterIdentifier)
+	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "backing-up", "modifying"},
+		Pending:    []string{"creating", "backing-up", "modifying", "restoring"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,
 	}
 
-	_, err = stateConf.WaitForState()
+	_, err := stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("[WARN] Error waiting for Redshift Cluster state to be \"available\": %s", err)
 	}
@@ -670,7 +744,7 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"available", "creating", "deleting", "rebooting", "resizing", "renaming"},
+		Pending:    []string{"available", "creating", "deleting", "rebooting", "resizing", "renaming", "final-snapshot"},
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
@@ -750,9 +824,9 @@ func validateRedshiftClusterIdentifier(v interface{}, k string) (ws []string, er
 
 func validateRedshiftClusterDbName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[a-z]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase letters characters allowed in %q", k))
+			"only lowercase letters and numeric characters allowed in %q", k))
 	}
 	if len(value) > 64 {
 		errors = append(errors, fmt.Errorf(
@@ -796,6 +870,26 @@ func validateRedshiftClusterMasterUsername(v interface{}, k string) (ws []string
 	}
 	if len(value) > 128 {
 		errors = append(errors, fmt.Errorf("%q cannot be more than 128 characters", k))
+	}
+	return
+}
+
+func validateRedshiftClusterMasterPassword(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^.*[a-z].*`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain at least one lowercase letter", k))
+	}
+	if !regexp.MustCompile(`^.*[A-Z].*`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain at least one uppercase letter", k))
+	}
+	if !regexp.MustCompile(`^.*[0-9].*`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain at least one number", k))
+	}
+	if len(value) < 8 {
+		errors = append(errors, fmt.Errorf("%q must be at least 8 characters", k))
 	}
 	return
 }
