@@ -108,7 +108,7 @@ func resourceAwsNatGatewayRead(d *schema.ResourceData, meta interface{}) error {
 		"failed":   true,
 	}
 
-	if ngRaw == nil || status[strings.ToLower(state)] {
+	if _, ok := status[strings.ToLower(state)]; ngRaw == nil || ok {
 		log.Printf("[INFO] Removing %s from Terraform state as it is not found or in the deleted state.", d.Id())
 		d.SetId("")
 		return nil
