@@ -36,6 +36,22 @@ func TestAccBitbucketRepository_basic(t *testing.T) {
 }
 
 func testAccCheckBitbucketRepositoryDestroy(s *terraform.State) error {
+	client := testAccProvider.Meta().(*BitbucketClient)
+	rs, ok := s.RootModule().Resources["bitbucket_repository.test_repo"]
+	if !ok {
+		return fmt.Errorf("Not found %s", "bitbucket_repository.test_repo")
+	}
+
+	response, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s", rs.Primary.Attributes["owner"], rs.Primary.Attributes["name"]))
+
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != 404 {
+		return fmt.Errorf("Repository still exists")
+	}
+
 	return nil
 }
 
