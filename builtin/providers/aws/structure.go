@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -72,6 +73,42 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 	}
 
 	return listeners, nil
+}
+
+// Takes the result of flatmap.Expand for an array of tig and
+// returns CodeCommit API compatible objects
+func expandTriggers(configured []interface{}) ([]*codecommit.RepositoryTrigger, error) {
+	triggers := make([]*codecommit.RepositoryTrigger, 0, len(configured))
+
+	// Loop over our configured triggers and create
+	// an array of aws-sdk-go compatabile objects
+
+	for _, lRaw := range configured {
+		data := lRaw.(map[string]interface{})
+
+		t := &codecommit.RepositoryTrigger{
+			CustomData:     aws.String(data["custom_data"].(string)),
+			DestinationArn: aws.String(data["destination_arn"].(string)),
+			Name:           aws.String(data["name"].(string)),
+		}
+
+		if raw, ok := data["branches"]; ok {
+			branches := expandStringList(raw.(*schema.Set).List())
+			if len(branches) > 0 {
+				t.Branches = branches
+			}
+		}
+
+		if raw, ok := data["events"]; ok {
+			events := expandStringList(raw.(*schema.Set).List())
+			if len(events) > 0 {
+				t.Events = events
+			}
+		}
+		triggers = append(triggers, t)
+	}
+
+	return triggers, nil
 }
 
 // Takes the result of flatmap. Expand for an array of listeners and
