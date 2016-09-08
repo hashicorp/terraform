@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+
 	"github.com/mitchellh/copystructure"
 )
 
@@ -37,6 +38,7 @@ func upgradeStateV1ToV2(old *stateV1) (*State, error) {
 	}
 
 	newState.sort()
+	newState.init()
 
 	return newState, nil
 }
@@ -76,9 +78,6 @@ func (old *moduleStateV1) upgradeToV2() (*ModuleState, error) {
 			Sensitive: false,
 		}
 	}
-	if len(outputs) == 0 {
-		outputs = nil
-	}
 
 	resources := make(map[string]*ResourceState)
 	for key, oldResource := range old.Resources {
@@ -87,9 +86,6 @@ func (old *moduleStateV1) upgradeToV2() (*ModuleState, error) {
 			return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
 		}
 		resources[key] = upgraded
-	}
-	if len(resources) == 0 {
-		resources = nil
 	}
 
 	dependencies, err := copystructure.Copy(old.Dependencies)

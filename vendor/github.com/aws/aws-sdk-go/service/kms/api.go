@@ -14,7 +14,28 @@ import (
 
 const opCancelKeyDeletion = "CancelKeyDeletion"
 
-// CancelKeyDeletionRequest generates a request for the CancelKeyDeletion operation.
+// CancelKeyDeletionRequest generates a "aws/request.Request" representing the
+// client's request for the CancelKeyDeletion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelKeyDeletion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelKeyDeletionRequest method.
+//    req, resp := client.CancelKeyDeletionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) CancelKeyDeletionRequest(input *CancelKeyDeletionInput) (req *request.Request, output *CancelKeyDeletionOutput) {
 	op := &request.Operation{
 		Name:       opCancelKeyDeletion,
@@ -36,8 +57,8 @@ func (c *KMS) CancelKeyDeletionRequest(input *CancelKeyDeletionInput) (req *requ
 // is successful, the CMK is set to the Disabled state. To enable a CMK, use
 // EnableKey.
 //
-// For more information about scheduling and canceling deletion of a CMK, go
-// to Deleting Customer Master Keys (http://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html)
+// For more information about scheduling and canceling deletion of a CMK, see
+// Deleting Customer Master Keys (http://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html)
 // in the AWS Key Management Service Developer Guide.
 func (c *KMS) CancelKeyDeletion(input *CancelKeyDeletionInput) (*CancelKeyDeletionOutput, error) {
 	req, out := c.CancelKeyDeletionRequest(input)
@@ -47,7 +68,28 @@ func (c *KMS) CancelKeyDeletion(input *CancelKeyDeletionInput) (*CancelKeyDeleti
 
 const opCreateAlias = "CreateAlias"
 
-// CreateAliasRequest generates a request for the CreateAlias operation.
+// CreateAliasRequest generates a "aws/request.Request" representing the
+// client's request for the CreateAlias operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateAlias method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateAliasRequest method.
+//    req, resp := client.CreateAliasRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) CreateAliasRequest(input *CreateAliasInput) (req *request.Request, output *CreateAliasOutput) {
 	op := &request.Operation{
 		Name:       opCreateAlias,
@@ -87,7 +129,28 @@ func (c *KMS) CreateAlias(input *CreateAliasInput) (*CreateAliasOutput, error) {
 
 const opCreateGrant = "CreateGrant"
 
-// CreateGrantRequest generates a request for the CreateGrant operation.
+// CreateGrantRequest generates a "aws/request.Request" representing the
+// client's request for the CreateGrant operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateGrant method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateGrantRequest method.
+//    req, resp := client.CreateGrantRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) CreateGrantRequest(input *CreateGrantInput) (req *request.Request, output *CreateGrantOutput) {
 	op := &request.Operation{
 		Name:       opCreateGrant,
@@ -118,7 +181,28 @@ func (c *KMS) CreateGrant(input *CreateGrantInput) (*CreateGrantOutput, error) {
 
 const opCreateKey = "CreateKey"
 
-// CreateKeyRequest generates a request for the CreateKey operation.
+// CreateKeyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateKeyRequest method.
+//    req, resp := client.CreateKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) CreateKeyRequest(input *CreateKeyInput) (req *request.Request, output *CreateKeyOutput) {
 	op := &request.Operation{
 		Name:       opCreateKey,
@@ -136,10 +220,17 @@ func (c *KMS) CreateKeyRequest(input *CreateKeyInput) (req *request.Request, out
 	return
 }
 
-// Creates a customer master key. Customer master keys can be used to encrypt
-// small amounts of data (less than 4K) directly, but they are most commonly
-// used to encrypt or envelope data keys that are then used to encrypt customer
-// data. For more information about data keys, see GenerateDataKey and GenerateDataKeyWithoutPlaintext.
+// Creates a customer master key (CMK).
+//
+// You can use a CMK to encrypt small amounts of data (4 KiB or less) directly,
+// but CMKs are more commonly used to encrypt data encryption keys (DEKs), which
+// are used to encrypt raw data. For more information about DEKs and the difference
+// between CMKs and DEKs, see the following:
+//
+//   The GenerateDataKey operation
+//
+//    AWS Key Management Service Concepts (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html)
+// in the AWS Key Management Service Developer Guide
 func (c *KMS) CreateKey(input *CreateKeyInput) (*CreateKeyOutput, error) {
 	req, out := c.CreateKeyRequest(input)
 	err := req.Send()
@@ -148,7 +239,28 @@ func (c *KMS) CreateKey(input *CreateKeyInput) (*CreateKeyOutput, error) {
 
 const opDecrypt = "Decrypt"
 
-// DecryptRequest generates a request for the Decrypt operation.
+// DecryptRequest generates a "aws/request.Request" representing the
+// client's request for the Decrypt operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the Decrypt method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DecryptRequest method.
+//    req, resp := client.DecryptRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) DecryptRequest(input *DecryptInput) (req *request.Request, output *DecryptOutput) {
 	op := &request.Operation{
 		Name:       opDecrypt,
@@ -167,17 +279,22 @@ func (c *KMS) DecryptRequest(input *DecryptInput) (req *request.Request, output 
 }
 
 // Decrypts ciphertext. Ciphertext is plaintext that has been previously encrypted
-// by using any of the following functions:  GenerateDataKey GenerateDataKeyWithoutPlaintext
-// Encrypt
+// by using any of the following functions:
 //
-// Note that if a caller has been granted access permissions to all keys (through,
-// for example, IAM user policies that grant Decrypt permission on all resources),
-// then ciphertext encrypted by using keys in other accounts where the key grants
-// access to the caller can be decrypted. To remedy this, we recommend that
-// you do not grant Decrypt access in an IAM user policy. Instead grant Decrypt
-// access only in key policies. If you must grant Decrypt access in an IAM user
-// policy, you should scope the resource to specific keys or to specific trusted
-// accounts.
+//    GenerateDataKey
+//
+//    GenerateDataKeyWithoutPlaintext
+//
+//    Encrypt
+//
+//   Note that if a caller has been granted access permissions to all keys
+// (through, for example, IAM user policies that grant Decrypt permission on
+// all resources), then ciphertext encrypted by using keys in other accounts
+// where the key grants access to the caller can be decrypted. To remedy this,
+// we recommend that you do not grant Decrypt access in an IAM user policy.
+// Instead grant Decrypt access only in key policies. If you must grant Decrypt
+// access in an IAM user policy, you should scope the resource to specific keys
+// or to specific trusted accounts.
 func (c *KMS) Decrypt(input *DecryptInput) (*DecryptOutput, error) {
 	req, out := c.DecryptRequest(input)
 	err := req.Send()
@@ -186,7 +303,28 @@ func (c *KMS) Decrypt(input *DecryptInput) (*DecryptOutput, error) {
 
 const opDeleteAlias = "DeleteAlias"
 
-// DeleteAliasRequest generates a request for the DeleteAlias operation.
+// DeleteAliasRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteAlias operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteAlias method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteAliasRequest method.
+//    req, resp := client.DeleteAliasRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Request, output *DeleteAliasOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAlias,
@@ -213,9 +351,89 @@ func (c *KMS) DeleteAlias(input *DeleteAliasInput) (*DeleteAliasOutput, error) {
 	return out, err
 }
 
+const opDeleteImportedKeyMaterial = "DeleteImportedKeyMaterial"
+
+// DeleteImportedKeyMaterialRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteImportedKeyMaterial operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteImportedKeyMaterial method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteImportedKeyMaterialRequest method.
+//    req, resp := client.DeleteImportedKeyMaterialRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *KMS) DeleteImportedKeyMaterialRequest(input *DeleteImportedKeyMaterialInput) (req *request.Request, output *DeleteImportedKeyMaterialOutput) {
+	op := &request.Operation{
+		Name:       opDeleteImportedKeyMaterial,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteImportedKeyMaterialInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &DeleteImportedKeyMaterialOutput{}
+	req.Data = output
+	return
+}
+
+// Deletes key material that you previously imported and makes the specified
+// customer master key (CMK) unusable. For more information about importing
+// key material into AWS KMS, see Importing Key Material (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
+// in the AWS Key Management Service Developer Guide.
+//
+// When the specified CMK is in the PendingDeletion state, this operation does
+// not change the CMK's state. Otherwise, it changes the CMK's state to PendingImport.
+//
+// After you delete key material, you can use ImportKeyMaterial to reimport
+// the same key material into the CMK.
+func (c *KMS) DeleteImportedKeyMaterial(input *DeleteImportedKeyMaterialInput) (*DeleteImportedKeyMaterialOutput, error) {
+	req, out := c.DeleteImportedKeyMaterialRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeKey = "DescribeKey"
 
-// DescribeKeyRequest generates a request for the DescribeKey operation.
+// DescribeKeyRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeKeyRequest method.
+//    req, resp := client.DescribeKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) DescribeKeyRequest(input *DescribeKeyInput) (req *request.Request, output *DescribeKeyOutput) {
 	op := &request.Operation{
 		Name:       opDescribeKey,
@@ -242,7 +460,28 @@ func (c *KMS) DescribeKey(input *DescribeKeyInput) (*DescribeKeyOutput, error) {
 
 const opDisableKey = "DisableKey"
 
-// DisableKeyRequest generates a request for the DisableKey operation.
+// DisableKeyRequest generates a "aws/request.Request" representing the
+// client's request for the DisableKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableKeyRequest method.
+//    req, resp := client.DisableKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) DisableKeyRequest(input *DisableKeyInput) (req *request.Request, output *DisableKeyOutput) {
 	op := &request.Operation{
 		Name:       opDisableKey,
@@ -262,9 +501,9 @@ func (c *KMS) DisableKeyRequest(input *DisableKeyInput) (req *request.Request, o
 	return
 }
 
-// Sets the state of a master key to disabled, thereby preventing its use for
-// cryptographic operations. For more information about how key state affects
-// the use of a master key, go to How Key State Affects the Use of a Customer
+// Sets the state of a customer master key (CMK) to disabled, thereby preventing
+// its use for cryptographic operations. For more information about how key
+// state affects the use of a CMK, see How Key State Affects the Use of a Customer
 // Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
 // in the AWS Key Management Service Developer Guide.
 func (c *KMS) DisableKey(input *DisableKeyInput) (*DisableKeyOutput, error) {
@@ -275,7 +514,28 @@ func (c *KMS) DisableKey(input *DisableKeyInput) (*DisableKeyOutput, error) {
 
 const opDisableKeyRotation = "DisableKeyRotation"
 
-// DisableKeyRotationRequest generates a request for the DisableKeyRotation operation.
+// DisableKeyRotationRequest generates a "aws/request.Request" representing the
+// client's request for the DisableKeyRotation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableKeyRotation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableKeyRotationRequest method.
+//    req, resp := client.DisableKeyRotationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) DisableKeyRotationRequest(input *DisableKeyRotationInput) (req *request.Request, output *DisableKeyRotationOutput) {
 	op := &request.Operation{
 		Name:       opDisableKeyRotation,
@@ -304,7 +564,28 @@ func (c *KMS) DisableKeyRotation(input *DisableKeyRotationInput) (*DisableKeyRot
 
 const opEnableKey = "EnableKey"
 
-// EnableKeyRequest generates a request for the EnableKey operation.
+// EnableKeyRequest generates a "aws/request.Request" representing the
+// client's request for the EnableKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableKeyRequest method.
+//    req, resp := client.EnableKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) EnableKeyRequest(input *EnableKeyInput) (req *request.Request, output *EnableKeyOutput) {
 	op := &request.Operation{
 		Name:       opEnableKey,
@@ -333,7 +614,28 @@ func (c *KMS) EnableKey(input *EnableKeyInput) (*EnableKeyOutput, error) {
 
 const opEnableKeyRotation = "EnableKeyRotation"
 
-// EnableKeyRotationRequest generates a request for the EnableKeyRotation operation.
+// EnableKeyRotationRequest generates a "aws/request.Request" representing the
+// client's request for the EnableKeyRotation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableKeyRotation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableKeyRotationRequest method.
+//    req, resp := client.EnableKeyRotationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) EnableKeyRotationRequest(input *EnableKeyRotationInput) (req *request.Request, output *EnableKeyRotationOutput) {
 	op := &request.Operation{
 		Name:       opEnableKeyRotation,
@@ -362,7 +664,28 @@ func (c *KMS) EnableKeyRotation(input *EnableKeyRotationInput) (*EnableKeyRotati
 
 const opEncrypt = "Encrypt"
 
-// EncryptRequest generates a request for the Encrypt operation.
+// EncryptRequest generates a "aws/request.Request" representing the
+// client's request for the Encrypt operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the Encrypt method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EncryptRequest method.
+//    req, resp := client.EncryptRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) EncryptRequest(input *EncryptInput) (req *request.Request, output *EncryptOutput) {
 	op := &request.Operation{
 		Name:       opEncrypt,
@@ -381,15 +704,18 @@ func (c *KMS) EncryptRequest(input *EncryptInput) (req *request.Request, output 
 }
 
 // Encrypts plaintext into ciphertext by using a customer master key. The Encrypt
-// function has two primary use cases:  You can encrypt up to 4 KB of arbitrary
-// data such as an RSA key, a database password, or other sensitive customer
-// information. If you are moving encrypted data from one region to another,
-// you can use this API to encrypt in the new region the plaintext data key
-// that was used to encrypt the data in the original region. This provides you
-// with an encrypted copy of the data key that can be decrypted in the new region
-// and used there to decrypt the encrypted data.
+// function has two primary use cases:
 //
-// Unless you are moving encrypted data from one region to another, you don't
+//   You can encrypt up to 4 KB of arbitrary data such as an RSA key, a database
+// password, or other sensitive customer information.
+//
+//   If you are moving encrypted data from one region to another, you can use
+// this API to encrypt in the new region the plaintext data key that was used
+// to encrypt the data in the original region. This provides you with an encrypted
+// copy of the data key that can be decrypted in the new region and used there
+// to decrypt the encrypted data.
+//
+//   Unless you are moving encrypted data from one region to another, you don't
 // use this function to encrypt a generated data key within a region. You retrieve
 // data keys already encrypted by calling the GenerateDataKey or GenerateDataKeyWithoutPlaintext
 // function. Data keys don't need to be encrypted again by calling Encrypt.
@@ -405,7 +731,28 @@ func (c *KMS) Encrypt(input *EncryptInput) (*EncryptOutput, error) {
 
 const opGenerateDataKey = "GenerateDataKey"
 
-// GenerateDataKeyRequest generates a request for the GenerateDataKey operation.
+// GenerateDataKeyRequest generates a "aws/request.Request" representing the
+// client's request for the GenerateDataKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GenerateDataKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GenerateDataKeyRequest method.
+//    req, resp := client.GenerateDataKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) GenerateDataKeyRequest(input *GenerateDataKeyInput) (req *request.Request, output *GenerateDataKeyOutput) {
 	op := &request.Operation{
 		Name:       opGenerateDataKey,
@@ -435,16 +782,18 @@ func (c *KMS) GenerateDataKeyRequest(input *GenerateDataKeyInput) (req *request.
 // memory. Store the encrypted data key (contained in the CiphertextBlob field)
 // alongside of the locally encrypted data.
 //
-// You should not call the Encrypt function to re-encrypt your data keys within
+//  You should not call the Encrypt function to re-encrypt your data keys within
 // a region. GenerateDataKey always returns the data key encrypted and tied
 // to the customer master key that will be used to decrypt it. There is no need
-// to decrypt it twice.  If you decide to use the optional EncryptionContext
-// parameter, you must also store the context in full or at least store enough
-// information along with the encrypted data to be able to reconstruct the context
-// when submitting the ciphertext to the Decrypt API. It is a good practice
-// to choose a context that you can reconstruct on the fly to better secure
-// the ciphertext. For more information about how this parameter is used, see
-// Encryption Context (http://docs.aws.amazon.com/kms/latest/developerguide/encrypt-context.html).
+// to decrypt it twice.
+//
+//  If you decide to use the optional EncryptionContext parameter, you must
+// also store the context in full or at least store enough information along
+// with the encrypted data to be able to reconstruct the context when submitting
+// the ciphertext to the Decrypt API. It is a good practice to choose a context
+// that you can reconstruct on the fly to better secure the ciphertext. For
+// more information about how this parameter is used, see Encryption Context
+// (http://docs.aws.amazon.com/kms/latest/developerguide/encrypt-context.html).
 //
 // To decrypt data, pass the encrypted data key to the Decrypt API. Decrypt
 // uses the associated master key to decrypt the encrypted data key and returns
@@ -461,7 +810,28 @@ func (c *KMS) GenerateDataKey(input *GenerateDataKeyInput) (*GenerateDataKeyOutp
 
 const opGenerateDataKeyWithoutPlaintext = "GenerateDataKeyWithoutPlaintext"
 
-// GenerateDataKeyWithoutPlaintextRequest generates a request for the GenerateDataKeyWithoutPlaintext operation.
+// GenerateDataKeyWithoutPlaintextRequest generates a "aws/request.Request" representing the
+// client's request for the GenerateDataKeyWithoutPlaintext operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GenerateDataKeyWithoutPlaintext method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GenerateDataKeyWithoutPlaintextRequest method.
+//    req, resp := client.GenerateDataKeyWithoutPlaintextRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) GenerateDataKeyWithoutPlaintextRequest(input *GenerateDataKeyWithoutPlaintextInput) (req *request.Request, output *GenerateDataKeyWithoutPlaintextOutput) {
 	op := &request.Operation{
 		Name:       opGenerateDataKeyWithoutPlaintext,
@@ -492,7 +862,28 @@ func (c *KMS) GenerateDataKeyWithoutPlaintext(input *GenerateDataKeyWithoutPlain
 
 const opGenerateRandom = "GenerateRandom"
 
-// GenerateRandomRequest generates a request for the GenerateRandom operation.
+// GenerateRandomRequest generates a "aws/request.Request" representing the
+// client's request for the GenerateRandom operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GenerateRandom method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GenerateRandomRequest method.
+//    req, resp := client.GenerateRandomRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) GenerateRandomRequest(input *GenerateRandomInput) (req *request.Request, output *GenerateRandomOutput) {
 	op := &request.Operation{
 		Name:       opGenerateRandom,
@@ -519,7 +910,28 @@ func (c *KMS) GenerateRandom(input *GenerateRandomInput) (*GenerateRandomOutput,
 
 const opGetKeyPolicy = "GetKeyPolicy"
 
-// GetKeyPolicyRequest generates a request for the GetKeyPolicy operation.
+// GetKeyPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetKeyPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetKeyPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetKeyPolicyRequest method.
+//    req, resp := client.GetKeyPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) GetKeyPolicyRequest(input *GetKeyPolicyInput) (req *request.Request, output *GetKeyPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetKeyPolicy,
@@ -546,7 +958,28 @@ func (c *KMS) GetKeyPolicy(input *GetKeyPolicyInput) (*GetKeyPolicyOutput, error
 
 const opGetKeyRotationStatus = "GetKeyRotationStatus"
 
-// GetKeyRotationStatusRequest generates a request for the GetKeyRotationStatus operation.
+// GetKeyRotationStatusRequest generates a "aws/request.Request" representing the
+// client's request for the GetKeyRotationStatus operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetKeyRotationStatus method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetKeyRotationStatusRequest method.
+//    req, resp := client.GetKeyRotationStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) GetKeyRotationStatusRequest(input *GetKeyRotationStatusInput) (req *request.Request, output *GetKeyRotationStatusOutput) {
 	op := &request.Operation{
 		Name:       opGetKeyRotationStatus,
@@ -572,9 +1005,162 @@ func (c *KMS) GetKeyRotationStatus(input *GetKeyRotationStatusInput) (*GetKeyRot
 	return out, err
 }
 
+const opGetParametersForImport = "GetParametersForImport"
+
+// GetParametersForImportRequest generates a "aws/request.Request" representing the
+// client's request for the GetParametersForImport operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetParametersForImport method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetParametersForImportRequest method.
+//    req, resp := client.GetParametersForImportRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *KMS) GetParametersForImportRequest(input *GetParametersForImportInput) (req *request.Request, output *GetParametersForImportOutput) {
+	op := &request.Operation{
+		Name:       opGetParametersForImport,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetParametersForImportInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetParametersForImportOutput{}
+	req.Data = output
+	return
+}
+
+// Returns the items you need in order to import key material into AWS KMS from
+// your existing key management infrastructure. For more information about importing
+// key material into AWS KMS, see Importing Key Material (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
+// in the AWS Key Management Service Developer Guide.
+//
+// You must specify the key ID of the customer master key (CMK) into which
+// you will import key material. This CMK's Origin must be EXTERNAL. You must
+// also specify the wrapping algorithm and type of wrapping key (public key)
+// that you will use to encrypt the key material.
+//
+// This operation returns a public key and an import token. Use the public
+// key to encrypt the key material. Store the import token to send with a subsequent
+// ImportKeyMaterial request. The public key and import token from the same
+// response must be used together. These items are valid for 24 hours, after
+// which they cannot be used for a subsequent ImportKeyMaterial request. To
+// retrieve new ones, send another GetParametersForImport request.
+func (c *KMS) GetParametersForImport(input *GetParametersForImportInput) (*GetParametersForImportOutput, error) {
+	req, out := c.GetParametersForImportRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opImportKeyMaterial = "ImportKeyMaterial"
+
+// ImportKeyMaterialRequest generates a "aws/request.Request" representing the
+// client's request for the ImportKeyMaterial operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportKeyMaterial method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportKeyMaterialRequest method.
+//    req, resp := client.ImportKeyMaterialRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *KMS) ImportKeyMaterialRequest(input *ImportKeyMaterialInput) (req *request.Request, output *ImportKeyMaterialOutput) {
+	op := &request.Operation{
+		Name:       opImportKeyMaterial,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ImportKeyMaterialInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ImportKeyMaterialOutput{}
+	req.Data = output
+	return
+}
+
+// Imports key material into an AWS KMS customer master key (CMK) from your
+// existing key management infrastructure. For more information about importing
+// key material into AWS KMS, see Importing Key Material (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
+// in the AWS Key Management Service Developer Guide.
+//
+// You must specify the key ID of the CMK to import the key material into.
+// This CMK's Origin must be EXTERNAL. You must also send an import token and
+// the encrypted key material. Send the import token that you received in the
+// same GetParametersForImport response that contained the public key that you
+// used to encrypt the key material. You must also specify whether the key material
+// expires and if so, when. When the key material expires, AWS KMS deletes the
+// key material and the CMK becomes unusable. To use the CMK again, you can
+// reimport the same key material. If you set an expiration date, you can change
+// it only by reimporting the same key material and specifying a new expiration
+// date.
+//
+// When this operation is successful, the specified CMK's key state changes
+// to Enabled, and you can use the CMK.
+//
+// After you successfully import key material into a CMK, you can reimport
+// the same key material into that CMK, but you cannot import different key
+// material.
+func (c *KMS) ImportKeyMaterial(input *ImportKeyMaterialInput) (*ImportKeyMaterialOutput, error) {
+	req, out := c.ImportKeyMaterialRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListAliases = "ListAliases"
 
-// ListAliasesRequest generates a request for the ListAliases operation.
+// ListAliasesRequest generates a "aws/request.Request" representing the
+// client's request for the ListAliases operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListAliases method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListAliasesRequest method.
+//    req, resp := client.ListAliasesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) ListAliasesRequest(input *ListAliasesInput) (req *request.Request, output *ListAliasesOutput) {
 	op := &request.Operation{
 		Name:       opListAliases,
@@ -605,6 +1191,23 @@ func (c *KMS) ListAliases(input *ListAliasesInput) (*ListAliasesOutput, error) {
 	return out, err
 }
 
+// ListAliasesPages iterates over the pages of a ListAliases operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListAliases method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListAliases operation.
+//    pageNum := 0
+//    err := client.ListAliasesPages(params,
+//        func(page *ListAliasesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *KMS) ListAliasesPages(input *ListAliasesInput, fn func(p *ListAliasesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListAliasesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -615,7 +1218,28 @@ func (c *KMS) ListAliasesPages(input *ListAliasesInput, fn func(p *ListAliasesOu
 
 const opListGrants = "ListGrants"
 
-// ListGrantsRequest generates a request for the ListGrants operation.
+// ListGrantsRequest generates a "aws/request.Request" representing the
+// client's request for the ListGrants operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListGrants method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListGrantsRequest method.
+//    req, resp := client.ListGrantsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) ListGrantsRequest(input *ListGrantsInput) (req *request.Request, output *ListGrantsResponse) {
 	op := &request.Operation{
 		Name:       opListGrants,
@@ -646,6 +1270,23 @@ func (c *KMS) ListGrants(input *ListGrantsInput) (*ListGrantsResponse, error) {
 	return out, err
 }
 
+// ListGrantsPages iterates over the pages of a ListGrants operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListGrants method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListGrants operation.
+//    pageNum := 0
+//    err := client.ListGrantsPages(params,
+//        func(page *ListGrantsResponse, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *KMS) ListGrantsPages(input *ListGrantsInput, fn func(p *ListGrantsResponse, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListGrantsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -656,7 +1297,28 @@ func (c *KMS) ListGrantsPages(input *ListGrantsInput, fn func(p *ListGrantsRespo
 
 const opListKeyPolicies = "ListKeyPolicies"
 
-// ListKeyPoliciesRequest generates a request for the ListKeyPolicies operation.
+// ListKeyPoliciesRequest generates a "aws/request.Request" representing the
+// client's request for the ListKeyPolicies operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListKeyPolicies method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListKeyPoliciesRequest method.
+//    req, resp := client.ListKeyPoliciesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) ListKeyPoliciesRequest(input *ListKeyPoliciesInput) (req *request.Request, output *ListKeyPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListKeyPolicies,
@@ -687,6 +1349,23 @@ func (c *KMS) ListKeyPolicies(input *ListKeyPoliciesInput) (*ListKeyPoliciesOutp
 	return out, err
 }
 
+// ListKeyPoliciesPages iterates over the pages of a ListKeyPolicies operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListKeyPolicies method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListKeyPolicies operation.
+//    pageNum := 0
+//    err := client.ListKeyPoliciesPages(params,
+//        func(page *ListKeyPoliciesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *KMS) ListKeyPoliciesPages(input *ListKeyPoliciesInput, fn func(p *ListKeyPoliciesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListKeyPoliciesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -697,7 +1376,28 @@ func (c *KMS) ListKeyPoliciesPages(input *ListKeyPoliciesInput, fn func(p *ListK
 
 const opListKeys = "ListKeys"
 
-// ListKeysRequest generates a request for the ListKeys operation.
+// ListKeysRequest generates a "aws/request.Request" representing the
+// client's request for the ListKeys operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListKeys method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListKeysRequest method.
+//    req, resp := client.ListKeysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) ListKeysRequest(input *ListKeysInput) (req *request.Request, output *ListKeysOutput) {
 	op := &request.Operation{
 		Name:       opListKeys,
@@ -728,6 +1428,23 @@ func (c *KMS) ListKeys(input *ListKeysInput) (*ListKeysOutput, error) {
 	return out, err
 }
 
+// ListKeysPages iterates over the pages of a ListKeys operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListKeys method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListKeys operation.
+//    pageNum := 0
+//    err := client.ListKeysPages(params,
+//        func(page *ListKeysOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *KMS) ListKeysPages(input *ListKeysInput, fn func(p *ListKeysOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListKeysRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -738,7 +1455,28 @@ func (c *KMS) ListKeysPages(input *ListKeysInput, fn func(p *ListKeysOutput, las
 
 const opListRetirableGrants = "ListRetirableGrants"
 
-// ListRetirableGrantsRequest generates a request for the ListRetirableGrants operation.
+// ListRetirableGrantsRequest generates a "aws/request.Request" representing the
+// client's request for the ListRetirableGrants operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListRetirableGrants method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListRetirableGrantsRequest method.
+//    req, resp := client.ListRetirableGrantsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) ListRetirableGrantsRequest(input *ListRetirableGrantsInput) (req *request.Request, output *ListGrantsResponse) {
 	op := &request.Operation{
 		Name:       opListRetirableGrants,
@@ -769,7 +1507,28 @@ func (c *KMS) ListRetirableGrants(input *ListRetirableGrantsInput) (*ListGrantsR
 
 const opPutKeyPolicy = "PutKeyPolicy"
 
-// PutKeyPolicyRequest generates a request for the PutKeyPolicy operation.
+// PutKeyPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutKeyPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutKeyPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutKeyPolicyRequest method.
+//    req, resp := client.PutKeyPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) PutKeyPolicyRequest(input *PutKeyPolicyInput) (req *request.Request, output *PutKeyPolicyOutput) {
 	op := &request.Operation{
 		Name:       opPutKeyPolicy,
@@ -789,7 +1548,10 @@ func (c *KMS) PutKeyPolicyRequest(input *PutKeyPolicyInput) (req *request.Reques
 	return
 }
 
-// Attaches a policy to the specified key.
+// Attaches a key policy to the specified customer master key (CMK).
+//
+// For more information about key policies, see Key Policies (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html)
+// in the AWS Key Management Service Developer Guide.
 func (c *KMS) PutKeyPolicy(input *PutKeyPolicyInput) (*PutKeyPolicyOutput, error) {
 	req, out := c.PutKeyPolicyRequest(input)
 	err := req.Send()
@@ -798,7 +1560,28 @@ func (c *KMS) PutKeyPolicy(input *PutKeyPolicyInput) (*PutKeyPolicyOutput, error
 
 const opReEncrypt = "ReEncrypt"
 
-// ReEncryptRequest generates a request for the ReEncrypt operation.
+// ReEncryptRequest generates a "aws/request.Request" representing the
+// client's request for the ReEncrypt operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReEncrypt method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReEncryptRequest method.
+//    req, resp := client.ReEncryptRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) ReEncryptRequest(input *ReEncryptInput) (req *request.Request, output *ReEncryptOutput) {
 	op := &request.Operation{
 		Name:       opReEncrypt,
@@ -836,7 +1619,28 @@ func (c *KMS) ReEncrypt(input *ReEncryptInput) (*ReEncryptOutput, error) {
 
 const opRetireGrant = "RetireGrant"
 
-// RetireGrantRequest generates a request for the RetireGrant operation.
+// RetireGrantRequest generates a "aws/request.Request" representing the
+// client's request for the RetireGrant operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RetireGrant method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RetireGrantRequest method.
+//    req, resp := client.RetireGrantRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) RetireGrantRequest(input *RetireGrantInput) (req *request.Request, output *RetireGrantOutput) {
 	op := &request.Operation{
 		Name:       opRetireGrant,
@@ -858,13 +1662,18 @@ func (c *KMS) RetireGrantRequest(input *RetireGrantInput) (req *request.Request,
 
 // Retires a grant. You can retire a grant when you're done using it to clean
 // up. You should revoke a grant when you intend to actively deny operations
-// that depend on it. The following are permitted to call this API:  The account
-// that created the grant The RetiringPrincipal, if present The GranteePrincipal,
-// if RetireGrant is a grantee operation  The grant to retire must be identified
-// by its grant token or by a combination of the key ARN and the grant ID. A
-// grant token is a unique variable-length base64-encoded string. A grant ID
-// is a 64 character unique identifier of a grant. Both are returned by the
-// CreateGrant function.
+// that depend on it. The following are permitted to call this API:
+//
+//   The account that created the grant
+//
+//   The RetiringPrincipal, if present
+//
+//   The GranteePrincipal, if RetireGrant is a grantee operation
+//
+//   The grant to retire must be identified by its grant token or by a combination
+// of the key ARN and the grant ID. A grant token is a unique variable-length
+// base64-encoded string. A grant ID is a 64 character unique identifier of
+// a grant. Both are returned by the CreateGrant function.
 func (c *KMS) RetireGrant(input *RetireGrantInput) (*RetireGrantOutput, error) {
 	req, out := c.RetireGrantRequest(input)
 	err := req.Send()
@@ -873,7 +1682,28 @@ func (c *KMS) RetireGrant(input *RetireGrantInput) (*RetireGrantOutput, error) {
 
 const opRevokeGrant = "RevokeGrant"
 
-// RevokeGrantRequest generates a request for the RevokeGrant operation.
+// RevokeGrantRequest generates a "aws/request.Request" representing the
+// client's request for the RevokeGrant operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RevokeGrant method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RevokeGrantRequest method.
+//    req, resp := client.RevokeGrantRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) RevokeGrantRequest(input *RevokeGrantInput) (req *request.Request, output *RevokeGrantOutput) {
 	op := &request.Operation{
 		Name:       opRevokeGrant,
@@ -903,7 +1733,28 @@ func (c *KMS) RevokeGrant(input *RevokeGrantInput) (*RevokeGrantOutput, error) {
 
 const opScheduleKeyDeletion = "ScheduleKeyDeletion"
 
-// ScheduleKeyDeletionRequest generates a request for the ScheduleKeyDeletion operation.
+// ScheduleKeyDeletionRequest generates a "aws/request.Request" representing the
+// client's request for the ScheduleKeyDeletion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ScheduleKeyDeletion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ScheduleKeyDeletionRequest method.
+//    req, resp := client.ScheduleKeyDeletionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) ScheduleKeyDeletionRequest(input *ScheduleKeyDeletionInput) (req *request.Request, output *ScheduleKeyDeletionOutput) {
 	op := &request.Operation{
 		Name:       opScheduleKeyDeletion,
@@ -934,7 +1785,7 @@ func (c *KMS) ScheduleKeyDeletionRequest(input *ScheduleKeyDeletionInput) (req *
 // a CMK is deleted, all data that was encrypted under the CMK is rendered unrecoverable.
 // To restrict the use of a CMK without deleting it, use DisableKey.
 //
-//  For more information about scheduling a CMK for deletion, go to Deleting
+//  For more information about scheduling a CMK for deletion, see Deleting
 // Customer Master Keys (http://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html)
 // in the AWS Key Management Service Developer Guide.
 func (c *KMS) ScheduleKeyDeletion(input *ScheduleKeyDeletionInput) (*ScheduleKeyDeletionOutput, error) {
@@ -945,7 +1796,28 @@ func (c *KMS) ScheduleKeyDeletion(input *ScheduleKeyDeletionInput) (*ScheduleKey
 
 const opUpdateAlias = "UpdateAlias"
 
-// UpdateAliasRequest generates a request for the UpdateAlias operation.
+// UpdateAliasRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateAlias operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateAlias method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateAliasRequest method.
+//    req, resp := client.UpdateAliasRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Request, output *UpdateAliasOutput) {
 	op := &request.Operation{
 		Name:       opUpdateAlias,
@@ -986,7 +1858,28 @@ func (c *KMS) UpdateAlias(input *UpdateAliasInput) (*UpdateAliasOutput, error) {
 
 const opUpdateKeyDescription = "UpdateKeyDescription"
 
-// UpdateKeyDescriptionRequest generates a request for the UpdateKeyDescription operation.
+// UpdateKeyDescriptionRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateKeyDescription operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateKeyDescription method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateKeyDescriptionRequest method.
+//    req, resp := client.UpdateKeyDescriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *KMS) UpdateKeyDescriptionRequest(input *UpdateKeyDescriptionInput) (req *request.Request, output *UpdateKeyDescriptionOutput) {
 	op := &request.Operation{
 		Name:       opUpdateKeyDescription,
@@ -1044,12 +1937,14 @@ type CancelKeyDeletionInput struct {
 	// deletion.
 	//
 	// To specify this value, use the unique key ID or the Amazon Resource Name
-	// (ARN) of the CMK. Examples:  Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
-	// Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	// (ARN) of the CMK. Examples:
 	//
+	//   Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
 	//
-	// To obtain the unique key ID and key ARN for a given CMK, use ListKeys or
-	// DescribeKey.
+	//   Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   To obtain the unique key ID and key ARN for a given CMK, use ListKeys
+	// or DescribeKey.
 	KeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -1106,8 +2001,11 @@ type CreateAliasInput struct {
 
 	// An identifier of the key for which you are creating the alias. This value
 	// cannot be another alias but can be a globally unique identifier or a fully
-	// specified ARN to a key.  Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// specified ARN to a key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	TargetKeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -1170,7 +2068,7 @@ type CreateGrantInput struct {
 
 	// A list of grant tokens.
 	//
-	// For more information, go to Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
+	// For more information, see Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
 	// in the AWS Key Management Service Developer Guide.
 	GrantTokens []*string `type:"list"`
 
@@ -1189,8 +2087,11 @@ type CreateGrantInput struct {
 	// to.
 	//
 	// To specify this value, use the globally unique key ID or the Amazon Resource
-	// Name (ARN) of the key. Examples:  Globally unique key ID: 12345678-1234-1234-1234-123456789012
-	// Key ARN: arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012
+	// Name (ARN) of the key. Examples:
+	//
+	//   Globally unique key ID: 12345678-1234-1234-1234-123456789012
+	//
+	//   Key ARN: arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// A friendly name for identifying the grant. Use this value to prevent unintended
@@ -1208,8 +2109,25 @@ type CreateGrantInput struct {
 	Name *string `min:"1" type:"string"`
 
 	// A list of operations that the grant permits. The list can contain any combination
-	// of one or more of the following values:  Decrypt Encrypt GenerateDataKey
-	// GenerateDataKeyWithoutPlaintext ReEncryptFrom ReEncryptTo CreateGrant RetireGrant
+	// of one or more of the following values:
+	//
+	//    Decrypt
+	//
+	//    Encrypt
+	//
+	//    GenerateDataKey
+	//
+	//    GenerateDataKeyWithoutPlaintext
+	//
+	//    ReEncryptFrom (http://docs.aws.amazon.com/kms/latest/APIReference/API_ReEncrypt.html)
+	//
+	//    ReEncryptTo (http://docs.aws.amazon.com/kms/latest/APIReference/API_ReEncrypt.html)
+	//
+	//    CreateGrant
+	//
+	//    RetireGrant
+	//
+	//    DescribeKey
 	Operations []*string `type:"list"`
 
 	// The principal that is given permission to retire the grant by using RetireGrant
@@ -1272,7 +2190,7 @@ type CreateGrantOutput struct {
 
 	// The grant token.
 	//
-	// For more information about using grant tokens, see Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
+	// For more information, see Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
 	// in the AWS Key Management Service Developer Guide.
 	GrantToken *string `min:"1" type:"string"`
 }
@@ -1290,16 +2208,68 @@ func (s CreateGrantOutput) GoString() string {
 type CreateKeyInput struct {
 	_ struct{} `type:"structure"`
 
-	// Description of the key. We recommend that you choose a description that helps
-	// your customer decide whether the key is appropriate for a task.
+	// A flag to indicate whether to bypass the key policy lockout safety check.
+	//
+	//  Setting this value to true increases the likelihood that the CMK becomes
+	// unmanageable. Do not set this value to true indiscriminately.
+	//
+	// For more information, refer to the scenario in the Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default-allow-root-enable-iam)
+	// section in the AWS Key Management Service Developer Guide.
+	//
+	//  Use this parameter only when you include a policy in the request and you
+	// intend to prevent the principal making the request from making a subsequent
+	// PutKeyPolicy request on the CMK.
+	//
+	// The default value is false.
+	BypassPolicyLockoutSafetyCheck *bool `type:"boolean"`
+
+	// A description of the CMK.
+	//
+	// Use a description that helps you decide whether the CMK is appropriate for
+	// a task.
 	Description *string `type:"string"`
 
-	// Specifies the intended use of the key. Currently this defaults to ENCRYPT/DECRYPT,
-	// and only symmetric encryption and decryption are supported.
+	// The intended use of the CMK.
+	//
+	// You can use CMKs only for symmetric encryption and decryption.
 	KeyUsage *string `type:"string" enum:"KeyUsageType"`
 
-	// Policy to attach to the key. This is required and delegates back to the account.
-	// The key is the root of trust. The policy size limit is 32 KiB (32768 bytes).
+	// The source of the CMK's key material.
+	//
+	// The default is AWS_KMS, which means AWS KMS creates the key material. When
+	// this parameter is set to EXTERNAL, the request creates a CMK without key
+	// material so that you can import key material from your existing key management
+	// infrastructure. For more information about importing key material into AWS
+	// KMS, see Importing Key Material (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
+	// in the AWS Key Management Service Developer Guide.
+	//
+	// The CMK's Origin is immutable and is set when the CMK is created.
+	Origin *string `type:"string" enum:"OriginType"`
+
+	// The key policy to attach to the CMK.
+	//
+	// If you specify a policy and do not set BypassPolicyLockoutSafetyCheck to
+	// true, the policy must meet the following criteria:
+	//
+	//   It must allow the principal making the CreateKey request to make a subsequent
+	// PutKeyPolicy request on the CMK. This reduces the likelihood that the CMK
+	// becomes unmanageable. For more information, refer to the scenario in the
+	// Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default-allow-root-enable-iam)
+	// section in the AWS Key Management Service Developer Guide.
+	//
+	//   The principal(s) specified in the key policy must exist and be visible
+	// to AWS KMS. When you create a new AWS principal (for example, an IAM user
+	// or role), you might need to enforce a delay before specifying the new principal
+	// in a key policy because the new principal might not immediately be visible
+	// to AWS KMS. For more information, see Changes that I make are not always
+	// immediately visible (http://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_general.html#troubleshoot_general_eventual-consistency)
+	// in the IAM User Guide.
+	//
+	//   If you do not specify a policy, AWS KMS attaches a default key policy
+	// to the CMK. For more information, see Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default)
+	// in the AWS Key Management Service Developer Guide.
+	//
+	// The policy size limit is 32 KiB (32768 bytes).
 	Policy *string `min:"1" type:"string"`
 }
 
@@ -1329,7 +2299,7 @@ func (s *CreateKeyInput) Validate() error {
 type CreateKeyOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Metadata associated with the key.
+	// Metadata associated with the CMK.
 	KeyMetadata *KeyMetadata `type:"structure"`
 }
 
@@ -1358,7 +2328,7 @@ type DecryptInput struct {
 
 	// A list of grant tokens.
 	//
-	// For more information, go to Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
+	// For more information, see Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
 	// in the AWS Key Management Service Developer Guide.
 	GrantTokens []*string `type:"list"`
 }
@@ -1461,21 +2431,81 @@ func (s DeleteAliasOutput) GoString() string {
 	return s.String()
 }
 
+type DeleteImportedKeyMaterialInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the CMK whose key material to delete. The CMK's Origin
+	// must be EXTERNAL.
+	//
+	// A valid identifier is the unique key ID or the Amazon Resource Name (ARN)
+	// of the CMK. Examples:
+	//
+	//   Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	KeyId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteImportedKeyMaterialInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteImportedKeyMaterialInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteImportedKeyMaterialInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteImportedKeyMaterialInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DeleteImportedKeyMaterialOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteImportedKeyMaterialOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteImportedKeyMaterialOutput) GoString() string {
+	return s.String()
+}
+
 type DescribeKeyInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of grant tokens.
 	//
-	// For more information, go to Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
+	// For more information, see Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
 	// in the AWS Key Management Service Developer Guide.
 	GrantTokens []*string `type:"list"`
 
 	// A unique identifier for the customer master key. This value can be a globally
 	// unique identifier, a fully specified ARN to either an alias or a key, or
-	// an alias name prefixed by "alias/".  Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012 Alias
-	// Name Example - alias/MyAliasName
+	// an alias name prefixed by "alias/".
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	//
+	//   Alias Name Example - alias/MyAliasName
 	KeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -1525,10 +2555,13 @@ func (s DescribeKeyOutput) GoString() string {
 type DisableKeyInput struct {
 	_ struct{} `type:"structure"`
 
-	// A unique identifier for the customer master key. This value can be a globally
-	// unique identifier or the fully specified ARN to a key.  Key ARN Example -
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// A unique identifier for the CMK.
+	//
+	// Use the CMK's unique identifier or its Amazon Resource Name (ARN). For example:
+	//
+	//   Unique ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
 	KeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -1576,9 +2609,11 @@ type DisableKeyRotationInput struct {
 	_ struct{} `type:"structure"`
 
 	// A unique identifier for the customer master key. This value can be a globally
-	// unique identifier or the fully specified ARN to a key.  Key ARN Example -
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// unique identifier or the fully specified ARN to a key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -1626,9 +2661,11 @@ type EnableKeyInput struct {
 	_ struct{} `type:"structure"`
 
 	// A unique identifier for the customer master key. This value can be a globally
-	// unique identifier or the fully specified ARN to a key.  Key ARN Example -
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// unique identifier or the fully specified ARN to a key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -1676,9 +2713,11 @@ type EnableKeyRotationInput struct {
 	_ struct{} `type:"structure"`
 
 	// A unique identifier for the customer master key. This value can be a globally
-	// unique identifier or the fully specified ARN to a key.  Key ARN Example -
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// unique identifier or the fully specified ARN to a key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -1733,16 +2772,21 @@ type EncryptInput struct {
 
 	// A list of grant tokens.
 	//
-	// For more information, go to Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
+	// For more information, see Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
 	// in the AWS Key Management Service Developer Guide.
 	GrantTokens []*string `type:"list"`
 
 	// A unique identifier for the customer master key. This value can be a globally
 	// unique identifier, a fully specified ARN to either an alias or a key, or
-	// an alias name prefixed by "alias/".  Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012 Alias
-	// Name Example - alias/MyAliasName
+	// an alias name prefixed by "alias/".
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	//
+	//   Alias Name Example - alias/MyAliasName
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// Data to be encrypted.
@@ -1816,16 +2860,21 @@ type GenerateDataKeyInput struct {
 
 	// A list of grant tokens.
 	//
-	// For more information, go to Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
+	// For more information, see Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
 	// in the AWS Key Management Service Developer Guide.
 	GrantTokens []*string `type:"list"`
 
 	// A unique identifier for the customer master key. This value can be a globally
 	// unique identifier, a fully specified ARN to either an alias or a key, or
-	// an alias name prefixed by "alias/".  Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012 Alias
-	// Name Example - alias/MyAliasName
+	// an alias name prefixed by "alias/".
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	//
+	//   Alias Name Example - alias/MyAliasName
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// Value that identifies the encryption algorithm and key size to generate a
@@ -1912,16 +2961,21 @@ type GenerateDataKeyWithoutPlaintextInput struct {
 
 	// A list of grant tokens.
 	//
-	// For more information, go to Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
+	// For more information, see Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
 	// in the AWS Key Management Service Developer Guide.
 	GrantTokens []*string `type:"list"`
 
 	// A unique identifier for the customer master key. This value can be a globally
 	// unique identifier, a fully specified ARN to either an alias or a key, or
-	// an alias name prefixed by "alias/".  Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012 Alias
-	// Name Example - alias/MyAliasName
+	// an alias name prefixed by "alias/".
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	//
+	//   Alias Name Example - alias/MyAliasName
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// Value that identifies the encryption algorithm and key size. Currently this
@@ -2044,9 +3098,11 @@ type GetKeyPolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// A unique identifier for the customer master key. This value can be a globally
-	// unique identifier or the fully specified ARN to a key.  Key ARN Example -
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// unique identifier or the fully specified ARN to a key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// String that contains the name of the policy. Currently, this must be "default".
@@ -2107,9 +3163,11 @@ type GetKeyRotationStatusInput struct {
 	_ struct{} `type:"structure"`
 
 	// A unique identifier for the customer master key. This value can be a globally
-	// unique identifier or the fully specified ARN to a key.  Key ARN Example -
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// unique identifier or the fully specified ARN to a key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -2153,6 +3211,97 @@ func (s GetKeyRotationStatusOutput) String() string {
 
 // GoString returns the string representation
 func (s GetKeyRotationStatusOutput) GoString() string {
+	return s.String()
+}
+
+type GetParametersForImportInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the CMK into which you will import key material. The CMK's
+	// Origin must be EXTERNAL.
+	//
+	// A valid identifier is the unique key ID or the Amazon Resource Name (ARN)
+	// of the CMK. Examples:
+	//
+	//   Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	KeyId *string `min:"1" type:"string" required:"true"`
+
+	// The algorithm you will use to encrypt the key material before importing it
+	// with ImportKeyMaterial. For more information, see Encrypt the Key Material
+	// (http://docs.aws.amazon.com/kms/latest/developerguide/importing-keys-encrypt-key-material.html)
+	// in the AWS Key Management Service Developer Guide.
+	WrappingAlgorithm *string `type:"string" required:"true" enum:"AlgorithmSpec"`
+
+	// The type of wrapping key (public key) to return in the response. Only 2048-bit
+	// RSA public keys are supported.
+	WrappingKeySpec *string `type:"string" required:"true" enum:"WrappingKeySpec"`
+}
+
+// String returns the string representation
+func (s GetParametersForImportInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetParametersForImportInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetParametersForImportInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetParametersForImportInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.WrappingAlgorithm == nil {
+		invalidParams.Add(request.NewErrParamRequired("WrappingAlgorithm"))
+	}
+	if s.WrappingKeySpec == nil {
+		invalidParams.Add(request.NewErrParamRequired("WrappingKeySpec"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type GetParametersForImportOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The import token to send in a subsequent ImportKeyMaterial request.
+	//
+	// ImportToken is automatically base64 encoded/decoded by the SDK.
+	ImportToken []byte `min:"1" type:"blob"`
+
+	// The identifier of the CMK to use in a subsequent ImportKeyMaterial request.
+	// This is the same CMK specified in the GetParametersForImport request.
+	KeyId *string `min:"1" type:"string"`
+
+	// The time at which the import token and public key are no longer valid. After
+	// this time, you cannot use them to make an ImportKeyMaterial request and you
+	// must send another GetParametersForImport request to retrieve new ones.
+	ParametersValidTo *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The public key to use to encrypt the key material before importing it with
+	// ImportKeyMaterial.
+	//
+	// PublicKey is automatically base64 encoded/decoded by the SDK.
+	PublicKey []byte `min:"1" type:"blob"`
+}
+
+// String returns the string representation
+func (s GetParametersForImportOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetParametersForImportOutput) GoString() string {
 	return s.String()
 }
 
@@ -2235,6 +3384,98 @@ func (s GrantListEntry) GoString() string {
 	return s.String()
 }
 
+type ImportKeyMaterialInput struct {
+	_ struct{} `type:"structure"`
+
+	// The encrypted key material to import. It must be encrypted with the public
+	// key that you received in the response to a previous GetParametersForImport
+	// request, using the wrapping algorithm that you specified in that request.
+	//
+	// EncryptedKeyMaterial is automatically base64 encoded/decoded by the SDK.
+	EncryptedKeyMaterial []byte `min:"1" type:"blob" required:"true"`
+
+	// Specifies whether the key material expires. The default is KEY_MATERIAL_EXPIRES,
+	// in which case you must include the ValidTo parameter. When this parameter
+	// is set to KEY_MATERIAL_DOES_NOT_EXPIRE, you must omit the ValidTo parameter.
+	ExpirationModel *string `type:"string" enum:"ExpirationModelType"`
+
+	// The import token that you received in the response to a previous GetParametersForImport
+	// request. It must be from the same response that contained the public key
+	// that you used to encrypt the key material.
+	//
+	// ImportToken is automatically base64 encoded/decoded by the SDK.
+	ImportToken []byte `min:"1" type:"blob" required:"true"`
+
+	// The identifier of the CMK to import the key material into. The CMK's Origin
+	// must be EXTERNAL.
+	//
+	// A valid identifier is the unique key ID or the Amazon Resource Name (ARN)
+	// of the CMK. Examples:
+	//
+	//   Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	KeyId *string `min:"1" type:"string" required:"true"`
+
+	// The time at which the imported key material expires. When the key material
+	// expires, AWS KMS deletes the key material and the CMK becomes unusable. You
+	// must omit this parameter when the ExpirationModel parameter is set to KEY_MATERIAL_DOES_NOT_EXPIRE.
+	// Otherwise it is required.
+	ValidTo *time.Time `type:"timestamp" timestampFormat:"unix"`
+}
+
+// String returns the string representation
+func (s ImportKeyMaterialInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportKeyMaterialInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ImportKeyMaterialInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ImportKeyMaterialInput"}
+	if s.EncryptedKeyMaterial == nil {
+		invalidParams.Add(request.NewErrParamRequired("EncryptedKeyMaterial"))
+	}
+	if s.EncryptedKeyMaterial != nil && len(s.EncryptedKeyMaterial) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EncryptedKeyMaterial", 1))
+	}
+	if s.ImportToken == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImportToken"))
+	}
+	if s.ImportToken != nil && len(s.ImportToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImportToken", 1))
+	}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type ImportKeyMaterialOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s ImportKeyMaterialOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportKeyMaterialOutput) GoString() string {
+	return s.String()
+}
+
 // Contains information about each entry in the key list.
 type KeyListEntry struct {
 	_ struct{} `type:"structure"`
@@ -2263,43 +3504,58 @@ func (s KeyListEntry) GoString() string {
 type KeyMetadata struct {
 	_ struct{} `type:"structure"`
 
-	// The twelve-digit account ID of the AWS account that owns the key.
+	// The twelve-digit account ID of the AWS account that owns the CMK.
 	AWSAccountId *string `type:"string"`
 
-	// The Amazon Resource Name (ARN) of the key. For examples, see AWS Key Management
+	// The Amazon Resource Name (ARN) of the CMK. For examples, see AWS Key Management
 	// Service (AWS KMS) (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-kms)
 	// in the Example ARNs section of the AWS General Reference.
 	Arn *string `min:"20" type:"string"`
 
-	// The date and time when the key was created.
+	// The date and time when the CMK was created.
 	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// The date and time after which AWS KMS deletes the customer master key (CMK).
-	// This value is present only when KeyState is PendingDeletion, otherwise this
-	// value is null.
+	// The date and time after which AWS KMS deletes the CMK. This value is present
+	// only when KeyState is PendingDeletion, otherwise this value is omitted.
 	DeletionDate *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// The friendly description of the key.
+	// The description of the CMK.
 	Description *string `type:"string"`
 
-	// Specifies whether the key is enabled. When KeyState is Enabled this value
+	// Specifies whether the CMK is enabled. When KeyState is Enabled this value
 	// is true, otherwise it is false.
 	Enabled *bool `type:"boolean"`
 
-	// The globally unique identifier for the key.
+	// Specifies whether the CMK's key material expires. This value is present only
+	// when Origin is EXTERNAL, otherwise this value is omitted.
+	ExpirationModel *string `type:"string" enum:"ExpirationModelType"`
+
+	// The globally unique identifier for the CMK.
 	KeyId *string `min:"1" type:"string" required:"true"`
 
-	// The state of the customer master key (CMK).
+	// The state of the CMK.
 	//
-	// For more information about how key state affects the use of a CMK, go to
-	// How Key State Affects the Use of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
+	// For more information about how key state affects the use of a CMK, see How
+	// Key State Affects the Use of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
 	// in the AWS Key Management Service Developer Guide.
 	KeyState *string `type:"string" enum:"KeyState"`
 
-	// The cryptographic operations for which you can use the key. Currently the
-	// only allowed value is ENCRYPT_DECRYPT, which means you can use the key for
+	// The cryptographic operations for which you can use the CMK. Currently the
+	// only allowed value is ENCRYPT_DECRYPT, which means you can use the CMK for
 	// the Encrypt and Decrypt operations.
 	KeyUsage *string `type:"string" enum:"KeyUsageType"`
+
+	// The source of the CMK's key material. When this value is AWS_KMS, AWS KMS
+	// created the key material. When this value is EXTERNAL, the key material was
+	// imported from your existing key management infrastructure or the CMK lacks
+	// key material.
+	Origin *string `type:"string" enum:"OriginType"`
+
+	// The time at which the imported key material expires. When the key material
+	// expires, AWS KMS deletes the key material and the CMK becomes unusable. This
+	// value is present only for CMKs whose Origin is EXTERNAL and whose ExpirationModel
+	// is KEY_MATERIAL_EXPIRES, otherwise this value is omitted.
+	ValidTo *time.Time `type:"timestamp" timestampFormat:"unix"`
 }
 
 // String returns the string representation
@@ -2385,9 +3641,11 @@ type ListGrantsInput struct {
 	_ struct{} `type:"structure"`
 
 	// A unique identifier for the customer master key. This value can be a globally
-	// unique identifier or the fully specified ARN to a key.  Key ARN Example -
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// unique identifier or the fully specified ARN to a key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// When paginating results, specify the maximum number of items to return in
@@ -2467,10 +3725,15 @@ type ListKeyPoliciesInput struct {
 
 	// A unique identifier for the customer master key. This value can be a globally
 	// unique identifier, a fully specified ARN to either an alias or a key, or
-	// an alias name prefixed by "alias/".  Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012 Alias
-	// Name Example - alias/MyAliasName
+	// an alias name prefixed by "alias/".
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	//
+	//   Alias Name Example - alias/MyAliasName
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// When paginating results, specify the maximum number of items to return in
@@ -2638,7 +3901,7 @@ type ListRetirableGrantsInput struct {
 	// To specify the retiring principal, use the Amazon Resource Name (ARN) (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// of an AWS principal. Valid AWS principals include AWS accounts (root), IAM
 	// users, federated users, and assumed role users. For examples of the ARN syntax
-	// for specifying a principal, go to AWS Identity and Access Management (IAM)
+	// for specifying a principal, see AWS Identity and Access Management (IAM)
 	// (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-iam)
 	// in the Example ARNs section of the Amazon Web Services General Reference.
 	RetiringPrincipal *string `min:"1" type:"string" required:"true"`
@@ -2679,19 +3942,54 @@ func (s *ListRetirableGrantsInput) Validate() error {
 type PutKeyPolicyInput struct {
 	_ struct{} `type:"structure"`
 
-	// A unique identifier for the customer master key. This value can be a globally
-	// unique identifier or the fully specified ARN to a key.  Key ARN Example -
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// A flag to indicate whether to bypass the key policy lockout safety check.
+	//
+	//  Setting this value to true increases the likelihood that the CMK becomes
+	// unmanageable. Do not set this value to true indiscriminately.
+	//
+	// For more information, refer to the scenario in the Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default-allow-root-enable-iam)
+	// section in the AWS Key Management Service Developer Guide.
+	//
+	//  Use this parameter only when you intend to prevent the principal making
+	// the request from making a subsequent PutKeyPolicy request on the CMK.
+	//
+	// The default value is false.
+	BypassPolicyLockoutSafetyCheck *bool `type:"boolean"`
+
+	// A unique identifier for the CMK.
+	//
+	// Use the CMK's unique identifier or its Amazon Resource Name (ARN). For example:
+	//
+	//   Unique ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
 	KeyId *string `min:"1" type:"string" required:"true"`
 
-	// The policy to attach to the key. This is required and delegates back to the
-	// account. The key is the root of trust. The policy size limit is 32 KiB (32768
-	// bytes).
+	// The key policy to attach to the CMK.
+	//
+	// If you do not set BypassPolicyLockoutSafetyCheck to true, the policy must
+	// meet the following criteria:
+	//
+	//   It must allow the principal making the PutKeyPolicy request to make a
+	// subsequent PutKeyPolicy request on the CMK. This reduces the likelihood that
+	// the CMK becomes unmanageable. For more information, refer to the scenario
+	// in the Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default-allow-root-enable-iam)
+	// section in the AWS Key Management Service Developer Guide.
+	//
+	//   The principal(s) specified in the key policy must exist and be visible
+	// to AWS KMS. When you create a new AWS principal (for example, an IAM user
+	// or role), you might need to enforce a delay before specifying the new principal
+	// in a key policy because the new principal might not immediately be visible
+	// to AWS KMS. For more information, see Changes that I make are not always
+	// immediately visible (http://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_general.html#troubleshoot_general_eventual-consistency)
+	// in the IAM User Guide.
+	//
+	//   The policy size limit is 32 KiB (32768 bytes).
 	Policy *string `min:"1" type:"string" required:"true"`
 
-	// Name of the policy to be attached. Currently, the only supported name is
-	// "default".
+	// The name of the key policy.
+	//
+	// This value must be default.
 	PolicyName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -2760,16 +4058,20 @@ type ReEncryptInput struct {
 
 	// A unique identifier for the customer master key used to re-encrypt the data.
 	// This value can be a globally unique identifier, a fully specified ARN to
-	// either an alias or a key, or an alias name prefixed by "alias/".  Key ARN
-	// Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012 Alias
-	// Name Example - alias/MyAliasName
+	// either an alias or a key, or an alias name prefixed by "alias/".
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Alias ARN Example - arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	//
+	//   Alias Name Example - alias/MyAliasName
 	DestinationKeyId *string `min:"1" type:"string" required:"true"`
 
 	// A list of grant tokens.
 	//
-	// For more information, go to Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
+	// For more information, see Grant Tokens (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token)
 	// in the AWS Key Management Service Developer Guide.
 	GrantTokens []*string `type:"list"`
 
@@ -2840,7 +4142,9 @@ type RetireGrantInput struct {
 	_ struct{} `type:"structure"`
 
 	// Unique identifier of the grant to be retired. The grant ID is returned by
-	// the CreateGrant function.  Grant ID Example - 0123456789012345678901234567890123456789012345678901234567890123
+	// the CreateGrant function.
+	//
+	//   Grant ID Example - 0123456789012345678901234567890123456789012345678901234567890123
 	GrantId *string `min:"1" type:"string"`
 
 	// Token that identifies the grant to be retired.
@@ -2848,8 +4152,11 @@ type RetireGrantInput struct {
 
 	// A unique identifier for the customer master key associated with the grant.
 	// This value can be a globally unique identifier or a fully specified ARN of
-	// the key.  Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// the key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string"`
 }
 
@@ -2904,8 +4211,11 @@ type RevokeGrantInput struct {
 
 	// A unique identifier for the customer master key associated with the grant.
 	// This value can be a globally unique identifier or the fully specified ARN
-	// to a key.  Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// to a key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -2961,12 +4271,14 @@ type ScheduleKeyDeletionInput struct {
 	// The unique identifier for the customer master key (CMK) to delete.
 	//
 	// To specify this value, use the unique key ID or the Amazon Resource Name
-	// (ARN) of the CMK. Examples:  Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
-	// Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	// (ARN) of the CMK. Examples:
 	//
+	//   Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
 	//
-	// To obtain the unique key ID and key ARN for a given CMK, use ListKeys or
-	// DescribeKey.
+	//   Key ARN: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//   To obtain the unique key ID and key ARN for a given CMK, use ListKeys
+	// or DescribeKey.
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// The waiting period, specified in number of days. After the waiting period
@@ -3037,10 +4349,13 @@ type UpdateAliasInput struct {
 
 	// Unique identifier of the customer master key to be mapped to the alias. This
 	// value can be a globally unique identifier or the fully specified ARN of a
-	// key.  Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// key.
 	//
-	// You can call ListAliases to verify that the alias is mapped to the correct
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	//
+	//   You can call ListAliases to verify that the alias is mapped to the correct
 	// TargetKeyId.
 	TargetKeyId *string `min:"1" type:"string" required:"true"`
 }
@@ -3098,9 +4413,11 @@ type UpdateKeyDescriptionInput struct {
 	Description *string `type:"string" required:"true"`
 
 	// A unique identifier for the customer master key. This value can be a globally
-	// unique identifier or the fully specified ARN to a key.  Key ARN Example -
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
-	// Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
+	// unique identifier or the fully specified ARN to a key.
+	//
+	//   Key ARN Example - arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//
+	//   Globally Unique Key ID Example - 12345678-1234-1234-1234-123456789012
 	KeyId *string `min:"1" type:"string" required:"true"`
 }
 
@@ -3148,10 +4465,26 @@ func (s UpdateKeyDescriptionOutput) GoString() string {
 }
 
 const (
+	// @enum AlgorithmSpec
+	AlgorithmSpecRsaesPkcs1V15 = "RSAES_PKCS1_V1_5"
+	// @enum AlgorithmSpec
+	AlgorithmSpecRsaesOaepSha1 = "RSAES_OAEP_SHA_1"
+	// @enum AlgorithmSpec
+	AlgorithmSpecRsaesOaepSha256 = "RSAES_OAEP_SHA_256"
+)
+
+const (
 	// @enum DataKeySpec
 	DataKeySpecAes256 = "AES_256"
 	// @enum DataKeySpec
 	DataKeySpecAes128 = "AES_128"
+)
+
+const (
+	// @enum ExpirationModelType
+	ExpirationModelTypeKeyMaterialExpires = "KEY_MATERIAL_EXPIRES"
+	// @enum ExpirationModelType
+	ExpirationModelTypeKeyMaterialDoesNotExpire = "KEY_MATERIAL_DOES_NOT_EXPIRE"
 )
 
 const (
@@ -3182,9 +4515,23 @@ const (
 	KeyStateDisabled = "Disabled"
 	// @enum KeyState
 	KeyStatePendingDeletion = "PendingDeletion"
+	// @enum KeyState
+	KeyStatePendingImport = "PendingImport"
 )
 
 const (
 	// @enum KeyUsageType
 	KeyUsageTypeEncryptDecrypt = "ENCRYPT_DECRYPT"
+)
+
+const (
+	// @enum OriginType
+	OriginTypeAwsKms = "AWS_KMS"
+	// @enum OriginType
+	OriginTypeExternal = "EXTERNAL"
+)
+
+const (
+	// @enum WrappingKeySpec
+	WrappingKeySpecRsa2048 = "RSA_2048"
 )

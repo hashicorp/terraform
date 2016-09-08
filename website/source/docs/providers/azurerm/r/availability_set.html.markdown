@@ -51,3 +51,12 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The virtual AvailabilitySet ID.
+
+
+## Import
+
+Availability Sets can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_availability_set.group1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Compute/availabilitySets/webAvailSet
+```

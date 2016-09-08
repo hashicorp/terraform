@@ -101,7 +101,7 @@ func resourceArmTemplateDeploymentCreate(d *schema.ResourceData, meta interface{
 
 	_, err := deployClient.CreateOrUpdate(resGroup, name, deployment, make(chan struct{}))
 	if err != nil {
-		return nil
+		return fmt.Errorf("Error creating deployment: %s", err)
 	}
 
 	read, err := deployClient.Get(resGroup, name)
@@ -143,13 +143,14 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 	}
 
 	resp, err := deployClient.Get(resGroup, name)
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure RM Template Deployment %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
 	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure RM Template Deployment %s: %s", name, err)
-	}
+
 	var outputs map[string]string
 	if resp.Properties.Outputs != nil && len(*resp.Properties.Outputs) > 0 {
 		outputs = make(map[string]string)

@@ -265,6 +265,7 @@ func (i *Interpolater) valueSelfVar(
 		return fmt.Errorf(
 			"%s: invalid scope, self variables are only valid on resources", n)
 	}
+
 	rv, err := config.NewResourceVariable(fmt.Sprintf(
 		"%s.%s.%d.%s",
 		scope.Resource.Type,
@@ -359,9 +360,23 @@ func (i *Interpolater) computeResourceVariable(
 
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
-	module, _, err := i.resourceVariableInfo(scope, v)
+	module, cr, err := i.resourceVariableInfo(scope, v)
 	if err != nil {
 		return nil, err
+	}
+
+	// If we're requesting "count" its a special variable that we grab
+	// directly from the config itself.
+	if v.Field == "count" {
+		count, err := cr.Count()
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error reading %s count: %s",
+				v.ResourceId(),
+				err)
+		}
+
+		return &ast.Variable{Type: ast.TypeInt, Value: count}, nil
 	}
 
 	// If we have no module in the state yet or count, return empty
@@ -493,7 +508,8 @@ func (i *Interpolater) computeResourceMultiVariable(
 	if module == nil || len(module.Resources) == 0 {
 		return &unknownVariable, nil
 	}
-	var values []string
+
+	var values []interface{}
 	for j := 0; j < count; j++ {
 		id := fmt.Sprintf("%s.%d", v.ResourceId(), j)
 
@@ -521,9 +537,10 @@ func (i *Interpolater) computeResourceMultiVariable(
 			continue
 		}
 
-		// computed list attribute
-		_, ok = r.Primary.Attributes[v.Field+".#"]
-		if !ok {
+		// computed list or map attribute
+		_, isList := r.Primary.Attributes[v.Field+".#"]
+		_, isMap := r.Primary.Attributes[v.Field+".%"]
+		if !(isList || isMap) {
 			continue
 		}
 		multiAttr, err := i.interpolateComplexTypeAttribute(v.Field, r.Primary.Attributes)
@@ -535,14 +552,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 			return &ast.Variable{Type: ast.TypeString, Value: ""}, nil
 		}
 
-		for _, element := range multiAttr.Value.([]ast.Variable) {
-			strVal := element.Value.(string)
-			if strVal == config.UnknownVariableValue {
-				return &unknownVariable, nil
-			}
-
-			values = append(values, strVal)
-		}
+		values = append(values, multiAttr)
 	}
 
 	if len(values) == 0 {
@@ -595,7 +605,7 @@ func (i *Interpolater) interpolateComplexTypeAttribute(
 
 		keys := make([]string, 0)
 		listElementKey := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
-		for id, _ := range attributes {
+		for id := range attributes {
 			if listElementKey.MatchString(id) {
 				keys = append(keys, id)
 			}

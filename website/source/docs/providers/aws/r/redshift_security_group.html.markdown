@@ -43,3 +43,10 @@ The following attributes are exported:
 
 * `id` - The Redshift security group ID.
 
+## Import
+
+Redshift security groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_redshift_security_group.testgroup1 redshift_test_group
+```

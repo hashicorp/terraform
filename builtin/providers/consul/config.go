@@ -2,6 +2,7 @@ package consul
 
 import (
 	"log"
+	"net/http"
 
 	consulapi "github.com/hashicorp/consul/api"
 )
@@ -10,6 +11,10 @@ type Config struct {
 	Datacenter string `mapstructure:"datacenter"`
 	Address    string `mapstructure:"address"`
 	Scheme     string `mapstructure:"scheme"`
+	Token      string `mapstructure:"token"`
+	CAFile     string `mapstructure:"ca_file"`
+	CertFile   string `mapstructure:"cert_file"`
+	KeyFile    string `mapstructure:"key_file"`
 }
 
 // Client() returns a new client for accessing consul.
@@ -25,6 +30,21 @@ func (c *Config) Client() (*consulapi.Client, error) {
 	if c.Scheme != "" {
 		config.Scheme = c.Scheme
 	}
+
+	tlsConfig := &consulapi.TLSConfig{}
+	tlsConfig.CAFile = c.CAFile
+	tlsConfig.CertFile = c.CertFile
+	tlsConfig.KeyFile = c.KeyFile
+	cc, err := consulapi.SetupTLSConfig(tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+	config.HttpClient.Transport.(*http.Transport).TLSClientConfig = cc
+
+	if c.Token != "" {
+		config.Token = c.Token
+	}
+
 	client, err := consulapi.NewClient(config)
 
 	log.Printf("[INFO] Consul Client configured with address: '%s', scheme: '%s', datacenter: '%s'",

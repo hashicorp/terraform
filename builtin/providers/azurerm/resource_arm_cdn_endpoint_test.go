@@ -131,7 +131,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 }
 
 resource "azurerm_cdn_endpoint" "test" {
@@ -158,7 +158,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 }
 
 resource "azurerm_cdn_endpoint" "test" {
@@ -190,7 +190,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 }
 
 resource "azurerm_cdn_endpoint" "test" {

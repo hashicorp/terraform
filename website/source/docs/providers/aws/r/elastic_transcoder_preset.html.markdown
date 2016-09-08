@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_elastictranscoder_preset"
-sidebar_current: "docs-aws-resource-elastic-transcoder"
+sidebar_current: "docs-aws-resource-elastic-transcoder-preset"
 description: |-
   Provides an Elastic Transcoder preset resource.
 ---
@@ -11,8 +11,6 @@ description: |-
 Provides an Elastic Transcoder preset resource.
 
 ## Example Usage
-
-### Elastic Transcoder Preset
 
 ```
 resource "aws_elastictranscoder_preset" "bar" {

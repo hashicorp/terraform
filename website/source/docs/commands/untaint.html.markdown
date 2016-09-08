@@ -56,6 +56,8 @@ certain cases, see above note). The list of available flags are:
 * `-no-color` - Disables output with coloring
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
+  Ignored when [remote state](/docs/state/remote/index.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
-  `-state` path will be used.
+  `-state` path will be used. Ignored when
+  [remote state](/docs/state/remote/index.html) is used.

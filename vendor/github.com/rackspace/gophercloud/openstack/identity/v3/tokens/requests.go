@@ -84,6 +84,9 @@ func Create(c *gophercloud.ServiceClient, options gophercloud.AuthOptions, scope
 	}
 
 	if options.Password == "" {
+		if options.TokenID != "" {
+			c.TokenID = options.TokenID
+		}
 		if c.TokenID != "" {
 			// Because we aren't using password authentication, it's an error to also provide any of the user-based authentication
 			// parameters.
@@ -92,12 +95,6 @@ func Create(c *gophercloud.ServiceClient, options gophercloud.AuthOptions, scope
 			}
 			if options.UserID != "" {
 				return createErr(ErrUserIDWithToken)
-			}
-			if options.DomainID != "" {
-				return createErr(ErrDomainIDWithToken)
-			}
-			if options.DomainName != "" {
-				return createErr(ErrDomainNameWithToken)
 			}
 
 			// Configure the request for Token authentication.

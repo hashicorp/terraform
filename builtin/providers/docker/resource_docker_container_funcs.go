@@ -128,6 +128,14 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		hostConfig.DNS = stringSetToStringSlice(v.(*schema.Set))
 	}
 
+	if v, ok := d.GetOk("dns_opts"); ok {
+		hostConfig.DNSOptions = stringSetToStringSlice(v.(*schema.Set))
+	}
+
+	if v, ok := d.GetOk("dns_search"); ok {
+		hostConfig.DNSSearch = stringSetToStringSlice(v.(*schema.Set))
+	}
+
 	if v, ok := d.GetOk("links"); ok {
 		hostConfig.Links = stringSetToStringSlice(v.(*schema.Set))
 	}
@@ -256,6 +264,14 @@ func resourceDockerContainerUpdate(d *schema.ResourceData, meta interface{}) err
 
 func resourceDockerContainerDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*dc.Client)
+
+	// Stop the container before removing if destroy_grace_seconds is defined
+	if d.Get("destroy_grace_seconds").(int) > 0 {
+		var timeout = uint(d.Get("destroy_grace_seconds").(int))
+		if err := client.StopContainer(d.Id(), timeout); err != nil {
+			return fmt.Errorf("Error stopping container %s: %s", d.Id(), err)
+		}
+	}
 
 	removeOpts := dc.RemoveContainerOptions{
 		ID:            d.Id(),

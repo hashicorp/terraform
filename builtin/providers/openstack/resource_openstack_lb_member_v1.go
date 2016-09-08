@@ -18,6 +18,9 @@ func resourceLBMemberV1() *schema.Resource {
 		Read:   resourceLBMemberV1Read,
 		Update: resourceLBMemberV1Update,
 		Delete: resourceLBMemberV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -128,6 +131,9 @@ func resourceLBMemberV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retreived OpenStack LB member %s: %+v", d.Id(), m)
 
+	d.Set("address", m.Address)
+	d.Set("pool_id", m.PoolID)
+	d.Set("port", m.ProtocolPort)
 	d.Set("weight", m.Weight)
 	d.Set("admin_state_up", m.AdminStateUp)
 

@@ -15,6 +15,9 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 		Read:   resourceComputeHttpHealthCheckRead,
 		Delete: resourceComputeHttpHealthCheckDelete,
 		Update: resourceComputeHttpHealthCheckUpdate,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -55,6 +58,7 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"request_path": &schema.Schema{
@@ -131,7 +135,7 @@ func resourceComputeHttpHealthCheckCreate(d *schema.ResourceData, meta interface
 	// It probably maybe worked, so store the ID now
 	d.SetId(hchk.Name)
 
-	err = computeOperationWaitGlobal(config, op, "Creating Http Health Check")
+	err = computeOperationWaitGlobal(config, op, project, "Creating Http Health Check")
 	if err != nil {
 		return err
 	}
@@ -187,7 +191,7 @@ func resourceComputeHttpHealthCheckUpdate(d *schema.ResourceData, meta interface
 	// It probably maybe worked, so store the ID now
 	d.SetId(hchk.Name)
 
-	err = computeOperationWaitGlobal(config, op, "Updating Http Health Check")
+	err = computeOperationWaitGlobal(config, op, project, "Updating Http Health Check")
 	if err != nil {
 		return err
 	}
@@ -220,11 +224,14 @@ func resourceComputeHttpHealthCheckRead(d *schema.ResourceData, meta interface{}
 	d.Set("host", hchk.Host)
 	d.Set("request_path", hchk.RequestPath)
 	d.Set("check_interval_sec", hchk.CheckIntervalSec)
-	d.Set("health_threshold", hchk.HealthyThreshold)
+	d.Set("healthy_threshold", hchk.HealthyThreshold)
 	d.Set("port", hchk.Port)
 	d.Set("timeout_sec", hchk.TimeoutSec)
 	d.Set("unhealthy_threshold", hchk.UnhealthyThreshold)
 	d.Set("self_link", hchk.SelfLink)
+	d.Set("name", hchk.Name)
+	d.Set("description", hchk.Description)
+	d.Set("project", project)
 
 	return nil
 }
@@ -244,7 +251,7 @@ func resourceComputeHttpHealthCheckDelete(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error deleting HttpHealthCheck: %s", err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Deleting Http Health Check")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Http Health Check")
 	if err != nil {
 		return err
 	}

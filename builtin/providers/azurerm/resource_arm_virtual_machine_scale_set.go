@@ -111,7 +111,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						},
 
 						"vault_certificates": &schema.Schema{
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -431,13 +431,13 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 	name := id.Path["virtualMachineScaleSets"]
 
 	resp, err := vmScaleSetClient.Get(resGroup, name)
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure Virtual Machine Scale Set %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		log.Printf("[INFO] AzureRM Virtual Machine Scale Set (%s) Not Found. Removing from State", name)
 		d.SetId("")
 		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure Virtual Machine Scale Set %s: %s", name, err)
 	}
 
 	d.Set("location", resp.Location)
@@ -1063,7 +1063,7 @@ func expandAzureRmVirtualMachineScaleSetOsProfileSecrets(d *schema.ResourceData)
 		}
 
 		if v := config["vault_certificates"]; v != nil {
-			certsConfig := v.(*schema.Set).List()
+			certsConfig := v.([]interface{})
 			certs := make([]compute.VaultCertificate, 0, len(certsConfig))
 			for _, certConfig := range certsConfig {
 				config := certConfig.(map[string]interface{})

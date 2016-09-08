@@ -11,17 +11,22 @@ import (
 // module cannot be moved to a resource address, however a resource can be
 // moved to a module address (it retains the same name, under that resource).
 //
+// The item can also be a []*ModuleState, which is the case for nested
+// modules. In this case, Add will expect the zero-index to be the top-most
+// module to add and will only nest children from there. For semantics, this
+// is equivalent to module => module.
+//
 // The full semantics of Add:
 //
-//                         ┌───────────────────────┬───────────────────────┬───────────────────────┐
-//                         │    Module Address     │   Resource Address    │   Instance Address    │
-// ┌───────────────────────┼───────────────────────┼───────────────────────┼───────────────────────┤
-// │      ModuleState      │           ✓           │           x           │           x           │
-// ├───────────────────────┼───────────────────────┼───────────────────────┼───────────────────────┤
-// │     ResourceState     │           ✓           │           ✓           │        maybe*         │
-// ├───────────────────────┼───────────────────────┼───────────────────────┼───────────────────────┤
-// │    Instance State     │           ✓           │           ✓           │           ✓           │
-// └───────────────────────┴───────────────────────┴───────────────────────┴───────────────────────┘
+//                      ┌───────────────────┬───────────────────┬───────────────────┐
+//                      │  Module Address   │ Resource Address  │ Instance Address  │
+//    ┌─────────────────┼───────────────────┼───────────────────┼───────────────────┤
+//    │   ModuleState   │         ✓         │         x         │         x         │
+//    ├─────────────────┼───────────────────┼───────────────────┼───────────────────┤
+//    │  ResourceState  │         ✓         │         ✓         │      maybe*       │
+//    ├─────────────────┼───────────────────┼───────────────────┼───────────────────┤
+//    │ Instance State  │         ✓         │         ✓         │         ✓         │
+//    └─────────────────┴───────────────────┴───────────────────┴───────────────────┘
 //
 // *maybe - Resources can be added at an instance address only if the resource
 //          represents a single instance (primary). Example:
@@ -65,7 +70,26 @@ func (s *State) Add(fromAddrRaw string, toAddrRaw string, raw interface{}) error
 }
 
 func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw interface{}) error {
-	src := raw.(*ModuleState).deepcopy()
+	// raw can be either *ModuleState or []*ModuleState. The former means
+	// we're moving just one module. The latter means we're moving a module
+	// and children.
+	root := raw
+	var rest []*ModuleState
+	if list, ok := raw.([]*ModuleState); ok {
+		// We need at least one item
+		if len(list) == 0 {
+			return fmt.Errorf("module move with no value to: %s", addr)
+		}
+
+		// The first item is always the root
+		root = list[0]
+		if len(list) > 1 {
+			rest = list[1:]
+		}
+	}
+
+	// Get the actual module state
+	src := root.(*ModuleState).deepcopy()
 
 	// If the target module exists, it is an error
 	path := append([]string{"root"}, addr.Path...)
@@ -97,6 +121,22 @@ func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw i
 		}
 	}
 
+	// Add all the children if we have them
+	for _, item := range rest {
+		// If item isn't a descendent of our root, then ignore it
+		if !src.IsDescendent(item) {
+			continue
+		}
+
+		// It is! Strip the leading prefix and attach that to our address
+		extra := item.Path[len(src.Path):]
+		addrCopy := addr.Copy()
+		addrCopy.Path = append(addrCopy.Path, extra...)
+
+		// Add it
+		s.Add(fromAddr.String(), addrCopy.String(), item)
+	}
+
 	return nil
 }
 
@@ -111,6 +151,36 @@ func stateAddFunc_Resource_Module(
 }
 
 func stateAddFunc_Resource_Resource(s *State, fromAddr, addr *ResourceAddress, raw interface{}) error {
+	// raw can be either *ResourceState or []*ResourceState. The former means
+	// we're moving just one resource. The latter means we're moving a count
+	// of resources.
+	if list, ok := raw.([]*ResourceState); ok {
+		// We need at least one item
+		if len(list) == 0 {
+			return fmt.Errorf("resource move with no value to: %s", addr)
+		}
+
+		// If there is an index, this is an error since we can't assign
+		// a set of resources to a single index
+		if addr.Index >= 0 && len(list) > 1 {
+			return fmt.Errorf(
+				"multiple resources can't be moved to a single index: "+
+					"%s => %s", fromAddr, addr)
+		}
+
+		// Add each with a specific index
+		for i, rs := range list {
+			addrCopy := addr.Copy()
+			addrCopy.Index = i
+
+			if err := s.Add(fromAddr.String(), addrCopy.String(), rs); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
 	src := raw.(*ResourceState).deepcopy()
 
 	// Initialize the resource
@@ -149,7 +219,7 @@ func stateAddFunc_Instance_Instance(s *State, fromAddr, addr *ResourceAddress, r
 	instance := instanceRaw.(*InstanceState)
 
 	// Set it
-	*instance = *src
+	instance.Set(src)
 
 	return nil
 }
@@ -227,7 +297,11 @@ func detectValueAddLoc(raw interface{}) stateAddLoc {
 	switch raw.(type) {
 	case *ModuleState:
 		return stateAddModule
+	case []*ModuleState:
+		return stateAddModule
 	case *ResourceState:
+		return stateAddResource
+	case []*ResourceState:
 		return stateAddResource
 	case *InstanceState:
 		return stateAddInstance

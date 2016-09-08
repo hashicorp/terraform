@@ -117,7 +117,7 @@ The `disk` block supports:
 * `size` - (Required if template and bootable_vmdks_path not provided) Size of this disk (in GB).
 * `name` - (Required if size is provided when creating a new disk) This "name" is used for the disk file name in vSphere, when the new disk is created.
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
-* `type` - (Optional) 'eager_zeroed' (the default), or 'thin' are supported options.
+* `type` - (Optional) 'eager_zeroed' (the default), 'lazy', or 'thin' are supported options.
 * `vmdk` - (Required if template and size not provided) Path to a vmdk in a vSphere datastore.
 * `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
 * `controller_type` = (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
@@ -135,6 +135,7 @@ The `cdrom` block supports:
 The following attributes are exported:
 
 * `id` - The instance ID.
+* `uuid` - The instance UUID.
 * `name` - See Argument Reference above.
 * `vcpu` - See Argument Reference above.
 * `memory` - See Argument Reference above.

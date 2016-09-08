@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"reflect"
+	"sort"
+	"strings"
 )
 
 // EncodedAs is a series of constants specifying various data encodings
@@ -97,7 +100,79 @@ func ensureValueString(value interface{}) string {
 	switch v := value.(type) {
 	case string:
 		return v
+	case []byte:
+		return string(v)
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
+
+// MapToValues method converts map[string]interface{} to url.Values.
+func MapToValues(m map[string]interface{}) url.Values {
+	v := url.Values{}
+	for key, value := range m {
+		x := reflect.ValueOf(value)
+		if x.Kind() == reflect.Array || x.Kind() == reflect.Slice {
+			for i := 0; i < x.Len(); i++ {
+				v.Add(key, ensureValueString(x.Index(i)))
+			}
+		} else {
+			v.Add(key, ensureValueString(value))
+		}
+	}
+	return v
+}
+
+// String method converts interface v to string. If interface is a list, it
+// joins list elements using separator.
+func String(v interface{}, sep ...string) string {
+	if len(sep) > 0 {
+		return ensureValueString(strings.Join(v.([]string), sep[0]))
+	}
+	return ensureValueString(v)
+}
+
+// Encode method encodes url path and query parameters.
+func Encode(location string, v interface{}, sep ...string) string {
+	s := String(v, sep...)
+	switch strings.ToLower(location) {
+	case "path":
+		return pathEscape(s)
+	case "query":
+		return queryEscape(s)
+	default:
+		return s
+	}
+}
+
+func pathEscape(s string) string {
+	return strings.Replace(url.QueryEscape(s), "+", "%20", -1)
+}
+
+func queryEscape(s string) string {
+	return url.QueryEscape(s)
+}
+
+// This method is same as Encode() method of "net/url" go package,
+// except it does not encode the query parameters because they
+// already come encoded. It formats values map in query format (bar=foo&a=b).
+func createQuery(v url.Values) string {
+	var buf bytes.Buffer
+	keys := make([]string, 0, len(v))
+	for k := range v {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		vs := v[k]
+		prefix := url.QueryEscape(k) + "="
+		for _, v := range vs {
+			if buf.Len() > 0 {
+				buf.WriteByte('&')
+			}
+			buf.WriteString(prefix)
+			buf.WriteString(v)
+		}
+	}
+	return buf.String()
 }

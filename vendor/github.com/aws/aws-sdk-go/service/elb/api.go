@@ -13,7 +13,28 @@ import (
 
 const opAddTags = "AddTags"
 
-// AddTagsRequest generates a request for the AddTags operation.
+// AddTagsRequest generates a "aws/request.Request" representing the
+// client's request for the AddTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddTagsRequest method.
+//    req, resp := client.AddTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) AddTagsRequest(input *AddTagsInput) (req *request.Request, output *AddTagsOutput) {
 	op := &request.Operation{
 		Name:       opAddTags,
@@ -37,8 +58,8 @@ func (c *ELB) AddTagsRequest(input *AddTagsInput) (req *request.Request, output 
 // Each tag consists of a key and an optional value. If a tag with the same
 // key is already associated with the load balancer, AddTags updates its value.
 //
-// For more information, see Tag Your Load Balancer (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/add-remove-tags.html)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Tag Your Classic Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/add-remove-tags.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 	req, out := c.AddTagsRequest(input)
 	err := req.Send()
@@ -47,7 +68,28 @@ func (c *ELB) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 
 const opApplySecurityGroupsToLoadBalancer = "ApplySecurityGroupsToLoadBalancer"
 
-// ApplySecurityGroupsToLoadBalancerRequest generates a request for the ApplySecurityGroupsToLoadBalancer operation.
+// ApplySecurityGroupsToLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the ApplySecurityGroupsToLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ApplySecurityGroupsToLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ApplySecurityGroupsToLoadBalancerRequest method.
+//    req, resp := client.ApplySecurityGroupsToLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) ApplySecurityGroupsToLoadBalancerRequest(input *ApplySecurityGroupsToLoadBalancerInput) (req *request.Request, output *ApplySecurityGroupsToLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opApplySecurityGroupsToLoadBalancer,
@@ -69,8 +111,8 @@ func (c *ELB) ApplySecurityGroupsToLoadBalancerRequest(input *ApplySecurityGroup
 // private cloud (VPC). The specified security groups override the previously
 // associated security groups.
 //
-// For more information, see Security Groups for Load Balancers in a VPC (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-security-groups.html#elb-vpc-security-groups)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Security Groups for Load Balancers in a VPC (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-groups.html#elb-vpc-security-groups)
+// in the Classic Load Balancers Guide.
 func (c *ELB) ApplySecurityGroupsToLoadBalancer(input *ApplySecurityGroupsToLoadBalancerInput) (*ApplySecurityGroupsToLoadBalancerOutput, error) {
 	req, out := c.ApplySecurityGroupsToLoadBalancerRequest(input)
 	err := req.Send()
@@ -79,7 +121,28 @@ func (c *ELB) ApplySecurityGroupsToLoadBalancer(input *ApplySecurityGroupsToLoad
 
 const opAttachLoadBalancerToSubnets = "AttachLoadBalancerToSubnets"
 
-// AttachLoadBalancerToSubnetsRequest generates a request for the AttachLoadBalancerToSubnets operation.
+// AttachLoadBalancerToSubnetsRequest generates a "aws/request.Request" representing the
+// client's request for the AttachLoadBalancerToSubnets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AttachLoadBalancerToSubnets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AttachLoadBalancerToSubnetsRequest method.
+//    req, resp := client.AttachLoadBalancerToSubnetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) AttachLoadBalancerToSubnetsRequest(input *AttachLoadBalancerToSubnetsInput) (req *request.Request, output *AttachLoadBalancerToSubnetsOutput) {
 	op := &request.Operation{
 		Name:       opAttachLoadBalancerToSubnets,
@@ -102,8 +165,8 @@ func (c *ELB) AttachLoadBalancerToSubnetsRequest(input *AttachLoadBalancerToSubn
 //
 // The load balancer evenly distributes requests across all registered subnets.
 // For more information, see Add or Remove Subnets for Your Load Balancer in
-// a VPC (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-manage-subnets.html)
-// in the Elastic Load Balancing Developer Guide.
+// a VPC (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-manage-subnets.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) AttachLoadBalancerToSubnets(input *AttachLoadBalancerToSubnetsInput) (*AttachLoadBalancerToSubnetsOutput, error) {
 	req, out := c.AttachLoadBalancerToSubnetsRequest(input)
 	err := req.Send()
@@ -112,7 +175,28 @@ func (c *ELB) AttachLoadBalancerToSubnets(input *AttachLoadBalancerToSubnetsInpu
 
 const opConfigureHealthCheck = "ConfigureHealthCheck"
 
-// ConfigureHealthCheckRequest generates a request for the ConfigureHealthCheck operation.
+// ConfigureHealthCheckRequest generates a "aws/request.Request" representing the
+// client's request for the ConfigureHealthCheck operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ConfigureHealthCheck method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ConfigureHealthCheckRequest method.
+//    req, resp := client.ConfigureHealthCheckRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) ConfigureHealthCheckRequest(input *ConfigureHealthCheckInput) (req *request.Request, output *ConfigureHealthCheckOutput) {
 	op := &request.Operation{
 		Name:       opConfigureHealthCheck,
@@ -131,10 +215,11 @@ func (c *ELB) ConfigureHealthCheckRequest(input *ConfigureHealthCheckInput) (req
 }
 
 // Specifies the health check settings to use when evaluating the health state
-// of your back-end instances.
+// of your EC2 instances.
 //
-// For more information, see Configure Health Checks (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-healthchecks.html)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Configure Health Checks for Your Load Balancer
+// (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-healthchecks.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) ConfigureHealthCheck(input *ConfigureHealthCheckInput) (*ConfigureHealthCheckOutput, error) {
 	req, out := c.ConfigureHealthCheckRequest(input)
 	err := req.Send()
@@ -143,7 +228,28 @@ func (c *ELB) ConfigureHealthCheck(input *ConfigureHealthCheckInput) (*Configure
 
 const opCreateAppCookieStickinessPolicy = "CreateAppCookieStickinessPolicy"
 
-// CreateAppCookieStickinessPolicyRequest generates a request for the CreateAppCookieStickinessPolicy operation.
+// CreateAppCookieStickinessPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateAppCookieStickinessPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateAppCookieStickinessPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateAppCookieStickinessPolicyRequest method.
+//    req, resp := client.CreateAppCookieStickinessPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateAppCookieStickinessPolicyRequest(input *CreateAppCookieStickinessPolicyInput) (req *request.Request, output *CreateAppCookieStickinessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opCreateAppCookieStickinessPolicy,
@@ -174,8 +280,8 @@ func (c *ELB) CreateAppCookieStickinessPolicyRequest(input *CreateAppCookieStick
 // If the application cookie is explicitly removed or expires, the session
 // stops being sticky until a new application cookie is issued.
 //
-// For more information, see Application-Controlled Session Stickiness (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-sticky-sessions.html#enable-sticky-sessions-application)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Application-Controlled Session Stickiness (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-sticky-sessions.html#enable-sticky-sessions-application)
+// in the Classic Load Balancers Guide.
 func (c *ELB) CreateAppCookieStickinessPolicy(input *CreateAppCookieStickinessPolicyInput) (*CreateAppCookieStickinessPolicyOutput, error) {
 	req, out := c.CreateAppCookieStickinessPolicyRequest(input)
 	err := req.Send()
@@ -184,7 +290,28 @@ func (c *ELB) CreateAppCookieStickinessPolicy(input *CreateAppCookieStickinessPo
 
 const opCreateLBCookieStickinessPolicy = "CreateLBCookieStickinessPolicy"
 
-// CreateLBCookieStickinessPolicyRequest generates a request for the CreateLBCookieStickinessPolicy operation.
+// CreateLBCookieStickinessPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLBCookieStickinessPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLBCookieStickinessPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLBCookieStickinessPolicyRequest method.
+//    req, resp := client.CreateLBCookieStickinessPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateLBCookieStickinessPolicyRequest(input *CreateLBCookieStickinessPolicyInput) (req *request.Request, output *CreateLBCookieStickinessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opCreateLBCookieStickinessPolicy,
@@ -207,18 +334,18 @@ func (c *ELB) CreateLBCookieStickinessPolicyRequest(input *CreateLBCookieStickin
 // This policy can be associated only with HTTP/HTTPS listeners.
 //
 // When a load balancer implements this policy, the load balancer uses a special
-// cookie to track the back-end server instance for each request. When the load
-// balancer receives a request, it first checks to see if this cookie is present
-// in the request. If so, the load balancer sends the request to the application
-// server specified in the cookie. If not, the load balancer sends the request
-// to a server that is chosen based on the existing load-balancing algorithm.
+// cookie to track the instance for each request. When the load balancer receives
+// a request, it first checks to see if this cookie is present in the request.
+// If so, the load balancer sends the request to the application server specified
+// in the cookie. If not, the load balancer sends the request to a server that
+// is chosen based on the existing load-balancing algorithm.
 //
 // A cookie is inserted into the response for binding subsequent requests from
 // the same user to that server. The validity of the cookie is based on the
 // cookie expiration time, which is specified in the policy configuration.
 //
-// For more information, see Duration-Based Session Stickiness (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-sticky-sessions.html#enable-sticky-sessions-duration)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Duration-Based Session Stickiness (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-sticky-sessions.html#enable-sticky-sessions-duration)
+// in the Classic Load Balancers Guide.
 func (c *ELB) CreateLBCookieStickinessPolicy(input *CreateLBCookieStickinessPolicyInput) (*CreateLBCookieStickinessPolicyOutput, error) {
 	req, out := c.CreateLBCookieStickinessPolicyRequest(input)
 	err := req.Send()
@@ -227,7 +354,28 @@ func (c *ELB) CreateLBCookieStickinessPolicy(input *CreateLBCookieStickinessPoli
 
 const opCreateLoadBalancer = "CreateLoadBalancer"
 
-// CreateLoadBalancerRequest generates a request for the CreateLoadBalancer operation.
+// CreateLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLoadBalancerRequest method.
+//    req, resp := client.CreateLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *request.Request, output *CreateLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opCreateLoadBalancer,
@@ -245,18 +393,19 @@ func (c *ELB) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *re
 	return
 }
 
-// Creates a load balancer.
+// Creates a Classic load balancer.
 //
-// If the call completes successfully, a new load balancer is created with
-// a unique Domain Name Service (DNS) name. The load balancer receives incoming
-// traffic and routes it to the registered instances. For more information,
-// see How Elastic Load Balancing Works (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/how-elb-works.html)
-// in the Elastic Load Balancing Developer Guide.
+// You can add listeners, security groups, subnets, and tags when you create
+// your load balancer, or you can add them later using CreateLoadBalancerListeners,
+// ApplySecurityGroupsToLoadBalancer, AttachLoadBalancerToSubnets, and AddTags.
+//
+// To describe your current load balancers, see DescribeLoadBalancers. When
+// you are finished with a load balancer, you can delete it using DeleteLoadBalancer.
 //
 // You can create up to 20 load balancers per region per account. You can request
 // an increase for the number of load balancers for your account. For more information,
-// see Elastic Load Balancing Limits (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-limits.html)
-// in the Elastic Load Balancing Developer Guide.
+// see Limits for Your Classic Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-limits.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) CreateLoadBalancer(input *CreateLoadBalancerInput) (*CreateLoadBalancerOutput, error) {
 	req, out := c.CreateLoadBalancerRequest(input)
 	err := req.Send()
@@ -265,7 +414,28 @@ func (c *ELB) CreateLoadBalancer(input *CreateLoadBalancerInput) (*CreateLoadBal
 
 const opCreateLoadBalancerListeners = "CreateLoadBalancerListeners"
 
-// CreateLoadBalancerListenersRequest generates a request for the CreateLoadBalancerListeners operation.
+// CreateLoadBalancerListenersRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLoadBalancerListeners operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLoadBalancerListeners method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLoadBalancerListenersRequest method.
+//    req, resp := client.CreateLoadBalancerListenersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateLoadBalancerListenersRequest(input *CreateLoadBalancerListenersInput) (req *request.Request, output *CreateLoadBalancerListenersOutput) {
 	op := &request.Operation{
 		Name:       opCreateLoadBalancerListeners,
@@ -288,8 +458,8 @@ func (c *ELB) CreateLoadBalancerListenersRequest(input *CreateLoadBalancerListen
 // the properties of the new listener must match the properties of the existing
 // listener.
 //
-// For more information, see Add a Listener to Your Load Balancer (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/us-add-listener.html)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Listeners for Your Classic Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) CreateLoadBalancerListeners(input *CreateLoadBalancerListenersInput) (*CreateLoadBalancerListenersOutput, error) {
 	req, out := c.CreateLoadBalancerListenersRequest(input)
 	err := req.Send()
@@ -298,7 +468,28 @@ func (c *ELB) CreateLoadBalancerListeners(input *CreateLoadBalancerListenersInpu
 
 const opCreateLoadBalancerPolicy = "CreateLoadBalancerPolicy"
 
-// CreateLoadBalancerPolicyRequest generates a request for the CreateLoadBalancerPolicy operation.
+// CreateLoadBalancerPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateLoadBalancerPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateLoadBalancerPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateLoadBalancerPolicyRequest method.
+//    req, resp := client.CreateLoadBalancerPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) CreateLoadBalancerPolicyRequest(input *CreateLoadBalancerPolicyInput) (req *request.Request, output *CreateLoadBalancerPolicyOutput) {
 	op := &request.Operation{
 		Name:       opCreateLoadBalancerPolicy,
@@ -319,8 +510,8 @@ func (c *ELB) CreateLoadBalancerPolicyRequest(input *CreateLoadBalancerPolicyInp
 // Creates a policy with the specified attributes for the specified load balancer.
 //
 // Policies are settings that are saved for your load balancer and that can
-// be applied to the front-end listener or the back-end application server,
-// depending on the policy type.
+// be applied to the listener or the application server, depending on the policy
+// type.
 func (c *ELB) CreateLoadBalancerPolicy(input *CreateLoadBalancerPolicyInput) (*CreateLoadBalancerPolicyOutput, error) {
 	req, out := c.CreateLoadBalancerPolicyRequest(input)
 	err := req.Send()
@@ -329,7 +520,28 @@ func (c *ELB) CreateLoadBalancerPolicy(input *CreateLoadBalancerPolicyInput) (*C
 
 const opDeleteLoadBalancer = "DeleteLoadBalancer"
 
-// DeleteLoadBalancerRequest generates a request for the DeleteLoadBalancer operation.
+// DeleteLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteLoadBalancerRequest method.
+//    req, resp := client.DeleteLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *request.Request, output *DeleteLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLoadBalancer,
@@ -353,7 +565,7 @@ func (c *ELB) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *re
 // all settings. The DNS name associated with a deleted load balancer are no
 // longer usable. The name and associated DNS record of the deleted load balancer
 // no longer exist and traffic sent to any of its IP addresses is no longer
-// delivered to back-end instances.
+// delivered to your instances.
 //
 // If the load balancer does not exist or has already been deleted, the call
 // to DeleteLoadBalancer still succeeds.
@@ -365,7 +577,28 @@ func (c *ELB) DeleteLoadBalancer(input *DeleteLoadBalancerInput) (*DeleteLoadBal
 
 const opDeleteLoadBalancerListeners = "DeleteLoadBalancerListeners"
 
-// DeleteLoadBalancerListenersRequest generates a request for the DeleteLoadBalancerListeners operation.
+// DeleteLoadBalancerListenersRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLoadBalancerListeners operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteLoadBalancerListeners method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteLoadBalancerListenersRequest method.
+//    req, resp := client.DeleteLoadBalancerListenersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DeleteLoadBalancerListenersRequest(input *DeleteLoadBalancerListenersInput) (req *request.Request, output *DeleteLoadBalancerListenersOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLoadBalancerListeners,
@@ -392,7 +625,28 @@ func (c *ELB) DeleteLoadBalancerListeners(input *DeleteLoadBalancerListenersInpu
 
 const opDeleteLoadBalancerPolicy = "DeleteLoadBalancerPolicy"
 
-// DeleteLoadBalancerPolicyRequest generates a request for the DeleteLoadBalancerPolicy operation.
+// DeleteLoadBalancerPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLoadBalancerPolicy operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteLoadBalancerPolicy method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteLoadBalancerPolicyRequest method.
+//    req, resp := client.DeleteLoadBalancerPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DeleteLoadBalancerPolicyRequest(input *DeleteLoadBalancerPolicyInput) (req *request.Request, output *DeleteLoadBalancerPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLoadBalancerPolicy,
@@ -420,7 +674,28 @@ func (c *ELB) DeleteLoadBalancerPolicy(input *DeleteLoadBalancerPolicyInput) (*D
 
 const opDeregisterInstancesFromLoadBalancer = "DeregisterInstancesFromLoadBalancer"
 
-// DeregisterInstancesFromLoadBalancerRequest generates a request for the DeregisterInstancesFromLoadBalancer operation.
+// DeregisterInstancesFromLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the DeregisterInstancesFromLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeregisterInstancesFromLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeregisterInstancesFromLoadBalancerRequest method.
+//    req, resp := client.DeregisterInstancesFromLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DeregisterInstancesFromLoadBalancerRequest(input *DeregisterInstancesFromLoadBalancerInput) (req *request.Request, output *DeregisterInstancesFromLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opDeregisterInstancesFromLoadBalancer,
@@ -445,8 +720,8 @@ func (c *ELB) DeregisterInstancesFromLoadBalancerRequest(input *DeregisterInstan
 // You can use DescribeLoadBalancers to verify that the instance is deregistered
 // from the load balancer.
 //
-// For more information, see Deregister and Register Amazon EC2 Instances (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/US_DeReg_Reg_Instances.html)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Register or De-Register EC2 Instances (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-deregister-register-instances.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) DeregisterInstancesFromLoadBalancer(input *DeregisterInstancesFromLoadBalancerInput) (*DeregisterInstancesFromLoadBalancerOutput, error) {
 	req, out := c.DeregisterInstancesFromLoadBalancerRequest(input)
 	err := req.Send()
@@ -455,7 +730,28 @@ func (c *ELB) DeregisterInstancesFromLoadBalancer(input *DeregisterInstancesFrom
 
 const opDescribeInstanceHealth = "DescribeInstanceHealth"
 
-// DescribeInstanceHealthRequest generates a request for the DescribeInstanceHealth operation.
+// DescribeInstanceHealthRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInstanceHealth operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInstanceHealth method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInstanceHealthRequest method.
+//    req, resp := client.DescribeInstanceHealthRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeInstanceHealthRequest(input *DescribeInstanceHealthInput) (req *request.Request, output *DescribeInstanceHealthOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstanceHealth,
@@ -487,7 +783,28 @@ func (c *ELB) DescribeInstanceHealth(input *DescribeInstanceHealthInput) (*Descr
 
 const opDescribeLoadBalancerAttributes = "DescribeLoadBalancerAttributes"
 
-// DescribeLoadBalancerAttributesRequest generates a request for the DescribeLoadBalancerAttributes operation.
+// DescribeLoadBalancerAttributesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoadBalancerAttributes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoadBalancerAttributes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoadBalancerAttributesRequest method.
+//    req, resp := client.DescribeLoadBalancerAttributesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeLoadBalancerAttributesRequest(input *DescribeLoadBalancerAttributesInput) (req *request.Request, output *DescribeLoadBalancerAttributesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancerAttributes,
@@ -514,7 +831,28 @@ func (c *ELB) DescribeLoadBalancerAttributes(input *DescribeLoadBalancerAttribut
 
 const opDescribeLoadBalancerPolicies = "DescribeLoadBalancerPolicies"
 
-// DescribeLoadBalancerPoliciesRequest generates a request for the DescribeLoadBalancerPolicies operation.
+// DescribeLoadBalancerPoliciesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoadBalancerPolicies operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoadBalancerPolicies method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoadBalancerPoliciesRequest method.
+//    req, resp := client.DescribeLoadBalancerPoliciesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeLoadBalancerPoliciesRequest(input *DescribeLoadBalancerPoliciesInput) (req *request.Request, output *DescribeLoadBalancerPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancerPolicies,
@@ -548,7 +886,28 @@ func (c *ELB) DescribeLoadBalancerPolicies(input *DescribeLoadBalancerPoliciesIn
 
 const opDescribeLoadBalancerPolicyTypes = "DescribeLoadBalancerPolicyTypes"
 
-// DescribeLoadBalancerPolicyTypesRequest generates a request for the DescribeLoadBalancerPolicyTypes operation.
+// DescribeLoadBalancerPolicyTypesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoadBalancerPolicyTypes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoadBalancerPolicyTypes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoadBalancerPolicyTypesRequest method.
+//    req, resp := client.DescribeLoadBalancerPolicyTypesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeLoadBalancerPolicyTypesRequest(input *DescribeLoadBalancerPolicyTypesInput) (req *request.Request, output *DescribeLoadBalancerPolicyTypesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancerPolicyTypes,
@@ -566,10 +925,18 @@ func (c *ELB) DescribeLoadBalancerPolicyTypesRequest(input *DescribeLoadBalancer
 	return
 }
 
-// Describes the specified load balancer policy types.
+// Describes the specified load balancer policy types or all load balancer policy
+// types.
 //
-// You can use these policy types with CreateLoadBalancerPolicy to create policy
-// configurations for a load balancer.
+// The description of each type indicates how it can be used. For example,
+// some policies can be used only with layer 7 listeners, some policies can
+// be used only with layer 4 listeners, and some policies can be used only with
+// your EC2 instances.
+//
+// You can use CreateLoadBalancerPolicy to create a policy configuration for
+// any of these policy types. Then, depending on the policy type, use either
+// SetLoadBalancerPoliciesOfListener or SetLoadBalancerPoliciesForBackendServer
+// to set the policy.
 func (c *ELB) DescribeLoadBalancerPolicyTypes(input *DescribeLoadBalancerPolicyTypesInput) (*DescribeLoadBalancerPolicyTypesOutput, error) {
 	req, out := c.DescribeLoadBalancerPolicyTypesRequest(input)
 	err := req.Send()
@@ -578,7 +945,28 @@ func (c *ELB) DescribeLoadBalancerPolicyTypes(input *DescribeLoadBalancerPolicyT
 
 const opDescribeLoadBalancers = "DescribeLoadBalancers"
 
-// DescribeLoadBalancersRequest generates a request for the DescribeLoadBalancers operation.
+// DescribeLoadBalancersRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeLoadBalancers operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeLoadBalancers method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeLoadBalancersRequest method.
+//    req, resp := client.DescribeLoadBalancersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeLoadBalancersRequest(input *DescribeLoadBalancersInput) (req *request.Request, output *DescribeLoadBalancersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancers,
@@ -610,6 +998,23 @@ func (c *ELB) DescribeLoadBalancers(input *DescribeLoadBalancersInput) (*Describ
 	return out, err
 }
 
+// DescribeLoadBalancersPages iterates over the pages of a DescribeLoadBalancers operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeLoadBalancers method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeLoadBalancers operation.
+//    pageNum := 0
+//    err := client.DescribeLoadBalancersPages(params,
+//        func(page *DescribeLoadBalancersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *ELB) DescribeLoadBalancersPages(input *DescribeLoadBalancersInput, fn func(p *DescribeLoadBalancersOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.DescribeLoadBalancersRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -620,7 +1025,28 @@ func (c *ELB) DescribeLoadBalancersPages(input *DescribeLoadBalancersInput, fn f
 
 const opDescribeTags = "DescribeTags"
 
-// DescribeTagsRequest generates a request for the DescribeTags operation.
+// DescribeTagsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeTagsRequest method.
+//    req, resp := client.DescribeTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Request, output *DescribeTagsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTags,
@@ -647,7 +1073,28 @@ func (c *ELB) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, error
 
 const opDetachLoadBalancerFromSubnets = "DetachLoadBalancerFromSubnets"
 
-// DetachLoadBalancerFromSubnetsRequest generates a request for the DetachLoadBalancerFromSubnets operation.
+// DetachLoadBalancerFromSubnetsRequest generates a "aws/request.Request" representing the
+// client's request for the DetachLoadBalancerFromSubnets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DetachLoadBalancerFromSubnets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DetachLoadBalancerFromSubnetsRequest method.
+//    req, resp := client.DetachLoadBalancerFromSubnetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DetachLoadBalancerFromSubnetsRequest(input *DetachLoadBalancerFromSubnetsInput) (req *request.Request, output *DetachLoadBalancerFromSubnetsOutput) {
 	op := &request.Operation{
 		Name:       opDetachLoadBalancerFromSubnets,
@@ -679,7 +1126,28 @@ func (c *ELB) DetachLoadBalancerFromSubnets(input *DetachLoadBalancerFromSubnets
 
 const opDisableAvailabilityZonesForLoadBalancer = "DisableAvailabilityZonesForLoadBalancer"
 
-// DisableAvailabilityZonesForLoadBalancerRequest generates a request for the DisableAvailabilityZonesForLoadBalancer operation.
+// DisableAvailabilityZonesForLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the DisableAvailabilityZonesForLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisableAvailabilityZonesForLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisableAvailabilityZonesForLoadBalancerRequest method.
+//    req, resp := client.DisableAvailabilityZonesForLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) DisableAvailabilityZonesForLoadBalancerRequest(input *DisableAvailabilityZonesForLoadBalancerInput) (req *request.Request, output *DisableAvailabilityZonesForLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opDisableAvailabilityZonesForLoadBalancer,
@@ -706,9 +1174,8 @@ func (c *ELB) DisableAvailabilityZonesForLoadBalancerRequest(input *DisableAvail
 // the OutOfService state. Then, the load balancer attempts to equally balance
 // the traffic among its remaining Availability Zones.
 //
-// For more information, see Disable an Availability Zone from a Load-Balanced
-// Application (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/US_ShrinkLBApp04.html)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Add or Remove Availability Zones (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-az.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) DisableAvailabilityZonesForLoadBalancer(input *DisableAvailabilityZonesForLoadBalancerInput) (*DisableAvailabilityZonesForLoadBalancerOutput, error) {
 	req, out := c.DisableAvailabilityZonesForLoadBalancerRequest(input)
 	err := req.Send()
@@ -717,7 +1184,28 @@ func (c *ELB) DisableAvailabilityZonesForLoadBalancer(input *DisableAvailability
 
 const opEnableAvailabilityZonesForLoadBalancer = "EnableAvailabilityZonesForLoadBalancer"
 
-// EnableAvailabilityZonesForLoadBalancerRequest generates a request for the EnableAvailabilityZonesForLoadBalancer operation.
+// EnableAvailabilityZonesForLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the EnableAvailabilityZonesForLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the EnableAvailabilityZonesForLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the EnableAvailabilityZonesForLoadBalancerRequest method.
+//    req, resp := client.EnableAvailabilityZonesForLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) EnableAvailabilityZonesForLoadBalancerRequest(input *EnableAvailabilityZonesForLoadBalancerInput) (req *request.Request, output *EnableAvailabilityZonesForLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opEnableAvailabilityZonesForLoadBalancer,
@@ -741,8 +1229,8 @@ func (c *ELB) EnableAvailabilityZonesForLoadBalancerRequest(input *EnableAvailab
 // The load balancer evenly distributes requests across all its registered
 // Availability Zones that contain instances.
 //
-// For more information, see Add Availability Zone (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/US_AddLBAvailabilityZone.html)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Add or Remove Availability Zones (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-az.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) EnableAvailabilityZonesForLoadBalancer(input *EnableAvailabilityZonesForLoadBalancerInput) (*EnableAvailabilityZonesForLoadBalancerOutput, error) {
 	req, out := c.EnableAvailabilityZonesForLoadBalancerRequest(input)
 	err := req.Send()
@@ -751,7 +1239,28 @@ func (c *ELB) EnableAvailabilityZonesForLoadBalancer(input *EnableAvailabilityZo
 
 const opModifyLoadBalancerAttributes = "ModifyLoadBalancerAttributes"
 
-// ModifyLoadBalancerAttributesRequest generates a request for the ModifyLoadBalancerAttributes operation.
+// ModifyLoadBalancerAttributesRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyLoadBalancerAttributes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyLoadBalancerAttributes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyLoadBalancerAttributesRequest method.
+//    req, resp := client.ModifyLoadBalancerAttributesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAttributesInput) (req *request.Request, output *ModifyLoadBalancerAttributesOutput) {
 	op := &request.Operation{
 		Name:       opModifyLoadBalancerAttributes,
@@ -776,13 +1285,15 @@ func (c *ELB) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAttri
 // can modify the load balancer attribute ConnectionSettings by specifying an
 // idle connection timeout value for your load balancer.
 //
-// For more information, see the following in the Elastic Load Balancing Developer
-// Guide:
+// For more information, see the following in the Classic Load Balancers Guide:
 //
-//  Cross-Zone Load Balancing (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html#request-routing)
-// Connection Draining (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html#conn-drain)
-// Access Logs (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/access-log-collection.html)
-// Idle Connection Timeout (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html#idle-timeout)
+//    Cross-Zone Load Balancing (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-crosszone-lb.html)
+//
+//    Connection Draining (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-conn-drain.html)
+//
+//    Access Logs (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/access-log-collection.html)
+//
+//    Idle Connection Timeout (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-idle-timeout.html)
 func (c *ELB) ModifyLoadBalancerAttributes(input *ModifyLoadBalancerAttributesInput) (*ModifyLoadBalancerAttributesOutput, error) {
 	req, out := c.ModifyLoadBalancerAttributesRequest(input)
 	err := req.Send()
@@ -791,7 +1302,28 @@ func (c *ELB) ModifyLoadBalancerAttributes(input *ModifyLoadBalancerAttributesIn
 
 const opRegisterInstancesWithLoadBalancer = "RegisterInstancesWithLoadBalancer"
 
-// RegisterInstancesWithLoadBalancerRequest generates a request for the RegisterInstancesWithLoadBalancer operation.
+// RegisterInstancesWithLoadBalancerRequest generates a "aws/request.Request" representing the
+// client's request for the RegisterInstancesWithLoadBalancer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RegisterInstancesWithLoadBalancer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RegisterInstancesWithLoadBalancerRequest method.
+//    req, resp := client.RegisterInstancesWithLoadBalancerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) RegisterInstancesWithLoadBalancerRequest(input *RegisterInstancesWithLoadBalancerInput) (req *request.Request, output *RegisterInstancesWithLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opRegisterInstancesWithLoadBalancer,
@@ -828,15 +1360,10 @@ func (c *ELB) RegisterInstancesWithLoadBalancerRequest(input *RegisterInstancesW
 // If an Availability Zone is added to the load balancer later, any instances
 // registered with the load balancer move to the InService state.
 //
-// If you stop an instance registered with a load balancer and then start it,
-// the IP addresses associated with the instance changes. Elastic Load Balancing
-// cannot recognize the new IP address, which prevents it from routing traffic
-// to the instances. We recommend that you use the following sequence: stop
-// the instance, deregister the instance, start the instance, and then register
-// the instance. To deregister instances from a load balancer, use DeregisterInstancesFromLoadBalancer.
+// To deregister instances from a load balancer, use DeregisterInstancesFromLoadBalancer.
 //
-// For more information, see Deregister and Register EC2 Instances (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/US_DeReg_Reg_Instances.html)
-// in the Elastic Load Balancing Developer Guide.
+// For more information, see Register or De-Register EC2 Instances (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-deregister-register-instances.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) RegisterInstancesWithLoadBalancer(input *RegisterInstancesWithLoadBalancerInput) (*RegisterInstancesWithLoadBalancerOutput, error) {
 	req, out := c.RegisterInstancesWithLoadBalancerRequest(input)
 	err := req.Send()
@@ -845,7 +1372,28 @@ func (c *ELB) RegisterInstancesWithLoadBalancer(input *RegisterInstancesWithLoad
 
 const opRemoveTags = "RemoveTags"
 
-// RemoveTagsRequest generates a request for the RemoveTags operation.
+// RemoveTagsRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RemoveTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RemoveTagsRequest method.
+//    req, resp := client.RemoveTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, output *RemoveTagsOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTags,
@@ -872,7 +1420,28 @@ func (c *ELB) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOutput, error) {
 
 const opSetLoadBalancerListenerSSLCertificate = "SetLoadBalancerListenerSSLCertificate"
 
-// SetLoadBalancerListenerSSLCertificateRequest generates a request for the SetLoadBalancerListenerSSLCertificate operation.
+// SetLoadBalancerListenerSSLCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the SetLoadBalancerListenerSSLCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetLoadBalancerListenerSSLCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetLoadBalancerListenerSSLCertificateRequest method.
+//    req, resp := client.SetLoadBalancerListenerSSLCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) SetLoadBalancerListenerSSLCertificateRequest(input *SetLoadBalancerListenerSSLCertificateInput) (req *request.Request, output *SetLoadBalancerListenerSSLCertificateOutput) {
 	op := &request.Operation{
 		Name:       opSetLoadBalancerListenerSSLCertificate,
@@ -894,9 +1463,9 @@ func (c *ELB) SetLoadBalancerListenerSSLCertificateRequest(input *SetLoadBalance
 // The specified certificate replaces any prior certificate that was used on
 // the same load balancer and port.
 //
-// For more information about updating your SSL certificate, see Updating an
-// SSL Certificate for a Load Balancer (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/US_UpdatingLoadBalancerSSL.html)
-// in the Elastic Load Balancing Developer Guide.
+// For more information about updating your SSL certificate, see Replace the
+// SSL Certificate for Your Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-update-ssl-cert.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) SetLoadBalancerListenerSSLCertificate(input *SetLoadBalancerListenerSSLCertificateInput) (*SetLoadBalancerListenerSSLCertificateOutput, error) {
 	req, out := c.SetLoadBalancerListenerSSLCertificateRequest(input)
 	err := req.Send()
@@ -905,7 +1474,28 @@ func (c *ELB) SetLoadBalancerListenerSSLCertificate(input *SetLoadBalancerListen
 
 const opSetLoadBalancerPoliciesForBackendServer = "SetLoadBalancerPoliciesForBackendServer"
 
-// SetLoadBalancerPoliciesForBackendServerRequest generates a request for the SetLoadBalancerPoliciesForBackendServer operation.
+// SetLoadBalancerPoliciesForBackendServerRequest generates a "aws/request.Request" representing the
+// client's request for the SetLoadBalancerPoliciesForBackendServer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetLoadBalancerPoliciesForBackendServer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetLoadBalancerPoliciesForBackendServerRequest method.
+//    req, resp := client.SetLoadBalancerPoliciesForBackendServerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) SetLoadBalancerPoliciesForBackendServerRequest(input *SetLoadBalancerPoliciesForBackendServerInput) (req *request.Request, output *SetLoadBalancerPoliciesForBackendServerOutput) {
 	op := &request.Operation{
 		Name:       opSetLoadBalancerPoliciesForBackendServer,
@@ -924,16 +1514,22 @@ func (c *ELB) SetLoadBalancerPoliciesForBackendServerRequest(input *SetLoadBalan
 }
 
 // Replaces the set of policies associated with the specified port on which
-// the back-end server is listening with a new set of policies. At this time,
-// only the back-end server authentication policy type can be applied to the
-// back-end ports; this policy type is composed of multiple public key policies.
+// the EC2 instance is listening with a new set of policies. At this time, only
+// the back-end server authentication policy type can be applied to the instance
+// ports; this policy type is composed of multiple public key policies.
 //
 // Each time you use SetLoadBalancerPoliciesForBackendServer to enable the
 // policies, use the PolicyNames parameter to list the policies that you want
 // to enable.
 //
 // You can use DescribeLoadBalancers or DescribeLoadBalancerPolicies to verify
-// that the policy is associated with the back-end server.
+// that the policy is associated with the EC2 instance.
+//
+// For more information about enabling back-end instance authentication, see
+// Configure Back-end Instance Authentication (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-create-https-ssl-load-balancer.html#configure_backendauth_clt)
+// in the Classic Load Balancers Guide. For more information about Proxy Protocol,
+// see Configure Proxy Protocol Support (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-proxy-protocol.html)
+// in the Classic Load Balancers Guide.
 func (c *ELB) SetLoadBalancerPoliciesForBackendServer(input *SetLoadBalancerPoliciesForBackendServerInput) (*SetLoadBalancerPoliciesForBackendServerOutput, error) {
 	req, out := c.SetLoadBalancerPoliciesForBackendServerRequest(input)
 	err := req.Send()
@@ -942,7 +1538,28 @@ func (c *ELB) SetLoadBalancerPoliciesForBackendServer(input *SetLoadBalancerPoli
 
 const opSetLoadBalancerPoliciesOfListener = "SetLoadBalancerPoliciesOfListener"
 
-// SetLoadBalancerPoliciesOfListenerRequest generates a request for the SetLoadBalancerPoliciesOfListener operation.
+// SetLoadBalancerPoliciesOfListenerRequest generates a "aws/request.Request" representing the
+// client's request for the SetLoadBalancerPoliciesOfListener operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetLoadBalancerPoliciesOfListener method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetLoadBalancerPoliciesOfListenerRequest method.
+//    req, resp := client.SetLoadBalancerPoliciesOfListenerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *ELB) SetLoadBalancerPoliciesOfListenerRequest(input *SetLoadBalancerPoliciesOfListenerInput) (req *request.Request, output *SetLoadBalancerPoliciesOfListenerOutput) {
 	op := &request.Operation{
 		Name:       opSetLoadBalancerPoliciesOfListener,
@@ -960,8 +1577,16 @@ func (c *ELB) SetLoadBalancerPoliciesOfListenerRequest(input *SetLoadBalancerPol
 	return
 }
 
-// Associates, updates, or disables a policy with a listener for the specified
-// load balancer. You can associate multiple policies with a listener.
+// Replaces the current set of policies for the specified load balancer port
+// with the specified set of policies.
+//
+// To enable back-end server authentication, use SetLoadBalancerPoliciesForBackendServer.
+//
+// For more information about setting policies, see Update the SSL Negotiation
+// Configuration (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/ssl-config-update.html),
+// Duration-Based Session Stickiness (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-sticky-sessions.html#enable-sticky-sessions-duration),
+// and Application-Controlled Session Stickiness (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-sticky-sessions.html#enable-sticky-sessions-application)
+// in the Classic Load Balancers Guide.
 func (c *ELB) SetLoadBalancerPoliciesOfListener(input *SetLoadBalancerPoliciesOfListenerInput) (*SetLoadBalancerPoliciesOfListenerOutput, error) {
 	req, out := c.SetLoadBalancerPoliciesOfListenerRequest(input)
 	err := req.Send()
@@ -978,7 +1603,7 @@ type AccessLog struct {
 	// Default: 60 minutes
 	EmitInterval *int64 `type:"integer"`
 
-	// Specifies whether access log is enabled for the load balancer.
+	// Specifies whether access logs are enabled for the load balancer.
 	Enabled *bool `type:"boolean" required:"true"`
 
 	// The name of the Amazon S3 bucket where the access logs are stored.
@@ -1013,6 +1638,7 @@ func (s *AccessLog) Validate() error {
 	return nil
 }
 
+// Contains the parameters for AddTags.
 type AddTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1062,6 +1688,7 @@ func (s *AddTagsInput) Validate() error {
 	return nil
 }
 
+// Contains the output of AddTags.
 type AddTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1119,6 +1746,7 @@ func (s AppCookieStickinessPolicy) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for ApplySecurityGroupsToLoadBalancer.
 type ApplySecurityGroupsToLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1156,6 +1784,7 @@ func (s *ApplySecurityGroupsToLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// Contains the output of ApplySecurityGroupsToLoadBalancer.
 type ApplySecurityGroupsToLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1173,14 +1802,15 @@ func (s ApplySecurityGroupsToLoadBalancerOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for AttachLoaBalancerToSubnets.
 type AttachLoadBalancerToSubnetsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the load balancer.
 	LoadBalancerName *string `type:"string" required:"true"`
 
-	// The IDs of the subnets to add for the load balancer. You can add only one
-	// subnet per Availability Zone.
+	// The IDs of the subnets to add. You can add only one subnet per Availability
+	// Zone.
 	Subnets []*string `type:"list" required:"true"`
 }
 
@@ -1210,6 +1840,7 @@ func (s *AttachLoadBalancerToSubnetsInput) Validate() error {
 	return nil
 }
 
+// Contains the output of AttachLoadBalancerToSubnets.
 type AttachLoadBalancerToSubnetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1227,14 +1858,14 @@ func (s AttachLoadBalancerToSubnetsOutput) GoString() string {
 	return s.String()
 }
 
-// Information about the configuration of a back-end server.
+// Information about the configuration of an EC2 instance.
 type BackendServerDescription struct {
 	_ struct{} `type:"structure"`
 
-	// The port on which the back-end server is listening.
+	// The port on which the EC2 instance is listening.
 	InstancePort *int64 `min:"1" type:"integer"`
 
-	// The names of the policies enabled for the back-end server.
+	// The names of the policies enabled for the EC2 instance.
 	PolicyNames []*string `type:"list"`
 }
 
@@ -1248,10 +1879,11 @@ func (s BackendServerDescription) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for ConfigureHealthCheck.
 type ConfigureHealthCheckInput struct {
 	_ struct{} `type:"structure"`
 
-	// The configuration information for the new health check.
+	// The configuration information.
 	HealthCheck *HealthCheck `type:"structure" required:"true"`
 
 	// The name of the load balancer.
@@ -1289,6 +1921,7 @@ func (s *ConfigureHealthCheckInput) Validate() error {
 	return nil
 }
 
+// Contains the output of ConfigureHealthCheck.
 type ConfigureHealthCheckOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1376,6 +2009,7 @@ func (s *ConnectionSettings) Validate() error {
 	return nil
 }
 
+// Contains the parameters for CreateAppCookieStickinessPolicy.
 type CreateAppCookieStickinessPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1420,6 +2054,7 @@ func (s *CreateAppCookieStickinessPolicyInput) Validate() error {
 	return nil
 }
 
+// Contains the output for CreateAppCookieStickinessPolicy.
 type CreateAppCookieStickinessPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1434,12 +2069,14 @@ func (s CreateAppCookieStickinessPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for CreateLBCookieStickinessPolicy.
 type CreateLBCookieStickinessPolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The time period, in seconds, after which the cookie should be considered
-	// stale. If you do not specify this parameter, the sticky session lasts for
-	// the duration of the browser session.
+	// stale. If you do not specify this parameter, the default value is 0, which
+	// indicates that the sticky session should last for the duration of the browser
+	// session.
 	CookieExpirationPeriod *int64 `type:"long"`
 
 	// The name of the load balancer.
@@ -1477,6 +2114,7 @@ func (s *CreateLBCookieStickinessPolicyInput) Validate() error {
 	return nil
 }
 
+// Contains the output for CreateLBCookieStickinessPolicy.
 type CreateLBCookieStickinessPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1491,11 +2129,11 @@ func (s CreateLBCookieStickinessPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for CreateLoadBalancer.
 type CreateLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
 	// One or more Availability Zones from the same region as the load balancer.
-	// Traffic is equally distributed across all specified Availability Zones.
 	//
 	// You must specify at least one Availability Zone.
 	//
@@ -1505,8 +2143,8 @@ type CreateLoadBalancerInput struct {
 
 	// The listeners.
 	//
-	// For more information, see Listeners for Your Load Balancer (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-listener-config.html)
-	// in the Elastic Load Balancing Developer Guide.
+	// For more information, see Listeners for Your Classic Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
+	// in the Classic Load Balancers Guide.
 	Listeners []*Listener `type:"list" required:"true"`
 
 	// The name of the load balancer.
@@ -1519,13 +2157,13 @@ type CreateLoadBalancerInput struct {
 	// The type of a load balancer. Valid only for load balancers in a VPC.
 	//
 	// By default, Elastic Load Balancing creates an Internet-facing load balancer
-	// with a publicly resolvable DNS name, which resolves to public IP addresses.
-	// For more information about Internet-facing and Internal load balancers, see
-	// Internet-facing and Internal Load Balancers (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/vpc-loadbalancer-types.html)
-	// in the Elastic Load Balancing Developer Guide.
+	// with a DNS name that resolves to public IP addresses. For more information
+	// about Internet-facing and Internal load balancers, see Load Balancer Scheme
+	// (http://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html#load-balancer-scheme)
+	// in the Elastic Load Balancing User Guide.
 	//
-	// Specify internal to create an internal load balancer with a DNS name that
-	// resolves to private IP addresses.
+	// Specify internal to create a load balancer with a DNS name that resolves
+	// to private IP addresses.
 	Scheme *string `type:"string"`
 
 	// The IDs of the security groups to assign to the load balancer.
@@ -1537,8 +2175,9 @@ type CreateLoadBalancerInput struct {
 
 	// A list of tags to assign to the load balancer.
 	//
-	// For more information about tagging your load balancer, see Tagging (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html#tagging-elb)
-	// in the Elastic Load Balancing Developer Guide.
+	// For more information about tagging your load balancer, see Tag Your Classic
+	// Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/add-remove-tags.html)
+	// in the Classic Load Balancers Guide.
 	Tags []*Tag `min:"1" type:"list"`
 }
 
@@ -1591,6 +2230,7 @@ func (s *CreateLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// Contains the parameters for CreateLoadBalancerListeners.
 type CreateLoadBalancerListenersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1637,6 +2277,7 @@ func (s *CreateLoadBalancerListenersInput) Validate() error {
 	return nil
 }
 
+// Contains the parameters for CreateLoadBalancerListener.
 type CreateLoadBalancerListenersOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1651,6 +2292,7 @@ func (s CreateLoadBalancerListenersOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the output for CreateLoadBalancer.
 type CreateLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1668,13 +2310,14 @@ func (s CreateLoadBalancerOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for CreateLoadBalancerPolicy.
 type CreateLoadBalancerPolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the load balancer.
 	LoadBalancerName *string `type:"string" required:"true"`
 
-	// The attributes for the policy.
+	// The policy attributes.
 	PolicyAttributes []*PolicyAttribute `type:"list"`
 
 	// The name of the load balancer policy to be created. This name must be unique
@@ -1714,6 +2357,7 @@ func (s *CreateLoadBalancerPolicyInput) Validate() error {
 	return nil
 }
 
+// Contains the output of CreateLoadBalancerPolicy.
 type CreateLoadBalancerPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1759,6 +2403,7 @@ func (s *CrossZoneLoadBalancing) Validate() error {
 	return nil
 }
 
+// Contains the parameters for DeleteLoadBalancer.
 type DeleteLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1789,6 +2434,7 @@ func (s *DeleteLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// Contains the parameters for DeleteLoadBalancerListeners.
 type DeleteLoadBalancerListenersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1825,6 +2471,7 @@ func (s *DeleteLoadBalancerListenersInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DeleteLoadBalancerListeners.
 type DeleteLoadBalancerListenersOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1839,6 +2486,7 @@ func (s DeleteLoadBalancerListenersOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DeleteLoadBalancer.
 type DeleteLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1853,7 +2501,7 @@ func (s DeleteLoadBalancerOutput) GoString() string {
 	return s.String()
 }
 
-// =
+// Contains the parameters for DeleteLoadBalancerPolicy.
 type DeleteLoadBalancerPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1890,6 +2538,7 @@ func (s *DeleteLoadBalancerPolicyInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DeleteLoadBalancerPolicy.
 type DeleteLoadBalancerPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1904,6 +2553,7 @@ func (s DeleteLoadBalancerPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeregisterInstancesFromLoadBalancer.
 type DeregisterInstancesFromLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1940,6 +2590,7 @@ func (s *DeregisterInstancesFromLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DeregisterInstancesFromLoadBalancer.
 type DeregisterInstancesFromLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1957,6 +2608,7 @@ func (s DeregisterInstancesFromLoadBalancerOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeInstanceHealth.
 type DescribeInstanceHealthInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1990,6 +2642,7 @@ func (s *DescribeInstanceHealthInput) Validate() error {
 	return nil
 }
 
+// Contains the output for DescribeInstanceHealth.
 type DescribeInstanceHealthOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2007,6 +2660,7 @@ func (s DescribeInstanceHealthOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeLoadBalancerAttributes.
 type DescribeLoadBalancerAttributesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2037,6 +2691,7 @@ func (s *DescribeLoadBalancerAttributesInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DescribeLoadBalancerAttributes.
 type DescribeLoadBalancerAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2054,6 +2709,7 @@ func (s DescribeLoadBalancerAttributesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeLoadBalancerPolicies.
 type DescribeLoadBalancerPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2074,6 +2730,7 @@ func (s DescribeLoadBalancerPoliciesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeLoadBalancerPolicies.
 type DescribeLoadBalancerPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2091,6 +2748,7 @@ func (s DescribeLoadBalancerPoliciesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeLoadBalancerPolicyTypes.
 type DescribeLoadBalancerPolicyTypesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2109,6 +2767,7 @@ func (s DescribeLoadBalancerPolicyTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeLoadBalancerPolicyTypes.
 type DescribeLoadBalancerPolicyTypesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2126,6 +2785,7 @@ func (s DescribeLoadBalancerPolicyTypesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeLoadBalancers.
 type DescribeLoadBalancersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2164,6 +2824,7 @@ func (s *DescribeLoadBalancersInput) Validate() error {
 	return nil
 }
 
+// Contains the parameters for DescribeLoadBalancers.
 type DescribeLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2185,6 +2846,7 @@ func (s DescribeLoadBalancersOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeTags.
 type DescribeTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2218,6 +2880,7 @@ func (s *DescribeTagsInput) Validate() error {
 	return nil
 }
 
+// Contains the output for DescribeTags.
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2235,6 +2898,7 @@ func (s DescribeTagsOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DetachLoadBalancerFromSubnets.
 type DetachLoadBalancerFromSubnetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2271,6 +2935,7 @@ func (s *DetachLoadBalancerFromSubnetsInput) Validate() error {
 	return nil
 }
 
+// Contains the output of DetachLoadBalancerFromSubnets.
 type DetachLoadBalancerFromSubnetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2288,6 +2953,7 @@ func (s DetachLoadBalancerFromSubnetsOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DisableAvailabilityZonesForLoadBalancer.
 type DisableAvailabilityZonesForLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2324,6 +2990,7 @@ func (s *DisableAvailabilityZonesForLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// Contains the output for DisableAvailabilityZonesForLoadBalancer.
 type DisableAvailabilityZonesForLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2341,6 +3008,7 @@ func (s DisableAvailabilityZonesForLoadBalancerOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for EnableAvailabilityZonesForLoadBalancer.
 type EnableAvailabilityZonesForLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2377,6 +3045,7 @@ func (s *EnableAvailabilityZonesForLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// Contains the output of EnableAvailabilityZonesForLoadBalancer.
 type EnableAvailabilityZonesForLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2404,7 +3073,7 @@ type HealthCheck struct {
 
 	// The approximate interval, in seconds, between health checks of an individual
 	// instance.
-	Interval *int64 `min:"1" type:"integer" required:"true"`
+	Interval *int64 `min:"5" type:"integer" required:"true"`
 
 	// The instance being checked. The protocol is either TCP, HTTP, HTTPS, or SSL.
 	// The range of valid ports is one (1) through 65535.
@@ -2430,7 +3099,7 @@ type HealthCheck struct {
 	// check.
 	//
 	// This value must be less than the Interval value.
-	Timeout *int64 `min:"1" type:"integer" required:"true"`
+	Timeout *int64 `min:"2" type:"integer" required:"true"`
 
 	// The number of consecutive health check failures required before moving the
 	// instance to the Unhealthy state.
@@ -2459,8 +3128,8 @@ func (s *HealthCheck) Validate() error {
 	if s.Interval == nil {
 		invalidParams.Add(request.NewErrParamRequired("Interval"))
 	}
-	if s.Interval != nil && *s.Interval < 1 {
-		invalidParams.Add(request.NewErrParamMinValue("Interval", 1))
+	if s.Interval != nil && *s.Interval < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("Interval", 5))
 	}
 	if s.Target == nil {
 		invalidParams.Add(request.NewErrParamRequired("Target"))
@@ -2468,8 +3137,8 @@ func (s *HealthCheck) Validate() error {
 	if s.Timeout == nil {
 		invalidParams.Add(request.NewErrParamRequired("Timeout"))
 	}
-	if s.Timeout != nil && *s.Timeout < 1 {
-		invalidParams.Add(request.NewErrParamMinValue("Timeout", 1))
+	if s.Timeout != nil && *s.Timeout < 2 {
+		invalidParams.Add(request.NewErrParamMinValue("Timeout", 2))
 	}
 	if s.UnhealthyThreshold == nil {
 		invalidParams.Add(request.NewErrParamRequired("UnhealthyThreshold"))
@@ -2484,11 +3153,11 @@ func (s *HealthCheck) Validate() error {
 	return nil
 }
 
-// The ID of a back-end instance.
+// The ID of an EC2 instance.
 type Instance struct {
 	_ struct{} `type:"structure"`
 
-	// The ID of the instance.
+	// The instance ID.
 	InstanceId *string `type:"string"`
 }
 
@@ -2502,39 +3171,39 @@ func (s Instance) GoString() string {
 	return s.String()
 }
 
-// Information about the state of a back-end instance.
+// Information about the state of an EC2 instance.
 type InstanceState struct {
 	_ struct{} `type:"structure"`
 
 	// A description of the instance state. This string can contain one or more
 	// of the following messages.
 	//
-	//   N/A
+	//    N/A
 	//
-	//   A transient error occurred. Please try again later.
+	//    A transient error occurred. Please try again later.
 	//
-	//   Instance has failed at least the UnhealthyThreshold number of health checks
-	// consecutively.
-	//
-	//   Instance has not passed the configured HealthyThreshold number of health
+	//    Instance has failed at least the UnhealthyThreshold number of health
 	// checks consecutively.
 	//
-	//   Instance registration is still in progress.
+	//    Instance has not passed the configured HealthyThreshold number of health
+	// checks consecutively.
 	//
-	//   Instance is in the EC2 Availability Zone for which LoadBalancer is not
+	//    Instance registration is still in progress.
+	//
+	//    Instance is in the EC2 Availability Zone for which LoadBalancer is not
 	// configured to route traffic to.
 	//
-	//   Instance is not currently registered with the LoadBalancer.
+	//    Instance is not currently registered with the LoadBalancer.
 	//
-	//   Instance deregistration currently in progress.
+	//    Instance deregistration currently in progress.
 	//
-	//   Disable Availability Zone is currently in progress.
+	//    Disable Availability Zone is currently in progress.
 	//
-	//   Instance is in pending state.
+	//    Instance is in pending state.
 	//
-	//   Instance is in stopped state.
+	//    Instance is in stopped state.
 	//
-	//   Instance is in terminated state.
+	//    Instance is in terminated state.
 	Description *string `type:"string"`
 
 	// The ID of the instance.
@@ -2571,8 +3240,8 @@ type LBCookieStickinessPolicy struct {
 	// the duration of the browser session.
 	CookieExpirationPeriod *int64 `type:"long"`
 
-	// The name for the policy being created. The name must be unique within the
-	// set of policies for this load balancer.
+	// The name of the policy. This name must be unique within the set of policies
+	// for this load balancer.
 	PolicyName *string `type:"string"`
 }
 
@@ -2589,16 +3258,16 @@ func (s LBCookieStickinessPolicy) GoString() string {
 // Information about a listener.
 //
 // For information about the protocols and the ports supported by Elastic Load
-// Balancing, see Listener Configurations for Elastic Load Balancing (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-listener-config.html)
-// in the Elastic Load Balancing Developer Guide.
+// Balancing, see Listeners for Your Classic Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
+// in the Classic Load Balancers Guide.
 type Listener struct {
 	_ struct{} `type:"structure"`
 
 	// The port on which the instance is listening.
 	InstancePort *int64 `min:"1" type:"integer" required:"true"`
 
-	// The protocol to use for routing traffic to back-end instances: HTTP, HTTPS,
-	// TCP, or SSL.
+	// The protocol to use for routing traffic to instances: HTTP, HTTPS, TCP, or
+	// SSL.
 	//
 	// If the front-end protocol is HTTP, HTTPS, TCP, or SSL, InstanceProtocol
 	// must be at the same protocol.
@@ -2662,8 +3331,8 @@ type ListenerDescription struct {
 	// Information about a listener.
 	//
 	// For information about the protocols and the ports supported by Elastic Load
-	// Balancing, see Listener Configurations for Elastic Load Balancing (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-listener-config.html)
-	// in the Elastic Load Balancing Developer Guide.
+	// Balancing, see Listeners for Your Classic Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
+	// in the Classic Load Balancers Guide.
 	Listener *Listener `type:"structure"`
 
 	// The policies. If there are no policies enabled, the list is empty.
@@ -2687,19 +3356,18 @@ type LoadBalancerAttributes struct {
 	// If enabled, the load balancer captures detailed information of all requests
 	// and delivers the information to the Amazon S3 bucket that you specify.
 	//
-	// For more information, see Enable Access Logs (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/enable-access-logs.html)
-	// in the Elastic Load Balancing Developer Guide.
+	// For more information, see Enable Access Logs (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-access-logs.html)
+	// in the Classic Load Balancers Guide.
 	AccessLog *AccessLog `type:"structure"`
 
 	// This parameter is reserved.
 	AdditionalAttributes []*AdditionalAttribute `type:"list"`
 
 	// If enabled, the load balancer allows existing requests to complete before
-	// the load balancer shifts traffic away from a deregistered or unhealthy back-end
-	// instance.
+	// the load balancer shifts traffic away from a deregistered or unhealthy instance.
 	//
-	// For more information, see Enable Connection Draining (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/config-conn-drain.html)
-	// in the Elastic Load Balancing Developer Guide.
+	// For more information, see Configure Connection Draining (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-conn-drain.html)
+	// in the Classic Load Balancers Guide.
 	ConnectionDraining *ConnectionDraining `type:"structure"`
 
 	// If enabled, the load balancer allows the connections to remain idle (no data
@@ -2707,15 +3375,15 @@ type LoadBalancerAttributes struct {
 	//
 	// By default, Elastic Load Balancing maintains a 60-second idle connection
 	// timeout for both front-end and back-end connections of your load balancer.
-	// For more information, see Configure Idle Connection Timeout (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/config-idle-timeout.html)
-	// in the Elastic Load Balancing Developer Guide.
+	// For more information, see Configure Idle Connection Timeout (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-idle-timeout.html)
+	// in the Classic Load Balancers Guide.
 	ConnectionSettings *ConnectionSettings `type:"structure"`
 
 	// If enabled, the load balancer routes the request traffic evenly across all
-	// back-end instances regardless of the Availability Zones.
+	// instances regardless of the Availability Zones.
 	//
-	// For more information, see Enable Cross-Zone Load Balancing (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/enable-disable-crosszone-lb.html)
-	// in the Elastic Load Balancing Developer Guide.
+	// For more information, see Configure Cross-Zone Load Balancing (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-crosszone-lb.html)
+	// in the Classic Load Balancers Guide.
 	CrossZoneLoadBalancing *CrossZoneLoadBalancing `type:"structure"`
 }
 
@@ -2766,23 +3434,22 @@ type LoadBalancerDescription struct {
 	// The Availability Zones for the load balancer.
 	AvailabilityZones []*string `type:"list"`
 
-	// Information about the back-end servers.
+	// Information about your EC2 instances.
 	BackendServerDescriptions []*BackendServerDescription `type:"list"`
 
-	// The Amazon Route 53 hosted zone associated with the load balancer.
+	// The DNS name of the load balancer.
 	//
-	// For more information, see Using Domain Names With Elastic Load Balancing
-	// (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/using-domain-names-with-elb.html)
-	// in the Elastic Load Balancing Developer Guide.
+	// For more information, see Configure a Custom Domain Name (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/using-domain-names-with-elb.html)
+	// in the Classic Load Balancers Guide.
 	CanonicalHostedZoneName *string `type:"string"`
 
-	// The ID of the Amazon Route 53 hosted zone name associated with the load balancer.
+	// The ID of the Amazon Route 53 hosted zone for the load balancer.
 	CanonicalHostedZoneNameID *string `type:"string"`
 
 	// The date and time the load balancer was created.
 	CreatedTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
-	// The external DNS name of the load balancer.
+	// The DNS name of the load balancer.
 	DNSName *string `type:"string"`
 
 	// Information about the health checks conducted on the load balancer.
@@ -2813,10 +3480,10 @@ type LoadBalancerDescription struct {
 	// in a VPC.
 	SecurityGroups []*string `type:"list"`
 
-	// The security group that you can use as part of your inbound rules for your
-	// load balancer's back-end application instances. To only allow traffic from
-	// load balancers, add a security group rule to your back end instance that
-	// specifies this source security group as the inbound source.
+	// The security group for the load balancer, which you can use as part of your
+	// inbound rules for your registered instances. To only allow traffic from load
+	// balancers, add a security group rule that specifies this source security
+	// group as the inbound source.
 	SourceSecurityGroup *SourceSecurityGroup `type:"structure"`
 
 	// The IDs of the subnets for the load balancer.
@@ -2836,6 +3503,7 @@ func (s LoadBalancerDescription) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for ModifyLoadBalancerAttributes.
 type ModifyLoadBalancerAttributesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2877,6 +3545,7 @@ func (s *ModifyLoadBalancerAttributesInput) Validate() error {
 	return nil
 }
 
+// Contains the output of ModifyLoadBalancerAttributes.
 type ModifyLoadBalancerAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2977,9 +3646,13 @@ type PolicyAttributeTypeDescription struct {
 	//
 	// Valid values:
 	//
-	//  ONE(1) : Single value required ZERO_OR_ONE(0..1) : Up to one value can
-	// be supplied ZERO_OR_MORE(0..*) : Optional. Multiple values are allowed ONE_OR_MORE(1..*0)
-	// : Required. Multiple values are allowed
+	//   ONE(1) : Single value required
+	//
+	//   ZERO_OR_ONE(0..1) : Up to one value is allowed
+	//
+	//   ZERO_OR_MORE(0..*) : Optional. Multiple values are allowed
+	//
+	//   ONE_OR_MORE(1..*0) : Required. Multiple values are allowed
 	Cardinality *string `type:"string"`
 
 	// The default value of the attribute, if applicable.
@@ -3048,6 +3721,7 @@ func (s PolicyTypeDescription) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for RegisterInstancesWithLoadBalancer.
 type RegisterInstancesWithLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3084,6 +3758,7 @@ func (s *RegisterInstancesWithLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// Contains the output of RegisterInstancesWithLoadBalancer.
 type RegisterInstancesWithLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3101,6 +3776,7 @@ func (s RegisterInstancesWithLoadBalancerOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for RemoveTags.
 type RemoveTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3151,6 +3827,7 @@ func (s *RemoveTagsInput) Validate() error {
 	return nil
 }
 
+// Contains the output of RemoveTags.
 type RemoveTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3165,6 +3842,7 @@ func (s RemoveTagsOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for SetLoadBalancerListenerSSLCertificate.
 type SetLoadBalancerListenerSSLCertificateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3207,6 +3885,7 @@ func (s *SetLoadBalancerListenerSSLCertificateInput) Validate() error {
 	return nil
 }
 
+// Contains the output of SetLoadBalancerListenerSSLCertificate.
 type SetLoadBalancerListenerSSLCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3221,17 +3900,18 @@ func (s SetLoadBalancerListenerSSLCertificateOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for SetLoadBalancerPoliciesForBackendServer.
 type SetLoadBalancerPoliciesForBackendServerInput struct {
 	_ struct{} `type:"structure"`
 
-	// The port number associated with the back-end server.
+	// The port number associated with the EC2 instance.
 	InstancePort *int64 `type:"integer" required:"true"`
 
 	// The name of the load balancer.
 	LoadBalancerName *string `type:"string" required:"true"`
 
 	// The names of the policies. If the list is empty, then all current polices
-	// are removed from the back-end server.
+	// are removed from the EC2 instance.
 	PolicyNames []*string `type:"list" required:"true"`
 }
 
@@ -3264,6 +3944,7 @@ func (s *SetLoadBalancerPoliciesForBackendServerInput) Validate() error {
 	return nil
 }
 
+// Contains the output of SetLoadBalancerPoliciesForBackendServer.
 type SetLoadBalancerPoliciesForBackendServerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3278,17 +3959,19 @@ func (s SetLoadBalancerPoliciesForBackendServerOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for SetLoadBalancePoliciesOfListener.
 type SetLoadBalancerPoliciesOfListenerInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the load balancer.
 	LoadBalancerName *string `type:"string" required:"true"`
 
-	// The external port of the load balancer for the policy.
+	// The external port of the load balancer.
 	LoadBalancerPort *int64 `type:"integer" required:"true"`
 
-	// The names of the policies. If the list is empty, the current policy is removed
-	// from the listener.
+	// The names of the policies. This list must include all policies to be enabled.
+	// If you omit a policy that is currently enabled, it is disabled. If the list
+	// is empty, all current policies are disabled.
 	PolicyNames []*string `type:"list" required:"true"`
 }
 
@@ -3321,6 +4004,7 @@ func (s *SetLoadBalancerPoliciesOfListenerInput) Validate() error {
 	return nil
 }
 
+// Contains the output of SetLoadBalancePoliciesOfListener.
 type SetLoadBalancerPoliciesOfListenerOutput struct {
 	_ struct{} `type:"structure"`
 }

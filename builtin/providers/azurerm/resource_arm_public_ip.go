@@ -17,6 +17,9 @@ func resourceArmPublicIp() *schema.Resource {
 		Read:   resourceArmPublicIpRead,
 		Update: resourceArmPublicIpCreate,
 		Delete: resourceArmPublicIpDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -42,6 +45,9 @@ func resourceArmPublicIp() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validatePublicIpAllocation,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
 
 			"idle_timeout_in_minutes": {
@@ -119,7 +125,7 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("idle_timeout_in_minutes"); ok {
-		idle_timeout := v.(int32)
+		idle_timeout := int32(v.(int))
 		properties.IdleTimeoutInMinutes = &idle_timeout
 	}
 
@@ -159,13 +165,17 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 	name := id.Path["publicIPAddresses"]
 
 	resp, err := publicIPClient.Get(resGroup, name, "")
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
 	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
-	}
+
+	d.Set("location", resp.Location)
+	d.Set("name", resp.Name)
+	d.Set("public_ip_address_allocation", strings.ToLower(string(resp.Properties.PublicIPAllocationMethod)))
 
 	if resp.Properties.DNSSettings != nil && resp.Properties.DNSSettings.Fqdn != nil && *resp.Properties.DNSSettings.Fqdn != "" {
 		d.Set("fqdn", resp.Properties.DNSSettings.Fqdn)

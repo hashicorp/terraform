@@ -32,7 +32,7 @@ resource "google_compute_instance_template" "foobar" {
 
   // Create a new boot disk from an image
   disk {
-    source_image = "debian-7-wheezy-v20160301"
+    source_image = "debian-cloud/debian-8"
     auto_delete = true
     boot = true
   }
@@ -83,7 +83,7 @@ resource "google_compute_instance_template" "instance_template" {
     network_interface {
       ...
     }
- 
+
     lifecycle {
         create_before_destroy = true
     }
@@ -150,7 +150,7 @@ The following arguments are supported:
 * `scheduling` - (Optional) The scheduling strategy to use. More details about
     this configuration option are detailed below.
 
-* `service_account` - (Optional) Service account to attach to the instance.
+* `service_account` - (Optional) Service account to attach to the instance. Structure is documented below.
 
 * `tags` - (Optional) Tags to attach to the instance.
 
@@ -169,7 +169,7 @@ The `disk` block supports:
     to the name of the instance.
 
 * `source_image` - (Required if source not set) The name of the image to base
-    this disk off of.
+    this disk off of. Accepts same arguments as a [google_compute_instance image](https://www.terraform.io/docs/providers/google/r/compute_instance.html#image).
 
 * `interface` - (Optional) Specifies the disk interface to use for attaching
     this disk.
@@ -192,7 +192,7 @@ The `disk` block supports:
 
 The `network_interface` block supports:
 
-* `network` - (Optional) The name of the network to attach this interface to.
+* `network` - (Optional) The name or self_link of the network to attach this interface to.
     Use `network` attribute for Legacy or Auto subnetted networks and
     `subnetwork` for custom subnetted networks.
 
@@ -214,6 +214,9 @@ The `access_config` block supports:
 
 The `service_account` block supports:
 
+* `email` - (Optional) The service account e-mail address. If not given, the
+    default Google Compute Engine service account is used.
+
 * `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
     short names are supported.
 
@@ -226,7 +229,8 @@ The `scheduling` block supports:
 * `on_host_maintenance` - (Optional) Defines the maintenance behavior for this
     instance.
 
-* `preemptible` - (Optional) Allows instance to be preempted. Read more on this
+* `preemptible` - (Optional) Allows instance to be preempted. This defaults to
+    false. Read more on this
     [here](https://cloud.google.com/compute/docs/instances/preemptible).
 
 ## Attributes Reference

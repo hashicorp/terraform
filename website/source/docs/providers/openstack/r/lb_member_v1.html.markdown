@@ -56,3 +56,11 @@ The following attributes are exported:
 * `admin_state_up` - See Argument Reference above.
 * `weight` - The load balancing weight of the member. This is currently unable
     to be set through Terraform.
+
+## Import
+
+Load Balancer Members can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_lb_member_v1.member_1 a7498676-4fe4-4243-a864-2eaaf18c73df
+```

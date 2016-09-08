@@ -60,10 +60,16 @@ func s3Factory(conf map[string]string) (Client, error) {
 	kmsKeyID := conf["kms_key_id"]
 
 	var errs []error
-	creds := terraformAws.GetCredentials(conf["access_key"], conf["secret_key"], conf["token"], conf["profile"], conf["shared_credentials_file"])
+	creds, err := terraformAws.GetCredentials(&terraformAws.Config{
+		AccessKey:     conf["access_key"],
+		SecretKey:     conf["secret_key"],
+		Token:         conf["token"],
+		Profile:       conf["profile"],
+		CredsFilename: conf["shared_credentials_file"],
+	})
 	// Call Get to check for credential provider. If nothing found, we'll get an
 	// error, and we can present it nicely to the user
-	_, err := creds.Get()
+	_, err = creds.Get()
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
 			errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS S3 remote.

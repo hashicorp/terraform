@@ -15,8 +15,8 @@ import (
 )
 
 // How long to sleep if a limit-exceeded event happens
-var routeTargetValidationError = errors.New("Error: more than 1 target specified. Only 1 of gateway_id" +
-	"nat_gateway_id, instance_id, network_interface_id, route_table_id or" +
+var routeTargetValidationError = errors.New("Error: more than 1 target specified. Only 1 of gateway_id, " +
+	"nat_gateway_id, instance_id, network_interface_id, route_table_id or " +
 	"vpc_peering_connection_id is allowed.")
 
 // AWS Route resource Schema declaration
@@ -179,23 +179,36 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating route: %s", err)
 	}
 
-	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
+	var route *ec2.Route
+	err = resource.Retry(15*time.Second, func() *resource.RetryError {
+		route, err = findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
+		return resource.RetryableError(err)
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("Error finding route after creating it: %s", err)
 	}
 
 	d.SetId(routeIDHash(d, route))
-
-	return resourceAwsRouteRead(d, meta)
+	resourceAwsRouteSetResourceData(d, route)
+	return nil
 }
 
 func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidRouteTableID.NotFound" {
+			log.Printf("[WARN] AWS RouteTable not found. Removing Route from state")
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
+	resourceAwsRouteSetResourceData(d, route)
+	return nil
+}
 
+func resourceAwsRouteSetResourceData(d *schema.ResourceData, route *ec2.Route) {
 	d.Set("destination_prefix_list_id", route.DestinationPrefixListId)
 	d.Set("gateway_id", route.GatewayId)
 	d.Set("nat_gateway_id", route.NatGatewayId)
@@ -205,8 +218,6 @@ func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("origin", route.Origin)
 	d.Set("state", route.State)
 	d.Set("vpc_peering_connection_id", route.VpcPeeringConnectionId)
-
-	return nil
 }
 
 func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -380,7 +391,7 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 		}
 	}
 
-	return nil, fmt.Errorf(`
-error finding matching route for Route table (%s) and destination CIDR block (%s)`,
+	return nil, fmt.Errorf(
+		`error finding matching route for Route table (%s) and destination CIDR block (%s)`,
 		rtbid, cidr)
 }

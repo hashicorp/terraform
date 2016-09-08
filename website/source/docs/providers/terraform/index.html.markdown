@@ -20,12 +20,12 @@ Use the navigation to the left to read about the available data sources.
 data "terraform_remote_state" "vpc" {
     backend = "atlas"
     config {
-        path = "hashicorp/vpc-prod"
+        name = "hashicorp/vpc-prod"
     }
 }
 
 resource "aws_instance" "foo" {
     # ...
-    subnet_id = "${data.terraform_remote_state.vpc.output.subnet_id}"
+    subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
 }
 ```

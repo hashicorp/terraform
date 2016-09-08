@@ -120,8 +120,10 @@ func appendRequests(datadogGraph *datadog.Graph, terraformRequests *[]interface{
 	for _, t_ := range *terraformRequests {
 		t := t_.(map[string]interface{})
 		d := struct {
-			Query   string `json:"q"`
-			Stacked bool   `json:"stacked"`
+			Query              string `json:"q"`
+			Stacked            bool   `json:"stacked"`
+			Aggregator         string
+			ConditionalFormats []datadog.DashboardConditionalFormat `json:"conditional_formats,omitempty"`
 		}{Query: t["q"].(string)}
 		if stacked, ok := t["stacked"]; ok {
 			d.Stacked = stacked.(bool)

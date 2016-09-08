@@ -20,7 +20,11 @@ func resourceAwsRedshiftSecurityGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsRedshiftSecurityGroupCreate,
 		Read:   resourceAwsRedshiftSecurityGroupRead,
+		Update: resourceAwsRedshiftSecurityGroupUpdate,
 		Delete: resourceAwsRedshiftSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsRedshiftClusterImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -40,7 +44,6 @@ func resourceAwsRedshiftSecurityGroup() *schema.Resource {
 			"ingress": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cidr": &schema.Schema{
@@ -149,6 +152,55 @@ func resourceAwsRedshiftSecurityGroupRead(d *schema.ResourceData, meta interface
 	d.Set("description", *sg.Description)
 
 	return nil
+}
+
+func resourceAwsRedshiftSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).redshiftconn
+
+	if d.HasChange("ingress") {
+		o, n := d.GetChange("ingress")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		removeIngressRules, err := expandRedshiftSGRevokeIngress(os.Difference(ns).List())
+		if err != nil {
+			return err
+		}
+		if len(removeIngressRules) > 0 {
+			for _, r := range removeIngressRules {
+				r.ClusterSecurityGroupName = aws.String(d.Id())
+
+				_, err := conn.RevokeClusterSecurityGroupIngress(&r)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		addIngressRules, err := expandRedshiftSGAuthorizeIngress(ns.Difference(os).List())
+		if err != nil {
+			return err
+		}
+		if len(addIngressRules) > 0 {
+			for _, r := range addIngressRules {
+				r.ClusterSecurityGroupName = aws.String(d.Id())
+
+				_, err := conn.AuthorizeClusterSecurityGroupIngress(&r)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+	}
+	return resourceAwsRedshiftSecurityGroupRead(d, meta)
 }
 
 func resourceAwsRedshiftSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
@@ -289,4 +341,60 @@ func resourceAwsRedshiftSecurityGroupStateRefreshFunc(
 
 		return v, "authorized", nil
 	}
+}
+
+func expandRedshiftSGAuthorizeIngress(configured []interface{}) ([]redshift.AuthorizeClusterSecurityGroupIngressInput, error) {
+	var ingress []redshift.AuthorizeClusterSecurityGroupIngressInput
+
+	// Loop over our configured parameters and create
+	// an array of aws-sdk-go compatabile objects
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		i := redshift.AuthorizeClusterSecurityGroupIngressInput{}
+
+		if v, ok := data["cidr"]; ok {
+			i.CIDRIP = aws.String(v.(string))
+		}
+
+		if v, ok := data["security_group_name"]; ok {
+			i.EC2SecurityGroupName = aws.String(v.(string))
+		}
+
+		if v, ok := data["security_group_owner_id"]; ok {
+			i.EC2SecurityGroupOwnerId = aws.String(v.(string))
+		}
+
+		ingress = append(ingress, i)
+	}
+
+	return ingress, nil
+}
+
+func expandRedshiftSGRevokeIngress(configured []interface{}) ([]redshift.RevokeClusterSecurityGroupIngressInput, error) {
+	var ingress []redshift.RevokeClusterSecurityGroupIngressInput
+
+	// Loop over our configured parameters and create
+	// an array of aws-sdk-go compatabile objects
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		i := redshift.RevokeClusterSecurityGroupIngressInput{}
+
+		if v, ok := data["cidr"]; ok {
+			i.CIDRIP = aws.String(v.(string))
+		}
+
+		if v, ok := data["security_group_name"]; ok {
+			i.EC2SecurityGroupName = aws.String(v.(string))
+		}
+
+		if v, ok := data["security_group_owner_id"]; ok {
+			i.EC2SecurityGroupOwnerId = aws.String(v.(string))
+		}
+
+		ingress = append(ingress, i)
+	}
+
+	return ingress, nil
 }

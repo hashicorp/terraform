@@ -58,9 +58,19 @@ The following arguments are supported:
 
 * `storage_container_name` - (Required) The name of the storage container in which this blob should be created.
 
-* `type` - (Required) The type of the storage blob to be created. One of either `block` or `page`.
+* `type` - (Optional) The type of the storage blob to be created. One of either `block` or `page`. When not copying from an existing blob,
+    this becomes required.
 
-* `size` - (Optional) Used only for `page` blobs to specify the size in bytes of the blob to be created. Must be a multiple of 512. Defaults to 0. 
+* `size` - (Optional) Used only for `page` blobs to specify the size in bytes of the blob to be created. Must be a multiple of 512. Defaults to 0.
+
+* `source` - (Optional) An absolute path to a file on the local system. Cannot be defined if `source_uri` is defined.
+
+* `source_uri` - (Optional) The URI of an existing blob, or a file in the Azure File service, to use as the source contents
+    for the blob to be created. Changing this forces a new resource to be created. Cannot be defined if `source` is defined.
+
+* `parallelism` - (Optional) The number of workers per CPU core to run for concurrent uploads. Defaults to `8`.
+
+* `attempts` - (Optional) The number of attempts to make per page or block when uploading. Defaults to `1`.
 
 ## Attributes Reference
 

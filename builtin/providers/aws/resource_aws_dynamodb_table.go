@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -34,6 +35,9 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 		Read:   resourceAwsDynamoDbTableRead,
 		Update: resourceAwsDynamoDbTableUpdate,
 		Delete: resourceAwsDynamoDbTableDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -339,7 +343,9 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 	dynamodbconn := meta.(*AWSClient).dynamodbconn
 
 	// Ensure table is active before trying to update
-	waitForTableToBeActive(d.Id(), meta)
+	if err := waitForTableToBeActive(d.Id(), meta); err != nil {
+		return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
+	}
 
 	if d.HasChange("read_capacity") || d.HasChange("write_capacity") {
 		req := &dynamodb.UpdateTableInput{
@@ -358,7 +364,9 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 			return err
 		}
 
-		waitForTableToBeActive(d.Id(), meta)
+		if err := waitForTableToBeActive(d.Id(), meta); err != nil {
+			return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
+		}
 	}
 
 	if d.HasChange("stream_enabled") || d.HasChange("stream_view_type") {
@@ -377,7 +385,9 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 			return err
 		}
 
-		waitForTableToBeActive(d.Id(), meta)
+		if err := waitForTableToBeActive(d.Id(), meta); err != nil {
+			return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
+		}
 	}
 
 	if d.HasChange("global_secondary_index") {
@@ -459,8 +469,13 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 					return err
 				}
 
-				waitForTableToBeActive(d.Id(), meta)
-				waitForGSIToBeActive(d.Id(), *gsi.IndexName, meta)
+				if err := waitForTableToBeActive(d.Id(), meta); err != nil {
+					return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
+				}
+
+				if err := waitForGSIToBeActive(d.Id(), *gsi.IndexName, meta); err != nil {
+					return errwrap.Wrapf("Error waiting for Dynamo DB GSIT to be active: {{err}}", err)
+				}
 
 			}
 		}
@@ -485,7 +500,9 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 					return err
 				}
 
-				waitForTableToBeActive(d.Id(), meta)
+				if err := waitForTableToBeActive(d.Id(), meta); err != nil {
+					return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
+				}
 			}
 		}
 	}
@@ -601,6 +618,44 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("attribute", attributes)
+	d.Set("name", table.TableName)
+
+	for _, attribute := range table.KeySchema {
+		if *attribute.KeyType == "HASH" {
+			d.Set("hash_key", attribute.AttributeName)
+		}
+
+		if *attribute.KeyType == "RANGE" {
+			d.Set("range_key", attribute.AttributeName)
+		}
+	}
+
+	lsiList := make([]map[string]interface{}, 0, len(table.LocalSecondaryIndexes))
+	for _, lsiObject := range table.LocalSecondaryIndexes {
+		lsi := map[string]interface{}{
+			"name":            *lsiObject.IndexName,
+			"projection_type": *lsiObject.Projection.ProjectionType,
+		}
+
+		for _, attribute := range lsiObject.KeySchema {
+
+			if *attribute.KeyType == "RANGE" {
+				lsi["range_key"] = *attribute.AttributeName
+			}
+		}
+		nkaList := make([]string, len(lsiObject.Projection.NonKeyAttributes))
+		for _, nka := range lsiObject.Projection.NonKeyAttributes {
+			nkaList = append(nkaList, *nka)
+		}
+		lsi["non_key_attributes"] = nkaList
+
+		lsiList = append(lsiList, lsi)
+	}
+
+	err = d.Set("local_secondary_index", lsiList)
+	if err != nil {
+		return err
+	}
 
 	gsiList := make([]map[string]interface{}, 0, len(table.GlobalSecondaryIndexes))
 	for _, gsiObject := range table.GlobalSecondaryIndexes {
@@ -651,7 +706,9 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) error {
 	dynamodbconn := meta.(*AWSClient).dynamodbconn
 
-	waitForTableToBeActive(d.Id(), meta)
+	if err := waitForTableToBeActive(d.Id(), meta); err != nil {
+		return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
+	}
 
 	log.Printf("[DEBUG] DynamoDB delete table: %s", d.Id())
 

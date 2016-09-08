@@ -14,6 +14,7 @@ func LoadToken(path string) (*Token, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file (%s) while loading token: %v", path, err)
 	}
+	defer file.Close()
 
 	var token Token
 

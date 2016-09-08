@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/colorstring"
@@ -95,12 +96,13 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 	// interrupt this if we are interrupted (SIGINT)
 	result := make(chan string, 1)
 	go func() {
-		var line string
-		if _, err := fmt.Fscanln(r, &line); err != nil {
+		buf := bufio.NewReader(r)
+		line, err := buf.ReadString('\n')
+		if err != nil {
 			log.Printf("[ERR] UIInput scan err: %s", err)
 		}
 
-		result <- line
+		result <- strings.TrimRightFunc(line, unicode.IsSpace)
 	}()
 
 	select {

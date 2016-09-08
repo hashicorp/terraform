@@ -26,6 +26,8 @@ func TestAccAWSVpc_basic(t *testing.T) {
 					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "default_route_table_id"),
 				),
 			},
 		},

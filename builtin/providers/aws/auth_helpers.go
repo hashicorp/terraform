@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,10 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -25,7 +28,12 @@ func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (
 
 		cfg := &aws.Config{}
 		setOptionalEndpoint(cfg)
-		metadataClient := ec2metadata.New(session.New(cfg))
+		sess, err := session.NewSession(cfg)
+		if err != nil {
+			return "", errwrap.Wrapf("Error creating AWS session: %s", err)
+		}
+
+		metadataClient := ec2metadata.New(sess)
 		info, err := metadataClient.IAMInfo()
 		if err != nil {
 			// This can be triggered when no IAM Role is assigned
@@ -69,7 +77,7 @@ func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (
 	}
 
 	if len(outRoles.Roles) < 1 {
-		return "", fmt.Errorf("Failed getting account ID via 'iam:ListRoles': No roles available")
+		return "", errors.New("Failed getting account ID via 'iam:ListRoles': No roles available")
 	}
 
 	return parseAccountIdFromArn(*outRoles.Roles[0].Arn)
@@ -86,18 +94,18 @@ func parseAccountIdFromArn(arn string) (string, error) {
 // This function is responsible for reading credentials from the
 // environment in the case that they're not explicitly specified
 // in the Terraform configuration.
-func GetCredentials(key, secret, token, profile, credsfile string) *awsCredentials.Credentials {
+func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
 	// build a chain provider, lazy-evaulated by aws-sdk
 	providers := []awsCredentials.Provider{
 		&awsCredentials.StaticProvider{Value: awsCredentials.Value{
-			AccessKeyID:     key,
-			SecretAccessKey: secret,
-			SessionToken:    token,
+			AccessKeyID:     c.AccessKey,
+			SecretAccessKey: c.SecretKey,
+			SessionToken:    c.Token,
 		}},
 		&awsCredentials.EnvProvider{},
 		&awsCredentials.SharedCredentialsProvider{
-			Filename: credsfile,
-			Profile:  profile,
+			Filename: c.CredsFilename,
+			Profile:  c.Profile,
 		},
 	}
 
@@ -111,25 +119,88 @@ func GetCredentials(key, secret, token, profile, credsfile string) *awsCredentia
 	}
 	usedEndpoint := setOptionalEndpoint(cfg)
 
-	// Real AWS should reply to a simple metadata request.
-	// We check it actually does to ensure something else didn't just
-	// happen to be listening on the same IP:Port
-	metadataClient := ec2metadata.New(session.New(cfg))
-	if metadataClient.Available() {
-		providers = append(providers, &ec2rolecreds.EC2RoleProvider{
-			Client: metadataClient,
-		})
-		log.Printf("[INFO] AWS EC2 instance detected via default metadata" +
-			" API endpoint, EC2RoleProvider added to the auth chain")
-	} else {
-		if usedEndpoint == "" {
-			usedEndpoint = "default location"
+	if !c.SkipMetadataApiCheck {
+		// Real AWS should reply to a simple metadata request.
+		// We check it actually does to ensure something else didn't just
+		// happen to be listening on the same IP:Port
+		metadataClient := ec2metadata.New(session.New(cfg))
+		if metadataClient.Available() {
+			providers = append(providers, &ec2rolecreds.EC2RoleProvider{
+				Client: metadataClient,
+			})
+			log.Print("[INFO] AWS EC2 instance detected via default metadata" +
+				" API endpoint, EC2RoleProvider added to the auth chain")
+		} else {
+			if usedEndpoint == "" {
+				usedEndpoint = "default location"
+			}
+			log.Printf("[WARN] Ignoring AWS metadata API endpoint at %s "+
+				"as it doesn't return any instance-id", usedEndpoint)
 		}
-		log.Printf("[WARN] Ignoring AWS metadata API endpoint at %s "+
-			"as it doesn't return any instance-id", usedEndpoint)
 	}
 
-	return awsCredentials.NewChainCredentials(providers)
+	// This is the "normal" flow (i.e. not assuming a role)
+	if c.AssumeRoleARN == "" {
+		return awsCredentials.NewChainCredentials(providers), nil
+	}
+
+	// Otherwise we need to construct and STS client with the main credentials, and verify
+	// that we can assume the defined role.
+	log.Printf("[INFO] Attempting to AssumeRole %s (SessionName: %q, ExternalId: %q)",
+		c.AssumeRoleARN, c.AssumeRoleSessionName, c.AssumeRoleExternalID)
+
+	creds := awsCredentials.NewChainCredentials(providers)
+	cp, err := creds.Get()
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
+			return nil, errors.New(`No valid credential sources found for AWS Provider.
+  Please see https://terraform.io/docs/providers/aws/index.html for more information on
+  providing credentials for the AWS Provider`)
+		}
+
+		return nil, fmt.Errorf("Error loading credentials for AWS Provider: %s", err)
+	}
+
+	log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
+
+	awsConfig := &aws.Config{
+		Credentials:      creds,
+		Region:           aws.String(c.Region),
+		MaxRetries:       aws.Int(c.MaxRetries),
+		HTTPClient:       cleanhttp.DefaultClient(),
+		S3ForcePathStyle: aws.Bool(c.S3ForcePathStyle),
+	}
+
+	stsclient := sts.New(session.New(awsConfig))
+	assumeRoleProvider := &stscreds.AssumeRoleProvider{
+		Client:  stsclient,
+		RoleARN: c.AssumeRoleARN,
+	}
+	if c.AssumeRoleSessionName != "" {
+		assumeRoleProvider.RoleSessionName = c.AssumeRoleSessionName
+	}
+	if c.AssumeRoleExternalID != "" {
+		assumeRoleProvider.ExternalID = aws.String(c.AssumeRoleExternalID)
+	}
+
+	providers = []awsCredentials.Provider{assumeRoleProvider}
+
+	assumeRoleCreds := awsCredentials.NewChainCredentials(providers)
+	_, err = assumeRoleCreds.Get()
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
+			return nil, fmt.Errorf("The role %q cannot be assumed.\n\n"+
+				"  There are a number of possible causes of this - the most common are:\n"+
+				"    * The credentials used in order to assume the role are invalid\n"+
+				"    * The credentials do not have appropriate permission to assume the role\n"+
+				"    * The role ARN is not valid",
+				c.AssumeRoleARN)
+		}
+
+		return nil, fmt.Errorf("Error loading credentials for AWS Provider: %s", err)
+	}
+
+	return assumeRoleCreds, nil
 }
 
 func setOptionalEndpoint(cfg *aws.Config) string {

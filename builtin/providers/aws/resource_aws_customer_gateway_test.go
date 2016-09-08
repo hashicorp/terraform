@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestAccAWSCustomerGateway_basic(t *testing.T) {
+	var gateway ec2.CustomerGateway
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_customer_gateway.foo",
@@ -22,29 +24,73 @@ func TestAccAWSCustomerGateway_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCustomerGatewayConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCustomerGateway(
-						"aws_customer_gateway.foo",
-					),
+					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 				),
 			},
 			resource.TestStep{
 				Config: testAccCustomerGatewayConfigUpdateTags,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCustomerGateway(
-						"aws_customer_gateway.foo",
-					),
+					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 				),
 			},
 			resource.TestStep{
 				Config: testAccCustomerGatewayConfigForceReplace,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCustomerGateway(
-						"aws_customer_gateway.foo",
-					),
+					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 				),
 			},
 		},
 	})
+}
+
+func TestAccAWSCustomerGateway_disappears(t *testing.T) {
+	var gateway ec2.CustomerGateway
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCustomerGatewayDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCustomerGatewayConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
+					testAccAWSCustomerGatewayDisappears(&gateway),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccAWSCustomerGatewayDisappears(gateway *ec2.CustomerGateway) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		opts := &ec2.DeleteCustomerGatewayInput{
+			CustomerGatewayId: gateway.CustomerGatewayId,
+		}
+		if _, err := conn.DeleteCustomerGateway(opts); err != nil {
+			return err
+		}
+		return resource.Retry(40*time.Minute, func() *resource.RetryError {
+			opts := &ec2.DescribeCustomerGatewaysInput{
+				CustomerGatewayIds: []*string{gateway.CustomerGatewayId},
+			}
+			resp, err := conn.DescribeCustomerGateways(opts)
+			if err != nil {
+				cgw, ok := err.(awserr.Error)
+				if ok && cgw.Code() == "InvalidCustomerGatewayID.NotFound" {
+					return nil
+				}
+				return resource.NonRetryableError(
+					fmt.Errorf("Error retrieving Customer Gateway: %s", err))
+			}
+			if *resp.CustomerGateways[0].State == "deleted" {
+				return nil
+			}
+			return resource.RetryableError(fmt.Errorf(
+				"Waiting for Customer Gateway: %v", gateway.CustomerGatewayId))
+		})
+	}
 }
 
 func testAccCheckCustomerGatewayDestroy(s *terraform.State) error {
@@ -72,6 +118,10 @@ func testAccCheckCustomerGatewayDestroy(s *terraform.State) error {
 			if len(resp.CustomerGateways) > 0 {
 				return fmt.Errorf("Customer gateway still exists: %v", resp.CustomerGateways)
 			}
+
+			if *resp.CustomerGateways[0].State == "deleted" {
+				continue
+			}
 		}
 
 		return err
@@ -80,7 +130,7 @@ func testAccCheckCustomerGatewayDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckCustomerGateway(gatewayResource string) resource.TestCheckFunc {
+func testAccCheckCustomerGateway(gatewayResource string, cgw *ec2.CustomerGateway) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[gatewayResource]
 		if !ok {
@@ -102,13 +152,16 @@ func testAccCheckCustomerGateway(gatewayResource string) resource.TestCheckFunc 
 			Values: []*string{aws.String(gateway.Primary.ID)},
 		}
 
-		_, err := ec2conn.DescribeCustomerGateways(&ec2.DescribeCustomerGatewaysInput{
+		resp, err := ec2conn.DescribeCustomerGateways(&ec2.DescribeCustomerGatewaysInput{
 			Filters: []*ec2.Filter{gatewayFilter},
 		})
 
 		if err != nil {
 			return err
 		}
+
+		respGateway := resp.CustomerGateways[0]
+		*cgw = *respGateway
 
 		return nil
 	}

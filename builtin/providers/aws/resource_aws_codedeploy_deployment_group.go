@@ -238,14 +238,20 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 		DeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
 	})
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "DeploymentGroupDoesNotExistException" {
+			log.Printf("[INFO] CodeDeployment DeploymentGroup %s not found", d.Get("deployment_group_name").(string))
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
-	d.Set("app_name", *resp.DeploymentGroupInfo.ApplicationName)
+	d.Set("app_name", resp.DeploymentGroupInfo.ApplicationName)
 	d.Set("autoscaling_groups", resp.DeploymentGroupInfo.AutoScalingGroups)
-	d.Set("deployment_config_name", *resp.DeploymentGroupInfo.DeploymentConfigName)
-	d.Set("deployment_group_name", *resp.DeploymentGroupInfo.DeploymentGroupName)
-	d.Set("service_role_arn", *resp.DeploymentGroupInfo.ServiceRoleArn)
+	d.Set("deployment_config_name", resp.DeploymentGroupInfo.DeploymentConfigName)
+	d.Set("deployment_group_name", resp.DeploymentGroupInfo.DeploymentGroupName)
+	d.Set("service_role_arn", resp.DeploymentGroupInfo.ServiceRoleArn)
 	if err := d.Set("ec2_tag_filter", ec2TagFiltersToMap(resp.DeploymentGroupInfo.Ec2TagFilters)); err != nil {
 		return err
 	}
@@ -298,7 +304,35 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
-	_, err := conn.UpdateDeploymentGroup(&input)
+	// Retry to handle IAM role eventual consistency.
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := conn.UpdateDeploymentGroup(&input)
+		if err != nil {
+			retry := false
+			codedeployErr, ok := err.(awserr.Error)
+			if !ok {
+				return resource.NonRetryableError(err)
+			}
+			if codedeployErr.Code() == "InvalidRoleException" {
+				retry = true
+			}
+			if codedeployErr.Code() == "InvalidTriggerConfigException" {
+				r := regexp.MustCompile("^Topic ARN .+ is not valid$")
+				if r.MatchString(codedeployErr.Message()) {
+					retry = true
+				}
+			}
+			if retry {
+				log.Printf("[DEBUG] Retrying Code Deployment Group Update: %q",
+					codedeployErr.Message())
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}

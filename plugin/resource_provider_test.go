@@ -444,8 +444,8 @@ func TestResourceProvider_datasources(t *testing.T) {
 	provider := raw.(terraform.ResourceProvider)
 
 	expected := []terraform.DataSource{
-		{"foo"},
-		{"bar"},
+		{Name: "foo"},
+		{Name: "bar"},
 	}
 
 	p.DataSourcesReturn = expected

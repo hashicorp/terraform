@@ -93,7 +93,7 @@ data "aws_iam_policy_document" "s3_policy" {
 
 aws_s3_bucket "bucket" {
   ...
-  policy = "${data.aws_iam_policy_document.s3_policy}"
+  policy = "${data.aws_iam_policy_document.s3_policy.json}"
 }
 ```
 
@@ -101,3 +101,12 @@ aws_s3_bucket "bucket" {
 [2]: http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html
 [3]: /docs/providers/aws/r/cloudfront_distribution.html
 [4]: /docs/providers/aws/r/s3_bucket.html
+
+
+## Import
+
+Cloudfront Origin Access Identities can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_cloudfront_origin_access_identity.origin_access E74FTE3AEXAMPLE
+```

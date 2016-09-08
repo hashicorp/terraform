@@ -17,6 +17,9 @@ func resourceArmResourceGroup() *schema.Resource {
 		Update: resourceArmResourceGroupUpdate,
 		Exists: resourceArmResourceGroupExists,
 		Delete: resourceArmResourceGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{

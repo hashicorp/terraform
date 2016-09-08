@@ -21,7 +21,7 @@ state at the given ADDRESS.
 
 ADDRESS must be a valid [resource address](/docs/internals/resource-addressing.html).
 Because any resource address is valid, the import command can import resources
-into modules as well directly into the root of yor state.
+into modules as well directly into the root of your state.
 
 ID is dependent on the resource type being imported. For example, for AWS
 instances it is the instance ID (`i-abcd1234`) but for AWS Route53 zones
@@ -38,10 +38,11 @@ The command-line flags are all optional. The list of available flags are:
 * `-input=true` - Whether to ask for input for provider configuration.
 
 * `-state=path` - The path to read and save state files (unless state-out is
-  specified).
+  specified). Ignored when [remote state](/docs/state/remote/index.html) is used.
 
 * `-state-out=path` - Path to write the final state file. By default, this is
-  the state path.
+  the state path. Ignored when [remote state](/docs/state/remote/index.html) is
+  used.
 
 ## Provider Configuration
 

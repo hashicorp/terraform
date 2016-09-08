@@ -79,6 +79,13 @@ func (p *Parser) objectList() (*ast.ObjectList, error) {
 		}
 
 		node.Add(n)
+
+		// object lists can be optionally comma-delimited e.g. when a list of maps
+		// is being expressed, so a comma is allowed here - it's simply consumed
+		tok := p.scan()
+		if tok.Type != token.COMMA {
+			p.unscan()
+		}
 	}
 	return node, nil
 }
@@ -311,15 +318,20 @@ func (p *Parser) listType() (*ast.ListType, error) {
 	needComma := false
 	for {
 		tok := p.scan()
-		switch tok.Type {
-		case token.NUMBER, token.FLOAT, token.STRING, token.HEREDOC:
-			if needComma {
+		if needComma {
+			switch tok.Type {
+			case token.COMMA, token.RBRACK:
+			default:
 				return nil, &PosError{
 					Pos: tok.Pos,
-					Err: fmt.Errorf("unexpected token: %s. Expecting %s", tok.Type, token.COMMA),
+					Err: fmt.Errorf(
+						"error parsing list, expected comma or list end, got: %s",
+						tok.Type),
 				}
 			}
-
+		}
+		switch tok.Type {
+		case token.NUMBER, token.FLOAT, token.STRING, token.HEREDOC:
 			node, err := p.literalType()
 			if err != nil {
 				return nil, err
@@ -343,6 +355,18 @@ func (p *Parser) listType() (*ast.ListType, error) {
 
 			needComma = false
 			continue
+		case token.LBRACE:
+			// Looks like a nested object, so parse it out
+			node, err := p.objectType()
+			if err != nil {
+				return nil, &PosError{
+					Pos: tok.Pos,
+					Err: fmt.Errorf(
+						"error while trying to parse object within list: %s", err),
+				}
+			}
+			l.Add(node)
+			needComma = true
 		case token.BOOL:
 			// TODO(arslan) should we support? not supported by HCL yet
 		case token.LBRACK:

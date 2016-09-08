@@ -17,13 +17,13 @@ For more information on Amazon Aurora, see [Aurora on Amazon RDS][2] in the Amaz
 
 Changes to a RDS Cluster can occur when you manually change a
 parameter, such as `port`, and are reflected in the next maintenance
-window. Because of this, Terraform may report a difference in it's planning
+window. Because of this, Terraform may report a difference in its planning
 phase because a modification has not yet taken place. You can use the
-`apply_immediately` flag to instruct the service to apply the change immediately 
-(see documentation below). 
+`apply_immediately` flag to instruct the service to apply the change immediately
+(see documentation below).
 
-~> **Note:** using `apply_immediately` can result in a 
-brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][4] 
+~> **Note:** using `apply_immediately` can result in a
+brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][4]
 for more information.
 
 ## Example Usage
@@ -55,29 +55,31 @@ string.
 * `database_name` - (Optional) The name for your database of up to 8 alpha-numeric
   characters. If you do not provide a name, Amazon RDS will not create a
   database in the DB cluster you are creating
-* `master_password` - (Required) Password for the master DB user. Note that this may
+* `master_password` - (Required unless a `snapshot_identifier` is provided) Password for the master DB user. Note that this may
     show up in logs, and it will be stored in the state file
-* `master_username` - (Required) Username for the master DB user
+* `master_username` - (Required unless a `snapshot_identifier` is provided) Username for the master DB user
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB cluster is deleted. If omitted, no final snapshot will be
     made.
-* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB cluster is deleted. If true is specified, no DBSnapshot is created. If false is specified, a DB snapshot is created before the DB cluster is deleted, using the value from `final_snapshot_identifier`. Default is true.
+* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB cluster is deleted. If true is specified, no DB snapshot is created. If false is specified, a DB snapshot is created before the DB cluster is deleted, using the value from `final_snapshot_identifier`. Default is true.
 * `availability_zones` - (Optional) A list of EC2 Availability Zones that
   instances in the DB cluster can be created in
 * `backup_retention_period` - (Optional) The days to retain backups for. Default
 1
-* `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter. 
+* `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter.
 Default: A 30-minute window selected at random from an 8-hour block of time per region. e.g. 04:00-09:00
 * `preferred_maintenance_window` - (Optional) The weekly time range during which system maintenance can occur, in (UTC) e.g. wed:04:00-wed:04:30
 * `port` - (Optional) The port on which the DB accepts connections
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate
   with the Cluster
+* `snapshot_identifier` - (Optional) Specifies whether or not to create this cluster from a snapshot. This correlates to the snapshot ID you'd find in the RDS console, e.g: rds:production-2015-06-26-06-05.
 * `storage_encrypted` - (Optional) Specifies whether the DB cluster is encrypted. The default is `false` if not specified.
 * `apply_immediately` - (Optional) Specifies whether any cluster modifications
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon RDS Documentation for more information.](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
 * `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance. **NOTE:** This must match the `db_subnet_group_name` specified on every [`aws_rds_cluster_instance`](/docs/providers/aws/r/rds_cluster_instance.html) in the cluster.
 * `db_cluster_parameter_group_name` - (Optional) A cluster parameter group to associate with the cluster.
+* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to true
 
 ## Attributes Reference
 
@@ -86,13 +88,12 @@ The following attributes are exported:
 * `id` - The RDS Cluster Identifier
 * `cluster_identifier` - The RDS Cluster Identifier
 * `cluster_members` – List of RDS Instances that are a part of this cluster
-* `address` - The address of the RDS instance.
 * `allocated_storage` - The amount of allocated storage
 * `availability_zones` - The availability zone of the instance
 * `backup_retention_period` - The backup retention period
 * `preferred_backup_window` - The backup window
 * `preferred_maintenance_window` - The maintenance window
-* `endpoint` - The primary, writeable connection endpoint
+* `endpoint` - The DNS address of the RDS instance
 * `engine` - The database engine
 * `engine_version` - The database engine version
 * `maintenance_window` - The instance maintenance window
@@ -108,3 +109,11 @@ The following attributes are exported:
 [2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
 [4]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+
+## Import
+
+RDS Clusters can be imported using the `cluster_identifier`, e.g.
+
+```
+$ terraform import aws_rds_cluster.aurora_cluster aurora-prod-cluster
+```

@@ -40,6 +40,40 @@ func TestContextImport_basic(t *testing.T) {
 	}
 }
 
+func TestContextImport_countIndex(t *testing.T) {
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	state, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: "aws_instance.foo[0]",
+				ID:   "bar",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testImportCountIndexStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextImport_collision(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
@@ -504,6 +538,12 @@ func TestContextImport_multiStateSame(t *testing.T) {
 
 const testImportStr = `
 aws_instance.foo:
+  ID = foo
+  provider = aws
+`
+
+const testImportCountIndexStr = `
+aws_instance.foo.0:
   ID = foo
   provider = aws
 `

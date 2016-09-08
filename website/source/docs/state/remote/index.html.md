@@ -47,7 +47,7 @@ teams to run their own infrastructure. As a more specific example with AWS:
 you can expose things such as VPC IDs, subnets, NAT instance IDs, etc. through
 remote state and have other Terraform states consume that.
 
-For example usage see the [terraform_remote_state](/docs/providers/terraform/r/remote_state.html) resource.
+For example usage see the [terraform_remote_state](/docs/providers/terraform/d/remote_state.html) data source.
 
 ## Locking and Teamwork
 
