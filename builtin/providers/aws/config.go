@@ -232,7 +232,7 @@ func (c *Config) Client() (interface{}, error) {
 
 	authErr := c.ValidateAccountId(client.accountid)
 	if authErr != nil {
-		return nil, err
+		return nil, authErr
 	}
 
 	client.apigateway = apigateway.New(sess)
