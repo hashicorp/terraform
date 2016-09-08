@@ -2149,8 +2149,7 @@ func (c *AutoScaling) DisableMetricsCollectionRequest(input *DisableMetricsColle
 	return
 }
 
-// Disables monitoring of the specified metrics for the specified Auto Scaling
-// group.
+// Disables group metrics for the specified Auto Scaling group.
 func (c *AutoScaling) DisableMetricsCollection(input *DisableMetricsCollectionInput) (*DisableMetricsCollectionOutput, error) {
 	req, out := c.DisableMetricsCollectionRequest(input)
 	err := req.Send()
@@ -2200,11 +2199,9 @@ func (c *AutoScaling) EnableMetricsCollectionRequest(input *EnableMetricsCollect
 	return
 }
 
-// Enables monitoring of the specified metrics for the specified Auto Scaling
-// group.
-//
-// You can only enable metrics collection if InstanceMonitoring in the launch
-// configuration for the group is set to True.
+// Enables group metrics for the specified Auto Scaling group. For more information,
+// see Monitoring Your Auto Scaling Groups and Instances (http://docs.aws.amazon.com/AutoScaling/latest/userguide/as-instance-monitoring.html)
+// in the Auto Scaling User Guide.
 func (c *AutoScaling) EnableMetricsCollection(input *EnableMetricsCollectionInput) (*EnableMetricsCollectionOutput, error) {
 	req, out := c.EnableMetricsCollectionRequest(input)
 	err := req.Send()
@@ -3721,15 +3718,8 @@ type CreateLaunchConfigurationInput struct {
 	// in the Auto Scaling User Guide.
 	InstanceId *string `min:"1" type:"string"`
 
-	// Enables detailed monitoring if it is disabled. Detailed monitoring is enabled
-	// by default.
-	//
-	// When detailed monitoring is enabled, Amazon CloudWatch generates metrics
-	// every minute and your account is charged a fee. When you disable detailed
-	// monitoring, by specifying False, CloudWatch generates metrics every 5 minutes.
-	// For more information, see Monitoring Your Auto Scaling Instances and Groups
-	// (http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-instance-monitoring.html)
-	// in the Auto Scaling User Guide.
+	// Enables detailed monitoring (true) or basic monitoring (false) for the Auto
+	// Scaling instances.
 	InstanceMonitoring *InstanceMonitoring `type:"structure"`
 
 	// The instance type of the EC2 instance. For information about available instance
@@ -5528,9 +5518,6 @@ type EnableMetricsCollectionInput struct {
 	//    GroupTerminatingInstances
 	//
 	//    GroupTotalInstances
-	//
-	//   Note that the GroupStandbyInstances metric is not enabled by default.
-	// You must explicitly request this metric.
 	Metrics []*string `type:"list"`
 }
 
@@ -6062,7 +6049,8 @@ type LaunchConfiguration struct {
 	// The ID of the Amazon Machine Image (AMI).
 	ImageId *string `min:"1" type:"string" required:"true"`
 
-	// Controls whether instances in this group are launched with detailed monitoring.
+	// Controls whether instances in this group are launched with detailed (true)
+	// or basic (false) monitoring.
 	InstanceMonitoring *InstanceMonitoring `type:"structure"`
 
 	// The instance type for the instances.
