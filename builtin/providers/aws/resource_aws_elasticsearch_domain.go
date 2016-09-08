@@ -22,9 +22,9 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"access_policies": &schema.Schema{
-				Type:      schema.TypeString,
-				StateFunc: normalizeJson,
-				Optional:  true,
+				Type:             schema.TypeString,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
+				Optional:         true,
 			},
 			"advanced_options": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -381,7 +381,7 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	err = resource.Retry(50*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(60*time.Minute, func() *resource.RetryError {
 		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
 			DomainName: aws.String(d.Get("domain_name").(string)),
 		})
@@ -417,7 +417,7 @@ func resourceAwsElasticSearchDomainDelete(d *schema.ResourceData, meta interface
 	}
 
 	log.Printf("[DEBUG] Waiting for ElasticSearch domain %q to be deleted", d.Get("domain_name").(string))
-	err = resource.Retry(60*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(90*time.Minute, func() *resource.RetryError {
 		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
 			DomainName: aws.String(d.Get("domain_name").(string)),
 		})

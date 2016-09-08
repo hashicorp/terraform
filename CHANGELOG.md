@@ -1,76 +1,91 @@
-## 0.7.3 (Unreleased)
+## 0.7.4 (Unreleased)
+
+FEATURES:
+
+IMPROVEMENTS:
+ * provider/aws: Support 'publish' attribute in lambda_function [GH-8653]
+ * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name` [GH-8639]
+ * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration [GH-8666]
+
+BUG FIXES:
+ * provider/aws: Bump `aws_elasticsearch_domain` timeout values [GH-672]
+ * provider/aws: `aws_nat_gateways` will now recreate on `failed` state [GH-8689]
+ * provider/scaleway: fix security_group_rule identification [GH-8661]
+
+## 0.7.3 (September 5, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
- * Terraform now validates the uniqueness of variable and output names in your configuraitons. In prior versions certain ways of duplicating variable names would work. This is now a configuration error (and should've always been). If you get an error running Terraform you may need to remove the duplicates. Done right, this should not affect the behavior of Terraform.
+ * Terraform now validates the uniqueness of variable and output names in your configurations. In prior versions certain ways of duplicating variable names would work. This is now a configuration error (and should've always been). If you get an error running Terraform you may need to remove the duplicates. Done right, this should not affect the behavior of Terraform.
  * The internal structure of `.terraform/modules` changed slightly. For configurations with modules, you'll need to run `terraform get` again.
 
 FEATURES:
- * **New Provider:** `rabbitmq` [GH-7694]
- * **New Data Source:** `aws_cloudformation_stack` [GH-8640]
- * **New Resource:** `aws_cloudwatch_log_stream` [GH-8626]
- * **New Resource:** `aws_default_route_table` [GH-8323]
- * **New Resource:** `aws_spot_datafeed_subscription` [GH-8640]
- * **New Resource:** `aws_s3_bucket_policy` [GH-8615]
- * **New Resource:** `aws_sns_topic_policy` [GH-8654]
- * **New Resource:** `aws_ssm_association` [GH-8376]
- * **New Resource:** `cloudstack_affinity_group` [GH-8360]
- * **New Resource:** `librato_alert` [GH-8170]
- * **New Resource:** `librato_service` [GH-8170]
- * **New Remote State Backend:** `local` [GH-8647]
- * Data source blocks can now have a count associated with them [GH-8635]
- * The count of a resource can now be referenced for interpolations: `self.count` and `type.name.count` work [GH-8581]
- * Provisioners now support connection using IPv6 in addition to IPv4 [GH-6616]
+ * **New Provider:** `rabbitmq` ([#7694](https://github.com/hashicorp/terraform/issues/7694))
+ * **New Data Source:** `aws_cloudformation_stack` ([#8640](https://github.com/hashicorp/terraform/issues/8640))
+ * **New Resource:** `aws_cloudwatch_log_stream` ([#8626](https://github.com/hashicorp/terraform/issues/8626))
+ * **New Resource:** `aws_default_route_table` ([#8323](https://github.com/hashicorp/terraform/issues/8323))
+ * **New Resource:** `aws_spot_datafeed_subscription` ([#8640](https://github.com/hashicorp/terraform/issues/8640))
+ * **New Resource:** `aws_s3_bucket_policy` ([#8615](https://github.com/hashicorp/terraform/issues/8615))
+ * **New Resource:** `aws_sns_topic_policy` ([#8654](https://github.com/hashicorp/terraform/issues/8654))
+ * **New Resource:** `aws_sqs_queue_policy` ([#8657](https://github.com/hashicorp/terraform/issues/8657))
+ * **New Resource:** `aws_ssm_association` ([#8376](https://github.com/hashicorp/terraform/issues/8376))
+ * **New Resource:** `cloudstack_affinity_group` ([#8360](https://github.com/hashicorp/terraform/issues/8360))
+ * **New Resource:** `librato_alert` ([#8170](https://github.com/hashicorp/terraform/issues/8170))
+ * **New Resource:** `librato_service` ([#8170](https://github.com/hashicorp/terraform/issues/8170))
+ * **New Remote State Backend:** `local` ([#8647](https://github.com/hashicorp/terraform/issues/8647))
+ * Data source blocks can now have a count associated with them ([#8635](https://github.com/hashicorp/terraform/issues/8635))
+ * The count of a resource can now be referenced for interpolations: `self.count` and `type.name.count` work ([#8581](https://github.com/hashicorp/terraform/issues/8581))
+ * Provisioners now support connection using IPv6 in addition to IPv4 ([#6616](https://github.com/hashicorp/terraform/issues/6616))
 
 IMPROVEMENTS:
- * core: Add wildcard (match all) support to `ignore_changes` [GH-8599]
+ * core: Add wildcard (match all) support to `ignore_changes` ([#8599](https://github.com/hashicorp/terraform/issues/8599))
  * core: HTTP module sources can now use netrc files for auth
- * core: Show last resource state in a timeout error message [GH-8510]
- * helper/schema: Add diff suppression callback [GH-8585]
- * provider/aws: API Gateway Custom Authorizer [GH-8535]
- * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source [GH-8437] 
- * provider/aws: Add ability Enable/Disable For ELB Access logs [GH-8438]
- * provider/aws: Add support for assuming a role prior to performing API operations [GH-8638]
- * provider/aws: Export `arn` of `aws_autoscaling_group` [GH-8503]
- * provider/aws: More robust handling of Lambda function archives hosted on S3 [GH-6860]
- * provider/aws: Spurious diffs of `aws_s3_bucket` policy attributes due to JSON field ordering are reduced [GH-8615]
- * provider/aws: `name_regex` attribute for local post-filtering of `aws_ami` data source results [GH-8403]
- * provider/aws: Support for lifecycle hooks at ASG creation [GH-5620]
- * provider/consul: Make provider settings truly optional [GH-8551]
- * provider/statuscake: Add support for contact-group id in statuscake test [GH-8417]
+ * core: Show last resource state in a timeout error message ([#8510](https://github.com/hashicorp/terraform/issues/8510))
+ * helper/schema: Add diff suppression callback ([#8585](https://github.com/hashicorp/terraform/issues/8585))
+ * provider/aws: API Gateway Custom Authorizer ([#8535](https://github.com/hashicorp/terraform/issues/8535))
+ * provider/aws: Add MemoryReservation To `aws_ecs_container_definition` data source ([#8437](https://github.com/hashicorp/terraform/issues/8437)) 
+ * provider/aws: Add ability Enable/Disable For ELB Access logs ([#8438](https://github.com/hashicorp/terraform/issues/8438))
+ * provider/aws: Add support for assuming a role prior to performing API operations ([#8638](https://github.com/hashicorp/terraform/issues/8638))
+ * provider/aws: Export `arn` of `aws_autoscaling_group` ([#8503](https://github.com/hashicorp/terraform/issues/8503))
+ * provider/aws: More robust handling of Lambda function archives hosted on S3 ([#6860](https://github.com/hashicorp/terraform/issues/6860))
+ * provider/aws: Spurious diffs of `aws_s3_bucket` policy attributes due to JSON field ordering are reduced ([#8615](https://github.com/hashicorp/terraform/issues/8615))
+ * provider/aws: `name_regex` attribute for local post-filtering of `aws_ami` data source results ([#8403](https://github.com/hashicorp/terraform/issues/8403))
+ * provider/aws: Support for lifecycle hooks at ASG creation ([#5620](https://github.com/hashicorp/terraform/issues/5620))
+ * provider/consul: Make provider settings truly optional ([#8551](https://github.com/hashicorp/terraform/issues/8551))
+ * provider/statuscake: Add support for contact-group id in statuscake test ([#8417](https://github.com/hashicorp/terraform/issues/8417))
  
 BUG FIXES:
- * core: Changing a module source from file to VCS no longer errors [GH-8398]
- * core: Configuration is now validated prior to input, fixing an obscure parse error when attempting to interpolate a count [GH-8591]
- * core: JSON configuration with resources with a single key parse properly [GH-8485]
- * core: States with duplicate modules are detected and an error is shown [GH-8463]
- * core: Validate uniqueness of variables/outputs in a module [GH-8482]
+ * core: Changing a module source from file to VCS no longer errors ([#8398](https://github.com/hashicorp/terraform/issues/8398))
+ * core: Configuration is now validated prior to input, fixing an obscure parse error when attempting to interpolate a count ([#8591](https://github.com/hashicorp/terraform/issues/8591))
+ * core: JSON configuration with resources with a single key parse properly ([#8485](https://github.com/hashicorp/terraform/issues/8485))
+ * core: States with duplicate modules are detected and an error is shown ([#8463](https://github.com/hashicorp/terraform/issues/8463))
+ * core: Validate uniqueness of variables/outputs in a module ([#8482](https://github.com/hashicorp/terraform/issues/8482))
  * core: `-var` flag inputs starting with `/` work 
- * core: `-var` flag inputs starting with a number work and was fixed in such a way that this should overall be a lot more resilient to inputs [GH-8044]
- * provider/aws: Add AWS error message to retry APIGateway account update [GH-8533]
- * provider/aws: Do not set empty string to state for `aws_vpn_gateway` availability zone [GH-8645]
- * provider/aws: Fix. Adjust create and destroy timeout in aws_vpn_gateway_attachment. [GH-8636]
- * provider/aws: Handle missing EFS mount target in `aws_efs_mount_target` [GH-8529]
- * provider/aws: If an `aws_security_group` was used in Lambda function it may have prevented you from destroying such SG due to dangling ENIs created by Lambda service. These ENIs are now automatically cleaned up prior to SG deletion [GH-8033]
- * provider/aws: Increase `aws_route_table` timeouts from 1 min to 2 mins [GH-8465]
- * provider/aws: Increase aws_rds_cluster timeout to 40 minutes [GH-8623]
- * provider/aws: Refresh `aws_route` from state if `aws_route_table` not found [GH-8443]
- * provider/aws: Remove `aws_elasticsearch_domain` from state if it doesn't exist [GH-8643]
- * provider/aws: Remove unsafe ptr dereferencing from ECS/ECR [GH-8514]
- * provider/aws: Set `apply_method` to state in `aws_db_parameter_group` [GH-8603]
- * provider/aws: Stop `aws_instance` `source_dest_check` triggering an API call on each terraform run [GH-8450]
- * provider/aws: Wait for `aws_route_53_record` to be in-sync after a delete [GH-8646]
- * provider/aws: `aws_volume_attachment` detachment errors are caught [GH-8479]
- * provider/aws: adds resource retry to `aws_spot_instance_request` [GH-8516]
- * provider/aws: Add validation of Health Check target to aws_elb. [GH-8578]
- * provider/aws: Skip detaching when aws_internet_gateway not found [GH-8454]
- * provider/aws: Handle all kinds of CloudFormation stack failures [GH-5606]
- * provider/azurerm: Reordering the checks after an Azure API Get [GH-8607]
- * provider/chef: Fix "invalid header" errors that could occur [GH-8382]
- * provider/github: Remove unsafe ptr dereferencing [GH-8512]
- * provider/librato: Refresh space from state when not found [GH-8596]
- * provider/mysql: Fix breakage in parsing MySQL version string [GH-8571]
- * provider/template: `template_file` vars can be floating point [GH-8590]
- * provider/triton: Fix bug where the ID of a `triton_key` was used prior to being set [GH-8563]
+ * core: `-var` flag inputs starting with a number work and was fixed in such a way that this should overall be a lot more resilient to inputs ([#8044](https://github.com/hashicorp/terraform/issues/8044))
+ * provider/aws: Add AWS error message to retry APIGateway account update ([#8533](https://github.com/hashicorp/terraform/issues/8533))
+ * provider/aws: Do not set empty string to state for `aws_vpn_gateway` availability zone ([#8645](https://github.com/hashicorp/terraform/issues/8645))
+ * provider/aws: Fix. Adjust create and destroy timeout in aws_vpn_gateway_attachment. ([#8636](https://github.com/hashicorp/terraform/issues/8636))
+ * provider/aws: Handle missing EFS mount target in `aws_efs_mount_target` ([#8529](https://github.com/hashicorp/terraform/issues/8529))
+ * provider/aws: If an `aws_security_group` was used in Lambda function it may have prevented you from destroying such SG due to dangling ENIs created by Lambda service. These ENIs are now automatically cleaned up prior to SG deletion ([#8033](https://github.com/hashicorp/terraform/issues/8033))
+ * provider/aws: Increase `aws_route_table` timeouts from 1 min to 2 mins ([#8465](https://github.com/hashicorp/terraform/issues/8465))
+ * provider/aws: Increase aws_rds_cluster timeout to 40 minutes ([#8623](https://github.com/hashicorp/terraform/issues/8623))
+ * provider/aws: Refresh `aws_route` from state if `aws_route_table` not found ([#8443](https://github.com/hashicorp/terraform/issues/8443))
+ * provider/aws: Remove `aws_elasticsearch_domain` from state if it doesn't exist ([#8643](https://github.com/hashicorp/terraform/issues/8643))
+ * provider/aws: Remove unsafe ptr dereferencing from ECS/ECR ([#8514](https://github.com/hashicorp/terraform/issues/8514))
+ * provider/aws: Set `apply_method` to state in `aws_db_parameter_group` ([#8603](https://github.com/hashicorp/terraform/issues/8603))
+ * provider/aws: Stop `aws_instance` `source_dest_check` triggering an API call on each terraform run ([#8450](https://github.com/hashicorp/terraform/issues/8450))
+ * provider/aws: Wait for `aws_route_53_record` to be in-sync after a delete ([#8646](https://github.com/hashicorp/terraform/issues/8646))
+ * provider/aws: `aws_volume_attachment` detachment errors are caught ([#8479](https://github.com/hashicorp/terraform/issues/8479))
+ * provider/aws: adds resource retry to `aws_spot_instance_request` ([#8516](https://github.com/hashicorp/terraform/issues/8516))
+ * provider/aws: Add validation of Health Check target to aws_elb. ([#8578](https://github.com/hashicorp/terraform/issues/8578))
+ * provider/aws: Skip detaching when aws_internet_gateway not found ([#8454](https://github.com/hashicorp/terraform/issues/8454))
+ * provider/aws: Handle all kinds of CloudFormation stack failures ([#5606](https://github.com/hashicorp/terraform/issues/5606))
+ * provider/azurerm: Reordering the checks after an Azure API Get ([#8607](https://github.com/hashicorp/terraform/issues/8607))
+ * provider/chef: Fix "invalid header" errors that could occur ([#8382](https://github.com/hashicorp/terraform/issues/8382))
+ * provider/github: Remove unsafe ptr dereferencing ([#8512](https://github.com/hashicorp/terraform/issues/8512))
+ * provider/librato: Refresh space from state when not found ([#8596](https://github.com/hashicorp/terraform/issues/8596))
+ * provider/mysql: Fix breakage in parsing MySQL version string ([#8571](https://github.com/hashicorp/terraform/issues/8571))
+ * provider/template: `template_file` vars can be floating point ([#8590](https://github.com/hashicorp/terraform/issues/8590))
+ * provider/triton: Fix bug where the ID of a `triton_key` was used prior to being set ([#8563](https://github.com/hashicorp/terraform/issues/8563))
 
 ## 0.7.2 (August 25, 2016)
 
