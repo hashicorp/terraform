@@ -1,4 +1,4 @@
-// +build !windows
+// +build linux darwin openbsd solaris
 
 package module
 

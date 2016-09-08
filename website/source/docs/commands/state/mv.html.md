@@ -47,10 +47,12 @@ The command-line flags are all optional. The list of available flags are:
                        This is only necessary if `-state-out` is specified.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
+  Ignored when [remote state](/docs/state/remote/index.html) is used.
 
 * `-state-out=path` - Path to the state file to write to. If this isn't specified
                       the state specified by `-state` will be used. This can be
-                      a new or existing path.
+                      a new or existing path. Ignored when
+                      [remote state](/docs/state/remote/index.html) is used.
 
 ## Example: Rename a Resource
 

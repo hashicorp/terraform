@@ -16,6 +16,9 @@ func resourceFWPolicyV1() *schema.Resource {
 		Read:   resourceFWPolicyV1Read,
 		Update: resourceFWPolicyV1Update,
 		Delete: resourceFWPolicyV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -111,16 +114,18 @@ func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	policy, err := policies.Get(networkingClient, d.Id()).Extract()
-
 	if err != nil {
 		return CheckDeleted(d, err, "FW policy")
 	}
+
+	log.Printf("[DEBUG] Read OpenStack Firewall Policy %s: %#v", d.Id(), policy)
 
 	d.Set("name", policy.Name)
 	d.Set("description", policy.Description)
 	d.Set("shared", policy.Shared)
 	d.Set("audited", policy.Audited)
 	d.Set("tenant_id", policy.TenantID)
+	d.Set("rules", policy.Rules)
 	return nil
 }
 

@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
-	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // This is the Amazon DynamoDB API Reference. This guide provides descriptions
@@ -48,23 +48,23 @@ import (
 //
 //  Managing Tables
 //
-//   CreateTable - Creates a table with user-specified provisioned throughput
+//    CreateTable - Creates a table with user-specified provisioned throughput
 // settings. You must define a primary key for the table - either a simple primary
 // key (partition key), or a composite primary key (partition key and sort key).
 // Optionally, you can create one or more secondary indexes, which provide fast
 // data access using non-key attributes.
 //
-//   DescribeTable - Returns metadata for a table, such as table size, status,
+//    DescribeTable - Returns metadata for a table, such as table size, status,
 // and index information.
 //
-//   UpdateTable - Modifies the provisioned throughput settings for a table.
+//    UpdateTable - Modifies the provisioned throughput settings for a table.
 // Optionally, you can modify the provisioned throughput settings for global
 // secondary indexes on the table.
 //
-//   ListTables - Returns a list of all tables associated with the current
+//    ListTables - Returns a list of all tables associated with the current
 // AWS account and endpoint.
 //
-//   DeleteTable - Deletes a table and all of its indexes.
+//    DeleteTable - Deletes a table and all of its indexes.
 //
 //   For conceptual information about managing tables, see Working with Tables
 // (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.html)
@@ -72,22 +72,22 @@ import (
 //
 //  Reading Data
 //
-//   GetItem - Returns a set of attributes for the item that has a given primary
+//    GetItem - Returns a set of attributes for the item that has a given primary
 // key. By default, GetItem performs an eventually consistent read; however,
 // applications can request a strongly consistent read instead.
 //
-//   BatchGetItem - Performs multiple GetItem requests for data items using
+//    BatchGetItem - Performs multiple GetItem requests for data items using
 // their primary keys, from one table or multiple tables. The response from
 // BatchGetItem has a size limit of 16 MB and returns a maximum of 100 items.
 // Both eventually consistent and strongly consistent reads can be used.
 //
-//   Query - Returns one or more items from a table or a secondary index. You
-// must provide a specific value for the partition key. You can narrow the scope
-// of the query using comparison operators against a sort key value, or on the
-// index key. Query supports either eventual or strong consistency. A single
-// response has a size limit of 1 MB.
+//    Query - Returns one or more items from a table or a secondary index.
+// You must provide a specific value for the partition key. You can narrow the
+// scope of the query using comparison operators against a sort key value, or
+// on the index key. Query supports either eventual or strong consistency. A
+// single response has a size limit of 1 MB.
 //
-//   Scan - Reads every item in a table; the result set is eventually consistent.
+//    Scan - Reads every item in a table; the result set is eventually consistent.
 // You can limit the number of items returned by filtering the data attributes,
 // using conditional expressions. Scan can be used to enable ad-hoc querying
 // of a table against non-key attributes; however, since this is a full table
@@ -101,22 +101,22 @@ import (
 //
 //  Modifying Data
 //
-//   PutItem - Creates a new item, or replaces an existing item with a new
+//    PutItem - Creates a new item, or replaces an existing item with a new
 // item (including all the attributes). By default, if an item in the table
 // already exists with the same primary key, the new item completely replaces
 // the existing item. You can use conditional operators to replace an item only
 // if its attribute values match certain conditions, or to insert a new item
 // only if that item doesn't already exist.
 //
-//   UpdateItem - Modifies the attributes of an existing item. You can also
+//    UpdateItem - Modifies the attributes of an existing item. You can also
 // use conditional operators to perform an update only if the item's attribute
 // values match certain conditions.
 //
-//   DeleteItem - Deletes an item in a table by primary key. You can use conditional
+//    DeleteItem - Deletes an item in a table by primary key. You can use conditional
 // operators to perform a delete an item only if the item's attribute values
 // match certain conditions.
 //
-//   BatchWriteItem - Performs multiple PutItem and DeleteItem requests across
+//    BatchWriteItem - Performs multiple PutItem and DeleteItem requests across
 // multiple tables in a single request. A failure of any request(s) in the batch
 // will not cause the entire BatchWriteItem operation to fail. Supports batches
 // of up to 25 items to put or delete, with a maximum total request size of
@@ -174,7 +174,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBack(v4.Sign)
+	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
 	svc.Handlers.Build.PushBackNamed(jsonrpc.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(jsonrpc.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(jsonrpc.UnmarshalMetaHandler)

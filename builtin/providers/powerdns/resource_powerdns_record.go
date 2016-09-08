@@ -57,6 +57,7 @@ func resourcePDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	rrSet := ResourceRecordSet{
 		Name: d.Get("name").(string),
 		Type: d.Get("type").(string),
+		TTL:  d.Get("ttl").(int),
 	}
 
 	zone := d.Get("zone").(string)

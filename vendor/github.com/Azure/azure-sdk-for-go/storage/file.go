@@ -47,6 +47,9 @@ func (f FileServiceClient) CreateShareIfNotExists(name string) (bool, error) {
 
 // CreateShare creates a Azure File Share and returns its response
 func (f FileServiceClient) createShare(name string) (*storageResponse, error) {
+	if err := f.checkForStorageEmulator(); err != nil {
+		return nil, err
+	}
 	uri := f.client.getEndpoint(fileServiceName, pathForFileShare(name), url.Values{"restype": {"share"}})
 	headers := f.client.getStandardHeaders()
 	return f.client.exec("PUT", uri, headers, nil)
@@ -86,6 +89,18 @@ func (f FileServiceClient) DeleteShareIfExists(name string) (bool, error) {
 // deleteShare makes the call to Delete Share operation endpoint and returns
 // the response
 func (f FileServiceClient) deleteShare(name string) (*storageResponse, error) {
+	if err := f.checkForStorageEmulator(); err != nil {
+		return nil, err
+	}
 	uri := f.client.getEndpoint(fileServiceName, pathForFileShare(name), url.Values{"restype": {"share"}})
 	return f.client.exec("DELETE", uri, f.client.getStandardHeaders(), nil)
+}
+
+//checkForStorageEmulator determines if the client is setup for use with
+//Azure Storage Emulator, and returns a relevant error
+func (f FileServiceClient) checkForStorageEmulator() error {
+	if f.client.accountName == StorageEmulatorAccountName {
+		return fmt.Errorf("Error: File service is not currently supported by Azure Storage Emulator")
+	}
+	return nil
 }

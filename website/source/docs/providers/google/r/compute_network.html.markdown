@@ -41,7 +41,7 @@ The following arguments are supported:
     are assigned to, represented as a CIDR block. If not set, an auto or custom
     subnetted network will be created, depending on the value of  
     `auto_create_subnetworks` attribute. This attribute may not be used if
-    `auto_create_subnets` is specified. This attribute is deprecated.
+    `auto_create_subnetworks` is specified. This attribute is deprecated.
 
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.

@@ -11,8 +11,8 @@ Using modules in Terraform is very similar to defining resources:
 
 ```
 module "consul" {
-	source = "github.com/hashicorp/consul/terraform/aws"
-	servers = 3
+  source  = "github.com/hashicorp/consul/terraform/aws"
+  servers = 3
 }
 ```
 
@@ -36,12 +36,12 @@ You can instantiate a module multiple times.
 # my_buckets.tf
 module "assets_bucket" {
   source = "./publish_bucket"
-  name = "assets"
+  name   = "assets"
 }
 
 module "media_bucket" {
   source = "./publish_bucket"
-  name = "media"
+  name   = "media"
 }
 ```
 ```
@@ -50,16 +50,18 @@ module "media_bucket" {
 variable "name" {} # this is the input parameter of the module
 
 resource "aws_s3_bucket" "the_bucket" {
-...
+  # ...
+}
 
 resource "aws_iam_user" "deploy_user" {
-...
+  # ...
+}
 ```
 
 In this example you can provide module implementation in the `./publish_bucket`
 subfolder - define there, how to create a bucket resource, set access and
 caching rules, create e.g. a CloudFront resource, which wraps the bucket and
-all the other implementation details, which are common to you project.
+all the other implementation details, which are common to your project.
 
 In the snippet above, you now use your module definition twice. The string
 after the `module` keyword is a name of the instance of the module.
@@ -71,7 +73,7 @@ The full name of the resulting resources will be `module.assets_bucket.aws_s3_bu
 and `module.assets_bucket.aws_iam_access_key.deploy_user`. So beware, if you
 extract your implementation to a module. The resource names will change and
 this will lead to destroying s3 buckets and creating new ones - so always
-check with `tf plan` before running `tf apply`. 
+check with `tf plan` before running `tf apply`.
 
 ## Source
 
@@ -101,28 +103,8 @@ above, map directly to [variables](/docs/configuration/variables.html) within
 the module itself. Therefore, you can quickly discover all the configuration
 for a module by inspecting the source of it very easily.
 
-Additionally, because these map directly to variables, they're always simple
-key/value pairs. Modules can't have complex variable inputs.
-
-## Dealing with parameters of the list type
-
-Variables are currently unable to hold the list type. Sometimes, though, it's
-desirable to parameterize a module's resource with an attribute that is of the
-list type, for example `aws_instance.security_groups`. 
-
-Until a future release broadens the functionality of variables to include list
-types, the way to work around this limitation is to pass a delimited string as
-a module parameter, and then "unpack" that parameter using
-[`split`](/docs/configuration/interpolation.html) interpolation function within
-the module definition. 
-
-Depending on the resource parameter in question, you may have to 
-indicate that the unpacked string is actually a list by using list notation.
-For example:
-
-```
-resource_param = ["${split(",", var.CSV_STRING)}"]
-```
+Additionally, because these map directly to variables, module configuration can
+have any data type supported by variables, including maps and lists.
 
 ## Outputs
 
@@ -132,8 +114,8 @@ For example:
 
 ```
 resource "aws_instance" "client" {
-  ami = "ami-408c7f28"
-  instance_type = "t1.micro"  
+  ami               = "ami-408c7f28"
+  instance_type     = "t1.micro"
   availability_zone = "${module.consul.server_availability_zone}"
 }
 ```

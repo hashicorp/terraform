@@ -39,6 +39,6 @@ gpg --default-key 348FFC4C --detach-sig ./terraform_${VERSION}_SHA256SUMS
 popd
 
 # Upload
-hc-releases -upload=./pkg/dist
+hc-releases upload ./pkg/dist
 
 exit 0

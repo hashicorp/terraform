@@ -36,6 +36,7 @@ For local dev first make sure Go is properly installed, including setting up a [
 Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. All the necessary dependencies are either vendored or automatically installed, so you just need to type `make`. This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
 
 ```sh
+$ cd $GOPATH/src/github.com/hashicorp/terraform
 $ make
 ```
 
@@ -121,7 +122,7 @@ If you wish to cross-compile Terraform for another architecture, you can set the
 For example, to compile 64-bit Linux binaries on Mac OS X Linux, you can run:
 
 ```sh
-$ XC_OS=linux XC_ARCH=amd64 make bin 
+$ XC_OS=linux XC_ARCH=amd64 make bin
 ...
 $ file pkg/linux_amd64/terraform
 terraform: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, not stripped

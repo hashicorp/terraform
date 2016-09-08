@@ -84,8 +84,10 @@ func (h *UiHook) PreApply(
 	// Get all the attributes that are changing, and sort them. Also
 	// determine the longest key so that we can align them all.
 	keyLen := 0
-	keys := make([]string, 0, len(d.Attributes))
-	for key, _ := range d.Attributes {
+
+	dAttrs := d.CopyAttributes()
+	keys := make([]string, 0, len(dAttrs))
+	for key, _ := range dAttrs {
 		// Skip the ID since we do that specially
 		if key == "id" {
 			continue
@@ -100,7 +102,7 @@ func (h *UiHook) PreApply(
 
 	// Go through and output each attribute
 	for _, attrK := range keys {
-		attrDiff := d.Attributes[attrK]
+		attrDiff, _ := d.GetAttribute(attrK)
 
 		v := attrDiff.New
 		u := attrDiff.Old

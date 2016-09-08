@@ -3,10 +3,13 @@ package google
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -53,6 +56,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"google_iam_policy": dataSourceGoogleIamPolicy(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"google_compute_autoscaler":             resourceComputeAutoscaler(),
 			"google_compute_address":                resourceComputeAddress(),
@@ -64,6 +71,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_global_forwarding_rule": resourceComputeGlobalForwardingRule(),
 			"google_compute_http_health_check":      resourceComputeHttpHealthCheck(),
 			"google_compute_https_health_check":     resourceComputeHttpsHealthCheck(),
+			"google_compute_image":                  resourceComputeImage(),
 			"google_compute_instance":               resourceComputeInstance(),
 			"google_compute_instance_group":         resourceComputeInstanceGroup(),
 			"google_compute_instance_group_manager": resourceComputeInstanceGroupManager(),
@@ -85,6 +93,7 @@ func Provider() terraform.ResourceProvider {
 			"google_sql_database":                   resourceSqlDatabase(),
 			"google_sql_database_instance":          resourceSqlDatabaseInstance(),
 			"google_sql_user":                       resourceSqlUser(),
+			"google_project":                        resourceGoogleProject(),
 			"google_pubsub_topic":                   resourcePubsubTopic(),
 			"google_pubsub_subscription":            resourcePubsubSubscription(),
 			"google_storage_bucket":                 resourceStorageBucket(),
@@ -194,4 +203,78 @@ func getProject(d *schema.ResourceData, config *Config) (string, error) {
 		return "", fmt.Errorf("%q: required field is not set", "project")
 	}
 	return res.(string), nil
+}
+
+func getZonalResourceFromRegion(getResource func(string) (interface{}, error), region string, compute *compute.Service, project string) (interface{}, error) {
+	zoneList, err := compute.Zones.List(project).Do()
+	if err != nil {
+		return nil, err
+	}
+	var resource interface{}
+	for _, zone := range zoneList.Items {
+		if strings.Contains(zone.Name, region) {
+			resource, err = getResource(zone.Name)
+			if err != nil {
+				if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+					// Resource was not found in this zone
+					continue
+				}
+				return nil, fmt.Errorf("Error reading Resource: %s", err)
+			}
+			// Resource was found
+			return resource, nil
+		}
+	}
+	// Resource does not exist in this region
+	return nil, nil
+}
+
+// getNetworkLink reads the "network" field from the given resource data and if the value:
+// - is a resource URL, returns the string unchanged
+// - is the network name only, then looks up the resource URL using the google client
+func getNetworkLink(d *schema.ResourceData, config *Config, field string) (string, error) {
+	if v, ok := d.GetOk(field); ok {
+		network := v.(string)
+
+		project, err := getProject(d, config)
+		if err != nil {
+			return "", err
+		}
+
+		if !strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
+			// Network value provided is just the name, lookup the network SelfLink
+			networkData, err := config.clientCompute.Networks.Get(
+				project, network).Do()
+			if err != nil {
+				return "", fmt.Errorf("Error reading network: %s", err)
+			}
+			network = networkData.SelfLink
+		}
+
+		return network, nil
+
+	} else {
+		return "", nil
+	}
+}
+
+// getNetworkName reads the "network" field from the given resource data and if the value:
+// - is a resource URL, extracts the network name from the URL and returns it
+// - is the network name only (i.e not prefixed with http://www.googleapis.com/compute/...), is returned unchanged
+func getNetworkName(d *schema.ResourceData, field string) (string, error) {
+	if v, ok := d.GetOk(field); ok {
+		network := v.(string)
+
+		if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
+			// extract the network name from SelfLink URL
+			networkName := network[strings.LastIndex(network, "/")+1:]
+			if networkName == "" {
+				return "", fmt.Errorf("network url not valid")
+			}
+			return networkName, nil
+		}
+
+		return network, nil
+	}
+	return "", nil
 }

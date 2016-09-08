@@ -36,3 +36,12 @@ The following attributes are exported:
 * `name` - The name of the repository.
 * `registry_id` - The registry ID where the repository was created.
 * `repository_url` - The URL of the repository (in the form `https://aws_account_id.dkr.ecr.region.amazonaws.com/repositoryName`
+
+
+## Import
+
+ECR Repositories can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_ecr_repository.service test-service
+```

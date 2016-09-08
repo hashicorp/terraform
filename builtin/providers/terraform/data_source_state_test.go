@@ -9,16 +9,15 @@ import (
 )
 
 func TestState_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		OverrideEnvVar: true,
-		PreCheck:       func() { testAccPreCheck(t) },
-		Providers:      testAccProviders,
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccState_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckStateValue(
-						"terraform_remote_state.foo", "foo", "bar"),
+						"data.terraform_remote_state.foo", "foo", "bar"),
 				),
 			},
 		},
@@ -26,15 +25,14 @@ func TestState_basic(t *testing.T) {
 }
 
 func TestState_complexOutputs(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		OverrideEnvVar: true,
-		PreCheck:       func() { testAccPreCheck(t) },
-		Providers:      testAccProviders,
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccState_complexOutputs,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckStateValue("terraform_remote_state.foo", "backend", "_local"),
+					testAccCheckStateValue("terraform_remote_state.foo", "backend", "local"),
 					testAccCheckStateValue("terraform_remote_state.foo", "config.path", "./test-fixtures/complex_outputs.tfstate"),
 					testAccCheckStateValue("terraform_remote_state.foo", "computed_set.#", "2"),
 					testAccCheckStateValue("terraform_remote_state.foo", `map.%`, "2"),
@@ -66,8 +64,8 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 }
 
 const testAccState_basic = `
-resource "terraform_remote_state" "foo" {
-	backend = "_local"
+data "terraform_remote_state" "foo" {
+	backend = "local"
 
 	config {
 		path = "./test-fixtures/basic.tfstate"
@@ -76,7 +74,7 @@ resource "terraform_remote_state" "foo" {
 
 const testAccState_complexOutputs = `
 resource "terraform_remote_state" "foo" {
-	backend = "_local"
+	backend = "local"
 
 	config {
 		path = "./test-fixtures/complex_outputs.tfstate"

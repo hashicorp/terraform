@@ -25,7 +25,7 @@ resource "google_compute_instance" "default" {
   tags = ["foo", "bar"]
 
   disk {
-    image = "debian-7-wheezy-v20160301"
+    image = "debian-cloud/debian-8"
   }
 
   // Local SSD disk
@@ -101,6 +101,7 @@ The following arguments are supported:
     this configuration option are detailed below.
 
 * `service_account` - (Optional) Service account to attach to the instance.
+    Structure is documented below.
 
 * `tags` - (Optional) Tags to attach to the instance.
 
@@ -111,8 +112,9 @@ the type is "local-ssd", in which case scratch must be true).
     `google_compute_disk`) to attach.
 
 * `image` - The image from which to initialize this
-    disk. Either the full URL, a contraction of the form "project/name", or
-    just a name (in which case the current project is used).
+    disk. Either the full URL, a contraction of the form "project/name", an
+    [image family](https://cloud.google.com/compute/docs/images#image_families),
+    or just a name (in which case the current project is used).
 
 * `auto_delete` - (Optional) Whether or not the disk should be auto-deleted.
     This defaults to true. Leave true for local SSDs.
@@ -131,17 +133,20 @@ the type is "local-ssd", in which case scratch must be true).
 
 The `network_interface` block supports:
 
-* `network` - (Optional) The name of the network to attach this interface to.
+* `network` - (Optional) The name or self_link of the network to attach this interface to.
     Either `network` or `subnetwork` must be provided.
 
 *  `subnetwork` - (Optional) the name of the subnetwork to attach this interface
     to. The subnetwork must exist in the same region this instance will be
     created in. Either `network` or `subnetwork` must be provided.
 
+* `address` - (Optional) The private IP address to assign to the instance. If
+    empty, the address will be automatically assigned.
+
 * `access_config` - (Optional) Access configurations, i.e. IPs via which this
     instance can be accessed via the Internet. Omit to ensure that the instance
     is not accessible from the Internet (this means that ssh provisioners will
-    not work unless you are running Terraform can send traffic tothe instance's
+    not work unless you are running Terraform can send traffic to the instance's
     network (e.g. via tunnel or because it is running on another cloud instance
     on that network). This block can be repeated multiple times. Structure
     documented below.
@@ -151,17 +156,20 @@ The `access_config` block supports:
 * `nat_ip` - (Optional) The IP address that will be 1:1 mapped to the instance's
     network ip. If not given, one will be generated.
 
+The `service_account` block supports:
+
+* `email` - (Optional) The service account e-mail address. If not given, the
+    default Google Compute Engine service account is used.
+
+* `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
+    short names are supported.
+
 (DEPRECATED) The `network` block supports:
 
 * `source` - (Required) The name of the network to attach this interface to.
 
 * `address` - (Optional) The IP address of a reserved IP address to assign
     to this interface.
-
-The `service_account` block supports:
-
-* `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
-    short names are supported.
 
 The `scheduling` block supports:
 
@@ -185,7 +193,6 @@ exported:
 
 * `tags_fingerprint` - The unique fingerprint of the tags.
 
-* `network_interface.0.address` - The internal ip address of the instance (usually on the 10.x.x.x range).
+* `network_interface.0.address` - The internal ip address of the instance, either manually or dynamically assigned.
 
 * `network_interface.0.access_config.0.assigned_nat_ip` - If the instance has an access config, either the given external ip (in the `nat_ip` field) or the ephemeral (generated) ip (if you didn't provide one).
-

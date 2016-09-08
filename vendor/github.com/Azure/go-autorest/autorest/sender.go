@@ -1,7 +1,9 @@
 package autorest
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -184,6 +186,36 @@ func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 	}
 }
 
+// DoRetryForStatusCodes returns a SendDecorator that retries for specified statusCodes for up to the specified
+// number of attempts, exponentially backing off between requests using the supplied backoff
+// time.Duration (which may be zero). Retrying may be canceled by closing the optional channel on
+// the http.Request.
+func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) SendDecorator {
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
+			b := []byte{}
+			if r.Body != nil {
+				b, err = ioutil.ReadAll(r.Body)
+				if err != nil {
+					return resp, err
+				}
+			}
+
+			// Increment to add the first call (attempts denotes number of retries)
+			attempts++
+			for attempt := 0; attempt < attempts; attempt++ {
+				r.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+				resp, err = s.Do(r)
+				if err != nil || !ResponseHasStatusCode(resp, codes...) {
+					return resp, err
+				}
+				DelayForBackoff(backoff, attempt, r.Cancel)
+			}
+			return resp, err
+		})
+	}
+}
+
 // DoRetryForDuration returns a SendDecorator that retries the request until the total time is equal
 // to or greater than the specified duration, exponentially backing off between requests using the
 // supplied backoff time.Duration (which may be zero). Retrying may be canceled by closing the
@@ -222,11 +254,12 @@ func WithLogging(logger *log.Logger) SendDecorator {
 }
 
 // DelayForBackoff invokes time.After for the supplied backoff duration raised to the power of
-// passed attempt (i.e., an exponential backoff delay). Backoff may be zero. The delay may be
-// canceled by closing the passed channel. If terminated early, returns false.
+// passed attempt (i.e., an exponential backoff delay). Backoff duration is in seconds and can set
+// to zero for no delay. The delay may be canceled by closing the passed channel. If terminated early,
+// returns false.
 func DelayForBackoff(backoff time.Duration, attempt int, cancel <-chan struct{}) bool {
 	select {
-	case <-time.After(time.Duration(math.Pow(float64(backoff), float64(attempt)))):
+	case <-time.After(time.Duration(backoff.Seconds()*math.Pow(2, float64(attempt))) * time.Second):
 		return true
 	case <-cancel:
 		return false

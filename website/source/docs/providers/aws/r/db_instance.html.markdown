@@ -14,10 +14,12 @@ databases.
 
 Changes to a DB instance can occur when you manually change a
 parameter, such as `allocated_storage`, and are reflected in the next maintenance
-window. Because of this, Terraform may report a difference in it's planning
+window. Because of this, Terraform may report a difference in its planning
 phase because a modification has not yet taken place. You can use the
 `apply_immediately` flag to instruct the service to apply the change immediately
 (see documentation below).
+
+When upgrading the major version of an engine, `allow_major_version_upgrade` must be set to `true`
 
 ~> **Note:** using `apply_immediately` can result in a
 brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][2]
@@ -141,3 +143,11 @@ On Oracle instances the following is exported additionally:
 
 [1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
 [2]: https://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+
+## Import
+
+DB Instances can be imported using the `identifier`, e.g. 
+
+```
+$ terraform import aws_db_instance.default mydb-rds-instance
+```

@@ -22,6 +22,9 @@ func resourceLBPoolV1() *schema.Resource {
 		Read:   resourceLBPoolV1Read,
 		Update: resourceLBPoolV1Update,
 		Delete: resourceLBPoolV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -64,8 +67,9 @@ func resourceLBPoolV1() *schema.Resource {
 				Computed: true,
 			},
 			"member": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
+				Type:       schema.TypeSet,
+				Deprecated: "Use openstack_lb_member_v1 instead. This attribute will be removed in a future version.",
+				Optional:   true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"region": &schema.Schema{
@@ -297,6 +301,19 @@ func resourceLBPoolV1Delete(d *schema.ResourceData, meta interface{}) error {
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
+
+	// Make sure all monitors are disassociated first
+	if v, ok := d.GetOk("monitor_ids"); ok {
+		if monitorIDList, ok := v.([]interface{}); ok {
+			for _, monitorID := range monitorIDList {
+				mID := monitorID.(string)
+				log.Printf("[DEBUG] Attempting to disassociate monitor %s from pool %s", mID, d.Id())
+				if res := pools.DisassociateMonitor(networkingClient, d.Id(), mID); res.Err != nil {
+					return fmt.Errorf("Error disassociating monitor %s from pool %s: %s", mID, d.Id(), err)
+				}
+			}
+		}
 	}
 
 	stateConf := &resource.StateChangeConf{

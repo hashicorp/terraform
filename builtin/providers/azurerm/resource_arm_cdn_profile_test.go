@@ -20,19 +20,23 @@ func TestResourceAzureRMCdnProfileSKU_validation(t *testing.T) {
 			ErrCount: 1,
 		},
 		{
-			Value:    "Standard",
+			Value:    "Standard_Verizon",
 			ErrCount: 0,
 		},
 		{
-			Value:    "Premium",
+			Value:    "Premium_Verizon",
 			ErrCount: 0,
 		},
 		{
-			Value:    "STANDARD",
+			Value:    "Standard_Akamai",
 			ErrCount: 0,
 		},
 		{
-			Value:    "PREMIUM",
+			Value:    "STANDARD_AKAMAI",
+			ErrCount: 0,
+		},
+		{
+			Value:    "standard_akamai",
 			ErrCount: 0,
 		},
 	}
@@ -167,7 +171,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 }
 `
 
@@ -180,7 +184,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 
     tags {
 	environment = "Production"
@@ -198,7 +202,7 @@ resource "azurerm_cdn_profile" "test" {
     name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+    sku = "Standard_Verizon"
 
     tags {
 	environment = "staging"

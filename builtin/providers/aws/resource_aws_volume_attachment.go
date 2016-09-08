@@ -161,6 +161,10 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	_, err := conn.DetachVolume(opts)
+	if err != nil {
+		return fmt.Errorf("Failed to detach Volume (%s) from Instance (%s): %s",
+			vID, iID, err)
+	}
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"detaching"},
 		Target:     []string{"detached"},

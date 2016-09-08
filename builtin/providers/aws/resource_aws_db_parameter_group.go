@@ -13,7 +13,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
@@ -23,6 +22,10 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 		Read:   resourceAwsDbParameterGroupRead,
 		Update: resourceAwsDbParameterGroupUpdate,
 		Delete: resourceAwsDbParameterGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -63,14 +66,6 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "immediate",
-							// this parameter is not actually state, but a
-							// meta-parameter describing how the RDS API call
-							// to modify the parameter group should be made.
-							// Future reads of the resource from AWS don't tell
-							// us what we used for apply_method previously, so
-							// by squashing state to an empty string we avoid
-							// needing to do an update for every future run.
-							StateFunc: func(interface{}) string { return "" },
 						},
 					},
 				},
@@ -146,7 +141,7 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
 	paramGroup := describeResp.DBParameterGroups[0]
-	arn, err := buildRDSPGARN(d, meta)
+	arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if paramGroup.DBParameterGroupName != nil && *paramGroup.DBParameterGroupName != "" {
@@ -197,21 +192,32 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 
 		if len(parameters) > 0 {
-			modifyOpts := rds.ModifyDBParameterGroupInput{
-				DBParameterGroupName: aws.String(d.Get("name").(string)),
-				Parameters:           parameters,
-			}
+			// We can only modify 20 parameters at a time, so walk them until
+			// we've got them all.
+			maxParams := 20
+			for parameters != nil {
+				paramsToModify := make([]*rds.Parameter, 0)
+				if len(parameters) <= maxParams {
+					paramsToModify, parameters = parameters[:], nil
+				} else {
+					paramsToModify, parameters = parameters[:maxParams], parameters[maxParams:]
+				}
+				modifyOpts := rds.ModifyDBParameterGroupInput{
+					DBParameterGroupName: aws.String(d.Get("name").(string)),
+					Parameters:           paramsToModify,
+				}
 
-			log.Printf("[DEBUG] Modify DB Parameter Group: %s", modifyOpts)
-			_, err = rdsconn.ModifyDBParameterGroup(&modifyOpts)
-			if err != nil {
-				return fmt.Errorf("Error modifying DB Parameter Group: %s", err)
+				log.Printf("[DEBUG] Modify DB Parameter Group: %s", modifyOpts)
+				_, err = rdsconn.ModifyDBParameterGroup(&modifyOpts)
+				if err != nil {
+					return fmt.Errorf("Error modifying DB Parameter Group: %s", err)
+				}
 			}
+			d.SetPartial("parameter")
 		}
-		d.SetPartial("parameter")
 	}
 
-	if arn, err := buildRDSPGARN(d, meta); err == nil {
+	if arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(rdsconn, d, arn); err != nil {
 			return err
 		} else {
@@ -272,16 +278,11 @@ func resourceAwsDbParameterHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func buildRDSPGARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
+func buildRDSPGARN(identifier, accountid, region string) (string, error) {
+	if accountid == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
 	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:pg:%s", region, accountID, d.Id())
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:pg:%s", region, accountid, identifier)
 	return arn, nil
+
 }

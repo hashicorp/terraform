@@ -27,6 +27,19 @@ func TestDiffEmpty(t *testing.T) {
 	}
 }
 
+func TestDiffEmpty_taintedIsNotEmpty(t *testing.T) {
+	diff := new(Diff)
+
+	mod := diff.AddModule(rootModulePath)
+	mod.Resources["nodeA"] = &InstanceDiff{
+		DestroyTainted: true,
+	}
+
+	if diff.Empty() {
+		t.Fatal("should not be empty, since DestroyTainted was set")
+	}
+}
+
 func TestModuleDiff_ChangeType(t *testing.T) {
 	cases := []struct {
 		Diff   *ModuleDiff
@@ -559,6 +572,34 @@ func TestInstanceDiffSame(t *testing.T) {
 					"foo.87654325.baz": &ResourceAttrDiff{
 						Old: "",
 						New: "12",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// Computed values in maps will fail the "Same" check as well
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.%": &ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.%": &ResourceAttrDiff{
+						Old:         "0",
+						New:         "1",
+						NewComputed: false,
+					},
+					"foo.val": &ResourceAttrDiff{
+						Old: "",
+						New: "something",
 					},
 				},
 			},

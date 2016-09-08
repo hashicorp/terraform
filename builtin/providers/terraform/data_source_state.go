@@ -16,6 +16,16 @@ func dataSourceRemoteState() *schema.Resource {
 			"backend": {
 				Type:     schema.TypeString,
 				Required: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					if vStr, ok := v.(string); ok && vStr == "_local" {
+						ws = append(ws, "Use of the %q backend is now officially "+
+							"supported as %q. Please update your configuration to ensure "+
+							"compatibility with future versions of Terraform.",
+							"_local", "local")
+					}
+
+					return
+				},
 			},
 
 			"config": {
@@ -38,6 +48,12 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 		config[k] = v.(string)
 	}
 
+	// Don't break people using the old _local syntax - but note warning above
+	if backend == "_local" {
+		log.Println(`[INFO] Switching old (unsupported) backend "_local" to "local"`)
+		backend = "local"
+	}
+
 	// Create the client to access our remote state
 	log.Printf("[DEBUG] Initializing remote state client: %s", backend)
 	client, err := remote.NewClient(backend, config)
@@ -55,7 +71,14 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(time.Now().UTC().String())
 
 	outputMap := make(map[string]interface{})
-	for key, val := range state.State().RootModule().Outputs {
+
+	remoteState := state.State()
+	if remoteState.Empty() {
+		log.Println("[DEBUG] empty remote state")
+		return nil
+	}
+
+	for key, val := range remoteState.RootModule().Outputs {
 		outputMap[key] = val.Value
 	}
 

@@ -80,3 +80,11 @@ The following attributes are exported:
 * `expected_codes` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
+
+## Import
+
+Load Balancer Members can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_lb_monitor_v1.monitor_1 119d7530-72e9-449a-aa97-124a5ef1992c
+```

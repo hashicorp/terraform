@@ -61,3 +61,12 @@ The following attributes are exported:
 * `tunnel2_preshared_key` - The preshared key of the second VPN tunnel.
 * `type` - The type of VPN connection.
 * `vpn_gateway_id` - The ID of the virtual private gateway to which the connection is attached.
+
+
+## Import
+
+VPN Connections can be imported using the `vpn connection id`, e.g. 
+
+```
+$ terraform import aws_vpn_connection.testvpnconnection vpn-40f41529
+```

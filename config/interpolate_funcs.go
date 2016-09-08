@@ -69,8 +69,11 @@ func Funcs() map[string]ast.Function {
 		"join":         interpolationFuncJoin(),
 		"jsonencode":   interpolationFuncJSONEncode(),
 		"length":       interpolationFuncLength(),
+		"list":         interpolationFuncList(),
 		"lower":        interpolationFuncLower(),
+		"map":          interpolationFuncMap(),
 		"md5":          interpolationFuncMd5(),
+		"merge":        interpolationFuncMerge(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
@@ -80,6 +83,89 @@ func Funcs() map[string]ast.Function {
 		"split":        interpolationFuncSplit(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
+	}
+}
+
+// interpolationFuncList creates a list from the parameters passed
+// to it.
+func interpolationFuncList() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{},
+		ReturnType:   ast.TypeList,
+		Variadic:     true,
+		VariadicType: ast.TypeAny,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var outputList []ast.Variable
+
+			for i, val := range args {
+				switch v := val.(type) {
+				case string:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeString, Value: v})
+				case []ast.Variable:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeList, Value: v})
+				case map[string]ast.Variable:
+					outputList = append(outputList, ast.Variable{Type: ast.TypeMap, Value: v})
+				default:
+					return nil, fmt.Errorf("unexpected type %T for argument %d in list", v, i)
+				}
+			}
+
+			// we don't support heterogeneous types, so make sure all types match the first
+			if len(outputList) > 0 {
+				firstType := outputList[0].Type
+				for i, v := range outputList[1:] {
+					if v.Type != firstType {
+						return nil, fmt.Errorf("unexpected type %s for argument %d in list", v.Type, i+1)
+					}
+				}
+			}
+
+			return outputList, nil
+		},
+	}
+}
+
+// interpolationFuncMap creates a map from the parameters passed
+// to it.
+func interpolationFuncMap() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{},
+		ReturnType:   ast.TypeMap,
+		Variadic:     true,
+		VariadicType: ast.TypeAny,
+		Callback: func(args []interface{}) (interface{}, error) {
+			outputMap := make(map[string]ast.Variable)
+
+			if len(args)%2 != 0 {
+				return nil, fmt.Errorf("requires an even number of arguments, got %d", len(args))
+			}
+
+			var firstType *ast.Type
+			for i := 0; i < len(args); i += 2 {
+				key, ok := args[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("argument %d represents a key, so it must be a string", i+1)
+				}
+				val := args[i+1]
+				variable, err := hil.InterfaceToVariable(val)
+				if err != nil {
+					return nil, err
+				}
+				// Enforce map type homogeneity
+				if firstType == nil {
+					firstType = &variable.Type
+				} else if variable.Type != *firstType {
+					return nil, fmt.Errorf("all map values must have the same type, got %s then %s", firstType.Printable(), variable.Type.Printable())
+				}
+				// Check for duplicate keys
+				if _, ok := outputMap[key]; ok {
+					return nil, fmt.Errorf("argument %d is a duplicate key: %q", i+1, key)
+				}
+				outputMap[key] = variable
+			}
+
+			return outputMap, nil
+		},
 	}
 }
 
@@ -95,13 +181,17 @@ func interpolationFuncCompact() ast.Function {
 
 			var outputList []string
 			for _, val := range inputList {
-				if strVal, ok := val.Value.(string); ok {
-					if strVal == "" {
-						continue
-					}
-
-					outputList = append(outputList, strVal)
+				strVal, ok := val.Value.(string)
+				if !ok {
+					return nil, fmt.Errorf(
+						"compact() may only be used with flat lists, this list contains elements of %s",
+						val.Type.Printable())
 				}
+				if strVal == "" {
+					continue
+				}
+
+				outputList = append(outputList, strVal)
 			}
 			return stringSliceToVariableValue(outputList), nil
 		},
@@ -218,44 +308,43 @@ func interpolationFuncCoalesce() ast.Function {
 	}
 }
 
-// interpolationFuncConcat implements the "concat" function that
-// concatenates multiple strings. This isn't actually necessary anymore
-// since our language supports string concat natively, but for backwards
-// compat we do this.
+// interpolationFuncConcat implements the "concat" function that concatenates
+// multiple lists.
 func interpolationFuncConcat() ast.Function {
 	return ast.Function{
-		ArgTypes:     []ast.Type{ast.TypeAny},
+		ArgTypes:     []ast.Type{ast.TypeList},
 		ReturnType:   ast.TypeList,
 		Variadic:     true,
-		VariadicType: ast.TypeAny,
+		VariadicType: ast.TypeList,
 		Callback: func(args []interface{}) (interface{}, error) {
-			var finalListElements []string
+			var outputList []ast.Variable
 
 			for _, arg := range args {
-				// Append strings for backward compatibility
-				if argument, ok := arg.(string); ok {
-					finalListElements = append(finalListElements, argument)
-					continue
-				}
-
-				// Otherwise variables
-				if argument, ok := arg.([]ast.Variable); ok {
-					for _, element := range argument {
-						t := element.Type
-						switch t {
-						case ast.TypeString:
-							finalListElements = append(finalListElements, element.Value.(string))
-						default:
-							return nil, fmt.Errorf("concat() does not support lists of %s", t.Printable())
-						}
+				for _, v := range arg.([]ast.Variable) {
+					switch v.Type {
+					case ast.TypeString:
+						outputList = append(outputList, v)
+					case ast.TypeList:
+						outputList = append(outputList, v)
+					case ast.TypeMap:
+						outputList = append(outputList, v)
+					default:
+						return nil, fmt.Errorf("concat() does not support lists of %s", v.Type.Printable())
 					}
-					continue
 				}
-
-				return nil, fmt.Errorf("arguments to concat() must be a string or list of strings")
 			}
 
-			return stringSliceToVariableValue(finalListElements), nil
+			// we don't support heterogeneous types, so make sure all types match the first
+			if len(outputList) > 0 {
+				firstType := outputList[0].Type
+				for _, v := range outputList[1:] {
+					if v.Type != firstType {
+						return nil, fmt.Errorf("unexpected %s in list of %s", v.Type.Printable(), firstType.Printable())
+					}
+				}
+			}
+
+			return outputList, nil
 		},
 	}
 }
@@ -395,11 +484,16 @@ func interpolationFuncDistinct() ast.Function {
 			var list []string
 
 			if len(args) != 1 {
-				return nil, fmt.Errorf("distinct() excepts only one argument.")
+				return nil, fmt.Errorf("accepts only one argument.")
 			}
 
 			if argument, ok := args[0].([]ast.Variable); ok {
 				for _, element := range argument {
+					if element.Type != ast.TypeString {
+						return nil, fmt.Errorf(
+							"only works for flat lists, this list contains elements of %s",
+							element.Type.Printable())
+					}
 					list = appendIfMissing(list, element.Value.(string))
 				}
 			}
@@ -435,15 +529,13 @@ func interpolationFuncJoin() ast.Function {
 			}
 
 			for _, arg := range args[1:] {
-				if parts, ok := arg.(ast.Variable); ok {
-					for _, part := range parts.Value.([]ast.Variable) {
-						list = append(list, part.Value.(string))
+				for _, part := range arg.([]ast.Variable) {
+					if part.Type != ast.TypeString {
+						return nil, fmt.Errorf(
+							"only works on flat lists, this list contains elements of %s",
+							part.Type.Printable())
 					}
-				}
-				if parts, ok := arg.([]ast.Variable); ok {
-					for _, part := range parts {
-						list = append(list, part.Value.(string))
-					}
+					list = append(list, part.Value.(string))
 				}
 			}
 
@@ -547,9 +639,11 @@ func interpolationFuncLength() ast.Function {
 				return len(typedSubject), nil
 			case []ast.Variable:
 				return len(typedSubject), nil
+			case map[string]ast.Variable:
+				return len(typedSubject), nil
 			}
 
-			return 0, fmt.Errorf("arguments to length() must be a string or list")
+			return 0, fmt.Errorf("arguments to length() must be a string, list, or map")
 		},
 	}
 }
@@ -648,9 +742,9 @@ func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
 				}
 			}
 			if v.Type != ast.TypeString {
-				return "", fmt.Errorf(
-					"lookup for '%s' has bad type %s",
-					args[1].(string), v.Type)
+				return nil, fmt.Errorf(
+					"lookup() may only be used with flat maps, this map contains elements of %s",
+					v.Type.Printable())
 			}
 
 			return v.Value.(string), nil
@@ -679,8 +773,13 @@ func interpolationFuncElement() ast.Function {
 
 			resolvedIndex := index % len(list)
 
-			v := list[resolvedIndex].Value
-			return v, nil
+			v := list[resolvedIndex]
+			if v.Type != ast.TypeString {
+				return nil, fmt.Errorf(
+					"element() may only be used with flat lists, this list contains elements of %s",
+					v.Type.Printable())
+			}
+			return v.Value, nil
 		},
 	}
 }
@@ -701,7 +800,7 @@ func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 
 			sort.Strings(keys)
 
-			//Keys are guaranteed to be strings
+			// Keys are guaranteed to be strings
 			return stringSliceToVariableValue(keys), nil
 		},
 	}
@@ -796,6 +895,26 @@ func interpolationFuncMd5() ast.Function {
 			h.Write([]byte(s))
 			hash := hex.EncodeToString(h.Sum(nil))
 			return hash, nil
+		},
+	}
+}
+
+func interpolationFuncMerge() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeMap},
+		ReturnType:   ast.TypeMap,
+		Variadic:     true,
+		VariadicType: ast.TypeMap,
+		Callback: func(args []interface{}) (interface{}, error) {
+			outputMap := make(map[string]ast.Variable)
+
+			for _, arg := range args {
+				for k, v := range arg.(map[string]ast.Variable) {
+					outputMap[k] = v
+				}
+			}
+
+			return outputMap, nil
 		},
 	}
 }

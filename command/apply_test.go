@@ -1181,6 +1181,7 @@ func TestApply_backup(t *testing.T) {
 			},
 		},
 	}
+	originalState.Init()
 
 	statePath := testStateFile(t, originalState)
 	backupPath := testTempFile(t)
@@ -1323,6 +1324,59 @@ func TestApply_disableBackup(t *testing.T) {
 	_, err = os.Stat("-")
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
+	}
+}
+
+// -state-out wasn't taking effect when a plan is supplied. GH-7264
+func TestApply_stateOutWithPlan(t *testing.T) {
+	p := testProvider()
+	ui := new(cli.MockUi)
+
+	tmpDir := testTempDir(t)
+	defer os.RemoveAll(tmpDir)
+
+	statePath := filepath.Join(tmpDir, "state.tfstate")
+	planPath := filepath.Join(tmpDir, "terraform.tfplan")
+
+	args := []string{
+		"-state", statePath,
+		"-out", planPath,
+		testFixturePath("plan"),
+	}
+
+	// Run plan first to get a current plan file
+	pc := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+	if code := pc.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// now run apply with the generated plan
+	stateOutPath := filepath.Join(tmpDir, "state-new.tfstate")
+
+	args = []string{
+		"-state", statePath,
+		"-state-out", stateOutPath,
+		planPath,
+	}
+
+	ac := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+	if code := ac.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// now make sure we wrote out our new state
+	if _, err := os.Stat(stateOutPath); err != nil {
+		t.Fatalf("missing new state file: %s", err)
 	}
 }
 

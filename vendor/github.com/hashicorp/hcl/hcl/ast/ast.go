@@ -214,4 +214,5 @@ func (c *CommentGroup) Pos() token.Pos {
 // GoStringer
 //-------------------------------------------------------------------
 
-func (o *ObjectKey) GoString() string { return fmt.Sprintf("*%#v", *o) }
+func (o *ObjectKey) GoString() string  { return fmt.Sprintf("*%#v", *o) }
+func (o *ObjectList) GoString() string { return fmt.Sprintf("*%#v", *o) }

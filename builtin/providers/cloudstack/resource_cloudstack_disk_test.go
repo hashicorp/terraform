@@ -29,7 +29,7 @@ func TestAccCloudStackDisk_basic(t *testing.T) {
 	})
 }
 
-func TestAccCloudStackDisk_device(t *testing.T) {
+func TestAccCloudStackDisk_deviceID(t *testing.T) {
 	var disk cloudstack.Volume
 
 	resource.Test(t, resource.TestCase{
@@ -38,13 +38,13 @@ func TestAccCloudStackDisk_device(t *testing.T) {
 		CheckDestroy: testAccCheckCloudStackDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCloudStackDisk_device,
+				Config: testAccCloudStackDisk_deviceID,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackDiskExists(
 						"cloudstack_disk.foo", &disk),
 					testAccCheckCloudStackDiskAttributes(&disk),
 					resource.TestCheckResourceAttr(
-						"cloudstack_disk.foo", "device", "/dev/xvde"),
+						"cloudstack_disk.foo", "device_id", "4"),
 				),
 			},
 		},
@@ -170,7 +170,7 @@ resource "cloudstack_disk" "foo" {
 	CLOUDSTACK_DISK_OFFERING_1,
 	CLOUDSTACK_ZONE)
 
-var testAccCloudStackDisk_device = fmt.Sprintf(`
+var testAccCloudStackDisk_deviceID = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform"
@@ -184,9 +184,9 @@ resource "cloudstack_instance" "foobar" {
 resource "cloudstack_disk" "foo" {
   name = "terraform-disk"
   attach = true
-  device = "/dev/xvde"
+  device_id = 4
   disk_offering = "%s"
-  virtual_machine = "${cloudstack_instance.foobar.name}"
+  virtual_machine_id = "${cloudstack_instance.foobar.id}"
   zone = "${cloudstack_instance.foobar.zone}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -210,7 +210,7 @@ resource "cloudstack_disk" "foo" {
   name = "terraform-disk"
   attach = true
   disk_offering = "%s"
-  virtual_machine = "${cloudstack_instance.foobar.name}"
+  virtual_machine_id = "${cloudstack_instance.foobar.id}"
   zone = "${cloudstack_instance.foobar.zone}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -234,7 +234,7 @@ resource "cloudstack_disk" "foo" {
   name = "terraform-disk"
   attach = true
   disk_offering = "%s"
-  virtual_machine = "${cloudstack_instance.foobar.name}"
+	virtual_machine_id = "${cloudstack_instance.foobar.id}"
   zone = "${cloudstack_instance.foobar.zone}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,

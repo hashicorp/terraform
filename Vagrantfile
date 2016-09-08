@@ -5,7 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
-GOVERSION="1.6"
+GOVERSION="1.7"
 SRCROOT="/opt/go"
 SRCPATH="/opt/gopath"
 
@@ -37,13 +37,17 @@ export GOPATH="$SRCPATH"
 export GOROOT="$SRCROOT"
 export PATH="$SRCROOT/bin:$SRCPATH/bin:\$PATH"
 EOF
+cat <<EOF >>~/.bashrc
+
+## After login, change to terraform directory
+cd /opt/gopath/src/github.com/hashicorp/terraform
+EOF
 sudo mv /tmp/gopath.sh /etc/profile.d/gopath.sh
 sudo chmod 0755 /etc/profile.d/gopath.sh
-source /etc/profile.d/gopath.sh
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "bento/ubuntu-12.04"
+  config.vm.box = "bento/ubuntu-14.04"
   config.vm.hostname = "terraform"
 
   config.vm.provision "shell", inline: $script, privileged: false
@@ -59,5 +63,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provider "virtualbox" do |v|
     v.memory = 4096
     v.cpus = 2
+  end
+
+  config.vm.provider "parallels" do |prl|
+    prl.memory = 4096
+    prl.cpus = 2
   end
 end

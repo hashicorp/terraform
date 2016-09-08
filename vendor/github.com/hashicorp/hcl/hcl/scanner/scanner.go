@@ -224,6 +224,11 @@ func (s *Scanner) Scan() token.Token {
 func (s *Scanner) scanComment(ch rune) {
 	// single line comments
 	if ch == '#' || (ch == '/' && s.peek() != '*') {
+		if ch == '/' && s.peek() != '/' {
+			s.err("expected '/' for comment")
+			return
+		}
+
 		ch = s.next()
 		for ch != '\n' && ch >= 0 && ch != eof {
 			ch = s.next()
@@ -469,7 +474,7 @@ func (s *Scanner) scanString() {
 		// read character after quote
 		ch := s.next()
 
-		if ch == '\n' || ch < 0 || ch == eof {
+		if ch < 0 || ch == eof {
 			s.err("literal not terminated")
 			return
 		}
@@ -525,16 +530,27 @@ func (s *Scanner) scanEscape() rune {
 // scanDigits scans a rune with the given base for n times. For example an
 // octal notation \184 would yield in scanDigits(ch, 8, 3)
 func (s *Scanner) scanDigits(ch rune, base, n int) rune {
+	start := n
 	for n > 0 && digitVal(ch) < base {
 		ch = s.next()
+		if ch == eof {
+			// If we see an EOF, we halt any more scanning of digits
+			// immediately.
+			break
+		}
+
 		n--
 	}
 	if n > 0 {
 		s.err("illegal char escape")
 	}
 
-	// we scanned all digits, put the last non digit char back
-	s.unread()
+	if n != start {
+		// we scanned all digits, put the last non digit char back,
+		// only if we read anything at all
+		s.unread()
+	}
+
 	return ch
 }
 

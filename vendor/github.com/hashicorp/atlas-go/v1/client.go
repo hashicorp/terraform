@@ -70,6 +70,10 @@ type Client struct {
 
 	// HTTPClient is the underlying http client with which to make requests.
 	HTTPClient *http.Client
+
+	// DefaultHeaders is a set of headers that will be added to every request.
+	// This minimally includes the atlas user-agent string.
+	DefaultHeader http.Header
 }
 
 // DefaultClient returns a client that connects to the Atlas API.
@@ -108,9 +112,12 @@ func NewClient(urlString string) (*Client, error) {
 	}
 
 	client := &Client{
-		URL:   parsedURL,
-		Token: token,
+		URL:           parsedURL,
+		Token:         token,
+		DefaultHeader: make(http.Header),
 	}
+
+	client.DefaultHeader.Set("User-Agent", userAgent)
 
 	if err := client.init(); err != nil {
 		return nil, err
@@ -227,10 +234,12 @@ func (c *Client) rawRequest(verb string, u *url.URL, ro *RequestOptions) (*http.
 		return nil, err
 	}
 
-	// Set the User-Agent
-	request.Header.Set("User-Agent", userAgent)
+	// set our default headers first
+	for k, v := range c.DefaultHeader {
+		request.Header[k] = v
+	}
 
-	// Add any headers (auth will be here if set)
+	// Add any request headers (auth will be here if set)
 	for k, v := range ro.Headers {
 		request.Header.Add(k, v)
 	}

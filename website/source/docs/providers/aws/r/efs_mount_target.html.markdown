@@ -3,13 +3,15 @@ layout: "aws"
 page_title: "AWS: aws_efs_mount_target"
 sidebar_current: "docs-aws-resource-efs-mount-target"
 description: |-
-  Provides an EFS mount target.
+  Provides an Elastic File System (EFS) mount target.
 ---
 
 # aws\_efs\_mount\_target
 
-Provides an EFS mount target. Per [documentation](https://docs.aws.amazon.com/efs/latest/ug/limits.html)
-the limit is 1 mount target per AZ for a single EFS file system.
+Provides an Elastic File System (EFS) mount target.
+
+~> **NOTE:** As per the current [documentation](https://docs.aws.amazon.com/efs/latest/ug/limits.html)
+the limit is 1 mount target per Availability Zone for a single EFS file system.
 
 ## Example Usage
 
@@ -35,13 +37,28 @@ resource "aws_subnet" "alpha" {
 The following arguments are supported:
 
 * `file_system_id` - (Required) The ID of the file system for which the mount target is intended.
-* `subnet_id` - (Required) The ID of the subnet that the mount target is in.
-* `ip_address` - (Optional) The address at which the file system may be mounted via the mount target.
-* `security_groups` - (Optional) A list of up to 5 VPC security group IDs in effect for the mount target.
+* `subnet_id` - (Required) The ID of the subnet to add the mount target in.
+* `ip_address` - (Optional) The address (within the address range of the specified subnet) at
+which the file system may be mounted via the mount target.
+* `security_groups` - (Optional) A list of up to 5 VPC security group IDs (that must
+be for the same VPC as subnet specified) in effect for the mount target.
 
 ## Attributes Reference
 
+~> **Note:** The `dns_name` attribute is only useful if the mount target is in a VPC that has
+support for DNS hostnames enabled. See [Using DNS with Your VPC](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-dns.html)
+and [VPC resource](https://www.terraform.io/docs/providers/aws/r/vpc.html#enable_dns_hostnames) in Terraform for more information.
+
 The following attributes are exported:
 
-* `id` - The ID of the mount target
+* `id` - The ID of the mount target.
+* `dns_name` - The DNS name for the given subnet/AZ per [documented convention](http://docs.aws.amazon.com/efs/latest/ug/mounting-fs-mount-cmd-dns-name.html).
 * `network_interface_id` - The ID of the network interface that Amazon EFS created when it created the mount target.
+
+## Import
+
+The EFS mount targets can be imported using the `id`, e.g.
+
+```
+$ terraform import aws_efs_mount_target.alpha fsmt-52a643fb
+```

@@ -29,11 +29,11 @@ The following arguments are supported:
 * `description` - (Optional) The description of the ACL. Changing this forces a
     new resource to be created.
 
+* `project` - (Optional) The name or ID of the project to deploy this
+    instance to. Changing this forces a new resource to be created.
+
 * `vpc_id` - (Required) The ID of the VPC to create this ACL for. Changing this
    forces a new resource to be created.
-
-* `vpc` - (Required, Deprecated) The name or ID of the VPC to create this ACL
-    for. Changing this forces a new resource to be created.
 
 ## Attributes Reference
 

@@ -139,6 +139,22 @@ func TestAccAWSAmiDataSource_owners(t *testing.T) {
 	})
 }
 
+func TestAccAWSAmiDataSource_localNameFilter(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckAwsAmiDataSourceNameRegexConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsAmiDataSourceID("data.aws_ami.name_regex_filtered_ami"),
+					resource.TestMatchResourceAttr("data.aws_ami.name_regex_filtered_ami", "image_id", regexp.MustCompile("^ami-")),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAwsAmiDataSourceDestroy(s *terraform.State) error {
 	return nil
 }
@@ -243,5 +259,18 @@ const testAccCheckAwsAmiDataSourceOwnersConfig = `
 data "aws_ami" "amazon_ami" {
 	most_recent = true
 	owners = ["amazon"]
+}
+`
+
+// Testing name_regex parameter
+const testAccCheckAwsAmiDataSourceNameRegexConfig = `
+data "aws_ami" "name_regex_filtered_ami" {
+	most_recent = true
+	owners = ["amazon"]
+	filter {
+		name = "name"
+		values = ["amzn-ami-*"]
+	}
+	name_regex = "^amzn-ami-\\d{3}[5].*-ecs-optimized"
 }
 `

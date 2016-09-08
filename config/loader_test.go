@@ -327,6 +327,22 @@ func TestLoadJSONBasic(t *testing.T) {
 	}
 }
 
+func TestLoadFileBasic_jsonNoName(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "resource-no-name.tf.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(basicJsonNoNameResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFile_variables(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "variables.tf"))
 	if err != nil {
@@ -442,6 +458,22 @@ func TestLoadDir_override(t *testing.T) {
 
 	actual = outputsStr(c.Outputs)
 	if actual != strings.TrimSpace(dirOverrideOutputsStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestLoadDir_overrideVar(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "dir-override-var"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(dirOverrideVarsVariablesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 }
@@ -837,6 +869,11 @@ foo
   bar
 `
 
+const basicJsonNoNameResourcesStr = `
+aws_security_group.allow_external_http_https (x1)
+  tags
+`
+
 const dirBasicOutputsStr = `
 web_ip
   vars
@@ -919,6 +956,12 @@ data.do.simple (x1)
 const dirOverrideVariablesStr = `
 foo
   bar
+  bar
+`
+
+const dirOverrideVarsVariablesStr = `
+foo
+  baz
   bar
 `
 

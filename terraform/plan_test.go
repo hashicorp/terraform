@@ -50,7 +50,7 @@ func TestReadWritePlan(t *testing.T) {
 				},
 			},
 		},
-		Vars: map[string]string{
+		Vars: map[string]interface{}{
 			"foo": "bar",
 		},
 	}

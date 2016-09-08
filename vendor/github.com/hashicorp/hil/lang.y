@@ -6,6 +6,8 @@
 package hil
 
 import (
+    "fmt"
+
     "github.com/hashicorp/hil/ast"
 )
 
@@ -130,7 +132,9 @@ expr:
         // support *, /, etc., only -. We should fix this later with a pure
         // Go scanner/parser.
         if $1.Value.(ast.ArithmeticOp) != ast.ArithmeticOpSub {
-            panic("Unary - is only allowed")
+            if parserErr == nil {
+                parserErr = fmt.Errorf("Invalid unary operation: %v", $1.Value)
+            }
         }
 
         $$ = &ast.Arithmetic{

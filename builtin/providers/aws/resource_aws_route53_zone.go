@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -71,6 +72,12 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"force_destroy": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -258,6 +265,12 @@ func resourceAwsRoute53ZoneUpdate(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
 
+	if d.Get("force_destroy").(bool) {
+		if err := deleteAllRecordsInHostedZoneId(d.Id(), d.Get("name").(string), r53); err != nil {
+			return errwrap.Wrapf("{{err}}", err)
+		}
+	}
+
 	log.Printf("[DEBUG] Deleting Route53 hosted zone: %s (ID: %s)",
 		d.Get("name").(string), d.Id())
 	_, err := r53.DeleteHostedZone(&route53.DeleteHostedZoneInput{Id: aws.String(d.Id())})
@@ -268,6 +281,59 @@ func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) erro
 			return nil
 		}
 		return err
+	}
+
+	return nil
+}
+
+func deleteAllRecordsInHostedZoneId(hostedZoneId, hostedZoneName string, conn *route53.Route53) error {
+	input := &route53.ListResourceRecordSetsInput{
+		HostedZoneId: aws.String(hostedZoneId),
+	}
+
+	var lastDeleteErr, lastErrorFromWaiter error
+	var pageNum = 0
+	err := conn.ListResourceRecordSetsPages(input, func(page *route53.ListResourceRecordSetsOutput, isLastPage bool) bool {
+		sets := page.ResourceRecordSets
+		pageNum += 1
+
+		changes := make([]*route53.Change, 0)
+		// 100 items per page returned by default
+		for _, set := range sets {
+			if *set.Name == hostedZoneName+"." && (*set.Type == "NS" || *set.Type == "SOA") {
+				// Zone NS & SOA records cannot be deleted
+				continue
+			}
+			changes = append(changes, &route53.Change{
+				Action:            aws.String("DELETE"),
+				ResourceRecordSet: set,
+			})
+		}
+		log.Printf("[DEBUG] Deleting %d records (page %d) from %s",
+			len(changes), pageNum, hostedZoneId)
+
+		req := &route53.ChangeResourceRecordSetsInput{
+			HostedZoneId: aws.String(hostedZoneId),
+			ChangeBatch: &route53.ChangeBatch{
+				Comment: aws.String("Deleted by Terraform"),
+				Changes: changes,
+			},
+		}
+
+		var resp interface{}
+		resp, lastDeleteErr = deleteRoute53RecordSet(conn, req)
+		if out, ok := resp.(*route53.ChangeResourceRecordSetsOutput); ok {
+			log.Printf("[DEBUG] Waiting for change batch to become INSYNC: %#v", out)
+			lastErrorFromWaiter = waitForRoute53RecordSetToSync(conn, cleanChangeID(*out.ChangeInfo.Id))
+		} else {
+			log.Printf("[DEBUG] Unable to wait for change batch because of an error: %s", lastDeleteErr)
+		}
+
+		return !isLastPage
+	})
+	if err != nil {
+		return fmt.Errorf("Failed listing/deleting record sets: %s\nLast error from deletion: %s\nLast error from waiter: %s",
+			err, lastDeleteErr, lastErrorFromWaiter)
 	}
 
 	return nil

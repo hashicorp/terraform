@@ -92,10 +92,107 @@ resource "azurerm_virtual_machine" "test" {
     os_profile_linux_config {
 	    disable_password_authentication = false
     }
-    
+
     tags {
         environment = "staging"
     }
+}
+```
+
+## Example Usage with additional Empty DataDisk
+
+```
+resource "azurerm_resource_group" "test" {
+  name     = "acctestrg"
+  location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctvn"
+  address_space       = ["10.0.0.0/16"]
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "acctsub"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
+  address_prefix       = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+  name                = "acctni"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  ip_configuration {
+    name                          = "testconfiguration1"
+    subnet_id                     = "${azurerm_subnet.test.id}"
+    private_ip_address_allocation = "dynamic"
+  }
+}
+
+resource "azurerm_storage_account" "test" {
+  name                = "accsa"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "westus"
+  account_type        = "Standard_LRS"
+
+  tags {
+    environment = "staging"
+  }
+}
+
+resource "azurerm_storage_container" "test" {
+  name                  = "vhds"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  storage_account_name  = "${azurerm_storage_account.test.name}"
+  container_access_type = "private"
+}
+
+resource "azurerm_virtual_machine" "test" {
+  name                  = "acctvm"
+  location              = "West US"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  network_interface_ids = ["${azurerm_network_interface.test.id}"]
+  vm_size               = "Standard_A0"
+
+  storage_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "14.04.2-LTS"
+    version   = "latest"
+  }
+
+  storage_os_disk {
+    name          = "myosdisk1"
+    vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+    caching       = "ReadWrite"
+    create_option = "FromImage"
+  }
+
+  storage_data_disk {
+    name          = "datadisk0"
+    vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/datadisk0.vhd"
+    disk_size_gb  = "1023"
+    create_option = "empty"
+    lun           = 0
+  }
+
+  os_profile {
+    computer_name  = "hostname"
+    admin_username = "testadmin"
+    admin_password = "Password1234!"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = false
+  }
+
+  tags {
+    environment = "staging"
+  }
 }
 ```
 
@@ -113,13 +210,15 @@ The following arguments are supported:
 * `vm_size` - (Required) Specifies the [size of the virtual machine](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-size-specs/).
 * `storage_image_reference` - (Optional) A Storage Image Reference block as documented below.
 * `storage_os_disk` - (Required) A Storage OS Disk block as referenced below.
+* `delete_os_disk_on_termination` - (Optional) Flag to enable deletion of the OS Disk VHD blob when the VM is deleted, defaults to `false`
 * `storage_data_disk` - (Optional) A list of Storage Data disk blocks as referenced below.
+* `delete_data_disks_on_termination` - (Optional) Flag to enable deletion of Storage Disk VHD blobs when the VM is deleted, defaults to `false`
 * `os_profile` - (Required) An OS Profile block as documented below.
 * `os_profile_windows_config` - (Required, when a windows machine) A Windows config block as documented below.
 * `os_profile_linux_config` - (Required, when a linux machine) A Linux config block as documented below.
 * `os_profile_secrets` - (Optional) A collection of Secret blocks as documented below.
 * `network_interface_ids` - (Required) Specifies the list of resource IDs for the network interfaces associated with the virtual machine.
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 For more information on the different example configurations, please check out the [azure documentation](https://msdn.microsoft.com/en-us/library/mt163591.aspx#Anchor_2)
 
@@ -151,11 +250,11 @@ For more information on the different example configurations, please check out t
 * `vhd_uri` - (Required) Specifies the uri of the location in storage where the vhd for the virtual machine should be placed.
 * `create_option` - (Required) Specifies how the data disk should be created.
 * `disk_size_gb` - (Required) Specifies the size of the data disk in gigabytes.
-* `lun` - (Required) Specifies the logical unit number of the data disk. 
+* `lun` - (Required) Specifies the logical unit number of the data disk.
 
 `os_profile` supports the following:
 
-* `computer_name` - (Optional) Specifies the name of the virtual machine.
+* `computer_name` - (Required) Specifies the name of the virtual machine.
 * `admin_username` - (Required) Specifies the name of the administrator account.
 * `admin_password` - (Required) Specifies the password of the administrator account.
 * `custom_data` - (Optional) Specifies a base-64 encoded string of custom data. The base-64 encoded string is decoded to a binary array that is saved as a file on the Virtual Machine. The maximum length of the binary array is 65535 bytes.
@@ -188,7 +287,7 @@ For more information on the different example configurations, please check out t
 `os_profile_linux_config` supports the following:
 
 * `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled.
-* `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine. 
+* `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine.
 
 ~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure_
 

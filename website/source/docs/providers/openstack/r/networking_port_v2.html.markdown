@@ -63,6 +63,9 @@ The following arguments are supported:
 * `fixed_ip` - (Optional) An array of desired IPs for this port. The structure is
     described below.
 
+* `allowed_address_pairs` - (Optional) An IP/MAC Address pair of additional IP
+    addresses that can be active on this port. The structure is described
+    below.
 
 The `fixed_ip` block supports:
 
@@ -73,6 +76,12 @@ this port.
 you don't specify `ip_address`, an available IP address from the specified
 subnet will be allocated to this port.
 
+The `allowed_address_pairs` block supports:
+
+* `ip_address` - (Required) The additional IP address.
+
+* `mac_address` - (Optional) The additional MAC address.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -82,6 +91,22 @@ The following attributes are exported:
 * `mac_address` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
 * `device_owner` - See Argument Reference above.
-* `security_groups` - See Argument Reference above.
+* `security_group_ids` - See Argument Reference above.
 * `device_id` - See Argument Reference above.
 * `fixed_ip/ip_address` - See Argument Reference above.
+
+## Import
+
+Ports can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_networking_port_v2.port_1 eae26a3e-1c33-4cc1-9c31-0cd729c438a1
+```
+
+## Notes
+
+### Ports and Instances
+
+There are some notes to consider when connecting Instances to networks using
+Ports. Please see the `openstack_compute_instance_v2` documentation for further
+documentation.

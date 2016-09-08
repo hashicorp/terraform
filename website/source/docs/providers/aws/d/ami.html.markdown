@@ -8,7 +8,7 @@ description: |-
 
 # aws\_ami
 
-Use this data source to get the ID of a registered AMI for use in other 
+Use this data source to get the ID of a registered AMI for use in other
 resources.
 
 ## Example Usage
@@ -25,28 +25,36 @@ data "aws_ami" "nat_ami" {
     name = "name"
     values = ["amzn-ami-vpc-nat*"]
   }
+  name_regex = "^myami-\\d{3}"
   owners = ["self"]
 }
 ```
 
 ## Argument Reference
 
- * `most_recent` (optional): If more than one result is returned, use the most
+* `most_recent` - (Optional) If more than one result is returned, use the most
 recent AMI.
 
- * `executable_users`: Limit search to users with *explicit* launch permission on
+* `executable_users` - (Optional) Limit search to users with *explicit* launch permission on
  the image. Valid items are the numeric account ID or `self`.
 
-* `filter`: One or more name/value pairs to filter off of. There are
+* `filter` - (Optional) One or more name/value pairs to filter off of. There are
 several valid keys, for a full reference, check out
 [describe-images in the AWS CLI reference][1].
 
-* `owners`: Limit search to specific AMI owners. Valid items are the numeric
+* `owners` - (Optional) Limit search to specific AMI owners. Valid items are the numeric
 account ID, `amazon`, or `self`.
 
-~> **NOTE:** one of `executable_users`, `filter`, or `owners` must be specified.
+* `name_regex` - (Optional) A regex string to apply to the AMI list returned
+by AWS. This allows more advanced filtering not supported from the AWS API. This
+filtering is done locally on what AWS returns, and could have a performance
+impact if the result is large. It is recommended to combine this with other
+options to narrow down the list AWS returns.
 
-~> **NOTE:** if more or less than a single match is returned by the search,
+~> **NOTE:** At least one of `executable_users`, `filter`, `owners`, or
+`name_regex` must be specified.
+
+~> **NOTE:** If more or less than a single match is returned by the search,
 Terraform will fail. Ensure that your search is specific enough to return
 a single AMI ID only, or use `most_recent` to choose the most recent one.
 
@@ -55,10 +63,10 @@ a single AMI ID only, or use `most_recent` to choose the most recent one.
 `id` is set to the ID of the found AMI. In addition, the following attributes
 are exported:
 
-~> **NOTE:** some values are not always set and may not be available for
+~> **NOTE:** Some values are not always set and may not be available for
 interpolation.
 
-* `architecture` - The OS architecture of the AMI (ie: `i368` or `x86_64`).
+* `architecture` - The OS architecture of the AMI (ie: `i386` or `x86_64`).
 * `block_device_mappings` - The block device mappings of the AMI.
   * `block_device_mappings.#.device_name` - The physical name of the device.
   * `block_device_mappings.#.ebs.delete_on_termination` - `true` if the EBS volume

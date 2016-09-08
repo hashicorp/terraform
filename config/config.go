@@ -239,6 +239,12 @@ func (c *Config) Validate() error {
 	vars := c.InterpolatedVariables()
 	varMap := make(map[string]*Variable)
 	for _, v := range c.Variables {
+		if _, ok := varMap[v.Name]; ok {
+			errs = append(errs, fmt.Errorf(
+				"Variable '%s': duplicate found. Variable names must be unique.",
+				v.Name))
+		}
+
 		varMap[v.Name] = v
 	}
 
@@ -468,10 +474,15 @@ func (c *Config) Validate() error {
 					"%s: resource count can't reference resource variable: %s",
 					n,
 					v.FullKey()))
+			case *SimpleVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference variable: %s",
+					n,
+					v.FullKey()))
 			case *UserVariable:
 				// Good
 			default:
-				panic("Unknown type in count var: " + n)
+				panic(fmt.Sprintf("Unknown type in count var in %s: %T", n, v))
 			}
 		}
 
@@ -559,6 +570,15 @@ func (c *Config) Validate() error {
 				}
 			}
 		}
+
+		// Verify ignore_changes contains valid entries
+		for _, v := range r.Lifecycle.IgnoreChanges {
+			if strings.Contains(v, "*") && v != "*" {
+				errs = append(errs, fmt.Errorf(
+					"%s: ignore_changes does not support using a partial string "+
+						"together with a wildcard: %s", n, v))
+			}
+		}
 	}
 
 	for source, vs := range vars {
@@ -581,43 +601,55 @@ func (c *Config) Validate() error {
 	}
 
 	// Check that all outputs are valid
-	for _, o := range c.Outputs {
-		var invalidKeys []string
-		valueKeyFound := false
-		for k := range o.RawConfig.Raw {
-			if k == "value" {
-				valueKeyFound = true
-				continue
-			}
-			if k == "sensitive" {
-				if sensitive, ok := o.RawConfig.config[k].(bool); ok {
-					if sensitive {
-						o.Sensitive = true
-					}
-					continue
-				}
-
+	{
+		found := make(map[string]struct{})
+		for _, o := range c.Outputs {
+			// Verify the output is new
+			if _, ok := found[o.Name]; ok {
 				errs = append(errs, fmt.Errorf(
-					"%s: value for 'sensitive' must be boolean",
+					"%s: duplicate output. output names must be unique.",
 					o.Name))
 				continue
 			}
-			invalidKeys = append(invalidKeys, k)
-		}
-		if len(invalidKeys) > 0 {
-			errs = append(errs, fmt.Errorf(
-				"%s: output has invalid keys: %s",
-				o.Name, strings.Join(invalidKeys, ", ")))
-		}
-		if !valueKeyFound {
-			errs = append(errs, fmt.Errorf(
-				"%s: output is missing required 'value' key", o.Name))
-		}
+			found[o.Name] = struct{}{}
 
-		for _, v := range o.RawConfig.Variables {
-			if _, ok := v.(*CountVariable); ok {
+			var invalidKeys []string
+			valueKeyFound := false
+			for k := range o.RawConfig.Raw {
+				if k == "value" {
+					valueKeyFound = true
+					continue
+				}
+				if k == "sensitive" {
+					if sensitive, ok := o.RawConfig.config[k].(bool); ok {
+						if sensitive {
+							o.Sensitive = true
+						}
+						continue
+					}
+
+					errs = append(errs, fmt.Errorf(
+						"%s: value for 'sensitive' must be boolean",
+						o.Name))
+					continue
+				}
+				invalidKeys = append(invalidKeys, k)
+			}
+			if len(invalidKeys) > 0 {
 				errs = append(errs, fmt.Errorf(
-					"%s: count variables are only valid within resources", o.Name))
+					"%s: output has invalid keys: %s",
+					o.Name, strings.Join(invalidKeys, ", ")))
+			}
+			if !valueKeyFound {
+				errs = append(errs, fmt.Errorf(
+					"%s: output is missing required 'value' key", o.Name))
+			}
+
+			for _, v := range o.RawConfig.Variables {
+				if _, ok := v.(*CountVariable); ok {
+					errs = append(errs, fmt.Errorf(
+						"%s: count variables are only valid within resources", o.Name))
+				}
 			}
 		}
 	}
