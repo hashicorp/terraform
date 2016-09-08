@@ -68,6 +68,7 @@ func TestCacheState_RefreshState(t *testing.T) {
 		{
 			cacheModules: []*terraform.ModuleState{
 				&terraform.ModuleState{
+					Path: terraform.RootModulePath,
 					Resources: map[string]*terraform.ResourceState{
 						"foo.foo": &terraform.ResourceState{},
 					},
