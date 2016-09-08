@@ -24,7 +24,7 @@ func resourceHook() *schema.Resource {
 		Exists: resourceHookExists,
 
 		Schema: map[string]*schema.Schema{
-			"username": &schema.Schema{
+			"owner": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -88,7 +88,7 @@ func resourceHookCreate(d *schema.ResourceData, m interface{}) error {
 	enc.Encode(hook)
 
 	hook_req, err := client.Post(fmt.Sprintf("2.0/repositories/%s/%s/hooks",
-		d.Get("username").(string),
+		d.Get("owner").(string),
 		d.Get("repository").(string),
 	), jsonpayload)
 
@@ -106,7 +106,7 @@ func resourceHookCreate(d *schema.ResourceData, m interface{}) error {
 func resourceHookRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*BitbucketClient)
 	hook_req, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
-		d.Get("username").(string),
+		d.Get("owner").(string),
 		d.Get("repository").(string),
 		d.Get("uuid").(string),
 	))
@@ -150,7 +150,7 @@ func resourceHookUpdate(d *schema.ResourceData, m interface{}) error {
 	enc.Encode(hook)
 
 	hook_req, err := client.Put(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
-		d.Get("username").(string),
+		d.Get("owner").(string),
 		d.Get("repository").(string),
 		d.Get("uuid").(string),
 	), jsonpayload)
@@ -172,7 +172,7 @@ func resourceHookExists(d *schema.ResourceData, m interface{}) (bool, error) {
 	client := m.(*BitbucketClient)
 	if _, okay := d.GetOk("uuid"); okay {
 		hook_req, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
-			d.Get("username").(string),
+			d.Get("owner").(string),
 			d.Get("repository").(string),
 			d.Get("uuid").(string),
 		))
@@ -196,7 +196,7 @@ func resourceHookExists(d *schema.ResourceData, m interface{}) (bool, error) {
 func resourceHookDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*BitbucketClient)
 	_, err := client.Delete(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
-		d.Get("username").(string),
+		d.Get("owner").(string),
 		d.Get("repository").(string),
 		d.Get("uuid").(string),
 	))
