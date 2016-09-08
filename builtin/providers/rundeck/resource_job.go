@@ -61,6 +61,7 @@ func resourceRundeckJob() *schema.Resource {
 			"max_thread_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Default:  1,
 			},
 
 			// false: Stop at the failed step: Fail immediately (default).
@@ -71,9 +72,10 @@ func resourceRundeckJob() *schema.Resource {
 			},
 
 			"rank_order": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "ascending",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "ascending",
+				ValidateFunc: validateValueFunc([]string{"ascending", "descending"}),
 			},
 
 			"rank_attribute": &schema.Schema{
@@ -84,6 +86,7 @@ func resourceRundeckJob() *schema.Resource {
 			"preserve_options_order": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 
 			"command_ordering_strategy": &schema.Schema{
@@ -108,7 +111,7 @@ func resourceRundeckJob() *schema.Resource {
 			"nodes_selected_by_default": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true,
 			},
 
 			"schedule_cron": &schema.Schema{
