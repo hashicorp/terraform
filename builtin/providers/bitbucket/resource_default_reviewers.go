@@ -24,7 +24,7 @@ func resourceDefaultReviewers() *schema.Resource {
 		Delete: resourceDefaultReviewersDelete,
 
 		Schema: map[string]*schema.Schema{
-			"username": {
+			"owner": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -50,7 +50,7 @@ func resourceDefaultReviewersCreate(d *schema.ResourceData, m interface{}) error
 
 	for _, user := range d.Get("reviewers").(*schema.Set).List() {
 		reviewer_resp, err := client.PutOnly(fmt.Sprintf("2.0/repositories/%s/%s/default-reviewers/%s",
-			d.Get("username").(string),
+			d.Get("owner").(string),
 			d.Get("repository").(string),
 			user,
 		))
@@ -59,25 +59,26 @@ func resourceDefaultReviewersCreate(d *schema.ResourceData, m interface{}) error
 			return err
 		}
 
-		if reviewer_resp.StatusCode != 201 {
+		if reviewer_resp.StatusCode != 200 {
 			return fmt.Errorf("Failed to create reviewer %s got code %d", user.(string), reviewer_resp.StatusCode)
 		}
 
 		defer reviewer_resp.Body.Close()
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/reviewers", d.Get("username").(string), d.Get("repository").(string)))
+	d.SetId(fmt.Sprintf("%s/%s/reviewers", d.Get("owner").(string), d.Get("repository").(string)))
 	return resourceDefaultReviewersRead(d, m)
 }
 func resourceDefaultReviewersRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*BitbucketClient)
 
 	reviewers_response, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/default-reviewers",
-		d.Get("username").(string),
+		d.Get("owner").(string),
 		d.Get("repository").(string),
 	))
 
 	var reviewers PaginatedReviewers
+
 	decoder := json.NewDecoder(reviewers_response.Body)
 	err = decoder.Decode(&reviewers)
 	if err != nil {
@@ -98,15 +99,23 @@ func resourceDefaultReviewersDelete(d *schema.ResourceData, m interface{}) error
 	client := m.(*BitbucketClient)
 
 	for _, user := range d.Get("reviewers").(*schema.Set).List() {
-		_, err := client.Delete(fmt.Sprintf("2.0/repositories/%s/%s/default-reviewers/%s",
-			d.Get("username").(string),
+		resp, err := client.Delete(fmt.Sprintf("2.0/repositories/%s/%s/default-reviewers/%s",
+			d.Get("owner").(string),
 			d.Get("repository").(string),
-			user,
+			user.(string),
 		))
 
 		if err != nil {
 			return err
 		}
+
+		if resp.StatusCode != 204 {
+			return fmt.Errorf("[%d] Could not delete %s from default reviewer",
+				resp.StatusCode,
+				user.(string),
+			)
+		}
+		defer resp.Body.Close()
 	}
 	return nil
 }
