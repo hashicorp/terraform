@@ -144,9 +144,12 @@ bench-protocol:
 
 docs:
 	@echo "generate SDK docs"
-	rm -rf doc && bundle install && bundle exec yard
 	@# This env variable, DOCS, is for internal use
-	@if [ -n "$(AWS_DOC_GEN_TOOL)" ]; then echo "For internal use. Subject to change."; $(AWS_DOC_GEN_TOOL) `pwd`; fi
+	@if [ -z ${AWS_DOC_GEN_TOOL} ]; then\
+		rm -rf doc && bundle install && bundle exec yard;\
+	else\
+		$(AWS_DOC_GEN_TOOL) `pwd`;\
+	fi
 
 api_info:
 	@go run private/model/cli/api-info/api-info.go
