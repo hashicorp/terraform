@@ -272,12 +272,14 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 
 			"service_account": &schema.Schema{
 				Type:     schema.TypeList,
+				MaxItems: 1,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"email": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
@@ -415,13 +417,12 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.Network
 
 		var networkLink, subnetworkLink string
 		if networkName != "" {
-			network, err := config.clientCompute.Networks.Get(
-				project, networkName).Do()
+			networkLink, err = getNetworkLink(d, config, prefix+".network")
 			if err != nil {
 				return nil, fmt.Errorf("Error referencing network '%s': %s",
 					networkName, err)
 			}
-			networkLink = network.SelfLink
+
 		} else {
 			// lookup subnetwork link using region and subnetwork name
 			region, err := getRegion(d, config)
@@ -543,8 +544,13 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 			scopes = append(scopes, canonicalizeServiceScope(scope))
 		}
 
+		email := "default"
+		if v := d.Get(prefix + ".email"); v != nil {
+			email = v.(string)
+		}
+
 		serviceAccount := &compute.ServiceAccount{
-			Email:  "default",
+			Email:  email,
 			Scopes: scopes,
 		}
 
@@ -585,13 +591,18 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	return resourceComputeInstanceTemplateRead(d, meta)
 }
 
-func flattenDisks(disks []*compute.AttachedDisk) []map[string]interface{} {
+func flattenDisks(disks []*compute.AttachedDisk, d *schema.ResourceData) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(disks))
-	for _, disk := range disks {
+	for i, disk := range disks {
 		diskMap := make(map[string]interface{})
 		if disk.InitializeParams != nil {
-			sourceImageUrl := strings.Split(disk.InitializeParams.SourceImage, "/")
-			diskMap["source_image"] = sourceImageUrl[len(sourceImageUrl)-1]
+			var source_img = fmt.Sprintf("disk.%d.source_image", i)
+			if d.Get(source_img) == nil || d.Get(source_img) == "" {
+				sourceImageUrl := strings.Split(disk.InitializeParams.SourceImage, "/")
+				diskMap["source_image"] = sourceImageUrl[len(sourceImageUrl)-1]
+			} else {
+				diskMap["source_image"] = d.Get(source_img)
+			}
 			diskMap["disk_type"] = disk.InitializeParams.DiskType
 			diskMap["disk_name"] = disk.InitializeParams.DiskName
 			diskMap["disk_size_gb"] = disk.InitializeParams.DiskSizeGb
@@ -701,7 +712,7 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 	d.Set("self_link", instanceTemplate.SelfLink)
 	d.Set("name", instanceTemplate.Name)
 	if instanceTemplate.Properties.Disks != nil {
-		d.Set("disk", flattenDisks(instanceTemplate.Properties.Disks))
+		d.Set("disk", flattenDisks(instanceTemplate.Properties.Disks, d))
 	}
 	d.Set("description", instanceTemplate.Description)
 	d.Set("machine_type", instanceTemplate.Properties.MachineType)

@@ -8,6 +8,7 @@ import (
 
 var parserLock sync.Mutex
 var parserResult ast.Node
+var parserErr error
 
 // Parse parses the given program and returns an executable AST tree.
 func Parse(v string) (ast.Node, error) {
@@ -18,6 +19,7 @@ func Parse(v string) (ast.Node, error) {
 	defer parserLock.Unlock()
 
 	// Reset our globals
+	parserErr = nil
 	parserResult = nil
 
 	// Create the lexer
@@ -26,5 +28,15 @@ func Parse(v string) (ast.Node, error) {
 	// Parse!
 	parserParse(lex)
 
-	return parserResult, lex.Err
+	// If we have a lex error, return that
+	if lex.Err != nil {
+		return nil, lex.Err
+	}
+
+	// If we have a parser error, return that
+	if parserErr != nil {
+		return nil, parserErr
+	}
+
+	return parserResult, nil
 }

@@ -25,7 +25,7 @@ resource "google_compute_instance" "default" {
   tags = ["foo", "bar"]
 
   disk {
-    image = "debian-7-wheezy-v20160301"
+    image = "debian-cloud/debian-8"
   }
 
   // Local SSD disk
@@ -133,7 +133,7 @@ the type is "local-ssd", in which case scratch must be true).
 
 The `network_interface` block supports:
 
-* `network` - (Optional) The name of the network to attach this interface to.
+* `network` - (Optional) The name or self_link of the network to attach this interface to.
     Either `network` or `subnetwork` must be provided.
 
 *  `subnetwork` - (Optional) the name of the subnetwork to attach this interface

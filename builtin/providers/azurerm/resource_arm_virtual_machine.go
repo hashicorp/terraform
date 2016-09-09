@@ -485,12 +485,13 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	name := id.Path["virtualMachines"]
 
 	resp, err := vmClient.Get(resGroup, name, "")
+
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure Virtual Machine %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure Virtual Machine %s: %s", name, err)
 	}
 
 	if resp.Plan != nil {

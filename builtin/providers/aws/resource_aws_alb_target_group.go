@@ -25,6 +25,11 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -141,6 +146,8 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 					},
 				},
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -206,6 +213,7 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 
 	targetGroup := resp.TargetGroups[0]
 
+	d.Set("arn", targetGroup.TargetGroupArn)
 	d.Set("name", targetGroup.TargetGroupName)
 	d.Set("port", targetGroup.Port)
 	d.Set("protocol", targetGroup.Protocol)
@@ -251,6 +259,10 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 
 func resourceAwsAlbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
+
+	if err := setElbV2Tags(elbconn, d); err != nil {
+		return errwrap.Wrapf("Error Modifying Tags on ALB Target Group: {{err}}", err)
+	}
 
 	if d.HasChange("health_check") {
 		healthChecks := d.Get("health_check").([]interface{})

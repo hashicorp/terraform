@@ -14,7 +14,7 @@ Provides an Elastic File System (EFS) resource.
 
 ```
 resource "aws_efs_file_system" "foo" {
-  reference_name = "my-product"
+  creation_token = "my-product"
   tags {
     Name = "MyProduct"
   }

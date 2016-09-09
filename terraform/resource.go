@@ -239,6 +239,6 @@ func (c *ResourceConfig) interpolateForce() {
 	}
 
 	c.ComputedKeys = c.raw.UnknownKeys()
-	c.Raw = c.raw.Raw
+	c.Raw = c.raw.RawMap()
 	c.Config = c.raw.Config()
 }

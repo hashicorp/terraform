@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -270,6 +271,9 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		zone, *rec.Name, req)
 
 	respRaw, err := changeRoute53RecordSet(conn, req)
+	if err != nil {
+		return errwrap.Wrapf("[ERR]: Error building changeset: {{err}}", err)
+	}
 
 	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
 
@@ -524,7 +528,18 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		ChangeBatch:  changeBatch,
 	}
 
-	_, err = deleteRoute53RecordSet(conn, req)
+	respRaw, err := deleteRoute53RecordSet(conn, req)
+	if err != nil {
+		return errwrap.Wrapf("[ERR]: Error building changeset: {{err}}", err)
+	}
+
+	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
+
+	err = waitForRoute53RecordSetToSync(conn, cleanChangeID(*changeInfo.Id))
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 

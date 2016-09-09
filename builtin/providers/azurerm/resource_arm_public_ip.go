@@ -165,12 +165,12 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 	name := id.Path["publicIPAddresses"]
 
 	resp, err := publicIPClient.Get(resGroup, name, "")
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
 	}
 
 	d.Set("location", resp.Location)

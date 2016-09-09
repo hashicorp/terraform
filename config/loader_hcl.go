@@ -29,6 +29,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	type hclVariable struct {
+		Name         string `hcl:",key"`
 		Default      interface{}
 		Description  string
 		DeclaredType string   `hcl:"type"`
@@ -36,7 +37,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	var rawConfig struct {
-		Variable map[string]*hclVariable
+		Variable []*hclVariable
 	}
 
 	// Top-level item should be the object list
@@ -56,7 +57,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	config := new(Config)
 	if len(rawConfig.Variable) > 0 {
 		config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
-		for k, v := range rawConfig.Variable {
+		for _, v := range rawConfig.Variable {
 			// Defaults turn into a slice of map[string]interface{} and
 			// we need to make sure to convert that down into the
 			// proper type for Config.
@@ -72,7 +73,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 			}
 
 			newVar := &Variable{
-				Name:         k,
+				Name:         v.Name,
 				DeclaredType: v.DeclaredType,
 				Default:      v.Default,
 				Description:  v.Description,
@@ -456,6 +457,7 @@ func loadDataResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 		// Remove the fields we handle specially
 		delete(config, "depends_on")
 		delete(config, "provider")
+		delete(config, "count")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -553,6 +555,37 @@ func loadManagedResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 				"position %s: provisioners in a resource should be wrapped in a list\n\n"+
 					"Example: \"provisioner\": [ { \"local-exec\": ... } ]",
 				item.Pos())
+		}
+
+		// HCL special case: if we're parsing JSON then directly nested
+		// items will show up as additional "keys". We need to unwrap them
+		// since we expect only two keys. Example:
+		//
+		// { "foo": { "bar": { "baz": {} } } }
+		//
+		// Will show up with Keys being: []string{"foo", "bar", "baz"}
+		// when we really just want the first two. To fix this we unwrap
+		// them into the right value.
+		if len(item.Keys) > 2 && item.Keys[0].Token.JSON {
+			for len(item.Keys) > 2 {
+				// Pop off the last key
+				n := len(item.Keys)
+				key := item.Keys[n-1]
+				item.Keys[n-1] = nil
+				item.Keys = item.Keys[:n-1]
+
+				// Wrap our value in a list
+				item.Val = &ast.ObjectType{
+					List: &ast.ObjectList{
+						Items: []*ast.ObjectItem{
+							&ast.ObjectItem{
+								Keys: []*ast.ObjectKey{key},
+								Val:  item.Val,
+							},
+						},
+					},
+				}
+			}
 		}
 
 		if len(item.Keys) != 2 {

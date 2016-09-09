@@ -46,9 +46,10 @@ func resourceAwsSnsTopic() *schema.Resource {
 				ForceNew: false,
 			},
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 				StateFunc: func(v interface{}) string {
 					s, ok := v.(string)
 					if !ok || s == "" {

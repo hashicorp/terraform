@@ -8,7 +8,7 @@ description: |-
 
 # tls\_locally\_signed\_cert
 
-Generates a TLS ceritifcate using a *Certificate Signing Request* (CSR) and
+Generates a TLS certificate using a *Certificate Signing Request* (CSR) and
 signs it with a provided certificate authority (CA) private key.
 
 Locally-signed certificates are generally only trusted by client software when

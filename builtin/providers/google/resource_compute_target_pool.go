@@ -55,6 +55,7 @@ func resourceComputeTargetPool() *schema.Resource {
 			"instances": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
@@ -361,6 +362,16 @@ func convertInstancesFromUrls(urls []string) []string {
 	return result
 }
 
+func convertHealthChecksFromUrls(urls []string) []string {
+	result := make([]string, 0, len(urls))
+	for _, url := range urls {
+		urlArray := strings.Split(url, "/")
+		healthCheck := fmt.Sprintf("%s", urlArray[len(urlArray)-1])
+		result = append(result, healthCheck)
+	}
+	return result
+}
+
 func resourceComputeTargetPoolRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -393,9 +404,15 @@ func resourceComputeTargetPoolRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("backup_pool", tpool.BackupPool)
 	d.Set("description", tpool.Description)
 	d.Set("failover_ratio", tpool.FailoverRatio)
-	d.Set("health_checks", tpool.HealthChecks)
+	if tpool.HealthChecks != nil {
+		d.Set("health_checks", convertHealthChecksFromUrls(tpool.HealthChecks))
+	} else {
+		d.Set("health_checks", nil)
+	}
 	if tpool.Instances != nil {
 		d.Set("instances", convertInstancesFromUrls(tpool.Instances))
+	} else {
+		d.Set("instances", nil)
 	}
 	d.Set("name", tpool.Name)
 	d.Set("region", regionUrl[len(regionUrl)-1])

@@ -10,6 +10,42 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+func TestStateValidate(t *testing.T) {
+	cases := map[string]struct {
+		In  *State
+		Err bool
+	}{
+		"empty state": {
+			&State{},
+			false,
+		},
+
+		"multiple modules": {
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "foo"},
+					},
+					&ModuleState{
+						Path: []string{"root", "foo"},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for name, tc := range cases {
+		// Init the state
+		tc.In.init()
+
+		err := tc.In.Validate()
+		if (err != nil) != tc.Err {
+			t.Fatalf("%s: err: %s", name, err)
+		}
+	}
+}
+
 func TestStateAddModule(t *testing.T) {
 	cases := []struct {
 		In  [][]string

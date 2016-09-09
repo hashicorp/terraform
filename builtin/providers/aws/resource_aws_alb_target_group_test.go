@@ -27,6 +27,7 @@ func TestAccAWSALBTargetGroup_basic(t *testing.T) {
 				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
+					resource.TestCheckResourceAttrSet("aws_alb_target_group.test", "arn"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "name", targetGroupName),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "port", "443"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "protocol", "HTTPS"),
@@ -50,6 +51,37 @@ func TestAccAWSALBTargetGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSALBTargetGroup_tags(t *testing.T) {
+	var conf elbv2.TargetGroup
+	targetGroupName := fmt.Sprintf("test-target-group-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_alb_target_group.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSALBTargetGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "tags.%", "1"),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "tags.TestName", "TestAccAWSALBTargetGroup_basic"),
+				),
+			},
+			{
+				Config: testAccAWSALBTargetGroupConfig_updateTags(targetGroupName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "tags.%", "2"),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "tags.Environment", "Production"),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "tags.Type", "ALB Target Group"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSALBTargetGroup_updateHealthCheck(t *testing.T) {
 	var conf elbv2.TargetGroup
 	targetGroupName := fmt.Sprintf("test-target-group-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
@@ -64,6 +96,7 @@ func TestAccAWSALBTargetGroup_updateHealthCheck(t *testing.T) {
 				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
+					resource.TestCheckResourceAttrSet("aws_alb_target_group.test", "arn"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "name", targetGroupName),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "port", "443"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "protocol", "HTTPS"),
@@ -87,6 +120,7 @@ func TestAccAWSALBTargetGroup_updateHealthCheck(t *testing.T) {
 				Config: testAccAWSALBTargetGroupConfig_updateHealthCheck(targetGroupName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
+					resource.TestCheckResourceAttrSet("aws_alb_target_group.test", "arn"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "name", targetGroupName),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "port", "443"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "protocol", "HTTPS"),
@@ -194,6 +228,50 @@ func testAccAWSALBTargetGroupConfig_basic(targetGroupName string) string {
     healthy_threshold = 3
     unhealthy_threshold = 3
     matcher = "200-299"
+  }
+
+  tags {
+    TestName = "TestAccAWSALBTargetGroup_basic"
+  }
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    TestName = "TestAccAWSALBTargetGroup_basic"
+  }
+}`, targetGroupName)
+}
+
+func testAccAWSALBTargetGroupConfig_updateTags(targetGroupName string) string {
+	return fmt.Sprintf(`resource "aws_alb_target_group" "test" {
+  name = "%s"
+  port = 443
+  protocol = "HTTPS"
+  vpc_id = "${aws_vpc.test.id}"
+
+  deregistration_delay = 200
+
+  stickiness {
+    type = "lb_cookie"
+    cookie_duration = 10000
+  }
+
+  health_check {
+    path = "/health"
+    interval = 60
+    port = 8081
+    protocol = "HTTP"
+    timeout = 3
+    healthy_threshold = 3
+    unhealthy_threshold = 3
+    matcher = "200-299"
+  }
+
+  tags {
+    Environment = "Production"
+    Type = "ALB Target Group"
   }
 }
 

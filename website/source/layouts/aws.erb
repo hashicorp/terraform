@@ -23,6 +23,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-caller-identity") %>>
                           <a href="/docs/providers/aws/d/caller_identity.html">aws_caller_identity</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-cloudformation-stack") %>>
+                            <a href="/docs/providers/aws/d/cloudformation_stack.html">aws_cloudformation_stack</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-ecs-container-definition") %>>
                             <a href="/docs/providers/aws/d/ecs_container_definition.html">aws_ecs_container_definition</a>
                         </li>
@@ -56,8 +59,14 @@
                         <li<%= sidebar_current("docs-aws-resource-api-gateway-authorizer") %>>
                             <a href="/docs/providers/aws/r/api_gateway_authorizer.html">aws_api_gateway_authorizer</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-base-path-mapping") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_base_path_mapping.html">aws_api_gateway_base_path_mapping</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-resource-api-gateway-deployment") %>>
                             <a href="/docs/providers/aws/r/api_gateway_deployment.html">aws_api_gateway_deployment</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-domain-name") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_domain_name.html">aws_api_gateway_domain_name</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-resource-api-gateway-integration") %>>
                             <a href="/docs/providers/aws/r/api_gateway_integration.html">aws_api_gateway_integration</a>
@@ -146,6 +155,10 @@
                             <a href="/docs/providers/aws/r/cloudwatch_log_metric_filter.html">aws_cloudwatch_log_metric_filter</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-stream") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_log_stream.html">aws_cloudwatch_log_stream</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-subscription-filter") %>>
                             <a href="/docs/providers/aws/r/cloudwatch_log_subscription_filter.html">aws_cloudwatch_log_subscription_filter</a>
                         </li>
@@ -214,9 +227,21 @@
                             <a href="/docs/providers/aws/r/alb.html">aws_alb</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-alb-listener") %>>
+                            <a href="/docs/providers/aws/r/alb_listener.html">aws_alb_listener</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-alb-listener-rule") %>>
+                          <a href="/docs/providers/aws/r/alb_listener_rule.html">aws_alb_listener_rule</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-alb-target-group") %>>
                             <a href="/docs/providers/aws/r/alb_target_group.html">aws_alb_target_group</a>
-			</li>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-alb-target-group-attachment") %>>
+                          <a href="/docs/providers/aws/r/alb_target_group_attachment.html">aws_alb_target_group_attachment</a>
+                        </li>
 
                         <li<%= sidebar_current("docs-aws-resource-ami") %>>
                             <a href="/docs/providers/aws/r/ami.html">aws_ami</a>
@@ -317,6 +342,10 @@
                             <a href="/docs/providers/aws/r/proxy_protocol_policy.html">aws_proxy_protocol_policy</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-spot-datafeed-subscription") %>>
+                            <a href="/docs/providers/aws/r/spot_datafeed_subscription.html">aws_spot_datafeed_subscription</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-spot-fleet-request") %>>
                             <a href="/docs/providers/aws/r/spot_fleet_request.html">aws_spot_fleet_request</a>
                         </li>
@@ -386,6 +415,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-elasticache-parameter-group") %>>
                             <a href="/docs/providers/aws/r/elasticache_parameter_group.html">aws_elasticache_parameter_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-elasticache-replication-group") %>>
+                            <a href="/docs/providers/aws/r/elasticache_replication_group.html">aws_elasticache_replication_group</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-elasticache-security-group") %>>
@@ -766,6 +799,9 @@
                             <a href="/docs/providers/aws/r/s3_bucket_object.html">aws_s3_bucket_object</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-s3-bucket-policy") %>>
+                            <a href="/docs/providers/aws/r/s3_bucket_policy.html">aws_s3_bucket_policy</a>
+                        </li>
                     </ul>
                 </li>
 
@@ -814,6 +850,10 @@
                             <a href="/docs/providers/aws/r/sns_topic.html">aws_sns_topic</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-sns-topic-policy") %>>
+                            <a href="/docs/providers/aws/r/sns_topic_policy.html">aws_sns_topic_policy</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-sns-topic-subscription") %>>
                             <a href="/docs/providers/aws/r/sns_topic_subscription.html">aws_sns_topic_subscription</a>
                         </li>
@@ -821,6 +861,16 @@
                     </ul>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-ssm/) %>>
+                    <a href="#">SSM Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-ssm-document") %>>
+                            <a href="/docs/providers/aws/r/ssm_document.html">aws_ssm_document</a>
+                        </li>
+
+                    </ul>
+                </li>
 
                 <li<%= sidebar_current(/^docs-aws-resource-sqs/) %>>
                     <a href="#">SQS Resources</a>
@@ -828,6 +878,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-sqs-queue") %>>
                             <a href="/docs/providers/aws/r/sqs_queue.html">aws_sqs_queue</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-sqs-queue-policy") %>>
+                            <a href="/docs/providers/aws/r/sqs_queue_policy.html">aws_sqs_queue_policy</a>
                         </li>
 
                     </ul>
@@ -844,6 +898,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-default-network-acl") %>>
                             <a href="/docs/providers/aws/r/default_network_acl.html">aws_default_network_acl</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-default-route-table") %>>
+                            <a href="/docs/providers/aws/r/default_route_table.html">aws_default_route_table</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-flow-log") %>>
