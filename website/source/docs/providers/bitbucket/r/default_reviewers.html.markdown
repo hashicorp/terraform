@@ -15,7 +15,7 @@ Provides support for setting up default reviewers for your repository.
 ```
 # Manage your respository
 resource "bitbucket_default_reviewers" "infastracture" {
-    username = "myteam"
+    owner = "myteam"
     repository = "terraform-code"
     reviewers = [
         "gob",
@@ -29,7 +29,7 @@ resource "bitbucket_default_reviewers" "infastracture" {
 
 The following arguments are supported:
 
-* `username` - (Required) The owner of this repository. Can be you or any team you
+* `owner` - (Required) The owner of this repository. Can be you or any team you
   have write access to.
 * `repository` - (Required) The name of the repository.
 * `reviewers` - (Required) A list of reviewers to use.

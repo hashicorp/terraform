@@ -17,7 +17,7 @@ This allows you to manage your webhooks on a repository.
 ```
 # Manage your respositories hooks
 resource "bitbucket_hook" "deploy_on_push" {
-    username = "myteam"
+    owner = "myteam"
     repository = "terraform-code"
     url = "https://mywebhookservice.mycompany.com/deploy-on-push"
     description = "Deploy the code via my webhook"
@@ -31,7 +31,7 @@ resource "bitbucket_hook" "deploy_on_push" {
 
 The following arguments are supported:
 
-* `username` - (Required) The owner of this repository. Can be you or any team you
+* `owner` - (Required) The owner of this repository. Can be you or any team you
   have write access to.
 * `repository` - (Required) The name of the repository.
 * `url` - (Required) Where to POST to.
