@@ -654,6 +654,12 @@ func (c *ECR) ListImagesRequest(input *ListImagesInput) (req *request.Request, o
 }
 
 // Lists all the image IDs for a given repository.
+//
+// You can filter images based on whether or not they are tagged by setting
+// the tagStatus parameter to TAGGED or UNTAGGED. For example, you can filter
+// your results to return only UNTAGGED images and then pipe that result to
+// a BatchDeleteImage operation to delete them. Or, you can filter your results
+// to return only TAGGED images to list all of the tags in your repository.
 func (c *ECR) ListImages(input *ListImagesInput) (*ListImagesOutput, error) {
 	req, out := c.ListImagesRequest(input)
 	err := req.Send()
@@ -1726,9 +1732,12 @@ func (s LayerFailure) GoString() string {
 	return s.String()
 }
 
+// An object representing a filter on a ListImages operation.
 type ListImagesFilter struct {
 	_ struct{} `type:"structure"`
 
+	// The tag status with which to filter your ListImages results. You can filter
+	// results based on whether they are TAGGED or UNTAGGED.
 	TagStatus *string `locationName:"tagStatus" type:"string" enum:"TagStatus"`
 }
 
@@ -1745,6 +1754,7 @@ func (s ListImagesFilter) GoString() string {
 type ListImagesInput struct {
 	_ struct{} `type:"structure"`
 
+	// The filter key and value with which to filter your ListImages results.
 	Filter *ListImagesFilter `locationName:"filter" type:"structure"`
 
 	// The maximum number of image results returned by ListImages in paginated output.
