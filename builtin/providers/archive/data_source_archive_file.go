@@ -4,10 +4,11 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
 	"io/ioutil"
 	"os"
 	"path"
+
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func dataSourceFile() *schema.Resource {
