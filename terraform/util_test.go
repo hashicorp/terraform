@@ -69,10 +69,12 @@ func TestUtilResourceProvider(t *testing.T) {
 			Expected:     "aws",
 		},
 		{
-			// Resource name without enough parts is invalid
-			ResourceName: "aws",
+			// A provider can export a resource whose name is just the bare provider name,
+			// e.g. because the provider only has one resource and so any additional
+			// parts would be redundant.
+			ResourceName: "external",
 			Alias:        "",
-			Expected:     "", // intentionally not a valid provider name
+			Expected:     "external",
 		},
 		{
 			// Alias always overrides the default extraction of the name
