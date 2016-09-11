@@ -110,6 +110,10 @@ of several sub-resources - these resources are laid out below.
   * `enabled` (Required) - Whether the distribution is enabled to accept end
     user requests for content.
 
+  * `http_version` (Optional) - The maximum HTTP version to support on the
+    distribution. Allowed values are `http1.1` and `http2`. The default is
+    `http2`.
+
   * `logging_config` (Optional) - The [logging
     configuration](#logging-config-arguments) that controls how logs are written
     to your distribution (maximum one).
