@@ -187,13 +187,18 @@ func resourceCloudStackVPCUpdate(d *schema.ResourceData, meta interface{}) error
 		// Create a new parameter struct
 		p := cs.VPC.NewUpdateVPCParams(d.Id())
 
+		name := d.Get("name").(string)
+
 		// Set the display text
 		displaytext, ok := d.GetOk("display_text")
 		if !ok {
-			displaytext = d.Get("name")
+			displaytext = name
 		}
 		// Set the (new) display text
 		p.SetDisplaytext(displaytext.(string))
+
+		// Set the (new) name
+		p.SetName(name)
 
 		// Update the VPC
 		_, err := cs.VPC.UpdateVPC(p)
