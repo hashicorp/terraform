@@ -12,6 +12,7 @@ BUG FIXES:
  * provider/aws: Bump `aws_elasticsearch_domain` timeout values [GH-672]
  * provider/aws: `aws_nat_gateways` will now recreate on `failed` state [GH-8689]
  * provider/aws: Prevent crash on account ID validation [GH-8731]
+ * provider/aws: `aws_db_instance` unexpected state when configurating enhanced monitoring [GH-8707]
  * provider/scaleway: fix security_group_rule identification [GH-8661]
 
 ## 0.7.3 (September 5, 2016)
