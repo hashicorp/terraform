@@ -59,6 +59,11 @@ func dataSourceCloudinitConfig() *schema.Resource {
 				Computed:    true,
 				Description: "rendered cloudinit configuration",
 			},
+			"single_part": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -77,10 +82,17 @@ func dataSourceCloudinitConfigRead(d *schema.ResourceData, meta interface{}) err
 func renderCloudinitConfig(d *schema.ResourceData) (string, error) {
 	gzipOutput := d.Get("gzip").(bool)
 	base64Output := d.Get("base64_encode").(bool)
+	singlePart := d.Get("single_part").(bool)
 
 	partsValue, hasParts := d.GetOk("part")
 	if !hasParts {
 		return "", fmt.Errorf("No parts found in the cloudinit resource declaration")
+	}
+
+	if singlePart {
+		if len(partsValue.([]interface{})) > 1 {
+			return "", fmt.Errorf("Too many parts found, when single part activated")
+		}
 	}
 
 	cloudInitParts := make(cloudInitParts, len(partsValue.([]interface{})))
@@ -108,10 +120,18 @@ func renderCloudinitConfig(d *schema.ResourceData) (string, error) {
 	var err error
 	if gzipOutput {
 		gzipWriter := gzip.NewWriter(&buffer)
-		err = renderPartsToWriter(cloudInitParts, gzipWriter)
+		if singlePart {
+			err = renderSinglePartToWriter(cloudInitParts, gzipWriter)
+		} else {
+			err = renderPartsToWriter(cloudInitParts, gzipWriter)
+		}
 		gzipWriter.Close()
 	} else {
-		err = renderPartsToWriter(cloudInitParts, &buffer)
+		if singlePart {
+			err = renderSinglePartToWriter(cloudInitParts, &buffer)
+		} else {
+			err = renderPartsToWriter(cloudInitParts, &buffer)
+		}
 	}
 	if err != nil {
 		return "", err
@@ -125,6 +145,16 @@ func renderCloudinitConfig(d *schema.ResourceData) (string, error) {
 	}
 
 	return output, nil
+}
+
+func renderSinglePartToWriter(parts cloudInitParts, writer io.Writer) error {
+	for _, part := range parts {
+		_, err := writer.Write([]byte(part.Content))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func renderPartsToWriter(parts cloudInitParts, writer io.Writer) error {

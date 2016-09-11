@@ -52,6 +52,17 @@ func TestRender(t *testing.T) {
 			}`,
 			"Content-Type: multipart/mixed; boundary=\"MIMEBOUNDARY\"\nMIME-Version: 1.0\r\n--MIMEBOUNDARY\r\nContent-Transfer-Encoding: 7bit\r\nContent-Type: text/x-shellscript\r\nMime-Version: 1.0\r\n\r\nbaz\r\n--MIMEBOUNDARY\r\nContent-Transfer-Encoding: 7bit\r\nContent-Type: text/x-shellscript\r\nMime-Version: 1.0\r\n\r\nffbaz\r\n--MIMEBOUNDARY--\r\n",
 		},
+		{
+			`data "template_cloudinit_config" "foo" {
+				single_part = true
+				base64_encode = false
+				gzip = false
+				part {
+					content      = "baz"
+				}
+			}`,
+			"baz",
+		},
 	}
 
 	for _, tt := range testCases {
