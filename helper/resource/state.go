@@ -183,6 +183,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 		return nil, &TimeoutError{
 			LastError:     r.Error,
 			LastState:     r.State,
+			Timeout:       conf.Timeout,
 			ExpectedState: conf.Target,
 		}
 	}
