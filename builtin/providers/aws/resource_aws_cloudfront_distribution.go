@@ -87,6 +87,11 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 										Type:     schema.TypeBool,
 										Required: true,
 									},
+									"query_string_cache_keys": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
 								},
 							},
 						},
@@ -211,6 +216,11 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 									"query_string": &schema.Schema{
 										Type:     schema.TypeBool,
 										Required: true,
+									},
+									"query_string_cache_keys": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
 									},
 								},
 							},
@@ -348,8 +358,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"origin_access_identity": &schema.Schema{
 										Type:     schema.TypeString,
-										Optional: true,
-										Default:  "",
+										Required: true,
 									},
 								},
 							},
