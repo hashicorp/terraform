@@ -46,6 +46,7 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 		CustomErrorResponses: expandCustomErrorResponses(d.Get("custom_error_response").(*schema.Set)),
 		DefaultCacheBehavior: expandDefaultCacheBehavior(d.Get("default_cache_behavior").(*schema.Set).List()[0].(map[string]interface{})),
 		Enabled:              aws.Bool(d.Get("enabled").(bool)),
+		HttpVersion:          aws.String(d.Get("http_version").(string)),
 		Origins:              expandOrigins(d.Get("origin").(*schema.Set)),
 		PriceClass:           aws.String(d.Get("price_class").(string)),
 	}
@@ -121,6 +122,9 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 	}
 	if distributionConfig.DefaultRootObject != nil {
 		d.Set("default_root_object", distributionConfig.DefaultRootObject)
+	}
+	if distributionConfig.HttpVersion != nil {
+		d.Set("http_version", distributionConfig.HttpVersion)
 	}
 	if distributionConfig.WebACLId != nil {
 		d.Set("web_acl_id", distributionConfig.WebACLId)

@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -250,6 +251,12 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 			"enabled": &schema.Schema{
 				Type:     schema.TypeBool,
 				Required: true,
+			},
+			"http_version": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "http2",
+				ValidateFunc: validateHTTP,
 			},
 			"logging_config": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -608,4 +615,21 @@ func resourceAwsCloudFrontWebDistributionStateRefreshFunc(id string, meta interf
 
 		return resp.Distribution, *resp.Distribution.Status, nil
 	}
+}
+
+// validateHTTP ensures that the http_version resource parameter is
+// correct.
+func validateHTTP(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	found := false
+	for _, w := range []string{"http1.1", "http2"} {
+		if value == w {
+			found = true
+		}
+	}
+	if found == false {
+		errors = append(errors, fmt.Errorf(
+			"HTTP version parameter must be one of http1.1 or http2"))
+	}
+	return
 }
