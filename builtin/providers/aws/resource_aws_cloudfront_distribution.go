@@ -355,8 +355,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"origin_access_identity": &schema.Schema{
 										Type:     schema.TypeString,
-										Optional: true,
-										Default:  "",
+										Required: true,
 									},
 								},
 							},
