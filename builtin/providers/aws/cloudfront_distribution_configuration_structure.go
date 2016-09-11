@@ -382,6 +382,9 @@ func expandForwardedValues(m map[string]interface{}) *cloudfront.ForwardedValues
 	if v, ok := m["headers"]; ok {
 		fv.Headers = expandHeaders(v.([]interface{}))
 	}
+	if v, ok := m["query_string_cache_keys"]; ok {
+		fv.QueryStringCacheKeys = expandQueryStringCacheKeys(v.([]interface{}))
+	}
 	return fv
 }
 
@@ -393,6 +396,9 @@ func flattenForwardedValues(fv *cloudfront.ForwardedValues) map[string]interface
 	}
 	if fv.Headers != nil {
 		m["headers"] = flattenHeaders(fv.Headers)
+	}
+	if fv.QueryStringCacheKeys != nil {
+		m["query_string_cache_keys"] = flattenQueryStringCacheKeys(fv.QueryStringCacheKeys)
 	}
 	return m
 }
@@ -411,6 +417,11 @@ func forwardedValuesHash(v interface{}) int {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
+	if d, ok := m["query_string_cache_keys"]; ok {
+		for _, e := range sortInterfaceSlice(d.([]interface{})) {
+			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -424,6 +435,20 @@ func expandHeaders(d []interface{}) *cloudfront.Headers {
 func flattenHeaders(h *cloudfront.Headers) []interface{} {
 	if h.Items != nil {
 		return flattenStringList(h.Items)
+	}
+	return []interface{}{}
+}
+
+func expandQueryStringCacheKeys(d []interface{}) *cloudfront.QueryStringCacheKeys {
+	return &cloudfront.QueryStringCacheKeys{
+		Quantity: aws.Int64(int64(len(d))),
+		Items:    expandStringList(d),
+	}
+}
+
+func flattenQueryStringCacheKeys(k *cloudfront.QueryStringCacheKeys) []interface{} {
+	if k.Items != nil {
+		return flattenStringList(k.Items)
 	}
 	return []interface{}{}
 }
