@@ -111,3 +111,11 @@ func getPortString(port int) string {
 func retryCall(seconds int, f resource.RetryFunc) error {
 	return resource.Retry(time.Duration(seconds)*time.Second, f)
 }
+
+func convertToStringMap(param map[string]interface{}) map[string]string {
+	temp := make(map[string]string)
+	for k, v := range param {
+		temp[k] = v.(string)
+	}
+	return temp
+}
