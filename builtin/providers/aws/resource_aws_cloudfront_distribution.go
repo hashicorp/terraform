@@ -544,7 +544,7 @@ func resourceAwsCloudFrontDistributionDelete(d *schema.ResourceData, meta interf
 
 	// skip delete if retain_on_delete is enabled
 	if d.Get("retain_on_delete").(bool) {
-		log.Printf("[WARN] Removing Distribtuion ID %s with retain_on_delete set. Please delete this distribution manually.", d.Id())
+		log.Printf("[WARN] Removing Distributions ID %s with retain_on_delete set. Please delete this distribution manually.", d.Id())
 		d.SetId("")
 		return nil
 	}
