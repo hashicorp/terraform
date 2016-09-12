@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAWSKMSKey_importBasic(t *testing.T) {
+func TestAccAWSKmsKey_importBasic(t *testing.T) {
 	resourceName := "aws_kms_key.foo"
 
 	resource.Test(t, resource.TestCase{
