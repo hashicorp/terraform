@@ -113,7 +113,7 @@ The supported built-in functions are:
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
   * `distinct(list)` - Removes duplicate items from a list. Keeps the first
-     occurrence of each element, and removes subsequent occurences. This
+     occurrence of each element, and removes subsequent occurrences. This
      function is only valid for flat lists. Example: `distinct(var.usernames)`
 
   * `element(list, index)` - Returns a single element from a list
