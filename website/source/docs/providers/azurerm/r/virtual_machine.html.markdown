@@ -206,7 +206,7 @@ The following arguments are supported:
     create the virtual machine.
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 * `plan` - (Optional) A plan block as documented below.
-* `availability_set_id` - (Optional) The Id of the Availablity Set in which to create the virtual machine
+* `availability_set_id` - (Optional) The Id of the Availability Set in which to create the virtual machine
 * `vm_size` - (Required) Specifies the [size of the virtual machine](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-size-specs/).
 * `storage_image_reference` - (Optional) A Storage Image Reference block as documented below.
 * `storage_os_disk` - (Required) A Storage OS Disk block as referenced below.
