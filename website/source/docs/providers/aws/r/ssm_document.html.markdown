@@ -59,7 +59,7 @@ The following attributes are exported:
 * `status` - "Creating", "Active" or "Deleting". The current status of the document.
 * `parameter` - The parameters that are available to this document.
 * `permission` - The permissions of how this document should be shared.
-* `platform_type` - "Windows" or "Linux". A list of OS platforms compatiable with this SSM document.
+* `platform_type` - "Windows" or "Linux". A list of OS platforms compatible with this SSM document.
 
 ## Permissions
 
