@@ -29,36 +29,6 @@ func TestAccAWSCodeCommitTrigger_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSCodeCommitTrigger_withChanges(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCodeCommitTriggerDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCodeCommitTrigger_basic,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCodeCommitRepositoryExists("aws_codecommit_trigger.test"),
-					resource.TestCheckResourceAttr(
-						"aws_codecommit_trigger.test", "trigger.#", "1"),
-					resource.TestCheckResourceAttr(
-						"aws_codecommit_trigger.test", "trigger.2511662502.name", "tf-test-trigger"),
-				),
-			},
-			resource.TestStep{
-				Config: testAccCodeCommitTrigger_withChanges,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCodeCommitRepositoryExists("aws_codecommit_trigger.test"),
-					resource.TestCheckResourceAttr(
-						"aws_codecommit_trigger.test", "trigger.#", "1"),
-					resource.TestCheckResourceAttr(
-						"aws_codecommit_trigger.test", "trigger.229487722.name", "tf-test-trigger_withChanges"),
-				),
-			},
-		},
-	})
-}
-
 func testAccCheckCodeCommitTriggerDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).codecommitconn
 
@@ -127,28 +97,6 @@ resource "aws_codecommit_trigger" "test" {
    repository_name = "tf_test_repository"
     trigger {
     name = "tf-test-trigger"
-    events = ["all"]
-    destination_arn = "${aws_sns_topic.test.arn}"
-  }
- }
-`
-
-const testAccCodeCommitTrigger_withChanges = `
-provider "aws" {
-  region = "us-east-1"
-}
-resource "aws_sns_topic" "test" {
-  name = "tf-test-topic"
-}
-resource "aws_codecommit_repository" "test" {
-  repository_name = "tf_test_repository"
-  description = "This is a test description"
-}
-resource "aws_codecommit_trigger" "test" {
-   depends_on = ["aws_codecommit_repository.test"]
-   repository_name = "tf_test_repository"
-    trigger {
-    name = "tf-test-trigger_withChanges"
     events = ["all"]
     destination_arn = "${aws_sns_topic.test.arn}"
   }
