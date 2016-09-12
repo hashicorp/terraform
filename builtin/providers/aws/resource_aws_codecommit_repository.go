@@ -74,13 +74,6 @@ func resourceAwsCodeCommitRepository() *schema.Resource {
 
 func resourceAwsCodeCommitRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codecommitconn
-	region := meta.(*AWSClient).region
-
-	//	This is a temporary thing - we need to ensure that CodeCommit is only being run against us-east-1
-	//	As this is the only place that AWS currently supports it
-	if region != "us-east-1" {
-		return fmt.Errorf("CodeCommit can only be used with us-east-1. You are trying to use it on %s", region)
-	}
 
 	input := &codecommit.CreateRepositoryInput{
 		RepositoryName:        aws.String(d.Get("repository_name").(string)),
