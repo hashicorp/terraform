@@ -90,11 +90,13 @@ type AwsGroupScalingPolicyDimension struct {
 }
 
 type AwsGroupStrategy struct {
-	Risk               *float64                  `json:"risk,omitempty"`
-	OnDemandCount      *int                      `json:"onDemandCount,omitempty"`
-	DrainingTimeout    *int                      `json:"drainingTimeout,omitempty"`
-	AvailabilityVsCost *string                   `json:"availabilityVsCost,omitempty"`
-	Signals            []*AwsGroupStrategySignal `json:"signals"`
+	Risk                     *float64                  `json:"risk,omitempty"`
+	OnDemandCount            *int                      `json:"onDemandCount,omitempty"`
+	DrainingTimeout          *int                      `json:"drainingTimeout,omitempty"`
+	AvailabilityVsCost       *string                   `json:"availabilityVsCost,omitempty"`
+	UtilizeReservedInstances *bool                     `json:"utilizeReservedInstances,omitempty"`
+	FallbackToOnDemand       *bool                     `json:"fallbackToOd,omitempty"`
+	Signals                  []*AwsGroupStrategySignal `json:"signals"`
 }
 
 type AwsGroupStrategySignal struct {
