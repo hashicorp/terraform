@@ -1,6 +1,7 @@
 ## 0.7.4 (Unreleased)
 
 FEATURES:
+ * **New Resource:** `aws_codecommit_trigger` [GH-8751]
 
 IMPROVEMENTS:
  * provider/aws: Support 'publish' attribute in lambda_function [GH-8653]
