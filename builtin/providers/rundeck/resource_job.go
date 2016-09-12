@@ -103,6 +103,7 @@ func resourceRundeckJob() *schema.Resource {
 			"node_filter_exclude_precedence": &schema.Schema{
 				Type:       schema.TypeBool,
 				Optional:   true,
+				Default:    true,
 				Deprecated: "Set in config rundeck-config.properties to enable: rundeck.nodefilters.showPrecedenceOption=true",
 			},
 
