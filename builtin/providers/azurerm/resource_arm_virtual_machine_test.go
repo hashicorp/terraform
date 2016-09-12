@@ -1174,12 +1174,6 @@ resource "azurerm_virtual_machine" "test" {
         }
     }
 
-    diagnostics_profile {
-        boot_diagnostics {
-            enabled = true
-            storage_uri = "${azurerm_storage_account.test.primary_blob_endpoint}"
-        }
-    }
 }
 `
 
