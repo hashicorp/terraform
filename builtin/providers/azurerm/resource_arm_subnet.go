@@ -151,13 +151,19 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-  d.Set("address_prefix", *resp.Properties.AddressPrefix)
+	d.Set("address_prefix", *resp.Properties.AddressPrefix)
 
-  if resp.Properties.RouteTable == nil {
-    d.Set("route_table_id", nil)
-  } else {
-    d.Set("route_table_id", *resp.Properties.RouteTable.ID)
-  }
+	if resp.Properties.RouteTable == nil {
+		d.Set("route_table_id", nil)
+	} else {
+		d.Set("route_table_id", *resp.Properties.RouteTable.ID)
+	}
+
+	if resp.Properties.NetworkSecurityGroup == nil {
+		d.Set("network_security_group_id", nil)
+	} else {
+		d.Set("network_security_group_id", *resp.Properties.NetworkSecurityGroup.ID)
+	}
 
 	return nil
 }
