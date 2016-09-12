@@ -503,7 +503,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		if v, ok := d.GetOk("termination_policies"); ok && len(v.([]interface{})) > 0 {
 			opts.TerminationPolicies = expandStringList(v.([]interface{}))
 		} else {
-			log.Printf("[DEBUG] Explictly setting null termination policy to 'Default'")
+			log.Printf("[DEBUG] Explicitly setting null termination policy to 'Default'")
 			opts.TerminationPolicies = aws.StringSlice([]string{"Default"})
 		}
 	}
