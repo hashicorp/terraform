@@ -1793,9 +1793,11 @@ func expandAwsGroupLaunchSpecification(data interface{}) (*spotinst.AwsGroupComp
 		}
 
 		if v, ok := m["load_balancer_names"].([]interface{}); ok {
-			names := make([]string, len(v))
-			for i, j := range v {
-				names[i] = j.(string)
+			var names []string
+			for _, j := range v {
+				if name, ok := j.(string); ok && name != "" {
+					names = append(names, name)
+				}
 			}
 			lc.LoadBalancerNames = names
 		}
