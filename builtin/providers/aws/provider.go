@@ -404,10 +404,10 @@ func init() {
 
 		"assume_role_role_arn": "The ARN of an IAM role to assume prior to making API calls.",
 
-		"assume_role_session_name": "The session name to use when assuming the role. If ommitted," +
+		"assume_role_session_name": "The session name to use when assuming the role. If omitted," +
 			" no session name is passed to the AssumeRole call.",
 
-		"assume_role_external_id": "The external ID to use when assuming the role. If ommitted," +
+		"assume_role_external_id": "The external ID to use when assuming the role. If omitted," +
 			" no external ID is passed to the AssumeRole call.",
 	}
 }
