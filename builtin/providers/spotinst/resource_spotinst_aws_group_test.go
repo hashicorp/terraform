@@ -133,6 +133,9 @@ resource "spotinst_aws_group" "foo" {
 
 	strategy {
 		risk = 100
+		draining_timeout = 600
+		utilize_reserved_instances = true
+		fallback_to_ondemand = true
 	}
 
 	instance_types {
@@ -262,6 +265,9 @@ resource "spotinst_aws_group" "foo" {
 
 	strategy {
 		risk = 100
+		draining_timeout = 600
+		utilize_reserved_instances = true
+		fallback_to_ondemand = true
 	}
 
 	instance_types {

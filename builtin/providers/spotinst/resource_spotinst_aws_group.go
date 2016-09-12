@@ -83,6 +83,16 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
+
+						"utilize_reserved_instances": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"fallback_to_ondemand": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -609,10 +619,12 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 		// Set the strategy.
 		strategy := make([]map[string]interface{}, 0, 1)
 		strategy = append(strategy, map[string]interface{}{
-			"risk":                 g.Strategy.Risk,
-			"ondemand_count":       g.Strategy.OnDemandCount,
-			"availability_vs_cost": g.Strategy.AvailabilityVsCost,
-			"draining_timeout":     g.Strategy.DrainingTimeout,
+			"risk":                       g.Strategy.Risk,
+			"ondemand_count":             g.Strategy.OnDemandCount,
+			"availability_vs_cost":       g.Strategy.AvailabilityVsCost,
+			"draining_timeout":           g.Strategy.DrainingTimeout,
+			"utilize_reserved_instances": g.Strategy.UtilizeReservedInstances,
+			"fallback_to_ondemand":       g.Strategy.FallbackToOnDemand,
 		})
 		d.Set("strategy", strategy)
 
@@ -1392,6 +1404,14 @@ func expandAwsGroupStrategy(data interface{}) (*spotinst.AwsGroupStrategy, error
 
 		if v, ok := m["draining_timeout"].(int); ok && v >= 0 {
 			strategy.DrainingTimeout = spotinst.Int(v)
+		}
+
+		if v, ok := m["utilize_reserved_instances"].(bool); ok {
+			strategy.UtilizeReservedInstances = spotinst.Bool(v)
+		}
+
+		if v, ok := m["fallback_to_ondemand"].(bool); ok {
+			strategy.FallbackToOnDemand = spotinst.Bool(v)
 		}
 
 		log.Printf("[DEBUG] AwsGroup strategy configuration: %#v\n", strategy)
