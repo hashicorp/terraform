@@ -151,6 +151,12 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+  if resp.Properties.RouteTable == nil {
+    d.Set("route_table_id", nil)
+  } else {
+    d.Set("route_table_id", *resp.Properties.RouteTable.ID)
+  }
+
 	return nil
 }
 
