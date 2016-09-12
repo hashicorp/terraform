@@ -151,6 +151,8 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+  d.Set("address_prefix", *resp.Properties.AddressPrefix)
+
   if resp.Properties.RouteTable == nil {
     d.Set("route_table_id", nil)
   } else {
