@@ -10,7 +10,7 @@ SRCROOT="/opt/go"
 SRCPATH="/opt/gopath"
 
 # Get the ARCH
-ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
+ARCH="$(uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|')"
 
 # Install Prereq Packages
 export DEBIAN_PRIORITY=critical
@@ -24,12 +24,12 @@ echo "Installing prerequisites ..."
 apt-get install ${APT_OPTS} build-essential curl git-core libpcre3-dev mercurial pkg-config zip >/dev/null
 
 # Install Go
-cd /tmp
-wget --quiet https://storage.googleapis.com/golang/go${GOVERSION}.linux-${ARCH}.tar.gz
-tar -xvf go${GOVERSION}.linux-${ARCH}.tar.gz
-mv go $SRCROOT
-chmod 775 $SRCROOT
-chown vagrant:vagrant $SRCROOT
+echo "Downloading go (${GOVERSION}) ..."
+wget -P /tmp --quiet "https://storage.googleapis.com/golang/go${GOVERSION}.linux-${ARCH}.tar.gz"
+echo "Setting up go (${GOVERSION}) ..."
+tar -C /opt -xf "/tmp/go${GOVERSION}.linux-${ARCH}.tar.gz"
+chmod 775 "$SRCROOT"
+chown vagrant:vagrant "$SRCROOT"
 
 # Setup the GOPATH; even though the shared folder spec gives the working
 # directory the right user/group, we need to set it properly on the
