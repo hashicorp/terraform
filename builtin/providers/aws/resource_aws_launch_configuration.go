@@ -481,6 +481,9 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 				if strings.Contains(awsErr.Message(), "Invalid IamInstanceProfile") {
 					return resource.RetryableError(err)
 				}
+				if strings.Contains(awsErr.Message(), "You are not authorized to perform this operation") {
+					return resource.RetryableError(err)
+				}
 			}
 			return resource.NonRetryableError(err)
 		}
