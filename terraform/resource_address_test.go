@@ -7,6 +7,66 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+func TestParseResourceAddressInternal(t *testing.T) {
+	cases := map[string]struct {
+		Input    string
+		Expected *ResourceAddress
+		Output   string
+	}{
+		"basic resource": {
+			"aws_instance.foo",
+			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			"aws_instance.foo",
+		},
+
+		"basic resource with count": {
+			"aws_instance.foo.1",
+			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        1,
+			},
+			"aws_instance.foo[1]",
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tc.Input, func(t *testing.T) {
+			out, err := parseResourceAddressInternal(tc.Input)
+			if err != nil {
+				t.Fatalf("%s: unexpected err: %#v", tn, err)
+			}
+
+			if !reflect.DeepEqual(out, tc.Expected) {
+				t.Fatalf("bad: %q\n\nexpected:\n%#v\n\ngot:\n%#v", tn, tc.Expected, out)
+			}
+
+			// Compare outputs if those exist
+			expected := tc.Input
+			if tc.Output != "" {
+				expected = tc.Output
+			}
+			if out.String() != expected {
+				t.Fatalf("bad: %q\n\nexpected: %s\n\ngot: %s", tn, expected, out)
+			}
+
+			// Compare equality because the internal parse is used
+			// to compare equality to equal inputs.
+			if !out.Equals(tc.Expected) {
+				t.Fatalf("expected equality:\n\n%#v\n\n%#v", out, tc.Expected)
+			}
+		})
+	}
+}
+
 func TestParseResourceAddress(t *testing.T) {
 	cases := map[string]struct {
 		Input    string

@@ -85,6 +85,37 @@ func (r *ResourceAddress) String() string {
 	return strings.Join(result, ".")
 }
 
+// parseResourceAddressInternal parses the somewhat bespoke resource
+// identifier used in states and diffs, such as "instance.name.0".
+func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
+	// Split based on ".". Every resource address should have at least two
+	// elements (type and name).
+	parts := strings.Split(s, ".")
+	if len(parts) < 2 || len(parts) > 3 {
+		return nil, fmt.Errorf("Invalid internal resource address format: %s", s)
+	}
+
+	// Build the parts of the resource address that are guaranteed to exist
+	addr := &ResourceAddress{
+		Type:         parts[0],
+		Name:         parts[1],
+		Index:        -1,
+		InstanceType: TypePrimary,
+	}
+
+	// If we have more parts, then we have an index. Parse that.
+	if len(parts) > 2 {
+		idx, err := strconv.ParseInt(parts[2], 0, 0)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing resource address %q: %s", s, err)
+		}
+
+		addr.Index = int(idx)
+	}
+
+	return addr, nil
+}
+
 func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	matches, err := tokenizeResourceAddress(s)
 	if err != nil {
