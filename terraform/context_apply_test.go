@@ -1751,7 +1751,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 
 	actual := state.RootModule().Outputs["output"]
 	expected := "bar0,bar1,bar2"
-	if actual.Value != expected {
+	if actual == nil || actual.Value != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
 
@@ -4483,8 +4483,8 @@ func TestContext2Apply_targetedModuleResource(t *testing.T) {
 	}
 
 	mod := state.ModuleByPath([]string{"root", "child"})
-	if len(mod.Resources) != 1 {
-		t.Fatalf("expected 1 resource, got: %#v", mod.Resources)
+	if mod == nil || len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resource, got: %#v", mod)
 	}
 
 	checkStateString(t, state, `
