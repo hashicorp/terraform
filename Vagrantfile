@@ -49,7 +49,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "bento/ubuntu-14.04"
   config.vm.hostname = "terraform"
 
-  config.vm.provision "shell", inline: $script
+  config.vm.provision "prepare-shell", type: "shell", inline: "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile", privileged: false
+  config.vm.provision "initial-setup", type: "shell", inline: $script
   config.vm.synced_folder '.', '/opt/gopath/src/github.com/hashicorp/terraform'
 
   ["vmware_fusion", "vmware_workstation"].each do |p|
