@@ -203,7 +203,7 @@ The following arguments are supported in the `provider` block:
   (static credentials set as ENV vars or config)
 
 * `s3_force_path_style` - (Optional) set this to true to force the request to use
-  path-style adressing, i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the
+  path-style addressing, i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the
   S3 client will use virtual hosted bucket addressing when possible
   (http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.
 

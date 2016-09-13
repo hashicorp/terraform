@@ -81,7 +81,7 @@ resource "aws_load_balancer_listener_policy" "wu-tang-listener-policies-443" {
 }
 ```
 
-Where the file `pubkey` in the current directoy contains only the _public key_ of the certificate.
+Where the file `pubkey` in the current directory contains only the _public key_ of the certificate.
 
 ```
 cat wu-tang-ca.pem | openssl x509 -pubkey -noout | grep -v '\-\-\-\-' | tr -d '\n' > wu-tang-pubkey

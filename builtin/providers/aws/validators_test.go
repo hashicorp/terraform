@@ -88,7 +88,7 @@ func TestValidateLambdaFunctionName(t *testing.T) {
 	invalidNames := []string{
 		"/FunctionNameWithSlash",
 		"function.name.with.dots",
-		// lenght > 140
+		// length > 140
 		"arn:aws:lambda:us-west-2:123456789012:function:TooLoooooo" +
 			"ooooooooooooooooooooooooooooooooooooooooooooooooooooooo" +
 			"ooooooooooooooooongFunctionName",
@@ -119,7 +119,7 @@ func TestValidateLambdaQualifier(t *testing.T) {
 	invalidNames := []string{
 		// No ARNs allowed
 		"arn:aws:lambda:us-west-2:123456789012:function:prod",
-		// lenght > 128
+		// length > 128
 		"TooLooooooooooooooooooooooooooooooooooooooooooooooooooo" +
 			"ooooooooooooooooooooooooooooooooooooooooooooooooooo" +
 			"oooooooooooongQualifier",

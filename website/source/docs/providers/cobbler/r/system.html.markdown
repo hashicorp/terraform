@@ -162,7 +162,7 @@ The `interface` block supports:
 
 * `ipv6_address` - (Optional) The IPv6 address of the interface.
 
-* `ipv6_mtu` - (Optional) The MTU of the IPv6 adress.
+* `ipv6_mtu` - (Optional) The MTU of the IPv6 address.
 
 * `ipv6_static_routes` - (Optional) Static routes for the IPv6
   interface.

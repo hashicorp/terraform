@@ -144,7 +144,7 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 						*input.FunctionName, err))
 			}
 
-			log.Printf("[ERROR] An actual error occured when expecting Lambda policy to be there: %s", err)
+			log.Printf("[ERROR] An actual error occurred when expecting Lambda policy to be there: %s", err)
 			return resource.NonRetryableError(err)
 		}
 		return nil
