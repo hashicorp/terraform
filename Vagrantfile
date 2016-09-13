@@ -44,7 +44,8 @@ export GOROOT="$SRCROOT"
 export PATH="$SRCROOT/bin:$SRCPATH/bin:\$PATH"
 EOF
 
-install -m0644 /dev/stdin /home/vagrant/.bashrc <<EOF
+cat >>/home/vagrant/.bashrc <<EOF
+
 ## After login, change to terraform directory
 cd /opt/gopath/src/github.com/hashicorp/terraform
 EOF
