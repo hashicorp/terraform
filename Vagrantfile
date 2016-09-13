@@ -13,9 +13,15 @@ SRCPATH="/opt/gopath"
 ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
 
 # Install Prereq Packages
-apt-get update
-apt-get upgrade -y
-apt-get install -y build-essential curl git-core libpcre3-dev mercurial pkg-config zip >/dev/null
+export DEBIAN_PRIORITY=critical
+export DEBIAN_FRONTEND=noninteractive
+export DEBCONF_NONINTERACTIVE_SEEN=true
+APT_OPTS="--yes --force-yes --no-install-suggests --no-install-recommends"
+echo "Upgrading packages ..."
+apt-get update ${APT_OPTS} >/dev/null
+apt-get upgrade ${APT_OPTS} >/dev/null
+echo "Installing prerequisites ..."
+apt-get install ${APT_OPTS} build-essential curl git-core libpcre3-dev mercurial pkg-config zip >/dev/null
 
 # Install Go
 cd /tmp
