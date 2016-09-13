@@ -60,7 +60,7 @@ provider "aws" {
 
 You can provide your credentials via `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, 
 environment variables, representing your AWS Access Key and AWS Secret Key, respectively.
-`AWS_DEFAULT_REGION` and `AWS_SECURITY_TOKEN` are also used, if applicable:
+`AWS_DEFAULT_REGION` and `AWS_SESSION_TOKEN` are also used, if applicable:
 
 ```
 provider "aws" {}
