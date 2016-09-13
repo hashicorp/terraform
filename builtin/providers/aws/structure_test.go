@@ -1143,7 +1143,7 @@ func TestNormalizeJsonString(t *testing.T) {
 	}
 
 	if actual != expected {
-		t.Fatalf("Got:\n\n%#s\n\nExpected:\n\n%#s\n", actual, expected)
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, expected)
 	}
 
 	// Well formatted but not valid,
@@ -1165,6 +1165,6 @@ func TestNormalizeJsonString(t *testing.T) {
 
 	// We expect the invalid JSON to be shown back to us again.
 	if actual != invalidJson {
-		t.Fatalf("Got:\n\n%#s\n\nExpected:\n\n%#s\n", expected, invalidJson)
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", expected, invalidJson)
 	}
 }
