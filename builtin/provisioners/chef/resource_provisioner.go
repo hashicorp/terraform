@@ -31,11 +31,13 @@ const (
 	linuxChefCmd    = "chef-client"
 	linuxKnifeCmd   = "knife"
 	linuxConfDir    = "/etc/chef"
+	linuxTmpDir     = "/tmp"
 	secretKey       = "encrypted_data_bag_secret"
 	validationKey   = "validation.pem"
 	windowsChefCmd  = "cmd /c chef-client"
 	windowsKnifeCmd = "cmd /c knife"
 	windowsConfDir  = "C:/chef"
+	windowsTmpDir   = "C:/Temp"
 )
 
 const clientConf = `
@@ -83,6 +85,7 @@ enable_reporting false
 type Provisioner struct {
 	Attributes            interface{} `mapstructure:"attributes"`
 	AttributesJSON        string      `mapstructure:"attributes_json"`
+	Bootstrap             bool        `mapstructure:"bootstrap"`
 	ClientOptions         []string    `mapstructure:"client_options"`
 	DisableReporting      bool        `mapstructure:"disable_reporting"`
 	Environment           string      `mapstructure:"environment"`
@@ -105,11 +108,17 @@ type Provisioner struct {
 	SSLVerifyMode         string      `mapstructure:"ssl_verify_mode"`
 	ValidationClientName  string      `mapstructure:"validation_client_name"`
 	ValidationKey         string      `mapstructure:"validation_key"`
+	Vaults                interface{} `mapstructure:"vaults"`
+	VaultsJSON            string      `mapstructure:"vaults_json"`
 	Version               string      `mapstructure:"version"`
 
 	installChefClient     func(terraform.UIOutput, communicator.Communicator) error
 	createConfigFiles     func(terraform.UIOutput, communicator.Communicator) error
+	createValidationKey   func(terraform.UIOutput, communicator.Communicator) error
 	fetchChefCertificates func(terraform.UIOutput, communicator.Communicator) error
+	bootstrapSetup        func(terraform.UIOutput, communicator.Communicator) error
+	chefBootstrap         func(terraform.UIOutput, communicator.Communicator) error
+	bootstrapCleanup      func(terraform.UIOutput, communicator.Communicator) error
 	runChefClient         func(terraform.UIOutput, communicator.Communicator) error
 	useSudo               bool
 
@@ -150,12 +159,17 @@ func (r *ResourceProvisioner) Apply(
 		p.createConfigFiles = p.linuxCreateConfigFiles
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
+		p.createValidationKey = p.linuxCreateValidationKey
+		p.bootstrapSetup = p.linuxBootstrapSetup
+		p.chefBootstrap = p.chefBootstrapFunc(linuxKnifeCmd, linuxTmpDir)
+		p.bootstrapCleanup = p.linuxBootstrapCleanup
 		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
 		p.installChefClient = p.windowsInstallChefClient
 		p.createConfigFiles = p.windowsCreateConfigFiles
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(windowsKnifeCmd, windowsConfDir)
 		p.runChefClient = p.runChefClientFunc(windowsChefCmd, windowsConfDir)
+		p.chefBootstrap = p.chefBootstrapFunc(windowsKnifeCmd, windowsTmpDir)
 		p.useSudo = false
 	default:
 		return fmt.Errorf("Unsupported os type: %s", p.OSType)
@@ -183,16 +197,35 @@ func (r *ResourceProvisioner) Apply(
 		}
 	}
 
-	o.Output("Creating configuration files...")
-	if err := p.createConfigFiles(o, comm); err != nil {
-		return err
-	}
-
 	if p.FetchChefCertificates {
 		o.Output("Fetch Chef certificates...")
 		if err := p.fetchChefCertificates(o, comm); err != nil {
 			return err
 		}
+	}
+
+	if p.Bootstrap {
+		o.Output("Deploying key ...")
+		if err := p.createValidationKey(o, comm); err != nil {
+			return err
+		}
+
+		o.Output("Setting up for bootstrap ...")
+		if err := p.bootstrapSetup(o, comm); err != nil {
+			return err
+		}
+
+		o.Output("Bootstrapping node ...")
+		if err := p.chefBootstrap(o, comm); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	o.Output("Creating configuration files...")
+	if err := p.createConfigFiles(o, comm); err != nil {
+		return err
 	}
 
 	o.Output("Starting initial Chef-Client run...")
@@ -232,6 +265,9 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	}
 	if p.UsePolicyfile && p.PolicyGroup == "" {
 		es = append(es, fmt.Errorf("Policyfile enabled but key not found: policy_group"))
+	}
+	if p.OSType == "windows" && p.Bootstrap {
+		es = append(es, fmt.Errorf("Bootstrap method not currently supported on windows"))
 	}
 	if p.ValidationKeyPath != "" {
 		ws = append(ws, "validation_key_path is deprecated, please use "+
@@ -317,6 +353,21 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.Attributes = m
 	}
 
+	if vaults, ok := c.Config["vaults"]; ok {
+		p.Vaults, err = rawToJSON(vaults)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing the vaults: %v", err)
+		}
+	}
+
+	if vaults, ok := c.Config["vaults_json"]; ok {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(vaults.(string)), &m); err != nil {
+			return nil, fmt.Errorf("Error parsing the vaults_json: %v", err)
+		}
+		p.Vaults = m
+	}
+
 	return p, nil
 }
 
@@ -363,10 +414,79 @@ func (p *Provisioner) fetchChefCertificatesFunc(
 	knifeCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		clientrb := path.Join(confDir, clienrb)
-		cmd := fmt.Sprintf("%s ssl fetch -c %s", knifeCmd, clientrb)
+		cmd := fmt.Sprintf("%s ssl fetch -s %s", knifeCmd, p.ServerURL)
 
 		return p.runCommand(o, comm, cmd)
+	}
+}
+
+func (p *Provisioner) chefBootstrapFunc(
+	knifeCmd string,
+	tmpDir string) func(terraform.UIOutput, communicator.Communicator) error {
+	return func(o terraform.UIOutput, comm communicator.Communicator) error {
+		// Build the bootstrap command
+		var cmd bytes.Buffer
+		cmd.WriteString(fmt.Sprintf("%s bootstrap 127.0.0.1 -y", knifeCmd))
+		cmd.WriteString(" -x $(whoami)")
+		cmd.WriteString(" -i /root/.ssh/id_rsa")
+		cmd.WriteString(fmt.Sprintf(" -u %s", p.ValidationClientName))
+		cmd.WriteString(fmt.Sprintf(" -k %s", path.Join(tmpDir, validationKey)))
+		cmd.WriteString(fmt.Sprintf(" -N %s", p.NodeName))
+		cmd.WriteString(fmt.Sprintf(" --server-url %s", p.ServerURL))
+
+		// Only set run_list and environment if not using Policyfiles
+		if !p.UsePolicyfile {
+			if len(p.RunList) > 0 {
+				cmd.WriteString(fmt.Sprintf(" -r %s", strings.Join(p.RunList, ",")))
+			}
+			cmd.WriteString(fmt.Sprintf(" -E %s", p.Environment))
+		}
+
+		// Optional arguments
+		if p.Attributes != nil {
+			a, err := json.Marshal(p.Attributes.(map[string]interface{}))
+			if err != nil {
+				return fmt.Errorf("Failed to generate attributes json string: %s", err)
+			}
+			cmd.WriteString(fmt.Sprintf(" -j '%s'", a))
+		}
+		if p.Vaults != nil {
+			v, err := json.Marshal(p.Vaults.(map[string]interface{}))
+			if err != nil {
+				return fmt.Errorf("Failed to generate vaults json string: %s", err)
+			}
+			cmd.WriteString(fmt.Sprintf(" --bootstrap-vault-json '%s'", v))
+		}
+		for _, hint := range p.OhaiHints {
+			cmd.WriteString(fmt.Sprintf(" --hint %s", hint))
+		}
+		if p.SSLVerifyMode != "" {
+			cmd.WriteString(fmt.Sprintf(" --node-ssl-verify-mode %s", p.SSLVerifyMode))
+		}
+		if p.Version != "" {
+			cmd.WriteString(fmt.Sprintf(" --bootstrap-version %s", p.Version))
+		}
+		if p.useSudo {
+			cmd.WriteString(" --sudo")
+		}
+
+		// Run the bootstrap command
+		err := p.runCommand(o, comm, cmd.String())
+		if err != nil {
+			// Make sure we remove the key before returning the error
+			if err := p.bootstrapCleanup(o, comm); err != nil {
+				return err
+			}
+
+			return err
+		}
+
+		// And finally cleanup the clientKey
+		if err := p.bootstrapCleanup(o, comm); err != nil {
+			return err
+		}
+
+		return nil
 	}
 }
 
@@ -430,7 +550,7 @@ func (p *Provisioner) Output(output string) {
 	}
 }
 
-func (p *Provisioner) deployConfigFiles(
+func (p *Provisioner) deployValidationKey(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	confDir string) error {
@@ -443,6 +563,17 @@ func (p *Provisioner) deployConfigFiles(
 	// Copy the validation key to the new instance
 	if err := comm.Upload(path.Join(confDir, validationKey), f); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
+	}
+
+	return nil
+}
+
+func (p *Provisioner) deployConfigFiles(
+	o terraform.UIOutput,
+	comm communicator.Communicator,
+	confDir string) error {
+	if err := p.deployValidationKey(o, comm, confDir); err != nil {
+		return err
 	}
 
 	if p.SecretKey != "" {
@@ -471,7 +602,7 @@ func (p *Provisioner) deployConfigFiles(
 	t := template.Must(template.New(clienrb).Funcs(funcMap).Parse(clientConf))
 
 	var buf bytes.Buffer
-	err = t.Execute(&buf, p)
+	err := t.Execute(&buf, p)
 	if err != nil {
 		return fmt.Errorf("Error executing %s template: %s", clienrb, err)
 	}

@@ -171,9 +171,8 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 			ConfDir: linuxConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf(`sudo %s ssl fetch -c %s`,
-					linuxKnifeCmd,
-					path.Join(linuxConfDir, "client.rb")): true,
+				fmt.Sprintf(`sudo %s ssl fetch -s https://chef.local`,
+					linuxKnifeCmd): true,
 			},
 		},
 
@@ -193,9 +192,8 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 			ConfDir: windowsConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf(`%s ssl fetch -c %s`,
-					windowsKnifeCmd,
-					path.Join(windowsConfDir, "client.rb")): true,
+				fmt.Sprintf(`%s ssl fetch -s https://chef.local`,
+					windowsKnifeCmd): true,
 			},
 		},
 	}
@@ -216,6 +214,103 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 		p.useSudo = !p.PreventSudo
 
 		err = p.fetchChefCertificates(o, c)
+		if err != nil {
+			t.Fatalf("Test %q failed: %v", k, err)
+		}
+	}
+}
+
+func TestResourceProvider_chefBootstrap(t *testing.T) {
+	cases := map[string]struct {
+		Config   *terraform.ResourceConfig
+		KnifeCmd string
+		TmpDir   string
+		Commands map[string]bool
+	}{
+		"SimpleBootstrap": {
+			Config: testConfig(t, map[string]interface{}{
+				"node_name":              "nodename1",
+				"run_list":               []interface{}{"cookbook::recipe"},
+				"server_url":             "https://chef.local",
+				"validation_client_name": "validator",
+				"validation_key_path":    "test-fixtures/validator.pem",
+			}),
+
+			KnifeCmd: linuxKnifeCmd,
+
+			TmpDir: linuxTmpDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf(`sudo %s bootstrap 127.0.0.1 -y -x $(whoami) -i /root/.ssh/id_rsa -u validator -k /tmp/validation.pem -N nodename1 --server-url https://chef.local -r cookbook::recipe -E _default --sudo`,
+					linuxKnifeCmd): true,
+				fmt.Sprintf(`sudo cp /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /home/$(whoami)/.ssh/authorized_keys`):      true,
+				fmt.Sprintf(`sudo rm -f /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /root/.ssh/id_rsa* /tmp/validation.pem`): true,
+			},
+		},
+
+		"ComplexBootstrap": {
+			Config: testConfig(t, map[string]interface{}{
+				"attributes_json":        "{\"test\":\"test_val\"}",
+				"environment":            "prod",
+				"node_name":              "nodename1",
+				"run_list":               []interface{}{"cookbook::recipe", "cookbook::recipe2"},
+				"server_url":             "https://chef.local",
+				"validation_client_name": "validator",
+				"validation_key_path":    "test-fixtures/validator.pem",
+				"vaults_json":            "{\"vault_test\":[\"test_vault_item\"]}",
+			}),
+
+			KnifeCmd: linuxKnifeCmd,
+
+			TmpDir: linuxTmpDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf(`sudo %s bootstrap 127.0.0.1 -y -x $(whoami) -i /root/.ssh/id_rsa -u validator -k /tmp/validation.pem -N nodename1 --server-url https://chef.local -r cookbook::recipe,cookbook::recipe2 -E prod -j '{"test":"test_val"}' --bootstrap-vault-json '{"vault_test":["test_vault_item"]}' --sudo`,
+					linuxKnifeCmd): true,
+				fmt.Sprintf(`sudo cp /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /home/$(whoami)/.ssh/authorized_keys`):      true,
+				fmt.Sprintf(`sudo rm -f /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /root/.ssh/id_rsa* /tmp/validation.pem`): true,
+			},
+		},
+
+		"EmptyRunlistBootstrap": {
+			Config: testConfig(t, map[string]interface{}{
+				"node_name":              "nodename1",
+				"run_list":               []interface{}{},
+				"server_url":             "https://chef.local",
+				"validation_client_name": "validator",
+				"validation_key_path":    "test-fixtures/validator.pem",
+			}),
+
+			KnifeCmd: linuxKnifeCmd,
+
+			TmpDir: linuxTmpDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf(`sudo %s bootstrap 127.0.0.1 -y -x $(whoami) -i /root/.ssh/id_rsa -u validator -k /tmp/validation.pem -N nodename1 --server-url https://chef.local -E _default --sudo`,
+					linuxKnifeCmd): true,
+				fmt.Sprintf(`sudo cp /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /home/$(whoami)/.ssh/authorized_keys`):      true,
+				fmt.Sprintf(`sudo rm -f /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /root/.ssh/id_rsa* /tmp/validation.pem`): true,
+			},
+		},
+	}
+
+	r := new(ResourceProvisioner)
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	for k, tc := range cases {
+		c.Commands = tc.Commands
+
+		p, err := r.decodeConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		p.bootstrapCleanup = p.linuxBootstrapCleanup
+		p.chefBootstrap = p.chefBootstrapFunc(tc.KnifeCmd, tc.TmpDir)
+		p.useSudo = !p.PreventSudo
+
+		err = p.chefBootstrap(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}

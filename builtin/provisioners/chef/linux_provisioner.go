@@ -46,6 +46,50 @@ func (p *Provisioner) linuxInstallChefClient(
 	return p.runCommand(o, comm, fmt.Sprintf("%srm -f install.sh", prefix))
 }
 
+func (p *Provisioner) linuxCreateValidationKey(
+	o terraform.UIOutput,
+	comm communicator.Communicator) error {
+	if err := p.deployValidationKey(o, comm, linuxTmpDir); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Provisioner) linuxBootstrapSetup(
+	o terraform.UIOutput,
+	comm communicator.Communicator) error {
+
+	if err := p.runCommand(o, comm, "ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa"); err != nil {
+		return err
+	}
+	if err := p.runCommand(o, comm, "cp /home/$(whoami)/.ssh/authorized_keys /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap"); err != nil {
+		return err
+	}
+	if err := p.runCommand(o, comm, "bash -c \"cat /root/.ssh/id_rsa.pub >> /home/$(whoami)/.ssh/authorized_keys\""); err != nil {
+		return err
+	}
+	if err := p.runCommand(o, comm, "/opt/chef/embedded/bin/gem install chef-vault"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Provisioner) linuxBootstrapCleanup(
+	o terraform.UIOutput,
+	comm communicator.Communicator) error {
+
+	if err := p.runCommand(o, comm, "cp /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /home/$(whoami)/.ssh/authorized_keys"); err != nil {
+		return err
+	}
+	if err := p.runCommand(o, comm, "rm -f /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /root/.ssh/id_rsa* /tmp/validation.pem"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *Provisioner) linuxCreateConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {

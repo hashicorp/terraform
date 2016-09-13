@@ -331,6 +331,133 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_linuxCreateValidationKey(t *testing.T) {
+	cases := map[string]struct {
+		Config   *terraform.ResourceConfig
+		Commands map[string]bool
+		Uploads  map[string]string
+	}{
+		"Simple": {
+			Config: testConfig(t, map[string]interface{}{
+				"node_name":              "nodename1",
+				"run_list":               []interface{}{"cookbook::recipe"},
+				"validation_client_name": "validator",
+				"validation_key_path":    "test-fixtures/validator.pem",
+			}),
+
+			Uploads: map[string]string{
+				linuxTmpDir + "/validation.pem": "VALIDATOR-PEM-FILE",
+			},
+		},
+	}
+
+	r := new(ResourceProvisioner)
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	for k, tc := range cases {
+		c.Uploads = tc.Uploads
+
+		p, err := r.decodeConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		p.useSudo = !p.PreventSudo
+
+		err = p.linuxCreateValidationKey(o, c)
+		if err != nil {
+			t.Fatalf("Test %q failed: %v", k, err)
+		}
+	}
+}
+
+func TestResourceProvider_linuxBootstrapSetup(t *testing.T) {
+	cases := map[string]struct {
+		Config   *terraform.ResourceConfig
+		Commands map[string]bool
+		Uploads  map[string]string
+	}{
+		"Simple": {
+			Config: testConfig(t, map[string]interface{}{
+				"node_name":              "nodename1",
+				"run_list":               []interface{}{"cookbook::recipe"},
+				"validation_client_name": "validator",
+				"validation_key_path":    "test-fixtures/validator.pem",
+			}),
+
+			Commands: map[string]bool{
+				"sudo ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa":                                               true,
+				"sudo cp /home/$(whoami)/.ssh/authorized_keys /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap": true,
+				"sudo bash -c \"cat /root/.ssh/id_rsa.pub >> /home/$(whoami)/.ssh/authorized_keys\"":              true,
+				"sudo /opt/chef/embedded/bin/gem install chef-vault":                                              true,
+			},
+		},
+	}
+
+	r := new(ResourceProvisioner)
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	for k, tc := range cases {
+		c.Commands = tc.Commands
+
+		p, err := r.decodeConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		p.useSudo = !p.PreventSudo
+
+		err = p.linuxBootstrapSetup(o, c)
+		if err != nil {
+			t.Fatalf("Test %q failed: %v", k, err)
+		}
+	}
+}
+
+func TestResourceProvider_linuxBootstrapCleanup(t *testing.T) {
+	cases := map[string]struct {
+		Config   *terraform.ResourceConfig
+		Commands map[string]bool
+		Uploads  map[string]string
+	}{
+		"Simple": {
+			Config: testConfig(t, map[string]interface{}{
+				"node_name":              "nodename1",
+				"run_list":               []interface{}{"cookbook::recipe"},
+				"validation_client_name": "validator",
+				"validation_key_path":    "test-fixtures/validator.pem",
+			}),
+
+			Commands: map[string]bool{
+				"sudo cp /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /home/$(whoami)/.ssh/authorized_keys":      true,
+				"sudo rm -f /home/$(whoami)/.ssh/authorized_keys.pre_bootstrap /root/.ssh/id_rsa* /tmp/validation.pem": true,
+			},
+		},
+	}
+
+	r := new(ResourceProvisioner)
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	for k, tc := range cases {
+		c.Commands = tc.Commands
+
+		p, err := r.decodeConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		p.useSudo = !p.PreventSudo
+
+		err = p.linuxBootstrapCleanup(o, c)
+		if err != nil {
+			t.Fatalf("Test %q failed: %v", k, err)
+		}
+	}
+}
+
 const defaultLinuxClientConf = `log_location            STDOUT
 chef_server_url         "https://chef.local"
 validation_client_name  "validator"
