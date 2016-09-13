@@ -908,7 +908,9 @@
 			"checksumSHA1": "V10Yi1cEBLqu6kjZl5vyItHDd6k=",
 			"path": "github.com/aws/aws-sdk-go/service/waf",
 			"revision": "bc572378d109481c50d45d9dba4490d80386e98e",
-			"revisionTime": "2016-09-06T22:59:56Z"
+			"revisionTime": "2016-09-06T22:59:56Z",
+			"version": "v1.4.7",
+			"versionExact": "v1.4.7"
 		},
 		{
 			"checksumSHA1": "nqw2Qn5xUklssHTubS5HDvEL9L4=",
