@@ -7,7 +7,12 @@ import (
 )
 
 func TestDiffEmpty(t *testing.T) {
-	diff := new(Diff)
+	var diff *Diff
+	if !diff.Empty() {
+		t.Fatal("should be empty")
+	}
+
+	diff = new(Diff)
 	if !diff.Empty() {
 		t.Fatal("should be empty")
 	}

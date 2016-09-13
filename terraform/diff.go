@@ -72,6 +72,10 @@ func (d *Diff) RootModule() *ModuleDiff {
 
 // Empty returns true if the diff has no changes.
 func (d *Diff) Empty() bool {
+	if d == nil {
+		return true
+	}
+
 	for _, m := range d.Modules {
 		if !m.Empty() {
 			return false
