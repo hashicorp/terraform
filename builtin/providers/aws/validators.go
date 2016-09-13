@@ -460,3 +460,11 @@ func validateApiGatewayIntegrationPassthroughBehavior(v interface{}, k string) (
 	}
 	return
 }
+
+func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if _, err := normalizeJsonString(value); err != nil {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+	}
+	return
+}
