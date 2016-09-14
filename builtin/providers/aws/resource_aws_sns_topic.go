@@ -49,6 +49,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
+				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 				StateFunc: func(v interface{}) string {
 					s, ok := v.(string)
@@ -61,7 +62,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 						log.Printf("[WARN] Error compacting JSON for Policy in SNS Topic")
 						return ""
 					}
-					value := normalizeJson(buffer.String())
+					value, _ := normalizeJsonString(buffer.String())
 					log.Printf("[DEBUG] topic policy before save: %s", value)
 					return value
 				},
@@ -191,7 +192,7 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 				if resource.Schema[iKey] != nil {
 					var value string
 					if iKey == "policy" {
-						value = normalizeJson(*attrmap[oKey])
+						value, _ = normalizeJsonString(*attrmap[oKey])
 					} else {
 						value = *attrmap[oKey]
 					}
