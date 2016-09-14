@@ -39,6 +39,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Creates all the nodes represented in the diff.
 		&DiffTransformer{Diff: b.Diff},
 
+		// Create all the providers
+		&MissingProviderTransformer{Providers: b.Providers},
+		&ProviderTransformer{},
+
 		// Single root
 		&RootTransformer{},
 	}

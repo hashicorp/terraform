@@ -33,7 +33,8 @@ func TestApplyGraphBuilder(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Diff: diff,
+		Diff:      diff,
+		Providers: []string{"aws"},
 	}
 
 	g, err := b.Build(RootModulePath)
@@ -54,4 +55,6 @@ func TestApplyGraphBuilder(t *testing.T) {
 
 const testApplyGraphBuilderStr = `
 aws_instance.create
+  provider.aws
+provider.aws
 `
