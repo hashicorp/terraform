@@ -137,6 +137,9 @@ The `s3_configuration` object supports the following:
 * `compression_format` - (Optional) The compression format. If no value is specified, the default is UNCOMPRESSED. Other supported values are GZIP, ZIP & Snappy. If the destination is redshift you cannot use ZIP or Snappy.
 * `kms_key_arn` - (Optional) If set, the stream will encrypt data using the key in KMS, otherwise, no encryption will
 be used.
+* `log_enabled` - (Optional) Enables or disables CloudWatch logging. The default value is false.
+* `log_group_name` - (Optional) The CloudWatch group name for logging. This value is required if `log_enabled` is true.
+* `log_stream_name` - (Optional) The CloudWatch log stream name for logging. This value is required if `log_stream_name` is true.
 
 The `redshift_configuration` object supports the following:
 
