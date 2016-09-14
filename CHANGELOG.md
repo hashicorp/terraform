@@ -2,6 +2,7 @@
 
 FEATURES:
  * **New Resource:** `aws_codecommit_trigger` [GH-8751]
+ * **New Remote State Backend:** `manta` [GH-8830]
 
 IMPROVEMENTS:
  * provider/aws: Support 'publish' attribute in `lambda_function` [GH-8653]
