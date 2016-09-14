@@ -19,9 +19,14 @@ func TestMantaClient(t *testing.T) {
 	mantaUser := os.Getenv("MANTA_USER")
 	mantaKeyId := os.Getenv("MANTA_KEY_ID")
 	mantaUrl := os.Getenv("MANTA_URL")
+	mantaKeyMaterial := os.Getenv("MANTA_KEY_MATERIAL")
 
-	if mantaUser == "" || mantaKeyId == "" || mantaUrl == "" {
-		t.Skipf("skipping; MANTA_USER, MANTA_KEY_ID and MANTA_URL must all be set")
+	if mantaUser == "" || mantaKeyId == "" || mantaUrl == "" || mantaKeyMaterial == "" {
+		t.Skipf("skipping; MANTA_USER, MANTA_KEY_ID, MANTA_URL and MANTA_KEY_MATERIAL must all be set")
+	}
+
+	if _, err := os.Stat(mantaKeyMaterial); err == nil {
+		t.Logf("[DEBUG] MANTA_KEY_MATERIAL is a file path %s", mantaKeyMaterial)
 	}
 
 	testPath := "terraform-remote-state-test"
