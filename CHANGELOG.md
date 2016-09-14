@@ -4,7 +4,7 @@ FEATURES:
  * **New Resource:** `aws_codecommit_trigger` [GH-8751]
 
 IMPROVEMENTS:
- * provider/aws: Support 'publish' attribute in lambda_function [GH-8653]
+ * provider/aws: Support 'publish' attribute in `lambda_function` [GH-8653]
  * provider/aws: Export AWS ELB service account ARN [GH-8700]
  * provider/aws: Allow `aws_alb` to have the name auto-generated [GH-8673]
  * provider/aws: Expose `arn_suffix` on `aws_alb` [GH-8833]
@@ -13,6 +13,7 @@ IMPROVEMENTS:
  * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration [GH-8666]
 
 BUG FIXES:
+ * provider/aws: Prevent crash creating an `aws_sns_topic` with an empty policy [GH-8834]
  * provider/aws: Bump `aws_elasticsearch_domain` timeout values [GH-672]
  * provider/aws: `aws_nat_gateways` will now recreate on `failed` state [GH-8689]
  * provider/aws: Prevent crash on account ID validation [GH-8731]
