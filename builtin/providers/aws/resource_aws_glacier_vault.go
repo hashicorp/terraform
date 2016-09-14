@@ -54,9 +54,13 @@ func resourceAwsGlacierVault() *schema.Resource {
 			},
 
 			"access_policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateJsonString,
+				StateFunc: func(v interface{}) string {
+					json, _ := normalizeJsonString(v)
+					return json
+				},
 			},
 
 			"notification": &schema.Schema{
@@ -159,7 +163,8 @@ func resourceAwsGlacierVaultRead(d *schema.ResourceData, meta interface{}) error
 	if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
 		d.Set("access_policy", "")
 	} else if pol != nil {
-		d.Set("access_policy", normalizeJson(*pol.Policy.Policy))
+		policy, _ := normalizeJsonString(*pol.Policy.Policy)
+		d.Set("access_policy", policy)
 	} else {
 		return err
 	}
