@@ -22,10 +22,14 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateJsonString,
+				StateFunc: func(v interface{}) string {
+					json, _ := normalizeJsonString(v)
+					return json
+				},
 			},
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -60,7 +64,7 @@ func resourceAwsVPCEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if v, ok := d.GetOk("policy"); ok {
-		policy := normalizeJson(v)
+		policy, _ := normalizeJsonString(v)
 		input.PolicyDocument = aws.String(policy)
 	}
 
@@ -128,8 +132,10 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("There are multiple prefix lists associated with the service name '%s'. Unexpected", prefixListServiceName)
 	}
 
+	policy, _ := normalizeJsonString(*vpce.PolicyDocument)
+
 	d.Set("vpc_id", vpce.VpcId)
-	d.Set("policy", normalizeJson(*vpce.PolicyDocument))
+	d.Set("policy", policy)
 	d.Set("service_name", vpce.ServiceName)
 	if err := d.Set("route_table_ids", aws.StringValueSlice(vpce.RouteTableIds)); err != nil {
 		return err
@@ -162,7 +168,7 @@ func resourceAwsVPCEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if d.HasChange("policy") {
-		policy := normalizeJson(d.Get("policy"))
+		policy, _ := normalizeJsonString(d.Get("policy"))
 		input.PolicyDocument = aws.String(policy)
 	}
 
