@@ -55,6 +55,7 @@ func resourceAwsKmsKey() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
+				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"is_enabled": &schema.Schema{
@@ -143,7 +144,8 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("policy", normalizeJson(*p.Policy))
+	policy, _ := normalizeJsonString(*p.Policy)
+	d.Set("policy", policy)
 
 	krs, err := conn.GetKeyRotationStatus(&kms.GetKeyRotationStatusInput{
 		KeyId: metadata.KeyId,
@@ -216,14 +218,14 @@ func resourceAwsKmsKeyDescriptionUpdate(conn *kms.KMS, d *schema.ResourceData) e
 }
 
 func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error {
-	policy := d.Get("policy").(string)
+	policy, _ := normalizeJsonString(d.Get("policy").(string))
 	keyId := d.Get("key_id").(string)
 
 	log.Printf("[DEBUG] KMS key: %s, update policy: %s", keyId, policy)
 
 	req := &kms.PutKeyPolicyInput{
 		KeyId:      aws.String(keyId),
-		Policy:     aws.String(normalizeJson(policy)),
+		Policy:     aws.String(policy),
 		PolicyName: aws.String("default"),
 	}
 	_, err := conn.PutKeyPolicy(req)
