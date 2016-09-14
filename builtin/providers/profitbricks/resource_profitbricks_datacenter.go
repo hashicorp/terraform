@@ -193,7 +193,7 @@ func getImageId(dcId string, imageName string, imageType string) string {
 			if imageType == "SSD" {
 				imageType = "HDD"
 			}
-			if imgName != "" && strings.Contains(strings.ToLower(imgName), strings.ToLower(imageName)) && i.Properties.ImageType == imageType && i.Properties.Location == dc.Properties.Location {
+			if imgName != "" && strings.Contains(strings.ToLower(imgName), strings.ToLower(imageName)) && i.Properties.ImageType == imageType && i.Properties.Location == dc.Properties.Location && i.Properties.Public == true {
 				return i.Id
 			}
 		}
