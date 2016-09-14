@@ -85,6 +85,17 @@ func (r *ResourceAddress) String() string {
 	return strings.Join(result, ".")
 }
 
+// parseResourceAddressConfig creates a resource address from a config.Resource
+func parseResourceAddressConfig(r *config.Resource) (*ResourceAddress, error) {
+	return &ResourceAddress{
+		Type:         r.Type,
+		Name:         r.Name,
+		Index:        -1,
+		InstanceType: TypePrimary,
+		Mode:         r.Mode,
+	}, nil
+}
+
 // parseResourceAddressInternal parses the somewhat bespoke resource
 // identifier used in states and diffs, such as "instance.name.0".
 func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
@@ -101,6 +112,7 @@ func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
 		Name:         parts[1],
 		Index:        -1,
 		InstanceType: TypePrimary,
+		Mode:         config.ManagedResourceMode,
 	}
 
 	// If we have more parts, then we have an index. Parse that.
