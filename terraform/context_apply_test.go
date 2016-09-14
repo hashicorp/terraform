@@ -835,17 +835,21 @@ func TestContext2Apply_cancel(t *testing.T) {
 	}
 
 	// Start the Apply in a goroutine
+	var applyErr error
 	stateCh := make(chan *State)
 	go func() {
 		state, err := ctx.Apply()
 		if err != nil {
-			panic(err)
+			applyErr = err
 		}
 
 		stateCh <- state
 	}()
 
 	state := <-stateCh
+	if applyErr != nil {
+		t.Fatalf("err: %s", applyErr)
+	}
 
 	mod := state.RootModule()
 	if len(mod.Resources) != 1 {
