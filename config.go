@@ -170,7 +170,7 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 	}
 	for k, v := range c2.Providers {
 		if v1, ok := c1.Providers[k]; ok {
-			log.Printf("[WARN] Local %s provider configuration '%s' overrides '%s'", k, v, v1)
+			log.Printf("[INFO] Local %s provider configuration '%s' overrides '%s'", k, v, v1)
 		}
 		result.Providers[k] = v
 	}
@@ -179,7 +179,7 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 	}
 	for k, v := range c2.Provisioners {
 		if v1, ok := c1.Provisioners[k]; ok {
-			log.Printf("[WARN] Local %s provisioner configuration '%s' overrides '%s'", k, v, v1)
+			log.Printf("[INFO] Local %s provisioner configuration '%s' overrides '%s'", k, v, v1)
 		}
 		result.Provisioners[k] = v
 	}
