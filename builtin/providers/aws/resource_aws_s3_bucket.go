@@ -48,6 +48,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 			"policy": &schema.Schema{
 				Type:             schema.TypeString,
 				Optional:         true,
+				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 
@@ -110,9 +111,13 @@ func resourceAwsS3Bucket() *schema.Resource {
 						},
 
 						"routing_rules": &schema.Schema{
-							Type:      schema.TypeString,
-							Optional:  true,
-							StateFunc: normalizeJson,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateJsonString,
+							StateFunc: func(v interface{}) string {
+								json, _ := normalizeJsonString(v)
+								return json
+							},
 						},
 					},
 				},
@@ -465,8 +470,11 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 				if err := d.Set("policy", ""); err != nil {
 					return err
 				}
-			} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
-				return err
+			} else {
+				policy, _ := normalizeJsonString(*v)
+				if err := d.Set("policy", policy); err != nil {
+					return err
+				}
 			}
 		}
 	}
