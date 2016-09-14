@@ -12,7 +12,7 @@ import (
 	"github.com/joyent/gomanta/manta"
 )
 
-const DEFAULT_OBJECT_NAME = "tfstate.tf"
+const DEFAULT_OBJECT_NAME = "terraform.tfstate"
 
 func mantaFactory(conf map[string]string) (Client, error) {
 	path, ok := conf["path"]
