@@ -4480,8 +4480,8 @@ type CloneStackInput struct {
 	// The cloned stack name.
 	Name *string `type:"string"`
 
-	// The cloned stack AWS region, such as "us-east-1". For more information about
-	// AWS regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
+	// The cloned stack AWS region, such as "ap-northeast-2". For more information
+	// about AWS regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
 	Region *string `type:"string"`
 
 	// The stack AWS Identity and Access Management (IAM) role, which allows AWS
@@ -5343,8 +5343,8 @@ type CreateStackInput struct {
 	// The stack name.
 	Name *string `type:"string" required:"true"`
 
-	// The stack's AWS region, such as "us-east-1". For more information about Amazon
-	// regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
+	// The stack's AWS region, such as "ap-south-1". For more information about
+	// Amazon regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
 	Region *string `type:"string" required:"true"`
 
 	// The stack's AWS Identity and Access Management (IAM) role, which allows AWS
@@ -8872,8 +8872,8 @@ type Stack struct {
 	// The stack name.
 	Name *string `type:"string"`
 
-	// The stack AWS region, such as "us-east-1". For more information about AWS
-	// regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
+	// The stack AWS region, such as "ap-northeast-2". For more information about
+	// AWS regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
 	Region *string `type:"string"`
 
 	// The stack AWS Identity and Access Management (IAM) role.

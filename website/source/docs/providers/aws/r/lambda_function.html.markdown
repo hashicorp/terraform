@@ -58,7 +58,7 @@ resource "aws_lambda_function" "test_lambda" {
 * `timeout` - (Optional) The amount of time your Lambda Function has to run in seconds. Defaults to `3`. See [Limits][5]
 * `publish` - (Optional) Whether to publish creation/change as new Lambda Function Version. Defaults to `false`.
 * `vpc_config` - (Optional) Provide this to allow your function to access your VPC. Fields documented below. See [Lambda in VPC][7]
-* `source_code_hash` - (Optional) Used to trigger updates. This is only useful in conjuction with `filename`.
+* `source_code_hash` - (Optional) Used to trigger updates. This is only useful in conjunction with `filename`.
   The only useful value is `${base64sha256(file("file.zip"))}`.
 
 **vpc\_config** requires the following:

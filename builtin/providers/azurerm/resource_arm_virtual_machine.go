@@ -213,6 +213,34 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Default:  false,
 			},
 
+			"diagnostics_profile": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"boot_diagnostics": {
+							Type:     schema.TypeSet,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enabled": {
+										Type:     schema.TypeBool,
+										Required: true,
+									},
+
+									"storage_uri": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"os_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
@@ -425,6 +453,11 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		StorageProfile: &storageProfile,
 	}
 
+	if _, ok := d.GetOk("diagnostics_profile"); ok {
+		diagnosticsProfile := expandAzureRmVirtualMachineDiagnosticsProfile(d)
+		properties.DiagnosticsProfile = &diagnosticsProfile
+	}
+
 	osProfile, err := expandAzureRmVirtualMachineOsProfile(d)
 	if err != nil {
 		return err
@@ -541,6 +574,12 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	if resp.Properties.OsProfile.Secrets != nil {
 		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineOsProfileSecrets(resp.Properties.OsProfile.Secrets)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Secrets: %#v", err)
+		}
+	}
+
+	if resp.Properties.DiagnosticsProfile != nil {
+		if err := d.Set("diagnostics_profile", flattenAzureRmVirtualMachineDiagnosticsProfile(resp.Properties.DiagnosticsProfile)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Diagnostics Profile: %#v", err)
 		}
 	}
 
@@ -710,6 +749,16 @@ func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) [
 	}
 
 	return []interface{}{result}
+}
+
+func flattenAzureRmVirtualMachineDiagnosticsProfile(profile *compute.DiagnosticsProfile) map[string]interface{} {
+	result := make(map[string]interface{})
+	bootDiagnostics := make(map[string]interface{})
+	bootDiagnostics["enabled"] = *profile.BootDiagnostics.Enabled
+	bootDiagnostics["storage_uri"] = *profile.BootDiagnostics.StorageURI
+	result["boot_diagnostics"] = bootDiagnostics
+
+	return result
 }
 
 func flattenAzureRmVirtualMachineNetworkInterfaces(profile *compute.NetworkProfile) []string {
@@ -1089,6 +1138,22 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 	}
 
 	return data_disks, nil
+}
+
+func expandAzureRmVirtualMachineDiagnosticsProfile(d *schema.ResourceData) compute.DiagnosticsProfile {
+	diagnosticsProfiles := d.Get("diagnostics_profile").(*schema.Set).List()
+	diagnosticsProfile := diagnosticsProfiles[0].(map[string]interface{})
+	bootDiagnosticses := diagnosticsProfile["boot_diagnostics"].(*schema.Set).List()
+	bootDiagnostics := bootDiagnosticses[0].(map[string]interface{})
+	enabled := bootDiagnostics["enabled"].(bool)
+	storageURI := bootDiagnostics["storage_uri"].(string)
+
+	return compute.DiagnosticsProfile{
+		BootDiagnostics: &compute.BootDiagnostics{
+			Enabled:    &enabled,
+			StorageURI: &storageURI,
+		},
+	}
 }
 
 func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute.ImageReference, error) {

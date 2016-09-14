@@ -60,7 +60,7 @@ provider "aws" {
 
 You can provide your credentials via `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, 
 environment variables, representing your AWS Access Key and AWS Secret Key, respectively.
-`AWS_DEFAULT_REGION` and `AWS_SECURITY_TOKEN` are also used, if applicable:
+`AWS_DEFAULT_REGION` and `AWS_SESSION_TOKEN` are also used, if applicable:
 
 ```
 provider "aws" {}
@@ -154,7 +154,7 @@ The following arguments are supported in the `provider` block:
   If this is not set and a profile is specified, ~/.aws/credentials will be used.
 
 * `token` - (Optional) Use this to set an MFA token. It can also be sourced
-  from the `AWS_SECURITY_TOKEN` environment variable.
+  from the `AWS_SESSION_TOKEN` environment variable.
 
 * `max_retries` - (Optional) This is the maximum number of times an API call is
   being retried in case requests are being throttled or experience transient failures.
@@ -203,7 +203,7 @@ The following arguments are supported in the `provider` block:
   (static credentials set as ENV vars or config)
 
 * `s3_force_path_style` - (Optional) set this to true to force the request to use
-  path-style adressing, i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the
+  path-style addressing, i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the
   S3 client will use virtual hosted bucket addressing when possible
   (http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.
 

@@ -168,7 +168,7 @@ information and instructions for recovery. Error message: %s`, sg_id, awsErr.Mes
 		sg, err := findResourceSecurityGroup(conn, sg_id)
 
 		if err != nil {
-			log.Printf("[DEBUG] Error finding Secuirty Group (%s) for Rule (%s): %s", sg_id, id, err)
+			log.Printf("[DEBUG] Error finding Security Group (%s) for Rule (%s): %s", sg_id, id, err)
 			return resource.NonRetryableError(err)
 		}
 

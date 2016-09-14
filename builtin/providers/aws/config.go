@@ -53,6 +53,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/helper/logging"
@@ -133,6 +134,7 @@ type AWSClient struct {
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
 	ssmconn               *ssm.SSM
+	wafconn               *waf.WAF
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -232,7 +234,7 @@ func (c *Config) Client() (interface{}, error) {
 
 	authErr := c.ValidateAccountId(client.accountid)
 	if authErr != nil {
-		return nil, err
+		return nil, authErr
 	}
 
 	client.apigateway = apigateway.New(sess)
@@ -274,6 +276,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.snsconn = sns.New(sess)
 	client.sqsconn = sqs.New(sess)
 	client.ssmconn = ssm.New(sess)
+	client.wafconn = waf.New(sess)
 
 	return &client, nil
 }

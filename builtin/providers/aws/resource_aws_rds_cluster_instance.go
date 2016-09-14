@@ -195,7 +195,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	// Retreive DB Cluster information, to determine if this Instance is a writer
+	// Retrieve DB Cluster information, to determine if this Instance is a writer
 	conn := meta.(*AWSClient).rdsconn
 	resp, err := conn.DescribeDBClusters(&rds.DescribeDBClustersInput{
 		DBClusterIdentifier: db.DBClusterIdentifier,

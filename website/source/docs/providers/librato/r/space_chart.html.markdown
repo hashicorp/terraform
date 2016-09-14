@@ -96,7 +96,7 @@ The `stream` block supports:
 * `min` - (Optional) Theoretical minimum Y-axis value.
 * `max` - (Optional) Theoretical maximum Y-axis value.
 * `transform_function` - (Optional) Linear formula to run on each measurement
-  prior to visualizaton.
+  prior to visualization.
 * `period` - (Optional) An integer value of seconds that defines the period this
   stream reports at. This aids in the display of the stream and allows the
   period to be used in stream display transforms.

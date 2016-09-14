@@ -13,6 +13,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
+	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
@@ -28,12 +29,13 @@ type Config struct {
 	Project     string
 	Region      string
 
-	clientCompute   *compute.Service
-	clientContainer *container.Service
-	clientDns       *dns.Service
-	clientStorage   *storage.Service
-	clientSqlAdmin  *sqladmin.Service
-	clientPubsub    *pubsub.Service
+	clientCompute         *compute.Service
+	clientContainer       *container.Service
+	clientDns             *dns.Service
+	clientPubsub          *pubsub.Service
+	clientResourceManager *cloudresourcemanager.Service
+	clientStorage         *storage.Service
+	clientSqlAdmin        *sqladmin.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -128,6 +130,13 @@ func (c *Config) loadAndValidate() error {
 
 	log.Printf("[INFO] Instatiating Google Pubsub Client...")
 	c.clientPubsub, err = pubsub.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientPubsub.UserAgent = userAgent
+
+	log.Printf("[INFO] Instatiating Google CloudResourceManager Client...")
+	c.clientResourceManager, err = cloudresourcemanager.New(client)
 	if err != nil {
 		return err
 	}

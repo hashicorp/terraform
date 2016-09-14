@@ -589,7 +589,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() != "UnsupportedArgument" {
 			return err
 		}
-		log.Printf("[WARN] S3 bucket: %s, the S3 Transfer Accelaration is not supported in the region: %s", d.Id(), meta.(*AWSClient).region)
+		log.Printf("[WARN] S3 bucket: %s, the S3 Transfer Acceleration is not supported in the region: %s", d.Id(), meta.(*AWSClient).region)
 	} else {
 		log.Printf("[DEBUG] S3 bucket: %s, read Acceleration: %v", d.Id(), accelerate)
 		d.Set("acceleration_status", accelerate.Status)

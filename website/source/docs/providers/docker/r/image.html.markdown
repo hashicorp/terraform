@@ -13,7 +13,7 @@ description: |-
 Pulls a Docker image to a given Docker host from a Docker Registry.
 
 This resource will *not* pull new layers of the image automatically unless used in
-conjuction with [`docker_registry_image`](/docs/providers/docker/d/registry_image.html)
+conjunction with [`docker_registry_image`](/docs/providers/docker/d/registry_image.html)
 data source to update the `pull_trigger` field.
 
 ## Example Usage
