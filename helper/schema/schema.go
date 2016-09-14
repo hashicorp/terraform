@@ -638,7 +638,9 @@ func (m schemaMap) diff(
 	}
 
 	for attrK, attrV := range unsupressedDiff.Attributes {
-		if schema.DiffSuppressFunc != nil && schema.DiffSuppressFunc(attrK, attrV.Old, attrV.New, d) {
+		if schema.DiffSuppressFunc != nil &&
+			attrV != nil &&
+			schema.DiffSuppressFunc(attrK, attrV.Old, attrV.New, d) {
 			continue
 		}
 
