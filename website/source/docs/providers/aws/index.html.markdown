@@ -60,7 +60,7 @@ provider "aws" {
 
 You can provide your credentials via `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, 
 environment variables, representing your AWS Access Key and AWS Secret Key, respectively.
-`AWS_DEFAULT_REGION` and `AWS_SECURITY_TOKEN` are also used, if applicable:
+`AWS_DEFAULT_REGION` and `AWS_SESSION_TOKEN` are also used, if applicable:
 
 ```
 provider "aws" {}
@@ -203,7 +203,7 @@ The following arguments are supported in the `provider` block:
   (static credentials set as ENV vars or config)
 
 * `s3_force_path_style` - (Optional) set this to true to force the request to use
-  path-style adressing, i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the
+  path-style addressing, i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the
   S3 client will use virtual hosted bucket addressing when possible
   (http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.
 

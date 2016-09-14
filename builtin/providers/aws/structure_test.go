@@ -899,7 +899,7 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		},
 
 		// include the owner id, but from a different account. This is reflects
-		// EC2 Classic when refering to groups by name
+		// EC2 Classic when referring to groups by name
 		{
 			ownerId: aws.String("user1234"),
 			pairs: []*ec2.UserIdGroupPair{
@@ -918,7 +918,7 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		},
 
 		// include the owner id, but from a different account. This reflects in
-		// EC2 VPC when refering to groups by id
+		// EC2 VPC when referring to groups by id
 		{
 			ownerId: aws.String("user1234"),
 			pairs: []*ec2.UserIdGroupPair{

@@ -223,7 +223,8 @@ func (c *SSM) CreateAssociationRequest(input *CreateAssociationInput) (req *requ
 // Associates the specified SSM document with the specified instance.
 //
 // When you associate an SSM document with an instance, the configuration agent
-// on the instance processes the document and configures the instance as specified.
+// on the instance (SSM agent for Linux and EC2Config service for Windows) processes
+// the document and configures the instance as specified.
 //
 // If you associate a document with an instance that already has an associated
 // document, the system throws the AssociationAlreadyExists exception.
@@ -277,7 +278,8 @@ func (c *SSM) CreateAssociationBatchRequest(input *CreateAssociationBatchInput) 
 // Associates the specified SSM document with the specified instances.
 //
 // When you associate an SSM document with an instance, the configuration agent
-// on the instance processes the document and configures the instance as specified.
+// on the instance (SSM agent for Linux and EC2Config service for Windows) processes
+// the document and configures the instance as specified.
 //
 // If you associate a document with an instance that already has an associated
 // document, the system throws the AssociationAlreadyExists exception.
@@ -818,11 +820,11 @@ func (c *SSM) DescribeInstanceInformationRequest(input *DescribeInstanceInformat
 }
 
 // Describes one or more of your instances. You can use this to get information
-// about instances like the operating system platform, the SSM agent version,
-// status etc. If you specify one or more instance IDs, it returns information
-// for those instances. If you do not specify instance IDs, it returns information
-// for all your instances. If you specify an instance ID that is not valid or
-// an instance that you do not own, you receive an error.
+// about instances like the operating system platform, the SSM agent version
+// (Linux), status etc. If you specify one or more instance IDs, it returns
+// information for those instances. If you do not specify instance IDs, it returns
+// information for all your instances. If you specify an instance ID that is
+// not valid or an instance that you do not own, you receive an error.
 func (c *SSM) DescribeInstanceInformation(input *DescribeInstanceInformationInput) (*DescribeInstanceInformationOutput, error) {
 	req, out := c.DescribeInstanceInformationRequest(input)
 	err := req.Send()
@@ -2987,7 +2989,7 @@ type InstanceInformation struct {
 	// The activation ID created by SSM when the server or VM was registered.
 	ActivationId *string `type:"string"`
 
-	// The version of the SSM agent running on your instance.
+	// The version of the SSM agent running on your Linux instance.
 	AgentVersion *string `type:"string"`
 
 	// The fully qualified host name of the managed instance.

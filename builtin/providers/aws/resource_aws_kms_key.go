@@ -52,10 +52,10 @@ func resourceAwsKmsKey() *schema.Resource {
 				},
 			},
 			"policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"is_enabled": &schema.Schema{
 				Type:     schema.TypeBool,

@@ -61,9 +61,9 @@ func (c *Redshift) WaitUntilClusterDeleted(input *DescribeClustersInput) error {
 			},
 			{
 				State:    "failure",
-				Matcher:  "pathList",
+				Matcher:  "pathAny",
 				Argument: "Clusters[].ClusterStatus",
-				Expected: "pathAny",
+				Expected: "modifying",
 			},
 		},
 	}

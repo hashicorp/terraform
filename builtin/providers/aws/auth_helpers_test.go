@@ -540,7 +540,7 @@ func TestAWSGetCredentials_shouldBeENV(t *testing.T) {
 	}
 }
 
-// unsetEnv unsets enviornment variables for testing a "clean slate" with no
+// unsetEnv unsets environment variables for testing a "clean slate" with no
 // credentials in the environment
 func unsetEnv(t *testing.T) func() {
 	// Grab any existing AWS keys and preserve. In some tests we'll unset these, so

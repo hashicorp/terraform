@@ -6,7 +6,7 @@ description: |-
   Provides an SES receipt rule set resource
 ---
 
-# aws\_ses\_active_receipt_rule_set
+# aws\_ses\_receipt_rule_set
 
 Provides an SES receipt rule set resource
 
