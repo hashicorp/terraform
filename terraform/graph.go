@@ -230,7 +230,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 		// with a GraphNodeSubPath impl.
 		vertexCtx := ctx
 		if pn, ok := v.(GraphNodeSubPath); ok && len(pn.Path()) > 0 {
-			vertexCtx = walker.EnterPath(pn.Path())
+			vertexCtx = walker.EnterPath(normalizeModulePath(pn.Path()))
 			defer walker.ExitPath(pn.Path())
 		}
 

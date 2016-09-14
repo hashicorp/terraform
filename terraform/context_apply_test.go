@@ -1232,7 +1232,7 @@ aws_instance.foo:
 	}
 }
 
-func TestContext2Apply_module(t *testing.T) {
+func TestContext2Apply_moduleBasic(t *testing.T) {
 	m := testModule(t, "apply-module")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
@@ -1256,7 +1256,7 @@ func TestContext2Apply_module(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyModuleStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("bad, expected:\n%s\n\nactual:\n%s", expected, actual)
 	}
 }
 
