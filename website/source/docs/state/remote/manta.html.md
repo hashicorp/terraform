@@ -39,7 +39,7 @@ The following configuration option is supported:
  * `objectName` - (Optional) The name of the state file (defaults to `tfstate.tf`)
  * `keyName` - (Optional) The path to your private key for accessing Manta (defaults to `~/.ssh/id_rsa`)
 
-The following environment variables are supported:
+The following [Manta environment variables](https://apidocs.joyent.com/manta/#setting-up-your-environment) are supported:
 
  * `MANTA_USER` - (Required) The Manta user
  * `MANTA_KEY_ID` - (Required) The fingerprint of your SSH key

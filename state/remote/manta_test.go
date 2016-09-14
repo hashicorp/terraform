@@ -17,15 +17,18 @@ func TestMantaClient(t *testing.T) {
 	// variables are present.
 
 	mantaUser := os.Getenv("MANTA_USER")
-	if mantaUser == "" {
-		t.Skipf("skipping, MANTA_USER and friends must be set")
+	mantaKeyId := os.Getenv("MANTA_KEY_ID")
+	mantaUrl := os.Getenv("MANTA_URL")
+
+	if mantaUser == "" || mantaKeyId == "" || mantaUrl == "" {
+		t.Skipf("skipping; MANTA_USER, MANTA_KEY_ID and MANTA_URL must all be set")
 	}
 
 	testPath := "terraform-remote-state-test"
 
 	client, err := mantaFactory(map[string]string{
 		"path":       testPath,
-		"objectName": "terraform-test-state.tf",
+		"objectName": "terraform-test-state.tfstate",
 	})
 
 	if err != nil {
