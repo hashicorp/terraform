@@ -18,6 +18,9 @@ type ApplyGraphBuilder struct {
 	// Diff is the diff to apply.
 	Diff *Diff
 
+	// State is the current state
+	State *State
+
 	// Providers is the list of providers supported.
 	Providers []string
 
@@ -37,7 +40,11 @@ func (b *ApplyGraphBuilder) Build(path []string) (*Graph, error) {
 func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
 		// Creates all the nodes represented in the diff.
-		&DiffTransformer{Diff: b.Diff},
+		&DiffTransformer{
+			Diff:   b.Diff,
+			Config: b.Config,
+			State:  b.State,
+		},
 
 		// Create all the providers
 		&MissingProviderTransformer{Providers: b.Providers},
