@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/zorkian/go-datadog-api"
+	"github.com/ojongerius/go-datadog-api"
 )
 
 func resourceDatadogMonitor() *schema.Resource {
@@ -177,10 +177,8 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		o.IncludeTags = attr.(bool)
 	}
 	if attr, ok := d.GetOk("require_full_window"); ok {
-		// TODO: prettify
-		testVar := new(bool)
-		*testVar = attr.(bool)
-		o.RequireFullWindow = testVar
+		v := attr.(bool)
+		o.RequireFullWindow = &v
 	}
 	if attr, ok := d.GetOk("locked"); ok {
 		o.Locked = attr.(bool)
@@ -286,7 +284,9 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("silenced", m.Options.Silenced)
 	d.Set("include_tags", m.Options.IncludeTags)
 	d.Set("tags", tags)
-	d.Set("require_full_window", m.Options.RequireFullWindow)
+	if m.Options.RequireFullWindow != nil {
+		d.Set("require_full_window", *m.Options.RequireFullWindow)
+	}
 	d.Set("locked", m.Options.Locked)
 
 	return nil
@@ -366,10 +366,8 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if attr, ok := d.GetOk("require_full_window"); ok {
-		// TODO: prettify
-		testVar := new(bool)
-		*testVar = attr.(bool)
-		o.RequireFullWindow = testVar
+		v := attr.(bool)
+		o.RequireFullWindow = &v
 	}
 	if attr, ok := d.GetOk("locked"); ok {
 		o.Locked = attr.(bool)
