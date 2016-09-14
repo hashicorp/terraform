@@ -1122,14 +1122,14 @@ func TestNormalizeJsonString(t *testing.T) {
 	var actual string
 
 	// Well formatted and valid.
-	validJson := `{  
-   "abc": {  
+	validJson := `{
+   "abc": {
       "def": 123,
-      "xyz": [  
-         {  
+      "xyz": [
+         {
             "a": "ホリネズミ"
          },
-         {  
+         {
             "b": "1\\n2"
          }
       ]
@@ -1148,11 +1148,11 @@ func TestNormalizeJsonString(t *testing.T) {
 
 	// Well formatted but not valid,
 	// missing closing squre bracket.
-	invalidJson := `{  
-   "abc": {  
+	invalidJson := `{
+   "abc": {
       "def": 123,
-      "xyz": [  
-         {  
+      "xyz": [
+         {
             "a": "1"
          }
       }
