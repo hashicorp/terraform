@@ -154,7 +154,7 @@ The following arguments are supported in the `provider` block:
   If this is not set and a profile is specified, ~/.aws/credentials will be used.
 
 * `token` - (Optional) Use this to set an MFA token. It can also be sourced
-  from the `AWS_SECURITY_TOKEN` environment variable.
+  from the `AWS_SESSION_TOKEN` environment variable.
 
 * `max_retries` - (Optional) This is the maximum number of times an API call is
   being retried in case requests are being throttled or experience transient failures.
