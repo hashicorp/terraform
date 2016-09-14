@@ -12,14 +12,14 @@ import (
 // This transform is used for example by the ApplyGraphBuilder to ensure
 // that only resources that are being modified are represented in the graph.
 //
-// Config and State is still required for the DiffTransformer for annotations
+// Module and State is still required for the DiffTransformer for annotations
 // since the Diff doesn't contain all the information required to build the
 // complete graph (such as create-before-destroy information). The graph
 // is built based on the diff first, though, ensuring that only resources
 // that are being modified are present in the graph.
 type DiffTransformer struct {
 	Diff   *Diff
-	Config *module.Tree
+	Module *module.Tree
 	State  *State
 }
 
@@ -70,7 +70,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// Annotate all nodes with their config and state
 	for _, n := range nodes {
 		// Grab the configuration at this path.
-		if t := t.Config.Child(n.Addr.Path); t != nil {
+		if t := t.Module.Child(n.Addr.Path); t != nil {
 			for _, r := range t.Config().Resources {
 				// Get a resource address so we can compare
 				addr, err := parseResourceAddressConfig(r)

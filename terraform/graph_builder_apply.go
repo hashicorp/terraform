@@ -12,8 +12,8 @@ import (
 // that aren't explicitly in the diff. There are other scenarios where the
 // diff can be deviated, so this is just one layer of protection.
 type ApplyGraphBuilder struct {
-	// Config is the root module for the graph to build.
-	Config *module.Tree
+	// Module is the root module for the graph to build.
+	Module *module.Tree
 
 	// Diff is the diff to apply.
 	Diff *Diff
@@ -42,7 +42,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Creates all the nodes represented in the diff.
 		&DiffTransformer{
 			Diff:   b.Diff,
-			Config: b.Config,
+			Module: b.Module,
 			State:  b.State,
 		},
 
