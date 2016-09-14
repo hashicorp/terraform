@@ -49,6 +49,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Create all the providers
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
+		&ParentProviderTransformer{},
 
 		// Single root
 		&RootTransformer{},

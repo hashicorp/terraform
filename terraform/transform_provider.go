@@ -217,7 +217,11 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			}
 
 			// Add the missing provider node to the graph
-			raw := &graphNodeProvider{ProviderNameValue: p}
+			raw := &graphNodeProvider{
+				ProviderNameValue: p,
+				PathValue:         path,
+			}
+
 			var v dag.Vertex = raw
 			if len(path) > 0 {
 				var err error
@@ -236,6 +240,66 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			}
 
 			m[key] = g.Add(v)
+		}
+	}
+
+	return nil
+}
+
+// ParentProviderTransformer connects provider nodes to their parents.
+//
+// This works by finding nodes that are both GraphNodeProviders and
+// GraphNodeSubPath. It then connects the providers to their parent
+// path.
+type ParentProviderTransformer struct{}
+
+func (t *ParentProviderTransformer) Transform(g *Graph) error {
+	// Make a mapping of path to dag.Vertex, where path is: "path.name"
+	m := make(map[string]dag.Vertex)
+
+	// Also create a map that maps a provider to its parent
+	parentMap := make(map[dag.Vertex]string)
+	for _, raw := range g.Vertices() {
+		// If it is the flat version, then make it the non-flat version.
+		// We eventually want to get rid of the flat version entirely so
+		// this is a stop-gap while it still exists.
+		var v dag.Vertex = raw
+		if f, ok := v.(*graphNodeProviderFlat); ok {
+			v = f.graphNodeProvider
+		}
+
+		// Only care about providers
+		pn, ok := v.(GraphNodeProvider)
+		if !ok || pn.ProviderName() == "" {
+			continue
+		}
+
+		// Also require a subpath, if there is no subpath then we
+		// just totally ignore it. The expectation of this transform is
+		// that it is used with a graph builder that is already flattened.
+		var path []string
+		if pn, ok := raw.(GraphNodeSubPath); ok {
+			path = pn.Path()
+		}
+		path = normalizeModulePath(path)
+
+		// Build the key with path.name i.e. "child.subchild.aws"
+		key := fmt.Sprintf("%s.%s", strings.Join(path, "."), pn.ProviderName())
+		m[key] = v
+
+		// Determine the parent if we're non-root. This is length 1 since
+		// the 0 index should be "root" since we normalize above.
+		if len(path) > 1 {
+			path = path[:len(path)-1]
+			key := fmt.Sprintf("%s.%s", strings.Join(path, "."), pn.ProviderName())
+			parentMap[raw] = key
+		}
+	}
+
+	// Connect!
+	for v, key := range parentMap {
+		if parent, ok := m[key]; ok {
+			g.Connect(dag.BasicEdge(v, parent))
 		}
 	}
 
@@ -448,6 +512,7 @@ func (n *graphNodeCloseProvider) DotNode(name string, opts *GraphDotOpts) *dot.N
 
 type graphNodeProvider struct {
 	ProviderNameValue string
+	PathValue         []string
 }
 
 func (n *graphNodeProvider) Name() string {

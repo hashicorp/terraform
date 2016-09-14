@@ -29,6 +29,20 @@ func TestApplyGraphBuilder(t *testing.T) {
 					},
 				},
 			},
+
+			&ModuleDiff{
+				Path: []string{"root", "child"},
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.create": &InstanceDiff{
+						Attributes: map[string]*ResourceAttrDiff{
+							"name": &ResourceAttrDiff{
+								Old: "",
+								New: "foo",
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -56,5 +70,12 @@ func TestApplyGraphBuilder(t *testing.T) {
 const testApplyGraphBuilderStr = `
 aws_instance.create
   provider.aws
+module.child.aws_instance.create
+  module.child.provider.aws
+module.child.provider.aws
+  provider.aws
 provider.aws
+root
+  aws_instance.create
+  module.child.aws_instance.create
 `

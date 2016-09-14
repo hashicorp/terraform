@@ -18,6 +18,11 @@ func (n *NodeApplyableResource) Name() string {
 	return n.Addr.String()
 }
 
+// GraphNodeSubPath
+func (n *NodeApplyableResource) Path() []string {
+	return n.Addr.Path
+}
+
 // GraphNodeProviderConsumer
 func (n *NodeApplyableResource) ProvidedBy() []string {
 	// If we have a config we prefer that above all else
