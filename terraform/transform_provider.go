@@ -285,7 +285,7 @@ func (t *ParentProviderTransformer) Transform(g *Graph) error {
 
 		// Build the key with path.name i.e. "child.subchild.aws"
 		key := fmt.Sprintf("%s.%s", strings.Join(path, "."), pn.ProviderName())
-		m[key] = v
+		m[key] = raw
 
 		// Determine the parent if we're non-root. This is length 1 since
 		// the 0 index should be "root" since we normalize above.
