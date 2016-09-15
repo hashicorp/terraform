@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -77,36 +76,7 @@ func TestAccAWSDefaultSecurityGroup_classic(t *testing.T) {
 }
 
 func testAccCheckAWSDefaultSecurityGroupDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_default_security_group" {
-			continue
-		}
-
-		// Retrieve our group
-		req := &ec2.DescribeSecurityGroupsInput{
-			GroupIds: []*string{aws.String(rs.Primary.ID)},
-		}
-		resp, err := conn.DescribeSecurityGroups(req)
-		if err == nil {
-			if len(resp.SecurityGroups) > 0 && *resp.SecurityGroups[0].GroupId == rs.Primary.ID {
-				return fmt.Errorf("Security Group (%s) still exists.", rs.Primary.ID)
-			}
-
-			return nil
-		}
-
-		ec2err, ok := err.(awserr.Error)
-		if !ok {
-			return err
-		}
-		// Confirm error code is what we want
-		if ec2err.Code() != "InvalidGroup.NotFound" {
-			return err
-		}
-	}
-
+	// We expect Security Group to still exist
 	return nil
 }
 
