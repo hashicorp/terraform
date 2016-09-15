@@ -17,6 +17,11 @@ import (
 // is called on Context.
 type InputMode byte
 
+var (
+	// NOTE: Internal only to toggle between the new and old apply graph
+	newApplyGraph = false
+)
+
 const (
 	// InputModeVar asks for all variables
 	InputModeVar InputMode = 1 << iota
@@ -358,7 +363,7 @@ func (c *Context) Apply() (*State, error) {
 	// our new graph builder.
 	var graph *Graph
 	var err error
-	if c.destroy {
+	if c.destroy || !newApplyGraph {
 		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
 	} else {
 		graph, err = (&ApplyGraphBuilder{
