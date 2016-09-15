@@ -147,40 +147,39 @@ resource "aws_default_security_group" "web" {
   vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
-    protocol = "6"
-    from_port = 80
-    to_port = 8000
+    protocol    = "6"
+    from_port   = 80
+    to_port     = 8000
     cidr_blocks = ["10.0.0.0/8"]
   }
 
   egress {
-    protocol = "tcp"
-    from_port = 80
-    to_port = 8000
+    protocol    = "tcp"
+    from_port   = 80
+    to_port     = 8000
     cidr_blocks = ["10.0.0.0/8"]
   }
 
-	tags {
-		Name = "tf-acc-test"
-	}
+  tags {
+    Name = "tf-acc-test"
+  }
 }
 `
 
 const testAccAWSDefaultSecurityGroupConfig_classic = `
 provider "aws" {
-	region = "us-east-1"
+  region = "us-east-1"
 }
 
 resource "aws_default_security_group" "web" {
   ingress {
-    protocol = "6"
-    from_port = 80
-    to_port = 8000
+    protocol    = "6"
+    from_port   = 80
+    to_port     = 8000
     cidr_blocks = ["10.0.0.0/8"]
   }
 
-	tags {
-		Name = "tf-acc-test"
-	}
-}
-`
+  tags {
+    Name = "tf-acc-test"
+  }
+}`
