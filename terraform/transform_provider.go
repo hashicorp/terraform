@@ -163,9 +163,19 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 type MissingProviderTransformer struct {
 	// Providers is the list of providers we support.
 	Providers []string
+
+	// Factory, if set, overrides how the providers are made.
+	Factory func(name string, path []string) GraphNodeProvider
 }
 
 func (t *MissingProviderTransformer) Transform(g *Graph) error {
+	// Initialize factory
+	if t.Factory == nil {
+		t.Factory = func(name string, path []string) GraphNodeProvider {
+			return &graphNodeProvider{ProviderNameValue: name}
+		}
+	}
+
 	// Create a set of our supported providers
 	supported := make(map[string]struct{}, len(t.Providers))
 	for _, v := range t.Providers {
@@ -217,17 +227,14 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			}
 
 			// Add the missing provider node to the graph
-			raw := &graphNodeProvider{
-				ProviderNameValue: p,
-				PathValue:         path,
-			}
-
-			var v dag.Vertex = raw
+			v := t.Factory(p, path).(dag.Vertex)
 			if len(path) > 0 {
-				var err error
-				v, err = raw.Flatten(path)
-				if err != nil {
-					return err
+				if fn, ok := v.(GraphNodeFlattenable); ok {
+					var err error
+					v, err = fn.Flatten(path)
+					if err != nil {
+						return err
+					}
 				}
 
 				// We'll need the parent provider as well, so let's
@@ -347,7 +354,12 @@ func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	m := make(map[string]dag.Vertex)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvider); ok {
-			m[pv.ProviderName()] = v
+			key := pv.ProviderName()
+			if _, ok := v.(*NodeApplyableProvider); ok {
+				key = providerMapKey(pv.ProviderName(), v)
+			}
+
+			m[key] = v
 		}
 	}
 
@@ -512,7 +524,6 @@ func (n *graphNodeCloseProvider) DotNode(name string, opts *GraphDotOpts) *dot.N
 
 type graphNodeProvider struct {
 	ProviderNameValue string
-	PathValue         []string
 }
 
 func (n *graphNodeProvider) Name() string {
@@ -529,6 +540,7 @@ func (n *graphNodeProvider) DependableName() []string {
 	return []string{n.Name()}
 }
 
+// GraphNodeProvider
 func (n *graphNodeProvider) ProviderName() string {
 	return n.ProviderNameValue
 }
