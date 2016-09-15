@@ -216,17 +216,14 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 				Dependencies: stateDeps,
 				State:        &state,
 			},
-			/*
-				TODO: this has to work
-				&EvalApplyProvisioners{
-					Info:           info,
-					State:          &state,
-					Resource:       n.Config,
-					InterpResource: resource,
-					CreateNew:      &createNew,
-					Error:          &err,
-				},
-			*/
+			&EvalApplyProvisioners{
+				Info:           info,
+				State:          &state,
+				Resource:       n.Config,
+				InterpResource: resource,
+				CreateNew:      &createNew,
+				Error:          &err,
+			},
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
 					return createBeforeDestroyEnabled && err != nil, nil
