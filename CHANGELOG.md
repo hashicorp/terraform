@@ -2,6 +2,7 @@
 
 FEATURES:
  * **New Resource:** `aws_codecommit_trigger` [GH-8751]
+ * **New Resource:** `aws_default_security_group` [GH-8861]
  * **New Remote State Backend:** `manta` [GH-8830]
 
 IMPROVEMENTS:
