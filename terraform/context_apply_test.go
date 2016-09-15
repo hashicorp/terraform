@@ -3757,7 +3757,7 @@ func TestContext2Apply_idAttr(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_output(t *testing.T) {
+func TestContext2Apply_outputBasic(t *testing.T) {
 	m := testModule(t, "apply-output")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
