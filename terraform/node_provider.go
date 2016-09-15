@@ -51,5 +51,5 @@ func (n *NodeApplyableProvider) AttachProvider(c *config.ProviderConfig) {
 
 // GraphNodeEvalable
 func (n *NodeApplyableProvider) EvalTree() EvalNode {
-	return ProviderEvalTree(n.NameValue, nil)
+	return ProviderEvalTree(n.NameValue, n.ProviderConfig())
 }
