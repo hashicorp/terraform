@@ -19,7 +19,7 @@ type InputMode byte
 
 var (
 	// NOTE: Internal only to toggle between the new and old apply graph
-	newApplyGraph = false
+	newApplyGraph = true
 )
 
 const (
