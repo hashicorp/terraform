@@ -1528,10 +1528,12 @@
 			"revision": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
 		},
 		{
-			"checksumSHA1": "Imdo8I0R8CPEJeznlbXJMPTfNww=",
+			"checksumSHA1": "+3BeuGWnr6pqH9TDr25dMdqjbos=",
 			"path": "github.com/ojongerius/go-datadog-api",
-			"revision": "965799361071d6c525f05b498ad5bc059c4c59b2",
-			"revisionTime": "2016-06-18T23:52:00Z"
+			"revision": "97ba6d75bedcc216a5f99da32f21db2e593e66ec",
+			"revisionTime": "2016-09-14T09:13:19Z",
+			"version": "workaround_require_full_window_behaviour",
+			"versionExact": "workaround_require_full_window_behaviour"
 		},
 		{
 			"path": "github.com/packer-community/winrmcp/winrmcp",

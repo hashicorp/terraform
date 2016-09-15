@@ -180,6 +180,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		v := attr.(bool)
 		o.RequireFullWindow = &v
 	}
+
 	if attr, ok := d.GetOk("locked"); ok {
 		o.Locked = attr.(bool)
 	}
@@ -287,6 +288,7 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	if m.Options.RequireFullWindow != nil {
 		d.Set("require_full_window", *m.Options.RequireFullWindow)
 	}
+
 	d.Set("locked", m.Options.Locked)
 
 	return nil
@@ -364,7 +366,6 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	if attr, ok := d.GetOk("include_tags"); ok {
 		o.IncludeTags = attr.(bool)
 	}
-
 	if attr, ok := d.GetOk("require_full_window"); ok {
 		v := attr.(bool)
 		o.RequireFullWindow = &v
@@ -372,7 +373,6 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	if attr, ok := d.GetOk("locked"); ok {
 		o.Locked = attr.(bool)
 	}
-
 	m.Options = o
 
 	if err = client.UpdateMonitor(m); err != nil {
