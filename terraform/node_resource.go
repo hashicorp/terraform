@@ -39,6 +39,23 @@ func (n *NodeApplyableResource) ProvidedBy() []string {
 	return []string{resourceProvider(n.Addr.Type, "")}
 }
 
+// GraphNodeProvisionerConsumer
+func (n *NodeApplyableResource) ProvisionedBy() []string {
+	// If we have no configuration, then we have no provisioners
+	if n.Config == nil {
+		return nil
+	}
+
+	// Build the list of provisioners we need based on the configuration.
+	// It is okay to have duplicates here.
+	result := make([]string, len(n.Config.Provisioners))
+	for i, p := range n.Config.Provisioners {
+		result[i] = p.Type
+	}
+
+	return result
+}
+
 // GraphNodeEvalable
 func (n *NodeApplyableResource) EvalTree() EvalNode {
 	// stateId is the ID to put into the state

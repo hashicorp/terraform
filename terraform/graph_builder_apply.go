@@ -59,6 +59,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ProviderTransformer{},
 		&ParentProviderTransformer{},
 
+		// Provisioner-related transformations
+		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
+		&ProvisionerTransformer{},
+
 		// Attach the configurations
 		&AttachConfigTransformer{Module: b.Module},
 
