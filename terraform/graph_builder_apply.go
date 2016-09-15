@@ -38,6 +38,14 @@ func (b *ApplyGraphBuilder) Build(path []string) (*Graph, error) {
 
 // See GraphBuilder
 func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
+	// Custom factory for creating providers.
+	providerFactory := func(name string, path []string) GraphNodeProvider {
+		return &NodeApplyableProvider{
+			NameValue: name,
+			PathValue: path,
+		}
+	}
+
 	steps := []GraphTransformer{
 		// Creates all the nodes represented in the diff.
 		&DiffTransformer{
@@ -47,9 +55,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers},
+		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},
 		&ProviderTransformer{},
 		&ParentProviderTransformer{},
+
+		// Attach the configurations
+		&AttachConfigTransformer{Module: b.Module},
 
 		// Single root
 		&RootTransformer{},
