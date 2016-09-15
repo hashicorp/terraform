@@ -206,9 +206,18 @@ func (c *ResourceConfig) get(
 					return nil, false
 				}
 				if i >= int64(cv.Len()) {
-					return nil, false
+					if int64(cv.Len()) == 1 {
+						if val, ok := cv.Index(0).Interface().(string); ok && strings.HasPrefix(val, "${") {
+							// This happens when the resource reference a list of maps var.
+							// On the first pass, the variable has not been interpolated.
+							current = val
+						}
+					} else {
+						return nil, false
+					}
+				} else {
+					current = cv.Index(int(i)).Interface()
 				}
-				current = cv.Index(int(i)).Interface()
 			}
 		case reflect.String:
 			// This happens when map keys contain "." and have a common

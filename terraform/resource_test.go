@@ -149,6 +149,25 @@ func TestResourceConfigGet(t *testing.T) {
 			Key:   "mapname.0.listkey.0.key",
 			Value: 3,
 		},
+		 // Reference list of maps variable
+		//{
+		//	Vars:  map[string]string{
+		//		"listofmaps": `[
+		//		{
+		//			name = "map1"
+		//			foo = "bar1"
+		//		},
+		//		{
+		//			name = "map2"
+		//			"foo = "bar2"
+		//		}]`,
+		//	},
+		//	Config: map[string]interface{}{
+		//		"listofmapsref": "${var.listofmaps}",
+		//	},
+		//	Key:   "listofmapsref.1",
+		//	Value: "${var.listofmaps}",
+		//},
 		// FIXME: this is ambiguous, and matches the nested map
 		//        leaving here to catch this behaviour if it changes.
 		{
