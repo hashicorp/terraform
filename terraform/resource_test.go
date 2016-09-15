@@ -149,7 +149,7 @@ func TestResourceConfigGet(t *testing.T) {
 			Key:   "mapname.0.listkey.0.key",
 			Value: 3,
 		},
-		 // Reference list of maps variable
+		// Reference list of maps variable
 		//{
 		//	Vars:  map[string]string{
 		//		"listofmaps": `[
