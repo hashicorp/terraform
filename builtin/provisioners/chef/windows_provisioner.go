@@ -10,7 +10,7 @@ import (
 )
 
 const installScript = `
-$winver = [System.Environment]::OSVersion.Version | %% {"{0}.{1}" -f $_.Major,$_.Minor}
+$winver = [System.Environment]::OSVersion.Version | % {"{0}.{1}" -f $_.Major,$_.Minor}
 
 switch ($winver)
 {
@@ -72,7 +72,7 @@ func (p *Provisioner) windowsCreateConfigFiles(
 	}
 
 	if len(p.OhaiHints) > 0 {
-		// Make sure the hits directory exists
+		// Make sure the hints directory exists
 		hintsDir := path.Join(windowsConfDir, "ohai/hints")
 		cmd := fmt.Sprintf("cmd /c if not exist %q mkdir %q", hintsDir, hintsDir)
 		if err := p.runCommand(o, comm, cmd); err != nil {
