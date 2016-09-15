@@ -149,8 +149,8 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 						"datadog_monitor.foo", "type", "metric alert"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "notify_no_data", "true"),
-					//resource.TestCheckResourceAttr(
-					//"datadog_monitor.foo", "no_data_timeframe", "20"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "no_data_timeframe", "20"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "40"),
 					resource.TestCheckResourceAttr(
@@ -303,7 +303,7 @@ resource "datadog_monitor" "foo" {
   }
 
   notify_no_data = true
-  //no_data_timeframe = 20
+  no_data_timeframe = 20
   renotify_interval = 40
   escalation_message = "the situation has escalated! @pagerduty"
   notify_audit = true

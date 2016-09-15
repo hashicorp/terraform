@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/zorkian/go-datadog-api"
+	"github.com/ojongerius/go-datadog-api"
 )
 
 const config1 = `

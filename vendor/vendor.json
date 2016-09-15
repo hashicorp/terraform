@@ -1530,8 +1530,8 @@
 		{
 			"checksumSHA1": "+3BeuGWnr6pqH9TDr25dMdqjbos=",
 			"path": "github.com/ojongerius/go-datadog-api",
-			"revision": "97ba6d75bedcc216a5f99da32f21db2e593e66ec",
-			"revisionTime": "2016-09-14T09:13:19Z",
+			"revision": "6e1b8f6d4fe1e867591ee14165c4df5f2931ede4",
+			"revisionTime": "2016-09-15T04:31:48Z",
 			"version": "workaround_require_full_window_behaviour",
 			"versionExact": "workaround_require_full_window_behaviour"
 		},

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/zorkian/go-datadog-api"
+	"github.com/ojongerius/go-datadog-api"
 )
 
 func resourceDatadogTimeboard() *schema.Resource {
