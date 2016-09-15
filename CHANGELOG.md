@@ -13,6 +13,8 @@ IMPROVEMENTS:
  * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name` [GH-8639]
  * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration [GH-8666]
  * helper/resource: Add timeout duration to timeout error message [GH-8773]
+ * provisioner/chef: Support recreating Chef clients by setting `recreate_client=true` [GH-8577]
+ * provisioner/chef: Support encrypting existing Chef-Vaults for newly created clients [GH-8577]
 
 BUG FIXES:
  * provider/aws: Prevent crash creating an `aws_sns_topic` with an empty policy [GH-8834]
