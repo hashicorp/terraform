@@ -355,6 +355,10 @@ func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvider); ok {
 			key := pv.ProviderName()
+
+			// This special case is because the new world view of providers
+			// is that they should return only their pure name (not the full
+			// module path with ProviderName). Working towards this future.
 			if _, ok := v.(*NodeApplyableProvider); ok {
 				key = providerMapKey(pv.ProviderName(), v)
 			}
