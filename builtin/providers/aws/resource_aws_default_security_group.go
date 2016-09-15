@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -35,7 +36,6 @@ func resourceAwsDefaultSecurityGroup() *schema.Resource {
 
 func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-
 	securityGroupOpts := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
@@ -92,18 +92,34 @@ func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	log.Printf("[WARN] Removing all ingress and egress rules found on Default Security Group (%s)", d.Id())
+	if err := revokeDefaultSecurityGroupRules(meta, g); err != nil {
+		return errwrap.Wrapf("{{err}}", err)
+	}
+
+	return resourceAwsSecurityGroupUpdate(d, meta)
+}
+
+func resourceAwsDefaultSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[WARN] Cannot destroy Default Security Group. Terraform will remove this resource from the state file, however resources may remain.")
+	d.SetId("")
+	return nil
+}
+
+func revokeDefaultSecurityGroupRules(meta interface{}, g *ec2.SecurityGroup) error {
+	conn := meta.(*AWSClient).ec2conn
+
+	log.Printf("[WARN] Removing all ingress and egress rules found on Default Security Group (%s)", *g.GroupId)
 	if len(g.IpPermissionsEgress) > 0 {
 		req := &ec2.RevokeSecurityGroupEgressInput{
 			GroupId:       g.GroupId,
 			IpPermissions: g.IpPermissionsEgress,
 		}
 
-		log.Printf("[DEBUG] Revoking default egress rules for Default Security Group for %s", d.Id())
-		if _, err = conn.RevokeSecurityGroupEgress(req); err != nil {
+		log.Printf("[DEBUG] Revoking default egress rules for Default Security Group for %s", *g.GroupId)
+		if _, err := conn.RevokeSecurityGroupEgress(req); err != nil {
 			return fmt.Errorf(
 				"Error revoking default egress rules for Default Security Group (%s): %s",
-				d.Id(), err)
+				*g.GroupId, err)
 		}
 	}
 	if len(g.IpPermissions) > 0 {
@@ -121,19 +137,13 @@ func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interfac
 			IpPermissions: g.IpPermissions,
 		}
 
-		log.Printf("[DEBUG] Revoking default ingress rules for Default Security Group for (%s): %s", d.Id(), req)
-		if _, err = conn.RevokeSecurityGroupIngress(req); err != nil {
+		log.Printf("[DEBUG] Revoking default ingress rules for Default Security Group for (%s): %s", *g.GroupId, req)
+		if _, err := conn.RevokeSecurityGroupIngress(req); err != nil {
 			return fmt.Errorf(
 				"Error revoking default ingress rules for Default Security Group (%s): %s",
-				d.Id(), err)
+				*g.GroupId, err)
 		}
 	}
 
-	return resourceAwsSecurityGroupUpdate(d, meta)
-}
-
-func resourceAwsDefaultSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[WARN] Cannot destroy Default Security Group. Terraform will remove this resource from the state file, however resources may remain.")
-	d.SetId("")
 	return nil
 }
