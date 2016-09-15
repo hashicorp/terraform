@@ -239,6 +239,13 @@ func TestAccAWSBeanstalkEnv_basic_settings_update(t *testing.T) {
 				),
 			},
 			resource.TestStep{
+				Config: testAccBeanstalkEnvConfig_settings_update(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
+					testAccVerifyBeanstalkConfig(&app, []string{"TF_LOG", "TF_SOME_VAR"}),
+				),
+			},
+			resource.TestStep{
 				Config: testAccBeanstalkEnvConfig_empty_settings(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
@@ -504,6 +511,61 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "TF_SOME_VAR"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource  = "ScheduledAction01"
+    name      = "MinSize"
+    value     = 2
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource  = "ScheduledAction01"
+    name      = "MaxSize"
+    value     = 3
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource  = "ScheduledAction01"
+    name      = "StartTime"
+    value     = "2016-07-28T04:07:02Z"
+  }
+}`, r, r)
+}
+
+func testAccBeanstalkEnvConfig_settings_update(r int) string {
+	return fmt.Sprintf(`
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name = "tf-test-name-%d"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name                = "tf-test-name-%d"
+  application         = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+        wait_for_ready_timeout = "15m"
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "TF_LOG"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "TF_SOME_VAR"
+    value     = "false"
+  }
+
+	  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "TF_SOME_NEW_VAR"
     value     = "true"
   }
 
