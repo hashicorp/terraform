@@ -3337,7 +3337,11 @@ type SetSMSAttributesInput struct {
 	// crossed. During that interval, if you continue to send SMS messages, you
 	// will incur costs that exceed your limit.
 	//
-	//   DeliveryStatusIAMRole – The ARN of the IAM role that allows Amazon SNS
+	//  By default, the spend limit is set to the maximum allowed by Amazon SNS.
+	// If you want to exceed the maximum, contact AWS Support (https://aws.amazon.com/premiumsupport/)
+	// or your AWS sales representative for a service limit increase.
+	//
+	//  DeliveryStatusIAMRole – The ARN of the IAM role that allows Amazon SNS
 	// to write logs about SMS deliveries in CloudWatch Logs. For each SMS message
 	// that you send, Amazon SNS writes a log that includes the message price, the
 	// success or failure status, the reason for failure (if the message failed),
@@ -3357,10 +3361,10 @@ type SetSMSAttributesInput struct {
 	//  DefaultSMSType – The type of SMS message that you will send by default.
 	// You can assign the following values:
 	//
-	//    Promotional – Noncritical messages, such as marketing messages. Amazon
-	// SNS optimizes the message delivery to incur the lowest cost.
+	//    Promotional – (Default) Noncritical messages, such as marketing messages.
+	// Amazon SNS optimizes the message delivery to incur the lowest cost.
 	//
-	//    Transactional – (Default) Critical messages that support customer transactions,
+	//    Transactional – Critical messages that support customer transactions,
 	// such as one-time passcodes for multi-factor authentication. Amazon SNS optimizes
 	// the message delivery to achieve the highest reliability.
 	//
