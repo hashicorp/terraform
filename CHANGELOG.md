@@ -12,6 +12,7 @@ IMPROVEMENTS:
  * provider/azurerm: support Diagnostics Profile [GH-8277]
  * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name` [GH-8639]
  * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration [GH-8666]
+ * helper/resource: Add timeout duration to timeout error message [GH-8773]
 
 BUG FIXES:
  * provider/aws: Prevent crash creating an `aws_sns_topic` with an empty policy [GH-8834]
