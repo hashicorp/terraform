@@ -198,13 +198,11 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
-	etag := d.Get("etag").(string)
 
 	resp, err := s3conn.HeadObject(
 		&s3.HeadObjectInput{
-			Bucket:  aws.String(bucket),
-			Key:     aws.String(key),
-			IfMatch: aws.String(etag),
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
 		})
 
 	if err != nil {
@@ -225,6 +223,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
 	d.Set("kms_key_id", resp.SSEKMSKeyId)
+	d.Set("etag", strings.Trim(*resp.ETag, `"`))
 
 	// The "STANDARD" (which is also the default) storage
 	// class when set would not be included in the results.
