@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/go-getter"
@@ -28,32 +29,23 @@ func (s *uiModuleStorage) Get(key string, source string, update bool) error {
 		updateStr = " (update)"
 	}
 
-	if strings.Hasprefix(source, "file") {
+	isFile := strings.HasPrefix(source, "file")
+	if isFile {
 		s.Ui.Output(fmt.Sprintf("Get: %s%s", source, updateStr))
 		return s.Storage.Get(key, source, update)
 	} else if storedModules[source] == "" {
-		storedModules[source] = key
-		s.Ui.Output(fmt.Sprintf("Get: %s%s storemap %+v", source, updateStr, storedModules))
-		return s.Storage.Get(key, source, update)
+		s.Ui.Output(fmt.Sprintf("Get: %s%s", source, updateStr))
+		getResult := s.Storage.Get(key, source, update)
+		getDir, _, err := s.Storage.Dir(key)
+		if err == nil {
+			storedModules[source] = getDir
+		}
+		return getResult
 	} else {
 		downloadedPath := storedModules[source]
-		downloadedPathURL := fmtfileURL(downloadedPath)
-		s.Ui.Output(fmt.Sprintf("Get: %s%s storemap %+v", downloadedPathURL, updateStr, storedModules))
+		downloadedPathURL, _ := filepath.Abs(downloadedPath)
+		s.Ui.Output(fmt.Sprintf("Get: %s%s", downloadedPathURL, updateStr))
 		return s.Storage.Get(key, downloadedPathURL, update)
 	}
 
-}
-
-func fmtFileURL(path string) string {
-	if runtime.GOOS == "windows" {
-		// Make sure we're using "/" on Windows. URLs are "/"-based.
-		path = filepath.ToSlash(path)
-		return fmt.Sprintf("file://%s", path)
-	}
-
-	// Make sure that we don't start with "/" since we add that below.
-	if path[0] == '/' {
-		path = path[1:]
-	}
-	return fmt.Sprintf("file:///%s", path)
 }
