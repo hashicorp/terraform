@@ -25,6 +25,22 @@ type GraphNodeReferencer interface {
 	References() []string
 }
 
+// GraphNodeReferenceGlobal is an interface that can optionally be
+// implemented. If ReferenceGlobal returns true, then the References()
+// and ReferenceableName() must be _fully qualified_ with "module.foo.bar"
+// etc.
+//
+// This allows a node to reference and be referenced by a specific name
+// that may cross module boundaries. This can be very dangerous so use
+// this wisely.
+//
+// The primary use case for this is module boundaries (variables coming in).
+type GraphNodeReferenceGlobal interface {
+	// Set to true to signal that references and name are fully
+	// qualified. See the above docs for more information.
+	ReferenceGlobal() bool
+}
+
 // ReferenceTransformer is a GraphTransformer that connects all the
 // nodes that reference each other in order to form the proper ordering.
 type ReferenceTransformer struct{}
@@ -61,16 +77,9 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 		return nil, nil
 	}
 
-	// If this node represents a sub path then we prefix
-	var prefix string
-	if pn, ok := v.(GraphNodeSubPath); ok {
-		if path := normalizeModulePath(pn.Path()); len(path) > 1 {
-			prefix = modulePrefixStr(path) + "."
-		}
-	}
-
 	var matches []dag.Vertex
 	var missing []string
+	prefix := m.prefix(v)
 	for _, n := range rn.References() {
 		n = prefix + n
 		parents, ok := m.m[n]
@@ -85,9 +94,29 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 	return matches, missing
 }
 
+func (m *ReferenceMap) prefix(v dag.Vertex) string {
+	// If the node is stating it is already fully qualified then
+	// we don't have to create the prefix!
+	if gn, ok := v.(GraphNodeReferenceGlobal); ok && gn.ReferenceGlobal() {
+		return ""
+	}
+
+	// Create the prefix based on the path
+	var prefix string
+	if pn, ok := v.(GraphNodeSubPath); ok {
+		if path := normalizeModulePath(pn.Path()); len(path) > 1 {
+			prefix = modulePrefixStr(path) + "."
+		}
+	}
+
+	return prefix
+}
+
 // NewReferenceMap is used to create a new reference map for the
 // given set of vertices.
 func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
+	var m ReferenceMap
+
 	// Build the lookup table
 	refMap := make(map[string][]dag.Vertex)
 	for _, v := range vs {
@@ -97,22 +126,16 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 			continue
 		}
 
-		// If this node represents a sub path then we prefix
-		var prefix string
-		if pn, ok := v.(GraphNodeSubPath); ok {
-			if path := normalizeModulePath(pn.Path()); len(path) > 1 {
-				prefix = modulePrefixStr(path) + "."
-			}
-		}
-
 		// Go through and cache them
+		prefix := m.prefix(v)
 		for _, n := range rn.ReferenceableName() {
 			n = prefix + n
 			refMap[n] = append(refMap[n], v)
 		}
 	}
 
-	return &ReferenceMap{m: refMap}
+	m.m = refMap
+	return &m
 }
 
 // ReferencesFromConfig returns the references that a configuration has
