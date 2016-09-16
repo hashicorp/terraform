@@ -3523,9 +3523,9 @@ func (c *RDS) DescribeSourceRegionsRequest(input *DescribeSourceRegionsInput) (r
 	return
 }
 
-// Returns a list that includes the status of each source AWS Region that the
-// current region can get a Read Replica or a DB snapshot from. This API action
-// supports pagination.
+// Returns a list of the source AWS regions where the current AWS region can
+// create a Read Replica or copy a DB snapshot from. This API action supports
+// pagination.
 func (c *RDS) DescribeSourceRegions(input *DescribeSourceRegionsInput) (*DescribeSourceRegionsOutput, error) {
 	req, out := c.DescribeSourceRegionsRequest(input)
 	err := req.Send()
@@ -6427,8 +6427,9 @@ type CreateDBInstanceInput struct {
 
 	// The name of the database engine to be used for this instance.
 	//
-	//  Valid Values: MySQL | mariadb | oracle-se1 | oracle-se | oracle-ee | sqlserver-ee
-	// | sqlserver-se | sqlserver-ex | sqlserver-web | postgres | aurora
+	//  Valid Values: mysql | mariadb | oracle-se1 | oracle-se2 | oracle-se | oracle-ee
+	// | sqlserver-ee | sqlserver-se | sqlserver-ex | sqlserver-web | postgres |
+	// aurora
 	//
 	// Not every database engine is available for every AWS region.
 	Engine *string `type:"string" required:"true"`
@@ -7740,6 +7741,19 @@ type DBCluster struct {
 	// Contains one or more identifiers of the Read Replicas associated with this
 	// DB cluster.
 	ReadReplicaIdentifiers []*string `locationNameList:"ReadReplicaIdentifier" type:"list"`
+
+	// The reader endpoint for the DB cluster. The reader endpoint for a DB cluster
+	// load-balances connections across the Aurora Replicas that are available in
+	// a DB cluster. As clients request new connections to the reader endpoint,
+	// Aurora distributes the connection requests among the Aurora Replicas in the
+	// DB cluster. This functionality can help balance your read workload across
+	// multiple Aurora Replicas in your DB cluster.
+	//
+	// If a failover occurs, and the Aurora Replica that you are connected to is
+	// promoted to be the primary instance, your connection will be dropped. To
+	// continue sending your read workload to other Aurora Replicas in the cluster,
+	// you can then recoonect to the reader endpoint.
+	ReaderEndpoint *string `type:"string"`
 
 	// Contains the identifier of the source DB cluster if this DB cluster is a
 	// Read Replica.
@@ -11714,11 +11728,11 @@ type DescribeSourceRegionsInput struct {
 	// Constraints: Minimum 20, maximum 100.
 	MaxRecords *int64 `type:"integer"`
 
-	// The source region name, for example US West (Oregon).
+	// The source region name. For example, us-east-1.
 	//
 	// Constraints:
 	//
-	//   Must specify a valid AWS Region name, for example US West (Oregon).
+	//   Must specify a valid AWS Region name.
 	RegionName *string `type:"string"`
 }
 
@@ -12848,15 +12862,13 @@ type ModifyDBInstanceInput struct {
 	// Example: mySubnetGroup
 	DBSubnetGroupName *string `type:"string"`
 
-	// Specify the Active Directory Domain to move the instance to.
-	//
-	// The specified Active Directory Domain must be created prior to this operation.
-	// Currently only a SQL Server instance can be created in a Active Directory
-	// Domain.
+	// The Active Directory Domain to move the instance to. Specify none to remove
+	// the instance from its current domain. The domain must be created prior to
+	// this operation. Currently only a Microsoft SQL Server instance can be created
+	// in a Active Directory Domain.
 	Domain *string `type:"string"`
 
-	// Specify the name of the IAM role to be used when making API calls to the
-	// Directory Service.
+	// The name of the IAM role to use when making API calls to the Directory Service.
 	DomainIAMRoleName *string `type:"string"`
 
 	// The version number of the database engine to upgrade to. Changing this parameter
