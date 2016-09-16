@@ -94,6 +94,8 @@ The following attributes are exported:
 * `preferred_backup_window` - The backup window
 * `preferred_maintenance_window` - The maintenance window
 * `endpoint` - The DNS address of the RDS instance
+* `reader_endpoint` - A read-only endpoint for the Aurora cluster, automatically
+load-balanced across replicas
 * `engine` - The database engine
 * `engine_version` - The database engine version
 * `maintenance_window` - The instance maintenance window

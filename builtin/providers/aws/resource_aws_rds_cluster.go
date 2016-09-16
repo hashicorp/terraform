@@ -85,6 +85,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"reader_endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"engine": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
