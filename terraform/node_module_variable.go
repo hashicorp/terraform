@@ -34,7 +34,7 @@ func (n *NodeApplyableModuleVariable) Path() []string {
 		return n.PathValue[:len(n.PathValue)-1]
 	}
 
-	return nil
+	return rootModulePath
 }
 
 // GraphNodeReferenceGlobal
@@ -58,15 +58,18 @@ func (n *NodeApplyableModuleVariable) References() []string {
 	}
 
 	// Can't depend on anything if we're in the root
-	path := n.Path()
-	if len(path) < 2 {
+	if len(n.PathValue) < 2 {
 		return nil
 	}
 
 	// Otherwise, we depend on anything that is in our value, but
 	// specifically in the namespace of the parent path.
 	// Create the prefix based on the path
-	prefix := modulePrefixStr(path) + "."
+	var prefix string
+	if p := n.Path(); len(p) > 0 {
+		prefix = modulePrefixStr(p)
+	}
+
 	result := ReferencesFromConfig(n.Value)
 	return modulePrefixList(result, prefix)
 }
