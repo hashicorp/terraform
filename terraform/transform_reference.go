@@ -30,9 +30,67 @@ type GraphNodeReferencer interface {
 type ReferenceTransformer struct{}
 
 func (t *ReferenceTransformer) Transform(g *Graph) error {
-	// Build the mapping of reference => vertex for efficient lookups.
+	// Build a reference map so we can efficiently look up the references
+	vs := g.Vertices()
+	m := NewReferenceMap(vs)
+
+	// Find the things that reference things and connect them
+	for _, v := range vs {
+		parents, _ := m.References(v)
+		for _, parent := range parents {
+			g.Connect(dag.BasicEdge(v, parent))
+		}
+	}
+
+	return nil
+}
+
+// ReferenceMap is a structure that can be used to efficiently check
+// for references on a graph.
+type ReferenceMap struct {
+	// m is the mapping of referenceable name to list of verticies that
+	// implement that name. This is built on initialization.
+	m map[string][]dag.Vertex
+}
+
+// References returns the list of vertices that this vertex
+// references along with any missing references.
+func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
+	rn, ok := v.(GraphNodeReferencer)
+	if !ok {
+		return nil, nil
+	}
+
+	// If this node represents a sub path then we prefix
+	var prefix string
+	if pn, ok := v.(GraphNodeSubPath); ok {
+		if path := normalizeModulePath(pn.Path()); len(path) > 1 {
+			prefix = modulePrefixStr(path[1:]) + "."
+		}
+	}
+
+	var matches []dag.Vertex
+	var missing []string
+	for _, n := range rn.References() {
+		n = prefix + n
+		parents, ok := m.m[n]
+		if !ok {
+			missing = append(missing, n)
+			continue
+		}
+
+		matches = append(matches, parents...)
+	}
+
+	return matches, missing
+}
+
+// NewReferenceMap is used to create a new reference map for the
+// given set of vertices.
+func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
+	// Build the lookup table
 	refMap := make(map[string][]dag.Vertex)
-	for _, v := range g.Vertices() {
+	for _, v := range vs {
 		// We're only looking for referenceable nodes
 		rn, ok := v.(GraphNodeReferenceable)
 		if !ok {
@@ -54,32 +112,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	// Find the things that reference things and connect them
-	for _, v := range g.Vertices() {
-		rn, ok := v.(GraphNodeReferencer)
-		if !ok {
-			continue
-		}
-
-		// If this node represents a sub path then we prefix
-		var prefix string
-		if pn, ok := v.(GraphNodeSubPath); ok {
-			if path := normalizeModulePath(pn.Path()); len(path) > 1 {
-				prefix = modulePrefixStr(path[1:]) + "."
-			}
-		}
-
-		for _, n := range rn.References() {
-			n = prefix + n
-			if parents, ok := refMap[n]; ok {
-				for _, parent := range parents {
-					g.Connect(dag.BasicEdge(v, parent))
-				}
-			}
-		}
-	}
-
-	return nil
+	return &ReferenceMap{m: refMap}
 }
 
 // ReferencesFromConfig returns the references that a configuration has
