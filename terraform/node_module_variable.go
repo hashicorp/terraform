@@ -7,8 +7,9 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
-// NodeApplyableVariable represents a variable during the apply step.
-type NodeApplyableVariable struct {
+// NodeApplyableModuleVariable represents a module variable input during
+// the apply step.
+type NodeApplyableModuleVariable struct {
 	PathValue []string
 	Config    *config.Variable  // Config is the var in the config
 	Value     *config.RawConfig // Value is the value that is set
@@ -16,7 +17,7 @@ type NodeApplyableVariable struct {
 	Module *module.Tree // Antiquated, want to remove
 }
 
-func (n *NodeApplyableVariable) Name() string {
+func (n *NodeApplyableModuleVariable) Name() string {
 	result := fmt.Sprintf("var.%s", n.Config.Name)
 	if len(n.PathValue) > 1 {
 		result = fmt.Sprintf("%s.%s", modulePrefixStr(n.PathValue), result)
@@ -26,7 +27,7 @@ func (n *NodeApplyableVariable) Name() string {
 }
 
 // GraphNodeSubPath
-func (n *NodeApplyableVariable) Path() []string {
+func (n *NodeApplyableModuleVariable) Path() []string {
 	// We execute in the parent scope (above our own module) so that
 	// we can access the proper interpolations.
 	if len(n.PathValue) > 2 {
@@ -37,7 +38,7 @@ func (n *NodeApplyableVariable) Path() []string {
 }
 
 // GraphNodeReferenceGlobal
-func (n *NodeApplyableVariable) ReferenceGlobal() bool {
+func (n *NodeApplyableModuleVariable) ReferenceGlobal() bool {
 	// We have to create fully qualified references because we cross
 	// boundaries here: our ReferenceableName is in one path and our
 	// References are from another path.
@@ -45,12 +46,12 @@ func (n *NodeApplyableVariable) ReferenceGlobal() bool {
 }
 
 // GraphNodeReferenceable
-func (n *NodeApplyableVariable) ReferenceableName() []string {
+func (n *NodeApplyableModuleVariable) ReferenceableName() []string {
 	return []string{n.Name()}
 }
 
 // GraphNodeEvalable
-func (n *NodeApplyableVariable) EvalTree() EvalNode {
+func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 	// If we have no value, do nothing
 	if n.Value == nil {
 		return &EvalNoop{}
