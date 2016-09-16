@@ -65,7 +65,7 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 	var prefix string
 	if pn, ok := v.(GraphNodeSubPath); ok {
 		if path := normalizeModulePath(pn.Path()); len(path) > 1 {
-			prefix = modulePrefixStr(path[1:]) + "."
+			prefix = modulePrefixStr(path) + "."
 		}
 	}
 
