@@ -186,6 +186,16 @@ func (r *DiffFieldReader) readSet(
 		}
 	}
 
+	if !exists {
+		result, err := r.Source.ReadField(address)
+		if err != nil {
+			return FieldReadResult{}, err
+		}
+		if result.Exists {
+			return result, nil
+		}
+	}
+
 	return FieldReadResult{
 		Value:  set,
 		Exists: exists,
