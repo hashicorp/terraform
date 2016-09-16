@@ -27,6 +27,15 @@ func TestApplyGraphBuilder(t *testing.T) {
 							},
 						},
 					},
+
+					"aws_instance.other": &InstanceDiff{
+						Attributes: map[string]*ResourceAttrDiff{
+							"name": &ResourceAttrDiff{
+								Old: "",
+								New: "foo",
+							},
+						},
+					},
 				},
 			},
 
@@ -72,6 +81,9 @@ func TestApplyGraphBuilder(t *testing.T) {
 const testApplyGraphBuilderStr = `
 aws_instance.create
   provider.aws
+aws_instance.other
+  aws_instance.create
+  provider.aws
 module.child.aws_instance.create
   module.child.provider.aws
   provisioner.exec
@@ -80,6 +92,6 @@ module.child.provider.aws
 provider.aws
 provisioner.exec
 root
-  aws_instance.create
+  aws_instance.other
   module.child.aws_instance.create
 `

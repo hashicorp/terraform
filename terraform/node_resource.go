@@ -23,6 +23,36 @@ func (n *NodeApplyableResource) Path() []string {
 	return n.Addr.Path
 }
 
+// GraphNodeReferenceable
+func (n *NodeApplyableResource) ReferenceableName() []string {
+	if n.Config == nil {
+		return nil
+	}
+
+	return []string{n.Config.Id()}
+}
+
+// GraphNodeReferencer
+func (n *NodeApplyableResource) References() []string {
+	// Let's make this a little shorter so it is easier to reference
+	c := n.Config
+	if c == nil {
+		return nil
+	}
+
+	// Grab all the references
+	var result []string
+	result = append(result, c.DependsOn...)
+	result = append(result, ReferencesFromConfig(c.RawCount)...)
+	result = append(result, ReferencesFromConfig(c.RawConfig)...)
+	for _, p := range c.Provisioners {
+		result = append(result, ReferencesFromConfig(p.ConnInfo)...)
+		result = append(result, ReferencesFromConfig(p.RawConfig)...)
+	}
+
+	return result
+}
+
 // GraphNodeProviderConsumer
 func (n *NodeApplyableResource) ProvidedBy() []string {
 	// If we have a config we prefer that above all else

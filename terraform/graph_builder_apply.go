@@ -63,6 +63,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
 		&ProvisionerTransformer{},
 
+		// Connect references so ordering is correct
+		&ReferenceTransformer{},
+
 		// Attach the configurations
 		&AttachConfigTransformer{Module: b.Module},
 
