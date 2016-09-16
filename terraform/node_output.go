@@ -29,7 +29,8 @@ func (n *NodeApplyableOutput) Path() []string {
 
 // GraphNodeReferenceable
 func (n *NodeApplyableOutput) ReferenceableName() []string {
-	return []string{n.Name()}
+	name := fmt.Sprintf("output.%s", n.Config.Name)
+	return []string{name}
 }
 
 // GraphNodeReferencer
