@@ -47,7 +47,11 @@ func (t *OutputTransformer) transform(g *Graph, m *module.Tree) error {
 
 	// Add all outputs here
 	for _, o := range os {
-		// Build the node
+		// Build the node.
+		//
+		// NOTE: For now this is just an "applyable" output. As we build
+		// new graph builders for the other operations I suspect we'll
+		// find a way to parameterize this, require new transforms, etc.
 		node := &NodeApplyableOutput{
 			PathValue: normalizeModulePath(m.Path()),
 			Config:    o,
