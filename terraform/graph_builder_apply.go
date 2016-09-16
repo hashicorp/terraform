@@ -64,7 +64,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ProvisionerTransformer{},
 
 		// Add module variables
-		&VariableTransformer{Module: b.Module},
+		&ModuleVariableTransformer{Module: b.Module},
 
 		// Add the outputs
 		&OutputTransformer{Module: b.Module},

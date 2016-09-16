@@ -8,21 +8,21 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
-// VariableTransformer is a GraphTransformer that adds all the variables
+// ModuleVariableTransformer is a GraphTransformer that adds all the variables
 // in the configuration to the graph.
 //
 // This only adds variables that either have no dependencies (and therefore
 // always succeed) or has dependencies that are 100% represented in the
 // graph.
-type VariableTransformer struct {
+type ModuleVariableTransformer struct {
 	Module *module.Tree
 }
 
-func (t *VariableTransformer) Transform(g *Graph) error {
+func (t *ModuleVariableTransformer) Transform(g *Graph) error {
 	return t.transform(g, nil, t.Module)
 }
 
-func (t *VariableTransformer) transform(g *Graph, parent, m *module.Tree) error {
+func (t *ModuleVariableTransformer) transform(g *Graph, parent, m *module.Tree) error {
 	// If no config, no variables
 	if m == nil {
 		return nil
@@ -85,7 +85,7 @@ func (t *VariableTransformer) transform(g *Graph, parent, m *module.Tree) error 
 		// NOTE: For now this is just an "applyable" variable. As we build
 		// new graph builders for the other operations I suspect we'll
 		// find a way to parameterize this, require new transforms, etc.
-		node := &NodeApplyableVariable{
+		node := &NodeApplyableModuleVariable{
 			PathValue: normalizeModulePath(m.Path()),
 			Config:    v,
 			Value:     value,
