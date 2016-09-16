@@ -1,10 +1,7 @@
 package terraform
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/dag"
 )
 
 // OutputTransformer is a GraphTransformer that adds all the outputs
@@ -42,9 +39,6 @@ func (t *OutputTransformer) transform(g *Graph, m *module.Tree) error {
 		return nil
 	}
 
-	// Build the reference map so we can determine if we're referencing things.
-	refMap := NewReferenceMap(g.Vertices())
-
 	// Add all outputs here
 	for _, o := range os {
 		// Build the node.
@@ -55,20 +49,6 @@ func (t *OutputTransformer) transform(g *Graph, m *module.Tree) error {
 		node := &NodeApplyableOutput{
 			PathValue: normalizeModulePath(m.Path()),
 			Config:    o,
-		}
-
-		// If the node references something, then we check to make sure
-		// that the thing it references is in the graph. If it isn't, then
-		// we don't add it because we may not be able to compute the output.
-		//
-		// If the node references nothing, we always include it since there
-		// is no other clear time to compute it.
-		matches, missing := refMap.References(node)
-		if len(missing) > 0 {
-			log.Printf(
-				"[INFO] Not including %q in graph, matches: %v, missing: %s",
-				dag.VertexName(node), matches, missing)
-			continue
 		}
 
 		// Add it!
