@@ -327,6 +327,53 @@ func TestLoadJSONBasic(t *testing.T) {
 	}
 }
 
+func TestLoadJSONAmbiguous(t *testing.T) {
+	js := `
+{
+  "variable": {
+    "first": {
+      "default": {
+        "key": "val"
+      }
+    },
+    "second": {
+      "description": "Described",
+      "default": {
+        "key": "val"
+      }
+    }
+  }
+}
+`
+
+	c, err := LoadJSON([]byte(js))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(c.Variables) != 2 {
+		t.Fatal("config should have 2 variables, found", len(c.Variables))
+	}
+
+	first := &Variable{
+		Name:    "first",
+		Default: map[string]interface{}{"key": "val"},
+	}
+	second := &Variable{
+		Name:        "second",
+		Description: "Described",
+		Default:     map[string]interface{}{"key": "val"},
+	}
+
+	if !reflect.DeepEqual(first, c.Variables[0]) {
+		t.Fatalf("\nexpected: %#v\ngot:      %#v", first, c.Variables[0])
+	}
+
+	if !reflect.DeepEqual(second, c.Variables[1]) {
+		t.Fatalf("\nexpected: %#v\ngot:      %#v", second, c.Variables[1])
+	}
+}
+
 func TestLoadFileBasic_jsonNoName(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "resource-no-name.tf.json"))
 	if err != nil {

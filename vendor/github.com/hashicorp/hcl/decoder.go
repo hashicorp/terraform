@@ -409,7 +409,6 @@ func (d *decoder) decodeSlice(name string, node ast.Node, result reflect.Value) 
 	if result.Kind() == reflect.Interface {
 		result = result.Elem()
 	}
-
 	// Create the slice if it isn't nil
 	resultType := result.Type()
 	resultElemType := resultType.Elem()
@@ -443,6 +442,12 @@ func (d *decoder) decodeSlice(name string, node ast.Node, result reflect.Value) 
 
 		// Decode
 		val := reflect.Indirect(reflect.New(resultElemType))
+
+		// if item is an object that was decoded from ambiguous JSON and
+		// flattened, make sure it's expanded if it needs to decode into a
+		// defined structure.
+		item := expandObject(item, val)
+
 		if err := d.decode(fieldName, item, val); err != nil {
 			return err
 		}
@@ -453,6 +458,57 @@ func (d *decoder) decodeSlice(name string, node ast.Node, result reflect.Value) 
 
 	set.Set(result)
 	return nil
+}
+
+// expandObject detects if an ambiguous JSON object was flattened to a List which
+// should be decoded into a struct, and expands the ast to properly deocode.
+func expandObject(node ast.Node, result reflect.Value) ast.Node {
+	item, ok := node.(*ast.ObjectItem)
+	if !ok {
+		return node
+	}
+
+	elemType := result.Type()
+
+	// our target type must be a struct
+	switch elemType.Kind() {
+	case reflect.Ptr:
+		switch elemType.Elem().Kind() {
+		case reflect.Struct:
+			//OK
+		default:
+			return node
+		}
+	case reflect.Struct:
+		//OK
+	default:
+		return node
+	}
+
+	// A list value will have a key and field name. If it had more fields,
+	// it wouldn't have been flattened.
+	if len(item.Keys) != 2 {
+		return node
+	}
+
+	keyToken := item.Keys[0].Token
+	item.Keys = item.Keys[1:]
+
+	// we need to un-flatten the ast enough to decode
+	newNode := &ast.ObjectItem{
+		Keys: []*ast.ObjectKey{
+			&ast.ObjectKey{
+				Token: keyToken,
+			},
+		},
+		Val: &ast.ObjectType{
+			List: &ast.ObjectList{
+				Items: []*ast.ObjectItem{item},
+			},
+		},
+	}
+
+	return newNode
 }
 
 func (d *decoder) decodeString(name string, node ast.Node, result reflect.Value) error {
@@ -606,6 +662,7 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 		// match (only object with the field), then we decode it exactly.
 		// If it is a prefix match, then we decode the matches.
 		filter := list.Filter(fieldName)
+
 		prefixMatches := filter.Children()
 		matches := filter.Elem()
 		if len(matches.Items) == 0 && len(prefixMatches.Items) == 0 {
