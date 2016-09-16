@@ -7,6 +7,7 @@ FEATURES:
 
 IMPROVEMENTS:
  * provider/aws: Support 'publish' attribute in `lambda_function` [GH-8653]
+ * provider/aws: Add `reader_endpoint` RDS Clusters [GH-8884]
  * provider/aws: Export AWS ELB service account ARN [GH-8700]
  * provider/aws: Allow `aws_alb` to have the name auto-generated [GH-8673]
  * provider/aws: Expose `arn_suffix` on `aws_alb` [GH-8833]
