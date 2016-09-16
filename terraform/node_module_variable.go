@@ -50,6 +50,27 @@ func (n *NodeApplyableModuleVariable) ReferenceableName() []string {
 	return []string{n.Name()}
 }
 
+// GraphNodeReferencer
+func (n *NodeApplyableModuleVariable) References() []string {
+	// If we have no value set, we depend on nothing
+	if n.Value == nil {
+		return nil
+	}
+
+	// Can't depend on anything if we're in the root
+	path := n.Path()
+	if len(path) < 2 {
+		return nil
+	}
+
+	// Otherwise, we depend on anything that is in our value, but
+	// specifically in the namespace of the parent path.
+	// Create the prefix based on the path
+	prefix := modulePrefixStr(path) + "."
+	result := ReferencesFromConfig(n.Value)
+	return modulePrefixList(result, prefix)
+}
+
 // GraphNodeEvalable
 func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 	// If we have no value, do nothing
