@@ -960,7 +960,7 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_countDecreaseToOne(t *testing.T) {
+func TestContext2Apply_countDecreaseToOneX(t *testing.T) {
 	m := testModule(t, "apply-count-dec-one")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
