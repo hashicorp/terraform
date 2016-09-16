@@ -537,6 +537,29 @@ func (i *Interpolater) computeResourceMultiVariable(
 			continue
 		}
 
+		// We didn't find the exact field, so lets separate the dots
+		// and see if anything along the way is a computed set. i.e. if
+		// we have "foo.0.bar" as the field, check to see if "foo" is
+		// a computed list. If so, then the whole thing is computed.
+
+		if parts := strings.Split(v.Field, "."); len(parts) > 1 {
+			for i := 1; i < len(parts); i++ {
+				// Lists and sets make this
+				key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
+				if attr, ok := r.Primary.Attributes[key]; ok {
+					values = append(values, attr)
+					break
+				}
+
+				// Maps make this
+				key = fmt.Sprintf("%s.%%", strings.Join(parts[:i], "."))
+				if attr, ok := r.Primary.Attributes[key]; ok {
+					values = append(values, attr)
+					break
+				}
+			}
+		}
+
 		// computed list or map attribute
 		_, isList := r.Primary.Attributes[v.Field+".#"]
 		_, isMap := r.Primary.Attributes[v.Field+".%"]

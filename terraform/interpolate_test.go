@@ -520,6 +520,64 @@ func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {
 	})
 }
 
+func TestInterpolator_resourceMultiAttributesComputedWithResourceCount(t *testing.T) {
+
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.terra.0": &ResourceState{
+						Type: "aws_route53_zone",
+						Primary: &InstanceState{
+							ID: "AAABBBCCCDDDEEE",
+							Attributes: map[string]string{
+								"name_servers.#": config.UnknownVariableValue,
+							},
+						},
+					},
+					"aws_route53_zone.terra.1": &ResourceState{
+						Type: "aws_route53_zone",
+						Primary: &InstanceState{
+							ID: "EEEFFFGGGHHHIII",
+							Attributes: map[string]string{
+								"name_servers.#": config.UnknownVariableValue,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: lock,
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.name_servers.0", interfaceToVariableSwallowError([]interface{}{
+		ast.Variable{
+			Value: config.UnknownVariableValue,
+			Type:  ast.TypeString,
+		},
+		ast.Variable{
+			Value: config.UnknownVariableValue,
+			Type:  ast.TypeString,
+		},
+	}))
+
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.name_servers.0", ast.Variable{
+		Value: config.UnknownVariableValue,
+		Type:  ast.TypeString,
+	})
+}
+
 func TestInterpolater_selfVarWithoutResource(t *testing.T) {
 	i := &Interpolater{}
 
