@@ -58,6 +58,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},
 		&ProviderTransformer{},
 		&ParentProviderTransformer{},
+		&AttachProviderConfigTransformer{Module: b.Module},
 
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
@@ -74,9 +75,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
-
-		// Attach the configurations
-		&AttachConfigTransformer{Module: b.Module},
 
 		// Single root
 		&RootTransformer{},

@@ -20,16 +20,17 @@ type GraphNodeAttachProvider interface {
 	AttachProvider(*config.ProviderConfig)
 }
 
-// AttachConfigTransformer goes through the graph and attaches configuration
-// structures to nodes that implement the interfaces above.
+// AttachProviderConfigTransformer goes through the graph and attaches
+// provider configuration structures to nodes that implement the interfaces
+// above.
 //
 // The attached configuration structures are directly from the configuration.
 // If they're going to be modified, a copy should be made.
-type AttachConfigTransformer struct {
+type AttachProviderConfigTransformer struct {
 	Module *module.Tree // Module is the root module for the config
 }
 
-func (t *AttachConfigTransformer) Transform(g *Graph) error {
+func (t *AttachProviderConfigTransformer) Transform(g *Graph) error {
 	if err := t.attachProviders(g); err != nil {
 		return err
 	}
@@ -37,7 +38,7 @@ func (t *AttachConfigTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *AttachConfigTransformer) attachProviders(g *Graph) error {
+func (t *AttachProviderConfigTransformer) attachProviders(g *Graph) error {
 	// Go through and find GraphNodeAttachProvider
 	for _, v := range g.Vertices() {
 		// Only care about GraphNodeAttachProvider implementations

@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/config/module"
 )
@@ -30,12 +31,15 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	}
 
 	// Go through all the modules in the diff.
+	log.Printf("[TRACE] DiffTransformer: starting")
 	var nodes []*NodeApplyableResource
 	for _, m := range t.Diff.Modules {
+		log.Printf("[TRACE] DiffTransformer: Module: %s", m)
 		// TODO: If this is a destroy diff then add a module destroy node
 
 		// Go through all the resources in this module.
 		for name, inst := range m.Resources {
+			log.Printf("[TRACE] DiffTransformer: Resource %q: %#v", name, inst)
 			// TODO: Destroy diff
 
 			// If this diff has no attribute changes, then we have
