@@ -1364,6 +1364,12 @@
 			"revision": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
 		},
 		{
+			"checksumSHA1": "ysHPYOB/xV0dMIAES8ZOQu9KwQQ=",
+			"path": "github.com/joyent/gomanta/manta",
+			"revision": "ece4f0cbe61f600794bbcff71d8f9ee86909b2dc",
+			"revisionTime": "2016-09-13T20:25:01Z"
+		},
+		{
 			"checksumSHA1": "PDzjpRNeytdYU39/PByzwCMvKQ8=",
 			"path": "github.com/joyent/gosdc/cloudapi",
 			"revision": "042c6e9de2b48a646d310e70cc0050c83fe18200",

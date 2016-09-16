@@ -14,6 +14,37 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestALBCloudwatchSuffixFromARN(t *testing.T) {
+	cases := []struct {
+		name   string
+		arn    *string
+		suffix string
+	}{
+		{
+			name:   "valid suffix",
+			arn:    aws.String(`arn:aws:elasticloadbalancing:us-east-1:123456:loadbalancer/app/my-alb/abc123`),
+			suffix: `app/my-alb/abc123`,
+		},
+		{
+			name:   "no suffix",
+			arn:    aws.String(`arn:aws:elasticloadbalancing:us-east-1:123456:loadbalancer`),
+			suffix: ``,
+		},
+		{
+			name:   "nil ARN",
+			arn:    nil,
+			suffix: ``,
+		},
+	}
+
+	for _, tc := range cases {
+		actual := albSuffixFromARN(tc.arn)
+		if actual != tc.suffix {
+			t.Fatalf("bad suffix: %q\nExpected: %s\n     Got: %s", tc.name, tc.suffix, actual)
+		}
+	}
+}
+
 func TestAccAWSALB_basic(t *testing.T) {
 	var conf elbv2.LoadBalancer
 	albName := fmt.Sprintf("testaccawsalb-basic-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))

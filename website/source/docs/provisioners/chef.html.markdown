@@ -43,8 +43,9 @@ resource "aws_instance" "web" {
         node_name = "webserver1"
         secret_key = "${file("../encrypted_data_bag_secret")}"
         server_url = "https://chef.company.com/organizations/org1"
-        validation_client_name = "chef-validator"
-        validation_key = "${file("../chef-validator.pem")}"
+        receate_client = true
+        user_name = "bob"
+        user_key = "${file("../bob.pem")}"
         version = "12.4.1"
     }
 }
@@ -95,13 +96,16 @@ The following arguments are supported:
   and running the initial Chef Client run. This option is only used with `ssh` type
   [connections](/docs/provisioners/connection.html).
 
+* `recreate_client (boolean)` - (Optional) If true, first delete the existing Chef Node and
+  Client before registering the new Chef Client.
+
 * `run_list (array)` - (Required) A list with recipes that will be invoked during the initial
   Chef Client run. The run-list will also be saved to the Chef Server after a successful
   initial run.
 
 * `secret_key (string)` - (Optional) The contents of the secret key that is used
   by the client to decrypt data bags on the Chef Server. The key will be uploaded to the remote
-  machine.  These can be loaded from a file on disk using the [`file()` interpolation
+  machine.  This can be loaded from a file on disk using the [`file()` interpolation
   function](/docs/configuration/interpolation.html#file_path_).
 
 * `server_url (string)` - (Required) The URL to the Chef server. This includes the path to
@@ -114,13 +118,16 @@ The following arguments are supported:
 * `ssl_verify_mode (string)` - (Optional) Use to set the verify mode for Chef Client HTTPS
   requests.
 
-* `validation_client_name (string)` - (Required) The name of the validation client to use
-  for the initial communication with the Chef Server.
+* `user_name (string)` - (Required) The name of an existing Chef user to use for registering
+  the new Chef Client and (optionally) configure Chef Vaults.
 
-* `validation_key (string)` - (Required) The contents of the validation key that is needed
-  by the node to register itself with the Chef Server. The key will be uploaded to the remote
-  machine. These can be loaded from a file on disk using the [`file()`
+* `user_key (string)` - (Required) The contents of the user key that will be used to 
+  authenticate with the Chef Server. This can be loaded from a file on disk using the [`file()`
   interpolation function](/docs/configuration/interpolation.html#file_path_).
+
+* `vault_json (string)` - (Optional) A raw JSON string with Chef Vaults and Items to give
+  the new node access to. These can also be loaded from a file on disk using the [`file()
+  ` interpolation function](/docs/configuration/interpolation.html#file_path_).
 
 * `version (string)` - (Optional) The Chef Client version to install on the remote machine.
   If not set the latest available version will be installed.
@@ -128,6 +135,5 @@ The following arguments are supported:
 These are supported for backwards compatibility and may be removed in a
 future version:
 
-* `attributes (map)` - __Deprecated: please use `attributes_json` instead__.
-* `secret_key_path (string)` - __Deprecated: please use `secret_key` instead__.
-* `validation_key_path (string)` - __Deprecated: please use `validation_key` instead__.
+* `validation_client_name (string)` - __Deprecated: please use `user_name` instead__.
+* `validation_key (string)` - __Deprecated: please use `user_key` instead__.

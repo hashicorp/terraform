@@ -16,12 +16,12 @@ func TestResourceProvisioner_impl(t *testing.T) {
 
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"environment":            "_default",
-		"node_name":              "nodename1",
-		"run_list":               []interface{}{"cookbook::recipe"},
-		"server_url":             "https://chef.local",
-		"validation_client_name": "validator",
-		"validation_key":         "contentsofsomevalidator.pem",
+		"environment": "_default",
+		"node_name":   "nodename1",
+		"run_list":    []interface{}{"cookbook::recipe"},
+		"server_url":  "https://chef.local",
+		"user_name":   "bob",
+		"user_key":    "USER-KEY",
 	})
 	r := new(ResourceProvisioner)
 	warn, errs := r.Validate(c)
@@ -65,11 +65,11 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 	}{
 		"Sudo": {
 			Config: testConfig(t, map[string]interface{}{
-				"node_name":              "nodename1",
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
 			}),
 
 			ChefCmd: linuxChefCmd,
@@ -85,12 +85,12 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 
 		"NoSudo": {
 			Config: testConfig(t, map[string]interface{}{
-				"node_name":              "nodename1",
-				"prevent_sudo":           true,
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
+				"node_name":    "nodename1",
+				"prevent_sudo": true,
+				"run_list":     []interface{}{"cookbook::recipe"},
+				"server_url":   "https://chef.local",
+				"user_name":    "bob",
+				"user_key":     "USER-KEY",
 			}),
 
 			ChefCmd: linuxChefCmd,
@@ -106,13 +106,13 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 
 		"Environment": {
 			Config: testConfig(t, map[string]interface{}{
-				"environment":            "production",
-				"node_name":              "nodename1",
-				"prevent_sudo":           true,
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
+				"environment":  "production",
+				"node_name":    "nodename1",
+				"prevent_sudo": true,
+				"run_list":     []interface{}{"cookbook::recipe"},
+				"server_url":   "https://chef.local",
+				"user_name":    "bob",
+				"user_key":     "USER-KEY",
 			}),
 
 			ChefCmd: windowsChefCmd,
@@ -162,8 +162,8 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 				"node_name":               "nodename1",
 				"run_list":                []interface{}{"cookbook::recipe"},
 				"server_url":              "https://chef.local",
-				"validation_client_name":  "validator",
-				"validation_key_path":     "test-fixtures/validator.pem",
+				"user_name":               "bob",
+				"user_key":                "USER-KEY",
 			}),
 
 			KnifeCmd: linuxKnifeCmd,
@@ -184,8 +184,8 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 				"server_url":              "https://chef.local",
-				"validation_client_name":  "validator",
-				"validation_key_path":     "test-fixtures/validator.pem",
+				"user_name":               "bob",
+				"user_key":                "USER-KEY",
 			}),
 
 			KnifeCmd: windowsKnifeCmd,

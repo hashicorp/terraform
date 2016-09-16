@@ -59,11 +59,12 @@ Access Logs (`access_logs`) support the following:
 
 The following attributes are exported in addition to the arguments listed above:
 
-* `id` - The ARN of the load balancer (matches `arn`)
-* `arn` - The ARN of the load balancer (matches `id`)
-* `dns_name` - The DNS name of the load balancer
+* `id` - The ARN of the load balancer (matches `arn`).
+* `arn` - The ARN of the load balancer (matches `id`).
+* `arn_suffix` - The ARN suffix for use with CloudWatch Metrics.
+* `dns_name` - The DNS name of the load balancer.
 * `canonical_hosted_zone_id` - The canonical hosted zone ID of the load balancer.
-* `zone_id` - The canonical hosted zone ID of the load balancer (to be used in a Route 53 Alias record)
+* `zone_id` - The canonical hosted zone ID of the load balancer (to be used in a Route 53 Alias record).
 
 ## Import
 
