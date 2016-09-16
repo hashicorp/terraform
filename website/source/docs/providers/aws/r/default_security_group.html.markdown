@@ -11,7 +11,7 @@ description: |-
 Provides a resource to manage the default AWS Security Group.
 
 For EC2 Classic accounts, each region comes with a Default Security Group.
-Additionall, each VPC created in AWS comes with a Default Security Group that can be managed, but not
+Additionally, each VPC created in AWS comes with a Default Security Group that can be managed, but not
 destroyed. **This is an advanced resource**, and has special caveats to be aware
 of when using it. Please read this document in its entirety before using this
 resource.
