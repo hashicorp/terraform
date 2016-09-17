@@ -86,6 +86,16 @@ func (n *NodeApplyableResource) ProvisionedBy() []string {
 	return result
 }
 
+// GraphNodeAttachResourceState
+func (n *NodeApplyableResource) ResourceAddr() *ResourceAddress {
+	return n.Addr
+}
+
+// GraphNodeAttachResourceState
+func (n *NodeApplyableResource) AttachResourceState(s *ResourceState) {
+	n.ResourceState = s
+}
+
 // GraphNodeEvalable
 func (n *NodeApplyableResource) EvalTree() EvalNode {
 	// stateId is the ID to put into the state
