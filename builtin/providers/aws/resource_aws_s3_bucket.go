@@ -1399,6 +1399,7 @@ func removeNil(data map[string]interface{}) map[string]interface{} {
 	return withoutNil
 }
 
+// DEPRECATED. Please consider using `normalizeJsonString` function instead.
 func normalizeJson(jsonString interface{}) string {
 	if jsonString == nil || jsonString == "" {
 		return ""
