@@ -12,6 +12,11 @@ func TestDiffFieldReader_impl(t *testing.T) {
 }
 
 func TestDiffFieldReader_NestedSetUpdate(t *testing.T) {
+	hashFn := func(a interface{}) int {
+		m := a.(map[string]interface{})
+		return m["val"].(int)
+	}
+
 	schema := map[string]*Schema{
 		"list_of_sets_1": &Schema{
 			Type: TypeList,
@@ -26,10 +31,7 @@ func TestDiffFieldReader_NestedSetUpdate(t *testing.T) {
 								},
 							},
 						},
-						Set: func(a interface{}) int {
-							m := a.(map[string]interface{})
-							return m["val"].(int)
-						},
+						Set: hashFn,
 					},
 				},
 			},
@@ -47,10 +49,7 @@ func TestDiffFieldReader_NestedSetUpdate(t *testing.T) {
 								},
 							},
 						},
-						Set: func(a interface{}) int {
-							m := a.(map[string]interface{})
-							return m["val"].(int)
-						},
+						Set: hashFn,
 					},
 				},
 			},
@@ -97,44 +96,16 @@ func TestDiffFieldReader_NestedSetUpdate(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	list, ok := out.Value.([]interface{})
-	if !ok {
-		t.Fatalf("nestedSetUpdate: bad: Value type\n\nexpected: []interface{}\n\ngot: %v", reflect.TypeOf(out.Value))
-	}
-	if len(list) != 1 {
-		t.Fatalf("nestedSetUpdate: bad: list length\n\nexpected: 1\n\ngot: %v\n\n", len(list))
-	}
+	s := &Set{F: hashFn}
+	s.Add(map[string]interface{}{"val": 1})
+	expected := s.List()
 
-	var m map[string]interface{}
-	m, ok = list[0].(map[string]interface{})
-	if !ok {
-		t.Fatalf("nestedSetUpdate: bad: list item type\n\nexpected: map[string]interface{}\n\ngot: %v\n\n", reflect.TypeOf(list[0]))
-	}
+	l := out.Value.([]interface{})
+	i := l[0].(map[string]interface{})
+	actual := i["nested_set"].(*Set).List()
 
-	rawSet := m["nested_set"]
-	if rawSet == nil {
-		t.Fatalf("nestedSetUpdate: bad: nested_set\n\nexpected: not nil\n\ngot: nil\n\n")
-	}
-
-	var set *Set
-	set, ok = rawSet.(*Set)
-	if !ok {
-		t.Fatalf("nestedSetUpdate: bad: nested set type\n\nexpected: *Set\n\ngot: %v\n\n", reflect.TypeOf(m["nested_set"]))
-	}
-	if set.Len() != 1 {
-		t.Fatalf("nestedSetUpdate: bad: nested set length\n\nexpected: 1\n\ngot: %v\n\n", set.Len())
-	}
-
-	setList := set.List()
-	var item map[string]interface{}
-	item, ok = setList[0].(map[string]interface{})
-	if !ok {
-		t.Fatalf("nestedSetUpdate: bad: nested set item type\n\nexpected: map[string]interface{}\n\ngot: %v\n\n", reflect.TypeOf(setList[0]))
-	}
-
-	val := item["val"].(int)
-	if val != 1 {
-		t.Fatalf("nestedSetUpdate: bad: val\n\nexpected: 1\n\ngot: %v\n\n", val)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("bad: NestedSetUpdate\n\nexpected: %#v\n\ngot: %#v\n\n", expected, actual)
 	}
 }
 
