@@ -131,7 +131,7 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var provider ResourceProvider
-	var diff *InstanceDiff
+	var diff, diffApply *InstanceDiff
 	var state *InstanceState
 	var resourceConfig *ResourceConfig
 	var err error
@@ -148,21 +148,21 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 			// Get the saved diff for apply
 			&EvalReadDiff{
 				Name: stateId,
-				Diff: &diff,
+				Diff: &diffApply,
 			},
 
 			// We don't want to do any destroys
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
-					if diff == nil {
+					if diffApply == nil {
 						return true, EvalEarlyExitError{}
 					}
 
-					if diff.GetDestroy() && diff.GetAttributesLen() == 0 {
+					if diffApply.GetDestroy() && diffApply.GetAttributesLen() == 0 {
 						return true, EvalEarlyExitError{}
 					}
 
-					diff.SetDestroy(false)
+					diffApply.SetDestroy(false)
 					return true, nil
 				},
 				Then: EvalNoop{},
@@ -171,8 +171,8 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
 					destroy := false
-					if diff != nil {
-						destroy = diff.GetDestroy() || diff.RequiresNew()
+					if diffApply != nil {
+						destroy = diffApply.GetDestroy() || diffApply.RequiresNew()
 					}
 
 					createBeforeDestroyEnabled =
@@ -214,9 +214,9 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 				Config:     &resourceConfig,
 				Resource:   n.Config,
 				Provider:   &provider,
-				Diff:       &diff,
+				Diff:       &diffApply,
 				State:      &state,
-				OutputDiff: &diff,
+				OutputDiff: &diffApply,
 			},
 
 			// Get the saved diff
@@ -229,7 +229,7 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 			&EvalCompareDiff{
 				Info: info,
 				One:  &diff,
-				Two:  &diff,
+				Two:  &diffApply,
 			},
 
 			&EvalGetProvider{
@@ -243,7 +243,7 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 			&EvalApply{
 				Info:      info,
 				State:     &state,
-				Diff:      &diff,
+				Diff:      &diffApply,
 				Provider:  &provider,
 				Output:    &state,
 				Error:     &err,
