@@ -40,7 +40,10 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		// Go through all the resources in this module.
 		for name, inst := range m.Resources {
 			log.Printf("[TRACE] DiffTransformer: Resource %q: %#v", name, inst)
-			// TODO: Destroy diff
+
+			// TODO: destroy
+			if inst.Destroy {
+			}
 
 			// If this diff has no attribute changes, then we have
 			// nothing to do and therefore won't add it to the graph.
