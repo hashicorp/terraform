@@ -11,7 +11,7 @@ func TestDiffFieldReader_impl(t *testing.T) {
 	var _ FieldReader = new(DiffFieldReader)
 }
 
-func TestDiffFieldReader_ASDF(t *testing.T) {
+func TestDiffFieldReader_NestedSetUpdate(t *testing.T) {
 	schema := map[string]*Schema{
 		"list_of_sets_1": &Schema{
 			Type: TypeList,
