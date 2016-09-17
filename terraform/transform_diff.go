@@ -41,16 +41,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		for name, inst := range m.Resources {
 			log.Printf("[TRACE] DiffTransformer: Resource %q: %#v", name, inst)
 
-			// TODO: destroy
-			if inst.Destroy {
-			}
-
-			// If this diff has no attribute changes, then we have
-			// nothing to do and therefore won't add it to the graph.
-			if len(inst.Attributes) == 0 {
-				continue
-			}
-
 			// We have changes! This is a create or update operation.
 			// First grab the address so we have a unique way to
 			// reference this resource.
@@ -64,10 +54,18 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			// the address. Remove "root" from it.
 			addr.Path = m.Path[1:]
 
-			// Add the resource to the graph
-			nodes = append(nodes, &NodeApplyableResource{
-				Addr: addr,
-			})
+			// If we're destroying, add the destroy node
+			if inst.Destroy {
+				g.Add(&NodeDestroyResource{Addr: addr})
+			}
+
+			// If we have changes, then add the applyable version
+			if len(inst.Attributes) > 0 {
+				// Add the resource to the graph
+				nodes = append(nodes, &NodeApplyableResource{
+					Addr: addr,
+				})
+			}
 		}
 	}
 
@@ -94,28 +92,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 
 				// Same resource! Mark it and exit
 				n.Config = r
-				break
-			}
-		}
-
-		// Grab the state at this path
-		if ms := t.State.ModuleByPath(normalizeModulePath(n.Addr.Path)); ms != nil {
-			for name, rs := range ms.Resources {
-				// Parse the name for comparison
-				addr, err := parseResourceAddressInternal(name)
-				if err != nil {
-					panic(fmt.Sprintf(
-						"Error parsing internal name, this is a bug: %q", name))
-				}
-				addr.Path = n.Addr.Path
-
-				// If this is not the same resource, then continue
-				if !addr.Equals(n.Addr) {
-					continue
-				}
-
-				// Same resource!
-				n.ResourceState = rs
 				break
 			}
 		}
