@@ -625,6 +625,27 @@ func TestAccAWSInstance_forceNewAndTagsDrift(t *testing.T) {
 	})
 }
 
+// This test relates to https://github.com/hashicorp/terraform/issues/8875
+func TestAccAWSInstance_TenancyHost(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigTenancyHost,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testAccAWSInstance_TenancyHost(&v),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckInstanceDestroy(s *terraform.State) error {
 	return testAccCheckInstanceDestroyWithProvider(s, testAccProvider)
 }
@@ -731,6 +752,30 @@ func TestInstanceTenancySchema(t *testing.T) {
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
 			actualSchema,
 			expectedSchema)
+	}
+}
+
+func testAccAWSInstance_TenancyHost(i *ec2.Instance) resource.TestCheckFunc {
+	return func(*terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		r, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{i.InstanceId},
+		})
+
+		if err != nil {
+			return err
+		}
+
+		if len(r.Reservations) == 0 {
+			return nil
+		}
+
+		instance := r.Reservations[0].Instances[0]
+
+		if *instance.Placement.Tenancy != "host" {
+			return fmt.Errorf("expected: %s, got: %s", "host", instance.Placement.Tenancy)
+		}
+		return nil
 	}
 }
 
@@ -1171,5 +1216,24 @@ resource "aws_instance" "foo" {
 	ami = "ami-22b9a343"
 	instance_type = "t2.micro"
 	subnet_id = "${aws_subnet.foo.id}"
+}
+`
+
+const testAccInstanceConfigTenancyHost = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	availability_zone = "us-west-2a"
+}
+
+resource "aws_instance" "foo" {
+  instance_type = "c3.large"
+  ami = "ami-21f78e11"
+  tenancy = "host"
+  subnet_id = "${aws_subnet.foo.id}"
 }
 `

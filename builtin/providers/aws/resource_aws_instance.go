@@ -1038,12 +1038,16 @@ func buildAwsInstanceOpts(
 	// aws_spot_instance_request. They represent the same data. :-|
 	opts.Placement = &ec2.Placement{
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
-		GroupName:        aws.String(d.Get("placement_group").(string)),
 	}
 
 	opts.SpotPlacement = &ec2.SpotPlacement{
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
-		GroupName:        aws.String(d.Get("placement_group").(string)),
+	}
+
+	// Placement_Group should only be set if found in config
+	if v, ok := d.GetOk("placement_group"); ok {
+		opts.Placement.GroupName = aws.String(v.(string))
+		opts.SpotPlacement.GroupName = aws.String(v.(string))
 	}
 
 	if v := d.Get("tenancy").(string); v != "" {
