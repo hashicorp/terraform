@@ -27,7 +27,7 @@ is a Docker feature missing, please report it in the GitHub repo.
 ```
 # Configure the Docker provider
 provider "docker" {
-    host = "tcp://127.0.0.1:1234/"
+    host = "tcp://127.0.0.1:2376/"
 }
 
 # Create a container
