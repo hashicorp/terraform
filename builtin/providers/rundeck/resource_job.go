@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/apparentlymart/go-rundeck-api/rundeck"
+
+	"strconv"
 )
 
 func resourceRundeckJob() *schema.Resource {
@@ -96,6 +98,14 @@ func resourceRundeckJob() *schema.Resource {
 			"node_filter_exclude_precedence": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+			},
+
+			// true(default): Target nodes are selected by default
+			// false: The user has to explicitly select target nodes
+			"nodes_selected_by_default": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
 			},
 
 			"option": &schema.Schema{
@@ -447,11 +457,16 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		job.OptionsConfig = optionsConfig
 	}
 
+	// Dispatch enabled.
 	if d.Get("node_filter_query").(string) != "" {
+		// Context: Job>Filter
 		job.NodeFilter = &rundeck.JobNodeFilter{
 			ExcludePrecedence: d.Get("node_filter_exclude_precedence").(bool),
 			Query:             d.Get("node_filter_query").(string),
 		}
+
+		// Context: Job
+		job.NodesSelectedByDefault = strconv.FormatBool(d.Get("nodes_selected_by_default").(bool))
 	}
 
 	return job, nil
@@ -489,8 +504,11 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 	d.Set("node_filter_query", nil)
 	d.Set("node_filter_exclude_precedence", nil)
 	if job.NodeFilter != nil {
+		// Context: Job>Filter
 		d.Set("node_filter_query", job.NodeFilter.Query)
 		d.Set("node_filter_exclude_precedence", job.NodeFilter.ExcludePrecedence)
+		// Context: Job
+		d.Set("nodes_selected_by_default", job.NodesSelectedByDefault)
 	}
 
 	optionConfigsI := []interface{}{}
