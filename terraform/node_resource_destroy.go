@@ -11,7 +11,7 @@ type NodeDestroyResource struct {
 }
 
 func (n *NodeDestroyResource) Name() string {
-	return n.Addr.String()
+	return n.Addr.String() + " (destroy)"
 }
 
 // GraphNodeSubPath
