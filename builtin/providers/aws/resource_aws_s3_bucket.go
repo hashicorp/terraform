@@ -48,7 +48,6 @@ func resourceAwsS3Bucket() *schema.Resource {
 			"policy": &schema.Schema{
 				Type:             schema.TypeString,
 				Optional:         true,
-				Computed:         true,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 
