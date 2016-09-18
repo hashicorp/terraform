@@ -28,10 +28,14 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 				ForceNew: true,
 			},
 			"template_body": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateJsonString,
+				StateFunc: func(v interface{}) string {
+					json, _ := normalizeJsonString(v)
+					return json
+				},
 			},
 			"template_url": &schema.Schema{
 				Type:     schema.TypeString,
@@ -69,10 +73,14 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 				Computed: true,
 			},
 			"policy_body": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateJsonString,
+				StateFunc: func(v interface{}) string {
+					json, _ := normalizeJsonString(v)
+					return json
+				},
 			},
 			"policy_url": &schema.Schema{
 				Type:     schema.TypeString,
@@ -100,7 +108,8 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		StackName: aws.String(d.Get("name").(string)),
 	}
 	if v, ok := d.GetOk("template_body"); ok {
-		input.TemplateBody = aws.String(normalizeJson(v.(string)))
+		template, _ := normalizeJsonString(v.(string))
+		input.TemplateBody = aws.String(template)
 	}
 	if v, ok := d.GetOk("template_url"); ok {
 		input.TemplateURL = aws.String(v.(string))
@@ -121,7 +130,8 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 	if v, ok := d.GetOk("policy_body"); ok {
-		input.StackPolicyBody = aws.String(normalizeJson(v.(string)))
+		policy, _ := normalizeJsonString(v.(string))
+		input.StackPolicyBody = aws.String(policy)
 	}
 	if v, ok := d.GetOk("policy_url"); ok {
 		input.StackPolicyURL = aws.String(v.(string))
@@ -270,7 +280,8 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.Set("template_body", normalizeJson(*out.TemplateBody))
+	template, _ := normalizeJsonString(*out.TemplateBody)
+	d.Set("template_body", template)
 
 	stack := stacks[0]
 	log.Printf("[DEBUG] Received CloudFormation stack: %s", stack)
@@ -333,7 +344,8 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		input.TemplateURL = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("template_body"); ok && input.TemplateURL == nil {
-		input.TemplateBody = aws.String(normalizeJson(v.(string)))
+		template, _ := normalizeJsonString(v.(string))
+		input.TemplateBody = aws.String(template)
 	}
 
 	// Capabilities must be present whether they are changed or not
@@ -351,7 +363,8 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 	}
 
 	if d.HasChange("policy_body") {
-		input.StackPolicyBody = aws.String(normalizeJson(d.Get("policy_body").(string)))
+		policy, _ := normalizeJsonString(d.Get("policy_body").(string))
+		input.StackPolicyBody = aws.String(policy)
 	}
 	if d.HasChange("policy_url") {
 		input.StackPolicyURL = aws.String(d.Get("policy_url").(string))
