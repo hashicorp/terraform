@@ -9,10 +9,11 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/monitor"
 )
 
 func TestAccMonitoringJob_basic(t *testing.T) {
-	var mj nsone.MonitoringJob
+	var mj monitor.Job
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -41,7 +42,7 @@ func TestAccMonitoringJob_basic(t *testing.T) {
 }
 
 func TestAccMonitoringJob_updated(t *testing.T) {
-	var mj nsone.MonitoringJob
+	var mj monitor.Job
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -107,7 +108,7 @@ func testAccCheckMonitoringJobState(key, value string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckMonitoringJobExists(n string, monitoringJob *nsone.MonitoringJob) resource.TestCheckFunc {
+func testAccCheckMonitoringJobExists(n string, monitoringJob *monitor.Job) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -120,34 +121,33 @@ func testAccCheckMonitoringJobExists(n string, monitoringJob *nsone.MonitoringJo
 			return fmt.Errorf("ID is not set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.APIClient)
+		client := testAccProvider.Meta().(*nsone.Client)
 
-		foundMj, err := client.GetMonitoringJob(rs.Primary.Attributes["id"])
-		// foundMj, _, err := client.Jobs.Get(id)
+		foundMj, _, err := client.Jobs.Get(id)
 
 		if err != nil {
 			return err
 		}
 
-		if foundMj.Id != id {
+		if foundMj.ID != id {
 			return fmt.Errorf("Monitoring Job not found want: %#v, got %#v", id, foundMj)
 		}
 
-		*monitoringJob = foundMj
+		*monitoringJob = *foundMj
 
 		return nil
 	}
 }
 
 func testAccCheckMonitoringJobDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.APIClient)
+	client := testAccProvider.Meta().(*nsone.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "nsone_monitoringjob" {
 			continue
 		}
 
-		mj, err := client.GetMonitoringJob(rs.Primary.Attributes["id"])
+		mj, _, err := client.Jobs.Get(rs.Primary.Attributes["id"])
 
 		if err == nil {
 			return fmt.Errorf("Monitoring Job still exists %#v: %#v", err, mj)
@@ -157,7 +157,7 @@ func testAccCheckMonitoringJobDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckMonitoringJobName(mj *nsone.MonitoringJob, expected string) resource.TestCheckFunc {
+func testAccCheckMonitoringJobName(mj *monitor.Job, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.Name != expected {
 			return fmt.Errorf("Name: got: %#v want: %#v", mj.Name, expected)
@@ -166,7 +166,7 @@ func testAccCheckMonitoringJobName(mj *nsone.MonitoringJob, expected string) res
 	}
 }
 
-func testAccCheckMonitoringJobActive(mj *nsone.MonitoringJob, expected bool) resource.TestCheckFunc {
+func testAccCheckMonitoringJobActive(mj *monitor.Job, expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.Active != expected {
 			return fmt.Errorf("Active: got: %#v want: %#v", mj.Active, expected)
@@ -175,7 +175,7 @@ func testAccCheckMonitoringJobActive(mj *nsone.MonitoringJob, expected bool) res
 	}
 }
 
-func testAccCheckMonitoringJobRegions(mj *nsone.MonitoringJob, expected []string) resource.TestCheckFunc {
+func testAccCheckMonitoringJobRegions(mj *monitor.Job, expected []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if !reflect.DeepEqual(mj.Regions, expected) {
 			return fmt.Errorf("Regions: got: %#v want: %#v", mj.Regions, expected)
@@ -184,16 +184,16 @@ func testAccCheckMonitoringJobRegions(mj *nsone.MonitoringJob, expected []string
 	}
 }
 
-func testAccCheckMonitoringJobType(mj *nsone.MonitoringJob, expected string) resource.TestCheckFunc {
+func testAccCheckMonitoringJobType(mj *monitor.Job, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if mj.JobType != expected {
-			return fmt.Errorf("JobType: got: %#v want: %#v", mj.JobType, expected)
+		if mj.Type != expected {
+			return fmt.Errorf("Type: got: %#v want: %#v", mj.Type, expected)
 		}
 		return nil
 	}
 }
 
-func testAccCheckMonitoringJobFrequency(mj *nsone.MonitoringJob, expected int) resource.TestCheckFunc {
+func testAccCheckMonitoringJobFrequency(mj *monitor.Job, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.Frequency != expected {
 			return fmt.Errorf("Frequency: got: %#v want: %#v", mj.Frequency, expected)
@@ -202,7 +202,7 @@ func testAccCheckMonitoringJobFrequency(mj *nsone.MonitoringJob, expected int) r
 	}
 }
 
-func testAccCheckMonitoringJobRapidRecheck(mj *nsone.MonitoringJob, expected bool) resource.TestCheckFunc {
+func testAccCheckMonitoringJobRapidRecheck(mj *monitor.Job, expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.RapidRecheck != expected {
 			return fmt.Errorf("RapidRecheck: got: %#v want: %#v", mj.RapidRecheck, expected)
@@ -211,7 +211,7 @@ func testAccCheckMonitoringJobRapidRecheck(mj *nsone.MonitoringJob, expected boo
 	}
 }
 
-func testAccCheckMonitoringJobPolicy(mj *nsone.MonitoringJob, expected string) resource.TestCheckFunc {
+func testAccCheckMonitoringJobPolicy(mj *monitor.Job, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.Policy != expected {
 			return fmt.Errorf("Policy: got: %#v want: %#v", mj.Policy, expected)
@@ -220,7 +220,7 @@ func testAccCheckMonitoringJobPolicy(mj *nsone.MonitoringJob, expected string) r
 	}
 }
 
-func testAccCheckMonitoringJobConfigSend(mj *nsone.MonitoringJob, expected string) resource.TestCheckFunc {
+func testAccCheckMonitoringJobConfigSend(mj *monitor.Job, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.Config["send"].(string) != expected {
 			return fmt.Errorf("Config.send: got: %#v want: %#v", mj.Config["send"].(string), expected)
@@ -229,7 +229,7 @@ func testAccCheckMonitoringJobConfigSend(mj *nsone.MonitoringJob, expected strin
 	}
 }
 
-func testAccCheckMonitoringJobConfigPort(mj *nsone.MonitoringJob, expected float64) resource.TestCheckFunc {
+func testAccCheckMonitoringJobConfigPort(mj *monitor.Job, expected float64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.Config["port"].(float64) != expected {
 			return fmt.Errorf("Config.port: got: %#v want: %#v", mj.Config["port"].(float64), expected)
@@ -238,7 +238,7 @@ func testAccCheckMonitoringJobConfigPort(mj *nsone.MonitoringJob, expected float
 	}
 }
 
-func testAccCheckMonitoringJobConfigHost(mj *nsone.MonitoringJob, expected string) resource.TestCheckFunc {
+func testAccCheckMonitoringJobConfigHost(mj *monitor.Job, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if mj.Config["host"].(string) != expected {
 			return fmt.Errorf("Config.host: got: %#v want: %#v", mj.Config["host"].(string), expected)

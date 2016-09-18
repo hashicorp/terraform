@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 )
 
 func addPermsSchema(s map[string]*schema.Schema) map[string]*schema.Schema {
@@ -134,12 +135,12 @@ func userResource() *schema.Resource {
 	}
 }
 
-func permissionsToResourceData(d *schema.ResourceData, permissions nsone.PermissionsMap) {
-	d.Set("dns_view_zones", permissions.Dns.ViewZones)
-	d.Set("dns_manage_zones", permissions.Dns.ManageZones)
-	d.Set("dns_zones_allow_by_default", permissions.Dns.ZonesAllowByDefault)
-	d.Set("dns_zones_deny", permissions.Dns.ZonesDeny)
-	d.Set("dns_zones_allow", permissions.Dns.ZonesAllow)
+func permissionsToResourceData(d *schema.ResourceData, permissions account.PermissionsMap) {
+	d.Set("dns_view_zones", permissions.DNS.ViewZones)
+	d.Set("dns_manage_zones", permissions.DNS.ManageZones)
+	d.Set("dns_zones_allow_by_default", permissions.DNS.ZonesAllowByDefault)
+	d.Set("dns_zones_deny", permissions.DNS.ZonesDeny)
+	d.Set("dns_zones_allow", permissions.DNS.ZonesAllow)
 	d.Set("data_push_to_datafeeds", permissions.Data.PushToDatafeeds)
 	d.Set("data_manage_datasources", permissions.Data.ManageDatasources)
 	d.Set("data_manage_datafeeds", permissions.Data.ManageDatafeeds)
@@ -156,11 +157,11 @@ func permissionsToResourceData(d *schema.ResourceData, permissions nsone.Permiss
 	d.Set("monitoring_view_jobs", permissions.Monitoring.ViewJobs)
 }
 
-func userToResourceData(d *schema.ResourceData, u *nsone.User) error {
+func userToResourceData(d *schema.ResourceData, u *account.User) error {
 	d.SetId(u.Username)
 	d.Set("name", u.Name)
 	d.Set("email", u.Email)
-	d.Set("teams", u.Teams)
+	d.Set("teams", u.TeamIDs)
 	notify := make(map[string]bool)
 	notify["billing"] = u.Notify.Billing
 	d.Set("notify", notify)
@@ -168,18 +169,18 @@ func userToResourceData(d *schema.ResourceData, u *nsone.User) error {
 	return nil
 }
 
-func resourceDataToUser(u *nsone.User, d *schema.ResourceData) error {
+func resourceDataToUser(u *account.User, d *schema.ResourceData) error {
 	u.Name = d.Get("name").(string)
 	u.Username = d.Get("username").(string)
 	u.Email = d.Get("email").(string)
 	if v, ok := d.GetOk("teams"); ok {
 		teamsRaw := v.([]interface{})
-		u.Teams = make([]string, len(teamsRaw))
+		u.TeamIDs = make([]string, len(teamsRaw))
 		for i, team := range teamsRaw {
-			u.Teams[i] = team.(string)
+			u.TeamIDs[i] = team.(string)
 		}
 	} else {
-		u.Teams = make([]string, 0)
+		u.TeamIDs = make([]string, 0)
 	}
 	if v, ok := d.GetOk("notify"); ok {
 		notifyRaw := v.(map[string]interface{})
@@ -191,48 +192,46 @@ func resourceDataToUser(u *nsone.User, d *schema.ResourceData) error {
 
 // UserCreate creates the given user in ns1
 func UserCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj := nsone.User{}
-	if err := resourceDataToUser(&mj, d); err != nil {
+	client := meta.(*nsone.Client)
+	u := account.User{}
+	if err := resourceDataToUser(&u, d); err != nil {
 		return err
 	}
-	if err := client.CreateUser(&mj); err != nil {
+	if _, err := client.Users.Create(&u); err != nil {
 		return err
 	}
-	return userToResourceData(d, &mj)
+	return userToResourceData(d, &u)
 }
 
 // UserRead  reads the given users data from ns1
 func UserRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj, err := client.GetUser(d.Id())
+	client := meta.(*nsone.Client)
+	u, _, err := client.Users.Get(d.Id())
 	if err != nil {
 		return err
 	}
-	userToResourceData(d, &mj)
-	return nil
+	return userToResourceData(d, u)
 }
 
 // UserDelete deletes the given user from ns1
 func UserDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	err := client.DeleteUser(d.Id())
+	client := meta.(*nsone.Client)
+	_, err := client.Users.Delete(d.Id())
 	d.SetId("")
 	return err
 }
 
 // UserUpdate updates the user with given parameters in ns1
 func UserUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj := nsone.User{
+	client := meta.(*nsone.Client)
+	u := account.User{
 		Username: d.Id(),
 	}
-	if err := resourceDataToUser(&mj, d); err != nil {
+	if err := resourceDataToUser(&u, d); err != nil {
 		return err
 	}
-	if err := client.UpdateUser(&mj); err != nil {
+	if _, err := client.Users.Update(&u); err != nil {
 		return err
 	}
-	userToResourceData(d, &mj)
-	return nil
+	return userToResourceData(d, &u)
 }

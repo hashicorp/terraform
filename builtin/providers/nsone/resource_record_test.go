@@ -10,10 +10,11 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 )
 
 func TestAccRecord_basic(t *testing.T) {
-	var record nsone.Record
+	var record dns.Record
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -35,7 +36,7 @@ func TestAccRecord_basic(t *testing.T) {
 }
 
 func TestAccRecord_updated(t *testing.T) {
-	var record nsone.Record
+	var record dns.Record
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -88,7 +89,7 @@ func testAccCheckRecordState(key, value string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckRecordExists(n string, record *nsone.Record) resource.TestCheckFunc {
+func testAccCheckRecordExists(n string, record *dns.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -100,11 +101,11 @@ func testAccCheckRecordExists(n string, record *nsone.Record) resource.TestCheck
 			return fmt.Errorf("NoID is set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.APIClient)
+		client := testAccProvider.Meta().(*nsone.Client)
 
 		p := rs.Primary
 
-		foundRecord, err := client.GetRecord(p.Attributes["zone"], p.Attributes["domain"], p.Attributes["type"])
+		foundRecord, _, err := client.Records.Get(p.Attributes["zone"], p.Attributes["domain"], p.Attributes["type"])
 
 		if err != nil {
 			// return err
@@ -122,7 +123,7 @@ func testAccCheckRecordExists(n string, record *nsone.Record) resource.TestCheck
 }
 
 func testAccCheckRecordDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.APIClient)
+	client := testAccProvider.Meta().(*nsone.Client)
 
 	var recordDomain string
 	var recordZone string
@@ -140,25 +141,25 @@ func testAccCheckRecordDestroy(s *terraform.State) error {
 		}
 	}
 
-	foundRecord, _ := client.GetRecord(recordDomain, recordZone, recordType)
+	foundRecord, _, err := client.Records.Get(recordDomain, recordZone, recordType)
 
-	if foundRecord.Id != "" {
+	if err != nil {
 		return fmt.Errorf("Record still exists: %#v", foundRecord)
 	}
 
 	return nil
 }
 
-func testAccCheckRecordTTL(r *nsone.Record, expected int) resource.TestCheckFunc {
+func testAccCheckRecordTTL(r *dns.Record, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if r.Ttl != expected {
-			return fmt.Errorf("TTL: got: %#v want: %#v", r.Ttl, expected)
+		if r.TTL != expected {
+			return fmt.Errorf("TTL: got: %#v want: %#v", r.TTL, expected)
 		}
 		return nil
 	}
 }
 
-func testAccCheckRecordRegionName(r *nsone.Record, expected []string) resource.TestCheckFunc {
+func testAccCheckRecordRegionName(r *dns.Record, expected []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		regions := make([]string, len(r.Regions))
 
@@ -176,11 +177,11 @@ func testAccCheckRecordRegionName(r *nsone.Record, expected []string) resource.T
 	}
 }
 
-func testAccCheckRecordAnswerMetaWeight(r *nsone.Record, expected float64) resource.TestCheckFunc {
+func testAccCheckRecordAnswerMetaWeight(r *dns.Record, expected float64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		recordAnswer := r.Answers[0]
 		recordMetas := recordAnswer.Meta
-		weight := recordMetas["weight"].(float64)
+		weight := recordMetas.Weight.(float64)
 		if weight != expected {
 			return fmt.Errorf("Answers[0].Meta.Weight: got: %#v want: %#v", weight, expected)
 		}
@@ -188,10 +189,10 @@ func testAccCheckRecordAnswerMetaWeight(r *nsone.Record, expected float64) resou
 	}
 }
 
-func testAccCheckRecordAnswerRdata(r *nsone.Record, expected string) resource.TestCheckFunc {
+func testAccCheckRecordAnswerRdata(r *dns.Record, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		recordAnswer := r.Answers[0]
-		recordAnswerString := recordAnswer.Answer[0]
+		recordAnswerString := recordAnswer.Rdata[0]
 		if recordAnswerString != expected {
 			return fmt.Errorf("Answers[0].Rdata[0]: got: %#v want: %#v", recordAnswerString, expected)
 		}

@@ -1,6 +1,8 @@
 package nsone
 
 import (
+	"net/http"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -33,9 +35,10 @@ func Provider() terraform.ResourceProvider {
 }
 
 func nsoneConfigure(d *schema.ResourceData) (interface{}, error) {
-	n := nsone.New(d.Get("apikey").(string))
-	n.Debug()
-	n.RateLimitStrategySleep()
+	httpClient := &http.Client{}
+	n := nsone.NewClient(httpClient, nsone.SetAPIKey(d.Get("apikey").(string)))
+	// FIXME: n.Debug()
+	// FIXME: n.RateLimitStrategySleep()
 	return n, nil
 }
 

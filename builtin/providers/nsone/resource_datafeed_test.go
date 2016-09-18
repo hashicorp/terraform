@@ -8,10 +8,11 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 )
 
 func TestAccDataFeed_basic(t *testing.T) {
-	var dataFeed nsone.DataFeed
+	var dataFeed data.Feed
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -30,7 +31,7 @@ func TestAccDataFeed_basic(t *testing.T) {
 }
 
 func TestAccDataFeed_updated(t *testing.T) {
-	var dataFeed nsone.DataFeed
+	var dataFeed data.Feed
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -77,7 +78,7 @@ func testAccCheckDataFeedState(key, value string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckDataFeedExists(n string, dsrc string, dataFeed *nsone.DataFeed) resource.TestCheckFunc {
+func testAccCheckDataFeedExists(n string, dsrc string, dataFeed *data.Feed) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		ds, ok := s.RootModule().Resources[dsrc]
@@ -94,9 +95,9 @@ func testAccCheckDataFeedExists(n string, dsrc string, dataFeed *nsone.DataFeed)
 			return fmt.Errorf("NoID is set for the datasource")
 		}
 
-		client := testAccProvider.Meta().(*nsone.APIClient)
+		client := testAccProvider.Meta().(*nsone.Client)
 
-		foundFeed, err := client.GetDataFeed(ds.Primary.Attributes["id"], rs.Primary.Attributes["id"])
+		foundFeed, _, err := client.DataFeeds.Get(ds.Primary.Attributes["id"], rs.Primary.Attributes["id"])
 
 		p := rs.Primary
 
@@ -115,7 +116,7 @@ func testAccCheckDataFeedExists(n string, dsrc string, dataFeed *nsone.DataFeed)
 }
 
 func testAccCheckDataFeedDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.APIClient)
+	client := testAccProvider.Meta().(*nsone.Client)
 
 	var dataFeedID string
 	var dataSourceID string
@@ -131,16 +132,16 @@ func testAccCheckDataFeedDestroy(s *terraform.State) error {
 		}
 	}
 
-	df, _ := client.GetDataFeed(dataSourceID, dataFeedID)
+	df, _, _ := client.DataFeeds.Get(dataSourceID, dataFeedID)
 
-	if df.Id != "" {
-		return fmt.Errorf("DataFeed still exists")
+	if df != nil {
+		return fmt.Errorf("DataFeed still exists: %#v", df)
 	}
 
 	return nil
 }
 
-func testAccCheckDataFeedAttributes(dataFeed *nsone.DataFeed) resource.TestCheckFunc {
+func testAccCheckDataFeedAttributes(dataFeed *data.Feed) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if dataFeed.Config["label"] != "exampledc2" {
@@ -151,7 +152,7 @@ func testAccCheckDataFeedAttributes(dataFeed *nsone.DataFeed) resource.TestCheck
 	}
 }
 
-func testAccCheckDataFeedAttributesUpdated(dataFeed *nsone.DataFeed) resource.TestCheckFunc {
+func testAccCheckDataFeedAttributesUpdated(dataFeed *data.Feed) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if dataFeed.Config["label"] != "exampledc3" {

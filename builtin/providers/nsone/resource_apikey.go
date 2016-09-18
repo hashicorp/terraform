@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 )
 
 func apikeyResource() *schema.Resource {
@@ -36,43 +37,43 @@ func apikeyResource() *schema.Resource {
 	}
 }
 
-func apikeyToResourceData(d *schema.ResourceData, u *nsone.Apikey) error {
-	d.SetId(u.Id)
-	d.Set("name", u.Name)
-	d.Set("key", u.Key)
-	d.Set("teams", u.Teams)
-	permissionsToResourceData(d, u.Permissions)
+func apikeyToResourceData(d *schema.ResourceData, k *account.APIKey) error {
+	d.SetId(k.ID)
+	d.Set("name", k.Name)
+	d.Set("key", k.Key)
+	d.Set("teams", k.TeamIDs)
+	permissionsToResourceData(d, k.Permissions)
 	return nil
 }
 
-func resourceDataToPermissions(d *schema.ResourceData) nsone.PermissionsMap {
-	var p nsone.PermissionsMap
+func resourceDataToPermissions(d *schema.ResourceData) account.PermissionsMap {
+	var p account.PermissionsMap
 	if v, ok := d.GetOk("dns_view_zones"); ok {
-		p.Dns.ViewZones = v.(bool)
+		p.DNS.ViewZones = v.(bool)
 	}
 	if v, ok := d.GetOk("dns_manage_zones"); ok {
-		p.Dns.ManageZones = v.(bool)
+		p.DNS.ManageZones = v.(bool)
 	}
 	if v, ok := d.GetOk("dns_zones_allow_by_default"); ok {
-		p.Dns.ZonesAllowByDefault = v.(bool)
+		p.DNS.ZonesAllowByDefault = v.(bool)
 	}
 	if v, ok := d.GetOk("dns_zones_deny"); ok {
 		denyRaw := v.([]interface{})
-		p.Dns.ZonesDeny = make([]string, len(denyRaw))
+		p.DNS.ZonesDeny = make([]string, len(denyRaw))
 		for i, deny := range denyRaw {
-			p.Dns.ZonesDeny[i] = deny.(string)
+			p.DNS.ZonesDeny[i] = deny.(string)
 		}
 	} else {
-		p.Dns.ZonesDeny = make([]string, 0)
+		p.DNS.ZonesDeny = make([]string, 0)
 	}
 	if v, ok := d.GetOk("dns_zones_allow"); ok {
 		allowRaw := v.([]interface{})
-		p.Dns.ZonesAllow = make([]string, len(allowRaw))
+		p.DNS.ZonesAllow = make([]string, len(allowRaw))
 		for i, allow := range allowRaw {
-			p.Dns.ZonesAllow[i] = allow.(string)
+			p.DNS.ZonesAllow[i] = allow.(string)
 		}
 	} else {
-		p.Dns.ZonesAllow = make([]string, 0)
+		p.DNS.ZonesAllow = make([]string, 0)
 	}
 	if v, ok := d.GetOk("data_push_to_datafeeds"); ok {
 		p.Data.PushToDatafeeds = v.(bool)
@@ -119,66 +120,64 @@ func resourceDataToPermissions(d *schema.ResourceData) nsone.PermissionsMap {
 	return p
 }
 
-func resourceDataToApikey(u *nsone.Apikey, d *schema.ResourceData) error {
-	u.Id = d.Id()
-	u.Name = d.Get("name").(string)
+func resourceDataToApikey(k *account.APIKey, d *schema.ResourceData) error {
+	k.ID = d.Id()
+	k.Name = d.Get("name").(string)
 	if v, ok := d.GetOk("teams"); ok {
 		teamsRaw := v.([]interface{})
-		u.Teams = make([]string, len(teamsRaw))
+		k.TeamIDs = make([]string, len(teamsRaw))
 		for i, team := range teamsRaw {
-			u.Teams[i] = team.(string)
+			k.TeamIDs[i] = team.(string)
 		}
 	} else {
-		u.Teams = make([]string, 0)
+		k.TeamIDs = make([]string, 0)
 	}
-	u.Permissions = resourceDataToPermissions(d)
+	k.Permissions = resourceDataToPermissions(d)
 	return nil
 }
 
 // ApikeyCreate creates ns1 API key
 func ApikeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj := nsone.Apikey{}
-	if err := resourceDataToApikey(&mj, d); err != nil {
+	client := meta.(*nsone.Client)
+	k := account.APIKey{}
+	if err := resourceDataToApikey(&k, d); err != nil {
 		return err
 	}
-	if err := client.CreateApikey(&mj); err != nil {
+	if _, err := client.APIKeys.Create(&k); err != nil {
 		return err
 	}
-	return apikeyToResourceData(d, &mj)
+	return apikeyToResourceData(d, &k)
 }
 
 // ApikeyRead reads API key from ns1
 func ApikeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj, err := client.GetApikey(d.Id())
+	client := meta.(*nsone.Client)
+	k, _, err := client.APIKeys.Get(d.Id())
 	if err != nil {
 		return err
 	}
-	apikeyToResourceData(d, &mj)
-	return nil
+	return apikeyToResourceData(d, k)
 }
 
 //ApikeyDelete deletes the given ns1 api key
 func ApikeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	err := client.DeleteApikey(d.Id())
+	client := meta.(*nsone.Client)
+	_, err := client.APIKeys.Delete(d.Id())
 	d.SetId("")
 	return err
 }
 
 //ApikeyUpdate updates the given api key in ns1
 func ApikeyUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	mj := nsone.Apikey{
-		Id: d.Id(),
+	client := meta.(*nsone.Client)
+	k := account.APIKey{
+		ID: d.Id(),
 	}
-	if err := resourceDataToApikey(&mj, d); err != nil {
+	if err := resourceDataToApikey(&k, d); err != nil {
 		return err
 	}
-	if err := client.UpdateApikey(&mj); err != nil {
+	if _, err := client.APIKeys.Update(&k); err != nil {
 		return err
 	}
-	apikeyToResourceData(d, &mj)
-	return nil
+	return apikeyToResourceData(d, &k)
 }

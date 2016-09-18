@@ -8,10 +8,11 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 )
 
 func TestAccDataSource_basic(t *testing.T) {
-	var dataSource nsone.DataSource
+	var dataSource data.Source
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -30,7 +31,7 @@ func TestAccDataSource_basic(t *testing.T) {
 }
 
 func TestAccDataSource_updated(t *testing.T) {
-	var dataSource nsone.DataSource
+	var dataSource data.Source
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -77,7 +78,7 @@ func testAccCheckDataSourceState(key, value string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckDataSourceExists(n string, dataSource *nsone.DataSource) resource.TestCheckFunc {
+func testAccCheckDataSourceExists(n string, dataSource *data.Source) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -89,9 +90,9 @@ func testAccCheckDataSourceExists(n string, dataSource *nsone.DataSource) resour
 			return fmt.Errorf("NoID is set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.APIClient)
+		client := testAccProvider.Meta().(*nsone.Client)
 
-		foundSource, err := client.GetDataSource(rs.Primary.Attributes["id"])
+		foundSource, _, err := client.DataSources.Get(rs.Primary.Attributes["id"])
 
 		p := rs.Primary
 
@@ -110,14 +111,14 @@ func testAccCheckDataSourceExists(n string, dataSource *nsone.DataSource) resour
 }
 
 func testAccCheckDataSourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.APIClient)
+	client := testAccProvider.Meta().(*nsone.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "nsone_datasource" {
 			continue
 		}
 
-		_, err := client.GetDataSource(rs.Primary.Attributes["id"])
+		_, _, err := client.DataSources.Get(rs.Primary.Attributes["id"])
 
 		if err == nil {
 			return fmt.Errorf("Datasource still exists")
@@ -127,22 +128,22 @@ func testAccCheckDataSourceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDataSourceAttributes(dataSource *nsone.DataSource) resource.TestCheckFunc {
+func testAccCheckDataSourceAttributes(dataSource *data.Source) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if dataSource.SourceType != "nsone_v1" {
-			return fmt.Errorf("Bad value : %s", dataSource.SourceType)
+		if dataSource.Type != "nsone_v1" {
+			return fmt.Errorf("Bad value : %s", dataSource.Type)
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckDataSourceAttributesUpdated(dataSource *nsone.DataSource) resource.TestCheckFunc {
+func testAccCheckDataSourceAttributesUpdated(dataSource *data.Source) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if dataSource.SourceType != "nsone_monitoring" {
-			return fmt.Errorf("Bad value : %s", dataSource.SourceType)
+		if dataSource.Type != "nsone_monitoring" {
+			return fmt.Errorf("Bad value : %s", dataSource.Type)
 		}
 
 		return nil

@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 )
 
 func zoneResource() *schema.Resource {
@@ -78,33 +79,33 @@ func zoneResource() *schema.Resource {
 	}
 }
 
-func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
-	d.SetId(z.Id)
+func zoneToResourceData(d *schema.ResourceData, z *dns.Zone) {
+	d.SetId(z.ID)
 	d.Set("hostmaster", z.Hostmaster)
-	d.Set("ttl", z.Ttl)
-	d.Set("nx_ttl", z.Nx_ttl)
+	d.Set("ttl", z.TTL)
+	d.Set("nx_ttl", z.NxTTL)
 	d.Set("refresh", z.Refresh)
 	d.Set("retry", z.Retry)
 	d.Set("expiry", z.Expiry)
-	d.Set("dns_servers", strings.Join(z.Dns_servers[:], ","))
+	d.Set("dns_servers", strings.Join(z.DNSServers[:], ","))
 	if z.Secondary != nil && z.Secondary.Enabled {
-		d.Set("primary", z.Secondary.Primary_ip)
+		d.Set("primary", z.Secondary.PrimaryIP)
 	}
-	if z.Link != "" {
-		d.Set("link", z.Link)
+	if z.Link != nil && *z.Link != "" {
+		d.Set("link", *z.Link)
 	}
 }
 
-func resourceToZoneData(z *nsone.Zone, d *schema.ResourceData) {
-	z.Id = d.Id()
+func resourceToZoneData(z *dns.Zone, d *schema.ResourceData) {
+	z.ID = d.Id()
 	if v, ok := d.GetOk("hostmaster"); ok {
 		z.Hostmaster = v.(string)
 	}
 	if v, ok := d.GetOk("ttl"); ok {
-		z.Ttl = v.(int)
+		z.TTL = v.(int)
 	}
 	if v, ok := d.GetOk("nx_ttl"); ok {
-		z.Nx_ttl = v.(int)
+		z.NxTTL = v.(int)
 	}
 	if v, ok := d.GetOk("refresh"); ok {
 		z.Refresh = v.(int)
@@ -125,10 +126,10 @@ func resourceToZoneData(z *nsone.Zone, d *schema.ResourceData) {
 
 // ZoneCreate creates the given zone in ns1
 func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	z := nsone.NewZone(d.Get("zone").(string))
+	client := meta.(*nsone.Client)
+	z := dns.NewZone(d.Get("zone").(string))
 	resourceToZoneData(z, d)
-	if err := client.CreateZone(z); err != nil {
+	if _, err := client.Zones.Create(z); err != nil {
 		return err
 	}
 	zoneToResourceData(d, z)
@@ -137,8 +138,8 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 
 // ZoneRead reads the given zone data from ns1
 func ZoneRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	z, err := client.GetZone(d.Get("zone").(string))
+	client := meta.(*nsone.Client)
+	z, _, err := client.Zones.Get(d.Get("zone").(string))
 	if err != nil {
 		return err
 	}
@@ -148,18 +149,18 @@ func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 
 // ZoneDelete deteles the given zone from ns1
 func ZoneDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	err := client.DeleteZone(d.Get("zone").(string))
+	client := meta.(*nsone.Client)
+	_, err := client.Zones.Delete(d.Get("zone").(string))
 	d.SetId("")
 	return err
 }
 
 // ZoneUpdate updates the zone with given params in ns1
 func ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	z := nsone.NewZone(d.Get("zone").(string))
+	client := meta.(*nsone.Client)
+	z := dns.NewZone(d.Get("zone").(string))
 	resourceToZoneData(z, d)
-	if err := client.UpdateZone(z); err != nil {
+	if _, err := client.Zones.Update(z); err != nil {
 		return err
 	}
 	zoneToResourceData(d, z)

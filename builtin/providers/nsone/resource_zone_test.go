@@ -8,10 +8,11 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 )
 
 func TestAccZone_basic(t *testing.T) {
-	var zone nsone.Zone
+	var zone dns.Zone
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -26,7 +27,7 @@ func TestAccZone_basic(t *testing.T) {
 					testAccCheckZoneRefresh(&zone, 43200),
 					testAccCheckZoneRetry(&zone, 7200),
 					testAccCheckZoneExpiry(&zone, 1209600),
-					testAccCheckZoneNXTTL(&zone, 3600),
+					testAccCheckZoneNxTTL(&zone, 3600),
 				),
 			},
 		},
@@ -34,7 +35,7 @@ func TestAccZone_basic(t *testing.T) {
 }
 
 func TestAccZone_updated(t *testing.T) {
-	var zone nsone.Zone
+	var zone dns.Zone
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -49,7 +50,7 @@ func TestAccZone_updated(t *testing.T) {
 					testAccCheckZoneRefresh(&zone, 43200),
 					testAccCheckZoneRetry(&zone, 7200),
 					testAccCheckZoneExpiry(&zone, 1209600),
-					testAccCheckZoneNXTTL(&zone, 3600),
+					testAccCheckZoneNxTTL(&zone, 3600),
 				),
 			},
 			resource.TestStep{
@@ -61,7 +62,7 @@ func TestAccZone_updated(t *testing.T) {
 					testAccCheckZoneRefresh(&zone, 3600),
 					testAccCheckZoneRetry(&zone, 300),
 					testAccCheckZoneExpiry(&zone, 2592000),
-					testAccCheckZoneNXTTL(&zone, 3601),
+					testAccCheckZoneNxTTL(&zone, 3601),
 				),
 			},
 		},
@@ -89,7 +90,7 @@ func testAccCheckZoneState(key, value string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckZoneExists(n string, zone *nsone.Zone) resource.TestCheckFunc {
+func testAccCheckZoneExists(n string, zone *dns.Zone) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -101,9 +102,9 @@ func testAccCheckZoneExists(n string, zone *nsone.Zone) resource.TestCheckFunc {
 			return fmt.Errorf("NoID is set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.APIClient)
+		client := testAccProvider.Meta().(*nsone.Client)
 
-		foundZone, err := client.GetZone(rs.Primary.Attributes["zone"])
+		foundZone, _, err := client.Zones.Get(rs.Primary.Attributes["zone"])
 
 		p := rs.Primary
 
@@ -111,7 +112,7 @@ func testAccCheckZoneExists(n string, zone *nsone.Zone) resource.TestCheckFunc {
 			return err
 		}
 
-		if foundZone.Id != p.Attributes["id"] {
+		if foundZone.ID != p.Attributes["id"] {
 			return fmt.Errorf("Zone not found")
 		}
 
@@ -122,14 +123,14 @@ func testAccCheckZoneExists(n string, zone *nsone.Zone) resource.TestCheckFunc {
 }
 
 func testAccCheckZoneDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.APIClient)
+	client := testAccProvider.Meta().(*nsone.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "nsone_zone" {
 			continue
 		}
 
-		zone, err := client.GetZone(rs.Primary.Attributes["zone"])
+		zone, _, err := client.Zones.Get(rs.Primary.Attributes["zone"])
 
 		if err == nil {
 			return fmt.Errorf("Record still exists: %#v: %#v", err, zone)
@@ -139,15 +140,15 @@ func testAccCheckZoneDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckZoneTTL(zone *nsone.Zone, expected int) resource.TestCheckFunc {
+func testAccCheckZoneTTL(zone *dns.Zone, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if zone.Ttl != expected {
-			return fmt.Errorf("TTL: got: %d want: %d", zone.Ttl, expected)
+		if zone.TTL != expected {
+			return fmt.Errorf("TTL: got: %d want: %d", zone.TTL, expected)
 		}
 		return nil
 	}
 }
-func testAccCheckZoneRefresh(zone *nsone.Zone, expected int) resource.TestCheckFunc {
+func testAccCheckZoneRefresh(zone *dns.Zone, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if zone.Refresh != expected {
 			return fmt.Errorf("Refresh: got: %d want: %d", zone.Refresh, expected)
@@ -155,7 +156,7 @@ func testAccCheckZoneRefresh(zone *nsone.Zone, expected int) resource.TestCheckF
 		return nil
 	}
 }
-func testAccCheckZoneRetry(zone *nsone.Zone, expected int) resource.TestCheckFunc {
+func testAccCheckZoneRetry(zone *dns.Zone, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if zone.Retry != expected {
 			return fmt.Errorf("Retry: got: %d want: %d", zone.Retry, expected)
@@ -163,7 +164,7 @@ func testAccCheckZoneRetry(zone *nsone.Zone, expected int) resource.TestCheckFun
 		return nil
 	}
 }
-func testAccCheckZoneExpiry(zone *nsone.Zone, expected int) resource.TestCheckFunc {
+func testAccCheckZoneExpiry(zone *dns.Zone, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if zone.Expiry != expected {
 			return fmt.Errorf("Expiry: got: %d want: %d", zone.Expiry, expected)
@@ -171,10 +172,10 @@ func testAccCheckZoneExpiry(zone *nsone.Zone, expected int) resource.TestCheckFu
 		return nil
 	}
 }
-func testAccCheckZoneNXTTL(zone *nsone.Zone, expected int) resource.TestCheckFunc {
+func testAccCheckZoneNxTTL(zone *dns.Zone, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if zone.Nx_ttl != expected {
-			return fmt.Errorf("NXTTL: got: %d want: %d", zone.Nx_ttl, expected)
+		if zone.NxTTL != expected {
+			return fmt.Errorf("NxTTL: got: %d want: %d", zone.NxTTL, expected)
 		}
 		return nil
 	}
