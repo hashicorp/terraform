@@ -1120,7 +1120,7 @@ func testAccCheckComputeV2InstanceMetadata(
 				continue
 			}
 
-			if v == value.(string) {
+			if v == value {
 				return nil
 			}
 
