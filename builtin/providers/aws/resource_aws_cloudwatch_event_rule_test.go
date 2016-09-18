@@ -177,7 +177,7 @@ func TestResourceAWSCloudWatchEventRule_validateEventPatternValue(t *testing.T) 
 		{
 			Length:   8,
 			Value:    acctest.RandString(16),
-			ErrCount: 2,
+			ErrCount: 1,
 		},
 		{
 			Length:   123,

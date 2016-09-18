@@ -255,13 +255,20 @@ func getStringStateFromBoolean(isEnabled bool) string {
 
 func validateEventPatternValue(length int) schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (ws []string, errors []error) {
-		value := v.(string)
-		if len(value) > length {
-			errors = append(errors, fmt.Errorf(
-				"%q cannot be longer than %d characters: %q", k, length, value))
-		}
-		if _, err := normalizeJsonString(value); err != nil {
+		json, err := normalizeJsonString(v)
+		if err != nil {
 			errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+
+			// Invalid JSON? Return immediately,
+			// there is no need to collect other
+			// errors.
+			return
+		}
+
+		// Check whether the normalized JSON is within the given length.
+		if len(json) > length {
+			errors = append(errors, fmt.Errorf(
+				"%q cannot be longer than %d characters: %q", k, length, json))
 		}
 		return
 	}
