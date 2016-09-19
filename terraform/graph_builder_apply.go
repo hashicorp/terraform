@@ -82,8 +82,15 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 
+		// Add the node to fix the state count boundaries
+		&CountBoundaryTransformer{},
+
 		// Single root
 		&RootTransformer{},
+
+		// Perform the transitive reduction to make our graph a bit
+		// more sane if possible (it usually is possible).
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps
