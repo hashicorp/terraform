@@ -30,6 +30,15 @@ func (n *NodeApplyableProvider) Path() []string {
 	return n.PathValue
 }
 
+// GraphNodeReferencer
+func (n *NodeApplyableProvider) References() []string {
+	if n.Config == nil {
+		return nil
+	}
+
+	return ReferencesFromConfig(n.Config.RawConfig)
+}
+
 // GraphNodeProvider
 func (n *NodeApplyableProvider) ProviderName() string {
 	return n.NameValue
