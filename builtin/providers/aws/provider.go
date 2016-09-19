@@ -200,6 +200,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_codedeploy_app":                           resourceAwsCodeDeployApp(),
 			"aws_codedeploy_deployment_group":              resourceAwsCodeDeployDeploymentGroup(),
 			"aws_codecommit_repository":                    resourceAwsCodeCommitRepository(),
+			"aws_codecommit_trigger":                       resourceAwsCodeCommitTrigger(),
 			"aws_customer_gateway":                         resourceAwsCustomerGateway(),
 			"aws_db_event_subscription":                    resourceAwsDbEventSubscription(),
 			"aws_db_instance":                              resourceAwsDbInstance(),
@@ -316,6 +317,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_s3_bucket_policy":                         resourceAwsS3BucketPolicy(),
 			"aws_s3_bucket_object":                         resourceAwsS3BucketObject(),
 			"aws_s3_bucket_notification":                   resourceAwsS3BucketNotification(),
+			"aws_default_security_group":                   resourceAwsDefaultSecurityGroup(),
 			"aws_security_group":                           resourceAwsSecurityGroup(),
 			"aws_security_group_rule":                      resourceAwsSecurityGroupRule(),
 			"aws_simpledb_domain":                          resourceAwsSimpleDBDomain(),
@@ -404,10 +406,10 @@ func init() {
 
 		"assume_role_role_arn": "The ARN of an IAM role to assume prior to making API calls.",
 
-		"assume_role_session_name": "The session name to use when assuming the role. If ommitted," +
+		"assume_role_session_name": "The session name to use when assuming the role. If omitted," +
 			" no session name is passed to the AssumeRole call.",
 
-		"assume_role_external_id": "The external ID to use when assuming the role. If ommitted," +
+		"assume_role_external_id": "The external ID to use when assuming the role. If omitted," +
 			" no external ID is passed to the AssumeRole call.",
 	}
 }

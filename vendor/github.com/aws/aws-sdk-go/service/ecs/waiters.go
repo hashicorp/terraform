@@ -62,7 +62,7 @@ func (c *ECS) WaitUntilServicesStable(input *DescribeServicesInput) error {
 			{
 				State:    "success",
 				Matcher:  "path",
-				Argument: "services | [@[?length(deployments)!=`1`], @[?desiredCount!=runningCount]][] | length(@) == `0`",
+				Argument: "length(services[?!(length(deployments) == `1` && runningCount == desiredCount)]) == `0`",
 				Expected: true,
 			},
 		},

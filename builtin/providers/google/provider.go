@@ -56,6 +56,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"google_iam_policy": dataSourceGoogleIamPolicy(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"google_compute_autoscaler":             resourceComputeAutoscaler(),
 			"google_compute_address":                resourceComputeAddress(),
@@ -89,6 +93,7 @@ func Provider() terraform.ResourceProvider {
 			"google_sql_database":                   resourceSqlDatabase(),
 			"google_sql_database_instance":          resourceSqlDatabaseInstance(),
 			"google_sql_user":                       resourceSqlUser(),
+			"google_project":                        resourceGoogleProject(),
 			"google_pubsub_topic":                   resourcePubsubTopic(),
 			"google_pubsub_subscription":            resourcePubsubSubscription(),
 			"google_storage_bucket":                 resourceStorageBucket(),
@@ -222,4 +227,54 @@ func getZonalResourceFromRegion(getResource func(string) (interface{}, error), r
 	}
 	// Resource does not exist in this region
 	return nil, nil
+}
+
+// getNetworkLink reads the "network" field from the given resource data and if the value:
+// - is a resource URL, returns the string unchanged
+// - is the network name only, then looks up the resource URL using the google client
+func getNetworkLink(d *schema.ResourceData, config *Config, field string) (string, error) {
+	if v, ok := d.GetOk(field); ok {
+		network := v.(string)
+
+		project, err := getProject(d, config)
+		if err != nil {
+			return "", err
+		}
+
+		if !strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
+			// Network value provided is just the name, lookup the network SelfLink
+			networkData, err := config.clientCompute.Networks.Get(
+				project, network).Do()
+			if err != nil {
+				return "", fmt.Errorf("Error reading network: %s", err)
+			}
+			network = networkData.SelfLink
+		}
+
+		return network, nil
+
+	} else {
+		return "", nil
+	}
+}
+
+// getNetworkName reads the "network" field from the given resource data and if the value:
+// - is a resource URL, extracts the network name from the URL and returns it
+// - is the network name only (i.e not prefixed with http://www.googleapis.com/compute/...), is returned unchanged
+func getNetworkName(d *schema.ResourceData, field string) (string, error) {
+	if v, ok := d.GetOk(field); ok {
+		network := v.(string)
+
+		if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
+			// extract the network name from SelfLink URL
+			networkName := network[strings.LastIndex(network, "/")+1:]
+			if networkName == "" {
+				return "", fmt.Errorf("network url not valid")
+			}
+			return networkName, nil
+		}
+
+		return network, nil
+	}
+	return "", nil
 }

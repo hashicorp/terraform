@@ -417,13 +417,12 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.Network
 
 		var networkLink, subnetworkLink string
 		if networkName != "" {
-			network, err := config.clientCompute.Networks.Get(
-				project, networkName).Do()
+			networkLink, err = getNetworkLink(d, config, prefix+".network")
 			if err != nil {
 				return nil, fmt.Errorf("Error referencing network '%s': %s",
 					networkName, err)
 			}
-			networkLink = network.SelfLink
+
 		} else {
 			// lookup subnetwork link using region and subnetwork name
 			region, err := getRegion(d, config)

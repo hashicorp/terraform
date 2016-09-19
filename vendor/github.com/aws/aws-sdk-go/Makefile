@@ -107,14 +107,12 @@ lint:
 	if [ "$$lint" != "" ] && [ "$$lint" != "skipping golint" ]; then exit 1; fi
 
 SDK_BASE_FOLDERS=$(shell ls -d */ | grep -v vendor | grep -v awsmigrate)
-ifneq (,$(findstring go1.5, ${SDK_GO_VERSION}))
-	GO_VET_CMD=go tool vet --all -shadow
+ifneq (,$(findstring go1.4, ${SDK_GO_VERSION}))
+	GO_VET_CMD=echo skipping go vet, ${SDK_GO_VERSION}
 else ifneq (,$(findstring go1.6, ${SDK_GO_VERSION}))
 	GO_VET_CMD=go tool vet --all -shadow -example=false
-else ifneq (,$(findstring devel, ${SDK_GO_VERSION}))
-	GO_VET_CMD=go tool vet --all -shadow -tests=false
 else
-	GO_VET_CMD=echo skipping go vet, ${SDK_GO_VERSION}
+	GO_VET_CMD=go tool vet --all -shadow
 endif
 
 vet:
@@ -144,9 +142,12 @@ bench-protocol:
 
 docs:
 	@echo "generate SDK docs"
-	rm -rf doc && bundle install && bundle exec yard
 	@# This env variable, DOCS, is for internal use
-	@if [ -n "$(AWS_DOC_GEN_TOOL)" ]; then echo "For internal use. Subject to change."; $(AWS_DOC_GEN_TOOL) `pwd`; fi
+	@if [ -z ${AWS_DOC_GEN_TOOL} ]; then\
+		rm -rf doc && bundle install && bundle exec yard;\
+	else\
+		$(AWS_DOC_GEN_TOOL) `pwd`;\
+	fi
 
 api_info:
 	@go run private/model/cli/api-info/api-info.go

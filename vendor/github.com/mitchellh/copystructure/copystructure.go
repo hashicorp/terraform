@@ -1,6 +1,7 @@
 package copystructure
 
 import (
+	"errors"
 	"reflect"
 	"sync"
 
@@ -27,6 +28,8 @@ type CopierFunc func(interface{}) (interface{}, error)
 // this map as well as to Copy in a mutex.
 var Copiers map[reflect.Type]CopierFunc = make(map[reflect.Type]CopierFunc)
 
+var errPointerRequired = errors.New("Copy argument must be a pointer when Lock is true")
+
 type Config struct {
 	// Lock any types that are a sync.Locker and are not a mutex while copying.
 	// If there is an RLocker method, use that to get the sync.Locker.
@@ -38,6 +41,10 @@ type Config struct {
 }
 
 func (c Config) Copy(v interface{}) (interface{}, error) {
+	if c.Lock && reflect.ValueOf(v).Kind() != reflect.Ptr {
+		return nil, errPointerRequired
+	}
+
 	w := new(walker)
 	if c.Lock {
 		w.useLocks = true
@@ -350,19 +357,20 @@ func (w *walker) lock(v reflect.Value) {
 
 	var locker sync.Locker
 
-	// first check if we can get a locker from the value
-	switch l := v.Interface().(type) {
-	case rlocker:
-		// don't lock a mutex directly
-		if _, ok := l.(*sync.RWMutex); !ok {
-			locker = l.RLocker()
+	// We can't call Interface() on a value directly, since that requires
+	// a copy. This is OK, since the pointer to a value which is a sync.Locker
+	// is also a sync.Locker.
+	if v.Kind() == reflect.Ptr {
+		switch l := v.Interface().(type) {
+		case rlocker:
+			// don't lock a mutex directly
+			if _, ok := l.(*sync.RWMutex); !ok {
+				locker = l.RLocker()
+			}
+		case sync.Locker:
+			locker = l
 		}
-	case sync.Locker:
-		locker = l
-	}
-
-	// the value itself isn't a locker, so check the method on a pointer too
-	if locker == nil && v.CanAddr() {
+	} else if v.CanAddr() {
 		switch l := v.Addr().Interface().(type) {
 		case rlocker:
 			// don't lock a mutex directly

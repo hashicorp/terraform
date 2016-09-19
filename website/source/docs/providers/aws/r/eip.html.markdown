@@ -21,7 +21,7 @@ resource "aws_eip" "lb" {
 }
 ```
 
-Muliple EIPs associated with a single network interface:
+Multiple EIPs associated with a single network interface:
 
 ```
 resource "aws_network_interface" "multi-ip" {

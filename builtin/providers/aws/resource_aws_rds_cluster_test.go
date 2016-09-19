@@ -30,6 +30,8 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 						"aws_rds_cluster.default", "storage_encrypted", "false"),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster.default", "db_cluster_parameter_group_name", "default.aurora5.6"),
+					resource.TestCheckResourceAttrSet(
+						"aws_rds_cluster.default", "reader_endpoint"),
 				),
 			},
 		},

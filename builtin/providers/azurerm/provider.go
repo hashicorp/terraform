@@ -159,7 +159,7 @@ func registerProviderWithSubscription(providerName string, client *riviera.Clien
 	}
 
 	if !response.IsSuccessful() {
-		return fmt.Errorf("Credentials for acessing the Azure Resource Manager API are likely " +
+		return fmt.Errorf("Credentials for accessing the Azure Resource Manager API are likely " +
 			"to be incorrect, or\n  the service principal does not have permission to use " +
 			"the Azure Service Management\n  API.")
 	}

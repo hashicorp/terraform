@@ -4,35 +4,36 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lib/pq"
 )
 
-func resourcePostgresqlRole() *schema.Resource {
+func resourcePostgreSQLRole() *schema.Resource {
 	return &schema.Resource{
-		Create: resourcePostgresqlRoleCreate,
-		Read:   resourcePostgresqlRoleRead,
-		Update: resourcePostgresqlRoleUpdate,
-		Delete: resourcePostgresqlRoleDelete,
+		Create: resourcePostgreSQLRoleCreate,
+		Read:   resourcePostgreSQLRoleRead,
+		Update: resourcePostgreSQLRoleUpdate,
+		Delete: resourcePostgreSQLRoleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"login": &schema.Schema{
+			"login": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
 				Default:  false,
 			},
-			"password": &schema.Schema{
+			"password": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-			"encrypted": &schema.Schema{
+			"encrypted": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
@@ -42,7 +43,7 @@ func resourcePostgresqlRole() *schema.Resource {
 	}
 }
 
-func resourcePostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -59,15 +60,15 @@ func resourcePostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) erro
 	query := fmt.Sprintf("CREATE ROLE %s %s %s PASSWORD '%s'", pq.QuoteIdentifier(roleName), loginAttr, encryptedCfg, password)
 	_, err = conn.Query(query)
 	if err != nil {
-		return fmt.Errorf("Error creating role: %s", err)
+		return errwrap.Wrapf("Error creating role: {{err}}", err)
 	}
 
 	d.SetId(roleName)
 
-	return nil
+	return resourcePostgreSQLRoleRead(d, meta)
 }
 
-func resourcePostgresqlRoleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLRoleDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -80,7 +81,7 @@ func resourcePostgresqlRoleDelete(d *schema.ResourceData, meta interface{}) erro
 	query := fmt.Sprintf("DROP ROLE %s", pq.QuoteIdentifier(roleName))
 	_, err = conn.Query(query)
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error deleting role: {{err}}", err)
 	}
 
 	d.SetId("")
@@ -88,7 +89,7 @@ func resourcePostgresqlRoleDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourcePostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -99,20 +100,20 @@ func resourcePostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error 
 	roleName := d.Get("name").(string)
 
 	var canLogin bool
-	err = conn.QueryRow("select rolcanlogin from pg_roles where rolname=$1", roleName).Scan(&canLogin)
+	err = conn.QueryRow("SELECT rolcanlogin FROM pg_roles WHERE rolname=$1", roleName).Scan(&canLogin)
 	switch {
 	case err == sql.ErrNoRows:
 		d.SetId("")
 		return nil
 	case err != nil:
-		return fmt.Errorf("Error reading info about role: %s", err)
+		return errwrap.Wrapf("Error reading role: {{err}}", err)
 	default:
 		d.Set("login", canLogin)
 		return nil
 	}
 }
 
-func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -129,7 +130,7 @@ func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 		query := fmt.Sprintf("ALTER ROLE %s %s", pq.QuoteIdentifier(roleName), pq.QuoteIdentifier(loginAttr))
 		_, err := conn.Query(query)
 		if err != nil {
-			return fmt.Errorf("Error updating login attribute for role: %s", err)
+			return errwrap.Wrapf("Error updating login attribute for role: {{err}}", err)
 		}
 
 		d.SetPartial("login")
@@ -142,7 +143,7 @@ func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 		query := fmt.Sprintf("ALTER ROLE %s %s PASSWORD '%s'", pq.QuoteIdentifier(roleName), encryptedCfg, password)
 		_, err := conn.Query(query)
 		if err != nil {
-			return fmt.Errorf("Error updating password attribute for role: %s", err)
+			return errwrap.Wrapf("Error updating password attribute for role: {{err}}", err)
 		}
 
 		d.SetPartial("password")
@@ -154,14 +155,14 @@ func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 		query := fmt.Sprintf("ALTER ROLE %s %s PASSWORD '%s'", pq.QuoteIdentifier(roleName), encryptedCfg, password)
 		_, err := conn.Query(query)
 		if err != nil {
-			return fmt.Errorf("Error updating encrypted attribute for role: %s", err)
+			return errwrap.Wrapf("Error updating encrypted attribute for role: {{err}}", err)
 		}
 
 		d.SetPartial("encrypted")
 	}
 
 	d.Partial(false)
-	return resourcePostgresqlRoleRead(d, meta)
+	return resourcePostgreSQLRoleRead(d, meta)
 }
 
 func getLoginStr(canLogin bool) string {

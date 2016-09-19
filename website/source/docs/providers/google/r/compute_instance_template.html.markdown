@@ -192,7 +192,7 @@ The `disk` block supports:
 
 The `network_interface` block supports:
 
-* `network` - (Optional) The name of the network to attach this interface to.
+* `network` - (Optional) The name or self_link of the network to attach this interface to.
     Use `network` attribute for Legacy or Auto subnetted networks and
     `subnetwork` for custom subnetted networks.
 

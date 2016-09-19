@@ -122,7 +122,7 @@ If you wish to cross-compile Terraform for another architecture, you can set the
 For example, to compile 64-bit Linux binaries on Mac OS X Linux, you can run:
 
 ```sh
-$ XC_OS=linux XC_ARCH=amd64 make bin 
+$ XC_OS=linux XC_ARCH=amd64 make bin
 ...
 $ file pkg/linux_amd64/terraform
 terraform: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, not stripped

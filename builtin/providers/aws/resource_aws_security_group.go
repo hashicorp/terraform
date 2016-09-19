@@ -761,7 +761,7 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				if rcRaw != nil {
 					remoteCidrs = rcRaw.([]string)
 				}
-				// convert remote cidrs to a set, for easy comparisions
+				// convert remote cidrs to a set, for easy comparisons
 				var list []interface{}
 				for _, s := range remoteCidrs {
 					list = append(list, s)

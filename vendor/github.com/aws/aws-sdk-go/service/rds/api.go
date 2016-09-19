@@ -3482,6 +3482,56 @@ func (c *RDS) DescribeReservedDBInstancesOfferingsPages(input *DescribeReservedD
 	})
 }
 
+const opDescribeSourceRegions = "DescribeSourceRegions"
+
+// DescribeSourceRegionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSourceRegions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSourceRegions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSourceRegionsRequest method.
+//    req, resp := client.DescribeSourceRegionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *RDS) DescribeSourceRegionsRequest(input *DescribeSourceRegionsInput) (req *request.Request, output *DescribeSourceRegionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeSourceRegions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeSourceRegionsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeSourceRegionsOutput{}
+	req.Data = output
+	return
+}
+
+// Returns a list of the source AWS regions where the current AWS region can
+// create a Read Replica or copy a DB snapshot from. This API action supports
+// pagination.
+func (c *RDS) DescribeSourceRegions(input *DescribeSourceRegionsInput) (*DescribeSourceRegionsOutput, error) {
+	req, out := c.DescribeSourceRegionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDownloadDBLogFilePortion = "DownloadDBLogFilePortion"
 
 // DownloadDBLogFilePortionRequest generates a "aws/request.Request" representing the
@@ -3899,8 +3949,9 @@ func (c *RDS) ModifyDBInstanceRequest(input *ModifyDBInstanceInput) (req *reques
 	return
 }
 
-// Modify settings for a DB instance. You can change one or more database configuration
-// parameters by specifying these parameters and the new values in the request.
+// Modifies settings for a DB instance. You can change one or more database
+// configuration parameters by specifying these parameters and the new values
+// in the request.
 func (c *RDS) ModifyDBInstance(input *ModifyDBInstanceInput) (*ModifyDBInstanceOutput, error) {
 	req, out := c.ModifyDBInstanceRequest(input)
 	err := req.Send()
@@ -5052,7 +5103,7 @@ type AddTagsToResourceInput struct {
 
 	// The Amazon RDS resource the tags will be added to. This value is an Amazon
 	// Resource Name (ARN). For information about creating an ARN, see  Constructing
-	// an RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html#USER_Tagging.ARN).
+	// an RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
 	ResourceName *string `type:"string" required:"true"`
 
 	// The tags to be assigned to the Amazon RDS resource.
@@ -5122,7 +5173,7 @@ type ApplyPendingMaintenanceActionInput struct {
 
 	// The RDS Amazon Resource Name (ARN) of the resource that the pending maintenance
 	// action applies to. For information about creating an ARN, see  Constructing
-	// an RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html#USER_Tagging.ARN).
+	// an RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
 	ResourceIdentifier *string `type:"string" required:"true"`
 }
 
@@ -5276,6 +5327,9 @@ func (s AvailabilityZone) GoString() string {
 type Certificate struct {
 	_ struct{} `type:"structure"`
 
+	// The Amazon Resource Name (ARN) for the certificate.
+	CertificateArn *string `type:"string"`
+
 	// The unique key that identifies a certificate.
 	CertificateIdentifier *string `type:"string"`
 
@@ -5328,7 +5382,7 @@ type CopyDBClusterParameterGroupInput struct {
 
 	// The identifier or Amazon Resource Name (ARN) for the source DB cluster parameter
 	// group. For information about creating an ARN, see  Constructing an RDS Amazon
-	// Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html#USER_Tagging.ARN).
+	// Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
 	//
 	// Constraints:
 	//
@@ -5505,18 +5559,14 @@ type CopyDBParameterGroupInput struct {
 
 	// The identifier or ARN for the source DB parameter group. For information
 	// about creating an ARN, see  Constructing an RDS Amazon Resource Name (ARN)
-	// (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html#USER_Tagging.ARN).
+	// (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
 	//
 	// Constraints:
 	//
 	//   Must specify a valid DB parameter group.
 	//
-	//   If the source DB parameter group is in the same region as the copy, specify
-	// a valid DB parameter group identifier, for example my-db-param-group, or
-	// a valid ARN.
-	//
-	//   If the source DB parameter group is in a different region than the copy,
-	// specify a valid DB parameter group ARN, for example arn:aws:rds:us-west-2:123456789012:pg:special-parameters.
+	//    Must specify a valid DB parameter group identifier, for example my-db-param-group,
+	// or a valid ARN.
 	SourceDBParameterGroupIdentifier *string `type:"string" required:"true"`
 
 	// A list of tags.
@@ -5709,7 +5759,7 @@ type CopyOptionGroupInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier or ARN for the source option group. For information about
-	// creating an ARN, see  Constructing an RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html#USER_Tagging.ARN).
+	// creating an ARN, see  Constructing an RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
 	//
 	// Constraints:
 	//
@@ -6377,8 +6427,9 @@ type CreateDBInstanceInput struct {
 
 	// The name of the database engine to be used for this instance.
 	//
-	//  Valid Values: MySQL | mariadb | oracle-se1 | oracle-se | oracle-ee | sqlserver-ee
-	// | sqlserver-se | sqlserver-ex | sqlserver-web | postgres | aurora
+	//  Valid Values: mysql | mariadb | oracle-se1 | oracle-se2 | oracle-se | oracle-ee
+	// | sqlserver-ee | sqlserver-se | sqlserver-ex | sqlserver-web | postgres |
+	// aurora
 	//
 	// Not every database engine is available for every AWS region.
 	Engine *string `type:"string" required:"true"`
@@ -6460,10 +6511,6 @@ type CreateDBInstanceInput struct {
 	//
 	//    Version 5.5 (available in all AWS regions):  5.5.46
 	//
-	//    Version 5.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	// ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	// us-west-2):  5.1.73a | 5.1.73b
-	//
 	//    Oracle Database Enterprise Edition (oracle-ee)
 	//
 	//    Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
@@ -6477,17 +6524,6 @@ type CreateDBInstanceInput struct {
 	//
 	//    Version 12.1 (available in all AWS regions except us-gov-west-1):  12.1.0.2.v2
 	// | 12.1.0.2.v3 | 12.1.0.2.v4
-	//
-	//    Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	// ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	// us-west-2):  11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
-	//
-	//    Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
-	//  11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
-	//
-	//    Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	// ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	// us-west-2):  11.2.0.3.v4
 	//
 	//    Version 11.2 (available in all AWS regions):  11.2.0.4.v1 | 11.2.0.4.v3
 	// | 11.2.0.4.v4
@@ -6504,17 +6540,6 @@ type CreateDBInstanceInput struct {
 	// ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
 	// us-west-2):  12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
 	//
-	//    Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	// ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	// us-west-2):  11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
-	//
-	//    Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
-	//  11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
-	//
-	//    Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	// ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	// us-west-2):  11.2.0.3.v4
-	//
 	//    Version 11.2 (available in all AWS regions):  11.2.0.4.v1 | 11.2.0.4.v3
 	// | 11.2.0.4.v4
 	//
@@ -6529,17 +6554,6 @@ type CreateDBInstanceInput struct {
 	//    Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
 	// ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
 	// us-west-2):  12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
-	//
-	//    Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	// ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	// us-west-2):  11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
-	//
-	//    Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
-	//  11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
-	//
-	//    Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	// ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	// us-west-2):  11.2.0.3.v4
 	//
 	//    Version 11.2 (available in all AWS regions):  11.2.0.4.v1 | 11.2.0.4.v3
 	// | 11.2.0.4.v4
@@ -7052,7 +7066,7 @@ type CreateDBInstanceReadReplicaInput struct {
 	//
 	//   If the source DB instance is in a different region than the Read Replica,
 	// specify a valid DB instance ARN. For more information, go to  Constructing
-	// a Amazon RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html#USER_Tagging.ARN).
+	// a Amazon RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
 	SourceDBInstanceIdentifier *string `type:"string" required:"true"`
 
 	// Specifies the storage type to be associated with the Read Replica.
@@ -7369,8 +7383,8 @@ type CreateDBSubnetGroupInput struct {
 
 	// The name for the DB subnet group. This value is stored as a lowercase string.
 	//
-	// Constraints: Must contain no more than 255 alphanumeric characters. Cannot
-	// contain periods, underscores, spaces, or hyphens. Must not be default.
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens. Must not be default.
 	//
 	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string" required:"true"`
@@ -7653,6 +7667,9 @@ type DBCluster struct {
 	// associated with.
 	CharacterSetName *string `type:"string"`
 
+	// The Amazon Resource Name (ARN) for the DB cluster.
+	DBClusterArn *string `type:"string"`
+
 	// Contains a user-supplied DB cluster identifier. This identifier is the unique
 	// key that identifies a DB cluster.
 	DBClusterIdentifier *string `type:"string"`
@@ -7724,6 +7741,19 @@ type DBCluster struct {
 	// Contains one or more identifiers of the Read Replicas associated with this
 	// DB cluster.
 	ReadReplicaIdentifiers []*string `locationNameList:"ReadReplicaIdentifier" type:"list"`
+
+	// The reader endpoint for the DB cluster. The reader endpoint for a DB cluster
+	// load-balances connections across the Aurora Replicas that are available in
+	// a DB cluster. As clients request new connections to the reader endpoint,
+	// Aurora distributes the connection requests among the Aurora Replicas in the
+	// DB cluster. This functionality can help balance your read workload across
+	// multiple Aurora Replicas in your DB cluster.
+	//
+	// If a failover occurs, and the Aurora Replica that you are connected to is
+	// promoted to be the primary instance, your connection will be dropped. To
+	// continue sending your read workload to other Aurora Replicas in the cluster,
+	// you can then recoonect to the reader endpoint.
+	ReaderEndpoint *string `type:"string"`
 
 	// Contains the identifier of the source DB cluster if this DB cluster is a
 	// Read Replica.
@@ -7810,6 +7840,9 @@ func (s DBClusterOptionGroupStatus) GoString() string {
 type DBClusterParameterGroup struct {
 	_ struct{} `type:"structure"`
 
+	// The Amazon Resource Name (ARN) for the DB cluster parameter group.
+	DBClusterParameterGroupArn *string `type:"string"`
+
 	// Provides the name of the DB cluster parameter group.
 	DBClusterParameterGroupName *string `type:"string"`
 
@@ -7884,6 +7917,9 @@ type DBClusterSnapshot struct {
 	// Specifies the DB cluster identifier of the DB cluster that this DB cluster
 	// snapshot was created from.
 	DBClusterIdentifier *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) for the DB cluster snapshot.
+	DBClusterSnapshotArn *string `type:"string"`
 
 	// Specifies the identifier for the DB cluster snapshot.
 	DBClusterSnapshotIdentifier *string `type:"string"`
@@ -8081,6 +8117,9 @@ type DBInstance struct {
 	// If the DB instance is a member of a DB cluster, contains the name of the
 	// DB cluster that the DB instance is a member of.
 	DBClusterIdentifier *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) for the DB instance.
+	DBInstanceArn *string `type:"string"`
 
 	// Contains the name of the compute and memory capacity class of the DB instance.
 	DBInstanceClass *string `type:"string"`
@@ -8296,6 +8335,9 @@ func (s DBInstanceStatusInfo) GoString() string {
 type DBParameterGroup struct {
 	_ struct{} `type:"structure"`
 
+	// The Amazon Resource Name (ARN) for the DB parameter group.
+	DBParameterGroupArn *string `type:"string"`
+
 	// Provides the name of the DB parameter group family that this DB parameter
 	// group is compatible with.
 	DBParameterGroupFamily *string `type:"string"`
@@ -8386,6 +8428,9 @@ func (s DBParameterGroupStatus) GoString() string {
 type DBSecurityGroup struct {
 	_ struct{} `type:"structure"`
 
+	// The Amazon Resource Name (ARN) for the DB security group.
+	DBSecurityGroupArn *string `type:"string"`
+
 	// Provides the description of the DB security group.
 	DBSecurityGroupDescription *string `type:"string"`
 
@@ -8465,6 +8510,9 @@ type DBSnapshot struct {
 	// Specifies the DB instance identifier of the DB instance this DB snapshot
 	// was created from.
 	DBInstanceIdentifier *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) for the DB snapshot.
+	DBSnapshotArn *string `type:"string"`
 
 	// Specifies the identifier for the DB snapshot.
 	DBSnapshotIdentifier *string `type:"string"`
@@ -8616,6 +8664,9 @@ func (s DBSnapshotAttributesResult) GoString() string {
 // action.
 type DBSubnetGroup struct {
 	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) for the DB subnet group.
+	DBSubnetGroupArn *string `type:"string"`
 
 	// Provides the description of the DB subnet group.
 	DBSubnetGroupDescription *string `type:"string"`
@@ -11657,6 +11708,89 @@ func (s DescribeReservedDBInstancesOutput) GoString() string {
 	return s.String()
 }
 
+type DescribeSourceRegionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// This parameter is not currently supported.
+	Filters []*Filter `locationNameList:"Filter" type:"list"`
+
+	// An optional pagination token provided by a previous DescribeSourceRegions
+	// request. If this parameter is specified, the response includes only records
+	// beyond the marker, up to the value specified by MaxRecords.
+	Marker *string `type:"string"`
+
+	// The maximum number of records to include in the response. If more records
+	// exist than the specified MaxRecords value, a pagination token called a marker
+	// is included in the response so that the remaining results can be retrieved.
+	//
+	// Default: 100
+	//
+	// Constraints: Minimum 20, maximum 100.
+	MaxRecords *int64 `type:"integer"`
+
+	// The source region name. For example, us-east-1.
+	//
+	// Constraints:
+	//
+	//   Must specify a valid AWS Region name.
+	RegionName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeSourceRegionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeSourceRegionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeSourceRegionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeSourceRegionsInput"}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Contains the result of a successful invocation of the DescribeSourceRegions
+// action.
+type DescribeSourceRegionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An optional pagination token provided by a previous request. If this parameter
+	// is specified, the response includes only records beyond the marker, up to
+	// the value specified by MaxRecords.
+	Marker *string `type:"string"`
+
+	// A list of SourceRegion instances that contains each source AWS Region that
+	// the current region can get a Read Replica or a DB snapshot from.
+	SourceRegions []*SourceRegion `locationNameList:"SourceRegion" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeSourceRegionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeSourceRegionsOutput) GoString() string {
+	return s.String()
+}
+
 // An Active Directory Domain membership record associated with the DB instance.
 type DomainMembership struct {
 	_ struct{} `type:"structure"`
@@ -11891,6 +12025,9 @@ type Event struct {
 	// Provides the text of this event.
 	Message *string `type:"string"`
 
+	// The Amazon Resource Name (ARN) for the event.
+	SourceArn *string `type:"string"`
+
 	// Provides the identifier for the source of the event.
 	SourceIdentifier *string `type:"string"`
 
@@ -11947,6 +12084,9 @@ type EventSubscription struct {
 
 	// A list of event categories for the RDS event notification subscription.
 	EventCategoriesList []*string `locationNameList:"EventCategory" type:"list"`
+
+	// The Amazon Resource Name (ARN) for the event subscription.
+	EventSubscriptionArn *string `type:"string"`
 
 	// The topic ARN of the RDS event notification subscription.
 	SnsTopicArn *string `type:"string"`
@@ -12114,7 +12254,7 @@ type ListTagsForResourceInput struct {
 
 	// The Amazon RDS resource with tags to be listed. This value is an Amazon Resource
 	// Name (ARN). For information about creating an ARN, see  Constructing an RDS
-	// Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html#USER_Tagging.ARN).
+	// Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
 	ResourceName *string `type:"string" required:"true"`
 }
 
@@ -12722,15 +12862,13 @@ type ModifyDBInstanceInput struct {
 	// Example: mySubnetGroup
 	DBSubnetGroupName *string `type:"string"`
 
-	// Specify the Active Directory Domain to move the instance to.
-	//
-	// The specified Active Directory Domain must be created prior to this operation.
-	// Currently only a SQL Server instance can be created in a Active Directory
-	// Domain.
+	// The Active Directory Domain to move the instance to. Specify none to remove
+	// the instance from its current domain. The domain must be created prior to
+	// this operation. Currently only a Microsoft SQL Server instance can be created
+	// in a Active Directory Domain.
 	Domain *string `type:"string"`
 
-	// Specify the name of the IAM role to be used when making API calls to the
-	// Directory Service.
+	// The name of the IAM role to use when making API calls to the Directory Service.
 	DomainIAMRoleName *string `type:"string"`
 
 	// The version number of the database engine to upgrade to. Changing this parameter
@@ -13448,6 +13586,9 @@ type OptionGroup struct {
 	// Indicates the major engine version associated with this option group.
 	MajorEngineVersion *string `type:"string"`
 
+	// The Amazon Resource Name (ARN) for the option group.
+	OptionGroupArn *string `type:"string"`
+
 	// Provides a description of the option group.
 	OptionGroupDescription *string `type:"string"`
 
@@ -13520,25 +13661,27 @@ type OptionGroupOption struct {
 	// The name of the option.
 	Name *string `type:"string"`
 
-	// Specifies the option settings that are available (and the default value)
-	// for each option in an option group.
+	// The option settings that are available (and the default value) for each option
+	// in an option group.
 	OptionGroupOptionSettings []*OptionGroupOptionSetting `locationNameList:"OptionGroupOptionSetting" type:"list"`
 
-	// Specifies the versions that are available for the option.
+	// The versions that are available for the option.
 	OptionGroupOptionVersions []*OptionVersion `locationNameList:"OptionVersion" type:"list"`
 
-	// List of all options that are prerequisites for this option.
+	// The options that conflict with this option.
+	OptionsConflictsWith []*string `locationNameList:"OptionConflictName" type:"list"`
+
+	// The options that are prerequisites for this option.
 	OptionsDependedOn []*string `locationNameList:"OptionName" type:"list"`
 
-	// A permanent option cannot be removed from the option group once the option
-	// group is used, and it cannot be removed from the db instance after assigning
-	// an option group with this permanent option.
+	// Permanent options can never be removed from an option group. An option group
+	// containing a permanent option can't be removed from a DB instance.
 	Permanent *bool `type:"boolean"`
 
-	// A persistent option cannot be removed from the option group once the option
-	// group is used, but this option can be removed from the db instance while
-	// modifying the related data and assigning another option group without this
-	// option.
+	// Persistent options can't be removed from an option group while DB instances
+	// are associated with the option group. If you disassociate all DB instances
+	// from the option group, your can remove the persistent option from the option
+	// group.
 	Persistent *bool `type:"boolean"`
 
 	// Specifies whether the option requires a port.
@@ -14256,7 +14399,7 @@ type RemoveTagsFromResourceInput struct {
 
 	// The Amazon RDS resource the tags will be removed from. This value is an Amazon
 	// Resource Name (ARN). For information about creating an ARN, see  Constructing
-	// an RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html#USER_Tagging.ARN).
+	// an RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
 	ResourceName *string `type:"string" required:"true"`
 
 	// The tag key (name) of the tag to be removed.
@@ -14334,6 +14477,9 @@ type ReservedDBInstance struct {
 
 	// The recurring price charged to run this reserved DB instance.
 	RecurringCharges []*RecurringCharge `locationNameList:"RecurringCharge" type:"list"`
+
+	// The Amazon Resource Name (ARN) for the reserved DB instance.
+	ReservedDBInstanceArn *string `type:"string"`
 
 	// The unique identifier for the reservation.
 	ReservedDBInstanceId *string `type:"string"`
@@ -15639,6 +15785,31 @@ func (s RevokeDBSecurityGroupIngressOutput) String() string {
 
 // GoString returns the string representation
 func (s RevokeDBSecurityGroupIngressOutput) GoString() string {
+	return s.String()
+}
+
+// Contains an AWS Region name as the result of a successful call to the DescribeSourceRegions
+// action.
+type SourceRegion struct {
+	_ struct{} `type:"structure"`
+
+	// The source region endpoint.
+	Endpoint *string `type:"string"`
+
+	// The source region name.
+	RegionName *string `type:"string"`
+
+	// The status of the source region.
+	Status *string `type:"string"`
+}
+
+// String returns the string representation
+func (s SourceRegion) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SourceRegion) GoString() string {
 	return s.String()
 }
 
