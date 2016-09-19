@@ -147,6 +147,7 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 					State: &state,
 					Error: &err,
 				},
+				&EvalUpdateStateHook{},
 			},
 		},
 	}
