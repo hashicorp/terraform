@@ -88,6 +88,18 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 			continue
 		}
 
+		// Make sure this isn't a self reference, which isn't included
+		selfRef := false
+		for _, p := range parents {
+			if p == v {
+				selfRef = true
+				break
+			}
+		}
+		if selfRef {
+			continue
+		}
+
 		matches = append(matches, parents...)
 	}
 
