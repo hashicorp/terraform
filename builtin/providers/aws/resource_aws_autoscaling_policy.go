@@ -219,9 +219,7 @@ func getAwsAutoscalingPutScalingPolicyInput(d *schema.ResourceData) (autoscaling
 	}
 
 	//if policy_type=="SimpleScaling" then scaling_adjustment is required and 0 is allowed
-	if *params.PolicyType == "SimpleScaling" {
-		params.ScalingAdjustment = aws.Int64(int64(d.Get("scaling_adjustment").(int)))
-	} else if v, ok := d.GetOk("scaling_adjustment"); ok {
+	if v, ok := d.GetOk("scaling_adjustment"); ok || *params.PolicyType == "SimpleScaling" {
 		params.EstimatedInstanceWarmup = aws.Int64(int64(v.(int)))
 	}
 
