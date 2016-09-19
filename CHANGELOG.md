@@ -21,6 +21,7 @@ IMPROVEMENTS:
  * provisioner/chef: Support encrypting existing Chef-Vaults for newly created clients [GH-8577]
 
 BUG FIXES:
+ * core: Fix regression when loading variables from json [GH-8820]
  * provider/aws: Prevent crash creating an `aws_sns_topic` with an empty policy [GH-8834]
  * provider/aws: Bump `aws_elasticsearch_domain` timeout values [GH-672]
  * provider/aws: `aws_nat_gateways` will now recreate on `failed` state [GH-8689]
