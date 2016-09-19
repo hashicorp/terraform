@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -163,6 +164,64 @@ func testAccCheckAWSCloudWatchEventRuleDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func TestResourceAWSCloudWatchEventRule_validateEventPatternValue(t *testing.T) {
+	type testCases struct {
+		Length   int
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Length:   8,
+			Value:    acctest.RandString(16),
+			ErrCount: 1,
+		},
+		{
+			Length:   123,
+			Value:    `{"abc":}`,
+			ErrCount: 1,
+		},
+		{
+			Length:   1,
+			Value:    `{"abc":["1","2"]}`,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateEventPatternValue(tc.Length)(tc.Value, "event_pattern")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Length:   0,
+			Value:    ``,
+			ErrCount: 0,
+		},
+		{
+			Length:   2,
+			Value:    `{}`,
+			ErrCount: 0,
+		},
+		{
+			Length:   18,
+			Value:    `{"abc":["1","2"]}`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateEventPatternValue(tc.Length)(tc.Value, "event_pattern")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
 }
 
 var testAccAWSCloudWatchEventRuleConfig = `
