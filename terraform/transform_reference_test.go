@@ -28,6 +28,29 @@ func TestReferenceTransformer_simple(t *testing.T) {
 	}
 }
 
+func TestReferenceTransformer_self(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	g.Add(&graphNodeRefParentTest{
+		NameValue: "A",
+		Names:     []string{"A"},
+	})
+	g.Add(&graphNodeRefChildTest{
+		NameValue: "B",
+		Refs:      []string{"A", "B"},
+	})
+
+	tf := &ReferenceTransformer{}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformRefBasicStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestReferenceTransformer_path(t *testing.T) {
 	g := Graph{Path: RootModulePath}
 	g.Add(&graphNodeRefParentTest{
