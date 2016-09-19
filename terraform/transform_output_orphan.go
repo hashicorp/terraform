@@ -16,6 +16,9 @@ type GraphNodeOutput interface {
 // AddOutputOrphanTransformer is a transformer that adds output orphans
 // to the graph. Output orphans are outputs that are no longer in the
 // configuration and therefore need to be removed from the state.
+//
+// NOTE: This is the _old_ way to add output orphans that is used with
+// legacy graph builders. The new way is OrphanOutputTransformer.
 type AddOutputOrphanTransformer struct {
 	State *State
 }

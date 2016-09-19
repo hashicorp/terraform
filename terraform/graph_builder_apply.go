@@ -54,6 +54,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:  b.State,
 		},
 
+		// Create orphan output nodes
+		&OrphanOutputTransformer{Module: b.Module, State: b.State},
+
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
