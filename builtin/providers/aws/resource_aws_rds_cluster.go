@@ -85,6 +85,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"reader_endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"engine": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -443,6 +448,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("preferred_backup_window", dbc.PreferredBackupWindow)
 	d.Set("preferred_maintenance_window", dbc.PreferredMaintenanceWindow)
 	d.Set("kms_key_id", dbc.KmsKeyId)
+	d.Set("reader_endpoint", dbc.ReaderEndpoint)
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {

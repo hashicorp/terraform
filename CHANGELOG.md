@@ -7,9 +7,12 @@ FEATURES:
 
 IMPROVEMENTS:
  * provider/aws: Support 'publish' attribute in `lambda_function` [GH-8653]
+ * provider/aws: Add `reader_endpoint` RDS Clusters [GH-8884]
  * provider/aws: Export AWS ELB service account ARN [GH-8700]
  * provider/aws: Allow `aws_alb` to have the name auto-generated [GH-8673]
  * provider/aws: Expose `arn_suffix` on `aws_alb` [GH-8833]
+ * provider/aws: Add JSON validation to the `aws_cloudformation_stack` resource [GH-8896]
+ * provider/aws: Add JSON validation to the `aws_glacier_vault` resource [GH-8899]
  * provider/azurerm: support Diagnostics Profile [GH-8277]
  * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name` [GH-8639]
  * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration [GH-8666]
