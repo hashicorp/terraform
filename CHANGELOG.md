@@ -1,5 +1,14 @@
 ## 0.7.5 (Unreleased)
 
+FEATURES:
+
+IMPROVEMENTS:
+
+ * provider/aws: Add JSON validation to the `aws_cloudwatch_event_rule` resource [GH-8897]
+
+BUG FIXES:
+
+
 ## 0.7.4 (September 19, 2016)
 
 FEATURES:
