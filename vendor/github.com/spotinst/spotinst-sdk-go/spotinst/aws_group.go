@@ -142,18 +142,29 @@ type AwsGroupComputeAvailabilityZone struct {
 }
 
 type AwsGroupComputeLaunchSpecification struct {
-	LoadBalancerNames      []string                           `json:"loadBalancerNames,omitempty"`
-	SecurityGroupIDs       []string                           `json:"securityGroupIds,omitempty"`
-	HealthCheckType        *string                            `json:"healthCheckType,omitempty"`
-	HealthCheckGracePeriod *int                               `json:"healthCheckGracePeriod,omitempty"`
-	ImageID                *string                            `json:"imageId,omitempty"`
-	KeyPair                *string                            `json:"keyPair,omitempty"`
-	UserData               *string                            `json:"userData,omitempty"`
-	Monitoring             *bool                              `json:"monitoring,omitempty"`
-	IamInstanceProfile     *AwsGroupComputeIamInstanceProfile `json:"iamRole,omitempty"`
-	BlockDevices           []*AwsGroupComputeBlockDevice      `json:"blockDeviceMappings,omitempty"`
-	NetworkInterfaces      []*AwsGroupComputeNetworkInterface `json:"networkInterfaces,omitempty"`
-	Tags                   []*AwsGroupComputeTag              `json:"tags,omitempty"`
+	LoadBalancerNames      []string                            `json:"loadBalancerNames,omitempty"`
+	LoadBalancersConfig    *AwsGroupComputeLoadBalancersConfig `json:"loadBalancersConfig,omitempty"`
+	SecurityGroupIDs       []string                            `json:"securityGroupIds,omitempty"`
+	HealthCheckType        *string                             `json:"healthCheckType,omitempty"`
+	HealthCheckGracePeriod *int                                `json:"healthCheckGracePeriod,omitempty"`
+	ImageID                *string                             `json:"imageId,omitempty"`
+	KeyPair                *string                             `json:"keyPair,omitempty"`
+	UserData               *string                             `json:"userData,omitempty"`
+	Monitoring             *bool                               `json:"monitoring,omitempty"`
+	IamInstanceProfile     *AwsGroupComputeIamInstanceProfile  `json:"iamRole,omitempty"`
+	BlockDevices           []*AwsGroupComputeBlockDevice       `json:"blockDeviceMappings,omitempty"`
+	NetworkInterfaces      []*AwsGroupComputeNetworkInterface  `json:"networkInterfaces,omitempty"`
+	Tags                   []*AwsGroupComputeTag               `json:"tags,omitempty"`
+}
+
+type AwsGroupComputeLoadBalancersConfig struct {
+	LoadBalancers []*AwsGroupComputeLoadBalancer `json:"loadBalancers,omitempty"`
+}
+
+type AwsGroupComputeLoadBalancer struct {
+	Name *string `json:"name,omitempty"`
+	Arn  *string `json:"arn,omitempty"`
+	Type *string `json:"type,omitempty"`
 }
 
 type AwsGroupComputeNetworkInterface struct {
