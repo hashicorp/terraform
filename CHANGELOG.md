@@ -1,6 +1,7 @@
 ## 0.7.5 (Unreleased)
 
 FEATURES:
+ * **New Resource:** `aws_api_gateway_client_certificate` [GH-8775]
 
 IMPROVEMENTS:
 
