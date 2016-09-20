@@ -19,7 +19,7 @@ func resourceRancherEnvironment() *schema.Resource {
 			"description": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
+				ForceNew: true,
 			},
 
 			"kubernetes": {
@@ -31,7 +31,7 @@ func resourceRancherEnvironment() *schema.Resource {
 			"members": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: false,
+				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
