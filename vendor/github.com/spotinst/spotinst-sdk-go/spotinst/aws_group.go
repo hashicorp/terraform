@@ -27,7 +27,7 @@ type AwsGroupIntegration struct {
 	EC2ContainerService *AwsGroupEC2ContainerServiceIntegration `json:"ecs,omitempty"`
 	ElasticBeanstalk    *AwsGroupElasticBeanstalkIntegration    `json:"elasticBeanstalk,omitempty"`
 	Rancher             *AwsGroupRancherIntegration             `json:"rancher,omitempty"`
-	Nirmata             *AwsGroupNirmataIntegration             `json:"nirmata,omitempty"`
+	Kubernetes          *AwsGroupKubernetesIntegration          `json:"kubernetes,omitempty"`
 }
 
 type AwsGroupRancherIntegration struct {
@@ -44,8 +44,9 @@ type AwsGroupEC2ContainerServiceIntegration struct {
 	ClusterName *string `json:"clusterName,omitempty"`
 }
 
-type AwsGroupNirmataIntegration struct {
-	APIKey *string `json:"apiKey,omitempty"`
+type AwsGroupKubernetesIntegration struct {
+	Server *string `json:"apiServer,omitempty"`
+	Token  *string `json:"token,omitempty"`
 }
 
 type AwsGroupScheduling struct {
