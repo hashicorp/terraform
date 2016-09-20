@@ -155,12 +155,6 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(id)
-	token, err := client.GetRegistrationToken(id)
-	if err != nil {
-		return err
-	}
-	d.Set("registration_token", token.Token)
-	d.Set("registration_url", token.RegistrationUrl)
 
 	return resourceRancherEnvironmentRead(d, meta)
 }
@@ -175,7 +169,12 @@ func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Couldn't fetch Rancher Environment: %s", err)
 	}
 
-	// Set stuff here?
+	token, err := client.GetRegistrationToken(d.Id())
+	if err != nil {
+		return err
+	}
+	d.Set("registration_token", token.Token)
+	d.Set("registration_url", token.RegistrationUrl)
 
 	return nil
 }
