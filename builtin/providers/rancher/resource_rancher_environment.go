@@ -165,7 +165,7 @@ func resourceRancherEnvironmentDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceRancherEnvironmentExists(d *schema.ResourceData, meta interface{}) error {
+func resourceRancherEnvironmentExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	name := d.Get("name").(string)
 
 	log.Printf("[INFO] Checking existence of Rancher Environment: %s", name)
