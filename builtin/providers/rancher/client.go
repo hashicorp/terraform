@@ -100,6 +100,17 @@ type PortRange struct {
 	EndPort   int `json:"endPort"`
 }
 
+type RegistrationTokens struct {
+	Tokens []RegistrationToken `json:"data"`
+}
+
+type RegistrationToken struct {
+	Id              string `json:"id"`
+	State           string `json:"state"`
+	RegistrationUrl string `json:"registrationUrl"`
+	Token           string `json:"token"`
+}
+
 func (client *Client) CreateEnvironment(env Environment) (string, error) {
 	reqBody, _ := json.Marshal(env)
 
@@ -185,4 +196,34 @@ func (client *Client) EnvironmentExists(name string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (client *Client) GetRegistrationToken(id string) (token RegistrationToken, err error) {
+	req, err := client.newRequest("GET", fmt.Sprintf("/projects/%s/registrationtokens", id), nil)
+	if err != nil {
+		return
+	}
+
+	resp, err := client.Http.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+		return token, fmt.Errorf("Error getting registation token for environment: %s", id)
+	}
+
+	tokens := new(RegistrationTokens)
+	if err = json.NewDecoder(resp.Body).Decode(tokens); err != nil {
+		return false, fmt.Errorf("Failed to list registration tokens for environment %s", id)
+	}
+
+	for _, t := range tokens.Tokens {
+		if t.State == "active" {
+			return t, nil
+		}
+	}
+
+	return token, nil
 }

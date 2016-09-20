@@ -83,6 +83,16 @@ func resourceRancherEnvironment() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"registration_token": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"registration_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -145,6 +155,13 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(id)
+	token, err := client.GetRegistrationToken(id)
+	if err != nil {
+		return err
+	}
+	d.Set("registration_token", token.Token)
+	d.Set("registration_url", token.RegistrationUrl)
+
 	return resourceRancherEnvironmentRead(d, meta)
 }
 
