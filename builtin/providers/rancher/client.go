@@ -144,7 +144,7 @@ func (client *Client) GetEnvironmentById(id string) (e *Environment, err error) 
 }
 
 func (client *Client) DeleteEnvironmentById(id string) (err error) {
-	req, err := client.newRequest("DELETE", fmt.Sprintf("/projects/%s", id), nil)
+	err = client.newRequest("DELETE", fmt.Sprintf("/projects/%s", id), nil)
 	return
 }
 
