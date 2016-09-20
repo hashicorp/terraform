@@ -14,7 +14,7 @@ type Config struct {
 
 // Client returns a new client for accessing PowerDNS
 func (c *Config) Client() (*Client, error) {
-	client, err := NewClient(c.ServerUrl, c.ApiKey)
+	client, err := NewClient(c.ServerUrl, c.AccessKey, c.SecretKey)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up PowerDNS client: %s", err)
