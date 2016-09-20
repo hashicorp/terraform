@@ -160,22 +160,22 @@ func (client *Client) DeleteEnvironmentById(id string) (err error) {
 func (client *Client) EnvironmentExists(name string) (bool, error) {
 	req, err := client.newRequest("GET", "/projects", nil)
 	if err != nil {
-		return
+		return false, err
 	}
 
 	resp, err := client.Http.Do(req)
 	if err != nil {
-		return "", err
+		return false, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 && resp.StatusCode != 201 {
-		return "", fmt.Errorf("Error checking environment: %s", name)
+		return false, fmt.Errorf("Error checking environment: %s", name)
 	}
 
 	envs := new(Environments)
 	if err = json.NewDecoder(resp.Body).Decode(envs); err != nil {
-		return "", fmt.Errorf("Failed to list environments looking for %s", name)
+		return false, fmt.Errorf("Failed to list environments looking for %s", name)
 	}
 
 	for _, e := range envs.Environments {
