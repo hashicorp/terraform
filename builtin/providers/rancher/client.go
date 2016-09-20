@@ -122,7 +122,7 @@ func (client *Client) CreateEnvironment(env Environment) (string, error) {
 	}
 }
 
-func (client *Client) GetEnvironmentById(id string) (e Environment, err error) {
+func (client *Client) GetEnvironmentById(id string) (e *Environment, err error) {
 	req, err := client.newRequest("GET", fmt.Sprintf("/projects/%s", id), nil)
 	if err != nil {
 		return
