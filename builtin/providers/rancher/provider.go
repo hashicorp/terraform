@@ -30,11 +30,11 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
-		resourcesmap: map[string]*schema.Resource{
+		ResourcesMap: map[string]*schema.Resource{
 			"rancher_environment": resourceRancherEnvironment(),
 		},
 
-		configurefunc: providerconfigure,
+		ConfigureFunc: providerConfigure,
 	}
 }
 
