@@ -92,8 +92,8 @@ type EnvironmentMember struct {
 }
 
 type PortRange struct {
-	StarPort int `json:"startPort"`
-	EndPort  int `json:"endPort"`
+	StartPort int `json:"startPort"`
+	EndPort   int `json:"endPort"`
 }
 
 func (client *Client) CreateEnvironment(env Environment) (string, error) {
