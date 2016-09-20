@@ -143,9 +143,9 @@ func (client *Client) GetEnvironmentById(id string) (e *Environment, err error) 
 	return env, nil
 }
 
-func (client *Client) DeleteEnvironmentById(id string) error {
-	// TODO implement
-	return nil
+func (client *Client) DeleteEnvironmentById(id string) (err error) {
+	req, err := client.newRequest("DELETE", fmt.Sprintf("/projects/%s", id), nil)
+	return
 }
 
 func (client *Client) EnvironmentExists(name string) (bool, error) {
