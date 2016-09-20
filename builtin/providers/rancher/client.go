@@ -72,6 +72,10 @@ func (c *Client) newRequest(method string, endpoint string, body []byte) (*http.
 	return req, nil
 }
 
+type Environments struct {
+	Environments []Environment `json:"data"`
+}
+
 type Environment struct {
 	Id                string              `json:"id"`
 	Description       string              `json:"description"`
@@ -112,14 +116,14 @@ func (client *Client) CreateEnvironment(env Environment) (string, error) {
 
 	if resp.StatusCode != 200 && resp.StatusCode != 201 {
 		return "", fmt.Errorf("Error creating environment: %s", env.Name)
-	} else {
-		newEnv := new(Environment)
-		if err = json.NewDecoder(resp.Body).Decode(newEnv); err != nil {
-			return "", fmt.Errorf("Failed to get new environment id for %s", env.Name)
-		}
-
-		return newEnv.Id, nil
 	}
+
+	newEnv := new(Environment)
+	if err = json.NewDecoder(resp.Body).Decode(newEnv); err != nil {
+		return "", fmt.Errorf("Failed to get new environment id for %s", env.Name)
+	}
+
+	return newEnv.Id, nil
 }
 
 func (client *Client) GetEnvironmentById(id string) (e *Environment, err error) {
@@ -154,6 +158,31 @@ func (client *Client) DeleteEnvironmentById(id string) (err error) {
 }
 
 func (client *Client) EnvironmentExists(name string) (bool, error) {
-	// TODO implement
-	return true, nil
+	req, err := client.newRequest("GET", "/projects", nil)
+	if err != nil {
+		return
+	}
+
+	resp, err := client.Http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+		return "", fmt.Errorf("Error checking environment: %s", name)
+	}
+
+	envs := new(Environments)
+	if err = json.NewDecoder(resp.Body).Decode(envs); err != nil {
+		return "", fmt.Errorf("Failed to list environments looking for %s", name)
+	}
+
+	for _, e := range envs {
+		if e.Name == name {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
