@@ -222,6 +222,33 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 				},
 			},
 
+			"load_balancer": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							StateFunc: func(v interface{}) string {
+								value := v.(string)
+								return strings.ToUpper(value)
+							},
+						},
+					},
+				},
+			},
+
 			"launch_specification": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -651,6 +678,19 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 		lspec = append(lspec, l)
 		d.Set("launch_specification", lspec)
 
+		// Set the load balancers.
+		if g.Compute.LaunchSpecification.LoadBalancersConfig != nil {
+			lbs := make([]map[string]interface{}, 0, len(g.Compute.LaunchSpecification.LoadBalancersConfig.LoadBalancers))
+			for _, lb := range g.Compute.LaunchSpecification.LoadBalancersConfig.LoadBalancers {
+				lbs = append(lbs, map[string]interface{}{
+					"name": lb.Name,
+					"arn":  lb.Arn,
+					"type": lb.Type,
+				})
+			}
+			d.Set("load_balancer", lbs)
+		}
+
 		// Set the availability zones.
 		zones := make([]map[string]interface{}, 0, len(g.Compute.AvailabilityZones))
 		for _, z := range g.Compute.AvailabilityZones {
@@ -880,6 +920,26 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 				}
 				group.Compute.LaunchSpecification = lc
 				hasChange = true
+			}
+		}
+	}
+
+	if d.HasChange("load_balancer") {
+		if v, ok := d.GetOk("load_balancer"); ok {
+			if lbs, err := expandAwsGroupLoadBalancer(v); err != nil {
+				return err
+			} else {
+				if group.Compute == nil {
+					group.Compute = &spotinst.AwsGroupCompute{}
+				}
+				if group.Compute.LaunchSpecification == nil {
+					group.Compute.LaunchSpecification = &spotinst.AwsGroupComputeLaunchSpecification{}
+				}
+				if group.Compute.LaunchSpecification.LoadBalancersConfig == nil {
+					group.Compute.LaunchSpecification.LoadBalancersConfig = &spotinst.AwsGroupComputeLoadBalancersConfig{}
+					group.Compute.LaunchSpecification.LoadBalancersConfig.LoadBalancers = lbs
+					hasChange = true
+				}
 			}
 		}
 	}
@@ -1285,6 +1345,17 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 			return nil, err
 		} else {
 			group.Compute.LaunchSpecification = lc
+		}
+	}
+
+	if v, ok := d.GetOk("load_balancer"); ok {
+		if lbs, err := expandAwsGroupLoadBalancer(v); err != nil {
+			return nil, err
+		} else {
+			if group.Compute.LaunchSpecification.LoadBalancersConfig == nil {
+				group.Compute.LaunchSpecification.LoadBalancersConfig = &spotinst.AwsGroupComputeLoadBalancersConfig{}
+			}
+			group.Compute.LaunchSpecification.LoadBalancersConfig.LoadBalancers = lbs
 		}
 	}
 
@@ -1831,6 +1902,33 @@ func expandAwsGroupLaunchSpecification(data interface{}) (*spotinst.AwsGroupComp
 		log.Printf("[DEBUG] AwsGroup launch specification configuration: %#v\n", lc)
 		return lc, nil
 	}
+}
+
+// expandAwsGroupLoadBalancer expands the Load Balancer block.
+func expandAwsGroupLoadBalancer(data interface{}) ([]*spotinst.AwsGroupComputeLoadBalancer, error) {
+	list := data.(*schema.Set).List()
+	lbs := make([]*spotinst.AwsGroupComputeLoadBalancer, 0, len(list))
+	for _, item := range list {
+		m := item.(map[string]interface{})
+		lb := &spotinst.AwsGroupComputeLoadBalancer{}
+
+		if v, ok := m["name"].(string); ok && v != "" {
+			lb.Name = spotinst.String(v)
+		}
+
+		if v, ok := m["arn"].(string); ok && v != "" {
+			lb.Arn = spotinst.String(v)
+		}
+
+		if v, ok := m["type"].(string); ok && v != "" {
+			lb.Type = spotinst.String(strings.ToUpper(v))
+		}
+
+		log.Printf("[DEBUG] AwsGroup load balancer configuration: %#v\n", lb)
+		lbs = append(lbs, lb)
+	}
+
+	return lbs, nil
 }
 
 // expandAwsGroupRancherIntegration expands the Rancher Integration block.

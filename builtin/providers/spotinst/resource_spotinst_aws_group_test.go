@@ -159,6 +159,17 @@ resource "spotinst_aws_group" "foo" {
 		user_data = "#!/bin/sh echo hello"
 	}
 
+	load_balancer {
+		name = "tg1"
+		type = "classic"
+	}
+
+	load_balancer {
+		name = "tg2"
+		type = "target_group"
+		arn = "arn:aws:elasticloadbalancing:us-east-1:123456789:targetgroup/tg2/1fe63217f8ffcc06"
+	}
+
 	hot_ebs_volume {
 		device_name = "/dev/xvdf"
 		volume_ids = ["vol-062a49b5", "vol-062a49b6"]
@@ -289,6 +300,17 @@ resource "spotinst_aws_group" "foo" {
 		key_pair = "east"
 		security_group_ids = ["default"]
 		user_data = "#!/bin/sh echo hello"
+	}
+
+	load_balancer {
+		name = "tg1"
+		type = "classic"
+	}
+
+	load_balancer {
+		name = "tg2"
+		type = "target_group"
+		arn = "arn:aws:elasticloadbalancing:us-east-1:123456789:targetgroup/tg2/1fe63217f8ffcc06"
 	}
 
 	hot_ebs_volume {
