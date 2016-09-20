@@ -1,36 +1,48 @@
-## 0.7.4 (Unreleased)
+## 0.7.5 (Unreleased)
 
 FEATURES:
- * **New Resource:** `aws_codecommit_trigger` [GH-8751]
- * **New Resource:** `aws_default_security_group` [GH-8861]
- * **New Remote State Backend:** `manta` [GH-8830]
 
 IMPROVEMENTS:
- * provider/aws: Support 'publish' attribute in `lambda_function` [GH-8653]
- * provider/aws: Add `reader_endpoint` RDS Clusters [GH-8884]
- * provider/aws: Export AWS ELB service account ARN [GH-8700]
- * provider/aws: Allow `aws_alb` to have the name auto-generated [GH-8673]
- * provider/aws: Expose `arn_suffix` on `aws_alb` [GH-8833]
- * provider/aws: Add JSON validation to the `aws_cloudformation_stack` resource [GH-8896]
- * provider/aws: Add JSON validation to the `aws_glacier_vault` resource [GH-8899]
- * provider/azurerm: support Diagnostics Profile [GH-8277]
- * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name` [GH-8639]
- * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration [GH-8666]
- * helper/resource: Add timeout duration to timeout error message [GH-8773]
- * provisioner/chef: Support recreating Chef clients by setting `recreate_client=true` [GH-8577]
- * provisioner/chef: Support encrypting existing Chef-Vaults for newly created clients [GH-8577]
+
+ * provider/aws: Add JSON validation to the `aws_cloudwatch_event_rule` resource [GH-8897]
 
 BUG FIXES:
- * provider/aws: Prevent crash creating an `aws_sns_topic` with an empty policy [GH-8834]
- * provider/aws: Bump `aws_elasticsearch_domain` timeout values [GH-672]
- * provider/aws: `aws_nat_gateways` will now recreate on `failed` state [GH-8689]
- * provider/aws: Prevent crash on account ID validation [GH-8731]
- * provider/aws: `aws_db_instance` unexpected state when configurating enhanced monitoring [GH-8707]
- * provider/aws: Remove region condition from `aws_codecommit_repository` [GH-8778]
- * provider/aws: Support Policy DiffSuppression in `aws_kms_key` policy [GH-8675]
- * provider/aws: Fix issue updating Elastic Beanstalk Environment variables [GH-8848]
- * provider/scaleway: Fix `security_group_rule` identification [GH-8661]
- * provider/cloudstack: Fix renaming a VPC with the `cloudstack_vpc` resource [GH-8784]
+
+
+## 0.7.4 (September 19, 2016)
+
+FEATURES:
+ * **New Resource:** `aws_codecommit_trigger` ([#8751](https://github.com/hashicorp/terraform/issues/8751))
+ * **New Resource:** `aws_default_security_group` ([#8861](https://github.com/hashicorp/terraform/issues/8861))
+ * **New Remote State Backend:** `manta` ([#8830](https://github.com/hashicorp/terraform/issues/8830))
+
+IMPROVEMENTS:
+ * provider/aws: Support 'publish' attribute in `lambda_function` ([#8653](https://github.com/hashicorp/terraform/issues/8653))
+ * provider/aws: Add `reader_endpoint` RDS Clusters ([#8884](https://github.com/hashicorp/terraform/issues/8884))
+ * provider/aws: Export AWS ELB service account ARN ([#8700](https://github.com/hashicorp/terraform/issues/8700))
+ * provider/aws: Allow `aws_alb` to have the name auto-generated ([#8673](https://github.com/hashicorp/terraform/issues/8673))
+ * provider/aws: Expose `arn_suffix` on `aws_alb` ([#8833](https://github.com/hashicorp/terraform/issues/8833))
+ * provider/aws: Add JSON validation to the `aws_cloudformation_stack` resource ([#8896](https://github.com/hashicorp/terraform/issues/8896))
+ * provider/aws: Add JSON validation to the `aws_glacier_vault` resource ([#8899](https://github.com/hashicorp/terraform/issues/8899))
+ * provider/azurerm: support Diagnostics Profile ([#8277](https://github.com/hashicorp/terraform/issues/8277))
+ * provider/google: Resources depending on the `network` attribute can now reference the network by `self_link` or `name` ([#8639](https://github.com/hashicorp/terraform/issues/8639))
+ * provider/postgresql: The standard environment variables PGHOST, PGUSER, PGPASSWORD and PGSSLMODE are now supported for provider configuration ([#8666](https://github.com/hashicorp/terraform/issues/8666))
+ * helper/resource: Add timeout duration to timeout error message ([#8773](https://github.com/hashicorp/terraform/issues/8773))
+ * provisioner/chef: Support recreating Chef clients by setting `recreate_client=true` ([#8577](https://github.com/hashicorp/terraform/issues/8577))
+ * provisioner/chef: Support encrypting existing Chef-Vaults for newly created clients ([#8577](https://github.com/hashicorp/terraform/issues/8577))
+
+BUG FIXES:
+ * core: Fix regression when loading variables from json ([#8820](https://github.com/hashicorp/terraform/issues/8820))
+ * provider/aws: Prevent crash creating an `aws_sns_topic` with an empty policy ([#8834](https://github.com/hashicorp/terraform/issues/8834))
+ * provider/aws: Bump `aws_elasticsearch_domain` timeout values ([#672](https://github.com/hashicorp/terraform/issues/672))
+ * provider/aws: `aws_nat_gateways` will now recreate on `failed` state ([#8689](https://github.com/hashicorp/terraform/issues/8689))
+ * provider/aws: Prevent crash on account ID validation ([#8731](https://github.com/hashicorp/terraform/issues/8731))
+ * provider/aws: `aws_db_instance` unexpected state when configurating enhanced monitoring ([#8707](https://github.com/hashicorp/terraform/issues/8707))
+ * provider/aws: Remove region condition from `aws_codecommit_repository` ([#8778](https://github.com/hashicorp/terraform/issues/8778))
+ * provider/aws: Support Policy DiffSuppression in `aws_kms_key` policy ([#8675](https://github.com/hashicorp/terraform/issues/8675))
+ * provider/aws: Fix issue updating Elastic Beanstalk Environment variables ([#8848](https://github.com/hashicorp/terraform/issues/8848))
+ * provider/scaleway: Fix `security_group_rule` identification ([#8661](https://github.com/hashicorp/terraform/issues/8661))
+ * provider/cloudstack: Fix renaming a VPC with the `cloudstack_vpc` resource ([#8784](https://github.com/hashicorp/terraform/issues/8784))
 
 ## 0.7.3 (September 5, 2016)
 
