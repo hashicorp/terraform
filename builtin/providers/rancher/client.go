@@ -216,7 +216,7 @@ func (client *Client) GetRegistrationToken(id string) (token RegistrationToken, 
 
 	tokens := new(RegistrationTokens)
 	if err = json.NewDecoder(resp.Body).Decode(tokens); err != nil {
-		return false, fmt.Errorf("Failed to list registration tokens for environment %s", id)
+		return token, fmt.Errorf("Failed to list registration tokens for environment %s", id)
 	}
 
 	for _, t := range tokens.Tokens {
