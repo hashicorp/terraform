@@ -1,7 +1,13 @@
 package rancher
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 
 	"github.com/hashicorp/go-cleanhttp"
 )
@@ -35,4 +41,104 @@ func NewClient(serverUrl string, accessKey string, secretKey string) (*Client, e
 // TODO: implement that
 func (client *Client) detectApiVersion() (int, error) {
 	return 1, nil
+}
+
+// Creates a new request with necessary headers
+func (c *Client) newRequest(method string, endpoint string, body []byte) (*http.Request, error) {
+
+	urlStr := c.ServerUrl + "/v" + strconv.Itoa(c.ApiVersion) + endpoint
+	url, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, fmt.Errorf("Error during parsing request URL: %s", err)
+	}
+
+	var bodyReader io.Reader
+	if body != nil {
+		bodyReader = bytes.NewReader(body)
+	}
+
+	req, err := http.NewRequest(method, url.String(), bodyReader)
+	if err != nil {
+		return nil, fmt.Errorf("Error during creation of request: %s", err)
+	}
+
+	req.SetBasicAuth(c.AccessKey, c.SecretKey)
+	req.Header.Add("Accept", "application/json")
+
+	if method != "GET" {
+		req.Header.Add("Content-Type", "application/json")
+	}
+
+	return req, nil
+}
+
+type Environment struct {
+	Id                string              `json:"id"`
+	Description       string              `json:"description"`
+	Kubernetes        bool                `json:kubernetes"`
+	Members           []EnvironmentMember `json:"members"`
+	Mesos             bool                `json:"mesos"`
+	Name              string              `json:"name"`
+	PublicDNS         bool                `json:"publicDns"`
+	ServicesPortRange PortRange           `json:"servicesPortRange"`
+	Swarm             bool                `json:"swarm"`
+	VirtualMachine    bool                `json:"virtualMachine"`
+}
+
+type EnvironmentMember struct {
+	ExternalId     string `json:"externalId"`
+	ExternalIdType string `json:"externalIdType"`
+	Role           string `json:"role"`
+}
+
+type PortRange struct {
+	StarPort int `json:"startPort"`
+	EndPort  int `json:"endPort"`
+}
+
+func (client *Client) CreateEnvironment(env Environment) (string, error) {
+	reqBody, _ := json.Marshal(env)
+
+	req, err := client.newRequest("POST", "/projects", reqBody)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := client.Http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 && resp.StatusCode != 204 {
+		return "", fmt.Errorf("Error creating environment: %s", env.Name)
+	} else {
+		newEnv := new(Environment)
+		if err = json.NewDecoder(resp.Body).Decode(newEnv); err != nil {
+			return "", fmt.Errorf("Failed to get new environment id for %s", env.Name)
+		}
+
+		return newEnv.Id, nil
+	}
+}
+
+func (client *Client) GetEnvironmentById(id string) (Environment, error) {
+	req, err := client.newRequest("GET", fmt.Sprintf("/projects/%s", id), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.Http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	env := new(Environment)
+	err = json.NewDecoder(resp.Body).Decode(env)
+	if err != nil {
+		return nil, err
+	}
+
+	return env, nil
 }
