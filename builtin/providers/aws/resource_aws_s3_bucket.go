@@ -23,7 +23,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 		Update: resourceAwsS3BucketUpdate,
 		Delete: resourceAwsS3BucketDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsS3BucketImportState,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -48,7 +48,6 @@ func resourceAwsS3Bucket() *schema.Resource {
 			"policy": &schema.Schema{
 				Type:             schema.TypeString,
 				Optional:         true,
-				Computed:         true,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 
@@ -452,21 +451,23 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Read the policy
-	pol, err := s3conn.GetBucketPolicy(&s3.GetBucketPolicyInput{
-		Bucket: aws.String(d.Id()),
-	})
-	log.Printf("[DEBUG] S3 bucket: %s, read policy: %v", d.Id(), pol)
-	if err != nil {
-		if err := d.Set("policy", ""); err != nil {
-			return err
-		}
-	} else {
-		if v := pol.Policy; v == nil {
+	if _, ok := d.GetOk("policy"); ok {
+		pol, err := s3conn.GetBucketPolicy(&s3.GetBucketPolicyInput{
+			Bucket: aws.String(d.Id()),
+		})
+		log.Printf("[DEBUG] S3 bucket: %s, read policy: %v", d.Id(), pol)
+		if err != nil {
 			if err := d.Set("policy", ""); err != nil {
 				return err
 			}
-		} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
-			return err
+		} else {
+			if v := pol.Policy; v == nil {
+				if err := d.Set("policy", ""); err != nil {
+					return err
+				}
+			} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
+				return err
+			}
 		}
 	}
 
