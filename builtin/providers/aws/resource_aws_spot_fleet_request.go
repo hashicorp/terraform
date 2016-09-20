@@ -975,8 +975,6 @@ func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{})
 		return resource.RetryableError(
 			fmt.Errorf("fleet still has (%d) running instances", len(resp.ActiveInstances)))
 	})
-
-	return nil
 }
 
 func hashEphemeralBlockDevice(v interface{}) int {
