@@ -2572,6 +2572,9 @@ type CacheCluster struct {
 	// node.
 	ConfigurationEndpoint *Endpoint `type:"structure"`
 
+	// The DNS name of the cache cluster without the port appended.
+	ClusterAddress *string `type:"string"`
+
 	// The name of the cache engine (memcached or redis) to be used for this cache
 	// cluster.
 	Engine *string `type:"string"`
