@@ -115,12 +115,19 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 		env.PublicDNS = v.(bool)
 	}
 
+	portRange := make(map[string]int)
 	if v, ok := d.GetOk("services_port_range"); ok {
-		portRange := v.(map[string]int)
-		env.ServicesPortRange = PortRange{
-			StartPort: portRange["start_port"],
-			EndPort:   portRange["end_port"],
+		portRange = v.(map[string]int)
+	} else {
+		// Default values
+		portRange = map[string]int{
+			"start_port": 49153,
+			"end_port":   65535,
 		}
+	}
+	env.ServicesPortRange = PortRange{
+		StartPort: portRange["start_port"],
+		EndPort:   portRange["end_port"],
 	}
 
 	if v, ok := d.GetOk("swarm"); ok {
