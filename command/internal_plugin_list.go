@@ -39,6 +39,7 @@ import (
 	postgresqlprovider "github.com/hashicorp/terraform/builtin/providers/postgresql"
 	powerdnsprovider "github.com/hashicorp/terraform/builtin/providers/powerdns"
 	rabbitmqprovider "github.com/hashicorp/terraform/builtin/providers/rabbitmq"
+	rancherprovider "github.com/hashicorp/terraform/builtin/providers/rancher"
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
 	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
@@ -95,6 +96,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"postgresql":   postgresqlprovider.Provider,
 	"powerdns":     powerdnsprovider.Provider,
 	"rabbitmq":     rabbitmqprovider.Provider,
+	"rancher":      rancherprovider.Provider,
 	"random":       randomprovider.Provider,
 	"rundeck":      rundeckprovider.Provider,
 	"scaleway":     scalewayprovider.Provider,
