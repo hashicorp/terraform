@@ -48,11 +48,6 @@ func TestDiffTransformer(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
-
-	v := g.Vertices()[0].(*NodeApplyableResource)
-	if v.Config == nil {
-		t.Fatal("no config")
-	}
 }
 
 const testTransformDiffBasicStr = `
