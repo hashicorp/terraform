@@ -169,6 +169,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_api_gateway_api_key":                      resourceAwsApiGatewayApiKey(),
 			"aws_api_gateway_authorizer":                   resourceAwsApiGatewayAuthorizer(),
 			"aws_api_gateway_base_path_mapping":            resourceAwsApiGatewayBasePathMapping(),
+			"aws_api_gateway_client_certificate":           resourceAwsApiGatewayClientCertificate(),
 			"aws_api_gateway_deployment":                   resourceAwsApiGatewayDeployment(),
 			"aws_api_gateway_domain_name":                  resourceAwsApiGatewayDomainName(),
 			"aws_api_gateway_integration":                  resourceAwsApiGatewayIntegration(),
