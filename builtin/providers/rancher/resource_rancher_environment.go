@@ -58,14 +58,16 @@ func resourceRancherEnvironment() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
-					"start_port": &schema.Schema{
-						Type:     schema.TypeInt,
-						Required: true,
-					},
+					Schema: map[string]*schema.Schema{
+						"start_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
 
-					"end_port": &schema.Schema{
-						Type:     schema.TypeInt,
-						Required: true,
+						"end_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
 					},
 				},
 			},
