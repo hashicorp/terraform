@@ -29,6 +29,8 @@ type AttachResourceConfigTransformer struct {
 }
 
 func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
+	log.Printf("[TRACE] AttachResourceConfigTransformer: Beginning...")
+
 	// Go through and find GraphNodeAttachResource
 	for _, v := range g.Vertices() {
 		// Only care about GraphNodeAttachResource implementations
@@ -39,7 +41,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 
 		// Determine what we're looking for
 		addr := arn.ResourceAddr()
-		log.Printf("[TRACE] Attach resource request: %s", addr)
+		log.Printf("[TRACE] AttachResourceConfigTransformer: Attach resource request: %s", addr)
 
 		// Get the configuration.
 		path := normalizeModulePath(addr.Path)
