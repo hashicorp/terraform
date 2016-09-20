@@ -54,6 +54,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:  b.State,
 		},
 
+		// Attach the configuration to any resources
+		&AttachResourceConfigTransformer{Module: b.Module},
+
 		// Create orphan output nodes
 		&OrphanOutputTransformer{Module: b.Module, State: b.State},
 

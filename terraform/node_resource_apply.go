@@ -91,6 +91,11 @@ func (n *NodeApplyableResource) ResourceAddr() *ResourceAddress {
 	return n.Addr
 }
 
+// GraphNodeAttachResource
+func (n *NodeApplyableResource) AttachResourceConfig(c *config.Resource) {
+	n.Config = c
+}
+
 // GraphNodeAttachResourceState
 func (n *NodeApplyableResource) AttachResourceState(s *ResourceState) {
 	n.ResourceState = s

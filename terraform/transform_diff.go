@@ -69,34 +69,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	// NOTE: Lots of room for performance optimizations below. For
-	// resource-heavy diffs this part alone is probably pretty slow.
-
-	// Annotate all nodes with their config and state
-	for _, n := range nodes {
-		// Grab the configuration at this path.
-		if t := t.Module.Child(n.Addr.Path); t != nil {
-			for _, r := range t.Config().Resources {
-				// Get a resource address so we can compare
-				addr, err := parseResourceAddressConfig(r)
-				if err != nil {
-					panic(fmt.Sprintf(
-						"Error parsing config address, this is a bug: %#v", r))
-				}
-				addr.Path = n.Addr.Path
-
-				// If this is not the same resource, then continue
-				if !addr.Equals(n.Addr) {
-					continue
-				}
-
-				// Same resource! Mark it and exit
-				n.Config = r
-				break
-			}
-		}
-	}
-
 	// Add all the nodes to the graph
 	for _, n := range nodes {
 		g.Add(n)
