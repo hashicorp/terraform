@@ -27,6 +27,8 @@ func TestAccAWSElasticacheCluster_basic(t *testing.T) {
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
 					resource.TestCheckResourceAttr(
 						"aws_elasticache_cluster.bar", "cache_nodes.0.id", "0001"),
+					resource.TestCheckResourceAttrSet("aws_elasticache_cluster.bar", "configuration_endpoint"),
+					resource.TestCheckResourceAttrSet("aws_elasticache_cluster.bar", "cluster_address"),
 				),
 			},
 		},
