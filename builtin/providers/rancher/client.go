@@ -110,7 +110,7 @@ func (client *Client) CreateEnvironment(env Environment) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 && resp.StatusCode != 204 {
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
 		return "", fmt.Errorf("Error creating environment: %s", env.Name)
 	} else {
 		newEnv := new(Environment)
