@@ -102,9 +102,10 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 		env.Kubernetes = v.(bool)
 	}
 
-	if v, ok := d.GetOk("members"); ok {
-		//	Members:     []EnvironmentMember{},
-	}
+	// TODO: members
+	//if v, ok := d.GetOk("members"); ok {
+	//	Members:     []EnvironmentMember{},
+	//}
 
 	if v, ok := d.GetOk("mesos"); ok {
 		env.Mesos = v.(bool)
@@ -144,7 +145,8 @@ func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Client)
 
 	log.Printf("[DEBUG] Reading Rancher Environment: %s", d.Id())
-	env, err := client.GetEnvironmentById(d.Id())
+	// DO something with retrieved env?
+	_, err := client.GetEnvironmentById(d.Id())
 	if err != nil {
 		return fmt.Errorf("Couldn't fetch Rancher Environment: %s", err)
 	}
