@@ -178,7 +178,7 @@ func (client *Client) EnvironmentExists(name string) (bool, error) {
 		return "", fmt.Errorf("Failed to list environments looking for %s", name)
 	}
 
-	for _, e := range envs {
+	for _, e := range envs.Environments {
 		if e.Name == name {
 			return true, nil
 		}
