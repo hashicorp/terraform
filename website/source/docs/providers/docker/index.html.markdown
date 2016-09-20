@@ -56,3 +56,5 @@ The following arguments are supported:
 * `cert_path` - (Optional) Path to a directory with certificate information
   for connecting to the Docker host via TLS. If this is blank, the
   `DOCKER_CERT_PATH` will also be checked.
+
+Note:  As per [Docker Remote API documentation](https://docs.docker.com/engine/reference/api/docker_remote_api/), in any docker-machine environment, the Docker daemon uses an encrypted TCP socket (TLS) and requires `cert_path` for a successful connection.
