@@ -474,12 +474,17 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 				},
 			},
 
-			"nirmata_integration": &schema.Schema{
+			"kubernetes_integration": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"api_key": &schema.Schema{
+						"api_server": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"token": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -812,14 +817,15 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 		}
 		d.Set("ec2_container_service_integration", ecs)
 
-		// Set the Nirmata integration.
-		nirmata := make([]map[string]interface{}, 0, 1)
-		if g.Integration.Nirmata != nil {
-			nirmata = append(nirmata, map[string]interface{}{
-				"api_key": g.Integration.Nirmata.APIKey,
+		// Set the Kubernetes integration.
+		kubernetes := make([]map[string]interface{}, 0, 1)
+		if g.Integration.Kubernetes != nil {
+			kubernetes = append(kubernetes, map[string]interface{}{
+				"api_server": g.Integration.Kubernetes.Server,
+				"token":      g.Integration.Kubernetes.Token,
 			})
 		}
-		d.Set("nirmata_integration", nirmata)
+		d.Set("kubernetes_integration", kubernetes)
 	} else {
 		d.SetId("")
 		return nil
@@ -1136,15 +1142,15 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if d.HasChange("nirmata_integration") {
-		if v, ok := d.GetOk("nirmata_integration"); ok {
-			if integration, err := expandAwsGroupNirmataIntegration(v); err != nil {
+	if d.HasChange("kubernetes_integration") {
+		if v, ok := d.GetOk("kubernetes_integration"); ok {
+			if integration, err := expandAwsGroupKubernetesIntegration(v); err != nil {
 				return err
 			} else {
 				if group.Integration == nil {
 					group.Integration = &spotinst.AwsGroupIntegration{}
 				}
-				group.Integration.Nirmata = integration
+				group.Integration.Kubernetes = integration
 				hasChange = true
 			}
 		}
@@ -1342,11 +1348,11 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 		}
 	}
 
-	if v, ok := d.GetOk("nirmata_integration"); ok {
-		if integration, err := expandAwsGroupNirmataIntegration(v); err != nil {
+	if v, ok := d.GetOk("kubernetes_integration"); ok {
+		if integration, err := expandAwsGroupKubernetesIntegration(v); err != nil {
 			return nil, err
 		} else {
-			group.Integration.Nirmata = integration
+			group.Integration.Kubernetes = integration
 		}
 	}
 
@@ -1886,19 +1892,23 @@ func expandAwsGroupEC2ContainerServiceIntegration(data interface{}) (*spotinst.A
 	}
 }
 
-// expandAwsGroupNirmataIntegration expands the Nirmata Integration block.
-func expandAwsGroupNirmataIntegration(data interface{}) (*spotinst.AwsGroupNirmataIntegration, error) {
+// expandAwsGroupKubernetesIntegration expands the Kubernetes Integration block.
+func expandAwsGroupKubernetesIntegration(data interface{}) (*spotinst.AwsGroupKubernetesIntegration, error) {
 	if list := data.(*schema.Set).List(); len(list) != 1 {
-		return nil, fmt.Errorf("Only a single nirmata_integration block is expected")
+		return nil, fmt.Errorf("Only a single kubernetes_integration block is expected")
 	} else {
 		m := list[0].(map[string]interface{})
-		i := &spotinst.AwsGroupNirmataIntegration{}
+		i := &spotinst.AwsGroupKubernetesIntegration{}
 
-		if v, ok := m["api_key"].(string); ok && v != "" {
-			i.APIKey = spotinst.String(v)
+		if v, ok := m["api_server"].(string); ok && v != "" {
+			i.Server = spotinst.String(v)
 		}
 
-		log.Printf("[DEBUG] AwsGroup Nirmata integration configuration: %#v\n", i)
+		if v, ok := m["token"].(string); ok && v != "" {
+			i.Token = spotinst.String(v)
+		}
+
+		log.Printf("[DEBUG] AwsGroup Kubernetes integration configuration: %#v\n", i)
 		return i, nil
 	}
 }
