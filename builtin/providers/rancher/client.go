@@ -122,22 +122,22 @@ func (client *Client) CreateEnvironment(env Environment) (string, error) {
 	}
 }
 
-func (client *Client) GetEnvironmentById(id string) (Environment, error) {
+func (client *Client) GetEnvironmentById(id string) (e Environment, err error) {
 	req, err := client.newRequest("GET", fmt.Sprintf("/projects/%s", id), nil)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	resp, err := client.Http.Do(req)
 	if err != nil {
-		return nil, err
+		return
 	}
 	defer resp.Body.Close()
 
 	env := new(Environment)
 	err = json.NewDecoder(resp.Body).Decode(env)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	return env, nil
