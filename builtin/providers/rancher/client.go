@@ -147,3 +147,8 @@ func (client *Client) DeleteEnvironmentById(id string) error {
 	// TODO implement
 	return nil
 }
+
+func (client *Client) EnvironmentExists(name string) (bool, error) {
+	// TODO implement
+	return true, nil
+}
