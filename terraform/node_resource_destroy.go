@@ -30,6 +30,11 @@ func (n *NodeDestroyResource) ProvidedBy() []string {
 	return []string{resourceProvider(n.Addr.Type, "")}
 }
 
+// GraphNodeDestroyer
+func (n *NodeDestroyResource) DestroyAddr() *ResourceAddress {
+	return n.Addr
+}
+
 // GraphNodeAttachResourceState
 func (n *NodeDestroyResource) ResourceAddr() *ResourceAddress {
 	return n.Addr

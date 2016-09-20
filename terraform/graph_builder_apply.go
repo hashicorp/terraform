@@ -54,14 +54,17 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:  b.State,
 		},
 
-		// Attach the configuration to any resources
-		&AttachResourceConfigTransformer{Module: b.Module},
-
 		// Create orphan output nodes
 		&OrphanOutputTransformer{Module: b.Module, State: b.State},
 
+		// Attach the configuration to any resources
+		&AttachResourceConfigTransformer{Module: b.Module},
+
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
+
+		// Destruction ordering
+		&DestroyEdgeTransformer{Module: b.Module, State: b.State},
 
 		// Create all the providers
 		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},

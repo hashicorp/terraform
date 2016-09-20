@@ -34,23 +34,27 @@ func (n *NodeApplyableResource) ReferenceableName() []string {
 
 // GraphNodeReferencer
 func (n *NodeApplyableResource) References() []string {
-	// Let's make this a little shorter so it is easier to reference
-	c := n.Config
-	if c == nil {
-		return nil
+	// If we have a config, that is our source of truth
+	if c := n.Config; c != nil {
+		// Grab all the references
+		var result []string
+		result = append(result, c.DependsOn...)
+		result = append(result, ReferencesFromConfig(c.RawCount)...)
+		result = append(result, ReferencesFromConfig(c.RawConfig)...)
+		for _, p := range c.Provisioners {
+			result = append(result, ReferencesFromConfig(p.ConnInfo)...)
+			result = append(result, ReferencesFromConfig(p.RawConfig)...)
+		}
+
+		return result
 	}
 
-	// Grab all the references
-	var result []string
-	result = append(result, c.DependsOn...)
-	result = append(result, ReferencesFromConfig(c.RawCount)...)
-	result = append(result, ReferencesFromConfig(c.RawConfig)...)
-	for _, p := range c.Provisioners {
-		result = append(result, ReferencesFromConfig(p.ConnInfo)...)
-		result = append(result, ReferencesFromConfig(p.RawConfig)...)
+	// If we have state, that is our next source
+	if s := n.ResourceState; s != nil {
+		return s.Dependencies
 	}
 
-	return result
+	return nil
 }
 
 // GraphNodeProviderConsumer
