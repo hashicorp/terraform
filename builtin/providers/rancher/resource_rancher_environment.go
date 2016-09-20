@@ -158,7 +158,7 @@ func resourceRancherEnvironmentDelete(d *schema.ResourceData, meta interface{}) 
 	client := meta.(*Client)
 
 	log.Printf("[INFO] Deleting Rancher Environment: %s", d.Id())
-	err := client.DeleteEnvironementByID(d.Id())
+	err := client.DeleteEnvironmentByID(d.Id())
 
 	if err != nil {
 		return fmt.Errorf("Error deleting Rancher Environment: %s", err)

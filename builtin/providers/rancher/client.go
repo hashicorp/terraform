@@ -142,3 +142,8 @@ func (client *Client) GetEnvironmentById(id string) (e *Environment, err error) 
 
 	return env, nil
 }
+
+func (client *Client) DeleteEnvironmentById(id string) error {
+	// TODO implement
+	return nil
+}
