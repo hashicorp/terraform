@@ -43,7 +43,7 @@ resource "aws_instance" "web" {
         node_name = "webserver1"
         secret_key = "${file("../encrypted_data_bag_secret")}"
         server_url = "https://chef.company.com/organizations/org1"
-        receate_client = true
+        recreate_client = true
         user_name = "bob"
         user_key = "${file("../bob.pem")}"
         version = "12.4.1"
