@@ -99,6 +99,10 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			a_d := d.(dag.Vertex)
 			a := v
 
+			log.Printf(
+				"[TRACE] DestroyEdgeTransformer: connecting creator/destroyer: %s, %s",
+				dag.VertexName(a), dag.VertexName(a_d))
+
 			g.Connect(&DestroyEdge{S: a, T: a_d})
 		}
 	}
