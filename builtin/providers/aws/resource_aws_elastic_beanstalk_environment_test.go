@@ -235,14 +235,14 @@ func TestAccAWSBeanstalkEnv_basic_settings_update(t *testing.T) {
 				Config: testAccBeanstalkEnvConfig_settings(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
-					testAccVerifyBeanstalkConfig(&app, []string{"TF_LOG", "TF_SOME_VAR"}),
+					testAccVerifyBeanstalkConfig(&app, []string{"ENV_STATIC", "ENV_UPDATE"}),
 				),
 			},
 			resource.TestStep{
 				Config: testAccBeanstalkEnvConfig_settings_update(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
-					testAccVerifyBeanstalkConfig(&app, []string{"TF_LOG", "TF_SOME_VAR"}),
+					testAccVerifyBeanstalkConfig(&app, []string{"ENV_STATIC", "ENV_UPDATE"}),
 				),
 			},
 			resource.TestStep{
@@ -280,7 +280,7 @@ func testAccVerifyBeanstalkConfig(env *elasticbeanstalk.EnvironmentDescription, 
 		cs := resp.ConfigurationSettings[0]
 
 		var foundEnvs []string
-		testStrings := []string{"TF_LOG", "TF_SOME_VAR"}
+		testStrings := []string{"ENV_STATIC", "ENV_UPDATE"}
 		for _, os := range cs.OptionSettings {
 			for _, k := range testStrings {
 				if *os.OptionName == k {
@@ -504,13 +504,19 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "TF_LOG"
+    name      = "ENV_STATIC"
     value     = "true"
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "TF_SOME_VAR"
+    name      = "ENV_UPDATE"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ENV_REMOVE"
     value     = "true"
   }
 
@@ -553,19 +559,19 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "TF_LOG"
+    name      = "ENV_STATIC"
     value     = "true"
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "TF_SOME_VAR"
+    name      = "ENV_UPDATE"
     value     = "false"
   }
 
-	  setting {
+  setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "TF_SOME_NEW_VAR"
+    name      = "ENV_ADD"
     value     = "true"
   }
 
