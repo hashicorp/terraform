@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -471,10 +472,11 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 					return err
 				}
 			} else {
-				policy, _ := normalizeJsonString(*v)
-				if err := d.Set("policy", policy); err != nil {
-					return err
+				policy, err := normalizeJsonString(*v)
+				if err != nil {
+					return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
 				}
+				d.Set("policy", policy)
 			}
 		}
 	}
