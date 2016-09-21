@@ -1,10 +1,15 @@
 ## 0.7.5 (Unreleased)
 
 FEATURES:
+ * **New Resource:** `aws_api_gateway_client_certificate` [GH-8775]
 
 IMPROVEMENTS:
 
  * provider/aws: Add JSON validation to the `aws_cloudwatch_event_rule` resource [GH-8897]
+ * provider/aws: S3 bucket policies are imported as separate resources [GH-8915]
+ * provider/aws: S3 bucket policies can now be removed via the `aws_s3_bucket` resource [GH-8915]
+ * provider/aws: Added a cluster_address attribute to aws elasticache [GH-8935]
+ * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
 
 BUG FIXES:
 
