@@ -9,6 +9,13 @@ import (
 // abstract resource to a concrete one of some type.
 type ConcreteResourceNodeFunc func(*NodeAbstractResource) dag.Vertex
 
+// GraphNodeResource is implemented by any nodes that represent a resource.
+// The type of operation cannot be assumed, only that this node represents
+// the given resource.
+type GraphNodeResource interface {
+	ResourceAddr() *ResourceAddress
+}
+
 // NodeAbstractResource represents a resource that has no associated
 // operations. It registers all the interfaces for a resource that common
 // across multiple operation types.
@@ -99,7 +106,7 @@ func (n *NodeAbstractResource) ProvisionedBy() []string {
 	return result
 }
 
-// GraphNodeAttachResourceState
+// GraphNodeResource, GraphNodeAttachResourceState
 func (n *NodeAbstractResource) ResourceAddr() *ResourceAddress {
 	return n.Addr
 }
