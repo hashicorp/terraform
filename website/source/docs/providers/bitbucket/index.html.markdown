@@ -3,7 +3,7 @@ layout: "bitbucket"
 page_title: "Provider: Bitbucket"
 sidebar_current: "docs-bitbucket-index"
 description: |-
-  The Bitbucket proivder to interact with repositories, projects, etc..
+  The Bitbucket provider to interact with repositories, projects, etc..
 ---
 
 # Bitbucket Provider
@@ -37,5 +37,5 @@ The following arguments are supported in the `provider` block:
 * `username` - (Required) Your username used to connect to bitbucket. You can
   also set this via the environment variable. `BITBUCKET_USERNAME`
 
-* `username` - (Required) Your passowrd used to connect to bitbucket. You can
+* `password` - (Required) Your password used to connect to bitbucket. You can
   also set this via the environment variable. `BITBUCKET_PASSWORD`
