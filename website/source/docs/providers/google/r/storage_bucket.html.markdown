@@ -50,8 +50,6 @@ to `google_storage_bucket_acl.predefined_acl`.
 
 * `storage_class` - (Optional) The [Storage Class](https://cloud.google.com/storage/docs/storage-classes) of the new bucket. Supported values include: `STANDARD`, `NEARLINE`, `DURABLE_REDUCED_AVAILABILITY`
 
-    > See  for more info.
-
 * `website` - (Optional) Configuration if the bucket acts as a website.
 
 The optional `website` block supports:
