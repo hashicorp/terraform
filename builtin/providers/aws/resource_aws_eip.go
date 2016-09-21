@@ -128,12 +128,12 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf(
-		"[DEBUG] EIP describe configuration: %#v (domain: %s)",
+		"[DEBUG] EIP describe configuration: %s (domain: %s)",
 		req, domain)
 
 	describeAddresses, err := ec2conn.DescribeAddresses(req)
 	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAllocationID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && (ec2err.Code() == "InvalidAllocationID.NotFound" || ec2err.Code() == "InvalidAddress.NotFound") {
 			d.SetId("")
 			return nil
 		}
@@ -176,7 +176,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	// confirm we have an Allocation ID for our ID
 	// Allows users to import with IP address and not just allocation id
-	if net.ParseIP(id) != nil {
+	if *address.Domain == "vpc" && net.ParseIP(id) != nil {
 		log.Printf("[DEBUG] Re-assigning EIP ID (%s) to it's Allocation ID (%s)", d.Id(), *address.AllocationId)
 		d.SetId(*address.AllocationId)
 	}
