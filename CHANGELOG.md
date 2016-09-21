@@ -1,6 +1,7 @@
 ## 0.7.5 (Unreleased)
 
 FEATURES:
+ * **New Provider:** `bitbucket` [GH-7405]
  * **New Resource:** `aws_api_gateway_client_certificate` [GH-8775]
 
 IMPROVEMENTS:
