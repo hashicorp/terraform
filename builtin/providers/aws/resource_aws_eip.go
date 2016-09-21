@@ -174,8 +174,8 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("domain", address.Domain)
 
-	// confirm we have an Allocation ID for our ID
-	// Allows users to import with IP address and not just allocation id
+	// Force ID to be an Allocation ID if we're on a VPC
+	// This allows users to import the EIP based on the IP if they are in a VPC
 	if *address.Domain == "vpc" && net.ParseIP(id) != nil {
 		log.Printf("[DEBUG] Re-assigning EIP ID (%s) to it's Allocation ID (%s)", d.Id(), *address.AllocationId)
 		d.SetId(*address.AllocationId)
