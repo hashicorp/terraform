@@ -5,6 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -106,10 +107,11 @@ func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	template, _ := normalizeJsonString(*tOut.TemplateBody)
-	if err := d.Set("template_body", template); err != nil {
-		return err
+	template, err := normalizeJsonString(*tOut.TemplateBody)
+	if err != nil {
+		return errwrap.Wrapf("template body contains an invalid JSON: {{err}}", err)
 	}
+	d.Set("template_body", template)
 
 	return nil
 }
