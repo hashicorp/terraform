@@ -6,12 +6,12 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-
-	"github.com/aws/aws-sdk-go/aws"
-	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
 )
 
 func resourceAwsCloudWatchEventRule() *schema.Resource {
@@ -126,7 +126,10 @@ func resourceAwsCloudWatchEventRuleRead(d *schema.ResourceData, meta interface{}
 	d.Set("arn", out.Arn)
 	d.Set("description", out.Description)
 	if out.EventPattern != nil {
-		pattern, _ := normalizeJsonString(*out.EventPattern)
+		pattern, err := normalizeJsonString(*out.EventPattern)
+		if err != nil {
+			return errwrap.Wrapf("event pattern contains an invalid JSON: {{err}}", err)
+		}
 		d.Set("event_pattern", pattern)
 	}
 	d.Set("name", out.Name)
@@ -218,7 +221,7 @@ func buildPutRuleInputStruct(d *schema.ResourceData) *events.PutRuleInput {
 		input.Description = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("event_pattern"); ok {
-		pattern, _ := normalizeJsonString(v.(string))
+		pattern, _ := normalizeJsonString(v)
 		input.EventPattern = aws.String(pattern)
 	}
 	if v, ok := d.GetOk("role_arn"); ok {
