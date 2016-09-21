@@ -58,6 +58,10 @@ func dataSourceAwsCloudFormationStack() *schema.Resource {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
+			"resources": {
+				Type:     schema.TypeMap,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -90,6 +94,7 @@ func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface
 	d.Set("parameters", flattenAllCloudFormationParameters(stack.Parameters))
 	d.Set("tags", flattenCloudFormationTags(stack.Tags))
 	d.Set("outputs", flattenCloudFormationOutputs(stack.Outputs))
+	d.Set("resources", flattenCloudFormationResources(stack.Resources))
 
 	if len(stack.Capabilities) > 0 {
 		d.Set("capabilities", schema.NewSet(schema.HashString, flattenStringList(stack.Capabilities)))

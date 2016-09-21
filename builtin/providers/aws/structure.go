@@ -1026,6 +1026,14 @@ func flattenCloudFormationOutputs(cfOutputs []*cloudformation.Output) map[string
 	return outputs
 }
 
+func flattenCloudFormationResources(cfResources []*cloudformation.Resource) map[string]string {
+	resources := make(map[string]string, len(cfResources))
+	for _, o := range cfResources {
+		resources[*o.ResourceKey] = *o.ResourceValue
+	}
+	return resources
+}
+
 func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
 	strs := make([]string, 0, len(list))
 	for _, r := range list {

@@ -27,6 +27,7 @@ func TestAccAWSCloudFormationStack_dataSource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("data.aws_cloudformation_stack.network", "tags.%", "2"),
 					resource.TestCheckResourceAttr("data.aws_cloudformation_stack.network", "tags.Name", "Form the Cloud"),
 					resource.TestCheckResourceAttr("data.aws_cloudformation_stack.network", "tags.Second", "meh"),
+					// TODO: Check resources
 				),
 			},
 		},
