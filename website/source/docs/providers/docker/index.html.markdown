@@ -57,4 +57,10 @@ The following arguments are supported:
   for connecting to the Docker host via TLS. If this is blank, the
   `DOCKER_CERT_PATH` will also be checked.
 
-Note:  As per [Docker Remote API documentation](https://docs.docker.com/engine/reference/api/docker_remote_api/), in any docker-machine environment, the Docker daemon uses an encrypted TCP socket (TLS) and requires `cert_path` for a successful connection.
+~> **NOTE on Certificates and `docker-machine`:**  As per [Docker Remote API
+documentation](https://docs.docker.com/engine/reference/api/docker_remote_api/),
+in any docker-machine environment, the Docker daemon uses an encrypted TCP
+socket (TLS) and requires `cert_path` for a successful connection. As an alternative,
+if using `docker-machine`, run `eval $(docker-machine env <machine-name>)` prior
+to running Terraform, and the host and certificate path will be extracted from
+the environment.
