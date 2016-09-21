@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // DiffTransformer is a GraphTransformer that adds the elements of
@@ -19,6 +20,8 @@ import (
 // is built based on the diff first, though, ensuring that only resources
 // that are being modified are present in the graph.
 type DiffTransformer struct {
+	Concrete ConcreteResourceNodeFunc
+
 	Diff   *Diff
 	Module *module.Tree
 	State  *State
@@ -32,7 +35,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 
 	// Go through all the modules in the diff.
 	log.Printf("[TRACE] DiffTransformer: starting")
-	var nodes []*NodeApplyableResource
+	var nodes []dag.Vertex
 	for _, m := range t.Diff.Modules {
 		log.Printf("[TRACE] DiffTransformer: Module: %s", m)
 		// TODO: If this is a destroy diff then add a module destroy node
@@ -62,9 +65,13 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			// If we have changes, then add the applyable version
 			if len(inst.Attributes) > 0 {
 				// Add the resource to the graph
-				nodes = append(nodes, &NodeApplyableResource{
-					Addr: addr,
-				})
+				abstract := &NodeAbstractResource{Addr: addr}
+				var node dag.Vertex = abstract
+				if f := t.Concrete; f != nil {
+					node = f(abstract)
+				}
+
+				nodes = append(nodes, node)
 			}
 		}
 	}

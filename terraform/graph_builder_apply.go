@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // ApplyGraphBuilder implements GraphBuilder and is responsible for building
@@ -46,9 +47,17 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+		return &NodeApplyableResource{
+			NodeAbstractResource: a,
+		}
+	}
+
 	steps := []GraphTransformer{
 		// Creates all the nodes represented in the diff.
 		&DiffTransformer{
+			Concrete: concreteResource,
+
 			Diff:   b.Diff,
 			Module: b.Module,
 			State:  b.State,
