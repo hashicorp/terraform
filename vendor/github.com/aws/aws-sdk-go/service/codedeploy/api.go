@@ -638,7 +638,7 @@ func (c *CodeDeploy) DeleteDeploymentConfigRequest(input *DeleteDeploymentConfig
 
 // Deletes a deployment configuration.
 //
-// A deployment configuration cannot be deleted if it is currently in use.
+//  A deployment configuration cannot be deleted if it is currently in use.
 // Predefined configurations cannot be deleted.
 func (c *CodeDeploy) DeleteDeploymentConfig(input *DeleteDeploymentConfigInput) (*DeleteDeploymentConfigOutput, error) {
 	req, out := c.DeleteDeploymentConfigRequest(input)
@@ -1959,6 +1959,58 @@ func (s AddTagsToOnPremisesInstancesOutput) GoString() string {
 	return s.String()
 }
 
+// Information about an alarm.
+type Alarm struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the alarm. Maximum length is 255 characters. Each alarm name
+	// can be used only once in a list of alarms.
+	Name *string `locationName:"name" type:"string"`
+}
+
+// String returns the string representation
+func (s Alarm) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Alarm) GoString() string {
+	return s.String()
+}
+
+// Information about alarms associated with the deployment group.
+type AlarmConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// A list of alarms configured for the deployment group. A maximum of 10 alarms
+	// can be added to a deployment group.
+	Alarms []*Alarm `locationName:"alarms" type:"list"`
+
+	// Indicates whether the alarm configuration is enabled.
+	Enabled *bool `locationName:"enabled" type:"boolean"`
+
+	// Indicates whether a deployment should continue if information about the current
+	// state of alarms cannot be retrieved from Amazon CloudWatch. The default value
+	// is false.
+	//
+	//   true: The deployment will proceed even if alarm status information can't
+	// be retrieved from Amazon CloudWatch.
+	//
+	//   false: The deployment will stop if alarm status information can't be retrieved
+	// from Amazon CloudWatch.
+	IgnorePollAlarmFailure *bool `locationName:"ignorePollAlarmFailure" type:"boolean"`
+}
+
+// String returns the string representation
+func (s AlarmConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AlarmConfiguration) GoString() string {
+	return s.String()
+}
+
 // Information about an application.
 type ApplicationInfo struct {
 	_ struct{} `type:"structure"`
@@ -1984,6 +2036,29 @@ func (s ApplicationInfo) String() string {
 
 // GoString returns the string representation
 func (s ApplicationInfo) GoString() string {
+	return s.String()
+}
+
+// Information about a configuration for automatically rolling back to a previous
+// version of an application revision when a deployment doesn't complete successfully.
+type AutoRollbackConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Indicates whether a defined automatic rollback configuration is currently
+	// enabled.
+	Enabled *bool `locationName:"enabled" type:"boolean"`
+
+	// The event type or types that trigger a rollback.
+	Events []*string `locationName:"events" type:"list"`
+}
+
+// String returns the string representation
+func (s AutoRollbackConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AutoRollbackConfiguration) GoString() string {
 	return s.String()
 }
 
@@ -2366,13 +2441,16 @@ type CreateDeploymentConfigInput struct {
 	//
 	// The type parameter takes either of the following values:
 	//
-	//  HOST_COUNT: The value parameter represents the minimum number of healthy
-	// instances as an absolute value. FLEET_PERCENT: The value parameter represents
-	// the minimum number of healthy instances as a percentage of the total number
-	// of instances in the deployment. If you specify FLEET_PERCENT, at the start
-	// of the deployment, AWS CodeDeploy converts the percentage to the equivalent
-	// number of instance and rounds up fractional instances.  The value parameter
-	// takes an integer.
+	//   HOST_COUNT: The value parameter represents the minimum number of healthy
+	// instances as an absolute value.
+	//
+	//   FLEET_PERCENT: The value parameter represents the minimum number of healthy
+	// instances as a percentage of the total number of instances in the deployment.
+	// If you specify FLEET_PERCENT, at the start of the deployment, AWS CodeDeploy
+	// converts the percentage to the equivalent number of instance and rounds up
+	// fractional instances.
+	//
+	//   The value parameter takes an integer.
 	//
 	// For example, to set a minimum of 95% healthy instance, specify a type of
 	// FLEET_PERCENT and a value of 95.
@@ -2427,9 +2505,17 @@ func (s CreateDeploymentConfigOutput) GoString() string {
 type CreateDeploymentGroupInput struct {
 	_ struct{} `type:"structure"`
 
+	// Information to add about Amazon CloudWatch alarms when the deployment group
+	// is created.
+	AlarmConfiguration *AlarmConfiguration `locationName:"alarmConfiguration" type:"structure"`
+
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
+
+	// Configuration information for an automatic rollback that is added when a
+	// deployment group is created.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
 
 	// A list of associated Auto Scaling groups.
 	AutoScalingGroups []*string `locationName:"autoScalingGroups" type:"list"`
@@ -2445,26 +2531,26 @@ type CreateDeploymentGroupInput struct {
 	//
 	//  The predefined deployment configurations include the following:
 	//
-	//   CodeDeployDefault.AllAtOnce attempts to deploy an application revision
-	// to as many instance as possible at once. The status of the overall deployment
+	//    CodeDeployDefault.AllAtOnce attempts to deploy an application revision
+	// to as many instances as possible at once. The status of the overall deployment
 	// will be displayed as Succeeded if the application revision is deployed to
 	// one or more of the instances. The status of the overall deployment will be
 	// displayed as Failed if the application revision is not deployed to any of
-	// the instances. Using an example of nine instance, CodeDeployDefault.AllAtOnce
-	// will attempt to deploy to all nine instance at once. The overall deployment
+	// the instances. Using an example of nine instances, CodeDeployDefault.AllAtOnce
+	// will attempt to deploy to all nine instances at once. The overall deployment
 	// will succeed if deployment to even a single instance is successful; it will
-	// fail only if deployments to all nine instance fail.
+	// fail only if deployments to all nine instances fail.
 	//
-	//   CodeDeployDefault.HalfAtATime deploys to up to half of the instances at
-	// a time (with fractions rounded down). The overall deployment succeeds if
-	// the application revision is deployed to at least half of the instances (with
-	// fractions rounded up); otherwise, the deployment fails. In the example of
-	// nine instances, it will deploy to up to four instance at a time. The overall
-	// deployment succeeds if deployment to five or more instances succeed; otherwise,
-	// the deployment fails. The deployment may be successfully deployed to some
-	// instances even if the overall deployment fails.
+	//    CodeDeployDefault.HalfAtATime deploys to up to half of the instances
+	// at a time (with fractions rounded down). The overall deployment succeeds
+	// if the application revision is deployed to at least half of the instances
+	// (with fractions rounded up); otherwise, the deployment fails. In the example
+	// of nine instances, it will deploy to up to four instances at a time. The
+	// overall deployment succeeds if deployment to five or more instances succeed;
+	// otherwise, the deployment fails. The deployment may be successfully deployed
+	// to some instances even if the overall deployment fails.
 	//
-	//   CodeDeployDefault.OneAtATime deploys the application revision to only
+	//    CodeDeployDefault.OneAtATime deploys the application revision to only
 	// one instance at a time.
 	//
 	// For deployment groups that contain more than one instance:
@@ -2479,10 +2565,10 @@ type CreateDeploymentGroupInput struct {
 	// to be deployed to any but the last instance. The deployment may be successfully
 	// deployed to some instances even if the overall deployment fails.
 	//
-	//   In an example using nine instance, it will deploy to one instance at a
-	// time. The overall deployment succeeds if deployment to the first eight instance
-	// is successful; the overall deployment fails if deployment to any of the first
-	// eight instance fails.
+	//   In an example using nine instances, it will deploy to one instance at
+	// a time. The overall deployment succeeds if deployment to the first eight
+	// instances is successful; the overall deployment fails if deployment to any
+	// of the first eight instances fails.
 	//
 	//   For deployment groups that contain only one instance, the overall deployment
 	// is successful only if deployment to the single instance is successful
@@ -2502,6 +2588,8 @@ type CreateDeploymentGroupInput struct {
 	ServiceRoleArn *string `locationName:"serviceRoleArn" type:"string" required:"true"`
 
 	// Information about triggers to create when the deployment group is created.
+	// For examples, see Create a Trigger for an AWS CodeDeploy Event (http://docs.aws.amazon.com/codedeploy/latest/userguide/how-to-notify-sns.html)
+	// in the AWS CodeDeploy User Guide.
 	TriggerConfigurations []*TriggerConfig `locationName:"triggerConfigurations" type:"list"`
 }
 
@@ -2569,6 +2657,10 @@ type CreateDeploymentInput struct {
 	// IAM user or AWS account.
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
+	// Configuration information for an automatic rollback that is added when a
+	// deployment is created.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
+
 	// The name of a deployment configuration associated with the applicable IAM
 	// user or AWS account.
 	//
@@ -2596,6 +2688,10 @@ type CreateDeploymentInput struct {
 
 	// The type and location of the revision to deploy.
 	Revision *RevisionLocation `locationName:"revision" type:"structure"`
+
+	// Indicates whether to deploy to all instances or only to instances that are
+	// not running the latest application revision.
+	UpdateOutdatedInstancesOnly *bool `locationName:"updateOutdatedInstancesOnly" type:"boolean"`
 }
 
 // String returns the string representation
@@ -2844,8 +2940,15 @@ func (s DeploymentConfigInfo) GoString() string {
 type DeploymentGroupInfo struct {
 	_ struct{} `type:"structure"`
 
+	// A list of alarms associated with the deployment group.
+	AlarmConfiguration *AlarmConfiguration `locationName:"alarmConfiguration" type:"structure"`
+
 	// The application name.
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string"`
+
+	// Information about the automatic rollback configuration associated with the
+	// deployment group.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
 
 	// A list of associated Auto Scaling groups.
 	AutoScalingGroups []*AutoScalingGroup `locationName:"autoScalingGroups" type:"list"`
@@ -2872,7 +2975,7 @@ type DeploymentGroupInfo struct {
 	// and location.
 	TargetRevision *RevisionLocation `locationName:"targetRevision" type:"structure"`
 
-	// A list of associated triggers.
+	// Information about triggers associated with the deployment group.
 	TriggerConfigurations []*TriggerConfig `locationName:"triggerConfigurations" type:"list"`
 }
 
@@ -2893,6 +2996,10 @@ type DeploymentInfo struct {
 	// The application name.
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string"`
 
+	// Information about the automatic rollback configuration associated with the
+	// deployment.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
+
 	// A timestamp indicating when the deployment was complete.
 	CompleteTime *time.Time `locationName:"completeTime" type:"timestamp" timestampFormat:"unix"`
 
@@ -2901,8 +3008,11 @@ type DeploymentInfo struct {
 
 	// The means by which the deployment was created:
 	//
-	//  user: A user created the deployment. autoscaling: Auto Scaling created
-	// the deployment.
+	//   user: A user created the deployment.
+	//
+	//   autoscaling: Auto Scaling created the deployment.
+	//
+	//   codeDeployRollback: A rollback process created the deployment.
 	Creator *string `locationName:"creator" type:"string" enum:"DeploymentCreator"`
 
 	// The deployment configuration name.
@@ -2938,6 +3048,9 @@ type DeploymentInfo struct {
 	// from which to retrieve them.
 	Revision *RevisionLocation `locationName:"revision" type:"structure"`
 
+	// Information about a deployment rollback.
+	RollbackInfo *RollbackInfo `locationName:"rollbackInfo" type:"structure"`
+
 	// A timestamp indicating when the deployment was deployed to the deployment
 	// group.
 	//
@@ -2948,6 +3061,10 @@ type DeploymentInfo struct {
 
 	// The current state of the deployment as a whole.
 	Status *string `locationName:"status" type:"string" enum:"DeploymentStatus"`
+
+	// Indicates whether only instances that are not running the latest application
+	// revision are to be deployed to.
+	UpdateOutdatedInstancesOnly *bool `locationName:"updateOutdatedInstancesOnly" type:"boolean"`
 }
 
 // String returns the string representation
@@ -3042,12 +3159,19 @@ type Diagnostics struct {
 
 	// The associated error code:
 	//
-	//  Success: The specified script ran. ScriptMissing: The specified script
-	// was not found in the specified location. ScriptNotExecutable: The specified
-	// script is not a recognized executable file type. ScriptTimedOut: The specified
-	// script did not finish running in the specified time period. ScriptFailed:
-	// The specified script failed to run as expected. UnknownError: The specified
-	// script did not run for an unknown reason.
+	//   Success: The specified script ran.
+	//
+	//   ScriptMissing: The specified script was not found in the specified location.
+	//
+	//   ScriptNotExecutable: The specified script is not a recognized executable
+	// file type.
+	//
+	//   ScriptTimedOut: The specified script did not finish running in the specified
+	// time period.
+	//
+	//   ScriptFailed: The specified script failed to run as expected.
+	//
+	//   UnknownError: The specified script did not run for an unknown reason.
 	ErrorCode *string `locationName:"errorCode" type:"string" enum:"LifecycleErrorCode"`
 
 	// The last portion of the diagnostic log.
@@ -3082,7 +3206,11 @@ type EC2TagFilter struct {
 
 	// The tag filter type:
 	//
-	//  KEY_ONLY: Key only. VALUE_ONLY: Value only. KEY_AND_VALUE: Key and value.
+	//   KEY_ONLY: Key only.
+	//
+	//   VALUE_ONLY: Value only.
+	//
+	//   KEY_AND_VALUE: Key and value.
 	Type *string `type:"string" enum:"EC2TagFilterType"`
 
 	// The tag filter value.
@@ -3105,24 +3233,41 @@ type ErrorInformation struct {
 
 	// The error code:
 	//
-	//  APPLICATION_MISSING: The application was missing. This error code will
+	//   APPLICATION_MISSING: The application was missing. This error code will
 	// most likely be raised if the application is deleted after the deployment
-	// is created but before it is started. DEPLOYMENT_GROUP_MISSING: The deployment
-	// group was missing. This error code will most likely be raised if the deployment
-	// group is deleted after the deployment is created but before it is started.
-	// HEALTH_CONSTRAINTS: The deployment failed on too many instances to be successfully
-	// deployed within the instance health constraints specified. HEALTH_CONSTRAINTS_INVALID:
-	// The revision cannot be successfully deployed within the instance health constraints
-	// specified. IAM_ROLE_MISSING: The service role cannot be accessed. IAM_ROLE_PERMISSIONS:
-	// The service role does not have the correct permissions. INTERNAL_ERROR: There
-	// was an internal error. NO_EC2_SUBSCRIPTION: The calling account is not subscribed
-	// to the Amazon EC2 service. NO_INSTANCES: No instance were specified, or no
-	// instance can be found. OVER_MAX_INSTANCES: The maximum number of instance
-	// was exceeded. THROTTLED: The operation was throttled because the calling
-	// account exceeded the throttling limits of one or more AWS services. TIMEOUT:
-	// The deployment has timed out. REVISION_MISSING: The revision ID was missing.
-	// This error code will most likely be raised if the revision is deleted after
+	// is created but before it is started.
+	//
+	//   DEPLOYMENT_GROUP_MISSING: The deployment group was missing. This error
+	// code will most likely be raised if the deployment group is deleted after
 	// the deployment is created but before it is started.
+	//
+	//   HEALTH_CONSTRAINTS: The deployment failed on too many instances to be
+	// successfully deployed within the instance health constraints specified.
+	//
+	//   HEALTH_CONSTRAINTS_INVALID: The revision cannot be successfully deployed
+	// within the instance health constraints specified.
+	//
+	//   IAM_ROLE_MISSING: The service role cannot be accessed.
+	//
+	//   IAM_ROLE_PERMISSIONS: The service role does not have the correct permissions.
+	//
+	//   INTERNAL_ERROR: There was an internal error.
+	//
+	//   NO_EC2_SUBSCRIPTION: The calling account is not subscribed to the Amazon
+	// EC2 service.
+	//
+	//   NO_INSTANCES: No instance were specified, or no instance can be found.
+	//
+	//   OVER_MAX_INSTANCES: The maximum number of instance was exceeded.
+	//
+	//   THROTTLED: The operation was throttled because the calling account exceeded
+	// the throttling limits of one or more AWS services.
+	//
+	//   TIMEOUT: The deployment has timed out.
+	//
+	//   REVISION_MISSING: The revision ID was missing. This error code will most
+	// likely be raised if the revision is deleted after the deployment is created
+	// but before it is started.
 	Code *string `locationName:"code" type:"string" enum:"ErrorCode"`
 
 	// An accompanying error message.
@@ -3631,11 +3776,17 @@ type InstanceSummary struct {
 
 	// The deployment status for this instance:
 	//
-	//  Pending: The deployment is pending for this instance. In Progress: The
-	// deployment is in progress for this instance. Succeeded: The deployment has
-	// succeeded for this instance. Failed: The deployment has failed for this instance.
-	// Skipped: The deployment has been skipped for this instance. Unknown: The
-	// deployment status is unknown for this instance.
+	//   Pending: The deployment is pending for this instance.
+	//
+	//   In Progress: The deployment is in progress for this instance.
+	//
+	//   Succeeded: The deployment has succeeded for this instance.
+	//
+	//   Failed: The deployment has failed for this instance.
+	//
+	//   Skipped: The deployment has been skipped for this instance.
+	//
+	//   Unknown: The deployment status is unknown for this instance.
 	Status *string `locationName:"status" type:"string" enum:"InstanceStatus"`
 }
 
@@ -3668,11 +3819,17 @@ type LifecycleEvent struct {
 
 	// The deployment lifecycle event status:
 	//
-	//  Pending: The deployment lifecycle event is pending. InProgress: The deployment
-	// lifecycle event is in progress. Succeeded: The deployment lifecycle event
-	// ran successfully. Failed: The deployment lifecycle event has failed. Skipped:
-	// The deployment lifecycle event has been skipped. Unknown: The deployment
-	// lifecycle event is unknown.
+	//   Pending: The deployment lifecycle event is pending.
+	//
+	//   InProgress: The deployment lifecycle event is in progress.
+	//
+	//   Succeeded: The deployment lifecycle event ran successfully.
+	//
+	//   Failed: The deployment lifecycle event has failed.
+	//
+	//   Skipped: The deployment lifecycle event has been skipped.
+	//
+	//   Unknown: The deployment lifecycle event is unknown.
 	Status *string `locationName:"status" type:"string" enum:"LifecycleEventStatus"`
 }
 
@@ -3697,9 +3854,12 @@ type ListApplicationRevisionsInput struct {
 	// Whether to list revisions based on whether the revision is the target revision
 	// of an deployment group:
 	//
-	//  include: List revisions that are target revisions of a deployment group.
-	// exclude: Do not list revisions that are target revisions of a deployment
-	// group. ignore: List all revisions.
+	//   include: List revisions that are target revisions of a deployment group.
+	//
+	//   exclude: Do not list revisions that are target revisions of a deployment
+	// group.
+	//
+	//   ignore: List all revisions.
 	Deployed *string `locationName:"deployed" type:"string" enum:"ListStateFilterAction"`
 
 	// An identifier returned from the previous list application revisions call.
@@ -3716,17 +3876,24 @@ type ListApplicationRevisionsInput struct {
 
 	// The column name to use to sort the list results:
 	//
-	//  registerTime: Sort by the time the revisions were registered with AWS CodeDeploy.
-	// firstUsedTime: Sort by the time the revisions were first used in a deployment.
-	// lastUsedTime: Sort by the time the revisions were last used in a deployment.
-	//  If not specified or set to null, the results will be returned in an arbitrary
+	//   registerTime: Sort by the time the revisions were registered with AWS
+	// CodeDeploy.
+	//
+	//   firstUsedTime: Sort by the time the revisions were first used in a deployment.
+	//
+	//   lastUsedTime: Sort by the time the revisions were last used in a deployment.
+	//
+	//   If not specified or set to null, the results will be returned in an arbitrary
 	// order.
 	SortBy *string `locationName:"sortBy" type:"string" enum:"ApplicationRevisionSortBy"`
 
 	// The order in which to sort the list results:
 	//
-	//  ascending: ascending order. descending: descending order.  If not specified,
-	// the results will be sorted in ascending order.
+	//   ascending: ascending order.
+	//
+	//   descending: descending order.
+	//
+	//   If not specified, the results will be sorted in ascending order.
 	//
 	// If set to null, the results will be sorted in an arbitrary order.
 	SortOrder *string `locationName:"sortOrder" type:"string" enum:"SortOrder"`
@@ -3941,11 +4108,17 @@ type ListDeploymentInstancesInput struct {
 
 	// A subset of instances to list by status:
 	//
-	//  Pending: Include those instance with pending deployments. InProgress: Include
-	// those instance where deployments are still in progress. Succeeded: Include
-	// those instances with successful deployments. Failed: Include those instance
-	// with failed deployments. Skipped: Include those instance with skipped deployments.
-	// Unknown: Include those instance with deployments in an unknown state.
+	//   Pending: Include those instance with pending deployments.
+	//
+	//   InProgress: Include those instance where deployments are still in progress.
+	//
+	//   Succeeded: Include those instances with successful deployments.
+	//
+	//   Failed: Include those instance with failed deployments.
+	//
+	//   Skipped: Include those instance with skipped deployments.
+	//
+	//   Unknown: Include those instance with deployments in an unknown state.
 	InstanceStatusFilter []*string `locationName:"instanceStatusFilter" type:"list"`
 
 	// An identifier returned from the previous list deployment instances call.
@@ -4015,11 +4188,17 @@ type ListDeploymentsInput struct {
 
 	// A subset of deployments to list by status:
 	//
-	//  Created: Include created deployments in the resulting list. Queued: Include
-	// queued deployments in the resulting list. In Progress: Include in-progress
-	// deployments in the resulting list. Succeeded: Include successful deployments
-	// in the resulting list. Failed: Include failed deployments in the resulting
-	// list. Stopped: Include stopped deployments in the resulting list.
+	//   Created: Include created deployments in the resulting list.
+	//
+	//   Queued: Include queued deployments in the resulting list.
+	//
+	//   In Progress: Include in-progress deployments in the resulting list.
+	//
+	//   Succeeded: Include successful deployments in the resulting list.
+	//
+	//   Failed: Include failed deployments in the resulting list.
+	//
+	//   Stopped: Include stopped deployments in the resulting list.
 	IncludeOnlyStatuses []*string `locationName:"includeOnlyStatuses" type:"list"`
 
 	// An identifier returned from the previous list deployments call. It can be
@@ -4077,8 +4256,6 @@ func (s ListDeploymentsOutput) GoString() string {
 }
 
 // Represents the input of a list on-premises instances operation.
-//
-// .
 type ListOnPremisesInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4088,8 +4265,10 @@ type ListOnPremisesInstancesInput struct {
 
 	// The registration status of the on-premises instances:
 	//
-	//  Deregistered: Include deregistered on-premises instances in the resulting
-	// list. Registered: Include registered on-premises instances in the resulting
+	//   Deregistered: Include deregistered on-premises instances in the resulting
+	// list.
+	//
+	//   Registered: Include registered on-premises instances in the resulting
 	// list.
 	RegistrationStatus *string `locationName:"registrationStatus" type:"string" enum:"RegistrationStatus"`
 
@@ -4137,17 +4316,19 @@ type MinimumHealthyHosts struct {
 
 	// The minimum healthy instance type:
 	//
-	//  HOST_COUNT: The minimum number of healthy instance as an absolute value.
-	// FLEET_PERCENT: The minimum number of healthy instance as a percentage of
-	// the total number of instance in the deployment.  In an example of nine instance,
-	// if a HOST_COUNT of six is specified, deploy to up to three instances at a
-	// time. The deployment will be successful if six or more instances are deployed
-	// to successfully; otherwise, the deployment fails. If a FLEET_PERCENT of 40
-	// is specified, deploy to up to five instance at a time. The deployment will
-	// be successful if four or more instance are deployed to successfully; otherwise,
-	// the deployment fails.
+	//   HOST_COUNT: The minimum number of healthy instance as an absolute value.
 	//
-	// In a call to the get deployment configuration operation, CodeDeployDefault.OneAtATime
+	//   FLEET_PERCENT: The minimum number of healthy instance as a percentage
+	// of the total number of instance in the deployment.
+	//
+	//   In an example of nine instance, if a HOST_COUNT of six is specified, deploy
+	// to up to three instances at a time. The deployment will be successful if
+	// six or more instances are deployed to successfully; otherwise, the deployment
+	// fails. If a FLEET_PERCENT of 40 is specified, deploy to up to five instance
+	// at a time. The deployment will be successful if four or more instance are
+	// deployed to successfully; otherwise, the deployment fails.
+	//
+	//  In a call to the get deployment configuration operation, CodeDeployDefault.OneAtATime
 	// will return a minimum healthy instance type of MOST_CONCURRENCY and a value
 	// of 1. This means a deployment to only one instance at a time. (You cannot
 	// set the type to MOST_CONCURRENCY, only to HOST_COUNT or FLEET_PERCENT.) In
@@ -4363,8 +4544,9 @@ type RevisionLocation struct {
 
 	// The type of application revision:
 	//
-	//  S3: An application revision stored in Amazon S3. GitHub: An application
-	// revision stored in GitHub.
+	//   S3: An application revision stored in Amazon S3.
+	//
+	//   GitHub: An application revision stored in GitHub.
 	RevisionType *string `locationName:"revisionType" type:"string" enum:"RevisionLocationType"`
 
 	// Information about the location of application artifacts stored in Amazon
@@ -4382,6 +4564,32 @@ func (s RevisionLocation) GoString() string {
 	return s.String()
 }
 
+// Information about a deployment rollback.
+type RollbackInfo struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the deployment rollback.
+	RollbackDeploymentId *string `locationName:"rollbackDeploymentId" type:"string"`
+
+	// Information describing the status of a deployment rollback; for example,
+	// whether the deployment can't be rolled back, is in progress, failed, or succeeded.
+	RollbackMessage *string `locationName:"rollbackMessage" type:"string"`
+
+	// The deployment ID of the deployment that was underway and triggered a rollback
+	// deployment because it failed or was stopped.
+	RollbackTriggeringDeploymentId *string `locationName:"rollbackTriggeringDeploymentId" type:"string"`
+}
+
+// String returns the string representation
+func (s RollbackInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RollbackInfo) GoString() string {
+	return s.String()
+}
+
 // Information about the location of application artifacts stored in Amazon
 // S3.
 type S3Location struct {
@@ -4392,8 +4600,11 @@ type S3Location struct {
 
 	// The file type of the application revision. Must be one of the following:
 	//
-	//  tar: A tar archive file. tgz: A compressed tar archive file. zip: A zip
-	// archive file.
+	//   tar: A tar archive file.
+	//
+	//   tgz: A compressed tar archive file.
+	//
+	//   zip: A zip archive file.
 	BundleType *string `locationName:"bundleType" type:"string" enum:"BundleType"`
 
 	// The ETag of the Amazon S3 object that represents the bundled artifacts for
@@ -4429,6 +4640,11 @@ func (s S3Location) GoString() string {
 type StopDeploymentInput struct {
 	_ struct{} `type:"structure"`
 
+	// Indicates, when a deployment is stopped, whether instances that have been
+	// updated should be rolled back to the previous version of the application
+	// revision.
+	AutoRollbackEnabled *bool `locationName:"autoRollbackEnabled" type:"boolean"`
+
 	// The unique ID of a deployment.
 	DeploymentId *string `locationName:"deploymentId" type:"string" required:"true"`
 }
@@ -4462,8 +4678,9 @@ type StopDeploymentOutput struct {
 
 	// The status of the stop deployment operation:
 	//
-	//  Pending: The stop operation is pending. Succeeded: The stop operation was
-	// successful.
+	//   Pending: The stop operation is pending.
+	//
+	//   Succeeded: The stop operation was successful.
 	Status *string `locationName:"status" type:"string" enum:"StopStatus"`
 
 	// An accompanying status message.
@@ -4510,7 +4727,11 @@ type TagFilter struct {
 
 	// The on-premises instance tag filter type:
 	//
-	//  KEY_ONLY: Key only. VALUE_ONLY: Value only. KEY_AND_VALUE: Key and value.
+	//   KEY_ONLY: Key only.
+	//
+	//   VALUE_ONLY: Value only.
+	//
+	//   KEY_AND_VALUE: Key and value.
 	Type *string `type:"string" enum:"TagFilterType"`
 
 	// The on-premises instance tag filter value.
@@ -4533,12 +4754,12 @@ type TimeRange struct {
 
 	// The end time of the time range.
 	//
-	// Specify null to leave the end time open-ended.
+	//  Specify null to leave the end time open-ended.
 	End *time.Time `locationName:"end" type:"timestamp" timestampFormat:"unix"`
 
 	// The start time of the time range.
 	//
-	// Specify null to leave the start time open-ended.
+	//  Specify null to leave the start time open-ended.
 	Start *time.Time `locationName:"start" type:"timestamp" timestampFormat:"unix"`
 }
 
@@ -4557,11 +4778,6 @@ type TriggerConfig struct {
 	_ struct{} `type:"structure"`
 
 	// The event type or types for which notifications are triggered.
-	//
-	// The following event type values are supported:
-	//
-	//  DEPLOYMENT_START DEPLOYMENT_SUCCESS DEPLOYMENT_FAILURE DEPLOYMENT_STOP
-	// INSTANCE_START INSTANCE_SUCCESS INSTANCE_FAILURE
 	TriggerEvents []*string `locationName:"triggerEvents" type:"list"`
 
 	// The name of the notification trigger.
@@ -4637,8 +4853,16 @@ func (s UpdateApplicationOutput) GoString() string {
 type UpdateDeploymentGroupInput struct {
 	_ struct{} `type:"structure"`
 
+	// Information to add or change about Amazon CloudWatch alarms when the deployment
+	// group is updated.
+	AlarmConfiguration *AlarmConfiguration `locationName:"alarmConfiguration" type:"structure"`
+
 	// The application name corresponding to the deployment group to update.
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
+
+	// Information for an automatic rollback configuration that is added or changed
+	// when a deployment group is updated.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
 
 	// The replacement list of Auto Scaling groups to be included in the deployment
 	// group, if you want to change them. To keep the Auto Scaling groups, enter
@@ -4670,6 +4894,8 @@ type UpdateDeploymentGroupInput struct {
 	ServiceRoleArn *string `locationName:"serviceRoleArn" type:"string"`
 
 	// Information about triggers to change when the deployment group is updated.
+	// For examples, see Modify Triggers in an AWS CodeDeploy Deployment Group (http://docs.aws.amazon.com/codedeploy/latest/userguide/how-to-notify-edit.html)
+	// in the AWS CodeDeploy User Guide.
 	TriggerConfigurations []*TriggerConfig `locationName:"triggerConfigurations" type:"list"`
 }
 
@@ -4743,6 +4969,15 @@ const (
 )
 
 const (
+	// @enum AutoRollbackEvent
+	AutoRollbackEventDeploymentFailure = "DEPLOYMENT_FAILURE"
+	// @enum AutoRollbackEvent
+	AutoRollbackEventDeploymentStopOnAlarm = "DEPLOYMENT_STOP_ON_ALARM"
+	// @enum AutoRollbackEvent
+	AutoRollbackEventDeploymentStopOnRequest = "DEPLOYMENT_STOP_ON_REQUEST"
+)
+
+const (
 	// @enum BundleType
 	BundleTypeTar = "tar"
 	// @enum BundleType
@@ -4756,6 +4991,8 @@ const (
 	DeploymentCreatorUser = "user"
 	// @enum DeploymentCreator
 	DeploymentCreatorAutoscaling = "autoscaling"
+	// @enum DeploymentCreator
+	DeploymentCreatorCodeDeployRollback = "codeDeployRollback"
 )
 
 const (
@@ -4809,6 +5046,16 @@ const (
 	ErrorCodeInternalError = "INTERNAL_ERROR"
 	// @enum ErrorCode
 	ErrorCodeThrottled = "THROTTLED"
+	// @enum ErrorCode
+	ErrorCodeAlarmActive = "ALARM_ACTIVE"
+	// @enum ErrorCode
+	ErrorCodeAgentIssue = "AGENT_ISSUE"
+	// @enum ErrorCode
+	ErrorCodeAutoScalingIamRolePermissions = "AUTO_SCALING_IAM_ROLE_PERMISSIONS"
+	// @enum ErrorCode
+	ErrorCodeAutoScalingConfiguration = "AUTO_SCALING_CONFIGURATION"
+	// @enum ErrorCode
+	ErrorCodeManualStop = "MANUAL_STOP"
 )
 
 const (
@@ -4918,6 +5165,8 @@ const (
 	TriggerEventTypeDeploymentFailure = "DeploymentFailure"
 	// @enum TriggerEventType
 	TriggerEventTypeDeploymentStop = "DeploymentStop"
+	// @enum TriggerEventType
+	TriggerEventTypeDeploymentRollback = "DeploymentRollback"
 	// @enum TriggerEventType
 	TriggerEventTypeInstanceStart = "InstanceStart"
 	// @enum TriggerEventType
