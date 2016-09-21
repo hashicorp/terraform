@@ -17,7 +17,7 @@ private, how to fork the repository and other options.
 
 ```
 # Manage your respository
-resource "bitbucket_repository" "infastracture" {
+resource "bitbucket_repository" "infrastructure" {
     owner = "myteam"
     name = "terraform-code"
 }
@@ -32,8 +32,8 @@ The following arguments are supported:
 * `name` - (Optional) The name of the repository.
 * `scm` - (Optional) What SCM you want to use. Valid options are hg or git.
   Defaults to git.
-* `is_private` - (Optional) If this should be private or not. Defaults to true.
-* `website` - (Optional) What the website is for this repository.
+* `is_private` - (Optional) If this should be private or not. Defaults to `true`.
+* `website` - (Optional) URL of website associated with this repository.
 * `has_issues` - (Optional) If this should have issues turned on or not.
 * `has_wiki` - (Optional) If this should have wiki turned on or not.
 * `project_key` - (Optional) If you want to have this repo associated with a
