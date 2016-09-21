@@ -64,7 +64,7 @@ func TestAccLibratoAlert_Updated(t *testing.T) {
 				Config: testAccCheckLibratoAlertConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
-					testAccCheckLibratoAlertName(&alert, "FooBar"),
+					testAccCheckLibratoAlertDescription(&alert, "A Test Alert"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "name", "FooBar"),
 				),
@@ -73,9 +73,9 @@ func TestAccLibratoAlert_Updated(t *testing.T) {
 				Config: testAccCheckLibratoAlertConfig_new_value,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
-					testAccCheckLibratoAlertName(&alert, "BarBaz"),
+					testAccCheckLibratoAlertDescription(&alert, "A modified Test Alert"),
 					resource.TestCheckResourceAttr(
-						"librato_alert.foobar", "name", "BarBaz"),
+						"librato_alert.foobar", "description", "A modified Test Alert"),
 				),
 			},
 		},
@@ -110,6 +110,17 @@ func testAccCheckLibratoAlertName(alert *librato.Alert, name string) resource.Te
 
 		if alert.Name == nil || *alert.Name != name {
 			return fmt.Errorf("Bad name: %s", *alert.Name)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckLibratoAlertDescription(alert *librato.Alert, description string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if alert.Description == nil || *alert.Description != description {
+			return fmt.Errorf("Bad description: %s", *alert.Description)
 		}
 
 		return nil
@@ -159,8 +170,8 @@ resource "librato_alert" "foobar" {
 
 const testAccCheckLibratoAlertConfig_new_value = `
 resource "librato_alert" "foobar" {
-    name = "BarBaz"
-    description = "A Test Alert"
+    name = "FooBar"
+    description = "A modified Test Alert"
 }`
 
 const testAccCheckLibratoAlertConfig_full = `
