@@ -107,4 +107,13 @@ The following attributes are exported:
 * `instance` - Contains the ID of the attached instance.
 * `network_interface` - Contains the ID of the attached network interface.
 
+
+## Import
+
+EIPs can be imported using their Allocation ID, e.g.
+
+```
+$ terraform import aws_eip.bar eipalloc-00a10e96
+```
+
 [1]: https://docs.aws.amazon.com/fr_fr/AWSEC2/latest/APIReference/API_AssociateAddress.html
