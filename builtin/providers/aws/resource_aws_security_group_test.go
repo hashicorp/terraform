@@ -471,6 +471,48 @@ func TestAccAWSSecurityGroup_vpcNegOneIngress(t *testing.T) {
 		},
 	})
 }
+func TestAccAWSSecurityGroup_vpcProtoNumIngress(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	testCheck := func(*terraform.State) error {
+		if *group.VpcId == "" {
+			return fmt.Errorf("should have vpc ID")
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigVpcProtoNumIngress,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupAttributesNegOneProtocol(&group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.protocol", "50"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.from_port", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.to_port", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.cidr_blocks.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.cidr_blocks.0", "10.0.0.0/8"),
+					testCheck,
+				),
+			},
+		},
+	})
+}
 func TestAccAWSSecurityGroup_MultiIngress(t *testing.T) {
 	var group ec2.SecurityGroup
 
@@ -1240,6 +1282,26 @@ resource "aws_security_group" "web" {
 	}
 }
 `
+
+const testAccAWSSecurityGroupConfigVpcProtoNumIngress = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_security_group" "web" {
+	name = "terraform_acceptance_test_example"
+	description = "Used in the terraform acceptance tests"
+	vpc_id = "${aws_vpc.foo.id}"
+
+	ingress {
+		protocol = "50"
+		from_port = 0
+		to_port = 0
+		cidr_blocks = ["10.0.0.0/8"]
+	}
+}
+`
+
 const testAccAWSSecurityGroupConfigMultiIngress = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
