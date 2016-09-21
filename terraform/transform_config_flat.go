@@ -11,7 +11,10 @@ import (
 // to the graph. The module used to configure this transformer must be
 // the root module.
 //
-// In relation to ConfigTransformer: this is a newer generation config
+// This transform adds the nodes but doesn't connect any of the references.
+// The ReferenceTransformer should be used for that.
+//
+// NOTE: In relation to ConfigTransformer: this is a newer generation config
 // transformer. It puts the _entire_ config into the graph (there is no
 // "flattening" step as before).
 type FlatConfigTransformer struct {
@@ -59,7 +62,12 @@ func (t *FlatConfigTransformer) transform(g *Graph, m *module.Tree) error {
 		}
 		addr.Path = m.Path()
 
-		abstract := &NodeAbstractResource{Addr: addr}
+		// Build the abstract resource. We have the config already so
+		// we'll just pre-populate that.
+		abstract := &NodeAbstractResource{
+			Addr:   addr,
+			Config: r,
+		}
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)

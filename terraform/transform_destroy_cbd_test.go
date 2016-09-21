@@ -11,9 +11,11 @@ func TestCBDEdgeTransformer(t *testing.T) {
 	g.Add(&graphNodeCreatorTest{AddrString: "test.B"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.A", CBD: true})
 
+	module := testModule(t, "transform-destroy-edge-basic")
+
 	{
 		tf := &DestroyEdgeTransformer{
-			Module: testModule(t, "transform-destroy-edge-basic"),
+			Module: module,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -21,7 +23,7 @@ func TestCBDEdgeTransformer(t *testing.T) {
 	}
 
 	{
-		tf := &CBDEdgeTransformer{}
+		tf := &CBDEdgeTransformer{Module: module}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
