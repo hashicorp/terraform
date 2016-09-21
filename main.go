@@ -26,6 +26,11 @@ func main() {
 func realMain() int {
 	var wrapConfig panicwrap.WrapConfig
 
+	// don't re-exec terraform as a child process for easier debugging
+	if os.Getenv("TF_FORK") == "0" {
+		return wrappedMain()
+	}
+
 	if !panicwrap.Wrapped(&wrapConfig) {
 		// Determine where logs should go in general (requested by the user)
 		logWriter, err := logging.LogOutput()
