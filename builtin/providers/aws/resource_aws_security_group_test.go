@@ -492,21 +492,20 @@ func TestAccAWSSecurityGroup_vpcProtoNumIngress(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfigVpcProtoNumIngress,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
-					testAccCheckAWSSecurityGroupAttributesNegOneProtocol(&group),
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.956249133.protocol", "50"),
+						"aws_security_group.web", "ingress.2449525218.protocol", "50"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.956249133.from_port", "0"),
+						"aws_security_group.web", "ingress.2449525218.from_port", "0"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.956249133.to_port", "0"),
+						"aws_security_group.web", "ingress.2449525218.to_port", "0"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.956249133.cidr_blocks.#", "1"),
+						"aws_security_group.web", "ingress.2449525218.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.956249133.cidr_blocks.0", "10.0.0.0/8"),
+						"aws_security_group.web", "ingress.2449525218.cidr_blocks.0", "10.0.0.0/8"),
 					testCheck,
 				),
 			},
