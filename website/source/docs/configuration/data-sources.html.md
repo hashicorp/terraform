@@ -15,7 +15,7 @@ or defined by another separate Terraform configuration.
 
 [Providers](/docs/configuration/providers.html) are responsible in
 Terraform for defining and implementing data sources. Whereas
-a [resource](/docs/configuration/resource.html) causes Terraform
+a [resource](/docs/configuration/resources.html) causes Terraform
 to create and manage a new infrastructure component, data sources
 present read-only views into pre-existing data, or they compute
 new values on the fly within Terraform itself.
