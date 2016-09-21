@@ -134,7 +134,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		// This part is a little bit weird but is the best way to
 		// find the dependencies we need to: build a graph and use the
 		// attach config and state transformers then ask for references.
-		node := &NodeApplyableResource{Addr: addr}
+		node := &NodeAbstractResource{Addr: addr}
 		{
 			var g Graph
 			g.Add(node)
