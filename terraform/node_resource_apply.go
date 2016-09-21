@@ -90,6 +90,11 @@ func (n *NodeApplyableResource) ProvisionedBy() []string {
 	return result
 }
 
+// GraphNodeCreator
+func (n *NodeApplyableResource) CreateAddr() *ResourceAddress {
+	return n.Addr
+}
+
 // GraphNodeAttachResourceState
 func (n *NodeApplyableResource) ResourceAddr() *ResourceAddress {
 	return n.Addr

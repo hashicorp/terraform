@@ -17,6 +17,12 @@ type GraphNodeDestroyer interface {
 	DestroyAddr() *ResourceAddress
 }
 
+// GraphNodeCreator must be implemented by nodes that create OR update resources.
+type GraphNodeCreator interface {
+	// ResourceAddr is the address of the resource being created or updated
+	CreateAddr() *ResourceAddress
+}
+
 // DestroyEdgeTransformer is a GraphTransformer that creates the proper
 // references for destroy resources. Destroy resources are more complex
 // in that they must be depend on the destruction of resources that
@@ -67,6 +73,34 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// so just exit early and avoid future work.
 	if len(destroyers) == 0 {
 		return nil
+	}
+
+	// Go through and connect creators to destroyers. Going along with
+	// our example, this makes: A_d => A
+	for _, v := range g.Vertices() {
+		cn, ok := v.(GraphNodeCreator)
+		if !ok {
+			continue
+		}
+
+		addr := cn.CreateAddr()
+		if addr == nil {
+			continue
+		}
+
+		key := addr.String()
+		ds := destroyers[key]
+		if len(ds) == 0 {
+			continue
+		}
+
+		for _, d := range ds {
+			// For illustrating our example
+			a_d := d.(dag.Vertex)
+			a := v
+
+			g.Connect(&DestroyEdge{S: a, T: a_d})
+		}
 	}
 
 	// This is strange but is the easiest way to get the dependencies
