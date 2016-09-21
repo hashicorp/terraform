@@ -39,11 +39,15 @@ A data source configuration looks like the following:
 ```
 // Find the latest available AMI that is tagged with Component = web
 data "aws_ami" "web" {
-  state = "available"
-  tags = {
-    Component = "web"
+  filter {
+    name = "state"
+    values = ["available"]
   }
-  select = "latest"
+  filter {
+    name = "tag:Component"
+    values = ["web"]
+  }
+  most_recent = true
 }
 ```
 
