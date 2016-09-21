@@ -51,7 +51,6 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 
 		// Find the destroy edge. There should only be one.
 		for _, e := range g.EdgesTo(v) {
-			log.Printf("WHAT: %#v", e)
 			// Not a destroy edge, ignore it
 			de, ok := e.(*DestroyEdge)
 			if !ok {
