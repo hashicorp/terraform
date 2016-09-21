@@ -135,6 +135,22 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
+						"log_enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+
+						"log_group_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"log_stream_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -321,6 +337,11 @@ func createS3Config(d *schema.ResourceData) *firehose.S3DestinationConfiguration
 			IntervalInSeconds: aws.Int64(int64(s3["buffer_interval"].(int))),
 			SizeInMBs:         aws.Int64(int64(s3["buffer_size"].(int))),
 		},
+		CloudWatchLoggingOptions: &firehose.CloudWatchLoggingOptions{
+			Enabled:       aws.Bool(s3["log_enabled"].(bool)),
+			LogGroupName:  aws.String(s3["log_group_name"].(string)),
+			LogStreamName: aws.String(s3["log_stream_name"].(string)),
+		},
 		Prefix:                  extractPrefixConfiguration(s3),
 		CompressionFormat:       aws.String(s3["compression_format"].(string)),
 		EncryptionConfiguration: extractEncryptionConfiguration(s3),
@@ -336,6 +357,11 @@ func updateS3Config(d *schema.ResourceData) *firehose.S3DestinationUpdate {
 		BufferingHints: &firehose.BufferingHints{
 			IntervalInSeconds: aws.Int64((int64)(s3["buffer_interval"].(int))),
 			SizeInMBs:         aws.Int64((int64)(s3["buffer_size"].(int))),
+		},
+		CloudWatchLoggingOptions: &firehose.CloudWatchLoggingOptions{
+			Enabled:       aws.Bool(s3["log_enabled"].(bool)),
+			LogGroupName:  aws.String(s3["log_group_name"].(string)),
+			LogStreamName: aws.String(s3["log_stream_name"].(string)),
 		},
 		Prefix:                  extractPrefixConfiguration(s3),
 		CompressionFormat:       aws.String(s3["compression_format"].(string)),
