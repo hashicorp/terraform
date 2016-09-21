@@ -7,7 +7,8 @@ import (
 
 func TestCBDEdgeTransformer(t *testing.T) {
 	g := Graph{Path: RootModulePath}
-	g.Add(&graphNodeDestroyerTest{AddrString: "test.A"})
+	g.Add(&graphNodeCreatorTest{AddrString: "test.A"})
+	g.Add(&graphNodeDestroyerTest{AddrString: "test.A", CBD: true})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.B"})
 
 	{
@@ -34,7 +35,9 @@ func TestCBDEdgeTransformer(t *testing.T) {
 }
 
 const testTransformCBDEdgeBasicStr = `
+test.A
 test.A (destroy)
+  test.A
   test.B (destroy)
 test.B (destroy)
 `
