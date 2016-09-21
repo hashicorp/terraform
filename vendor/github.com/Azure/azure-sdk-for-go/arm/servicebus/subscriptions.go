@@ -21,6 +21,7 @@ package servicebus
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -48,6 +49,12 @@ func NewSubscriptionsClientWithBaseURI(baseURI string, subscriptionID string) Su
 // subscriptionName name. parameters is parameters supplied to create a
 // subscription Resource.
 func (client SubscriptionsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, topicName string, subscriptionName string, parameters SubscriptionCreateOrUpdateParameters) (result SubscriptionResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{parameters,
+			[]validation.Constraint{{"parameters.Location", validation.Null, true, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "servicebus.SubscriptionsClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, namespaceName, topicName, subscriptionName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.SubscriptionsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -169,7 +176,7 @@ func (client SubscriptionsClient) DeleteResponder(resp *http.Response) (result a
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusNoContent, http.StatusOK),
 		autorest.ByClosing())
 	result.Response = resp
 	return
@@ -309,7 +316,7 @@ func (client SubscriptionsClient) ListAllResponder(resp *http.Response) (result 
 func (client SubscriptionsClient) ListAllNextResults(lastResults SubscriptionListResult) (result SubscriptionListResult, err error) {
 	req, err := lastResults.SubscriptionListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.SubscriptionsClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.SubscriptionsClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -318,12 +325,12 @@ func (client SubscriptionsClient) ListAllNextResults(lastResults SubscriptionLis
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.SubscriptionsClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.SubscriptionsClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.SubscriptionsClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.SubscriptionsClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return

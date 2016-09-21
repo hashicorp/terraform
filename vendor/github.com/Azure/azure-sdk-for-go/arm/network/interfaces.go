@@ -21,12 +21,13 @@ package network
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
 // InterfacesClient is the the Microsoft Azure Network management API provides
 // a RESTful set of web services that interact with Microsoft Azure Networks
-// service to manage your network resrources. The API has entities that
+// service to manage your network resources. The API has entities that
 // capture the relationship between an end user and the Microsoft Azure
 // Networks service.
 type InterfacesClient struct {
@@ -53,6 +54,19 @@ func NewInterfacesClientWithBaseURI(baseURI string, subscriptionID string) Inter
 // is the name of the network interface. parameters is parameters supplied to
 // the create/update NetworkInterface operation
 func (client InterfacesClient) CreateOrUpdate(resourceGroupName string, networkInterfaceName string, parameters Interface, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{parameters,
+			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
+				[]validation.Constraint{{"parameters.Properties.NetworkSecurityGroup", validation.Null, false,
+					[]validation.Constraint{{"parameters.Properties.NetworkSecurityGroup.Properties", validation.Null, false,
+						[]validation.Constraint{{"NetworkInterfaces", validation.ReadOnly, true, nil},
+							{"Subnets", validation.ReadOnly, true, nil},
+						}},
+					}},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "network.InterfacesClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, networkInterfaceName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -181,7 +195,7 @@ func (client InterfacesClient) DeleteResponder(resp *http.Response) (result auto
 	return
 }
 
-// Get the Get ntework interface operation retreives information about the
+// Get the Get network interface operation retrieves information about the
 // specified network interface.
 //
 // resourceGroupName is the name of the resource group. networkInterfaceName
@@ -317,8 +331,8 @@ func (client InterfacesClient) GetEffectiveRouteTableResponder(resp *http.Respon
 	return
 }
 
-// GetVirtualMachineScaleSetNetworkInterface the Get ntework interface
-// operation retreives information about the specified network interface in a
+// GetVirtualMachineScaleSetNetworkInterface the Get network interface
+// operation retrieves information about the specified network interface in a
 // virtual machine scale set.
 //
 // resourceGroupName is the name of the resource group.
@@ -455,7 +469,7 @@ func (client InterfacesClient) ListResponder(resp *http.Response) (result Interf
 func (client InterfacesClient) ListNextResults(lastResults InterfaceListResult) (result InterfaceListResult, err error) {
 	req, err := lastResults.InterfaceListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -464,12 +478,12 @@ func (client InterfacesClient) ListNextResults(lastResults InterfaceListResult) 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.InterfacesClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.InterfacesClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -538,7 +552,7 @@ func (client InterfacesClient) ListAllResponder(resp *http.Response) (result Int
 func (client InterfacesClient) ListAllNextResults(lastResults InterfaceListResult) (result InterfaceListResult, err error) {
 	req, err := lastResults.InterfaceListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -547,12 +561,12 @@ func (client InterfacesClient) ListAllNextResults(lastResults InterfaceListResul
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.InterfacesClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.InterfacesClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -695,7 +709,7 @@ func (client InterfacesClient) ListVirtualMachineScaleSetNetworkInterfacesRespon
 func (client InterfacesClient) ListVirtualMachineScaleSetNetworkInterfacesNextResults(lastResults InterfaceListResult) (result InterfaceListResult, err error) {
 	req, err := lastResults.InterfaceListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetNetworkInterfaces", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetNetworkInterfaces", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -704,12 +718,12 @@ func (client InterfacesClient) ListVirtualMachineScaleSetNetworkInterfacesNextRe
 	resp, err := client.ListVirtualMachineScaleSetNetworkInterfacesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetNetworkInterfaces", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetNetworkInterfaces", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListVirtualMachineScaleSetNetworkInterfacesResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetNetworkInterfaces", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetNetworkInterfaces", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -786,7 +800,7 @@ func (client InterfacesClient) ListVirtualMachineScaleSetVMNetworkInterfacesResp
 func (client InterfacesClient) ListVirtualMachineScaleSetVMNetworkInterfacesNextResults(lastResults InterfaceListResult) (result InterfaceListResult, err error) {
 	req, err := lastResults.InterfaceListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetVMNetworkInterfaces", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetVMNetworkInterfaces", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -795,12 +809,12 @@ func (client InterfacesClient) ListVirtualMachineScaleSetVMNetworkInterfacesNext
 	resp, err := client.ListVirtualMachineScaleSetVMNetworkInterfacesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetVMNetworkInterfaces", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetVMNetworkInterfaces", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListVirtualMachineScaleSetVMNetworkInterfacesResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetVMNetworkInterfaces", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.InterfacesClient", "ListVirtualMachineScaleSetVMNetworkInterfaces", resp, "Failure responding to next results request")
 	}
 
 	return

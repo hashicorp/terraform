@@ -21,6 +21,7 @@ package cdn
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -53,6 +54,13 @@ func NewOriginsClientWithBaseURI(baseURI string, subscriptionID string) OriginsC
 // CDN profile within the resource group. resourceGroupName is name of the
 // resource group within the Azure subscription.
 func (client OriginsClient) Create(originName string, originProperties OriginParameters, endpointName string, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{originProperties,
+			[]validation.Constraint{{"originProperties.Properties", validation.Null, false,
+				[]validation.Constraint{{"originProperties.Properties.HostName", validation.Null, true, nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.OriginsClient", "Create")
+	}
+
 	req, err := client.CreatePreparer(originName, originProperties, endpointName, profileName, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.OriginsClient", "Create", nil, "Failure preparing request")
