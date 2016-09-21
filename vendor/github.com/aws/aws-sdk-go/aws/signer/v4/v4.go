@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sort"
@@ -175,6 +176,12 @@ type signingCtx struct {
 // is not needed as the full request context will be captured by the http.Request
 // value. It is included for reference though.
 //
+// Sign will set the request's Body to be the `body` parameter passed in. If
+// the body is not already an io.ReadCloser, it will be wrapped within one. If
+// a `nil` body parameter passed to Sign, the request's Body field will be
+// also set to nil. Its important to note that this functionality will not
+// change the request's ContentLength of the request.
+//
 // Sign differs from Presign in that it will sign the request using HTTP
 // header values. This type of signing is intended for http.Request values that
 // will not be shared, or are shared in a way the header values on the request
@@ -257,6 +264,20 @@ func (v4 Signer) signWithBody(r *http.Request, body io.ReadSeeker, service, regi
 
 	ctx.assignAmzQueryValues()
 	ctx.build(v4.DisableHeaderHoisting)
+
+	// If the request is not presigned the body should be attached to it. This
+	// prevents the confusion of wanting to send a signed request without
+	// the body the request was signed for attached.
+	if !ctx.isPresign {
+		var reader io.ReadCloser
+		if body != nil {
+			var ok bool
+			if reader, ok = body.(io.ReadCloser); !ok {
+				reader = ioutil.NopCloser(body)
+			}
+		}
+		r.Body = reader
+	}
 
 	if v4.Debug.Matches(aws.LogDebugWithSigning) {
 		v4.logSigningInfo(ctx)
