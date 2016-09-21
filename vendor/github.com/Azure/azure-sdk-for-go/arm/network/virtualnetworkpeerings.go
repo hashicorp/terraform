@@ -26,7 +26,7 @@ import (
 
 // VirtualNetworkPeeringsClient is the the Microsoft Azure Network management
 // API provides a RESTful set of web services that interact with Microsoft
-// Azure Networks service to manage your network resrources. The API has
+// Azure Networks service to manage your network resources. The API has
 // entities that capture the relationship between an end user and the
 // Microsoft Azure Networks service.
 type VirtualNetworkPeeringsClient struct {
@@ -187,7 +187,7 @@ func (client VirtualNetworkPeeringsClient) DeleteResponder(resp *http.Response) 
 	return
 }
 
-// Get the Get virtual network peering operation retreives information about
+// Get the Get virtual network peering operation retrieves information about
 // the specified virtual network peering.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
@@ -321,7 +321,7 @@ func (client VirtualNetworkPeeringsClient) ListResponder(resp *http.Response) (r
 func (client VirtualNetworkPeeringsClient) ListNextResults(lastResults VirtualNetworkPeeringListResult) (result VirtualNetworkPeeringListResult, err error) {
 	req, err := lastResults.VirtualNetworkPeeringListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.VirtualNetworkPeeringsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.VirtualNetworkPeeringsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -330,12 +330,12 @@ func (client VirtualNetworkPeeringsClient) ListNextResults(lastResults VirtualNe
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.VirtualNetworkPeeringsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.VirtualNetworkPeeringsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.VirtualNetworkPeeringsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.VirtualNetworkPeeringsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

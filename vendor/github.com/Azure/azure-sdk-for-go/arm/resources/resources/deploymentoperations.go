@@ -21,6 +21,7 @@ package resources
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -48,6 +49,14 @@ func NewDeploymentOperationsClientWithBaseURI(baseURI string, subscriptionID str
 // insensitive. deploymentName is the name of the deployment. operationID is
 // operation Id.
 func (client DeploymentOperationsClient) Get(resourceGroupName string, deploymentName string, operationID string) (result DeploymentOperation, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{resourceGroupName,
+			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
+				{"resourceGroupName", validation.MinLength, 1, nil},
+				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentOperationsClient", "Get")
+	}
+
 	req, err := client.GetPreparer(resourceGroupName, deploymentName, operationID)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentOperationsClient", "Get", nil, "Failure preparing request")
@@ -113,6 +122,14 @@ func (client DeploymentOperationsClient) GetResponder(resp *http.Response) (resu
 // insensitive. deploymentName is the name of the deployment. top is query
 // parameters.
 func (client DeploymentOperationsClient) List(resourceGroupName string, deploymentName string, top *int32) (result DeploymentOperationsListResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{resourceGroupName,
+			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
+				{"resourceGroupName", validation.MinLength, 1, nil},
+				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentOperationsClient", "List")
+	}
+
 	req, err := client.ListPreparer(resourceGroupName, deploymentName, top)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentOperationsClient", "List", nil, "Failure preparing request")
@@ -178,7 +195,7 @@ func (client DeploymentOperationsClient) ListResponder(resp *http.Response) (res
 func (client DeploymentOperationsClient) ListNextResults(lastResults DeploymentOperationsListResult) (result DeploymentOperationsListResult, err error) {
 	req, err := lastResults.DeploymentOperationsListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.DeploymentOperationsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.DeploymentOperationsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -187,12 +204,12 @@ func (client DeploymentOperationsClient) ListNextResults(lastResults DeploymentO
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.DeploymentOperationsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.DeploymentOperationsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "resources.DeploymentOperationsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "resources.DeploymentOperationsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
