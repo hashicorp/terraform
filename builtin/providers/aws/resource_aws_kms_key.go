@@ -5,11 +5,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceAwsKmsKey() *schema.Resource {
@@ -144,7 +144,10 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	policy, _ := normalizeJsonString(*p.Policy)
+	policy, err := normalizeJsonString(*p.Policy)
+	if err != nil {
+		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+	}
 	d.Set("policy", policy)
 
 	krs, err := conn.GetKeyRotationStatus(&kms.GetKeyRotationStatusInput{
@@ -218,7 +221,10 @@ func resourceAwsKmsKeyDescriptionUpdate(conn *kms.KMS, d *schema.ResourceData) e
 }
 
 func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error {
-	policy, _ := normalizeJsonString(d.Get("policy").(string))
+	policy, err := normalizeJsonString(d.Get("policy").(string))
+	if err != nil {
+		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+	}
 	keyId := d.Get("key_id").(string)
 
 	log.Printf("[DEBUG] KMS key: %s, update policy: %s", keyId, policy)
@@ -228,7 +234,7 @@ func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error 
 		Policy:     aws.String(policy),
 		PolicyName: aws.String("default"),
 	}
-	_, err := conn.PutKeyPolicy(req)
+	_, err = conn.PutKeyPolicy(req)
 	return err
 }
 
