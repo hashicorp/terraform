@@ -56,6 +56,13 @@ func resourceStorageBucket() *schema.Resource {
 				Computed: true,
 			},
 
+			"storage_class": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "STANDARD",
+				ForceNew: true,
+			},
+
 			"website": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -90,6 +97,10 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 
 	// Create a bucket, setting the acl, location and name.
 	sb := &storage.Bucket{Name: bucket, Location: location}
+
+	if v, ok := d.GetOk("storage_class"); ok {
+		sb.StorageClass = v.(string)
+	}
 
 	if v, ok := d.GetOk("website"); ok {
 		websites := v.([]interface{})
