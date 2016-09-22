@@ -82,8 +82,8 @@ func protocolIntegers() map[string]int {
 	var protocolIntegers = make(map[string]int)
 	protocolIntegers = map[string]int{
 		// defined at https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
-                "ah":   51,
-                "esp":  50,
+		"ah":   51,
+		"esp":  50,
 		"udp":  17,
 		"tcp":  6,
 		"icmp": 1,
