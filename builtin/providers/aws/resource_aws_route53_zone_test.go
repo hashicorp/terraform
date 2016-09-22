@@ -206,6 +206,42 @@ func TestAccAWSRoute53Zone_private_region(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53Zone_privateToPublic(t *testing.T) {
+	var before, after route53.GetHostedZoneOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_zone.main",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53ZoneDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRoute53PrivateZoneConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53ZoneExists("aws_route53_zone.main", &before),
+					testAccCheckRoute53ZoneAssociatesWithVpc("aws_vpc.main", &before),
+				),
+			},
+			{
+				Config: testAccRoute53PrivateZoneConfigToPublic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53ZoneExists("aws_route53_zone.main", &after),
+					testAccCheckRoute53ZoneRecreated(t, &before, &after),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckRoute53ZoneRecreated(t *testing.T, before, after *route53.GetHostedZoneOutput) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *before.HostedZone.Id == *after.HostedZone.Id {
+			t.Fatalf("Expected change of Zone IDs, but both were %v", before.HostedZone.Id)
+		}
+		return nil
+	}
+}
+
 func testAccCheckRoute53ZoneDestroy(s *terraform.State) error {
 	return testAccCheckRoute53ZoneDestroyWithProvider(s, testAccProvider)
 }
@@ -442,6 +478,19 @@ resource "aws_vpc" "main" {
 resource "aws_route53_zone" "main" {
 	name = "hashicorp.com."
 	vpc_id = "${aws_vpc.main.id}"
+}
+`
+
+const testAccRoute53PrivateZoneConfigToPublic = `
+resource "aws_vpc" "main" {
+	cidr_block = "172.29.0.0/24"
+	instance_tenancy = "default"
+	enable_dns_support = true
+	enable_dns_hostnames = true
+}
+
+resource "aws_route53_zone" "main" {
+	name = "hashicorp.com."
 }
 `
 
