@@ -41,7 +41,7 @@ resource "aws_vpc" "mainvpc" {
 }
 
 resource "aws_default_security_group" "default" {
-  vpc_id = "${aws_vpc.mainvpc.vpc_id}"
+  vpc_id = "${aws_vpc.mainvpc.id}"
 
   ingress {
     protocol  = -1
