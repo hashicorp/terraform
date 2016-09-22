@@ -17,6 +17,7 @@ IMPROVEMENTS:
  * provider/aws: Add JSON validation to the aws_sns_topic_policy resource. [GH-8903]
  * provider/aws: Add JSON validation to the aws_sqs_queue resource. [GH-8904]
  * provider/aws: Add JSON validation to the aws_sqs_queue_policy resource. [GH-8905]
+ * provider/aws: Add JSON validation to the aws_vpc_endpoint resource. [GH-8906]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
 
 BUG FIXES:
