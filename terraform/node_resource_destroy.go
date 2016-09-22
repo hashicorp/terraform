@@ -28,6 +28,16 @@ func (n *NodeDestroyResource) CreateBeforeDestroy() bool {
 	return n.Config.Lifecycle.CreateBeforeDestroy
 }
 
+// GraphNodeReferenceable, overriding NodeAbstractResource
+func (n *NodeDestroyResource) ReferenceableName() []string {
+	return nil
+}
+
+// GraphNodeReferencer, overriding NodeAbstractResource
+func (n *NodeDestroyResource) References() []string {
+	return nil
+}
+
 // GraphNodeEvalable
 func (n *NodeDestroyResource) EvalTree() EvalNode {
 	// stateId is the ID to put into the state
