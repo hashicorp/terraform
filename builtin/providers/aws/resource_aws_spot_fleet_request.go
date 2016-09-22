@@ -936,7 +936,7 @@ func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Cancelling spot fleet request: %s", d.Id())
-	_, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
+	resp, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
 		SpotFleetRequestIds: []*string{aws.String(d.Id())},
 		TerminateInstances:  aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
 	})
@@ -945,7 +945,36 @@ func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error cancelling spot request (%s): %s", d.Id(), err)
 	}
 
-	return nil
+	// check response successfulFleetRequestSet to make sure our request was canceled
+	var found bool
+	for _, s := range resp.SuccessfulFleetRequests {
+		if *s.SpotFleetRequestId == d.Id() {
+			found = true
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("[ERR] Spot Fleet request (%s) was not found to be successfully canceled, dangling resources may exit", d.Id())
+	}
+
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		resp, err := conn.DescribeSpotFleetInstances(&ec2.DescribeSpotFleetInstancesInput{
+			SpotFleetRequestId: aws.String(d.Id()),
+		})
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		if len(resp.ActiveInstances) == 0 {
+			log.Printf("[DEBUG] Active instance count is 0 for Spot Fleet Request (%s), removing", d.Id())
+			return nil
+		}
+
+		log.Printf("[DEBUG] Active instance count in Spot Fleet Request (%s): %d", d.Id(), len(resp.ActiveInstances))
+
+		return resource.RetryableError(
+			fmt.Errorf("fleet still has (%d) running instances", len(resp.ActiveInstances)))
+	})
 }
 
 func hashEphemeralBlockDevice(v interface{}) int {
