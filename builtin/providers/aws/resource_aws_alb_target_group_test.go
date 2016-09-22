@@ -51,6 +51,117 @@ func TestAccAWSALBTargetGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSALBTargetGroup_changeNameForceNew(t *testing.T) {
+	var before, after elbv2.TargetGroup
+	targetGroupNameBefore := fmt.Sprintf("test-target-group-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
+	targetGroupNameAfter := fmt.Sprintf("test-target-group-%s", acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_alb_target_group.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSALBTargetGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupNameBefore),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &before),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "name", targetGroupNameBefore),
+				),
+			},
+			{
+				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupNameAfter),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &after),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "name", targetGroupNameAfter),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSALBTargetGroup_changeProtocolForceNew(t *testing.T) {
+	var before, after elbv2.TargetGroup
+	targetGroupName := fmt.Sprintf("test-target-group-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_alb_target_group.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSALBTargetGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &before),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "protocol", "HTTPS"),
+				),
+			},
+			{
+				Config: testAccAWSALBTargetGroupConfig_updatedProtocol(targetGroupName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &after),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "protocol", "HTTP"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSALBTargetGroup_changePortForceNew(t *testing.T) {
+	var before, after elbv2.TargetGroup
+	targetGroupName := fmt.Sprintf("test-target-group-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_alb_target_group.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSALBTargetGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &before),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "port", "443"),
+				),
+			},
+			{
+				Config: testAccAWSALBTargetGroupConfig_updatedPort(targetGroupName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &after),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "port", "442"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSALBTargetGroup_changeVpcForceNew(t *testing.T) {
+	var before, after elbv2.TargetGroup
+	targetGroupName := fmt.Sprintf("test-target-group-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_alb_target_group.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSALBTargetGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSALBTargetGroupConfig_basic(targetGroupName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &before),
+				),
+			},
+			{
+				Config: testAccAWSALBTargetGroupConfig_updatedVpc(targetGroupName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &after),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSALBTargetGroup_tags(t *testing.T) {
 	var conf elbv2.TargetGroup
 	targetGroupName := fmt.Sprintf("test-target-group-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
@@ -206,6 +317,131 @@ func testAccCheckAWSALBTargetGroupDestroy(s *terraform.State) error {
 }
 
 func testAccAWSALBTargetGroupConfig_basic(targetGroupName string) string {
+	return fmt.Sprintf(`resource "aws_alb_target_group" "test" {
+  name = "%s"
+  port = 443
+  protocol = "HTTPS"
+  vpc_id = "${aws_vpc.test.id}"
+
+  deregistration_delay = 200
+
+  stickiness {
+    type = "lb_cookie"
+    cookie_duration = 10000
+  }
+
+  health_check {
+    path = "/health"
+    interval = 60
+    port = 8081
+    protocol = "HTTP"
+    timeout = 3
+    healthy_threshold = 3
+    unhealthy_threshold = 3
+    matcher = "200-299"
+  }
+
+  tags {
+    TestName = "TestAccAWSALBTargetGroup_basic"
+  }
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    TestName = "TestAccAWSALBTargetGroup_basic"
+  }
+}`, targetGroupName)
+}
+
+func testAccAWSALBTargetGroupConfig_updatedPort(targetGroupName string) string {
+	return fmt.Sprintf(`resource "aws_alb_target_group" "test" {
+  name = "%s"
+  port = 442
+  protocol = "HTTPS"
+  vpc_id = "${aws_vpc.test.id}"
+
+  deregistration_delay = 200
+
+  stickiness {
+    type = "lb_cookie"
+    cookie_duration = 10000
+  }
+
+  health_check {
+    path = "/health"
+    interval = 60
+    port = 8081
+    protocol = "HTTP"
+    timeout = 3
+    healthy_threshold = 3
+    unhealthy_threshold = 3
+    matcher = "200-299"
+  }
+
+  tags {
+    TestName = "TestAccAWSALBTargetGroup_basic"
+  }
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    TestName = "TestAccAWSALBTargetGroup_basic"
+  }
+}`, targetGroupName)
+}
+
+func testAccAWSALBTargetGroupConfig_updatedProtocol(targetGroupName string) string {
+	return fmt.Sprintf(`resource "aws_alb_target_group" "test" {
+  name = "%s"
+  port = 443
+  protocol = "HTTP"
+  vpc_id = "${aws_vpc.test2.id}"
+
+  deregistration_delay = 200
+
+  stickiness {
+    type = "lb_cookie"
+    cookie_duration = 10000
+  }
+
+  health_check {
+    path = "/health"
+    interval = 60
+    port = 8081
+    protocol = "HTTP"
+    timeout = 3
+    healthy_threshold = 3
+    unhealthy_threshold = 3
+    matcher = "200-299"
+  }
+
+  tags {
+    TestName = "TestAccAWSALBTargetGroup_basic"
+  }
+}
+
+resource "aws_vpc" "test2" {
+  cidr_block = "10.10.0.0/16"
+
+  tags {
+    TestName = "TestAccAWSALBTargetGroup_basic"
+  }
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    TestName = "TestAccAWSALBTargetGroup_basic"
+  }
+}`, targetGroupName)
+}
+
+func testAccAWSALBTargetGroupConfig_updatedVpc(targetGroupName string) string {
 	return fmt.Sprintf(`resource "aws_alb_target_group" "test" {
   name = "%s"
   port = 443
