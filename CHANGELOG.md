@@ -26,6 +26,7 @@ IMPROVEMENTS:
 BUG FIXES:
  
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
+ * provider/aws: Remove support for `ah` and `esp` literals in Security Group Ingress/Egress rules; you must use the actual protocol number for protocols other than `tcp`, `udp`, `icmp`, or `all` [GH-8975]
 
 
 ## 0.7.4 (September 19, 2016)
