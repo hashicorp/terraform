@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -22,10 +23,14 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateJsonString,
+				StateFunc: func(v interface{}) string {
+					json, _ := normalizeJsonString(v)
+					return json
+				},
 			},
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -60,7 +65,10 @@ func resourceAwsVPCEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if v, ok := d.GetOk("policy"); ok {
-		policy := normalizeJson(v)
+		policy, err := normalizeJsonString(v)
+		if err != nil {
+			return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+		}
 		input.PolicyDocument = aws.String(policy)
 	}
 
@@ -128,8 +136,13 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("There are multiple prefix lists associated with the service name '%s'. Unexpected", prefixListServiceName)
 	}
 
+	policy, err := normalizeJsonString(*vpce.PolicyDocument)
+	if err != nil {
+		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+	}
+
 	d.Set("vpc_id", vpce.VpcId)
-	d.Set("policy", normalizeJson(*vpce.PolicyDocument))
+	d.Set("policy", policy)
 	d.Set("service_name", vpce.ServiceName)
 	if err := d.Set("route_table_ids", aws.StringValueSlice(vpce.RouteTableIds)); err != nil {
 		return err
@@ -162,7 +175,10 @@ func resourceAwsVPCEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if d.HasChange("policy") {
-		policy := normalizeJson(d.Get("policy"))
+		policy, err := normalizeJsonString(d.Get("policy"))
+		if err != nil {
+			return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+		}
 		input.PolicyDocument = aws.String(policy)
 	}
 
