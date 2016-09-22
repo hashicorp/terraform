@@ -27,6 +27,9 @@ type ApplyGraphBuilder struct {
 
 	// Provisioners is the list of provisioners supported.
 	Provisioners []string
+
+	// DisableReduce, if true, will not reduce the graph. Great for testing.
+	DisableReduce bool
 }
 
 // See GraphBuilder
@@ -103,10 +106,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Single root
 		&RootTransformer{},
+	}
 
+	if !b.DisableReduce {
 		// Perform the transitive reduction to make our graph a bit
 		// more sane if possible (it usually is possible).
-		&TransitiveReductionTransformer{},
+		steps = append(steps, &TransitiveReductionTransformer{})
 	}
 
 	return steps

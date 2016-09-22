@@ -263,10 +263,11 @@ func (g *Graph) walk(walker GraphWalker) error {
 				rerr = err
 				return
 			}
-
-			// Walk the subgraph
-			if rerr = g.walk(walker); rerr != nil {
-				return
+			if g != nil {
+				// Walk the subgraph
+				if rerr = g.walk(walker); rerr != nil {
+					return
+				}
 			}
 		}
 
