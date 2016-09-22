@@ -46,6 +46,12 @@ func TestAccLibratoAlert_Full(t *testing.T) {
 					testAccCheckLibratoAlertName(&alert, "FooBar"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "name", "FooBar"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.836525194.metric_name", "librato.cpu.percent.idle"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.836525194.threshold", "10"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.836525194.duration", "600"),
 				),
 			},
 		},
@@ -76,6 +82,35 @@ func TestAccLibratoAlert_Updated(t *testing.T) {
 					testAccCheckLibratoAlertDescription(&alert, "A modified Test Alert"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "description", "A modified Test Alert"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccLibratoAlert_FullUpdate(t *testing.T) {
+	var alert librato.Alert
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLibratoAlertDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckLibratoAlertConfig_full_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
+					testAccCheckLibratoAlertName(&alert, "FooBar"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "name", "FooBar"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "rearm_seconds", "1200"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.2524844643.metric_name", "librato.cpu.percent.idle"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.2524844643.threshold", "10"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.2524844643.duration", "60"),
 				),
 			},
 		},
@@ -192,6 +227,7 @@ resource "librato_alert" "foobar" {
     condition {
       type = "above"
       threshold = 10
+      duration = 600
       metric_name = "librato.cpu.percent.idle"
     }
     attributes {
@@ -199,4 +235,32 @@ resource "librato_alert" "foobar" {
     }
     active = false
     rearm_seconds = 300
+}`
+
+const testAccCheckLibratoAlertConfig_full_update = `
+resource "librato_service" "foobar" {
+    title = "Foo Bar"
+    type = "mail"
+    settings = <<EOF
+{
+  "addresses": "admin@example.com"
+}
+EOF
+}
+
+resource "librato_alert" "foobar" {
+    name = "FooBar"
+    description = "A Test Alert"
+    services = [ "${librato_service.foobar.id}" ]
+    condition {
+      type = "above"
+      threshold = 10
+      duration = 60
+      metric_name = "librato.cpu.percent.idle"
+    }
+    attributes {
+      runbook_url = "https://www.youtube.com/watch?v=oHg5SJYRHA0"
+    }
+    active = false
+    rearm_seconds = 1200
 }`
