@@ -6,28 +6,11 @@ import (
 
 // NodeDestroyResource represents a resource that is to be destroyed.
 type NodeDestroyResource struct {
-	Addr          *ResourceAddress // Addr is the address for this resource
-	ResourceState *ResourceState   // State is the resource state for this resource
+	*NodeAbstractResource
 }
 
 func (n *NodeDestroyResource) Name() string {
-	return n.Addr.String() + " (destroy)"
-}
-
-// GraphNodeSubPath
-func (n *NodeDestroyResource) Path() []string {
-	return n.Addr.Path
-}
-
-// GraphNodeProviderConsumer
-func (n *NodeDestroyResource) ProvidedBy() []string {
-	// If we have state, then we will use the provider from there
-	if n.ResourceState != nil && n.ResourceState.Provider != "" {
-		return []string{n.ResourceState.Provider}
-	}
-
-	// Use our type
-	return []string{resourceProvider(n.Addr.Type, "")}
+	return n.NodeAbstractResource.Name() + " (destroy)"
 }
 
 // GraphNodeDestroyer
@@ -35,14 +18,14 @@ func (n *NodeDestroyResource) DestroyAddr() *ResourceAddress {
 	return n.Addr
 }
 
-// GraphNodeAttachResourceState
-func (n *NodeDestroyResource) ResourceAddr() *ResourceAddress {
-	return n.Addr
-}
+// GraphNodeDestroyerCBD
+func (n *NodeDestroyResource) CreateBeforeDestroy() bool {
+	// If we have no config, we just assume no
+	if n.Config == nil {
+		return false
+	}
 
-// GraphNodeAttachResourceState
-func (n *NodeDestroyResource) AttachResourceState(s *ResourceState) {
-	n.ResourceState = s
+	return n.Config.Lifecycle.CreateBeforeDestroy
 }
 
 // GraphNodeEvalable
