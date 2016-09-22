@@ -31,10 +31,10 @@ resource "aws_vpc" "main" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the target group.
-* `port` - (Required) The port on which targets receive traffic, unless overridden when registering a specific target.
-* `protocol` - (Required) The protocol to use for routing traffic to the targets.
-* `vpc_id` - (Required) The identifier of the VPC in which to create the target group.
+* `name` - (Required) The name of the target group. 
+* `port` - (Required) The port on which targets receive traffic, unless overridden when registering a specific target. 
+* `protocol` - (Required) The protocol to use for routing traffic to the targets. 
+* `vpc_id` - (Required) The identifier of the VPC in which to create the target group. 
 * `deregistration_delay` - (Optional) The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds. 
 * `stickiness` - (Optional) A Stickiness block. Stickiness blocks are documented below.
 * `health_check` - (Optional) A Health Check block. Health Check blocks are documented below.
