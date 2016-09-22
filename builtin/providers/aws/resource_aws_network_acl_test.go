@@ -231,22 +231,22 @@ func TestAccAWSNetworkAcl_Subnets(t *testing.T) {
 }
 
 func TestAccAWSNetworkAcl_espProtocol(t *testing.T) {
-        var networkAcl ec2.NetworkAcl
+	var networkAcl ec2.NetworkAcl
 
-        resource.Test(t, resource.TestCase{
-                PreCheck:      func() { testAccPreCheck(t) },
-                IDRefreshName: "aws_network_acl.testesp",
-                Providers:     testAccProviders,
-                CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: testAccAWSNetworkAclEsp,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckAWSNetworkAclExists("aws_network_acl.testesp", &networkAcl),
-                                ),
-                        },
-                },
-        })
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_acl.testesp",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSNetworkAclEsp,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.testesp", &networkAcl),
+				),
+			},
+		},
+	})
 }
 
 func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
