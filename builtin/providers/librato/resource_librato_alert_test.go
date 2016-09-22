@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/henrikhodne/go-librato/librato"
@@ -12,19 +13,20 @@ import (
 
 func TestAccLibratoAlert_Basic(t *testing.T) {
 	var alert librato.Alert
+	name := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoAlertDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckLibratoAlertConfig_basic,
+			{
+				Config: testAccCheckLibratoAlertConfig_basic(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
-					testAccCheckLibratoAlertName(&alert, "FooBar"),
+					testAccCheckLibratoAlertName(&alert, name),
 					resource.TestCheckResourceAttr(
-						"librato_alert.foobar", "name", "FooBar"),
+						"librato_alert.foobar", "name", name),
 				),
 			},
 		},
@@ -33,19 +35,20 @@ func TestAccLibratoAlert_Basic(t *testing.T) {
 
 func TestAccLibratoAlert_Full(t *testing.T) {
 	var alert librato.Alert
+	name := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoAlertDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckLibratoAlertConfig_full,
+			{
+				Config: testAccCheckLibratoAlertConfig_full(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
-					testAccCheckLibratoAlertName(&alert, "FooBar"),
+					testAccCheckLibratoAlertName(&alert, name),
 					resource.TestCheckResourceAttr(
-						"librato_alert.foobar", "name", "FooBar"),
+						"librato_alert.foobar", "name", name),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "condition.836525194.metric_name", "librato.cpu.percent.idle"),
 					resource.TestCheckResourceAttr(
@@ -60,23 +63,24 @@ func TestAccLibratoAlert_Full(t *testing.T) {
 
 func TestAccLibratoAlert_Updated(t *testing.T) {
 	var alert librato.Alert
+	name := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoAlertDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckLibratoAlertConfig_basic,
+			{
+				Config: testAccCheckLibratoAlertConfig_basic(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
 					testAccCheckLibratoAlertDescription(&alert, "A Test Alert"),
 					resource.TestCheckResourceAttr(
-						"librato_alert.foobar", "name", "FooBar"),
+						"librato_alert.foobar", "name", name),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckLibratoAlertConfig_new_value,
+			{
+				Config: testAccCheckLibratoAlertConfig_new_value(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
 					testAccCheckLibratoAlertDescription(&alert, "A modified Test Alert"),
@@ -90,19 +94,20 @@ func TestAccLibratoAlert_Updated(t *testing.T) {
 
 func TestAccLibratoAlert_FullUpdate(t *testing.T) {
 	var alert librato.Alert
+	name := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoAlertDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckLibratoAlertConfig_full_update,
+			{
+				Config: testAccCheckLibratoAlertConfig_full_update(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
-					testAccCheckLibratoAlertName(&alert, "FooBar"),
+					testAccCheckLibratoAlertName(&alert, name),
 					resource.TestCheckResourceAttr(
-						"librato_alert.foobar", "name", "FooBar"),
+						"librato_alert.foobar", "name", name),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "rearm_seconds", "1200"),
 					resource.TestCheckResourceAttr(
@@ -197,19 +202,24 @@ func testAccCheckLibratoAlertExists(n string, alert *librato.Alert) resource.Tes
 	}
 }
 
-const testAccCheckLibratoAlertConfig_basic = `
+func testAccCheckLibratoAlertConfig_basic(name string) string {
+	return fmt.Sprintf(`
 resource "librato_alert" "foobar" {
-    name = "FooBar"
+    name = "%s"
     description = "A Test Alert"
-}`
+}`, name)
+}
 
-const testAccCheckLibratoAlertConfig_new_value = `
+func testAccCheckLibratoAlertConfig_new_value(name string) string {
+	return fmt.Sprintf(`
 resource "librato_alert" "foobar" {
-    name = "FooBar"
+    name = "%s"
     description = "A modified Test Alert"
-}`
+}`, name)
+}
 
-const testAccCheckLibratoAlertConfig_full = `
+func testAccCheckLibratoAlertConfig_full(name string) string {
+	return fmt.Sprintf(`
 resource "librato_service" "foobar" {
     title = "Foo Bar"
     type = "mail"
@@ -221,7 +231,7 @@ EOF
 }
 
 resource "librato_alert" "foobar" {
-    name = "FooBar"
+    name = "%s"
     description = "A Test Alert"
     services = [ "${librato_service.foobar.id}" ]
     condition {
@@ -235,9 +245,11 @@ resource "librato_alert" "foobar" {
     }
     active = false
     rearm_seconds = 300
-}`
+}`, name)
+}
 
-const testAccCheckLibratoAlertConfig_full_update = `
+func testAccCheckLibratoAlertConfig_full_update(name string) string {
+	return fmt.Sprintf(`
 resource "librato_service" "foobar" {
     title = "Foo Bar"
     type = "mail"
@@ -249,7 +261,7 @@ EOF
 }
 
 resource "librato_alert" "foobar" {
-    name = "FooBar"
+    name = "%s"
     description = "A Test Alert"
     services = [ "${librato_service.foobar.id}" ]
     condition {
@@ -263,4 +275,5 @@ resource "librato_alert" "foobar" {
     }
     active = false
     rearm_seconds = 1200
-}`
+}`, name)
+}
