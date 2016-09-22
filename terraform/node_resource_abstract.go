@@ -81,7 +81,7 @@ func (n *NodeAbstractResource) ProvidedBy() []string {
 	}
 
 	// If we have state, then we will use the provider from there
-	if n.ResourceState != nil {
+	if n.ResourceState != nil && n.ResourceState.Provider != "" {
 		return []string{n.ResourceState.Provider}
 	}
 

@@ -74,6 +74,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{Module: b.Module, State: b.State},
+		&CBDEdgeTransformer{Module: b.Module, State: b.State},
 
 		// Create all the providers
 		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},
