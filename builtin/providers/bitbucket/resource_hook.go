@@ -123,15 +123,15 @@ func resourceHookRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.Set("uuid", string(hook.Uuid))
-	d.Set("description", string(hook.Description))
-	d.Set("active", bool(hook.Active))
-	d.Set("url", string(hook.Url))
+	d.Set("uuid", hook.Uuid)
+	d.Set("description", hook.Description)
+	d.Set("active", hook.Active)
+	d.Set("url", hook.Url)
 
 	eventsList := make([]string, 0, len(hook.Events))
 
 	for _, event := range hook.Events {
-		eventsList = append(eventsList, string(event))
+		eventsList = append(eventsList, event)
 	}
 
 	d.Set("events", eventsList)

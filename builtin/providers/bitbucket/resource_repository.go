@@ -206,22 +206,22 @@ func resourceRepositoryRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.Set("scm", string(repo.SCM))
-	d.Set("is_private", bool(repo.IsPrivate))
-	d.Set("has_wiki", bool(repo.HasWiki))
-	d.Set("has_issues", bool(repo.HasIssues))
-	d.Set("name", string(repo.Name))
-	d.Set("language", string(repo.Language))
-	d.Set("fork_policy", string(repo.ForkPolicy))
-	d.Set("website", string(repo.Website))
-	d.Set("description", string(repo.Description))
-	d.Set("project_key", string(repo.Project.Key))
+	d.Set("scm", repo.SCM)
+	d.Set("is_private", repo.IsPrivate)
+	d.Set("has_wiki", repo.HasWiki)
+	d.Set("has_issues", repo.HasIssues)
+	d.Set("name", repo.Name)
+	d.Set("language", repo.Language)
+	d.Set("fork_policy", repo.ForkPolicy)
+	d.Set("website", repo.Website)
+	d.Set("description", repo.Description)
+	d.Set("project_key", repo.Project.Key)
 
 	for _, clone_url := range repo.Links.Clone {
 		if clone_url.Name == "https" {
-			d.Set("clone_https", string(clone_url.Href))
+			d.Set("clone_https", clone_url.Href)
 		} else {
-			d.Set("clone_ssh", string(clone_url.Href))
+			d.Set("clone_ssh", clone_url.Href)
 		}
 	}
 
