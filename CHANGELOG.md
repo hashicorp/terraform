@@ -24,6 +24,8 @@ IMPROVEMENTS:
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
 
 BUG FIXES:
+ 
+ * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
 
 
 ## 0.7.4 (September 19, 2016)
