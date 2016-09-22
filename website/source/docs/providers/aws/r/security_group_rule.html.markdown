@@ -45,7 +45,7 @@ or `egress` (outbound).
 * `prefix_list_ids` - (Optional) List of prefix list IDs (for allowing access to VPC endpoints).
 Only valid with `egress`.
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp").
-* `protocol` - (Required) The protocol.
+* `protocol` - (Required) The protocol. If not icmp, tcp, udp, or all use the [protocol number](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)
 * `security_group_id` - (Required) The security group to apply this rule to.
 * `source_security_group_id` - (Optional) The security group id to allow access to/from,
      depending on the `type`. Cannot be specified with `cidr_blocks`.

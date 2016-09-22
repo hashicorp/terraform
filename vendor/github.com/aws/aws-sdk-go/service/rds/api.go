@@ -4711,7 +4711,7 @@ func (c *RDS) RestoreDBClusterFromS3Request(input *RestoreDBClusterFromS3Input) 
 // Creates an Amazon Aurora DB cluster from data stored in an Amazon S3 bucket.
 // Amazon RDS must be authorized to access the Amazon S3 bucket and the data
 // must be created using the Percona XtraBackup utility as described in Migrating
-// Data from an External MySQL Database to an Amazon Aurora DB Cluster (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Migrate.html).
+// Data from MySQL by Using an Amazon S3 Bucket (AmazonRDS/latest/UserGuide/Aurora.Migrate.MySQL.html#Aurora.Migrate.MySQL.S3).
 func (c *RDS) RestoreDBClusterFromS3(input *RestoreDBClusterFromS3Input) (*RestoreDBClusterFromS3Output, error) {
 	req, out := c.RestoreDBClusterFromS3Request(input)
 	err := req.Send()
@@ -6866,6 +6866,10 @@ type CreateDBInstanceInput struct {
 	// device.
 	TdeCredentialPassword *string `type:"string"`
 
+	// The time zone of the DB instance. The time zone parameter is currently supported
+	// only by Microsoft SQL Server (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_SQLServer.html#SQLServer.Concepts.General.TimeZone).
+	Timezone *string `type:"string"`
+
 	// A list of EC2 VPC security groups to associate with this DB instance.
 	//
 	// Default: The default EC2 VPC security group for the DB subnet group's VPC.
@@ -8060,8 +8064,12 @@ type DBEngineVersion struct {
 	EngineVersion *string `type:"string"`
 
 	// A list of the character sets supported by this engine for the CharacterSetName
-	// parameter of the CreateDBInstance API.
+	// parameter of the CreateDBInstance action.
 	SupportedCharacterSets []*CharacterSet `locationNameList:"CharacterSet" type:"list"`
+
+	// A list of the time zones supported by this engine for the Timezone parameter
+	// of the CreateDBInstance action.
+	SupportedTimezones []*Timezone `locationNameList:"Timezone" type:"list"`
 
 	// A list of engine versions that this database engine version can be upgraded
 	// to.
@@ -8278,11 +8286,16 @@ type DBInstance struct {
 	// Specifies the storage type associated with DB instance.
 	StorageType *string `type:"string"`
 
-	// The ARN from the Key Store with which the instance is associated for TDE
+	// The ARN from the key store with which the instance is associated for TDE
 	// encryption.
 	TdeCredentialArn *string `type:"string"`
 
-	// Provides List of VPC security group elements that the DB instance belongs
+	// The time zone of the DB instance. In most cases, the Timezone element is
+	// empty. Timezone content appears only for Microsoft SQL Server DB instances
+	// that were created with a time zone specified.
+	Timezone *string `type:"string"`
+
+	// Provides a list of VPC security group elements that the DB instance belongs
 	// to.
 	VpcSecurityGroups []*VpcSecurityGroupMembership `locationNameList:"VpcSecurityGroupMembership" type:"list"`
 }
@@ -8570,11 +8583,16 @@ type DBSnapshot struct {
 	// Specifies the status of this DB snapshot.
 	Status *string `type:"string"`
 
-	// Specifies the storage type associated with DB Snapshot.
+	// Specifies the storage type associated with DB snapshot.
 	StorageType *string `type:"string"`
 
-	// The ARN from the Key Store with which to associate the instance for TDE encryption.
+	// The ARN from the key store with which to associate the instance for TDE encryption.
 	TdeCredentialArn *string `type:"string"`
+
+	// The time zone of the DB snapshot. In most cases, the Timezone element is
+	// empty. Timezone content appears only for snapshots taken from Microsoft SQL
+	// Server DB instances that were created with a time zone specified.
+	Timezone *string `type:"string"`
 
 	// Provides the VPC ID associated with the DB snapshot.
 	VpcId *string `type:"string"`
@@ -9920,10 +9938,15 @@ type DescribeDBEngineVersionsInput struct {
 	// Not currently supported.
 	Filters []*Filter `locationNameList:"Filter" type:"list"`
 
-	// If this parameter is specified, and if the requested engine supports the
-	// CharacterSetName parameter for CreateDBInstance, the response includes a
-	// list of supported character sets for each engine version.
+	// If this parameter is specified and the requested engine supports the CharacterSetName
+	// parameter for CreateDBInstance, the response includes a list of supported
+	// character sets for each engine version.
 	ListSupportedCharacterSets *bool `type:"boolean"`
+
+	// If this parameter is specified and the requested engine supports the TimeZone
+	// parameter for CreateDBInstance, the response includes a list of supported
+	// time zones for each engine version.
+	ListSupportedTimezones *bool `type:"boolean"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -15866,6 +15889,26 @@ func (s Tag) String() string {
 
 // GoString returns the string representation
 func (s Tag) GoString() string {
+	return s.String()
+}
+
+// A time zone associated with a DBInstance or a DBSnapshot. This data type
+// is an element in the response to the DescribeDBInstances, the DescribeDBSnapshots,
+// and the DescribeDBEngineVersions actions.
+type Timezone struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the time zone.
+	TimezoneName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Timezone) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Timezone) GoString() string {
 	return s.String()
 }
 

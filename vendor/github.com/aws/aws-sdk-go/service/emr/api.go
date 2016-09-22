@@ -183,6 +183,104 @@ func (c *EMR) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 	return out, err
 }
 
+const opCreateSecurityConfiguration = "CreateSecurityConfiguration"
+
+// CreateSecurityConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the CreateSecurityConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateSecurityConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateSecurityConfigurationRequest method.
+//    req, resp := client.CreateSecurityConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EMR) CreateSecurityConfigurationRequest(input *CreateSecurityConfigurationInput) (req *request.Request, output *CreateSecurityConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opCreateSecurityConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateSecurityConfigurationInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &CreateSecurityConfigurationOutput{}
+	req.Data = output
+	return
+}
+
+// Creates a security configuration using EMR Security Configurations, which
+// are stored in the service. Security Configurations enable you to more easily
+// create a configuration, reuse it, and apply it whenever a cluster is created.
+func (c *EMR) CreateSecurityConfiguration(input *CreateSecurityConfigurationInput) (*CreateSecurityConfigurationOutput, error) {
+	req, out := c.CreateSecurityConfigurationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDeleteSecurityConfiguration = "DeleteSecurityConfiguration"
+
+// DeleteSecurityConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSecurityConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteSecurityConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteSecurityConfigurationRequest method.
+//    req, resp := client.DeleteSecurityConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EMR) DeleteSecurityConfigurationRequest(input *DeleteSecurityConfigurationInput) (req *request.Request, output *DeleteSecurityConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opDeleteSecurityConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteSecurityConfigurationInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DeleteSecurityConfigurationOutput{}
+	req.Data = output
+	return
+}
+
+// Deletes a security configuration.
+func (c *EMR) DeleteSecurityConfiguration(input *DeleteSecurityConfigurationInput) (*DeleteSecurityConfigurationOutput, error) {
+	req, out := c.DeleteSecurityConfigurationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeCluster = "DescribeCluster"
 
 // DescribeClusterRequest generates a "aws/request.Request" representing the
@@ -298,6 +396,55 @@ func (c *EMR) DescribeJobFlowsRequest(input *DescribeJobFlowsInput) (req *reques
 //   Amazon Elastic MapReduce can return a maximum of 512 job flow descriptions.
 func (c *EMR) DescribeJobFlows(input *DescribeJobFlowsInput) (*DescribeJobFlowsOutput, error) {
 	req, out := c.DescribeJobFlowsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeSecurityConfiguration = "DescribeSecurityConfiguration"
+
+// DescribeSecurityConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSecurityConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSecurityConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSecurityConfigurationRequest method.
+//    req, resp := client.DescribeSecurityConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EMR) DescribeSecurityConfigurationRequest(input *DescribeSecurityConfigurationInput) (req *request.Request, output *DescribeSecurityConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opDescribeSecurityConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeSecurityConfigurationInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeSecurityConfigurationOutput{}
+	req.Data = output
+	return
+}
+
+// Provides the details of a security configuration by returning the configuration
+// JSON.
+func (c *EMR) DescribeSecurityConfiguration(input *DescribeSecurityConfigurationInput) (*DescribeSecurityConfigurationOutput, error) {
+	req, out := c.DescribeSecurityConfigurationRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -672,6 +819,57 @@ func (c *EMR) ListInstancesPages(input *ListInstancesInput, fn func(p *ListInsta
 	return page.EachPage(func(p interface{}, lastPage bool) bool {
 		return fn(p.(*ListInstancesOutput), lastPage)
 	})
+}
+
+const opListSecurityConfigurations = "ListSecurityConfigurations"
+
+// ListSecurityConfigurationsRequest generates a "aws/request.Request" representing the
+// client's request for the ListSecurityConfigurations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListSecurityConfigurations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListSecurityConfigurationsRequest method.
+//    req, resp := client.ListSecurityConfigurationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EMR) ListSecurityConfigurationsRequest(input *ListSecurityConfigurationsInput) (req *request.Request, output *ListSecurityConfigurationsOutput) {
+	op := &request.Operation{
+		Name:       opListSecurityConfigurations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListSecurityConfigurationsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListSecurityConfigurationsOutput{}
+	req.Data = output
+	return
+}
+
+// Lists all the security configurations visible to this account, providing
+// their creation dates and times, and their names. This call returns a maximum
+// of 50 clusters per call, but returns a marker to track the paging of the
+// cluster list across multiple ListSecurityConfigurations calls.
+func (c *EMR) ListSecurityConfigurations(input *ListSecurityConfigurationsInput) (*ListSecurityConfigurationsOutput, error) {
+	req, out := c.ListSecurityConfigurationsRequest(input)
+	err := req.Send()
+	return out, err
 }
 
 const opListSteps = "ListSteps"
@@ -1343,14 +1541,11 @@ func (s Application) GoString() string {
 	return s.String()
 }
 
-// Configuration of a bootstrap action.
 type BootstrapActionConfig struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the bootstrap action.
 	Name *string `type:"string" required:"true"`
 
-	// The script run by the bootstrap action.
 	ScriptBootstrapAction *ScriptBootstrapActionConfig `type:"structure" required:"true"`
 }
 
@@ -1451,6 +1646,9 @@ type Cluster struct {
 
 	// The AMI version running on this cluster.
 	RunningAmiVersion *string `type:"string"`
+
+	// The name of the security configuration applied to the cluster.
+	SecurityConfiguration *string `type:"string"`
 
 	// The IAM role that will be assumed by the Amazon EMR service to access AWS
 	// resources on your behalf.
@@ -1643,6 +1841,106 @@ func (s Configuration) GoString() string {
 	return s.String()
 }
 
+type CreateSecurityConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the security configuration.
+	Name *string `type:"string" required:"true"`
+
+	// The security configuration details in JSON format.
+	SecurityConfiguration *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateSecurityConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateSecurityConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateSecurityConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateSecurityConfigurationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.SecurityConfiguration == nil {
+		invalidParams.Add(request.NewErrParamRequired("SecurityConfiguration"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type CreateSecurityConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time the security configuration was created.
+	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+
+	// The name of the security configuration.
+	Name *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateSecurityConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateSecurityConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteSecurityConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the security configuration.
+	Name *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteSecurityConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteSecurityConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteSecurityConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteSecurityConfigurationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DeleteSecurityConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteSecurityConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteSecurityConfigurationOutput) GoString() string {
+	return s.String()
+}
+
 // This input determines which cluster to describe.
 type DescribeClusterInput struct {
 	_ struct{} `type:"structure"`
@@ -1734,6 +2032,59 @@ func (s DescribeJobFlowsOutput) String() string {
 
 // GoString returns the string representation
 func (s DescribeJobFlowsOutput) GoString() string {
+	return s.String()
+}
+
+type DescribeSecurityConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the security configuration.
+	Name *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeSecurityConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeSecurityConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeSecurityConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeSecurityConfigurationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DescribeSecurityConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time the security configuration was created
+	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The name of the security configuration.
+	Name *string `type:"string"`
+
+	// The security configuration details in JSON format.
+	SecurityConfiguration *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeSecurityConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeSecurityConfigurationOutput) GoString() string {
 	return s.String()
 }
 
@@ -2817,7 +3168,7 @@ type ListBootstrapActionsInput struct {
 	// The cluster identifier for the bootstrap actions to list .
 	ClusterId *string `type:"string" required:"true"`
 
-	// The pagination token that indicates the next set of results to retrieve .
+	// The pagination token that indicates the next set of results to retrieve.
 	Marker *string `type:"string"`
 }
 
@@ -2851,7 +3202,7 @@ type ListBootstrapActionsOutput struct {
 	// The bootstrap actions associated with the cluster .
 	BootstrapActions []*Command `type:"list"`
 
-	// The pagination token that indicates the next set of results to retrieve .
+	// The pagination token that indicates the next set of results to retrieve.
 	Marker *string `type:"string"`
 }
 
@@ -3032,6 +3383,45 @@ func (s ListInstancesOutput) String() string {
 
 // GoString returns the string representation
 func (s ListInstancesOutput) GoString() string {
+	return s.String()
+}
+
+type ListSecurityConfigurationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The pagination token that indicates the set of results to retrieve.
+	Marker *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListSecurityConfigurationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListSecurityConfigurationsInput) GoString() string {
+	return s.String()
+}
+
+type ListSecurityConfigurationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A pagination token that indicates the next set of results to retrieve. Include
+	// the marker in the next ListSecurityConfiguration call to retrieve the next
+	// page of results, if required.
+	Marker *string `type:"string"`
+
+	// The creation date and time, and name, of each security configuration.
+	SecurityConfigurations []*SecurityConfigurationSummary `type:"list"`
+}
+
+// String returns the string representation
+func (s ListSecurityConfigurationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListSecurityConfigurationsOutput) GoString() string {
 	return s.String()
 }
 
@@ -3324,6 +3714,9 @@ type RunJobFlowInput struct {
 	// AMIs, use amiVersion instead instead of ReleaseLabel.
 	ReleaseLabel *string `type:"string"`
 
+	// The name of a security configuration to apply to the cluster.
+	SecurityConfiguration *string `type:"string"`
+
 	// The IAM role that will be assumed by the Amazon EMR service to access AWS
 	// resources on your behalf.
 	ServiceRole *string `type:"string"`
@@ -3424,15 +3817,11 @@ func (s RunJobFlowOutput) GoString() string {
 	return s.String()
 }
 
-// Configuration of the script to run during a bootstrap action.
 type ScriptBootstrapActionConfig struct {
 	_ struct{} `type:"structure"`
 
-	// A list of command line arguments to pass to the bootstrap action script.
 	Args []*string `type:"list"`
 
-	// Location of the script to run during a bootstrap action. Can be either a
-	// location in Amazon S3 or on a local file system.
 	Path *string `type:"string" required:"true"`
 }
 
@@ -3457,6 +3846,27 @@ func (s *ScriptBootstrapActionConfig) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// The creation date and time, and name, of a security configuration.
+type SecurityConfigurationSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time the security configuration was created.
+	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The name of the security configuration.
+	Name *string `type:"string"`
+}
+
+// String returns the string representation
+func (s SecurityConfigurationSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SecurityConfigurationSummary) GoString() string {
+	return s.String()
 }
 
 // The input argument to the TerminationProtection operation.
