@@ -65,10 +65,11 @@ func TestApplyGraphBuilder(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Module:       testModule(t, "graph-builder-apply-basic"),
-		Diff:         diff,
-		Providers:    []string{"aws"},
-		Provisioners: []string{"exec"},
+		Module:        testModule(t, "graph-builder-apply-basic"),
+		Diff:          diff,
+		Providers:     []string{"aws"},
+		Provisioners:  []string{"exec"},
+		DisableReduce: true,
 	}
 
 	g, err := b.Build(RootModulePath)
@@ -93,6 +94,14 @@ aws_instance.create
 aws_instance.other
   aws_instance.create
   provider.aws
+meta.count-boundary (count boundary fixup)
+  aws_instance.create
+  aws_instance.other
+  module.child.aws_instance.create
+  module.child.aws_instance.other
+  module.child.provider.aws
+  provider.aws
+  provisioner.exec
 module.child.aws_instance.create
   module.child.provider.aws
   provisioner.exec
@@ -103,7 +112,4 @@ module.child.provider.aws
   provider.aws
 provider.aws
 provisioner.exec
-root
-  aws_instance.other
-  module.child.aws_instance.other
 `

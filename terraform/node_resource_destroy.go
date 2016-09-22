@@ -6,7 +6,7 @@ import (
 
 // NodeDestroyResource represents a resource that is to be destroyed.
 type NodeDestroyResource struct {
-	*NodeAbstractResource
+	NodeAbstractResource
 }
 
 func (n *NodeDestroyResource) Name() string {
@@ -36,6 +36,34 @@ func (n *NodeDestroyResource) ReferenceableName() []string {
 // GraphNodeReferencer, overriding NodeAbstractResource
 func (n *NodeDestroyResource) References() []string {
 	return nil
+}
+
+// GraphNodeDynamicExpandable
+func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	// If we have no config we do nothing
+	if n.Config == nil {
+		return nil, nil
+	}
+
+	state, lock := ctx.State()
+	lock.RLock()
+	defer lock.RUnlock()
+
+	// Start creating the steps
+	steps := make([]GraphTransformer, 0, 5)
+
+	// We want deposed resources in the state to be destroyed
+	steps = append(steps, &DeposedTransformer{
+		State: state,
+		View:  n.Config.Id(),
+	})
+
+	// Always end with the root being added
+	steps = append(steps, &RootTransformer{})
+
+	// Build the graph
+	b := &BasicGraphBuilder{Steps: steps}
+	return b.Build(ctx.Path())
 }
 
 // GraphNodeEvalable

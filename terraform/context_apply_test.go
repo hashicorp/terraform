@@ -2297,6 +2297,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.web: (1 deposed)
   ID = bar
+  provider = aws
   Deposed ID 1 = foo
 	`)
 
@@ -2321,6 +2322,7 @@ aws_instance.web: (1 deposed)
 	checkStateString(t, state, `
 aws_instance.web: (2 deposed)
   ID = baz
+  provider = aws
   Deposed ID 1 = foo
   Deposed ID 2 = bar
 	`)
@@ -2348,6 +2350,7 @@ aws_instance.web: (2 deposed)
 	checkStateString(t, state, `
 aws_instance.web: (1 deposed)
   ID = qux
+  provider = aws
   Deposed ID 1 = bar
 	`)
 
@@ -2369,6 +2372,7 @@ aws_instance.web: (1 deposed)
 	checkStateString(t, state, `
 aws_instance.web:
   ID = quux
+  provider = aws
 	`)
 }
 
@@ -4746,8 +4750,10 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 		State: state,
 	})
 
-	if _, err := ctx.Plan(); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf("plan: %s", p)
 	}
 
 	h.Active = true
@@ -4764,7 +4770,7 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyDependsCreateBeforeStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s\n%s", actual, expected)
+		t.Fatalf("bad: \n%s\n\n%s", actual, expected)
 	}
 
 	// Test that things were managed _in the right order_
