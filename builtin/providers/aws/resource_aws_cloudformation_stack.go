@@ -6,12 +6,12 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceAwsCloudFormationStack() *schema.Resource {
@@ -108,7 +108,10 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		StackName: aws.String(d.Get("name").(string)),
 	}
 	if v, ok := d.GetOk("template_body"); ok {
-		template, _ := normalizeJsonString(v.(string))
+		template, err := normalizeJsonString(v)
+		if err != nil {
+			return errwrap.Wrapf("template body contains an invalid JSON: {{err}}", err)
+		}
 		input.TemplateBody = aws.String(template)
 	}
 	if v, ok := d.GetOk("template_url"); ok {
@@ -130,7 +133,10 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 	if v, ok := d.GetOk("policy_body"); ok {
-		policy, _ := normalizeJsonString(v.(string))
+		policy, err := normalizeJsonString(v)
+		if err != nil {
+			return errwrap.Wrapf("policy body contains an invalid JSON: {{err}}", err)
+		}
 		input.StackPolicyBody = aws.String(policy)
 	}
 	if v, ok := d.GetOk("policy_url"); ok {
@@ -280,7 +286,10 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	template, _ := normalizeJsonString(*out.TemplateBody)
+	template, err := normalizeJsonString(*out.TemplateBody)
+	if err != nil {
+		return errwrap.Wrapf("template body contains an invalid JSON: {{err}}", err)
+	}
 	d.Set("template_body", template)
 
 	stack := stacks[0]
@@ -344,7 +353,10 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		input.TemplateURL = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("template_body"); ok && input.TemplateURL == nil {
-		template, _ := normalizeJsonString(v.(string))
+		template, err := normalizeJsonString(v)
+		if err != nil {
+			return errwrap.Wrapf("template body contains an invalid JSON: {{err}}", err)
+		}
 		input.TemplateBody = aws.String(template)
 	}
 
@@ -363,7 +375,10 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 	}
 
 	if d.HasChange("policy_body") {
-		policy, _ := normalizeJsonString(d.Get("policy_body").(string))
+		policy, err := normalizeJsonString(d.Get("policy_body"))
+		if err != nil {
+			return errwrap.Wrapf("policy body contains an invalid JSON: {{err}}", err)
+		}
 		input.StackPolicyBody = aws.String(policy)
 	}
 	if d.HasChange("policy_url") {
