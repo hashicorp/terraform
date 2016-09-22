@@ -20,6 +20,7 @@ IMPROVEMENTS:
  * provider/aws: Add JSON validation to the aws_vpc_endpoint resource. [GH-8906]
  * provider/aws: Update aws_cloudformation_stack data source with new helper function. [GH-8907]
  * provider/aws: Add JSON validation to the aws_s3_bucket resource. [GH-8908]
+ * provider/aws: Add support for `cloudwatch_logging_options` to Firehose Delivery Streams [GH-8671]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
 
 BUG FIXES:
