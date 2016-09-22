@@ -954,7 +954,7 @@ func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	if !found {
-		return fmt.Errorf("[ERR] Spot Fleet request (%s) was not found to be successfully canceled, dangling may resources exit", d.Id())
+		return fmt.Errorf("[ERR] Spot Fleet request (%s) was not found to be successfully canceled, dangling resources may exit", d.Id())
 	}
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
