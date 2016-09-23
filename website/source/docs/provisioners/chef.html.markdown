@@ -77,6 +77,12 @@ The following arguments are supported:
   subdirectory called `logfiles` created in your current directory. The filename will be
   the `node_name` of the new node.
 
+* `use_policyfile (boolean)` - (Optional) Use Chef Policyfiles.
+
+* `policy_group (string)` - (Optional) Chef  policy group.
+
+* `policy_name (string)` - (Optional) Chef policy name.
+
 * `http_proxy (string)` - (Optional) The proxy server for Chef Client HTTP connections.
 
 * `https_proxy (string)` - (Optional) The proxy server for Chef Client HTTPS connections.
