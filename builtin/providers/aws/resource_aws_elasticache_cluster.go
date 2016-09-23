@@ -364,9 +364,11 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		}
 
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
-		d.Set("security_group_names", c.CacheSecurityGroups)
-		d.Set("security_group_ids", c.SecurityGroups)
-		d.Set("parameter_group_name", c.CacheParameterGroup)
+		d.Set("security_group_names", flattenElastiCacheSecurityGroupNames(c.CacheSecurityGroups))
+		d.Set("security_group_ids", flattenElastiCacheSecurityGroupIds(c.SecurityGroups))
+		if c.CacheParameterGroup != nil {
+			d.Set("parameter_group_name", c.CacheParameterGroup.CacheParameterGroupName)
+		}
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
 		d.Set("snapshot_window", c.SnapshotWindow)
 		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
