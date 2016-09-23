@@ -210,6 +210,9 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 		Read:   resourceAwsElasticacheClusterRead,
 		Update: resourceAwsElasticacheClusterUpdate,
 		Delete: resourceAwsElasticacheClusterDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: resourceSchema,
 	}
