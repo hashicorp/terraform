@@ -21,6 +21,8 @@ IMPROVEMENTS:
  * provider/aws: Update aws_cloudformation_stack data source with new helper function. [GH-8907]
  * provider/aws: Add JSON validation to the aws_s3_bucket resource. [GH-8908]
  * provider/aws: Add support for `cloudwatch_logging_options` to Firehose Delivery Streams [GH-8671]
+ * provider/aws: Add HTTP/2 support via the http_version parameter to CloudFront distribution [GH-8777]
+ * provider/aws: Add query_string_cache_keys to allow for selective caching of CloudFront keys [GH-8777]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
 
 BUG FIXES:
@@ -30,6 +32,7 @@ BUG FIXES:
  * provider/aws: VPC ID, Port, Protocol and Name change on aws_alb_target_group will ForceNew resource [GH-8989]
  * provider/aws: Wait for Spot Fleet to drain before removing from state [GH-8938]
  * provider/aws: Fix issue when importing `aws_eip` resources by IP address [GH-8970]
+ * provider/aws: Ensure that origin_access_identity is a required value within the CloudFront distribution s3_config block [GH-8777]
 
 
 ## 0.7.4 (September 19, 2016)
