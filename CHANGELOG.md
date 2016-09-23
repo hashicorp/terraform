@@ -27,6 +27,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
  
+ * core: Fixed variables not being in scope for destroy -target on modules [GH-9021]
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
  * provider/aws: Remove support for `ah` and `esp` literals in Security Group Ingress/Egress rules; you must use the actual protocol number for protocols other than `tcp`, `udp`, `icmp`, or `all` [GH-8975]
  * provider/aws: VPC ID, Port, Protocol and Name change on aws_alb_target_group will ForceNew resource [GH-8989]
