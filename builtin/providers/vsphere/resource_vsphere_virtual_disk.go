@@ -22,7 +22,7 @@ type virtualDisk struct {
 }
 
 // Define VirtualDisk args
-func resourceVSphereVirtualDisk() *schema.Resource {
+func ResourceVSphereVirtualDisk() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereVirtualDiskCreate,
 		Read:   resourceVSphereVirtualDiskRead,

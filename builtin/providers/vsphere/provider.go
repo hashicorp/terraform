@@ -64,10 +64,16 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"vsphere_file":            resourceVSphereFile(),
-			"vsphere_folder":          resourceVSphereFolder(),
-			"vsphere_virtual_disk":    resourceVSphereVirtualDisk(),
-			"vsphere_virtual_machine": resourceVSphereVirtualMachine(),
+			"vsphere_file":            ResourceVSphereFile(),
+			"vsphere_folder":          ResourceVSphereFolder(),
+			"vsphere_virtual_disk":    ResourceVSphereVirtualDisk(),
+			"vsphere_virtual_machine": ResourceVSphereVirtualMachine(),
+			"vsphere_dvs":             ResourceVSphereDVS(),
+			"vsphere_dvs_port_group":  ResourceVSphereDVPG(),
+			/** // disabled (untested)
+			"vsphere_dvs_vm_port":     dvs.ResourceVSphereMapVMDVPG(),
+			"vsphere_dvs_host_map":    dvs.ResourceVSphereMapHostDVS(),
+			// **/
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -100,4 +106,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return config.Client()
+}
+
+func init() {
+	testAccProvider = Provider().(*schema.Provider)
+	testAccProviders = map[string]terraform.ResourceProvider{
+		"vsphere": testAccProvider,
+	}
 }

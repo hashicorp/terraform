@@ -139,6 +139,10 @@ func testAccCheckVSphereFolderDestroy(s *terraform.State) error {
 		if f != nil {
 			return fmt.Errorf("Record still exists")
 		}
+		if err != nil {
+			return fmt.Errorf("error %s", err)
+		}
+
 	}
 
 	return nil

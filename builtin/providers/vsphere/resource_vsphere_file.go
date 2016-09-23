@@ -24,7 +24,7 @@ type file struct {
 	copyFile          bool
 }
 
-func resourceVSphereFile() *schema.Resource {
+func ResourceVSphereFile() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereFileCreate,
 		Read:   resourceVSphereFileRead,
