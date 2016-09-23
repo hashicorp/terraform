@@ -219,6 +219,23 @@ func testAccCheckAWSElasticacheClusterExists(n string, v *elasticache.CacheClust
 	}
 }
 
+func testAccAWSElasticacheClusterConfigBasic(clusterId string) string {
+	return fmt.Sprintf(`
+provider "aws" {
+	region = "us-east-1"
+}
+
+resource "aws_elasticache_cluster" "bar" {
+    cluster_id = "tf-%s"
+    engine = "memcached"
+    node_type = "cache.m1.small"
+    num_cache_nodes = 1
+    port = 11211
+    parameter_group_name = "default.memcached1.4"
+}
+`, clusterId)
+}
+
 var testAccAWSElasticacheClusterConfig = fmt.Sprintf(`
 provider "aws" {
 	region = "us-east-1"

@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -11,6 +12,8 @@ func TestAccAWSElasticacheCluster_importBasic(t *testing.T) {
 	oldvar := os.Getenv("AWS_DEFAULT_REGION")
 	os.Setenv("AWS_DEFAULT_REGION", "us-east-1")
 	defer os.Setenv("AWS_DEFAULT_REGION", oldvar)
+
+	name := acctest.RandString(10)
 
 	resourceName := "aws_elasticache_cluster.bar"
 
@@ -20,7 +23,7 @@ func TestAccAWSElasticacheCluster_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSElasticacheClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSElasticacheClusterConfig,
+				Config: testAccAWSElasticacheClusterConfigBasic(name),
 			},
 
 			resource.TestStep{
