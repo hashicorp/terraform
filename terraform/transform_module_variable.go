@@ -28,15 +28,32 @@ func (t *ModuleVariableTransformer) transform(g *Graph, parent, m *module.Tree) 
 		return nil
 	}
 
-	// Transform all the children.
+	// If we have no parent, then don't do anything. This is because
+	// we need to be able to get the set value from the module declaration.
+	if err := t.transformSingle(g, parent, m); err != nil {
+		return nil
+	}
+
+	// Transform all the children. This has to be _after_ the above
+	// since children can reference parent variables but parents can't
+	// access children. Example:
+	//
+	//   module foo { value = "${var.foo}" }
+	//
+	// The "value" var in "foo" (a child) is accessing the "foo" bar
+	// in the parent (current module). However, there is no way for the
+	// current module to reference a variable in the child module.
 	for _, c := range m.Children() {
 		if err := t.transform(g, m, c); err != nil {
 			return err
 		}
 	}
 
-	// If we have no parent, then don't do anything. This is because
-	// we need to be able to get the set value from the module declaration.
+	return nil
+}
+
+func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, m *module.Tree) error {
+	// If we have no parent, we can't determine if the parent uses our variables
 	if parent == nil {
 		return nil
 	}
@@ -44,6 +61,7 @@ func (t *ModuleVariableTransformer) transform(g *Graph, parent, m *module.Tree) 
 	// If we have no vars, we're done!
 	vars := m.Config().Variables
 	if len(vars) == 0 {
+		log.Printf("[TRACE] Module %#v has no variables, skipping.", m.Path())
 		return nil
 	}
 
@@ -56,7 +74,7 @@ func (t *ModuleVariableTransformer) transform(g *Graph, parent, m *module.Tree) 
 		}
 	}
 	if mod == nil {
-		log.Printf("[INFO] Module %q not used, not adding variables", m.Name())
+		log.Printf("[INFO] Module %#v not used, not adding variables", m.Path())
 		return nil
 	}
 
