@@ -1241,6 +1241,23 @@ func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) e
 
 	lifecycleRules := d.Get("lifecycle_rule").([]interface{})
 
+	if len(lifecycleRules) == 0 {
+		i := &s3.DeleteBucketLifecycleInput{
+			Bucket: aws.String(bucket),
+		}
+
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			if _, err := s3conn.DeleteBucketLifecycle(i); err != nil {
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("Error putting S3 lifecycle: %s", err)
+		}
+		return nil
+	}
+
 	rules := make([]*s3.LifecycleRule, 0, len(lifecycleRules))
 
 	for i, lifecycleRule := range lifecycleRules {
