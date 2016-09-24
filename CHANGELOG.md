@@ -34,6 +34,7 @@ BUG FIXES:
  * provider/aws: Wait for Spot Fleet to drain before removing from state [GH-8938]
  * provider/aws: Fix issue when importing `aws_eip` resources by IP address [GH-8970]
  * provider/aws: Ensure that origin_access_identity is a required value within the CloudFront distribution s3_config block [GH-8777]
+ * provider/aws: Corrected Seoul S3 Website Endpoint format [GH-9032]
 
 
 ## 0.7.4 (September 19, 2016)
