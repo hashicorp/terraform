@@ -28,21 +28,16 @@ func (t *ModuleVariableTransformer) transform(g *Graph, parent, m *module.Tree) 
 		return nil
 	}
 
-	// If we have no parent, then don't do anything. This is because
-	// we need to be able to get the set value from the module declaration.
-	if err := t.transformSingle(g, parent, m); err != nil {
-		return nil
+	// If we have a parent, we can determine if a module variable is being
+	// used, so we transform this.
+	if parent != nil {
+		if err := t.transformSingle(g, parent, m); err != nil {
+			return err
+		}
 	}
 
-	// Transform all the children. This has to be _after_ the above
-	// since children can reference parent variables but parents can't
-	// access children. Example:
-	//
-	//   module foo { value = "${var.foo}" }
-	//
-	// The "value" var in "foo" (a child) is accessing the "foo" bar
-	// in the parent (current module). However, there is no way for the
-	// current module to reference a variable in the child module.
+	// Transform all the children. This must be done AFTER the transform
+	// above since child module variables can reference parent module variables.
 	for _, c := range m.Children() {
 		if err := t.transform(g, m, c); err != nil {
 			return err
@@ -53,11 +48,6 @@ func (t *ModuleVariableTransformer) transform(g *Graph, parent, m *module.Tree) 
 }
 
 func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, m *module.Tree) error {
-	// If we have no parent, we can't determine if the parent uses our variables
-	if parent == nil {
-		return nil
-	}
-
 	// If we have no vars, we're done!
 	vars := m.Config().Variables
 	if len(vars) == 0 {
