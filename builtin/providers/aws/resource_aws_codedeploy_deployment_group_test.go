@@ -245,6 +245,10 @@ func TestValidateAWSCodeDeployTriggerEvent(t *testing.T) {
 			ErrCount: 0,
 		},
 		{
+			Value:    "DeploymentRollback",
+			ErrCount: 0,
+		},
+		{
 			Value:    "InstanceStart",
 			ErrCount: 0,
 		},
@@ -748,7 +752,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_create(rName strin
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_codedeploy_deployment_group" "foo_group" {
 	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "foo-group-%s"
@@ -766,7 +770,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_update(rName strin
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_codedeploy_deployment_group" "foo_group" {
 	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "foo-group-%s"
@@ -784,7 +788,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_createMultiple(rNa
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_sns_topic" "bar_topic" {
 	name = "bar-topic-%s"
 }
@@ -812,7 +816,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_updateMultiple(rNa
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_sns_topic" "bar_topic" {
 	name = "bar-topic-%s"
 }

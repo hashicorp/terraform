@@ -510,13 +510,14 @@ func resourceAwsCodeDeployTriggerConfigHash(v interface{}) int {
 func validateTriggerEvent(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	triggerEvents := map[string]bool{
-		"DeploymentStart":   true,
-		"DeploymentStop":    true,
-		"DeploymentSuccess": true,
-		"DeploymentFailure": true,
-		"InstanceStart":     true,
-		"InstanceSuccess":   true,
-		"InstanceFailure":   true,
+		"DeploymentStart":    true,
+		"DeploymentStop":     true,
+		"DeploymentSuccess":  true,
+		"DeploymentFailure":  true,
+		"DeploymentRollback": true,
+		"InstanceStart":      true,
+		"InstanceSuccess":    true,
+		"InstanceFailure":    true,
 	}
 
 	if !triggerEvents[value] {
