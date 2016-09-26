@@ -573,6 +573,11 @@ func scalingPolicySchema() *schema.Schema {
 					Required: true,
 				},
 
+				"operator": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+
 				"evaluation_periods": &schema.Schema{
 					Type:     schema.TypeInt,
 					Required: true,
@@ -752,6 +757,7 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 				"metric_name":         p.MetricName,
 				"min_target_capacity": p.MinTargetCapacity,
 				"namespace":           p.Namespace,
+				"operator":            p.Operator,
 				"period":              p.Period,
 				"policy_name":         p.PolicyName,
 				"statistic":           p.Statistic,
@@ -773,6 +779,7 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 				"metric_name":         p.MetricName,
 				"min_target_capacity": p.MinTargetCapacity,
 				"namespace":           p.Namespace,
+				"operator":            p.Operator,
 				"period":              p.Period,
 				"policy_name":         p.PolicyName,
 				"statistic":           p.Statistic,
@@ -1538,6 +1545,10 @@ func expandAwsGroupScalingPolicies(data interface{}) ([]*spotinst.AwsGroupScalin
 
 		if v, ok := m["namespace"].(string); ok && v != "" {
 			policy.Namespace = spotinst.String(v)
+		}
+
+		if v, ok := m["operator"].(string); ok && v != "" {
+			policy.Operator = spotinst.String(v)
 		}
 
 		if v, ok := m["period"].(int); ok && v > 0 {

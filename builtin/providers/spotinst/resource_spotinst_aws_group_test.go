@@ -220,6 +220,7 @@ resource "spotinst_aws_group" "foo" {
 		threshold = 80
 		adjustment = 1
 		namespace = "AWS/EC2"
+		operator = "gte"
 		period = 300
 		evaluation_periods = 2
 		cooldown = 300
@@ -363,6 +364,7 @@ resource "spotinst_aws_group" "foo" {
 		threshold = 80
 		adjustment = 1
 		namespace = "AWS/EC2"
+		operator = "gte"
 		period = 300
 		evaluation_periods = 2
 		cooldown = 300
