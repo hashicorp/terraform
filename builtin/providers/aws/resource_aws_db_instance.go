@@ -265,6 +265,7 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: false,
 				Optional: true,
+				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
