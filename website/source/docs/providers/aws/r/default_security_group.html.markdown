@@ -87,10 +87,6 @@ The arguments of an `aws_default_security_group` differ slightly from `aws_secur
 resources. Namely, the `name` argument is computed, and the `name_prefix` attribute
 removed. The following arguments are still supported: 
 
-* `description` - (Optional, Forces new resource) The security group description. Defaults to
-  "Managed by Terraform". Cannot be "". __NOTE__: This field maps to the AWS
-  `GroupDescription` attribute, for which there is no Update API. If you'd like
-  to classify your security groups in a way that can be updated, use `tags`.
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
 * `egress` - (Optional, VPC only) Can be specified multiple times for each
