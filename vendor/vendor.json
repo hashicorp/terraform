@@ -296,6 +296,12 @@
 			"revision": "0290933f5e8afd933f2823fce32bf2847e6ea603"
 		},
 		{
+			"checksumSHA1": "FQc+WPOoRAGM6UYOS4UjeEEAse4=",
+			"path": "github.com/PagerDuty/go-pagerduty",
+			"revision": "45ef5164a846163bdeea4e743dc4f5535ed023ca",
+			"revisionTime": "2016-10-13T06:26:24Z"
+		},
+		{
 			"path": "github.com/Unknwon/com",
 			"revision": "28b053d5a2923b87ce8c5a08f3af779894a72758"
 		},
