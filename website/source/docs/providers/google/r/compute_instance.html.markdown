@@ -60,7 +60,7 @@ The following arguments are supported:
 * `disk` - (Required) Disks to attach to the instance. This can be specified
     multiple times for multiple disks. Structure is documented below.
 
-* `machine_type` - (Required) The machine type to create.To create a custom
+* `machine_type` - (Required) The machine type to create. To create a custom
     machine type, value should be set as specified
     [here](https://cloud.google.com/compute/docs/reference/latest/instances#machineType)
 

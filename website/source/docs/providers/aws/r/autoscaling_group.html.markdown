@@ -67,7 +67,7 @@ The following arguments are supported:
 * `load_balancers` (Optional) A list of load balancer names to add to the autoscaling
    group names.
 * `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
-* `target_group_arns` (Optional) A list of `aws_target_group` ARNs, for use with
+* `target_group_arns` (Optional) A list of `aws_alb_target_group` ARNs, for use with
 Application Load Balancing
 * `termination_policies` (Optional) A list of policies to decide how the instances in the auto scale group should be terminated. The allowed values are `OldestInstance`, `NewestInstance`, `OldestLaunchConfiguration`, `ClosestToNextInstanceHour`, `Default`.
 * `tag` (Optional) A list of tag blocks. Tags documented below.

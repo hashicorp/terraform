@@ -93,7 +93,7 @@ resource "aws_elasticsearch_domain" "test_cluster" {
 
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
   name = "terraform-kinesis-firehose-test-stream"
-  destination = "elasticsearch"
+  destination = "redshift"
   s3_configuration {
     role_arn = "${aws_iam_role.firehose_role.arn}"
     bucket_arn = "${aws_s3_bucket.bucket.arn}"
@@ -137,6 +137,7 @@ The `s3_configuration` object supports the following:
 * `compression_format` - (Optional) The compression format. If no value is specified, the default is UNCOMPRESSED. Other supported values are GZIP, ZIP & Snappy. If the destination is redshift you cannot use ZIP or Snappy.
 * `kms_key_arn` - (Optional) If set, the stream will encrypt data using the key in KMS, otherwise, no encryption will
 be used.
+* `cloudwatch_logging_options` - (Optional) The CloudWatch Logging Options for the delivery stream. More details are given below
 
 The `redshift_configuration` object supports the following:
 
@@ -147,6 +148,7 @@ The `redshift_configuration` object supports the following:
 * `data_table_name` - (Required) The name of the table in the redshift cluster that the s3 bucket will copy to.
 * `copy_options` - (Optional) Copy options for copying the data from the s3 intermediate bucket into redshift.
 * `data_table_columns` - (Optional) The data table columns that will be targeted by the copy command.
+* `cloudwatch_logging_options` - (Optional) The CloudWatch Logging Options for the delivery stream. More details are given below
 
 The `elasticsearch_configuration` object supports the following:
 
@@ -159,6 +161,15 @@ The `elasticsearch_configuration` object supports the following:
 * `role_arn` - (Required) The ARN of the IAM role to be assumed by Firehose for calling the Amazon ES Configuration API and for indexing documents.  The pattern needs to be `arn:.*`.
 * `s3_backup_mode` - (Optional) Defines how documents should be delivered to Amazon S3.  Valid values are `FailedDocumentsOnly` and `AllDocuments`.  Default value is `FailedDocumentsOnly`.
 * `type_name` - (Required) The Elasticsearch type name with maximum length of 100 characters.
+* `cloudwatch_logging_options` - (Optional) The CloudWatch Logging Options for the delivery stream. More details are given below
+
+The `cloudwatch_logging_options` object supports the following:
+
+* `enabled` - (Optional) Enables or disables the logging. Defaults to `false`. 
+* `log_group_name` - (Optional) The CloudWatch group name for logging. This value is required if `enabled` is true`.
+* `log_stream_name` - (Optional) The CloudWatch log stream name for logging. This value is required if `enabled` is true`.
+
+
 
 ## Attributes Reference
 

@@ -10,13 +10,33 @@ IMPROVEMENTS:
  * provider/aws: S3 bucket policies are imported as separate resources [GH-8915]
  * provider/aws: S3 bucket policies can now be removed via the `aws_s3_bucket` resource [GH-8915]
  * provider/aws: Added a cluster_address attribute to aws elasticache [GH-8935]
+ * provider/aws: Add JSON validation to the aws_elasticsearch_domain resource. [GH-8898]
+ * provider/aws: Add JSON validation to the aws_kms_key resource. [GH-8900]
  * provider/aws: Add JSON validation to the aws_s3_bucket_policy resource. [GH-8901]
+ * provider/aws: Add JSON validation to the aws_sns_topic resource. [GH-8902]
  * provider/aws: Add JSON validation to the aws_sns_topic_policy resource. [GH-8903]
  * provider/aws: Add JSON validation to the aws_sqs_queue resource. [GH-8904]
  * provider/aws: Add JSON validation to the aws_sqs_queue_policy resource. [GH-8905]
+ * provider/aws: Add JSON validation to the aws_vpc_endpoint resource. [GH-8906]
+ * provider/aws: Update aws_cloudformation_stack data source with new helper function. [GH-8907]
+ * provider/aws: Add JSON validation to the aws_s3_bucket resource. [GH-8908]
+ * provider/aws: Add support for `cloudwatch_logging_options` to Firehose Delivery Streams [GH-8671]
+ * provider/aws: Add HTTP/2 support via the http_version parameter to CloudFront distribution [GH-8777]
+ * provider/aws: Add query_string_cache_keys to allow for selective caching of CloudFront keys [GH-8777]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
 
 BUG FIXES:
+ 
+ * core: Fixed variables not being in scope for destroy -target on modules [GH-9021]
+ * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
+ * provider/aws: Remove support for `ah` and `esp` literals in Security Group Ingress/Egress rules; you must use the actual protocol number for protocols other than `tcp`, `udp`, `icmp`, or `all` [GH-8975]
+ * provider/aws: VPC ID, Port, Protocol and Name change on aws_alb_target_group will ForceNew resource [GH-8989]
+ * provider/aws: Wait for Spot Fleet to drain before removing from state [GH-8938]
+ * provider/aws: Fix issue when importing `aws_eip` resources by IP address [GH-8970]
+ * provider/aws: Ensure that origin_access_identity is a required value within the CloudFront distribution s3_config block [GH-8777]
+ * provider/aws: Corrected Seoul S3 Website Endpoint format [GH-9032]
+ * provider/aws: Fix failed remove S3 lifecycle_rule [GH-9031]
+ * provider/aws: Fix crashing bug in `aws_ami` data source when using `name_regex` [GH-9033]
 
 
 ## 0.7.4 (September 19, 2016)

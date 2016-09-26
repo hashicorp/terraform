@@ -110,6 +110,10 @@ of several sub-resources - these resources are laid out below.
   * `enabled` (Required) - Whether the distribution is enabled to accept end
     user requests for content.
 
+  * `http_version` (Optional) - The maximum HTTP version to support on the
+    distribution. Allowed values are `http1.1` and `http2`. The default is
+    `http2`.
+
   * `logging_config` (Optional) - The [logging
     configuration](#logging-config-arguments) that controls how logs are written
     to your distribution (maximum one).
@@ -195,6 +199,11 @@ of several sub-resources - these resources are laid out below.
 
   * `query_string` (Required) - Indicates whether you want CloudFront to forward
     query strings to the origin that is associated with this cache behavior.
+
+  * `query_string_cache_keys` (Optional) - When specified, along with a value of
+    `true` for `query_string`, all query strings are forwarded, however only the
+    query string keys listed in this argument are cached. When omitted with a
+    value of `true` for `query_string`, all query string keys are cached.
 
 ##### Cookies Arguments
 
