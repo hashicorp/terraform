@@ -37,6 +37,7 @@ BUG FIXES:
  * provider/aws: Corrected Seoul S3 Website Endpoint format [GH-9032]
  * provider/aws: Fix failed remove S3 lifecycle_rule [GH-9031]
  * provider/aws: Fix crashing bug in `aws_ami` data source when using `name_regex` [GH-9033]
+ * provider/aws: Fix reading dimensions on cloudwatch alarms [GH-9029]
 
 
 ## 0.7.4 (September 19, 2016)
