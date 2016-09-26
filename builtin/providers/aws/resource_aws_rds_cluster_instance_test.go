@@ -281,8 +281,6 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
   cluster_identifier      = "${aws_rds_cluster.default.id}"
   instance_class          = "db.r3.large"
   db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
-  storage_encrypted = true
-  kms_key_id = "${aws_kms_key.foo.arn}"
 }
 
 resource "aws_db_parameter_group" "bar" {
