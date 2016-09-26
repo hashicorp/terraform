@@ -298,7 +298,9 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("vpn_gateway_id", vpnConnection.VpnGatewayId)
 	d.Set("customer_gateway_id", vpnConnection.CustomerGatewayId)
 	d.Set("type", vpnConnection.Type)
-	d.Set("tags", tagsToMap(vpnConnection.Tags))
+	if _, ok := d.GetOk("tags"); ok {
+		d.Set("tags", tagsToMap(vpnConnection.Tags))
+	}
 
 	if vpnConnection.Options != nil {
 		if err := d.Set("static_routes_only", vpnConnection.Options.StaticRoutesOnly); err != nil {

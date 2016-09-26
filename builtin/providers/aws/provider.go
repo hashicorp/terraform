@@ -333,6 +333,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_sns_topic_policy":                         resourceAwsSnsTopicPolicy(),
 			"aws_sns_topic_subscription":                   resourceAwsSnsTopicSubscription(),
 			"aws_subnet":                                   resourceAwsSubnet(),
+			"aws_tag_attachment":                           resourceAwsTagAttachment(),
 			"aws_volume_attachment":                        resourceAwsVolumeAttachment(),
 			"aws_vpc_dhcp_options_association":             resourceAwsVpcDhcpOptionsAssociation(),
 			"aws_vpc_dhcp_options":                         resourceAwsVpcDhcpOptions(),

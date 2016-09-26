@@ -119,7 +119,9 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("availability_zone", subnet.AvailabilityZone)
 	d.Set("cidr_block", subnet.CidrBlock)
 	d.Set("map_public_ip_on_launch", subnet.MapPublicIpOnLaunch)
-	d.Set("tags", tagsToMap(subnet.Tags))
+	if _, ok := d.GetOk("tags"); ok {
+		d.Set("tags", tagsToMap(subnet.Tags))
+	}
 
 	return nil
 }

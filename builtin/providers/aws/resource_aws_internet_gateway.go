@@ -95,7 +95,9 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 		d.Set("vpc_id", ig.Attachments[0].VpcId)
 	}
 
-	d.Set("tags", tagsToMap(ig.Tags))
+	if _, ok := d.GetOk("tags"); ok {
+		d.Set("tags", tagsToMap(ig.Tags))
+	}
 
 	return nil
 }

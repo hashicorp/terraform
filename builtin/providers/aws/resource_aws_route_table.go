@@ -187,7 +187,9 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("route", route)
 
 	// Tags
-	d.Set("tags", tagsToMap(rt.Tags))
+	if _, ok := d.GetOk("tags"); ok {
+		d.Set("tags", tagsToMap(rt.Tags))
+	}
 
 	return nil
 }
