@@ -1,0 +1,37 @@
+---
+layout: "pagerduty"
+page_title: "PagerDuty: pagerduty_team"
+sidebar_current: "docs-pagerduty-resource-team"
+description: |-
+  Creates and manages a team in PagerDuty.
+---
+
+# pagerduty\_team
+
+A [team](https://v2.developer.pagerduty.com/v2/page/api-reference#!/Teams/get_teams) is a collection of users and escalation policies that represent a group of people within an organization.
+
+
+## Example Usage
+
+```
+resource "pagerduty_team" "example" {
+  name        = "Engineering"
+  description = "All engineering"
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+  * `name` - (Required) The name of the group.
+  * `description` - (Optional) A human-friendly description of the team.
+    If not set, a placeholder of "Managed by Terraform" will be set.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+  * `id` - The ID of the team.
+  * `name` - The name of the team.
+  * `description` - The description of the team.
