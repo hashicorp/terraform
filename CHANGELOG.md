@@ -37,6 +37,7 @@ BUG FIXES:
  * provider/aws: Fix reading dimensions on cloudwatch alarms [GH-9029]
  * provider/aws: Changing snapshot_identifier on aws_db_instance resource should force… [GH-8806]
  * provider/aws: Refresh AWS EIP association from state when not found [GH-9056]
+ * provider/aws: Make encryption in Aurora instances computed-only [GH-9060]
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
 
 
