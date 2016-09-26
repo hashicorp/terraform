@@ -82,6 +82,7 @@ type AwsGroupScalingPolicy struct {
 	EvaluationPeriods *int                              `json:"evaluationPeriods,omitempty"`
 	Period            *int                              `json:"period,omitempty"`
 	Cooldown          *int                              `json:"cooldown,omitempty"`
+	Operator          *string                           `json:"operator,omitempty"`
 	Dimensions        []*AwsGroupScalingPolicyDimension `json:"dimensions,omitempty"`
 }
 
