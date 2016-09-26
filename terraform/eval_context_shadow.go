@@ -1,8 +1,11 @@
 package terraform
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -77,6 +80,14 @@ func NewShadowEvalContext(ctx EvalContext) (EvalContext, ShadowEvalContext) {
 	return real, shadow
 }
 
+var (
+	// errShadow is the error returned by the shadow context when
+	// things go wrong. This should be ignored and the error result from
+	// Close should be checked instead since that'll contain more detailed
+	// error.
+	errShadow = errors.New("shadow error")
+)
+
 // shadowEvalContextReal is the EvalContext that does real work.
 type shadowEvalContextReal struct {
 	EvalContext
@@ -85,12 +96,17 @@ type shadowEvalContextReal struct {
 // shadowEvalContextShadow is the EvalContext that shadows the real one
 // and leans on that for data.
 type shadowEvalContextShadow struct {
+	Shared *shadowEvalContextShared
+
 	PathValue  []string
 	Providers  map[string]ResourceProvider
 	DiffValue  *Diff
 	DiffLock   *sync.RWMutex
 	StateValue *State
 	StateLock  *sync.RWMutex
+
+	// The collection of errors that were found during the shadow run
+	Error error
 
 	// Fields relating to closing the context. Closing signals that
 	// the execution of the real context completed.
@@ -117,11 +133,6 @@ type shadowEvalContextShared struct {
 	ProviderWaiters map[string]*sync.Cond
 }
 
-func (c *shadowEvalContextShadow) Close() error {
-	// TODO
-	return nil
-}
-
 func (c *shadowEvalContextShadow) Path() []string {
 	return c.PathValue
 }
@@ -133,16 +144,34 @@ func (c *shadowEvalContextShadow) Hook(f func(Hook) (HookAction, error)) error {
 	return nil
 }
 
-func (c *shadowEvalContextShadow) Input() UIInput {
-	// TODO
-	return nil
-}
-
 func (c *shadowEvalContextShadow) InitProvider(n string) (ResourceProvider, error) {
 	// Initialize our shadow provider here. We also wait for the
 	// real context to initialize the same provider. If it doesn't
 	// before close, then an error is reported.
 
+	c.Shared.Lock()
+	defer c.Shared.Unlock()
+
+	// We must only initialize once
+	if _, ok := c.Providers[n]; ok {
+		c.Error = multierror.Append(c.Error, fmt.Errorf(
+			"Provider %q already initialized", n))
+		return nil, errShadow
+	}
+
+	// If we don't have the provider yet, wait for it to initialize
+	if _, ok := c.Shared.Providers[n]; !ok {
+		cond := c.Shared.ProviderWaiters[n]
+		if cond == nil {
+			cond = sync.NewCond(&c.Shared.Mutex)
+			c.Shared.ProviderWaiters[n] = cond
+		}
+
+		// TODO: break on close
+		cond.Wait()
+	}
+
+	// We have the provider, set it up if it isn't in our list
 	// TODO: shadow provider
 
 	return nil, nil
@@ -156,6 +185,10 @@ func (c *shadowEvalContextShadow) State() (*State, *sync.RWMutex) {
 	return c.StateValue, c.StateLock
 }
 
+// TODO: All the functions below are EvalContext functions that must be impl.
+
+func (c *shadowEvalContextShadow) Close() error                                    { return nil }
+func (c *shadowEvalContextShadow) Input() UIInput                                  { return nil }
 func (c *shadowEvalContextShadow) Provider(n string) ResourceProvider              { return nil }
 func (c *shadowEvalContextShadow) CloseProvider(n string) error                    { return nil }
 func (c *shadowEvalContextShadow) ConfigureProvider(string, *ResourceConfig) error { return nil }
