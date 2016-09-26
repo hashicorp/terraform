@@ -239,6 +239,22 @@ resource "spotinst_aws_group" "foo" {
 		cooldown = 300
 	}
 
+	scaling_down_policy {
+		policy_name = "Scaling Policy 3"
+		metric_name = "QueueLength"
+		statistic = "sum"
+		unit = "count"
+		threshold = 100
+		adjustment = 1
+		namespace = "Application"
+		period = 300
+		evaluation_periods = 2
+		cooldown = 300
+		dimensions {
+			env = "prod"
+		}
+	}
+
 	scheduled_task {
 		task_type = "scale"
 		cron_expression = "0 5 * * 0-4"
@@ -381,6 +397,22 @@ resource "spotinst_aws_group" "foo" {
 		period = 300
 		evaluation_periods = 2
 		cooldown = 300
+	}
+
+	scaling_down_policy {
+		policy_name = "Scaling Policy 3"
+		metric_name = "QueueLength"
+		statistic = "sum"
+		unit = "count"
+		threshold = 100
+		adjustment = 1
+		namespace = "Application"
+		period = 300
+		evaluation_periods = 2
+		cooldown = 300
+		dimensions {
+			env = "prod"
+		}
 	}
 
 	scheduled_task {
