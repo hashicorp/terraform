@@ -71,7 +71,6 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
-				Computed: true,
 			},
 			"no_gateway": &schema.Schema{
 				Type:       schema.TypeBool,
@@ -124,74 +123,6 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 	}
 }
 
-// SubnetCreateOpts represents the attributes used when creating a new subnet.
-type SubnetCreateOpts struct {
-	// Required
-	NetworkID string
-	CIDR      string
-	// Optional
-	Name            string
-	TenantID        string
-	AllocationPools []subnets.AllocationPool
-	GatewayIP       string
-	IPVersion       gophercloud.IPVersion
-	EnableDHCP      *bool
-	DNSNameservers  []string
-	HostRoutes      []subnets.HostRoute
-	ValueSpecs      map[string]string
-}
-
-// ToSubnetCreateMap casts a CreateOpts struct to a map.
-func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error) {
-	s := make(map[string]interface{})
-
-	if opts.NetworkID == "" {
-		return nil, fmt.Errorf("A network ID is required")
-	}
-	if opts.CIDR == "" {
-		return nil, fmt.Errorf("A valid CIDR is required")
-	}
-	if opts.IPVersion != 0 && opts.IPVersion != gophercloud.IPv4 && opts.IPVersion != gophercloud.IPv6 {
-		return nil, fmt.Errorf("An IP type must either be 4 or 6")
-	}
-
-	s["network_id"] = opts.NetworkID
-	s["cidr"] = opts.CIDR
-
-	if opts.EnableDHCP != nil {
-		s["enable_dhcp"] = &opts.EnableDHCP
-	}
-	if opts.Name != "" {
-		s["name"] = opts.Name
-	}
-	if opts.GatewayIP != "" {
-		s["gateway_ip"] = opts.GatewayIP
-	}
-	if opts.TenantID != "" {
-		s["tenant_id"] = opts.TenantID
-	}
-	if opts.IPVersion != 0 {
-		s["ip_version"] = opts.IPVersion
-	}
-	if len(opts.AllocationPools) != 0 {
-		s["allocation_pools"] = opts.AllocationPools
-	}
-	if len(opts.DNSNameservers) != 0 {
-		s["dns_nameservers"] = opts.DNSNameservers
-	}
-	if len(opts.HostRoutes) != 0 {
-		s["host_routes"] = opts.HostRoutes
-	}
-
-	if opts.ValueSpecs != nil {
-		for k, v := range opts.ValueSpecs {
-			s[k] = v
-		}
-	}
-
-	return map[string]interface{}{"subnet": s}, nil
-}
-
 func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
@@ -199,25 +130,33 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	if _, ok := d.GetOk("gateway_ip"); ok {
-		if _, ok2 := d.GetOk("no_gateway"); ok2 {
-			return fmt.Errorf("Both gateway_ip and no_gateway cannot be set.")
-		}
+	createOpts := SubnetCreateOpts{
+		subnets.CreateOpts{
+			NetworkID:       d.Get("network_id").(string),
+			CIDR:            d.Get("cidr").(string),
+			Name:            d.Get("name").(string),
+			TenantID:        d.Get("tenant_id").(string),
+			AllocationPools: resourceSubnetAllocationPoolsV2(d),
+			DNSNameservers:  resourceSubnetDNSNameserversV2(d),
+			HostRoutes:      resourceSubnetHostRoutesV2(d),
+			EnableDHCP:      nil,
+		},
+		subnetValueSpecs(d),
 	}
 
-	enableDHCP := d.Get("enable_dhcp").(bool)
+	if v, ok := d.GetOk("gateway_ip"); ok {
+		noGateway := d.Get("no_gateway").(bool)
+		if noGateway {
+			return fmt.Errorf("Both gateway_ip and no_gateway cannot be set.")
+		}
 
-	createOpts := SubnetCreateOpts{
-		NetworkID:       d.Get("network_id").(string),
-		CIDR:            d.Get("cidr").(string),
-		Name:            d.Get("name").(string),
-		TenantID:        d.Get("tenant_id").(string),
-		AllocationPools: resourceSubnetAllocationPoolsV2(d),
-		GatewayIP:       d.Get("gateway_ip").(string),
-		DNSNameservers:  resourceSubnetDNSNameserversV2(d),
-		HostRoutes:      resourceSubnetHostRoutesV2(d),
-		EnableDHCP:      &enableDHCP,
-		ValueSpecs:      subnetValueSpecs(d),
+		gatewayIP := v.(string)
+		createOpts.GatewayIP = &gatewayIP
+	}
+
+	if v, ok := d.GetOk("enable_dhcp"); ok {
+		enableDHCP := v.(bool)
+		createOpts.EnableDHCP = &enableDHCP
 	}
 
 	if v, ok := d.GetOk("ip_version"); ok {
@@ -225,12 +164,10 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		createOpts.IPVersion = ipVersion
 	}
 
-	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	s, err := subnets.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack Neutron subnet: %s", err)
 	}
-	log.Printf("[INFO] Subnet ID: %s", s.ID)
 
 	log.Printf("[DEBUG] Waiting for Subnet (%s) to become available", s.ID)
 	stateConf := &resource.StateChangeConf{
@@ -245,6 +182,7 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 
 	d.SetId(s.ID)
 
+	log.Printf("[DEBUG] Created Subnet %s: %#v", s.ID, s)
 	return resourceNetworkingSubnetV2Read(d, meta)
 }
 
@@ -262,7 +200,7 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Retreived Subnet %s: %+v", d.Id(), s)
 
-	d.Set("newtork_id", s.NetworkID)
+	d.Set("network_id", s.NetworkID)
 	d.Set("cidr", s.CIDR)
 	d.Set("ip_version", s.IPVersion)
 	d.Set("name", s.Name)
@@ -286,7 +224,8 @@ func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) 
 
 	// Check if both gateway_ip and no_gateway are set
 	if _, ok := d.GetOk("gateway_ip"); ok {
-		if _, ok2 := d.GetOk("no_gateway"); ok2 {
+		noGateway := d.Get("no_gateway").(bool)
+		if noGateway {
 			return fmt.Errorf("Both gateway_ip and no_gateway cannot be set.")
 		}
 	}
@@ -298,11 +237,18 @@ func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("gateway_ip") {
-		updateOpts.GatewayIP = d.Get("gateway_ip").(string)
+		updateOpts.GatewayIP = nil
+		if v, ok := d.GetOk("gateway_ip"); ok {
+			gatewayIP := v.(string)
+			updateOpts.GatewayIP = &gatewayIP
+		}
 	}
 
 	if d.HasChange("no_gateway") {
-		updateOpts.GatewayIP = ""
+		noGateway := d.Get("no_gateway").(bool)
+		if noGateway {
+			updateOpts.GatewayIP = nil
+		}
 	}
 
 	if d.HasChange("dns_nameservers") {
