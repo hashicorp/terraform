@@ -451,15 +451,14 @@ func buildTriggerConfigs(configured []interface{}) []*codedeploy.TriggerConfig {
 // into a single &codedeploy.AutoRollbackConfiguration
 func buildAutoRollbackConfig(configured []interface{}) *codedeploy.AutoRollbackConfiguration {
 	result := &codedeploy.AutoRollbackConfiguration{}
-
 	if len(configured) == 1 {
 		config := configured[0].(map[string]interface{})
 		result.Enabled = aws.Bool(config["enabled"].(bool))
 		result.Events = expandStringSet(config["events"].(*schema.Set))
 	} else {
 		result.Enabled = aws.Bool(false)
+		result.Events = make([]*string, 0)
 	}
-
 	return result
 }
 
@@ -518,7 +517,7 @@ func triggerConfigsToMap(list []*codedeploy.TriggerConfig) []map[string]interfac
 // into a []map[string]interface{} list containing a single item
 func autoRollbackConfigToMap(config *codedeploy.AutoRollbackConfiguration) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
-	if config != nil && *config.Enabled && len(config.Events) > 0 { // smelly...
+	if config != nil && (*config.Enabled == true || len(config.Events) > 0) {
 		item := make(map[string]interface{})
 		item["enabled"] = *config.Enabled
 		item["events"] = schema.NewSet(schema.HashString, flattenStringList(config.Events))
