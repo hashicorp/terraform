@@ -4,9 +4,7 @@
 // those elements.
 package reflectwalk
 
-import (
-	"reflect"
-)
+import "reflect"
 
 // PrimitiveWalker implementations are able to handle primitive values
 // within complex structures. Primitive values are numbers, strings,
@@ -145,6 +143,12 @@ func walkMap(v reflect.Value, w interface{}) error {
 	for _, k := range v.MapKeys() {
 		kv := v.MapIndex(k)
 
+		// if the map value type is an interface, we need to extract the Elem
+		// for the next call to walk
+		if kv.Kind() == reflect.Interface {
+			kv = kv.Elem()
+		}
+
 		if mw, ok := w.(MapWalker); ok {
 			if err := mw.MapElem(v, k, kv); err != nil {
 				return err
@@ -203,6 +207,12 @@ func walkSlice(v reflect.Value, w interface{}) (err error) {
 
 	for i := 0; i < v.Len(); i++ {
 		elem := v.Index(i)
+
+		// if the value type is an interface, we need to extract the Elem
+		// for the next call to walk
+		if elem.Kind() == reflect.Interface {
+			elem = elem.Elem()
+		}
 
 		if sw, ok := w.(SliceWalker); ok {
 			if err := sw.SliceElem(i, elem); err != nil {
