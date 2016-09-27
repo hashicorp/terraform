@@ -161,6 +161,7 @@ func resourceArmTrafficManagerProfileRead(d *schema.ResourceData, meta interface
 	profile := *resp.Properties
 
 	// update appropriate values
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("profile_status", profile.ProfileStatus)
 	d.Set("traffic_routing_method", profile.TrafficRoutingMethod)
