@@ -57,6 +57,27 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				Required: true,
 			},
 
+			"auto_rollback_configuration": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"events": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Set:      schema.HashString,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+
 			"autoscaling_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -189,6 +210,9 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		triggerConfigs := buildTriggerConfigs(attr.(*schema.Set).List())
 		input.TriggerConfigurations = triggerConfigs
 	}
+	if attr, ok := d.GetOk("auto_rollback_configuration"); ok {
+		input.AutoRollbackConfiguration = buildAutoRollbackConfig(attr.([]interface{}))
+	}
 
 	// Retry to handle IAM role eventual consistency.
 	var resp *codedeploy.CreateDeploymentGroupOutput
@@ -261,6 +285,9 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 	if err := d.Set("trigger_configuration", triggerConfigsToMap(resp.DeploymentGroupInfo.TriggerConfigurations)); err != nil {
 		return err
 	}
+	if err := d.Set("auto_rollback_configuration", autoRollbackConfigToMap(resp.DeploymentGroupInfo.AutoRollbackConfiguration)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -301,6 +328,10 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 		_, n := d.GetChange("trigger_configuration")
 		triggerConfigs := buildTriggerConfigs(n.(*schema.Set).List())
 		input.TriggerConfigurations = triggerConfigs
+	}
+	if d.HasChange("auto_rollback_configuration") {
+		_, n := d.GetChange("auto_rollback_configuration")
+		input.AutoRollbackConfiguration = buildAutoRollbackConfig(n.([]interface{}))
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
@@ -416,6 +447,22 @@ func buildTriggerConfigs(configured []interface{}) []*codedeploy.TriggerConfig {
 	return configs
 }
 
+// buildAutoRollbackConfig converts a raw schema list containing a map[string]interface{}
+// into a single &codedeploy.AutoRollbackConfiguration
+func buildAutoRollbackConfig(configured []interface{}) *codedeploy.AutoRollbackConfiguration {
+	result := &codedeploy.AutoRollbackConfiguration{}
+
+	if len(configured) == 1 {
+		config := configured[0].(map[string]interface{})
+		result.Enabled = aws.Bool(config["enabled"].(bool))
+		result.Events = expandStringSet(config["events"].(*schema.Set))
+	} else {
+		result.Enabled = aws.Bool(false)
+	}
+
+	return result
+}
+
 // ec2TagFiltersToMap converts lists of tag filters into a []map[string]string.
 func ec2TagFiltersToMap(list []*codedeploy.EC2TagFilter) []map[string]string {
 	result := make([]map[string]string, 0, len(list))
@@ -462,6 +509,19 @@ func triggerConfigsToMap(list []*codedeploy.TriggerConfig) []map[string]interfac
 		item["trigger_events"] = schema.NewSet(schema.HashString, flattenStringList(tc.TriggerEvents))
 		item["trigger_name"] = *tc.TriggerName
 		item["trigger_target_arn"] = *tc.TriggerTargetArn
+		result = append(result, item)
+	}
+	return result
+}
+
+// autoRollbackConfigToMap converts a *codedeploy.AutoRollbackConfiguration (Enabled=true)
+// into a []map[string]interface{} list containing a single item
+func autoRollbackConfigToMap(config *codedeploy.AutoRollbackConfiguration) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+	if config != nil && *config.Enabled && len(config.Events) > 0 { // smelly...
+		item := make(map[string]interface{})
+		item["enabled"] = *config.Enabled
+		item["events"] = schema.NewSet(schema.HashString, flattenStringList(config.Events))
 		result = append(result, item)
 	}
 	return result
