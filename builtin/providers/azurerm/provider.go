@@ -236,3 +236,9 @@ func azureStateRefreshFunc(resourceURI string, client *ArmClient, command rivier
 		panic(fmt.Errorf("azureStateRefreshFunc called on structure %T with no mapstructure:provisioningState tag. This is a bug", res.Parsed))
 	}
 }
+
+// Resource group names can be capitalised, but we store them in lowercase.
+// Use a custom diff function to avoid creation of new resources.
+func resourceAzurermResourceGroupNameDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	return strings.ToLower(old) == strings.ToLower(new)
+}
