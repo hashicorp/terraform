@@ -85,16 +85,12 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 
 			"kms_key_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"storage_encrypted": &schema.Schema{
 				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				ForceNew: true,
+				Computed: true,
 			},
 
 			"monitoring_role_arn": &schema.Schema{
@@ -233,6 +229,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("instance_class", db.DBInstanceClass)
 	d.Set("identifier", db.DBInstanceIdentifier)
 	d.Set("storage_encrypted", db.StorageEncrypted)
+	d.Set("kms_key_id", db.KmsKeyId)
 	d.Set("promotion_tier", db.PromotionTier)
 
 	if db.MonitoringInterval != nil {

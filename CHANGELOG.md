@@ -5,7 +5,6 @@ FEATURES:
  * **New Resource:** `aws_api_gateway_client_certificate` [GH-8775]
 
 IMPROVEMENTS:
-
  * provider/aws: Add JSON validation to the `aws_cloudwatch_event_rule` resource [GH-8897]
  * provider/aws: S3 bucket policies are imported as separate resources [GH-8915]
  * provider/aws: S3 bucket policies can now be removed via the `aws_s3_bucket` resource [GH-8915]
@@ -26,9 +25,7 @@ IMPROVEMENTS:
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
 
 BUG FIXES:
- 
  * core: Fixed variables not being in scope for destroy -target on modules [GH-9021]
- * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
  * provider/aws: Remove support for `ah` and `esp` literals in Security Group Ingress/Egress rules; you must use the actual protocol number for protocols other than `tcp`, `udp`, `icmp`, or `all` [GH-8975]
  * provider/aws: VPC ID, Port, Protocol and Name change on aws_alb_target_group will ForceNew resource [GH-8989]
  * provider/aws: Wait for Spot Fleet to drain before removing from state [GH-8938]
@@ -37,6 +34,11 @@ BUG FIXES:
  * provider/aws: Corrected Seoul S3 Website Endpoint format [GH-9032]
  * provider/aws: Fix failed remove S3 lifecycle_rule [GH-9031]
  * provider/aws: Fix crashing bug in `aws_ami` data source when using `name_regex` [GH-9033]
+ * provider/aws: Fix reading dimensions on cloudwatch alarms [GH-9029]
+ * provider/aws: Changing snapshot_identifier on aws_db_instance resource should force… [GH-8806]
+ * provider/aws: Refresh AWS EIP association from state when not found [GH-9056]
+ * provider/aws: Make encryption in Aurora instances computed-only [GH-9060]
+ * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
 
 
 ## 0.7.4 (September 19, 2016)
