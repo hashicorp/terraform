@@ -62,7 +62,7 @@ The following arguments are supported:
 
 * `rest_api_id` - (Required) The ID of the associated REST API
 * `resource_id` - (Required) The API resource ID
-* `http_method` - (Required) The HTTP method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`)
+* `http_method` - (Required) The HTTP method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`, `ANY`)
 * `status_code` - (Required) The HTTP status code
 * `selection_pattern` - (Optional) Specifies the regular expression pattern used to choose
   an integration response based on the response from the backend.
