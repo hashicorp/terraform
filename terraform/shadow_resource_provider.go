@@ -84,6 +84,18 @@ func (p *shadowResourceProviderReal) Close() error {
 	return result
 }
 
+func (p *shadowResourceProviderReal) Input(
+	input UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+	result, err := p.ResourceProvider.Input(input, c)
+	p.Shared.Input.SetValue(&shadowResourceProviderInput{
+		Config:    c,
+		Result:    result,
+		ResultErr: err,
+	})
+
+	return result, err
+}
+
 // shadowResourceProviderShadow is the shadow resource provider. Function
 // calls never affect real resources. This is paired with the "real" side
 // which must be called properly to enable recording.
@@ -130,12 +142,6 @@ func (p *shadowResourceProviderShadow) Close() error {
 	return v.(error)
 }
 
-type shadowResourceProviderInput struct {
-	Config    *ResourceConfig
-	Result    *ResourceConfig
-	ResultErr error
-}
-
 func (p *shadowResourceProviderShadow) Input(
 	input UIInput, c *ResourceConfig) (*ResourceConfig, error) {
 	// Get the result of the input call
@@ -154,7 +160,13 @@ func (p *shadowResourceProviderShadow) Input(
 	}
 
 	// Compare the parameters, which should be identical
-	// TODO
+	if !c.Equal(result.Config) {
+		p.ErrorLock.Lock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Input had unequal configurations (real, then shadow):\n\n%#v\n\n%#v",
+			result.Config, c))
+		p.ErrorLock.Unlock()
+	}
 
 	// Return the results
 	return result.Result, result.ResultErr
@@ -216,4 +228,13 @@ func (p *shadowResourceProviderShadow) ReadDataApply(
 	info *InstanceInfo,
 	d *InstanceDiff) (*InstanceState, error) {
 	return nil, nil
+}
+
+// The structs for the various function calls are put below. These structs
+// are used to carry call information across the real/shadow boundaries.
+
+type shadowResourceProviderInput struct {
+	Config    *ResourceConfig
+	Result    *ResourceConfig
+	ResultErr error
 }
