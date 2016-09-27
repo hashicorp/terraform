@@ -21,6 +21,7 @@ package cdn
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -49,6 +50,13 @@ func NewNameAvailabilityClientWithBaseURI(baseURI string, subscriptionID string)
 //
 // checkNameAvailabilityInput is input to check.
 func (client NameAvailabilityClient) CheckNameAvailability(checkNameAvailabilityInput CheckNameAvailabilityInput) (result CheckNameAvailabilityOutput, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{checkNameAvailabilityInput,
+			[]validation.Constraint{{"checkNameAvailabilityInput.Name", validation.Null, true, nil},
+				{"checkNameAvailabilityInput.Type", validation.Null, true, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.NameAvailabilityClient", "CheckNameAvailability")
+	}
+
 	req, err := client.CheckNameAvailabilityPreparer(checkNameAvailabilityInput)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.NameAvailabilityClient", "CheckNameAvailability", nil, "Failure preparing request")

@@ -21,6 +21,7 @@ package resources
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -46,6 +47,14 @@ func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
 // parentResourcePath is resource identity. resourceType is resource
 // identity. resourceName is resource identity.
 func (client Client) CheckExistence(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{resourceGroupName,
+			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
+				{"resourceGroupName", validation.MinLength, 1, nil},
+				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.Client", "CheckExistence")
+	}
+
 	req, err := client.CheckExistencePreparer(resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.Client", "CheckExistence", nil, "Failure preparing request")
@@ -114,6 +123,19 @@ func (client Client) CheckExistenceResponder(resp *http.Response) (result autore
 // identity. resourceName is resource identity. parameters is create or
 // update resource parameters.
 func (client Client) CreateOrUpdate(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, parameters GenericResource) (result GenericResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{resourceGroupName,
+			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
+				{"resourceGroupName", validation.MinLength, 1, nil},
+				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}},
+		{parameters,
+			[]validation.Constraint{{"parameters.Identity", validation.Null, false,
+				[]validation.Constraint{{"PrincipalID", validation.ReadOnly, true, nil},
+					{"TenantID", validation.ReadOnly, true, nil},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.Client", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.Client", "CreateOrUpdate", nil, "Failure preparing request")
@@ -184,6 +206,14 @@ func (client Client) CreateOrUpdateResponder(resp *http.Response) (result Generi
 // parentResourcePath is resource identity. resourceType is resource
 // identity. resourceName is resource identity.
 func (client Client) Delete(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{resourceGroupName,
+			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
+				{"resourceGroupName", validation.MinLength, 1, nil},
+				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.Client", "Delete")
+	}
+
 	req, err := client.DeletePreparer(resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.Client", "Delete", nil, "Failure preparing request")
@@ -251,6 +281,14 @@ func (client Client) DeleteResponder(resp *http.Response) (result autorest.Respo
 // parentResourcePath is resource identity. resourceType is resource
 // identity. resourceName is resource identity.
 func (client Client) Get(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result GenericResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{resourceGroupName,
+			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
+				{"resourceGroupName", validation.MinLength, 1, nil},
+				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.Client", "Get")
+	}
+
 	req, err := client.GetPreparer(resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.Client", "Get", nil, "Failure preparing request")
@@ -387,7 +425,7 @@ func (client Client) ListResponder(resp *http.Response) (result ResourceListResu
 func (client Client) ListNextResults(lastResults ResourceListResult) (result ResourceListResult, err error) {
 	req, err := lastResults.ResourceListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.Client", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.Client", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -396,12 +434,12 @@ func (client Client) ListNextResults(lastResults ResourceListResult) (result Res
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.Client", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.Client", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "resources.Client", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "resources.Client", "List", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -416,6 +454,14 @@ func (client Client) ListNextResults(lastResults ResourceListResult) (result Res
 // sourceResourceGroupName is source resource group name. parameters is move
 // resources' parameters.
 func (client Client) MoveResources(sourceResourceGroupName string, parameters MoveInfo, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{sourceResourceGroupName,
+			[]validation.Constraint{{"sourceResourceGroupName", validation.MaxLength, 90, nil},
+				{"sourceResourceGroupName", validation.MinLength, 1, nil},
+				{"sourceResourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.Client", "MoveResources")
+	}
+
 	req, err := client.MoveResourcesPreparer(sourceResourceGroupName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.Client", "MoveResources", nil, "Failure preparing request")

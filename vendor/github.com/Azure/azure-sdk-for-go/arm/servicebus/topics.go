@@ -21,6 +21,7 @@ package servicebus
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -45,6 +46,12 @@ func NewTopicsClientWithBaseURI(baseURI string, subscriptionID string) TopicsCli
 // namespace name. topicName is the topic name. parameters is parameters
 // supplied to create a Topic Resource.
 func (client TopicsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, topicName string, parameters TopicCreateOrUpdateParameters) (result TopicResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{parameters,
+			[]validation.Constraint{{"parameters.Location", validation.Null, true, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "servicebus.TopicsClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, namespaceName, topicName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -114,6 +121,13 @@ func (client TopicsClient) CreateOrUpdateResponder(resp *http.Response) (result 
 // aauthorization Rule Name. parameters is the shared access authorization
 // rule.
 func (client TopicsClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, topicName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{parameters,
+			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
+				[]validation.Constraint{{"parameters.Properties.Rights", validation.Null, true, nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "servicebus.TopicsClient", "CreateOrUpdateAuthorizationRule")
+	}
+
 	req, err := client.CreateOrUpdateAuthorizationRulePreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
@@ -177,14 +191,11 @@ func (client TopicsClient) CreateOrUpdateAuthorizationRuleResponder(resp *http.R
 }
 
 // Delete deletes a topic from the specified namespace and resource group.
-// This method may poll for completion. Polling can be canceled by passing
-// the cancel channel argument. The channel will be used to cancel polling
-// and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // topics name. topicName is the topics name.
-func (client TopicsClient) Delete(resourceGroupName string, namespaceName string, topicName string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.DeletePreparer(resourceGroupName, namespaceName, topicName, cancel)
+func (client TopicsClient) Delete(resourceGroupName string, namespaceName string, topicName string) (result autorest.Response, err error) {
+	req, err := client.DeletePreparer(resourceGroupName, namespaceName, topicName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Delete", nil, "Failure preparing request")
 	}
@@ -204,7 +215,7 @@ func (client TopicsClient) Delete(resourceGroupName string, namespaceName string
 }
 
 // DeletePreparer prepares the Delete request.
-func (client TopicsClient) DeletePreparer(resourceGroupName string, namespaceName string, topicName string, cancel <-chan struct{}) (*http.Request, error) {
+func (client TopicsClient) DeletePreparer(resourceGroupName string, namespaceName string, topicName string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"namespaceName":     autorest.Encode("path", namespaceName),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -221,15 +232,13 @@ func (client TopicsClient) DeletePreparer(resourceGroupName string, namespaceNam
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ServiceBus/namespaces/{namespaceName}/topics/{topicName}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{Cancel: cancel})
+	return preparer.Prepare(&http.Request{})
 }
 
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client TopicsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client,
-		req,
-		azure.DoPollForAsynchronous(client.PollingDelay))
+	return autorest.SendWithSender(client, req)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -238,7 +247,7 @@ func (client TopicsClient) DeleteResponder(resp *http.Response) (result autorest
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusNoContent, http.StatusOK),
 		autorest.ByClosing())
 	result.Response = resp
 	return
@@ -303,19 +312,83 @@ func (client TopicsClient) DeleteAuthorizationRuleResponder(resp *http.Response)
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusNoContent, http.StatusOK),
 		autorest.ByClosing())
 	result.Response = resp
+	return
+}
+
+// Get returns the description for the specified topic
+//
+// resourceGroupName is the name of the resource group. namespaceName is the
+// namespace name. topicName is the topic name.
+func (client TopicsClient) Get(resourceGroupName string, namespaceName string, topicName string) (result TopicResource, err error) {
+	req, err := client.GetPreparer(resourceGroupName, namespaceName, topicName)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Get", nil, "Failure preparing request")
+	}
+
+	resp, err := client.GetSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Get", resp, "Failure sending request")
+	}
+
+	result, err = client.GetResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Get", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetPreparer prepares the Get request.
+func (client TopicsClient) GetPreparer(resourceGroupName string, namespaceName string, topicName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"namespaceName":     autorest.Encode("path", namespaceName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+		"topicName":         autorest.Encode("path", topicName),
+	}
+
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ServiceBus/namespaces/{namespaceName}/topics/{topicName}", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{})
+}
+
+// GetSender sends the Get request. The method will close the
+// http.Response Body if it receives an error.
+func (client TopicsClient) GetSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req)
+}
+
+// GetResponder handles the response to the Get request. The method always
+// closes the http.Response Body.
+func (client TopicsClient) GetResponder(resp *http.Response) (result TopicResource, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
 // GetAuthorizationRule returns the specified authorizationRule.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name authorizationRuleName is authorization rule name. topicName
-// is the topic name.
-func (client TopicsClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string, topicName string) (result SharedAccessAuthorizationRuleResource, err error) {
-	req, err := client.GetAuthorizationRulePreparer(resourceGroupName, namespaceName, authorizationRuleName, topicName)
+// namespace name topicName is the topic name. authorizationRuleName is
+// authorization rule name.
+func (client TopicsClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, topicName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
+	req, err := client.GetAuthorizationRulePreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "GetAuthorizationRule", nil, "Failure preparing request")
 	}
@@ -335,7 +408,7 @@ func (client TopicsClient) GetAuthorizationRule(resourceGroupName string, namesp
 }
 
 // GetAuthorizationRulePreparer prepares the GetAuthorizationRule request.
-func (client TopicsClient) GetAuthorizationRulePreparer(resourceGroupName string, namespaceName string, authorizationRuleName string, topicName string) (*http.Request, error) {
+func (client TopicsClient) GetAuthorizationRulePreparer(resourceGroupName string, namespaceName string, topicName string, authorizationRuleName string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"authorizationRuleName": autorest.Encode("path", authorizationRuleName),
 		"namespaceName":         autorest.Encode("path", namespaceName),
@@ -365,70 +438,6 @@ func (client TopicsClient) GetAuthorizationRuleSender(req *http.Request) (*http.
 // GetAuthorizationRuleResponder handles the response to the GetAuthorizationRule request. The method always
 // closes the http.Response Body.
 func (client TopicsClient) GetAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRuleResource, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// GetTopic returns the description for the specified topic
-//
-// resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. topicName is the topic name.
-func (client TopicsClient) GetTopic(resourceGroupName string, namespaceName string, topicName string) (result TopicResource, err error) {
-	req, err := client.GetTopicPreparer(resourceGroupName, namespaceName, topicName)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "GetTopic", nil, "Failure preparing request")
-	}
-
-	resp, err := client.GetTopicSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "GetTopic", resp, "Failure sending request")
-	}
-
-	result, err = client.GetTopicResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "GetTopic", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// GetTopicPreparer prepares the GetTopic request.
-func (client TopicsClient) GetTopicPreparer(resourceGroupName string, namespaceName string, topicName string) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"namespaceName":     autorest.Encode("path", namespaceName),
-		"resourceGroupName": autorest.Encode("path", resourceGroupName),
-		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-		"topicName":         autorest.Encode("path", topicName),
-	}
-
-	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ServiceBus/namespaces/{namespaceName}/topics/{topicName}", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
-}
-
-// GetTopicSender sends the GetTopic request. The method will close the
-// http.Response Body if it receives an error.
-func (client TopicsClient) GetTopicSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
-}
-
-// GetTopicResponder handles the response to the GetTopic request. The method always
-// closes the http.Response Body.
-func (client TopicsClient) GetTopicResponder(resp *http.Response) (result TopicResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -506,7 +515,7 @@ func (client TopicsClient) ListAllResponder(resp *http.Response) (result TopicLi
 func (client TopicsClient) ListAllNextResults(lastResults TopicListResult) (result TopicListResult, err error) {
 	req, err := lastResults.TopicListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -515,12 +524,12 @@ func (client TopicsClient) ListAllNextResults(lastResults TopicListResult) (resu
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -594,7 +603,7 @@ func (client TopicsClient) ListAuthorizationRulesResponder(resp *http.Response) 
 func (client TopicsClient) ListAuthorizationRulesNextResults(lastResults SharedAccessAuthorizationRuleListResult) (result SharedAccessAuthorizationRuleListResult, err error) {
 	req, err := lastResults.SharedAccessAuthorizationRuleListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -603,12 +612,12 @@ func (client TopicsClient) ListAuthorizationRulesNextResults(lastResults SharedA
 	resp, err := client.ListAuthorizationRulesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAuthorizationRulesResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", resp, "Failure responding to next results request")
 	}
 
 	return
