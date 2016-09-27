@@ -154,9 +154,9 @@ to work, cannot be updated, and supports:
 In addition to the arguments listed above, the following computed attributes are
 exported:
 
-* `ip_address.ip_address` - The IPv4 address assigned.
+* `ip_address.${instance_number}.ip_address` - The IPv4 address assigned.
 
-* `ip_address.time_to_retire` - The time this IP address will be retired, in RFC
+* `ip_address.${instance_number}.time_to_retire` - The time this IP address will be retired, in RFC
     3339 format.
 
 * `self_link` - The URI of the created resource.
