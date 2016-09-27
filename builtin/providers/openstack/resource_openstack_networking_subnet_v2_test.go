@@ -174,6 +174,10 @@ var testAccNetworkingV2Subnet_basic = fmt.Sprintf(`
   resource "openstack_networking_subnet_v2" "subnet_1" {
     network_id = "${openstack_networking_network_v2.network_1.id}"
     cidr = "192.168.199.0/24"
+		allocation_pools {
+			start = "192.168.199.100"
+			end = "192.168.199.200"
+		}
   }`)
 
 var testAccNetworkingV2Subnet_update = fmt.Sprintf(`
@@ -183,11 +187,15 @@ var testAccNetworkingV2Subnet_update = fmt.Sprintf(`
   }
 
   resource "openstack_networking_subnet_v2" "subnet_1" {
-    name = "tf-test-subnet"
+    name = "subnet_1"
     network_id = "${openstack_networking_network_v2.network_1.id}"
     cidr = "192.168.199.0/24"
     gateway_ip = "192.168.199.1"
-  }`)
+ 		allocation_pools {
+			start = "192.168.199.100"
+			end = "192.168.199.200"
+		}
+ }`)
 
 var testAccNetworkingV2Subnet_enableDHCP = fmt.Sprintf(`
   resource "openstack_networking_network_v2" "network_1" {
