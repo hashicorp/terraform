@@ -82,6 +82,11 @@ resource "aws_codedeploy_deployment_group" "foo" {
         trigger_name = "foo-trigger"
         trigger_target_arn = "foo-topic-arn"
     }
+
+    auto_rollback_configuration {
+      enabled = true
+      events = ["DEPLOYMENT_FAILURE"]
+    }
 }
 ```
 
@@ -97,6 +102,7 @@ The following arguments are supported:
 * `ec2_tag_filter` - (Optional) Tag filters associated with the group. See the AWS docs for details.
 * `on_premises_instance_tag_filter` - (Optional) On premise tag filters associated with the group. See the AWS docs for details.
 * `trigger_configuration` - (Optional) A Trigger Configuration block. Trigger Configurations are documented below.
+* `auto_rollback_configuration` - (Optional) Auto Rollback Configuration block, documented below.
 
 Both ec2_tag_filter and on_premises_tag_filter blocks support the following:
 
@@ -109,6 +115,11 @@ Add triggers to a Deployment Group to receive notifications about events related
  * `trigger_events` - (Required) The event type or types for which notifications are triggered. The following values are supported: `DeploymentStart`, `DeploymentSuccess`, `DeploymentFailure`, `DeploymentStop`, `InstanceStart`, `InstanceSuccess`, `InstanceFailure`.
  * `trigger_name` - (Required) The name of the notification trigger.
  * `trigger_target_arn` - (Required) The ARN of the SNS topic through which notifications are sent.
+
+You can configure a deployment group to automatically rollback when a deployment fails or when a monitoring threshold you specify is met. In this case, the last known good version of an application revision is deployed. Only one rollback configuration block is allowed.
+
+ * `enabled` - (Optional) Indicates whether a defined automatic rollback configuration is currently enabled for this Deployment Group. If you enable automatic rollback, you must specify at least one event type.
+ * `events` - (Optional) The event type or types that trigger a rollback. Supported types are `DEPLOYMENT_FAILURE` and `DEPLOYMENT_STOP_ON_ALARM`.
 
 ## Attributes Reference
 
