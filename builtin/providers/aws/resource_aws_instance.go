@@ -846,6 +846,11 @@ func fetchRootDeviceName(ami string, conn *ec2.EC2) (*string, error) {
 	image := res.Images[0]
 	rootDeviceName := image.RootDeviceName
 
+	// Instance store backed AMIs do not provide a root device name.
+	if *image.RootDeviceType == ec2.DeviceTypeInstanceStore {
+		return nil, nil
+	}
+
 	// Some AMIs have a RootDeviceName like "/dev/sda1" that does not appear as a
 	// DeviceName in the BlockDeviceMapping list (which will instead have
 	// something like "/dev/sda")
