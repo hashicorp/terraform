@@ -162,6 +162,7 @@ func resourceArmTrafficManagerEndpointRead(d *schema.ResourceData, meta interfac
 
 	endpoint := *resp.Properties
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("type", endpointType)
 	d.Set("profile_name", profileName)
