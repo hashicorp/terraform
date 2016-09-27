@@ -23,6 +23,7 @@ IMPROVEMENTS:
  * provider/aws: Add HTTP/2 support via the http_version parameter to CloudFront distribution [GH-8777]
  * provider/aws: Add query_string_cache_keys to allow for selective caching of CloudFront keys [GH-8777]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
+ * provider/openstack: Use proxy environment variables for communication with services [GH-8948]
  * provider/vsphere: Adding 'detach_unknown_disks_on_delete' flag for VM resource [GH-8947]
 
 BUG FIXES:
