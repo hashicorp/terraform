@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/mitchellh/copystructure"
 )
 
 // ResourceProvisionerConfig is used to pair a provisioner
@@ -90,6 +91,25 @@ type ResourceConfig struct {
 func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 	result := &ResourceConfig{raw: c}
 	result.interpolateForce()
+	return result
+}
+
+// DeepCopy performs a deep copy of the configuration. This makes it safe
+// to modify any of the structures that are part of the resource config without
+// affecting the original configuration.
+func (c *ResourceConfig) DeepCopy() *ResourceConfig {
+	// Copy, this will copy all the exported attributes
+	copy, err := copystructure.Config{Lock: true}.Copy(c)
+	if err != nil {
+		panic(err)
+	}
+
+	// Force the type
+	result := copy.(*ResourceConfig)
+
+	// For the raw configuration, we can just use its own copy method
+	result.raw = c.raw.Copy()
+
 	return result
 }
 

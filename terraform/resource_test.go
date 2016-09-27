@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -212,6 +213,19 @@ func TestResourceConfigGet(t *testing.T) {
 		if !reflect.DeepEqual(v, tc.Value) {
 			t.Fatalf("%d bad: %#v", i, v)
 		}
+
+		// If we have vars, we don't test copying
+		if len(tc.Vars) > 0 {
+			continue
+		}
+
+		// Test copying
+		t.Run(fmt.Sprintf("copy-%d", i), func(t *testing.T) {
+			copy := rc.DeepCopy()
+			if !reflect.DeepEqual(copy, rc) {
+				t.Fatalf("bad:\n\n%#v\n\n%#v", copy, rc)
+			}
+		})
 	}
 }
 
