@@ -21,6 +21,7 @@ package cdn
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -53,6 +54,13 @@ func NewProfilesClientWithBaseURI(baseURI string, subscriptionID string) Profile
 // resourceGroupName is name of the resource group within the Azure
 // subscription.
 func (client ProfilesClient) Create(profileName string, profileProperties ProfileCreateParameters, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{profileProperties,
+			[]validation.Constraint{{"profileProperties.Location", validation.Null, true, nil},
+				{"profileProperties.Sku", validation.Null, true, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.ProfilesClient", "Create")
+	}
+
 	req, err := client.CreatePreparer(profileName, profileProperties, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "Create", nil, "Failure preparing request")
