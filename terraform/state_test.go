@@ -3,6 +3,7 @@ package terraform
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -272,11 +273,13 @@ func TestStateDeepCopy(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		actual := tc.F(tc.One.DeepCopy())
-		expected := tc.F(tc.Two)
-		if !reflect.DeepEqual(actual, expected) {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, actual, expected)
-		}
+		t.Run(fmt.Sprintf("copy-%d", i), func(t *testing.T) {
+			actual := tc.F(tc.One.DeepCopy())
+			expected := tc.F(tc.Two)
+			if !reflect.DeepEqual(actual, expected) {
+				t.Fatalf("Bad: %d\n\n%s\n\n%s", i, actual, expected)
+			}
+		})
 	}
 }
 
