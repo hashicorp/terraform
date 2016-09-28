@@ -1,7 +1,6 @@
 package ultradns
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 
@@ -155,11 +154,9 @@ func mapFromLimit(name string, l udnssdk.ProbeDetailsLimitDTO) map[string]interf
 
 // hashLimits generates a hashcode for a limits block
 func hashLimits(v interface{}) int {
-	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-	h := hashcode.String(buf.String())
-	log.Printf("[INFO] hashLimits(): %v -> %v", buf.String(), h)
+	h := hashcode.String(m["name"].(string))
+	log.Printf("[DEBUG] hashLimits(): %v -> %v", m["name"].(string), h)
 	return h
 }
 
