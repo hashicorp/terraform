@@ -22,6 +22,10 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"aliases": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -485,17 +489,23 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
 
 func resourceAwsCloudFrontDistributionCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudfrontconn
-	params := &cloudfront.CreateDistributionInput{
-		DistributionConfig: expandDistributionConfig(d),
+
+	params := &cloudfront.CreateDistributionWithTagsInput{
+		DistributionConfigWithTags: &cloudfront.DistributionConfigWithTags{
+			DistributionConfig: expandDistributionConfig(d),
+			Tags:               tagsFromMapCloudFront(d.Get("tags").(map[string]interface{})),
+		},
 	}
 
-	resp, err := conn.CreateDistribution(params)
+	resp, err := conn.CreateDistributionWithTags(params)
 	if err != nil {
 		return err
 	}
@@ -530,6 +540,21 @@ func resourceAwsCloudFrontDistributionRead(d *schema.ResourceData, meta interfac
 	d.Set("last_modified_time", aws.String(resp.Distribution.LastModifiedTime.String()))
 	d.Set("in_progress_validation_batches", resp.Distribution.InProgressInvalidationBatches)
 	d.Set("etag", resp.ETag)
+	d.Set("arn", resp.Distribution.ARN)
+
+	cloudFrontArn := resp.Distribution.ARN
+	tagResp, tagErr := conn.ListTagsForResource(&cloudfront.ListTagsForResourceInput{
+		Resource: cloudFrontArn,
+	})
+
+	if tagErr != nil {
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", cloudFrontArn)
+	}
+
+	if tagResp != nil {
+		d.Set("tags", tagsToMapCloudFront(tagResp.Tags))
+	}
+
 	return nil
 }
 
@@ -542,6 +567,10 @@ func resourceAwsCloudFrontDistributionUpdate(d *schema.ResourceData, meta interf
 	}
 	_, err := conn.UpdateDistribution(params)
 	if err != nil {
+		return err
+	}
+
+	if err := setTagsCloudFront(conn, d, d.Get("arn").(string)); err != nil {
 		return err
 	}
 
