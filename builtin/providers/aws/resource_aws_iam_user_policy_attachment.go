@@ -23,8 +23,10 @@ func resourceAwsIamUserPolicyAttachment() *schema.Resource {
 				ForceNew: true,
 				Required: true,
 			},
-			"policy_arn": &schema.Schema{
-				Type:     schema.TypeString,
+			"policy_arns": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 				Required: true,
 				ForceNew: true,
 			},
@@ -36,11 +38,13 @@ func resourceAwsIamUserPolicyAttachmentCreate(d *schema.ResourceData, meta inter
 	conn := meta.(*AWSClient).iamconn
 
 	user := d.Get("user").(string)
-	arn := d.Get("policy_arn").(string)
+	arns := expandStringList(d.Get("policy_arns").(*schema.Set).List())
 
-	err := attachPolicyToUser(conn, user, arn)
-	if err != nil {
-		return fmt.Errorf("[WARN] Error attaching policy %s to IAM User %s: %v", arn, user, err)
+	for _, arn := range arns {
+		err := attachPolicyToUser(conn, user, *arn)
+		if err != nil {
+			return fmt.Errorf("[WARN] Error attaching policy %s to IAM User %s: %v", *arn, user, err)
+		}
 	}
 
 	d.SetId(resource.PrefixedUniqueId(fmt.Sprintf("%s-", user)))
@@ -50,7 +54,7 @@ func resourceAwsIamUserPolicyAttachmentCreate(d *schema.ResourceData, meta inter
 func resourceAwsIamUserPolicyAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	user := d.Get("user").(string)
-	arn := d.Get("policy_arn").(string)
+	arns := expandStringList(d.Get("policy_arns").(*schema.Set).List())
 
 	_, err := conn.GetUser(&iam.GetUserInput{
 		UserName: aws.String(user),
@@ -75,27 +79,32 @@ func resourceAwsIamUserPolicyAttachmentRead(d *schema.ResourceData, meta interfa
 	}
 
 	var policy string
-	for _, p := range attachedPolicies.AttachedPolicies {
-		if *p.PolicyArn == arn {
-			policy = *p.PolicyArn
+	for _, arn := range arns {
+		for _, p := range attachedPolicies.AttachedPolicies {
+			if *p.PolicyArn == *arn {
+				policy = *p.PolicyArn
+			}
+		}
+		if policy == "" {
+			log.Printf("[WARN] No such User found for Policy Attachment (%s)", user)
+			d.SetId("")
+			return nil
 		}
 	}
 
-	if policy == "" {
-		log.Printf("[WARN] No such User found for Policy Attachment (%s)", user)
-		d.SetId("")
-	}
 	return nil
 }
 
 func resourceAwsIamUserPolicyAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	user := d.Get("user").(string)
-	arn := d.Get("policy_arn").(string)
+	arns := expandStringList(d.Get("policy_arns").(*schema.Set).List())
 
-	err := detachPolicyFromUser(conn, user, arn)
-	if err != nil {
-		return fmt.Errorf("[WARN] Error removing policy %s from IAM User %s: %v", arn, user, err)
+	for _, arn := range arns {
+		err := detachPolicyFromUser(conn, user, *arn)
+		if err != nil {
+			return fmt.Errorf("[WARN] Error removing policy %s from IAM User %s: %v", *arn, user, err)
+		}
 	}
 	return nil
 }

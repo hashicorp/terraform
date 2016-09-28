@@ -3,12 +3,12 @@ layout: "aws"
 page_title: "AWS: aws_iam_role_policy_attachment"
 sidebar_current: "docs-aws-resource-iam-role-policy-attachment"
 description: |-
-  Attaches a Managed IAM Policy to an IAM role
+  Attaches Managed IAM Policies to an IAM role
 ---
 
 # aws\_iam\_role\_policy\_attachment
 
-Attaches a Managed IAM Policy to an IAM role
+Attaches Managed IAM Policies to an IAM role
 
 ```
 resource "aws_iam_role" "role" {
@@ -23,7 +23,7 @@ resource "aws_iam_policy" "policy" {
 
 resource "aws_iam_role_policy_attachment" "test-attach" {
     role = "${aws_iam_role.role.name}"
-    policy_arn = "${aws_iam_policy.policy.arn}"
+    policy_arns = ["${aws_iam_policy.policy.arn}"]
 }
 ```
 
@@ -32,4 +32,4 @@ resource "aws_iam_role_policy_attachment" "test-attach" {
 The following arguments are supported:
 
 * `role`		(Required) - The role the policy should be applied to
-* `policy_arn`	(Required) - The ARN of the policy you want to apply
+* `policy_arns`	(Required) - A list of ARNs of the policies you want to apply

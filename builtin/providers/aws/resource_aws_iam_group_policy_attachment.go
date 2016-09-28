@@ -23,8 +23,10 @@ func resourceAwsIamGroupPolicyAttachment() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"policy_arn": &schema.Schema{
-				Type:     schema.TypeString,
+			"policy_arns": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 				Required: true,
 				ForceNew: true,
 			},
@@ -36,11 +38,13 @@ func resourceAwsIamGroupPolicyAttachmentCreate(d *schema.ResourceData, meta inte
 	conn := meta.(*AWSClient).iamconn
 
 	group := d.Get("group").(string)
-	arn := d.Get("policy_arn").(string)
+	arns := expandStringList(d.Get("policy_arns").(*schema.Set).List())
 
-	err := attachPolicyToGroup(conn, group, arn)
-	if err != nil {
-		return fmt.Errorf("[WARN] Error attaching policy %s to IAM group %s: %v", arn, group, err)
+	for _, arn := range arns {
+		err := attachPolicyToGroup(conn, group, *arn)
+		if err != nil {
+			return fmt.Errorf("[WARN] Error attaching policy %s to IAM group %s: %v", *arn, group, err)
+		}
 	}
 
 	d.SetId(resource.PrefixedUniqueId(fmt.Sprintf("%s-", group)))
@@ -50,7 +54,7 @@ func resourceAwsIamGroupPolicyAttachmentCreate(d *schema.ResourceData, meta inte
 func resourceAwsIamGroupPolicyAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	group := d.Get("group").(string)
-	arn := d.Get("policy_arn").(string)
+	arns := expandStringList(d.Get("policy_arns").(*schema.Set).List())
 
 	_, err := conn.GetGroup(&iam.GetGroupInput{
 		GroupName: aws.String(group),
@@ -75,15 +79,17 @@ func resourceAwsIamGroupPolicyAttachmentRead(d *schema.ResourceData, meta interf
 	}
 
 	var policy string
-	for _, p := range attachedPolicies.AttachedPolicies {
-		if *p.PolicyArn == arn {
-			policy = *p.PolicyArn
+	for _, arn := range arns {
+		for _, p := range attachedPolicies.AttachedPolicies {
+			if *p.PolicyArn == *arn {
+				policy = *p.PolicyArn
+			}
 		}
-	}
-
-	if policy == "" {
-		log.Printf("[WARN] No such policy found for Group Policy Attachment (%s)", group)
-		d.SetId("")
+		if policy == "" {
+			log.Printf("[WARN] No such policy found for Group Policy Attachment (%s)", group)
+			d.SetId("")
+			return nil
+		}
 	}
 
 	return nil
@@ -92,11 +98,13 @@ func resourceAwsIamGroupPolicyAttachmentRead(d *schema.ResourceData, meta interf
 func resourceAwsIamGroupPolicyAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	group := d.Get("group").(string)
-	arn := d.Get("policy_arn").(string)
+	arns := expandStringList(d.Get("policy_arns").(*schema.Set).List())
 
-	err := detachPolicyFromGroup(conn, group, arn)
-	if err != nil {
-		return fmt.Errorf("[WARN] Error removing policy %s from IAM Group %s: %v", arn, group, err)
+	for _, arn := range arns {
+		err := detachPolicyFromGroup(conn, group, *arn)
+		if err != nil {
+			return fmt.Errorf("[WARN] Error removing policy %s from IAM Group %s: %v", *arn, group, err)
+		}
 	}
 	return nil
 }
