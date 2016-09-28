@@ -156,7 +156,7 @@ func mapFromLimit(name string, l udnssdk.ProbeDetailsLimitDTO) map[string]interf
 func hashLimits(v interface{}) int {
 	m := v.(map[string]interface{})
 	h := hashcode.String(m["name"].(string))
-	log.Printf("[DEBUG] hashLimits(): %v -> %v", m["name"].(string), h)
+	log.Printf("[INFO] hashLimits(): %v -> %v", m["name"].(string), h)
 	return h
 }
 
