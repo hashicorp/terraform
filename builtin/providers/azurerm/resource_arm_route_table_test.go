@@ -204,7 +204,7 @@ func testCheckAzureRMRouteTableDestroy(s *terraform.State) error {
 
 var testAccAzureRMRouteTable_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -223,7 +223,7 @@ resource "azurerm_route_table" "test" {
 
 var testAccAzureRMRouteTable_multipleRoutes = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -248,7 +248,7 @@ resource "azurerm_route_table" "test" {
 
 var testAccAzureRMRouteTable_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -272,7 +272,7 @@ resource "azurerm_route_table" "test" {
 
 var testAccAzureRMRouteTable_withTagsUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 

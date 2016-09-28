@@ -152,7 +152,7 @@ func testCheckAzureRMAvailabilitySetDestroy(s *terraform.State) error {
 
 var testAccAzureRMVAvailabilitySet_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_availability_set" "test" {
@@ -164,7 +164,7 @@ resource "azurerm_availability_set" "test" {
 
 var testAccAzureRMVAvailabilitySet_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_availability_set" "test" {
@@ -181,7 +181,7 @@ resource "azurerm_availability_set" "test" {
 
 var testAccAzureRMVAvailabilitySet_withUpdatedTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_availability_set" "test" {
@@ -197,7 +197,7 @@ resource "azurerm_availability_set" "test" {
 
 var testAccAzureRMVAvailabilitySet_withDomainCounts = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_availability_set" "test" {

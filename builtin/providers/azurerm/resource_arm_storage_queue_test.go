@@ -145,7 +145,7 @@ func testCheckAzureRMStorageQueueDestroy(s *terraform.State) error {
 
 var testAccAzureRMStorageQueue_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 

@@ -103,7 +103,7 @@ func testCheckAzureRMVirtualMachineScaleSetDestroy(s *terraform.State) error {
 
 var testAccAzureRMVirtualMachineScaleSet_basicLinux = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -196,7 +196,7 @@ resource "azurerm_virtual_machine_scale_set" "test" {
 
 var testAccAzureRMVirtualMachineScaleSet_basicWindows = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 

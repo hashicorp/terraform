@@ -411,7 +411,7 @@ func testCheckAzureRMVirtualMachineVHDExistance(name string, shouldExist bool) r
 
 var testAccAzureRMVirtualMachine_basicLinuxMachine = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -499,7 +499,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_machineNameBeforeUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -588,7 +588,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisks = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -688,7 +688,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -739,7 +739,7 @@ resource "azurerm_storage_container" "test" {
 
 var testAccAzureRMVirtualMachine_withDataDisk = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -835,7 +835,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_basicLinuxMachineUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -922,7 +922,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_updatedLinuxMachine = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1005,7 +1005,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_basicWindowsMachine = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1089,7 +1089,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_windowsUnattendedConfig = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1179,7 +1179,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_diagnosticsProfile = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1265,7 +1265,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_winRMConfig = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1350,7 +1350,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_withAvailabilitySet = `
  resource "azurerm_resource_group" "test" {
-     name = "acctestrg-%d"
+     name = "acctestRG-%d"
      location = "West US"
  }
 
@@ -1441,7 +1441,7 @@ var testAccAzureRMVirtualMachine_withAvailabilitySet = `
 
 var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
  resource "azurerm_resource_group" "test" {
-     name = "acctestrg-%d"
+     name = "acctestRG-%d"
      location = "West US"
  }
 
@@ -1532,7 +1532,7 @@ var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
 
 var testAccAzureRMVirtualMachine_updateMachineName = `
  resource "azurerm_resource_group" "test" {
-     name = "acctestrg-%d"
+     name = "acctestRG-%d"
      location = "West US"
  }
 
