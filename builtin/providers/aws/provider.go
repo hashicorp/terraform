@@ -234,6 +234,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_elastictranscoder_preset":                 resourceAwsElasticTranscoderPreset(),
 			"aws_elb":                                      resourceAwsElb(),
 			"aws_elb_attachment":                           resourceAwsElbAttachment(),
+			"aws_emr":                                      resourceAwsEMR(),
+			"aws_emr_task_group":                           resourceAwsEMRTaskGroup(),
 			"aws_flow_log":                                 resourceAwsFlowLog(),
 			"aws_glacier_vault":                            resourceAwsGlacierVault(),
 			"aws_iam_access_key":                           resourceAwsIamAccessKey(),
