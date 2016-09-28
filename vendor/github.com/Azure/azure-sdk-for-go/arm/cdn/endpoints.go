@@ -21,6 +21,7 @@ package cdn
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -53,6 +54,14 @@ func NewEndpointsClientWithBaseURI(baseURI string, subscriptionID string) Endpoi
 // profile within the resource group. resourceGroupName is name of the
 // resource group within the Azure subscription.
 func (client EndpointsClient) Create(endpointName string, endpointProperties EndpointCreateParameters, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{endpointProperties,
+			[]validation.Constraint{{"endpointProperties.Location", validation.Null, true, nil},
+				{"endpointProperties.Properties", validation.Null, false,
+					[]validation.Constraint{{"endpointProperties.Properties.Origins", validation.Null, true, nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Create")
+	}
+
 	req, err := client.CreatePreparer(endpointName, endpointProperties, profileName, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Create", nil, "Failure preparing request")
@@ -324,6 +333,12 @@ func (client EndpointsClient) ListByProfileResponder(resp *http.Response) (resul
 // resource group. resourceGroupName is name of the resource group within the
 // Azure subscription.
 func (client EndpointsClient) LoadContent(endpointName string, contentFilePaths LoadParameters, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{contentFilePaths,
+			[]validation.Constraint{{"contentFilePaths.ContentPaths", validation.Null, true, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "LoadContent")
+	}
+
 	req, err := client.LoadContentPreparer(endpointName, contentFilePaths, profileName, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "LoadContent", nil, "Failure preparing request")
@@ -397,6 +412,12 @@ func (client EndpointsClient) LoadContentResponder(resp *http.Response) (result 
 // within the resource group. resourceGroupName is name of the resource group
 // within the Azure subscription.
 func (client EndpointsClient) PurgeContent(endpointName string, contentFilePaths PurgeParameters, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{contentFilePaths,
+			[]validation.Constraint{{"contentFilePaths.ContentPaths", validation.Null, true, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "PurgeContent")
+	}
+
 	req, err := client.PurgeContentPreparer(endpointName, contentFilePaths, profileName, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "PurgeContent", nil, "Failure preparing request")
@@ -673,6 +694,12 @@ func (client EndpointsClient) UpdateResponder(resp *http.Response) (result autor
 // of the CDN profile within the resource group. resourceGroupName is name of
 // the resource group within the Azure subscription.
 func (client EndpointsClient) ValidateCustomDomain(endpointName string, customDomainProperties ValidateCustomDomainInput, profileName string, resourceGroupName string) (result ValidateCustomDomainOutput, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{customDomainProperties,
+			[]validation.Constraint{{"customDomainProperties.HostName", validation.Null, true, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "ValidateCustomDomain")
+	}
+
 	req, err := client.ValidateCustomDomainPreparer(endpointName, customDomainProperties, profileName, resourceGroupName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ValidateCustomDomain", nil, "Failure preparing request")

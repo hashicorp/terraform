@@ -3,9 +3,9 @@ package azurerm
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"

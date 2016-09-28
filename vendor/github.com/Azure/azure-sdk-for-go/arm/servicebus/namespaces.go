@@ -21,6 +21,7 @@ package servicebus
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -50,6 +51,12 @@ func NewNamespacesClientWithBaseURI(baseURI string, subscriptionID string) Names
 // namespace name. parameters is parameters supplied to create a Namespace
 // Resource.
 func (client NamespacesClient) CreateOrUpdate(resourceGroupName string, namespaceName string, parameters NamespaceCreateOrUpdateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{parameters,
+			[]validation.Constraint{{"parameters.Location", validation.Null, true, nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "servicebus.NamespacesClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, namespaceName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -118,6 +125,13 @@ func (client NamespacesClient) CreateOrUpdateResponder(resp *http.Response) (res
 // namespace name. authorizationRuleName is namespace Aauthorization Rule
 // Name. parameters is the shared access authorization rule.
 func (client NamespacesClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{parameters,
+			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
+				[]validation.Constraint{{"parameters.Properties.Rights", validation.Null, true, nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "servicebus.NamespacesClient", "CreateOrUpdateAuthorizationRule")
+	}
+
 	req, err := client.CreateOrUpdateAuthorizationRulePreparer(resourceGroupName, namespaceName, authorizationRuleName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
@@ -241,7 +255,7 @@ func (client NamespacesClient) DeleteResponder(resp *http.Response) (result auto
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		azure.WithErrorUnlessStatusCode(http.StatusNoContent, http.StatusOK, http.StatusAccepted),
 		autorest.ByClosing())
 	result.Response = resp
 	return
@@ -304,7 +318,7 @@ func (client NamespacesClient) DeleteAuthorizationRuleResponder(resp *http.Respo
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusNoContent, http.StatusOK),
 		autorest.ByClosing())
 	result.Response = resp
 	return
@@ -504,7 +518,7 @@ func (client NamespacesClient) ListAuthorizationRulesResponder(resp *http.Respon
 func (client NamespacesClient) ListAuthorizationRulesNextResults(lastResults SharedAccessAuthorizationRuleListResult) (result SharedAccessAuthorizationRuleListResult, err error) {
 	req, err := lastResults.SharedAccessAuthorizationRuleListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListAuthorizationRules", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListAuthorizationRules", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -513,12 +527,12 @@ func (client NamespacesClient) ListAuthorizationRulesNextResults(lastResults Sha
 	resp, err := client.ListAuthorizationRulesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListAuthorizationRules", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListAuthorizationRules", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAuthorizationRulesResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListAuthorizationRules", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListAuthorizationRules", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -589,7 +603,7 @@ func (client NamespacesClient) ListByResourceGroupResponder(resp *http.Response)
 func (client NamespacesClient) ListByResourceGroupNextResults(lastResults NamespaceListResult) (result NamespaceListResult, err error) {
 	req, err := lastResults.NamespaceListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListByResourceGroup", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListByResourceGroup", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -598,12 +612,12 @@ func (client NamespacesClient) ListByResourceGroupNextResults(lastResults Namesp
 	resp, err := client.ListByResourceGroupSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListByResourceGroup", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListByResourceGroup", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListByResourceGroupResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListByResourceGroup", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListByResourceGroup", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -672,7 +686,7 @@ func (client NamespacesClient) ListBySubscriptionResponder(resp *http.Response) 
 func (client NamespacesClient) ListBySubscriptionNextResults(lastResults NamespaceListResult) (result NamespaceListResult, err error) {
 	req, err := lastResults.NamespaceListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListBySubscription", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListBySubscription", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -681,12 +695,12 @@ func (client NamespacesClient) ListBySubscriptionNextResults(lastResults Namespa
 	resp, err := client.ListBySubscriptionSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListBySubscription", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListBySubscription", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListBySubscriptionResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListBySubscription", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListBySubscription", resp, "Failure responding to next results request")
 	}
 
 	return

@@ -23,6 +23,8 @@ IMPROVEMENTS:
  * provider/aws: Add HTTP/2 support via the http_version parameter to CloudFront distribution [GH-8777]
  * provider/aws: Add query_string_cache_keys to allow for selective caching of CloudFront keys [GH-8777]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
+ * provider/openstack: Use proxy environment variables for communication with services [GH-8948]
+ * provider/vsphere: Adding 'detach_unknown_disks_on_delete' flag for VM resource [GH-8947]
 
 BUG FIXES:
  * core: Fixed variables not being in scope for destroy -target on modules [GH-9021]
@@ -38,6 +40,7 @@ BUG FIXES:
  * provider/aws: Changing snapshot_identifier on aws_db_instance resource should force… [GH-8806]
  * provider/aws: Refresh AWS EIP association from state when not found [GH-9056]
  * provider/aws: Make encryption in Aurora instances computed-only [GH-9060]
+ * provider/aws: Make sure that VPC Peering Connection in a failed state returns an error. [GH-9038]
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
 
 
