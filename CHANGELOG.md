@@ -41,6 +41,7 @@ BUG FIXES:
  * provider/aws: Refresh AWS EIP association from state when not found [GH-9056]
  * provider/aws: Make encryption in Aurora instances computed-only [GH-9060]
  * provider/aws: Make sure that VPC Peering Connection in a failed state returns an error. [GH-9038]
+ * provider/aws: guard against aws_route53_record delete panic [GH-9049]
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
 
 
