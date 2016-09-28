@@ -57,6 +57,33 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				Required: true,
 			},
 
+			"alarm_configuration": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"alarms": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Set:      schema.HashString,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"ignore_poll_alarm_failure": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+			},
+
 			"auto_rollback_configuration": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -214,6 +241,10 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		input.AutoRollbackConfiguration = buildAutoRollbackConfig(attr.([]interface{}))
 	}
 
+	if attr, ok := d.GetOk("alarm_configuration"); ok {
+		input.AlarmConfiguration = buildAlarmConfig(attr.([]interface{}))
+	}
+
 	// Retry to handle IAM role eventual consistency.
 	var resp *codedeploy.CreateDeploymentGroupOutput
 	var err error
@@ -289,6 +320,10 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
+	if err := d.Set("alarm_configuration", alarmConfigToMap(resp.DeploymentGroupInfo.AlarmConfiguration)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -332,6 +367,11 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	if d.HasChange("auto_rollback_configuration") {
 		_, n := d.GetChange("auto_rollback_configuration")
 		input.AutoRollbackConfiguration = buildAutoRollbackConfig(n.([]interface{}))
+	}
+
+	if d.HasChange("alarm_configuration") {
+		_, n := d.GetChange("alarm_configuration")
+		input.AlarmConfiguration = buildAlarmConfig(n.([]interface{}))
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
@@ -448,7 +488,7 @@ func buildTriggerConfigs(configured []interface{}) []*codedeploy.TriggerConfig {
 }
 
 // buildAutoRollbackConfig converts a raw schema list containing a map[string]interface{}
-// into a single &codedeploy.AutoRollbackConfiguration
+// into a single codedeploy.AutoRollbackConfiguration
 func buildAutoRollbackConfig(configured []interface{}) *codedeploy.AutoRollbackConfiguration {
 	result := &codedeploy.AutoRollbackConfiguration{}
 	if len(configured) == 1 {
@@ -458,6 +498,33 @@ func buildAutoRollbackConfig(configured []interface{}) *codedeploy.AutoRollbackC
 	} else {
 		result.Enabled = aws.Bool(false)
 		result.Events = make([]*string, 0)
+	}
+	return result
+}
+
+// buildAlarmConfig converts a raw schema list containing a map[string]interface{}
+// into a single codedeploy.AlarmConfiguration
+func buildAlarmConfig(configured []interface{}) *codedeploy.AlarmConfiguration {
+	result := &codedeploy.AlarmConfiguration{}
+
+	if len(configured) == 1 {
+		config := configured[0].(map[string]interface{})
+		names := expandStringSet(config["alarms"].(*schema.Set))
+		alarms := make([]*codedeploy.Alarm, 0, len(names))
+
+		for _, name := range names {
+			alarm := &codedeploy.Alarm{
+				Name: name,
+			}
+			alarms = append(alarms, alarm)
+		}
+
+		result.Alarms = alarms
+		result.Enabled = aws.Bool(config["enabled"].(bool))
+		result.IgnorePollAlarmFailure = aws.Bool(config["ignore_poll_alarm_failure"].(bool))
+	} else {
+		result.Alarms = make([]*codedeploy.Alarm, 0)
+		result.Enabled = aws.Bool(false)
 	}
 	return result
 }
@@ -513,7 +580,7 @@ func triggerConfigsToMap(list []*codedeploy.TriggerConfig) []map[string]interfac
 	return result
 }
 
-// autoRollbackConfigToMap converts a *codedeploy.AutoRollbackConfiguration (Enabled=true)
+// autoRollbackConfigToMap converts a codedeploy.AutoRollbackConfiguration
 // into a []map[string]interface{} list containing a single item
 func autoRollbackConfigToMap(config *codedeploy.AutoRollbackConfiguration) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
@@ -523,6 +590,29 @@ func autoRollbackConfigToMap(config *codedeploy.AutoRollbackConfiguration) []map
 		item["events"] = schema.NewSet(schema.HashString, flattenStringList(config.Events))
 		result = append(result, item)
 	}
+	return result
+}
+
+// alarmConfigToMap converts a codedeploy.AlarmConfiguration
+// into a []map[string]interface{} list containing a single item
+func alarmConfigToMap(config *codedeploy.AlarmConfiguration) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if config == nil {
+		return result
+	}
+
+	names := make([]*string, 0, len(config.Alarms))
+	for _, alarm := range config.Alarms {
+		names = append(names, alarm.Name)
+	}
+
+	item := make(map[string]interface{})
+	item["alarms"] = schema.NewSet(schema.HashString, flattenStringList(names))
+	item["enabled"] = *config.Enabled
+	item["ignore_poll_alarm_failure"] = *config.IgnorePollAlarmFailure
+
+	result = append(result, item)
 	return result
 }
 
