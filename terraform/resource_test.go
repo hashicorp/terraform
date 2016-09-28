@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -208,10 +209,33 @@ func TestResourceConfigGet(t *testing.T) {
 		rc := NewResourceConfig(rawC)
 		rc.interpolateForce()
 
-		v, _ := rc.Get(tc.Key)
-		if !reflect.DeepEqual(v, tc.Value) {
-			t.Fatalf("%d bad: %#v", i, v)
+		// Test getting a key
+		t.Run(fmt.Sprintf("get-%d", i), func(t *testing.T) {
+			v, _ := rc.Get(tc.Key)
+			if !reflect.DeepEqual(v, tc.Value) {
+				t.Fatalf("%d bad: %#v", i, v)
+			}
+		})
+
+		// If we have vars, we don't test copying
+		if len(tc.Vars) > 0 {
+			continue
 		}
+
+		// Test copying and equality
+		t.Run(fmt.Sprintf("copy-and-equal-%d", i), func(t *testing.T) {
+			copy := rc.DeepCopy()
+			if !reflect.DeepEqual(copy, rc) {
+				t.Fatalf("bad:\n\n%#v\n\n%#v", copy, rc)
+			}
+
+			if !copy.Equal(rc) {
+				t.Fatalf("copy != rc:\n\n%#v\n\n%#v", copy, rc)
+			}
+			if !rc.Equal(copy) {
+				t.Fatalf("rc != copy:\n\n%#v\n\n%#v", copy, rc)
+			}
+		})
 	}
 }
 
