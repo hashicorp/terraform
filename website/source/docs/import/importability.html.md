@@ -48,6 +48,7 @@ To make a resource importable, please see the
 * aws_eip
 * aws_elastic_beanstalk_application
 * aws_elastic_beanstalk_environment
+* aws_elasticache_cluster
 * aws_elasticache_parameter_group
 * aws_elasticache_subnet_group
 * aws_elb
@@ -149,4 +150,3 @@ To make a resource importable, please see the
 * triton_key
 * triton_machine
 * triton_vlan
-

@@ -762,6 +762,26 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	return att
 }
 
+func flattenElastiCacheSecurityGroupNames(securityGroups []*elasticache.CacheSecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.CacheSecurityGroupName != nil {
+			result = append(result, *sg.CacheSecurityGroupName)
+		}
+	}
+	return result
+}
+
+func flattenElastiCacheSecurityGroupIds(securityGroups []*elasticache.SecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.SecurityGroupId != nil {
+			result = append(result, *sg.SecurityGroupId)
+		}
+	}
+	return result
+}
+
 // Flattens step adjustments into a list of map[string]interface.
 func flattenStepAdjustments(adjustments []*autoscaling.StepAdjustment) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(adjustments))
