@@ -544,16 +544,6 @@ func mapFromGeoInfos(gi *udnssdk.GeoInfo) []map[string]interface{} {
 	return res
 }
 
-// makeSetFromStrings encodes an []string into a
-// *schema.Set in the appropriate structure for the schema
-func makeSetFromStrings(ss []string) *schema.Set {
-	st := &schema.Set{F: schema.HashString}
-	for _, s := range ss {
-		st.Add(s)
-	}
-	return st
-}
-
 // hashIPInfoIPs generates a hashcode for an ip_info.ips block
 func hashIPInfoIPs(v interface{}) int {
 	var buf bytes.Buffer
