@@ -115,6 +115,11 @@ func (c *ResourceConfig) DeepCopy() *ResourceConfig {
 
 // Equal checks the equality of two resource configs.
 func (c *ResourceConfig) Equal(c2 *ResourceConfig) bool {
+	// If either are nil, then they're only equal if they're both nil
+	if c == nil || c2 == nil {
+		return c == c2
+	}
+
 	// Two resource configs if their exported properties are equal.
 	// We don't compare "raw" because it is never used again after
 	// initialization and for all intents and purposes they are equal
