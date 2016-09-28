@@ -88,7 +88,7 @@ func testCheckAzureRMSubnetDestroy(s *terraform.State) error {
 
 var testAccAzureRMSubnet_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 

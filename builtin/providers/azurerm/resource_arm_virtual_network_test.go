@@ -125,7 +125,7 @@ func testCheckAzureRMVirtualNetworkDestroy(s *terraform.State) error {
 
 var testAccAzureRMVirtualNetwork_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -144,7 +144,7 @@ resource "azurerm_virtual_network" "test" {
 
 var testAccAzureRMVirtualNetwork_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -168,7 +168,7 @@ resource "azurerm_virtual_network" "test" {
 
 var testAccAzureRMVirtualNetwork_withTagsUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
