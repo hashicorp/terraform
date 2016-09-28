@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -35,6 +36,46 @@ func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 						"hosted_zone_id",
 						"Z2FDTNDATAQYW2",
 					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudFrontDistribution_S3OriginWithTags(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3ConfigWithTags, ri, testAccAWSCloudFrontDistributionRetainConfig())
+	postConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3ConfigWithTagsUpdated, ri, testAccAWSCloudFrontDistributionRetainConfig())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.s3_distribution",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.%", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.environment", "production"),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.account", "main"),
+				),
+			},
+			{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.s3_distribution",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.%", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.environment", "dev"),
 				),
 			},
 		},
@@ -261,6 +302,107 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 	%s
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
+
+var testAccAWSCloudFrontDistributionS3ConfigWithTags = `
+variable rand_id {
+	default = %d
+}
+
+resource "aws_s3_bucket" "s3_bucket" {
+	bucket = "mybucket.${var.rand_id}.s3.amazonaws.com"
+	acl = "public-read"
+}
+
+resource "aws_cloudfront_distribution" "s3_distribution" {
+	origin {
+		domain_name = "${aws_s3_bucket.s3_bucket.id}"
+		origin_id = "myS3Origin"
+	}
+	enabled = true
+	default_root_object = "index.html"
+	aliases = [ "mysite.${var.rand_id}.example.com", "yoursite.${var.rand_id}.example.com" ]
+	default_cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myS3Origin"
+		forwarded_values {
+			query_string = false
+			cookies {
+				forward = "none"
+			}
+		}
+		viewer_protocol_policy = "allow-all"
+		min_ttl = 0
+		default_ttl = 3600
+		max_ttl = 86400
+	}
+	price_class = "PriceClass_200"
+	restrictions {
+		geo_restriction {
+			restriction_type = "whitelist"
+			locations = [ "US", "CA", "GB", "DE" ]
+		}
+	}
+	viewer_certificate {
+		cloudfront_default_certificate = true
+	}
+	tags {
+            environment = "production"
+            account = "main"
+	}
+	%s
+}
+`
+
+var testAccAWSCloudFrontDistributionS3ConfigWithTagsUpdated = `
+variable rand_id {
+	default = %d
+}
+
+resource "aws_s3_bucket" "s3_bucket" {
+	bucket = "mybucket.${var.rand_id}.s3.amazonaws.com"
+	acl = "public-read"
+}
+
+resource "aws_cloudfront_distribution" "s3_distribution" {
+	origin {
+		domain_name = "${aws_s3_bucket.s3_bucket.id}"
+		origin_id = "myS3Origin"
+	}
+	enabled = true
+	default_root_object = "index.html"
+	aliases = [ "mysite.${var.rand_id}.example.com", "yoursite.${var.rand_id}.example.com" ]
+	default_cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myS3Origin"
+		forwarded_values {
+			query_string = false
+			cookies {
+				forward = "none"
+			}
+		}
+		viewer_protocol_policy = "allow-all"
+		min_ttl = 0
+		default_ttl = 3600
+		max_ttl = 86400
+	}
+	price_class = "PriceClass_200"
+	restrictions {
+		geo_restriction {
+			restriction_type = "whitelist"
+			locations = [ "US", "CA", "GB", "DE" ]
+		}
+	}
+	viewer_certificate {
+		cloudfront_default_certificate = true
+	}
+	tags {
+            environment = "dev"
+	}
+	%s
+}
+`
 
 var testAccAWSCloudFrontDistributionCustomConfig = fmt.Sprintf(`
 variable rand_id {
