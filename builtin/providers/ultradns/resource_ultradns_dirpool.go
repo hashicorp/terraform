@@ -483,13 +483,13 @@ func makeIPInfo(configured interface{}) (udnssdk.IPInfo, error) {
 	res.Ips = make([]udnssdk.IPAddrDTO, 0, len(rawIps))
 	for _, rawIa := range rawIps {
 		var i udnssdk.IPAddrDTO
-		err := mapDecode(rawIa, &i)
+		err = mapDecode(rawIa, &i)
 		if err != nil {
 			return res, err
 		}
 		res.Ips = append(res.Ips, i)
 	}
-	return res, err
+	return res, nil
 }
 
 // collate and zip RData and RDataInfo into []map[string]interface{}
@@ -551,9 +551,11 @@ func hashIPInfoIPs(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["start"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["end"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["cidr"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["address"].(string)))
+	buf.WriteString(fmt.Sprintf("%s", m["address"].(string)))
 
-	return hashcode.String(buf.String())
+	h := hashcode.String(buf.String())
+	log.Printf("[DEBUG] hashIPInfoIPs(): %v -> %v", buf.String(), h)
+	return h
 }
 
 // Map <-> Struct transcoding
