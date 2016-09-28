@@ -98,6 +98,36 @@ func TestAccAWSElasticacheReplicationGroup_updateNodeSize(t *testing.T) {
 	})
 }
 
+//This is a test to prove that we panic we get in https://github.com/hashicorp/terraform/issues/9097
+func TestAccAWSElasticacheReplicationGroup_updateParameterGroup(t *testing.T) {
+	var rg elasticache.ReplicationGroup
+	rName := acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSElasticacheReplicationDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSElasticacheReplicationGroupConfig(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSElasticacheReplicationGroupExists("aws_elasticache_replication_group.bar", &rg),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_replication_group.bar", "parameter_group_name", "default.redis2.8"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSElasticacheReplicationGroupConfigUpdatedParameterGroup(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSElasticacheReplicationGroupExists("aws_elasticache_replication_group.bar", &rg),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_replication_group.bar", "parameter_group_name", "allkeys-lru"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSElasticacheReplicationGroup_vpc(t *testing.T) {
 	var rg elasticache.ReplicationGroup
 	resource.Test(t, resource.TestCase{
@@ -288,6 +318,50 @@ resource "aws_elasticache_replication_group" "bar" {
     number_cache_clusters = 2
     port = 6379
     parameter_group_name = "default.redis2.8"
+    security_group_names = ["${aws_elasticache_security_group.bar.name}"]
+    apply_immediately = true
+}`, rName, rName, rName)
+}
+
+func testAccAWSElasticacheReplicationGroupConfigUpdatedParameterGroup(rName string) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+resource "aws_security_group" "bar" {
+    name = "tf-test-security-group-%s"
+    description = "tf-test-security-group-descr"
+    ingress {
+        from_port = -1
+        to_port = -1
+        protocol = "icmp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+
+resource "aws_elasticache_security_group" "bar" {
+    name = "tf-test-security-group-%s"
+    description = "tf-test-security-group-descr"
+    security_group_names = ["${aws_security_group.bar.name}"]
+}
+
+resource "aws_elasticache_parameter_group" "bar" {
+    name = "allkeys-lru"
+    family = "redis2.8"
+
+    parameter {
+        name = "maxmemory-policy"
+        value = "allkeys-lru"
+    }
+}
+
+resource "aws_elasticache_replication_group" "bar" {
+    replication_group_id = "tf-%s"
+    replication_group_description = "test description"
+    node_type = "cache.m1.small"
+    number_cache_clusters = 2
+    port = 6379
+    parameter_group_name = "${aws_elasticache_parameter_group.bar.name}"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     apply_immediately = true
 }`, rName, rName, rName)
