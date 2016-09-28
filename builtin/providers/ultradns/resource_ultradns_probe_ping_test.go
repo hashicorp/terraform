@@ -33,15 +33,17 @@ func TestAccUltradnsProbePing(t *testing.T) {
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.packet_size", "56"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.#", "2"),
 
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.354186460.name", "lossPercent"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.354186460.warning", "1"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.354186460.critical", "2"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.354186460.fail", "3"),
+					// hashLimits(): lossPercent -> 3375621462
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3375621462.name", "lossPercent"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3375621462.warning", "1"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3375621462.critical", "2"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3375621462.fail", "3"),
 
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.466411754.name", "total"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.466411754.warning", "2"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.466411754.critical", "3"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.466411754.fail", "4"),
+					// hashLimits(): total -> 3257917790
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3257917790.name", "total"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3257917790.warning", "2"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3257917790.critical", "3"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3257917790.fail", "4"),
 				),
 			},
 			resource.TestStep{
@@ -59,15 +61,17 @@ func TestAccUltradnsProbePing(t *testing.T) {
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.packet_size", "56"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.#", "2"),
 
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.354186460.name", "lossPercent"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.354186460.warning", "1"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.354186460.critical", "2"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.354186460.fail", "3"),
+					// hashLimits(): lossPercent -> 3375621462
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3375621462.name", "lossPercent"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3375621462.warning", "1"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3375621462.critical", "2"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3375621462.fail", "3"),
 
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.466411754.name", "total"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.466411754.warning", "2"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.466411754.critical", "3"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.466411754.fail", "4"),
+					// hashLimits(): total -> 3257917790
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3257917790.name", "total"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3257917790.warning", "2"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3257917790.critical", "3"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.3257917790.fail", "4"),
 				),
 			},
 		},
