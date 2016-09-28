@@ -45,6 +45,7 @@ BUG FIXES:
  * provider/aws: Make sure that VPC Peering Connection in a failed state returns an error. [GH-9038]
  * provider/aws: guard against aws_route53_record delete panic [GH-9049]
  * provider/aws: aws_db_option_group flattenOptions failing due to missing values [GH-9052]
+ * provider/aws: Add retry logic to the aws_ecr_repository delete func [GH-9050]
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
 
 
