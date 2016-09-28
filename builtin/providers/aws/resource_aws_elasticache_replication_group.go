@@ -275,7 +275,7 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 	}
 
 	if d.HasChange("parameter_group_name") {
-		params.CacheParameterGroupName = aws.String(d.Get("cache_parameter_group_name").(string))
+		params.CacheParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
 		requestUpdate = true
 	}
 
