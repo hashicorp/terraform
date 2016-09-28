@@ -181,3 +181,13 @@ func makeProbeDetailsLimit(configured interface{}) *udnssdk.ProbeDetailsLimitDTO
 		Fail:     l["fail"].(int),
 	}
 }
+
+// makeSetFromStrings encodes an []string into a
+// *schema.Set in the appropriate structure for the schema
+func makeSetFromStrings(ss []string) *schema.Set {
+	st := &schema.Set{F: schema.HashString}
+	for _, s := range ss {
+		st.Add(s)
+	}
+	return st
+}
