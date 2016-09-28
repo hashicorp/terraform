@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Ensighten/udnssdk"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -34,7 +35,8 @@ func resourceUltradnsTcpool() *schema.Resource {
 				// 0-255 char
 			},
 			"rdata": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
+				Set:      hashRdatas,
 				Required: true,
 				// Valid: len(rdataInfo) == len(rdata)
 				Elem: &schema.Resource{
@@ -204,7 +206,7 @@ func resourceUltradnsTcpoolRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// TODO: rigorously test this to see if we can remove the error handling
-	err = d.Set("rdata", zipRData(r.RData, p.RDataInfo))
+	err = d.Set("rdata", makeSetFromRdata(r.RData, p.RDataInfo))
 	if err != nil {
 		return fmt.Errorf("rdata set failed: %#v", err)
 	}
@@ -248,7 +250,7 @@ func resourceUltradnsTcpoolDelete(d *schema.ResourceData, meta interface{}) erro
 // Resource Helpers
 
 func newRRSetResourceFromTcpool(d *schema.ResourceData) (rRSetResource, error) {
-	rDataRaw := d.Get("rdata").([]interface{})
+	rDataRaw := d.Get("rdata").(*schema.Set).List()
 	r := rRSetResource{
 		// "The only valid rrtype value for SiteBacker or Traffic Controller pools is A"
 		// per https://portal.ultradns.com/static/docs/REST-API_User_Guide.pdf
@@ -316,4 +318,23 @@ func zipRData(rds []string, rdis []udnssdk.SBRDataInfo) []map[string]interface{}
 		result = append(result, r)
 	}
 	return result
+}
+
+// hashRdata generates a hashcode for an Rdata block
+func hashRdatas(v interface{}) int {
+	m := v.(map[string]interface{})
+	h := hashcode.String(m["host"].(string))
+	log.Printf("[DEBUG] hashRdatas(): %v -> %v", m["host"].(string), h)
+	return h
+}
+
+// makeSetFromRdatas encodes an array of Rdata into a
+// *schema.Set in the appropriate structure for the schema
+func makeSetFromRdata(rds []string, rdis []udnssdk.SBRDataInfo) *schema.Set {
+	s := &schema.Set{F: hashRdatas}
+	rs := zipRData(rds, rdis)
+	for _, r := range rs {
+		s.Add(r)
+	}
+	return s
 }
