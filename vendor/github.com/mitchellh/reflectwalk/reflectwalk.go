@@ -76,19 +76,27 @@ func Walk(data, walker interface{}) (err error) {
 }
 
 func walk(v reflect.Value, w interface{}) (err error) {
-	// We preserve the original value here because if it is an interface
-	// type, we want to pass that directly into the walkPrimitive, so that
-	// we can set it.
-	originalV := v
-	if v.Kind() == reflect.Interface {
-		v = v.Elem()
-	}
-
 	// Determine if we're receiving a pointer and if so notify the walker.
+	// The logic here is convoluted but very important (tests will fail if
+	// almost any part is changed). I will try to explain here.
+	//
+	// First, we check if the value is an interface, if so, we really need
+	// to check the interface's VALUE to see whether it is a pointer (pointers
+	// to interfaces are not allowed).
+	//
+	// Check whether the value is then an interface. If so, then set pointer
+	// to true to notify the user.
+	//
+	// At this time, we also set "v" to be the dereferenced value. This is
+	// because once we've unwrapped the pointer we want to use that value.
 	pointer := false
-	if v.Kind() == reflect.Ptr {
+	pointerV := v
+	if pointerV.Kind() == reflect.Interface {
+		pointerV = pointerV.Elem()
+	}
+	if pointerV.Kind() == reflect.Ptr {
 		pointer = true
-		v = reflect.Indirect(v)
+		v = reflect.Indirect(pointerV)
 	}
 	if pw, ok := w.(PointerWalker); ok {
 		if err = pw.PointerEnter(pointer); err != nil {
@@ -102,6 +110,14 @@ func walk(v reflect.Value, w interface{}) (err error) {
 
 			err = pw.PointerExit(pointer)
 		}()
+	}
+
+	// We preserve the original value here because if it is an interface
+	// type, we want to pass that directly into the walkPrimitive, so that
+	// we can set it.
+	originalV := v
+	if v.Kind() == reflect.Interface {
+		v = v.Elem()
 	}
 
 	k := v.Kind()
