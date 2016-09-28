@@ -44,7 +44,7 @@ type networkInterface struct {
 	ipv6Address      string
 	ipv6PrefixLength int
 	ipv6Gateway      string
-	adapterType      string // TODO: Make "adapter_type" argument
+	adapterType      string
 	macAddress       string
 }
 
@@ -767,6 +767,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			}
 			if v, ok := network["ipv6_gateway"].(string); ok && v != "" {
 				networks[i].ipv6Gateway = v
+			}
+			if v, ok := network["adapter_type"].(string); ok && v != "" {
+				networks[i].adapterType = v
 			}
 			if v, ok := network["mac_address"].(string); ok && v != "" {
 				networks[i].macAddress = v
@@ -1822,10 +1825,14 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	for _, network := range vm.networkInterfaces {
 		// network device
 		var networkDeviceType string
-		if vm.template == "" {
-			networkDeviceType = "e1000"
+		if network.adapterType == "" {
+			if vm.template == "" {
+				networkDeviceType = "e1000"
+			} else {
+				networkDeviceType = "vmxnet3"
+			}
 		} else {
-			networkDeviceType = "vmxnet3"
+			networkDeviceType = network.adapterType
 		}
 		nd, err := buildNetworkDevice(finder, network.label, networkDeviceType, network.macAddress)
 		if err != nil {
