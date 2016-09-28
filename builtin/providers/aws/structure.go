@@ -624,10 +624,14 @@ func flattenOptions(list []*rds.Option) []map[string]interface{} {
 			if i.OptionSettings != nil {
 				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
 				for _, j := range i.OptionSettings {
-					settings = append(settings, map[string]interface{}{
-						"name":  *j.Name,
-						"value": *j.Value,
-					})
+					setting := map[string]interface{}{
+						"name": *j.Name,
+					}
+					if j.Value != nil {
+						setting["value"] = *j.Value
+					}
+
+					settings = append(settings, setting)
 				}
 
 				r["option_settings"] = settings
