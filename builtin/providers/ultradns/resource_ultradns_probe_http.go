@@ -34,7 +34,8 @@ func resourceUltradnsProbeHTTP() *schema.Resource {
 			},
 			// Required
 			"agents": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
+				Set:      schema.HashString,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
@@ -216,7 +217,7 @@ func makeHTTPProbeResource(d *schema.ResourceData) (probeResource, error) {
 	p.Interval = d.Get("interval").(string)
 	p.PoolRecord = d.Get("pool_record").(string)
 	p.Threshold = d.Get("threshold").(int)
-	for _, a := range d.Get("agents").([]interface{}) {
+	for _, a := range d.Get("agents").(*schema.Set).List() {
 		p.Agents = append(p.Agents, a.(string))
 	}
 
@@ -274,7 +275,7 @@ func populateResourceDataFromHTTPProbe(p udnssdk.ProbeInfoDTO, d *schema.Resourc
 	d.SetId(p.ID)
 	d.Set("pool_record", p.PoolRecord)
 	d.Set("interval", p.Interval)
-	d.Set("agents", p.Agents)
+	d.Set("agents", makeSetFromStrings(p.Agents))
 	d.Set("threshold", p.Threshold)
 
 	hp := map[string]interface{}{}
