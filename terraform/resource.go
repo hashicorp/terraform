@@ -113,6 +113,26 @@ func (c *ResourceConfig) DeepCopy() *ResourceConfig {
 	return result
 }
 
+// Equal checks the equality of two resource configs.
+func (c *ResourceConfig) Equal(c2 *ResourceConfig) bool {
+	// Two resource configs if their exported properties are equal.
+	// We don't compare "raw" because it is never used again after
+	// initialization and for all intents and purposes they are equal
+	// if the exported properties are equal.
+	check := [][2]interface{}{
+		{c.ComputedKeys, c2.ComputedKeys},
+		{c.Raw, c2.Raw},
+		{c.Config, c2.Config},
+	}
+	for _, pair := range check {
+		if !reflect.DeepEqual(pair[0], pair[1]) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // CheckSet checks that the given list of configuration keys is
 // properly set. If not, errors are returned for each unset key.
 //
