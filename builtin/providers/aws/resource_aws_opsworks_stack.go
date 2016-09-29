@@ -20,6 +20,9 @@ func resourceAwsOpsworksStack() *schema.Resource {
 		Read:   resourceAwsOpsworksStackRead,
 		Update: resourceAwsOpsworksStackUpdate,
 		Delete: resourceAwsOpsworksStackDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"agent_version": &schema.Schema{
