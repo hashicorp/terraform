@@ -43,6 +43,7 @@ The following arguments are supported:
 * `value` - (Required) The value of the record
 * `type` - (Required) The type of the record
 * `ttl` - (Optional) The TTL of the record
+* `priority` - (Optional) The priority of the record - only useful for some record types
 
 
 ## Attributes Reference
