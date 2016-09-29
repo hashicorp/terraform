@@ -16,7 +16,6 @@ type Config struct {
 	UserID           string
 	Password         string
 	Token            string
-	APIKey           string
 	IdentityEndpoint string
 	TenantID         string
 	TenantName       string
