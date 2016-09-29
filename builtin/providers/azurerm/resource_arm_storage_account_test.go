@@ -84,6 +84,31 @@ func TestAccAzureRMStorageAccount_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMStorageAccount_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	preConfig := fmt.Sprintf(testAccAzureRMStorageAccount_basic, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_type", "Standard_LRS"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.%", "1"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.environment", "production"),
+					testCheckAzureRMStorageAccountDisappears("azurerm_storage_account.testsa"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMStorageAccountExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -105,6 +130,29 @@ func testCheckAzureRMStorageAccountExists(name string) resource.TestCheckFunc {
 
 		if resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Bad: StorageAccount %q (resource group: %q) does not exist", name, resourceGroup)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMStorageAccountDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		storageAccount := rs.Primary.Attributes["name"]
+		resourceGroup := rs.Primary.Attributes["resource_group_name"]
+
+		// Ensure resource group exists in API
+		conn := testAccProvider.Meta().(*ArmClient).storageServiceClient
+
+		_, err := conn.Delete(resourceGroup, storageAccount)
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on storageServiceClient: %s", err)
 		}
 
 		return nil
