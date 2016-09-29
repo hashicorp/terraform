@@ -29,6 +29,28 @@ func TestAccAzureRMLocalNetworkGateway_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMLocalNetworkGateway_disappears(t *testing.T) {
+	name := "azurerm_local_network_gateway.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLocalNetworkGatewayDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLocalNetworkGatewayConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLocalNetworkGatewayExists(name),
+					resource.TestCheckResourceAttr(name, "gateway_address", "127.0.0.1"),
+					resource.TestCheckResourceAttr(name, "address_space.0", "127.0.0.0/8"),
+					testCheckAzureRMLocalNetworkGatewayDisappears(name),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 // testCheckAzureRMLocalNetworkGatewayExists returns the resurce.TestCheckFunc
 // which checks whether or not the expected local network gateway exists both
 // in the schema, and on Azure.
@@ -57,6 +79,37 @@ func testCheckAzureRMLocalNetworkGatewayExists(name string) resource.TestCheckFu
 				return fmt.Errorf("Local network gateway '%s' (resource group '%s') does not exist on Azure.", localNetName, resGrp)
 			}
 			return fmt.Errorf("Error reading the state of local network gateway '%s'.", localNetName)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMLocalNetworkGatewayDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// first check within the schema for the local network gateway:
+		res, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Local network gateway '%s' not found.", name)
+		}
+
+		// then, extract the name and the resource group:
+		id, err := parseAzureResourceID(res.Primary.ID)
+		if err != nil {
+			return err
+		}
+		localNetName := id.Path["localNetworkGateways"]
+		resGrp := id.ResourceGroup
+
+		// and finally, check that it exists on Azure:
+		lnetClient := testAccProvider.Meta().(*ArmClient).localNetConnClient
+
+		resp, err := lnetClient.Delete(resGrp, localNetName, make(chan struct{}))
+		if err != nil {
+			if resp.StatusCode == http.StatusNotFound {
+				return fmt.Errorf("Local network gateway '%s' (resource group '%s') does not exist on Azure.", localNetName, resGrp)
+			}
+			return fmt.Errorf("Error deleting the state of local network gateway '%s'.", localNetName)
 		}
 
 		return nil

@@ -78,6 +78,28 @@ func TestAccAzureRMRouteTable_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMRouteTable_disappears(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMRouteTable_basic, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMRouteTableDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
+					testCheckAzureRMRouteTableDisappears("azurerm_route_table.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMRouteTable_withTags(t *testing.T) {
 
 	ri := acctest.RandInt()
@@ -171,6 +193,31 @@ func testCheckAzureRMRouteTableExists(name string) resource.TestCheckFunc {
 
 		if resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Bad: Route Table %q (resource group: %q) does not exist", name, resourceGroup)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMRouteTableDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for route table: %s", name)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).routeTablesClient
+
+		_, err := conn.Delete(resourceGroup, name, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on routeTablesClient: %s", err)
 		}
 
 		return nil

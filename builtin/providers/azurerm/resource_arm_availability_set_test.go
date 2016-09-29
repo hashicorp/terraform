@@ -34,6 +34,32 @@ func TestAccAzureRMAvailabilitySet_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMAvailabilitySet_disappears(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVAvailabilitySet_basic, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_availability_set.test", "platform_update_domain_count", "5"),
+					resource.TestCheckResourceAttr(
+						"azurerm_availability_set.test", "platform_fault_domain_count", "3"),
+					testCheckAzureRMAvailabilitySetDisappears("azurerm_availability_set.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMAvailabilitySet_withTags(t *testing.T) {
 
 	ri := acctest.RandInt()
@@ -119,6 +145,31 @@ func testCheckAzureRMAvailabilitySetExists(name string) resource.TestCheckFunc {
 
 		if resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Bad: Availability Set %q (resource group: %q) does not exist", name, resourceGroup)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMAvailabilitySetDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		availSetName := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for availability set: %s", availSetName)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).availSetClient
+
+		_, err := conn.Delete(resourceGroup, availSetName)
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on availSetClient: %s", err)
 		}
 
 		return nil

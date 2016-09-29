@@ -25,6 +25,24 @@ func TestAccAzureRMNetworkInterface_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMNetworkInterface_disappears(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMNetworkInterface_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
+					testCheckAzureRMNetworkInterfaceDisappears("azurerm_network_interface.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMNetworkInterface_enableIPForwarding(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -127,6 +145,31 @@ func testCheckAzureRMNetworkInterfaceExists(name string) resource.TestCheckFunc 
 
 		if resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Bad: Network Interface %q (resource group: %q) does not exist", name, resourceGroup)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMNetworkInterfaceDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for availability set: %s", name)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).ifaceClient
+
+		_, err := conn.Delete(resourceGroup, name, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on ifaceClient: %s", err)
 		}
 
 		return nil
