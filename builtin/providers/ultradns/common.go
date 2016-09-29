@@ -1,7 +1,6 @@
 package ultradns
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 
@@ -155,11 +154,9 @@ func mapFromLimit(name string, l udnssdk.ProbeDetailsLimitDTO) map[string]interf
 
 // hashLimits generates a hashcode for a limits block
 func hashLimits(v interface{}) int {
-	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-	h := hashcode.String(buf.String())
-	log.Printf("[INFO] hashLimits(): %v -> %v", buf.String(), h)
+	h := hashcode.String(m["name"].(string))
+	log.Printf("[DEBUG] hashLimits(): %v -> %v", m["name"].(string), h)
 	return h
 }
 
@@ -180,4 +177,14 @@ func makeProbeDetailsLimit(configured interface{}) *udnssdk.ProbeDetailsLimitDTO
 		Critical: l["critical"].(int),
 		Fail:     l["fail"].(int),
 	}
+}
+
+// makeSetFromStrings encodes an []string into a
+// *schema.Set in the appropriate structure for the schema
+func makeSetFromStrings(ss []string) *schema.Set {
+	st := &schema.Set{F: schema.HashString}
+	for _, s := range ss {
+		st.Add(s)
+	}
+	return st
 }
