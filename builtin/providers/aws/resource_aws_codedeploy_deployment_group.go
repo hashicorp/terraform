@@ -495,7 +495,7 @@ func buildAutoRollbackConfig(configured []interface{}) *codedeploy.AutoRollbackC
 		config := configured[0].(map[string]interface{})
 		result.Enabled = aws.Bool(config["enabled"].(bool))
 		result.Events = expandStringSet(config["events"].(*schema.Set))
-	} else {
+	} else { // delete the configuration
 		result.Enabled = aws.Bool(false)
 		result.Events = make([]*string, 0)
 	}
@@ -522,9 +522,10 @@ func buildAlarmConfig(configured []interface{}) *codedeploy.AlarmConfiguration {
 		result.Alarms = alarms
 		result.Enabled = aws.Bool(config["enabled"].(bool))
 		result.IgnorePollAlarmFailure = aws.Bool(config["ignore_poll_alarm_failure"].(bool))
-	} else {
+	} else { // delete the configuration
 		result.Alarms = make([]*codedeploy.Alarm, 0)
 		result.Enabled = aws.Bool(false)
+		result.IgnorePollAlarmFailure = aws.Bool(false)
 	}
 	return result
 }
@@ -584,12 +585,16 @@ func triggerConfigsToMap(list []*codedeploy.TriggerConfig) []map[string]interfac
 // into a []map[string]interface{} list containing a single item
 func autoRollbackConfigToMap(config *codedeploy.AutoRollbackConfiguration) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
+
+	// only create configurations that are enabled or temporarily disabled (retaining events)
+	// otherwise empty configurations will be created
 	if config != nil && (*config.Enabled == true || len(config.Events) > 0) {
 		item := make(map[string]interface{})
 		item["enabled"] = *config.Enabled
 		item["events"] = schema.NewSet(schema.HashString, flattenStringList(config.Events))
 		result = append(result, item)
 	}
+
 	return result
 }
 
@@ -598,21 +603,22 @@ func autoRollbackConfigToMap(config *codedeploy.AutoRollbackConfiguration) []map
 func alarmConfigToMap(config *codedeploy.AlarmConfiguration) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
-	if config == nil {
-		return result
+	// only create configurations that are enabled or temporarily disabled (retaining alarms)
+	// otherwise empty configurations will be created
+	if config != nil && (*config.Enabled == true || len(config.Alarms) > 0) {
+		names := make([]*string, 0, len(config.Alarms))
+		for _, alarm := range config.Alarms {
+			names = append(names, alarm.Name)
+		}
+
+		item := make(map[string]interface{})
+		item["alarms"] = schema.NewSet(schema.HashString, flattenStringList(names))
+		item["enabled"] = *config.Enabled
+		item["ignore_poll_alarm_failure"] = *config.IgnorePollAlarmFailure
+
+		result = append(result, item)
 	}
 
-	names := make([]*string, 0, len(config.Alarms))
-	for _, alarm := range config.Alarms {
-		names = append(names, alarm.Name)
-	}
-
-	item := make(map[string]interface{})
-	item["alarms"] = schema.NewSet(schema.HashString, flattenStringList(names))
-	item["enabled"] = *config.Enabled
-	item["ignore_poll_alarm_failure"] = *config.IgnorePollAlarmFailure
-
-	result = append(result, item)
 	return result
 }
 

@@ -355,7 +355,41 @@ func estAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_toggle(t *test
 	})
 }
 
-func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_basic(t *testing.T) {
+func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "0"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_update(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
 	rName := acctest.RandString(5)
@@ -392,11 +426,92 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_basic(t *testing.T) 
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
-					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.1996459178", "bar"),
 					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+// SKIP: This test does not pass but it really ought to pass...
+func skipTestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "false"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "false"),
 				),
 			},
 		},
@@ -1194,6 +1309,35 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
     alarms = ["foo", "bar"]
     enabled = true
     ignore_poll_alarm_failure = true
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  alarm_configuration {
+    alarms = ["foo"]
+    enabled = false
   }
 }`, baseCodeDeployConfig(rName), rName)
 }
