@@ -69,6 +69,7 @@ type ArmClient struct {
 	trafficManagerEndpointsClient trafficmanager.EndpointsClient
 
 	serviceBusNamespacesClient servicebus.NamespacesClient
+	serviceBusTopicsClient     servicebus.TopicsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -351,6 +352,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	sbnc.Authorizer = spt
 	sbnc.Sender = autorest.CreateSender(withRequestLogging())
 	client.serviceBusNamespacesClient = sbnc
+
+	sbtc := servicebus.NewTopicsClient(c.SubscriptionID)
+	setUserAgent(&sbtc.Client)
+	sbtc.Authorizer = spt
+	sbtc.Sender = autorest.CreateSender(withRequestLogging())
+	client.serviceBusTopicsClient = sbtc
 
 	return &client, nil
 }
