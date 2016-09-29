@@ -162,7 +162,7 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error reading EC2 volume %s: %s", vID, desc_err)
 	}
 
-	if *attr.Volumes[0].State == "available" {
+	if len(attr.Volumes) == 0 || *attr.Volumes[0].State == "available" {
 		d.SetId("")
 		return nil
 	}
