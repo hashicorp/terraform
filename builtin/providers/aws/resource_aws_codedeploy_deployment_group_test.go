@@ -233,7 +233,43 @@ func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_multiple(t *testin
 	})
 }
 
-func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_basic(t *testing.T) {
+func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "0"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.135881253", "DEPLOYMENT_FAILURE"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_update(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
 	rName := acctest.RandString(5)
@@ -277,7 +313,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_basic(t *test
 	})
 }
 
-func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_remove(t *testing.T) {
+func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
 	rName := acctest.RandString(5)
@@ -302,7 +338,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_remove(t *tes
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_none(rName),
+				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -313,7 +349,8 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_remove(t *tes
 	})
 }
 
-func estAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_toggle(t *testing.T) {
+// SKIP: This test does not pass but it really ought to pass...
+func skipTestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_disable(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
 	rName := acctest.RandString(5)
@@ -696,6 +733,68 @@ func testAccCheckTriggerTargetArn(group *codedeploy.DeploymentGroupInfo, trigger
 			}
 		}
 		return nil
+	}
+}
+
+func TestBuildAutoRollbackConfig(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"events": schema.NewSet(schema.HashString, []interface{}{
+				"DEPLOYMENT_FAILURE",
+			}),
+			"enabled": true,
+		},
+	}
+
+	expected := &codedeploy.AutoRollbackConfiguration{
+		Events: []*string{
+			aws.String("DEPLOYMENT_FAILURE"),
+		},
+		Enabled: aws.Bool(true),
+	}
+
+	actual := buildAutoRollbackConfig(input)
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("buildAutoRollbackConfig output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestAutoRollbackConfigToMap(t *testing.T) {
+	input := &codedeploy.AutoRollbackConfiguration{
+		Events: []*string{
+			aws.String("DEPLOYMENT_FAILURE"),
+			aws.String("DEPLOYMENT_STOP_ON_ALARM"),
+		},
+		Enabled: aws.Bool(false),
+	}
+
+	expected := map[string]interface{}{
+		"events": schema.NewSet(schema.HashString, []interface{}{
+			"DEPLOYMENT_FAILURE",
+			"DEPLOYMENT_STOP_ON_ALARM",
+		}),
+		"enabled": false,
+	}
+
+	actual := autoRollbackConfigToMap(input)[0]
+
+	fatal := false
+
+	if actual["enabled"] != expected["enabled"] {
+		fatal = true
+	}
+
+	actualEvents := actual["events"].(*schema.Set)
+	expectedEvents := expected["events"].(*schema.Set)
+	if !actualEvents.Equal(expectedEvents) {
+		fatal = true
+	}
+
+	if fatal {
+		t.Fatalf("autoRollbackConfigToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
 	}
 }
 
@@ -1249,7 +1348,7 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 }`, baseCodeDeployConfig(rName), rName)
 }
 
-func testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_none(rName string) string {
+func testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(rName string) string {
 	return fmt.Sprintf(`
 
   %s
