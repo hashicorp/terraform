@@ -369,3 +369,12 @@ The following attributes are exported:
 [5]: /docs/providers/aws/r/cloudfront_origin_access_identity.html
 [6]: https://aws.amazon.com/certificate-manager/
 [7]: http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html
+
+
+## Import
+
+Cloudfront Distributions can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_cloudfront_distribution.distribution E74FTE3EXAMPLE
+```
