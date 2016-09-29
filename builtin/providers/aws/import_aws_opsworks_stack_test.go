@@ -15,7 +15,7 @@ func TestAccAWSOpsWorksStack_importBasic(t *testing.T) {
 
 	name := acctest.RandString(10)
 
-	resourceName := "aws_opsworks_stack.bar"
+	resourceName := "aws_opsworks_stack.tf-acc"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
