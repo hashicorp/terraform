@@ -103,6 +103,7 @@ type Provisioner struct {
 	SecretKey             string   `mapstructure:"secret_key"`
 	ServerURL             string   `mapstructure:"server_url"`
 	SkipInstall           bool     `mapstructure:"skip_install"`
+	SkipRegister          bool     `mapstructure:"skip_register"`
 	SSLVerifyMode         string   `mapstructure:"ssl_verify_mode"`
 	UserName              string   `mapstructure:"user_name"`
 	UserKey               string   `mapstructure:"user_key"`
@@ -210,16 +211,18 @@ func (r *ResourceProvisioner) Apply(
 		return err
 	}
 
-	if p.FetchChefCertificates {
-		o.Output("Fetch Chef certificates...")
-		if err := p.fetchChefCertificates(o, comm); err != nil {
+	if !p.SkipRegister {
+		if p.FetchChefCertificates {
+			o.Output("Fetch Chef certificates...")
+			if err := p.fetchChefCertificates(o, comm); err != nil {
+				return err
+			}
+		}
+
+		o.Output("Generate the private key...")
+		if err := p.generateClientKey(o, comm); err != nil {
 			return err
 		}
-	}
-
-	o.Output("Generate the private key...")
-	if err := p.generateClientKey(o, comm); err != nil {
-		return err
 	}
 
 	if p.VaultJSON != "" {
