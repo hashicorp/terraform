@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/Ensighten/udnssdk"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -318,14 +317,6 @@ func zipRData(rds []string, rdis []udnssdk.SBRDataInfo) []map[string]interface{}
 		result = append(result, r)
 	}
 	return result
-}
-
-// hashRdata generates a hashcode for an Rdata block
-func hashRdatas(v interface{}) int {
-	m := v.(map[string]interface{})
-	h := hashcode.String(m["host"].(string))
-	log.Printf("[DEBUG] hashRdatas(): %v -> %v", m["host"].(string), h)
-	return h
 }
 
 // makeSetFromRdatas encodes an array of Rdata into a

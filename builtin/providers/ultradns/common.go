@@ -188,3 +188,11 @@ func makeSetFromStrings(ss []string) *schema.Set {
 	}
 	return st
 }
+
+// hashRdata generates a hashcode for an Rdata block
+func hashRdatas(v interface{}) int {
+	m := v.(map[string]interface{})
+	h := hashcode.String(m["host"].(string))
+	log.Printf("[DEBUG] hashRdatas(): %v -> %v", m["host"].(string), h)
+	return h
+}
