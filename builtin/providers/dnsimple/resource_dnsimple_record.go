@@ -57,6 +57,7 @@ func resourceDNSimpleRecord() *schema.Resource {
 			"priority": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
 			},
 		},
 	}
@@ -74,6 +75,10 @@ func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) erro
 
 	if ttl, ok := d.GetOk("ttl"); ok {
 		newRecord.Ttl = ttl.(string)
+	}
+
+	if priority, ok := d.GetOk("priority"); ok {
+		newRecord.Prio = priority.(string)
 	}
 
 	log.Printf("[DEBUG] DNSimple Record create configuration: %#v", newRecord)
@@ -133,6 +138,10 @@ func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	if attr, ok := d.GetOk("ttl"); ok {
 		updateRecord.Ttl = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("priority"); ok {
+		updateRecord.Prio = attr.(string)
 	}
 
 	log.Printf("[DEBUG] DNSimple Record update configuration: %#v", updateRecord)
