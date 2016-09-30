@@ -48,6 +48,9 @@ func newShadowResourceProvider(p ResourceProvider) (ResourceProvider, shadowReso
 	// Create the shadow that watches the real value
 	shadow := &shadowResourceProviderShadow{
 		Shared: &shared,
+
+		resources:   p.Resources(),
+		dataSources: p.DataSources(),
 	}
 
 	return real, shadow
@@ -60,18 +63,6 @@ type shadowResourceProviderReal struct {
 	ResourceProvider
 
 	Shared *shadowResourceProviderShared
-}
-
-func (p *shadowResourceProviderReal) Resources() []ResourceType {
-	result := p.ResourceProvider.Resources()
-	p.Shared.Resources.SetValue(result)
-	return result
-}
-
-func (p *shadowResourceProviderReal) DataSources() []DataSource {
-	result := p.ResourceProvider.DataSources()
-	p.Shared.DataSources.SetValue(result)
-	return result
 }
 
 func (p *shadowResourceProviderReal) Close() error {
@@ -88,8 +79,8 @@ func (p *shadowResourceProviderReal) Input(
 	input UIInput, c *ResourceConfig) (*ResourceConfig, error) {
 	result, err := p.ResourceProvider.Input(input, c)
 	p.Shared.Input.SetValue(&shadowResourceProviderInput{
-		Config:    c,
-		Result:    result,
+		Config:    c.DeepCopy(),
+		Result:    result.DeepCopy(),
 		ResultErr: err,
 	})
 
@@ -102,35 +93,32 @@ func (p *shadowResourceProviderReal) Input(
 type shadowResourceProviderShadow struct {
 	Shared *shadowResourceProviderShared
 
+	// Cached values that are expected to not change
+	resources   []ResourceType
+	dataSources []DataSource
+
 	Error     error // Error is the list of errors from the shadow
 	ErrorLock sync.Mutex
 }
 
 type shadowResourceProviderShared struct {
-	CloseErr    shadow.Value
-	Input       shadow.Value
-	Resources   shadow.Value
-	DataSources shadow.Value
+	CloseErr shadow.Value
+	Input    shadow.Value
 }
 
-func (p *shadowResourceProviderShadow) CloseShadow() error { return nil }
+func (p *shadowResourceProviderShadow) CloseShadow() error {
+	// For now, just return the error. What we need to do in the future
+	// is marked the provider as "closed" so that any subsequent calls
+	// will fail out.
+	return p.Error
+}
 
 func (p *shadowResourceProviderShadow) Resources() []ResourceType {
-	v := p.Shared.Resources.Value()
-	if v == nil {
-		return nil
-	}
-
-	return v.([]ResourceType)
+	return p.resources
 }
 
 func (p *shadowResourceProviderShadow) DataSources() []DataSource {
-	v := p.Shared.DataSources.Value()
-	if v == nil {
-		return nil
-	}
-
-	return v.([]DataSource)
+	return p.dataSources
 }
 
 func (p *shadowResourceProviderShadow) Close() error {
