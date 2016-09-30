@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -107,6 +108,86 @@ func TestShadowResourceProviderInput_badInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
+
+	// Verify we have an error
+	if err := shadow.CloseShadow(); err == nil {
+		t.Fatal("should have error")
+	}
+}
+
+func TestShadowResourceProviderValidate(t *testing.T) {
+	mock := new(MockResourceProvider)
+	real, shadow := newShadowResourceProvider(mock)
+
+	// Test values
+	config := testResourceConfig(t, map[string]interface{}{
+		"foo": "bar",
+	})
+	returnWarns := []string{"foo"}
+	returnErrs := []error{fmt.Errorf("bar")}
+
+	// Configure the mock
+	mock.ValidateReturnWarns = returnWarns
+	mock.ValidateReturnErrors = returnErrs
+
+	// Verify that it blocks until the real func is called
+	var warns []string
+	var errs []error
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		warns, errs = shadow.Validate(config)
+	}()
+
+	select {
+	case <-doneCh:
+		t.Fatal("should block until finished")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Call the real func
+	realWarns, realErrs := real.Validate(config)
+	if !reflect.DeepEqual(realWarns, returnWarns) {
+		t.Fatalf("bad: %#v", realWarns)
+	}
+	if !reflect.DeepEqual(realErrs, returnErrs) {
+		t.Fatalf("bad: %#v", realWarns)
+	}
+
+	// The shadow should finish now
+	<-doneCh
+
+	// Verify the shadow returned the same values
+	if !reflect.DeepEqual(warns, returnWarns) {
+		t.Fatalf("bad: %#v", warns)
+	}
+	if !reflect.DeepEqual(errs, returnErrs) {
+		t.Fatalf("bad: %#v", errs)
+	}
+
+	// Verify we have no errors
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+}
+
+func TestShadowResourceProviderValidate_badInput(t *testing.T) {
+	mock := new(MockResourceProvider)
+	real, shadow := newShadowResourceProvider(mock)
+
+	// Test values
+	config := testResourceConfig(t, map[string]interface{}{
+		"foo": "bar",
+	})
+	configBad := testResourceConfig(t, map[string]interface{}{
+		"foo": "nope",
+	})
+
+	// Call the real with one
+	real.Validate(config)
+
+	// Call the shadow with another
+	shadow.Validate(configBad)
 
 	// Verify we have an error
 	if err := shadow.CloseShadow(); err == nil {
