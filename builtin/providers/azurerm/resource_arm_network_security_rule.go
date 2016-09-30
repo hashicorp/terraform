@@ -176,11 +176,11 @@ func resourceArmNetworkSecurityRuleRead(d *schema.ResourceData, meta interface{}
 
 	resp, err := secRuleClient.Get(resGroup, networkSGName, sgRuleName)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Network Security Rule %s: %s", sgRuleName, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	d.Set("access", resp.Properties.Access)
