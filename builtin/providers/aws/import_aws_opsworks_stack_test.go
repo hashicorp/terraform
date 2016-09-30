@@ -10,7 +10,7 @@ import (
 
 func TestAccAWSOpsWorksStack_importBasic(t *testing.T) {
 	oldvar := os.Getenv("AWS_DEFAULT_REGION")
-	os.Setenv("AWS_DEFAULT_REGION", "us-east-1")
+	os.Setenv("AWS_DEFAULT_REGION", "us-west-2")
 	defer os.Setenv("AWS_DEFAULT_REGION", oldvar)
 
 	name := acctest.RandString(10)
