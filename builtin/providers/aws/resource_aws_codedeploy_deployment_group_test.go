@@ -48,9 +48,11 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2916377465.value", "filtervalue"),
 
 					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo", "trigger_configuration.#", "0"),
+						"aws_codedeploy_deployment_group.foo", "alarm_configuration.#", "0"),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "auto_rollback_configuration.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "trigger_configuration.#", "0"),
 				),
 			},
 			resource.TestStep{
@@ -74,9 +76,11 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2369538975.value", "anotherfiltervalue"),
 
 					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo", "trigger_configuration.#", "0"),
+						"aws_codedeploy_deployment_group.foo", "alarm_configuration.#", "0"),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "auto_rollback_configuration.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "trigger_configuration.#", "0"),
 				),
 			},
 		},
@@ -244,7 +248,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(t *tes
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(rName),
+				Config: test_config_auto_rollback_configuration_delete(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -252,7 +256,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(t *tes
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(rName),
+				Config: test_config_auto_rollback_configuration_create(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -280,7 +284,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_update(t *tes
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(rName),
+				Config: test_config_auto_rollback_configuration_create(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -294,7 +298,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_update(t *tes
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_update(rName),
+				Config: test_config_auto_rollback_configuration_update(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -324,7 +328,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(t *tes
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(rName),
+				Config: test_config_auto_rollback_configuration_create(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -338,7 +342,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(t *tes
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(rName),
+				Config: test_config_auto_rollback_configuration_delete(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -349,7 +353,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(t *tes
 	})
 }
 
-// SKIP: This test does not pass but it really ought to pass...
+// SKIP: This test does not pass when auto_rollback_configuration is TypeList, only TypeSet
 func skipTestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_disable(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
@@ -361,7 +365,7 @@ func skipTestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_disable(t
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(rName),
+				Config: test_config_auto_rollback_configuration_create(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -375,7 +379,7 @@ func skipTestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_disable(t
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_disable(rName),
+				Config: test_config_auto_rollback_configuration_disable(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -403,7 +407,7 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(t *testing.T)
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(rName),
+				Config: test_config_alarm_configuration_delete(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -411,7 +415,7 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(t *testing.T)
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(rName),
+				Config: test_config_alarm_configuration_create(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -420,6 +424,10 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(t *testing.T)
 						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "false"),
 				),
 			},
 		},
@@ -437,7 +445,7 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_update(t *testing.T)
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(rName),
+				Config: test_config_alarm_configuration_create(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -453,7 +461,7 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_update(t *testing.T)
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_update(rName),
+				Config: test_config_alarm_configuration_update(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -485,42 +493,7 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(t *testing.T)
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(rName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
-				),
-			},
-			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(rName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "0"),
-				),
-			},
-		},
-	})
-}
-
-// SKIP: This test does not pass but it really ought to pass...
-func skipTestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(t *testing.T) {
-	var group codedeploy.DeploymentGroupInfo
-
-	rName := acctest.RandString(5)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(rName),
+				Config: test_config_alarm_configuration_create(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -536,7 +509,46 @@ func skipTestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(t *testi
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(rName),
+				Config: test_config_alarm_configuration_delete(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+// SKIP: This test does not pass when alarm_configuration is TypeList, only TypeSet
+func skipTestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_alarm_configuration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "false"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_alarm_configuration_disable(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
@@ -692,50 +704,6 @@ func TestTriggerConfigsToMap(t *testing.T) {
 	}
 }
 
-func testAccCheckTriggerEvents(group *codedeploy.DeploymentGroupInfo, triggerName string, expectedEvents []string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		for _, actual := range group.TriggerConfigurations {
-			if *actual.TriggerName == triggerName {
-
-				numberOfEvents := len(actual.TriggerEvents)
-				if numberOfEvents != len(expectedEvents) {
-					return fmt.Errorf("Trigger events do not match. Expected: %d. Got: %d.",
-						len(expectedEvents), numberOfEvents)
-				}
-
-				actualEvents := make([]string, 0, numberOfEvents)
-				for _, event := range actual.TriggerEvents {
-					actualEvents = append(actualEvents, *event)
-				}
-				sort.Strings(actualEvents)
-
-				if !reflect.DeepEqual(actualEvents, expectedEvents) {
-					return fmt.Errorf("Trigger events do not match.\nExpected: %v\nGot: %v\n",
-						expectedEvents, actualEvents)
-				}
-				break
-			}
-		}
-		return nil
-	}
-}
-
-func testAccCheckTriggerTargetArn(group *codedeploy.DeploymentGroupInfo, triggerName string, r *regexp.Regexp) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		for _, actual := range group.TriggerConfigurations {
-			if *actual.TriggerName == triggerName {
-				if !r.MatchString(*actual.TriggerTargetArn) {
-					return fmt.Errorf("Trigger target arn does not match regular expression.\nRegex: %v\nTriggerTargetArn: %v\n",
-						r, *actual.TriggerTargetArn)
-				}
-				break
-			}
-		}
-		return nil
-	}
-}
-
 func TestBuildAutoRollbackConfig(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
@@ -871,6 +839,50 @@ func TestAlarmConfigToMap(t *testing.T) {
 	if fatal {
 		t.Fatalf("alarmConfigToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
 			actual, expected)
+	}
+}
+
+func testAccCheckTriggerEvents(group *codedeploy.DeploymentGroupInfo, triggerName string, expectedEvents []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		for _, actual := range group.TriggerConfigurations {
+			if *actual.TriggerName == triggerName {
+
+				numberOfEvents := len(actual.TriggerEvents)
+				if numberOfEvents != len(expectedEvents) {
+					return fmt.Errorf("Trigger events do not match. Expected: %d. Got: %d.",
+						len(expectedEvents), numberOfEvents)
+				}
+
+				actualEvents := make([]string, 0, numberOfEvents)
+				for _, event := range actual.TriggerEvents {
+					actualEvents = append(actualEvents, *event)
+				}
+				sort.Strings(actualEvents)
+
+				if !reflect.DeepEqual(actualEvents, expectedEvents) {
+					return fmt.Errorf("Trigger events do not match.\nExpected: %v\nGot: %v\n",
+						expectedEvents, actualEvents)
+				}
+				break
+			}
+		}
+		return nil
+	}
+}
+
+func testAccCheckTriggerTargetArn(group *codedeploy.DeploymentGroupInfo, triggerName string, r *regexp.Regexp) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, actual := range group.TriggerConfigurations {
+			if *actual.TriggerName == triggerName {
+				if !r.MatchString(*actual.TriggerTargetArn) {
+					return fmt.Errorf("Trigger target arn does not match regular expression.\nRegex: %v\nTriggerTargetArn: %v\n",
+						r, *actual.TriggerTargetArn)
+				}
+				break
+			}
+		}
+		return nil
 	}
 }
 
@@ -1314,7 +1326,7 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 }`, baseCodeDeployConfig(rName), rName, rName, rName)
 }
 
-func testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(rName string) string {
+func test_config_auto_rollback_configuration_create(rName string) string {
 	return fmt.Sprintf(`
 
   %s
@@ -1331,7 +1343,7 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 }`, baseCodeDeployConfig(rName), rName)
 }
 
-func testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_update(rName string) string {
+func test_config_auto_rollback_configuration_update(rName string) string {
 	return fmt.Sprintf(`
 
   %s
@@ -1348,7 +1360,7 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 }`, baseCodeDeployConfig(rName), rName)
 }
 
-func testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(rName string) string {
+func test_config_auto_rollback_configuration_delete(rName string) string {
 	return fmt.Sprintf(`
 
   %s
@@ -1360,7 +1372,7 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 }`, baseCodeDeployConfig(rName), rName)
 }
 
-func testAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_disable(rName string) string {
+func test_config_auto_rollback_configuration_disable(rName string) string {
 	return fmt.Sprintf(`
 
   %s
@@ -1377,7 +1389,7 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 }`, baseCodeDeployConfig(rName), rName)
 }
 
-func testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(rName string) string {
+func test_config_alarm_configuration_create(rName string) string {
 	return fmt.Sprintf(`
 
   %s
@@ -1394,7 +1406,7 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 }`, baseCodeDeployConfig(rName), rName)
 }
 
-func testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_update(rName string) string {
+func test_config_alarm_configuration_update(rName string) string {
 	return fmt.Sprintf(`
 
   %s
@@ -1412,7 +1424,7 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 }`, baseCodeDeployConfig(rName), rName)
 }
 
-func testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(rName string) string {
+func test_config_alarm_configuration_delete(rName string) string {
 	return fmt.Sprintf(`
 
   %s
@@ -1424,7 +1436,7 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 }`, baseCodeDeployConfig(rName), rName)
 }
 
-func testAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(rName string) string {
+func test_config_alarm_configuration_disable(rName string) string {
 	return fmt.Sprintf(`
 
   %s

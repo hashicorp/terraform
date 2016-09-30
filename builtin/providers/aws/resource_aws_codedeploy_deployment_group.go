@@ -237,6 +237,7 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		triggerConfigs := buildTriggerConfigs(attr.(*schema.Set).List())
 		input.TriggerConfigurations = triggerConfigs
 	}
+
 	if attr, ok := d.GetOk("auto_rollback_configuration"); ok {
 		input.AutoRollbackConfiguration = buildAutoRollbackConfig(attr.([]interface{}))
 	}
@@ -316,6 +317,7 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 	if err := d.Set("trigger_configuration", triggerConfigsToMap(resp.DeploymentGroupInfo.TriggerConfigurations)); err != nil {
 		return err
 	}
+
 	if err := d.Set("auto_rollback_configuration", autoRollbackConfigToMap(resp.DeploymentGroupInfo.AutoRollbackConfiguration)); err != nil {
 		return err
 	}
@@ -364,6 +366,7 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 		triggerConfigs := buildTriggerConfigs(n.(*schema.Set).List())
 		input.TriggerConfigurations = triggerConfigs
 	}
+
 	if d.HasChange("auto_rollback_configuration") {
 		_, n := d.GetChange("auto_rollback_configuration")
 		input.AutoRollbackConfiguration = buildAutoRollbackConfig(n.([]interface{}))
@@ -491,6 +494,7 @@ func buildTriggerConfigs(configured []interface{}) []*codedeploy.TriggerConfig {
 // into a single codedeploy.AutoRollbackConfiguration
 func buildAutoRollbackConfig(configured []interface{}) *codedeploy.AutoRollbackConfiguration {
 	result := &codedeploy.AutoRollbackConfiguration{}
+
 	if len(configured) == 1 {
 		config := configured[0].(map[string]interface{})
 		result.Enabled = aws.Bool(config["enabled"].(bool))
@@ -499,6 +503,7 @@ func buildAutoRollbackConfig(configured []interface{}) *codedeploy.AutoRollbackC
 		result.Enabled = aws.Bool(false)
 		result.Events = make([]*string, 0)
 	}
+
 	return result
 }
 
@@ -527,6 +532,7 @@ func buildAlarmConfig(configured []interface{}) *codedeploy.AlarmConfiguration {
 		result.Enabled = aws.Bool(false)
 		result.IgnorePollAlarmFailure = aws.Bool(false)
 	}
+
 	return result
 }
 
