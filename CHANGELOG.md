@@ -1,5 +1,8 @@
 ## 0.7.5 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * `tls_cert_request` is now a managed resource instead of a data source, restoring the pre-Terraform 0.7 behaviour [GH-9035]
+
 FEATURES:
  * **New Provider:** `bitbucket` [GH-7405]
  * **New Resource:** `aws_api_gateway_client_certificate` [GH-8775]
