@@ -83,6 +83,7 @@ func Provider() terraform.ResourceProvider {
 		ConfigureFunc: providerConfigure,
 
 		ResourcesMap: map[string]*schema.Resource{
+			"vault_generic_secret": genericSecretResource(),
 		},
 	}
 }
