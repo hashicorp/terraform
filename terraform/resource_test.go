@@ -239,6 +239,14 @@ func TestResourceConfigGet(t *testing.T) {
 	}
 }
 
+func TestResourceConfigDeepCopy_nil(t *testing.T) {
+	var nilRc *ResourceConfig
+	actual := nilRc.DeepCopy()
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceConfigEqual_nil(t *testing.T) {
 	var nilRc *ResourceConfig
 	notNil := NewResourceConfig(nil)
