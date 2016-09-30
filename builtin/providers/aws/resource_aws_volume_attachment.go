@@ -136,7 +136,7 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	_, err := conn.DescribeVolumes(request)
+	vols, err := conn.DescribeVolumes(request)
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVolume.NotFound" {
 			d.SetId("")
@@ -144,6 +144,11 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 		}
 		return fmt.Errorf("Error reading EC2 volume %s for instance: %s: %#v", d.Get("volume_id").(string), d.Get("instance_id").(string), err)
 	}
+
+	if len(vols.Volumes) == 0 || *vols.Volumes[0].State == "available" {
+		d.SetId("")
+	}
+
 	return nil
 }
 
@@ -152,20 +157,6 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 
 	vID := d.Get("volume_id").(string)
 	iID := d.Get("instance_id").(string)
-
-	desc_opts := &ec2.DescribeVolumesInput{
-		VolumeIds: []*string{aws.String(vID)},
-	}
-
-	attr, desc_err := conn.DescribeVolumes(desc_opts)
-	if desc_err != nil {
-		return fmt.Errorf("Error reading EC2 volume %s: %s", vID, desc_err)
-	}
-
-	if len(attr.Volumes) == 0 || *attr.Volumes[0].State == "available" {
-		d.SetId("")
-		return nil
-	}
 
 	opts := &ec2.DetachVolumeInput{
 		Device:     aws.String(d.Get("device_name").(string)),
