@@ -98,6 +98,11 @@ func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 // to modify any of the structures that are part of the resource config without
 // affecting the original configuration.
 func (c *ResourceConfig) DeepCopy() *ResourceConfig {
+	// DeepCopying a nil should return a nil to avoid panics
+	if c == nil {
+		return nil
+	}
+
 	// Copy, this will copy all the exported attributes
 	copy, err := copystructure.Config{Lock: true}.Copy(c)
 	if err != nil {
