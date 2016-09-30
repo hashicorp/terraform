@@ -153,11 +153,11 @@ func resourceArmTrafficManagerEndpointRead(d *schema.ResourceData, meta interfac
 
 	resp, err := client.Get(resGroup, profileName, endpointType, name)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on TrafficManager Endpoint %s: %s", name, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	endpoint := *resp.Properties
