@@ -65,6 +65,7 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"alarms": &schema.Schema{
 							Type:     schema.TypeSet,
+							MaxItems: 10,
 							Optional: true,
 							Set:      schema.HashString,
 							Elem:     &schema.Schema{Type: schema.TypeString},
