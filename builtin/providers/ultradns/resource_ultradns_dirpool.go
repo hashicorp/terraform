@@ -394,7 +394,13 @@ func populateResourceFromDirpool(d *schema.ResourceData, r *udnssdk.RRSet) error
 
 	// Set simple values
 	d.Set("description", p.Description)
-	d.Set("conflict_resolve", p.ConflictResolve)
+
+	// Ensure default looks like "GEO", even when nothing is returned
+	if p.ConflictResolve == "" {
+		d.Set("conflict_resolve", "GEO")
+	} else {
+		d.Set("conflict_resolve", p.ConflictResolve)
+	}
 
 	rd := makeSetFromDirpoolRdata(r.RData, p.RDataInfo)
 	err = d.Set("rdata", rd)
