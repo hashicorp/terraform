@@ -411,11 +411,11 @@ resource "aws_vpc" "tf-acc" {
 resource "aws_subnet" "tf-acc" {
   vpc_id = "${aws_vpc.tf-acc.id}"
   cidr_block = "${aws_vpc.tf-acc.cidr_block}"
-  availability_zone = "us-east-1a"
+  availability_zone = "us-west-2a"
 }
 resource "aws_opsworks_stack" "tf-acc" {
   name = "%s"
-  region = "us-east-1"
+  region = "us-west-2"
   vpc_id = "${aws_vpc.tf-acc.id}"
   default_subnet_id = "${aws_subnet.tf-acc.id}"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
