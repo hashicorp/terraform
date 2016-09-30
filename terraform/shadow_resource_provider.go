@@ -87,6 +87,17 @@ func (p *shadowResourceProviderReal) Input(
 	return result, err
 }
 
+func (p *shadowResourceProviderReal) Validate(c *ResourceConfig) ([]string, []error) {
+	warns, errs := p.ResourceProvider.Validate(c)
+	p.Shared.Validate.SetValue(&shadowResourceProviderValidate{
+		Config:     c.DeepCopy(),
+		ResultWarn: warns,
+		ResultErr:  errs,
+	})
+
+	return warns, errs
+}
+
 // shadowResourceProviderShadow is the shadow resource provider. Function
 // calls never affect real resources. This is paired with the "real" side
 // which must be called properly to enable recording.
@@ -104,6 +115,7 @@ type shadowResourceProviderShadow struct {
 type shadowResourceProviderShared struct {
 	CloseErr shadow.Value
 	Input    shadow.Value
+	Validate shadow.Value
 }
 
 func (p *shadowResourceProviderShadow) CloseShadow() error {
@@ -160,15 +172,40 @@ func (p *shadowResourceProviderShadow) Input(
 	return result.Result, result.ResultErr
 }
 
-// TODO
-// TODO
-// TODO
-// TODO
-// TODO
-
 func (p *shadowResourceProviderShadow) Validate(c *ResourceConfig) ([]string, []error) {
-	return nil, nil
+	// Get the result of the validate call
+	raw := p.Shared.Validate.Value()
+	if raw == nil {
+		return nil, nil
+	}
+
+	result, ok := raw.(*shadowResourceProviderValidate)
+	if !ok {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'validate' shadow value: %#v", raw))
+		return nil, nil
+	}
+
+	// Compare the parameters, which should be identical
+	if !c.Equal(result.Config) {
+		p.ErrorLock.Lock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Validate had unequal configurations (real, then shadow):\n\n%#v\n\n%#v",
+			result.Config, c))
+		p.ErrorLock.Unlock()
+	}
+
+	// Return the results
+	return result.ResultWarn, result.ResultErr
 }
+
+// TODO
+// TODO
+// TODO
+// TODO
+// TODO
 
 func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
 	return nil, nil
@@ -225,4 +262,10 @@ type shadowResourceProviderInput struct {
 	Config    *ResourceConfig
 	Result    *ResourceConfig
 	ResultErr error
+}
+
+type shadowResourceProviderValidate struct {
+	Config     *ResourceConfig
+	ResultWarn []string
+	ResultErr  []error
 }
