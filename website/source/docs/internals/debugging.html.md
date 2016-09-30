@@ -27,7 +27,7 @@ to the developers via a GitHub Issue. As a user, you're not required to dig
 into this file.
 
 However, if you are interested in figuring out what might have gone wrong
-before filing an issue, here are the the basic details of how to read a crash
+before filing an issue, here are the basic details of how to read a crash
 log.
 
 The most interesting part of a crash log is the panic message itself and the
