@@ -44,7 +44,8 @@ func resourceUltradnsDirpool() *schema.Resource {
 				// 0-255 char
 			},
 			"rdata": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
+				Set:      hashRdatas,
 				Required: true,
 				// Valid: len(rdataInfo) == len(rdata)
 				Elem: &schema.Resource{
@@ -327,7 +328,7 @@ func resourceUltradnsDirpoolDelete(d *schema.ResourceData, meta interface{}) err
 // makeDirpoolRRSetResource converts ResourceData into an rRSetResource
 // ready for use in any CRUD operation
 func makeDirpoolRRSetResource(d *schema.ResourceData) (rRSetResource, error) {
-	rDataRaw := d.Get("rdata").([]interface{})
+	rDataRaw := d.Get("rdata").(*schema.Set).List()
 	res := rRSetResource{
 		RRType:    d.Get("type").(string),
 		Zone:      d.Get("zone").(string),
@@ -395,7 +396,7 @@ func populateResourceFromDirpool(d *schema.ResourceData, r *udnssdk.RRSet) error
 	d.Set("description", p.Description)
 	d.Set("conflict_resolve", p.ConflictResolve)
 
-	rd := zipDirpoolRData(r.RData, p.RDataInfo)
+	rd := makeSetFromDirpoolRdata(r.RData, p.RDataInfo)
 	err = d.Set("rdata", rd)
 	if err != nil {
 		return fmt.Errorf("rdata set failed: %v, from %#v", err, rd)
@@ -505,6 +506,17 @@ func zipDirpoolRData(rds []string, rdis []udnssdk.DPRDataInfo) []map[string]inte
 		result = append(result, r)
 	}
 	return result
+}
+
+// makeSetFromDirpoolRdata encodes an array of Rdata into a
+// *schema.Set in the appropriate structure for the schema
+func makeSetFromDirpoolRdata(rds []string, rdis []udnssdk.DPRDataInfo) *schema.Set {
+	s := &schema.Set{F: hashRdatas}
+	rs := zipDirpoolRData(rds, rdis)
+	for _, r := range rs {
+		s.Add(r)
+	}
+	return s
 }
 
 // mapFromIPInfos encodes 0 or 1 IPInfos into a []map[string]interface{}
